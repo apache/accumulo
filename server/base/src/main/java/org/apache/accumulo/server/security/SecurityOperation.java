@@ -34,6 +34,7 @@ import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -52,13 +53,9 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.security.handler.Authenticator;
-import org.apache.accumulo.server.security.handler.Authorizor;
-import org.apache.accumulo.server.security.handler.KerberosAuthenticator;
-import org.apache.accumulo.server.security.handler.PermissionHandler;
-import org.apache.accumulo.server.security.handler.ZKAuthenticator;
-import org.apache.accumulo.server.security.handler.ZKAuthorizor;
-import org.apache.accumulo.server.security.handler.ZKPermHandler;
+import org.apache.accumulo.server.security.handler.KerberosSecurityModule;
+import org.apache.accumulo.core.spi.security.SecurityModule;
+import org.apache.accumulo.server.security.handler.ZKSecurityModuleImpl;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,69 +66,28 @@ import org.slf4j.LoggerFactory;
 public class SecurityOperation {
   private static final Logger log = LoggerFactory.getLogger(SecurityOperation.class);
 
-  protected Authorizor authorizor;
-  protected Authenticator authenticator;
-  protected PermissionHandler permHandle;
-  protected boolean isKerberos;
+  protected final SecurityModule securityModule;
+  protected final boolean isKerberos;
+  protected final ServerContext context;
+
+  // root user static since it may not have been bootstrapped yet
   private static String rootUserName = null;
   private final ZooCache zooCache;
   private final String ZKUserPath;
 
-  protected final ServerContext context;
-
   static SecurityOperation instance;
 
-  public static synchronized SecurityOperation getInstance(ServerContext context) {
-    if (instance == null) {
-      instance = new SecurityOperation(context, getAuthorizor(context), getAuthenticator(context),
-          getPermHandler(context));
-    }
-    return instance;
-  }
-
-  protected static Authorizor getAuthorizor(ServerContext context) {
-    Authorizor toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
-        Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, new ZKAuthorizor());
-    toRet.initialize(context);
-    return toRet;
-  }
-
-  protected static Authenticator getAuthenticator(ServerContext context) {
-    Authenticator toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
-        Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class, new ZKAuthenticator());
-    toRet.initialize(context);
-    return toRet;
-  }
-
-  protected static PermissionHandler getPermHandler(ServerContext context) {
-    PermissionHandler toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
-        Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class,
-        new ZKPermHandler());
-    toRet.initialize(context);
-    return toRet;
-  }
-
-  protected SecurityOperation(ServerContext context) {
-    this.context = context;
+  public SecurityOperation(ServerContext serverContext) {
+    context = serverContext;
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
+    securityModule = loadModule(context.getConfiguration());
+    isKerberos = securityModule.getClass().isAssignableFrom(KerberosSecurityModule.class);
   }
 
-  public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
-      PermissionHandler pm) {
-    this(context);
-    authorizor = author;
-    authenticator = authent;
-    permHandle = pm;
-
-    if (!authorizor.validSecurityHandlers(authenticator, pm)
-        || !authenticator.validSecurityHandlers()
-        || !permHandle.validSecurityHandlers(authent, author))
-      throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
-          + " do not play nice with eachother. Please choose authentication and"
-          + " authorization mechanisms that are compatible with one another.");
-
-    isKerberos = KerberosAuthenticator.class.isAssignableFrom(authenticator.getClass());
+  private SecurityModule loadModule(AccumuloConfiguration conf) {
+    return Property.createInstanceFromPropertyName(conf, Property.INSTANCE_SECURITY_MODULE,
+        SecurityModule.class, new ZKSecurityModuleImpl(context));
   }
 
   public void initializeSecurity(TCredentials credentials, String rootPrincipal, byte[] token)
@@ -140,18 +96,18 @@ public class SecurityOperation {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
 
-    authenticator.initializeSecurity(rootPrincipal, token);
-    authorizor.initializeSecurity(credentials, rootPrincipal);
-    permHandle.initializeSecurity(credentials, rootPrincipal);
+    securityModule.initialize(rootPrincipal, token);
     try {
-      permHandle.grantTablePermission(rootPrincipal, MetadataTable.ID.canonical(),
-          TablePermission.ALTER_TABLE);
+      // TODO figure out what the User object should contain
+      //.grantTable(rootPrincipal, MetadataTable.ID, TablePermission.ALTER_TABLE);
+      securityModule.policy().grant();
     } catch (TableNotFoundException e) {
       // Shouldn't happen
       throw new RuntimeException(e);
     }
   }
 
+  // TODO move rootUserName into ServerContext... shouldn't need to be synchronized or static
   public synchronized String getRootUsername() {
     if (rootUserName == null)
       rootUserName = new String(zooCache.get(ZKUserPath), UTF_8);
@@ -194,7 +150,7 @@ public class SecurityOperation {
       if (isKerberos) {
         // If we have kerberos credentials for a user from the network but no account
         // in the system, we need to make one before proceeding
-        if (!authenticator.userExists(creds.getPrincipal())) {
+        if (!securityModule.auth().listUsers().contains(creds.getPrincipal())) {
           // If we call the normal createUser method, it will loop back into this method
           // when it tries to check if the user has permission to create users
           try {
@@ -202,11 +158,9 @@ public class SecurityOperation {
           } catch (ThriftSecurityException e) {
             if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
               // For Kerberos, a user acct is automatically created because there is no notion of
-              // a password
-              // in the traditional sense of Accumulo users. As such, if a user acct already
-              // exists when we
-              // try to automatically create a user account, we should avoid returning this
-              // exception back to the user.
+              // a password in the traditional sense of Accumulo users. If a user acct already
+              // exists when we try to automatically create a user account, we should avoid
+              // returning this exception back to the user.
               // We want to let USER_EXISTS code pass through and continue
               throw e;
             }
@@ -216,7 +170,7 @@ public class SecurityOperation {
 
       // Check that the user is authenticated (a no-op at this point for kerberos)
       try {
-        if (!authenticator.authenticateUser(creds.getPrincipal(), creds.getToken())) {
+        if (!securityModule.auth().authenticate(creds.getPrincipal(), creds.getToken())) {
           throw new ThriftSecurityException(creds.getPrincipal(),
               SecurityErrorCode.BAD_CREDENTIALS);
         }
@@ -248,7 +202,7 @@ public class SecurityOperation {
       if (isKerberos) {
         // If we have kerberos credentials for a user from the network but no account
         // in the system, we need to make one before proceeding
-        if (!authenticator.userExists(toCreds.getPrincipal())) {
+        if (!securityModule.auth().listUsers().contains(toCreds.getPrincipal())) {
           createUser(credentials, toCreds, Authorizations.EMPTY);
         }
         // Likely that the KerberosAuthenticator will fail as we don't have the credentials for the
@@ -256,7 +210,7 @@ public class SecurityOperation {
         // we only have our own Kerberos credentials.
       }
 
-      return authenticator.authenticateUser(toCreds.getPrincipal(), toCreds.getToken());
+      return securityModule.auth().authenticate(toCreds.getPrincipal(), toCreds.getToken());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }
@@ -274,7 +228,7 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
 
-    return authorizor.getCachedUserAuthorizations(user);
+    return securityModule.auth().getAuths(user);
   }
 
   public Authorizations getUserAuthorizations(TCredentials credentials)
@@ -296,7 +250,7 @@ public class SecurityOperation {
       // system user doesn't need record-level authorizations for the tables it reads (for now)
       return list.isEmpty();
     }
-    return authorizor.isValidAuthorizations(credentials.getPrincipal(), list);
+    return securityModule.auth().hasAuths(credentials.getPrincipal(), new Authorizations(list));
   }
 
   private boolean hasSystemPermission(TCredentials credentials, SystemPermission permission,
@@ -338,9 +292,7 @@ public class SecurityOperation {
 
     targetUserExists(user);
 
-    if (useCached)
-      return permHandle.hasCachedSystemPermission(user, permission);
-    return permHandle.hasSystemPermission(user, permission);
+    return permModule.hasSystem(user, permission, useCached);
   }
 
   /**
@@ -373,9 +325,7 @@ public class SecurityOperation {
       return true;
 
     try {
-      if (useCached)
-        return permHandle.hasCachedTablePermission(user, table.canonical(), permission);
-      return permHandle.hasTablePermission(user, table.canonical(), permission);
+      return permModule.hasTable(user, table, permission, useCached);
     } catch (TableNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.TABLE_DOESNT_EXIST);
     }
@@ -398,9 +348,7 @@ public class SecurityOperation {
       return true;
 
     try {
-      if (useCached)
-        return permHandle.hasCachedNamespacePermission(user, namespace.canonical(), permission);
-      return permHandle.hasNamespacePermission(user, namespace.canonical(), permission);
+      return permModule.hasNamespace(user, namespace, permission, useCached);
     } catch (NamespaceNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }
@@ -420,7 +368,7 @@ public class SecurityOperation {
   private void targetUserExists(String user) throws ThriftSecurityException {
     if (user.equals(getRootUsername()))
       return;
-    if (!authenticator.userExists(user))
+    if (!securityModule.auth().listUsers().contains(user))
       throw new ThriftSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST);
   }
 
@@ -646,7 +594,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      authorizor.changeAuthorizations(user, authorizations);
+      securityModule.auth().setAuths(user, authorizations);
       log.info("Changed authorizations for user {} at the request of user {}", user,
           credentials.getPrincipal());
     } catch (AccumuloSecurityException ase) {
@@ -661,7 +609,7 @@ public class SecurityOperation {
           SecurityErrorCode.PERMISSION_DENIED);
     try {
       AuthenticationToken token = toChange.getToken();
-      authenticator.changePassword(toChange.getPrincipal(), token);
+      securityModule.auth().changePassword(toChange.getPrincipal(), token);
       log.info("Changed password for user {} at the request of user {}", toChange.getPrincipal(),
           credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
@@ -677,7 +625,7 @@ public class SecurityOperation {
     _createUser(credentials, newUser);
     if (canChangeAuthorizations(credentials, newUser.getPrincipal())) {
       try {
-        authorizor.changeAuthorizations(newUser.getPrincipal(), authorizations);
+        securityModule.auth().setAuths(newUser.getPrincipal(), authorizations);
       } catch (AccumuloSecurityException ase) {
         throw ase.asThriftException();
       }
@@ -688,9 +636,7 @@ public class SecurityOperation {
       throws ThriftSecurityException {
     try {
       AuthenticationToken token = newUser.getToken();
-      authenticator.createUser(newUser.getPrincipal(), token);
-      authorizor.initUser(newUser.getPrincipal());
-      permHandle.initUser(newUser.getPrincipal());
+      securityModule.auth().createUser(newUser.getPrincipal(), token);
       log.info("Created user {} at the request of user {}", newUser.getPrincipal(),
           credentials.getPrincipal());
     } catch (AccumuloSecurityException ase) {
@@ -703,9 +649,7 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     try {
-      authorizor.dropUser(user);
-      authenticator.dropUser(user);
-      permHandle.cleanUser(user);
+      securityModule.auth().dropUser(user);
       log.info("Deleted user {} at the request of user {}", user, credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
@@ -721,7 +665,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.grantSystemPermission(user, permissionById);
+      permModule.grantSystem(user, permissionById);
       log.info("Granted system permission {} for user {} at the request of user {}", permissionById,
           user, credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
@@ -737,7 +681,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.grantTablePermission(user, tableId.canonical(), permission);
+      permModule.grantTable(user, tableId, permission);
       log.info("Granted table permission {} for user {} on the table {} at the request of user {}",
           permission, user, tableId, c.getPrincipal());
     } catch (AccumuloSecurityException e) {
@@ -755,7 +699,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.grantNamespacePermission(user, namespace.canonical(), permission);
+      permModule.grantNamespace(user, namespace, permission);
       log.info("Granted namespace permission {} for user {} on the namespace {}"
           + " at the request of user {}", permission, user, namespace, c.getPrincipal());
     } catch (AccumuloSecurityException e) {
@@ -774,7 +718,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.revokeSystemPermission(user, permission);
+      permModule.revokeSystem(user, permission);
       log.info("Revoked system permission {} for user {} at the request of user {}", permission,
           user, credentials.getPrincipal());
 
@@ -791,7 +735,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.revokeTablePermission(user, tableId.canonical(), permission);
+      permModule.revokeTable(user, tableId, permission);
       log.info("Revoked table permission {} for user {} on the table {} at the request of user {}",
           permission, user, tableId, c.getPrincipal());
 
@@ -810,7 +754,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.revokeNamespacePermission(user, namespace.canonical(), permission);
+      permModule.revokeNamespace(user, namespace, permission);
       log.info("Revoked namespace permission {} for user {} on the namespace {}"
           + " at the request of user {}", permission, user, namespace, c.getPrincipal());
 
@@ -847,7 +791,7 @@ public class SecurityOperation {
 
   public Set<String> listUsers(TCredentials credentials) throws ThriftSecurityException {
     authenticate(credentials);
-    return authenticator.listUsers();
+    return securityModule.auth().listUsers();
   }
 
   public void deleteTable(TCredentials credentials, TableId tableId, NamespaceId namespaceId)
@@ -856,13 +800,10 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     try {
-      permHandle.cleanTablePermissions(tableId.canonical());
+      permModule.cleanTableOrNamespace(tableId, SecurityModule.ZKUserTablePerms);
     } catch (AccumuloSecurityException e) {
       e.setUser(credentials.getPrincipal());
       throw e.asThriftException();
-    } catch (TableNotFoundException e) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.TABLE_DOESNT_EXIST);
     }
   }
 
@@ -872,13 +813,10 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     try {
-      permHandle.cleanNamespacePermissions(namespace.canonical());
+      permModule.cleanTableOrNamespace(namespace, SecurityModule.ZKUserNamespacePerms);
     } catch (AccumuloSecurityException e) {
       e.setUser(credentials.getPrincipal());
       throw e.asThriftException();
-    } catch (NamespaceNotFoundException e) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }
   }
 
