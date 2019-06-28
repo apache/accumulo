@@ -25,7 +25,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -66,18 +65,20 @@ public class UserImpersonationTest {
     };
   }
 
-  void setValidHosts(String... hosts) {
+  private void setValidHosts(String... hosts) {
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION.getKey(),
         Joiner.on(';').join(hosts));
   }
 
-  void setValidUsers(Map<String,String> remoteToAllowedUsers) {
+  // preserve order
+  private void setValidUsers(String... remoteToAllowedUsers) {
+    assertEquals(0, remoteToAllowedUsers.length % 2); // make sure pairs are odd
     StringBuilder sb = new StringBuilder();
-    for (Entry<String,String> entry : remoteToAllowedUsers.entrySet()) {
+    for (int v = 1; v < remoteToAllowedUsers.length; v += 2) {
       if (sb.length() > 0) {
         sb.append(";");
       }
-      sb.append(entry.getKey()).append(":").append(entry.getValue());
+      sb.append(remoteToAllowedUsers[v - 1]).append(":").append(remoteToAllowedUsers[v]);
     }
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, sb.toString());
   }
@@ -86,7 +87,7 @@ public class UserImpersonationTest {
   public void testAnyUserAndHosts() {
     String server = "server";
     setValidHosts("*");
-    setValidUsers(Map.of(server, "*"));
+    setValidUsers(server, "*");
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -102,7 +103,7 @@ public class UserImpersonationTest {
   @Test
   public void testNoHostByDefault() {
     String server = "server";
-    setValidUsers(Map.of(server, "*"));
+    setValidUsers(server, "*");
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -129,7 +130,7 @@ public class UserImpersonationTest {
   public void testSingleUserAndHost() {
     String server = "server", host = "single_host.domain.com", client = "single_client";
     setValidHosts(host);
-    setValidUsers(Map.of(server, client));
+    setValidUsers(server, client);
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -152,7 +153,7 @@ public class UserImpersonationTest {
   public void testMultipleExplicitUsers() {
     String server = "server", client1 = "client1", client2 = "client2", client3 = "client3";
     setValidHosts("*");
-    setValidUsers(Map.of(server, Joiner.on(',').join(client1, client2, client3)));
+    setValidUsers(server, Joiner.on(',').join(client1, client2, client3));
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -174,7 +175,7 @@ public class UserImpersonationTest {
   public void testMultipleExplicitHosts() {
     String server = "server", host1 = "host1", host2 = "host2", host3 = "host3";
     setValidHosts(Joiner.on(',').join(host1, host2, host3));
-    setValidUsers(Map.of(server, "*"));
+    setValidUsers(server, "*");
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -197,7 +198,7 @@ public class UserImpersonationTest {
     String server = "server", host1 = "host1", host2 = "host2", host3 = "host3",
         client1 = "client1", client2 = "client2", client3 = "client3";
     setValidHosts(Joiner.on(',').join(host1, host2, host3));
-    setValidUsers(Map.of(server, Joiner.on(',').join(client1, client2, client3)));
+    setValidUsers(server, Joiner.on(',').join(client1, client2, client3));
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -227,7 +228,7 @@ public class UserImpersonationTest {
     // server1 can impersonate client1 and client2 from host1 or host2
     // server2 can impersonate only client3 from host3
     setValidHosts(Joiner.on(',').join(host1, host2), host3);
-    setValidUsers(Map.of(server1, Joiner.on(',').join(client1, client2), server2, client3));
+    setValidUsers(server1, Joiner.on(',').join(client1, client2), server2, client3);
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server1);
