@@ -1,17 +1,17 @@
-package org.apache.accumulo.core.spi.security;
+package org.apache.accumulo.server.security.handler;
 
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.server.ServerContext;
 
+/**
+ * TODO Move this into SPI once ready.
+ */
 public interface SecurityModule {
 
   /**
    * Initialize the security for Accumulo. WARNING: Calling this will drop all users for Accumulo
    * and reset security. This is automatically called when Accumulo is initialized.
-   *
-   * @param env
-   *          ServiceEnvironment server configuration
    */
-  void initialize(ServiceEnvironment env);
+  void initialize(String rootUser, byte[] token);
 
   /**
    * Return the implemented {@link Auth} for this SecurityModule.

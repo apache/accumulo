@@ -54,6 +54,8 @@ import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.KerberosAuthenticator;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
+import org.apache.accumulo.server.security.handler.SecurityModule;
+import org.apache.accumulo.server.security.handler.SecurityModuleImpl;
 import org.apache.accumulo.server.security.handler.ZKAuthenticator;
 import org.apache.accumulo.server.security.handler.ZKAuthorizor;
 import org.apache.accumulo.server.security.handler.ZKPermHandler;
@@ -66,6 +68,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SecurityOperation {
   private static final Logger log = LoggerFactory.getLogger(SecurityOperation.class);
+  protected SecurityModule securityModule;
 
   protected Authorizor authorizor;
   protected Authenticator authenticator;
@@ -118,6 +121,7 @@ public class SecurityOperation {
   public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
       PermissionHandler pm) {
     this(context);
+    securityModule = new SecurityModuleImpl(context);
     authorizor = author;
     authenticator = authent;
     permHandle = pm;
@@ -138,11 +142,9 @@ public class SecurityOperation {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
 
-    authenticator.initializeSecurity(rootPrincipal, token);
-    authorizor.initializeSecurity(credentials, rootPrincipal);
-    permHandle.initializeSecurity(credentials, rootPrincipal);
+    securityModule.initialize(rootPrincipal, token);
     try {
-      permHandle.grantTablePermission(rootPrincipal, MetadataTable.ID.canonical(),
+      securityModule.perm().grantTable(rootPrincipal, MetadataTable.ID.canonical(),
           TablePermission.ALTER_TABLE);
     } catch (TableNotFoundException e) {
       // Shouldn't happen

@@ -1,4 +1,4 @@
-package org.apache.accumulo.core.spi.security;
+package org.apache.accumulo.server.security.handler;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
