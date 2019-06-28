@@ -34,7 +34,6 @@ import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 public class ServerConstants {
@@ -76,9 +75,8 @@ public class ServerConstants {
   public static final int DATA_VERSION = ROOT_TABLET_META_CHANGES;
 
   public static final Set<Integer> CAN_RUN =
-      ImmutableSet.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, DATA_VERSION);
-  public static final Set<Integer> NEEDS_UPGRADE =
-      Sets.difference(CAN_RUN, ImmutableSet.of(DATA_VERSION));
+      Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, DATA_VERSION);
+  public static final Set<Integer> NEEDS_UPGRADE = Sets.difference(CAN_RUN, Set.of(DATA_VERSION));
 
   private static String[] baseUris = null;
 
@@ -117,10 +115,11 @@ public class ServerConstants {
         currentVersion =
             ServerUtil.getAccumuloPersistentVersion(vpath.getFileSystem(hadoopConf), vpath);
       } catch (Exception e) {
-        if (ignore)
+        if (ignore) {
           continue;
-        else
+        } else {
           throw new IllegalArgumentException("Accumulo volume " + path + " not initialized", e);
+        }
       }
 
       if (firstIid == null) {
@@ -177,8 +176,9 @@ public class ServerConstants {
 
       replacements = replacements.trim();
 
-      if (replacements.isEmpty())
+      if (replacements.isEmpty()) {
         return Collections.emptyList();
+      }
 
       String[] pairs = replacements.split(",");
       List<Pair<Path,Path>> ret = new ArrayList<>();
@@ -186,17 +186,19 @@ public class ServerConstants {
       for (String pair : pairs) {
 
         String[] uris = pair.split("\\s+");
-        if (uris.length != 2)
+        if (uris.length != 2) {
           throw new IllegalArgumentException(
               Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains malformed pair " + pair);
+        }
 
         Path p1, p2;
         try {
           // URI constructor handles hex escaping
           p1 = new Path(new URI(VolumeUtil.removeTrailingSlash(uris[0].trim())));
-          if (p1.toUri().getScheme() == null)
+          if (p1.toUri().getScheme() == null) {
             throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
                 + " contains " + uris[0] + " which is not fully qualified");
+          }
         } catch (URISyntaxException e) {
           throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
               + " contains " + uris[0] + " which has a syntax error", e);
@@ -204,9 +206,10 @@ public class ServerConstants {
 
         try {
           p2 = new Path(new URI(VolumeUtil.removeTrailingSlash(uris[1].trim())));
-          if (p2.toUri().getScheme() == null)
+          if (p2.toUri().getScheme() == null) {
             throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
                 + " contains " + uris[1] + " which is not fully qualified");
+          }
         } catch (URISyntaxException e) {
           throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
               + " contains " + uris[1] + " which has a syntax error", e);
@@ -221,10 +224,12 @@ public class ServerConstants {
         baseDirs.add(new Path(baseDir));
       }
 
-      for (Pair<Path,Path> pair : ret)
-        if (!baseDirs.contains(pair.getSecond()))
+      for (Pair<Path,Path> pair : ret) {
+        if (!baseDirs.contains(pair.getSecond())) {
           throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
               + " contains " + pair.getSecond() + " which is not a configured volume");
+        }
+      }
 
       // only set if get here w/o exception
       replacementsList = ret;

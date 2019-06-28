@@ -43,8 +43,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.collect.ImmutableMap;
-
 public class ScannerOptions implements ScannerBase {
 
   protected List<IterInfo> serverSideIteratorList = Collections.emptyList();
@@ -73,21 +71,25 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public synchronized void addScanIterator(IteratorSetting si) {
     checkArgument(si != null, "si is null");
-    if (serverSideIteratorList.size() == 0)
+    if (serverSideIteratorList.size() == 0) {
       serverSideIteratorList = new ArrayList<>();
+    }
 
     for (IterInfo ii : serverSideIteratorList) {
-      if (ii.iterName.equals(si.getName()))
+      if (ii.iterName.equals(si.getName())) {
         throw new IllegalArgumentException("Iterator name is already in use " + si.getName());
-      if (ii.getPriority() == si.getPriority())
+      }
+      if (ii.getPriority() == si.getPriority()) {
         throw new IllegalArgumentException(
             "Iterator priority is already in use " + si.getPriority());
+      }
     }
 
     serverSideIteratorList.add(new IterInfo(si.getPriority(), si.getIteratorClass(), si.getName()));
 
-    if (serverSideIteratorOptions.size() == 0)
+    if (serverSideIteratorOptions.size() == 0) {
       serverSideIteratorOptions = new HashMap<>();
+    }
 
     Map<String,String> opts = serverSideIteratorOptions.get(si.getName());
 
@@ -102,8 +104,9 @@ public class ScannerOptions implements ScannerBase {
   public synchronized void removeScanIterator(String iteratorName) {
     checkArgument(iteratorName != null, "iteratorName is null");
     // if no iterators are set, we don't have it, so it is already removed
-    if (serverSideIteratorList.size() == 0)
+    if (serverSideIteratorList.size() == 0) {
       return;
+    }
 
     for (IterInfo ii : serverSideIteratorList) {
       if (ii.iterName.equals(iteratorName)) {
@@ -120,8 +123,9 @@ public class ScannerOptions implements ScannerBase {
     checkArgument(iteratorName != null, "iteratorName is null");
     checkArgument(key != null, "key is null");
     checkArgument(value != null, "value is null");
-    if (serverSideIteratorOptions.size() == 0)
+    if (serverSideIteratorOptions.size() == 0) {
       serverSideIteratorOptions = new HashMap<>();
+    }
 
     Map<String,String> opts = serverSideIteratorOptions.get(iteratorName);
 
@@ -179,8 +183,9 @@ public class ScannerOptions implements ScannerBase {
 
         dst.serverSideIteratorOptions = new HashMap<>();
         Set<Entry<String,Map<String,String>>> es = src.serverSideIteratorOptions.entrySet();
-        for (Entry<String,Map<String,String>> entry : es)
+        for (Entry<String,Map<String,String>> entry : es) {
           dst.serverSideIteratorOptions.put(entry.getKey(), new HashMap<>(entry.getValue()));
+        }
 
         dst.samplerConfig = src.samplerConfig;
         dst.batchTimeOut = src.batchTimeOut;
@@ -202,10 +207,11 @@ public class ScannerOptions implements ScannerBase {
       throw new IllegalArgumentException("TimeOut must be positive : " + timeOut);
     }
 
-    if (timeout == 0)
+    if (timeout == 0) {
       this.timeOut = Long.MAX_VALUE;
-    else
+    } else {
       this.timeOut = timeUnit.toMillis(timeout);
+    }
   }
 
   @Override
@@ -274,7 +280,7 @@ public class ScannerOptions implements ScannerBase {
 
   @Override
   public synchronized void setExecutionHints(Map<String,String> hints) {
-    this.executionHints = ImmutableMap.copyOf(Objects.requireNonNull(hints));
+    this.executionHints = Map.copyOf(Objects.requireNonNull(hints));
   }
 
 }

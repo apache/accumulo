@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 
 /**
  * When configured for a scan executor, this prioritizer allows scanners to set priorities as
@@ -115,7 +114,7 @@ public class HintScanPrioritizer implements ScanPrioritizer {
     int defaultPriority = Integer
         .parseInt(params.getOptions().getOrDefault("default_priority", Integer.MAX_VALUE + ""));
 
-    Builder<String,Integer> tpb = ImmutableMap.builder();
+    var tpb = ImmutableMap.<String,Integer>builder();
 
     params.getOptions().forEach((k, v) -> {
       if (k.startsWith(PRIO_PREFIX)) {
@@ -124,7 +123,7 @@ public class HintScanPrioritizer implements ScanPrioritizer {
       }
     });
 
-    ImmutableMap<String,Integer> typePriorities = tpb.build();
+    Map<String,Integer> typePriorities = tpb.build();
 
     HintProblemAction hpa = HintProblemAction.valueOf(params.getOptions()
         .getOrDefault("bad_hint_action", HintProblemAction.LOG.name()).toUpperCase());

@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
 /**
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
@@ -165,15 +164,17 @@ public class ZooCache {
         case None:
           switch (event.getState()) {
             case Disconnected:
-              if (log.isTraceEnabled())
+              if (log.isTraceEnabled()) {
                 log.trace("Zoo keeper connection disconnected, clearing cache");
+              }
               clear();
               break;
             case SyncConnected:
               break;
             case Expired:
-              if (log.isTraceEnabled())
+              if (log.isTraceEnabled()) {
                 log.trace("Zoo keeper connection expired, clearing cache");
+              }
               clear();
               break;
             default:
@@ -311,7 +312,7 @@ public class ZooCache {
   public List<String> getChildren(final String zPath) {
     Preconditions.checkState(!closed);
 
-    ZooRunnable<List<String>> zr = new ZooRunnable<List<String>>() {
+    ZooRunnable<List<String>> zr = new ZooRunnable<>() {
 
       @Override
       public List<String> run() throws KeeperException, InterruptedException {
@@ -332,7 +333,7 @@ public class ZooCache {
 
           List<String> children = zooKeeper.getChildren(zPath, watcher);
           if (children != null) {
-            children = ImmutableList.copyOf(children);
+            children = List.copyOf(children);
           }
           childrenCache.put(zPath, children);
           immutableCache = new ImmutableCacheCopies(++updateCount, immutableCache, childrenCache);
@@ -376,7 +377,7 @@ public class ZooCache {
    */
   public byte[] get(final String zPath, final ZcStat status) {
     Preconditions.checkState(!closed);
-    ZooRunnable<byte[]> zr = new ZooRunnable<byte[]>() {
+    ZooRunnable<byte[]> zr = new ZooRunnable<>() {
 
       @Override
       public byte[] run() throws KeeperException, InterruptedException {

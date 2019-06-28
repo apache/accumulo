@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
@@ -64,8 +65,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-
-import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -561,7 +560,7 @@ public class InMemoryMapTest {
   public void testSample() throws Exception {
 
     SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
-        ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
+        Map.of("hasher", "murmur3_32", "modulus", "7"));
     Sampler sampler = SamplerFactory.newSampler(sampleConfig, DefaultConfiguration.getInstance());
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
@@ -656,7 +655,7 @@ public class InMemoryMapTest {
   private void runInterruptSampleTest(boolean deepCopy, boolean delete, boolean dcAfterDelete)
       throws Exception {
     SamplerConfigurationImpl sampleConfig1 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "2"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "2"));
     Sampler sampler = SamplerFactory.newSampler(sampleConfig1, DefaultConfiguration.getInstance());
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
@@ -717,7 +716,7 @@ public class InMemoryMapTest {
   @Test(expected = SampleNotPresentException.class)
   public void testDifferentSampleConfig() throws Exception {
     SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
-        ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
+        Map.of("hasher", "murmur3_32", "modulus", "7"));
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
     for (Entry<String,String> entry : sampleConfig.toTablePropertiesMap().entrySet()) {
@@ -729,7 +728,7 @@ public class InMemoryMapTest {
     mutate(imm, "r", "cf:cq", 5, "b");
 
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
     iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
   }
@@ -741,7 +740,7 @@ public class InMemoryMapTest {
     mutate(imm, "r", "cf:cq", 5, "b");
 
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
     iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
   }
@@ -751,7 +750,7 @@ public class InMemoryMapTest {
     InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
 
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
 
     // when in mem map is empty should be able to get sample iterator with any sample config
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
@@ -762,7 +761,7 @@ public class InMemoryMapTest {
   @Test
   public void testDeferredSamplerCreation() throws Exception {
     SamplerConfigurationImpl sampleConfig1 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
     for (Entry<String,String> entry : sampleConfig1.toTablePropertiesMap().entrySet()) {
@@ -773,7 +772,7 @@ public class InMemoryMapTest {
 
     // change sampler config after creating in mem map.
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "7"));
     for (Entry<String,String> entry : sampleConfig2.toTablePropertiesMap().entrySet()) {
       config1.set(entry.getKey(), entry.getValue());
     }

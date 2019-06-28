@@ -38,15 +38,13 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-
 public class WholeRowIteratorTest {
 
   @Test(expected = IOException.class)
   public void testBadDecodeRow() throws IOException {
     Key k = new Key(new Text("r1"), new Text("cf1234567890"));
     Value v = new Value("v1".getBytes());
-    Value encoded = WholeRowIterator.encodeRow(ImmutableList.of(k), ImmutableList.of(v));
+    Value encoded = WholeRowIterator.encodeRow(List.of(k), List.of(v));
     encoded.set(Arrays.copyOfRange(encoded.get(), 0, 10)); // truncate to 10 bytes only
     WholeRowIterator.decodeRow(k, encoded);
   }

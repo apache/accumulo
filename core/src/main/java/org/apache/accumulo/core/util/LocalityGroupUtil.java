@@ -50,14 +50,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 
 public class LocalityGroupUtil {
 
   private static final Logger log = LoggerFactory.getLogger(LocalityGroupUtil.class);
 
   // using an ImmutableSet here for more efficient comparisons in LocalityGroupIterator
-  public static final ImmutableSet<ByteSequence> EMPTY_CF_SET = ImmutableSet.of();
+  public static final Set<ByteSequence> EMPTY_CF_SET = Set.of();
 
   /**
    * Create a set of families to be passed into the SortedKeyValueIterator seek call from a supplied
@@ -68,10 +67,11 @@ public class LocalityGroupUtil {
    *          The set of columns
    * @return An immutable set of columns
    */
-  public static ImmutableSet<ByteSequence> families(Collection<Column> columns) {
-    if (columns.size() == 0)
+  public static Set<ByteSequence> families(Collection<Column> columns) {
+    if (columns.size() == 0) {
       return EMPTY_CF_SET;
-    Builder<ByteSequence> builder = ImmutableSet.builder();
+    }
+    var builder = ImmutableSet.<ByteSequence>builder();
     columns.forEach(c -> builder.add(new ArrayByteSequence(c.getColumnFamily())));
     return builder.build();
   }
@@ -113,8 +113,9 @@ public class LocalityGroupUtil {
     Map<String,Set<ByteSequence>> result = new HashMap<>();
     String[] groups = acuconf.get(Property.TABLE_LOCALITY_GROUPS).split(",");
     for (String group : groups) {
-      if (group.length() > 0)
+      if (group.length() > 0) {
         result.put(group, new HashSet<>());
+      }
     }
     HashSet<ByteSequence> all = new HashSet<>();
     for (Entry<String,String> entry : acuconf) {
@@ -233,12 +234,13 @@ public class LocalityGroupUtil {
 
     for (int i = 0; i < len; i++) {
       int c = 0xff & ba[i];
-      if (c == '\\')
+      if (c == '\\') {
         sb.append("\\\\");
-      else if (c >= 32 && c <= 126 && c != ',')
+      } else if (c >= 32 && c <= 126 && c != ',') {
         sb.append((char) c);
-      else
+      } else {
         sb.append("\\x").append(String.format("%02X", c));
+      }
     }
 
     return sb.toString();
@@ -330,16 +332,19 @@ public class LocalityGroupUtil {
           }
 
           if (lgcount == 1) {
-            for (int i = 0; i < parts.length; i++)
+            for (int i = 0; i < parts.length; i++) {
               if (parts.get(i) != null) {
                 partitionedMutations.get(i).add(mutation);
                 break;
               }
+            }
           } else {
-            for (int i = 0; i < parts.length; i++)
-              if (parts.get(i) != null)
+            for (int i = 0; i < parts.length; i++) {
+              if (parts.get(i) != null) {
                 partitionedMutations.get(i)
                     .add(new PartitionedMutation(mutation.getRow(), parts.get(i)));
+              }
+            }
           }
         }
       }
@@ -348,8 +353,9 @@ public class LocalityGroupUtil {
     private Integer getLgid(MutableByteSequence mbs, ColumnUpdate cu) {
       mbs.setArray(cu.getColumnFamily(), 0, cu.getColumnFamily().length);
       Integer lgid = colfamToLgidMap.get(mbs);
-      if (lgid == null)
+      if (lgid == null) {
         lgid = groups.length;
+      }
       return lgid;
     }
   }

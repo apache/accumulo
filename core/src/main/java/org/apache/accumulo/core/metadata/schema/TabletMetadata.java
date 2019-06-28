@@ -60,7 +60,6 @@ import org.apache.hadoop.io.Text;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -87,11 +86,11 @@ public class TabletMetadata {
   private List<LogEntry> logs;
   private OptionalLong compact = OptionalLong.empty();
 
-  public static enum LocationType {
+  public enum LocationType {
     CURRENT, FUTURE, LAST
   }
 
-  public static enum ColumnType {
+  public enum ColumnType {
     LOCATION, PREV_ROW, FILES, LAST, LOADED, SCANS, DIR, TIME, CLONED, FLUSH_ID, LOGS, COMPACT_ID
   }
 
@@ -148,9 +147,10 @@ public class TabletMetadata {
 
   public Text getPrevEndRow() {
     ensureFetched(ColumnType.PREV_ROW);
-    if (!sawPrevEndRow)
+    if (!sawPrevEndRow) {
       throw new IllegalStateException(
           "No prev endrow seen.  tableId: " + tableId + " endrow: " + endRow);
+    }
     return prevEndRow;
   }
 
@@ -243,10 +243,10 @@ public class TabletMetadata {
       kvBuilder = ImmutableSortedMap.naturalOrder();
     }
 
-    ImmutableMap.Builder<String,DataFileValue> filesBuilder = ImmutableMap.builder();
-    Builder<String> scansBuilder = ImmutableList.builder();
-    Builder<LogEntry> logsBuilder = ImmutableList.builder();
-    final ImmutableSet.Builder<String> loadedFilesBuilder = ImmutableSet.builder();
+    var filesBuilder = ImmutableMap.<String,DataFileValue>builder();
+    var scansBuilder = ImmutableList.<String>builder();
+    var logsBuilder = ImmutableList.<LogEntry>builder();
+    final var loadedFilesBuilder = ImmutableSet.<String>builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
@@ -334,9 +334,10 @@ public class TabletMetadata {
   }
 
   private void setLocationOnce(String val, String qual, LocationType lt) {
-    if (location != null)
+    if (location != null) {
       throw new IllegalStateException("Attempted to set second location for tableId: " + tableId
           + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
+    }
     location = new Location(val, qual, lt);
   }
 

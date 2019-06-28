@@ -536,7 +536,7 @@ class SummarySerializer {
 
   private static Map<String,Long> readSummary(DataInputStream in, String[] symbols)
       throws IOException {
-    com.google.common.collect.ImmutableMap.Builder<String,Long> imb = ImmutableMap.builder();
+    var imb = ImmutableMap.<String,Long>builder();
     int numEntries = WritableUtils.readVInt(in);
 
     for (int i = 0; i < numEntries; i++) {

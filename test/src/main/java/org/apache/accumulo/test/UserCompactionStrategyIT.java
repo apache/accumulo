@@ -59,9 +59,6 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class UserCompactionStrategyIT extends AccumuloClusterHarness {
@@ -97,17 +94,17 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       // drop files that start with A
       CompactionStrategyConfig csConfig =
           new CompactionStrategyConfig(TestCompactionStrategy.class.getName());
-      csConfig.setOptions(ImmutableMap.of("dropPrefix", "A", "inputPrefix", "F"));
+      csConfig.setOptions(Map.of("dropPrefix", "A", "inputPrefix", "F"));
       c.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-      assertEquals(ImmutableSet.of("c", "d"), getRows(c, tableName));
+      assertEquals(Set.of("c", "d"), getRows(c, tableName));
 
       // this compaction should not drop files starting with A
       c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
       c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-      assertEquals(ImmutableSet.of("c", "d"), getRows(c, tableName));
+      assertEquals(Set.of("c", "d"), getRows(c, tableName));
     }
   }
 
@@ -127,7 +124,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       c.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-      assertEquals(ImmutableSet.of("a", "b"), getRows(c, tableName));
+      assertEquals(Set.of("a", "b"), getRows(c, tableName));
     }
   }
 
@@ -136,7 +133,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     // test a compaction strategy that selects no files. In this case there is no work to do, want
     // to ensure it does not hang.
 
-    testDropNone(ImmutableMap.of("inputPrefix", "Z"));
+    testDropNone(Map.of("inputPrefix", "Z"));
   }
 
   @Test
@@ -145,7 +142,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     // shouldCompact() will return true and getCompactionPlan() will
     // return no work to do.
 
-    testDropNone(ImmutableMap.of("inputPrefix", "Z", "shouldCompact", "true"));
+    testDropNone(Map.of("inputPrefix", "Z", "shouldCompact", "true"));
   }
 
   @Test
@@ -220,7 +217,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       // drop files that start with A
       CompactionStrategyConfig csConfig =
           new CompactionStrategyConfig(TestCompactionStrategy.class.getName());
-      csConfig.setOptions(ImmutableMap.of("inputPrefix", "F"));
+      csConfig.setOptions(Map.of("inputPrefix", "F"));
 
       IteratorSetting iterConf = new IteratorSetting(21, "myregex", RegExFilter.class);
       RegExFilter.setRegexs(iterConf, "a|c", null, null, null, false);
@@ -231,14 +228,14 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       // compaction strategy should only be applied to one file. If its applied to both, then row
       // 'b'
       // would be dropped by filter.
-      assertEquals(ImmutableSet.of("a", "b", "c"), getRows(c, tableName));
+      assertEquals(Set.of("a", "b", "c"), getRows(c, tableName));
 
       assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
 
       c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
       // ensure that iterator is not applied
-      assertEquals(ImmutableSet.of("a", "b", "c"), getRows(c, tableName));
+      assertEquals(Set.of("a", "b", "c"), getRows(c, tableName));
 
       assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
     }
@@ -263,14 +260,14 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
       CompactionStrategyConfig csConfig =
           new CompactionStrategyConfig(SizeCompactionStrategy.class.getName());
-      csConfig.setOptions(ImmutableMap.of("size", "" + (1 << 15)));
+      csConfig.setOptions(Map.of("size", "" + (1 << 15)));
       c.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
       assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
 
       csConfig = new CompactionStrategyConfig(SizeCompactionStrategy.class.getName());
-      csConfig.setOptions(ImmutableMap.of("size", "" + (1 << 17)));
+      csConfig.setOptions(Map.of("size", "" + (1 << 17)));
       c.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
@@ -308,8 +305,9 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       try {
         // this compaction should fail because previous one set iterators
         c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-        if (System.currentTimeMillis() - t1 < 2000)
+        if (System.currentTimeMillis() - t1 < 2000) {
           fail("Expected compaction to fail because another concurrent compaction set iterators");
+        }
       } catch (AccumuloException e) {}
     }
   }
@@ -331,8 +329,9 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   private Set<String> getRows(AccumuloClient c, String tableName) throws TableNotFoundException {
     Set<String> rows = new HashSet<>();
     try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-      for (Entry<Key,Value> entry : scanner)
+      for (Entry<Key,Value> entry : scanner) {
         rows.add(entry.getKey().getRowData().toString());
+      }
     }
     return rows;
   }

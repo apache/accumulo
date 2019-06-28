@@ -24,8 +24,6 @@ import java.util.WeakHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
-
 /**
  * Provides the ability to retrieve a {@link RateLimiter} keyed to a specific string, which will
  * dynamically update its rate according to a specified callback function.
@@ -108,7 +106,7 @@ public class SharedRateLimiterFactory {
   protected void update() {
     Map<String,SharedRateLimiter> limitersCopy;
     synchronized (activeLimiters) {
-      limitersCopy = ImmutableMap.copyOf(activeLimiters);
+      limitersCopy = Map.copyOf(activeLimiters);
     }
     for (Map.Entry<String,SharedRateLimiter> entry : limitersCopy.entrySet()) {
       try {
@@ -126,7 +124,7 @@ public class SharedRateLimiterFactory {
   protected void report() {
     Map<String,SharedRateLimiter> limitersCopy;
     synchronized (activeLimiters) {
-      limitersCopy = ImmutableMap.copyOf(activeLimiters);
+      limitersCopy = Map.copyOf(activeLimiters);
     }
     for (Map.Entry<String,SharedRateLimiter> entry : limitersCopy.entrySet()) {
       try {
@@ -170,8 +168,9 @@ public class SharedRateLimiterFactory {
     public void report() {
       if (log.isDebugEnabled()) {
         long duration = System.currentTimeMillis() - lastUpdate;
-        if (duration == 0)
+        if (duration == 0) {
           return;
+        }
         lastUpdate = System.currentTimeMillis();
 
         long sum = permitsAcquired;

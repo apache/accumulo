@@ -42,8 +42,6 @@ import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
-
 public class RowFilterTest {
 
   public static class SummingRowFilter extends RowFilter {
@@ -192,7 +190,7 @@ public class RowFilterTest {
 
     ByteSequence cf = new ArrayByteSequence("cf2");
 
-    filter.seek(new Range(), ImmutableSet.of(cf), true);
+    filter.seek(new Range(), Set.of(cf), true);
     assertEquals(new HashSet<>(Arrays.asList("1", "3", "0", "4")), getRows(filter));
 
     filter.seek(new Range("0", "4"), Collections.emptySet(), false);
@@ -204,7 +202,7 @@ public class RowFilterTest {
     filter.seek(new Range("4"), Collections.emptySet(), false);
     assertEquals(new HashSet<String>(), getRows(filter));
 
-    filter.seek(new Range("4"), ImmutableSet.of(cf), true);
+    filter.seek(new Range("4"), Set.of(cf), true);
     assertEquals(new HashSet<>(Arrays.asList("4")), getRows(filter));
 
   }

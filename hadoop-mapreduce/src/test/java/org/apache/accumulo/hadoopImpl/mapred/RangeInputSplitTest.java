@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -37,8 +38,6 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
 
 public class RangeInputSplitTest {
 
@@ -86,7 +85,7 @@ public class RangeInputSplitTest {
     split.setUsesLocalIterators(true);
     split.setFetchedColumns(fetchedColumns);
     split.setIterators(iterators);
-    split.setExecutionHints(ImmutableMap.of("priority", "9"));
+    split.setExecutionHints(Map.of("priority", "9"));
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);

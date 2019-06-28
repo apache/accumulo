@@ -66,15 +66,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 public class SampleIT extends AccumuloClusterHarness {
 
   private static final Map<String,String> OPTIONS_1 =
-      ImmutableMap.of("hasher", "murmur3_32", "modulus", "1009");
+      Map.of("hasher", "murmur3_32", "modulus", "1009");
   private static final Map<String,String> OPTIONS_2 =
-      ImmutableMap.of("hasher", "murmur3_32", "modulus", "997");
+      Map.of("hasher", "murmur3_32", "modulus", "997");
 
   private static final SamplerConfiguration SC1 =
       new SamplerConfiguration(RowSampler.class.getName()).setOptions(OPTIONS_1);

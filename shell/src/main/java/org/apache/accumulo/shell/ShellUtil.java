@@ -32,7 +32,6 @@ import org.apache.commons.cli.Option;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -67,7 +66,7 @@ public class ShellUtil {
 
   public static Map<String,String> parseMapOpt(CommandLine cl, Option opt) {
     if (cl.hasOption(opt.getLongOpt())) {
-      Builder<String,String> builder = ImmutableMap.builder();
+      var builder = ImmutableMap.<String,String>builder();
       String[] keyVals = cl.getOptionValue(opt.getLongOpt()).split(",");
       for (String keyVal : keyVals) {
         String[] sa = keyVal.split("=");

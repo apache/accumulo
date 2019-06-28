@@ -90,7 +90,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -147,29 +146,25 @@ public class TabletServerResourceManager {
 
   private ExecutorService addEs(IntSupplier maxThreads, String name, final ThreadPoolExecutor tp) {
     ExecutorService result = addEs(name, tp);
-    SimpleTimer.getInstance(context.getConfiguration()).schedule(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          int max = maxThreads.getAsInt();
-          int currentMax = tp.getMaximumPoolSize();
-          if (currentMax != max) {
-            log.info("Changing max threads for {} from {} to {}", name, currentMax, max);
-            if (max > currentMax) {
-              // increasing, increase the max first, or the core will fail to be increased
-              tp.setMaximumPoolSize(max);
-              tp.setCorePoolSize(max);
-            } else {
-              // decreasing, lower the core size first, or the max will fail to be lowered
-              tp.setCorePoolSize(max);
-              tp.setMaximumPoolSize(max);
-            }
+    SimpleTimer.getInstance(context.getConfiguration()).schedule(() -> {
+      try {
+        int max = maxThreads.getAsInt();
+        int currentMax = tp.getMaximumPoolSize();
+        if (currentMax != max) {
+          log.info("Changing max threads for {} from {} to {}", name, currentMax, max);
+          if (max > currentMax) {
+            // increasing, increase the max first, or the core will fail to be increased
+            tp.setMaximumPoolSize(max);
+            tp.setCorePoolSize(max);
+          } else {
+            // decreasing, lower the core size first, or the max will fail to be lowered
+            tp.setCorePoolSize(max);
+            tp.setMaximumPoolSize(max);
           }
-        } catch (Throwable t) {
-          log.error("Failed to change thread pool size", t);
         }
+      } catch (Throwable t) {
+        log.error("Failed to change thread pool size", t);
       }
-
     }, 1000, 10_000);
     return result;
   }
@@ -259,7 +254,7 @@ public class TabletServerResourceManager {
 
   protected Map<String,ExecutorService> createScanExecutors(
       Collection<ScanExecutorConfig> scanExecCfg, Map<String,Queue<?>> scanExecQueues) {
-    Builder<String,ExecutorService> builder = ImmutableMap.builder();
+    var builder = ImmutableMap.<String,ExecutorService>builder();
 
     for (ScanExecutorConfig sec : scanExecCfg) {
       builder.put(sec.name, createPriorityExecutor(sec, scanExecQueues));
@@ -322,7 +317,7 @@ public class TabletServerResourceManager {
 
   private Map<String,ScanExecutor> createScanExecutorChoices(
       Collection<ScanExecutorConfig> scanExecCfg, Map<String,Queue<?>> scanExecQueues) {
-    Builder<String,ScanExecutor> builder = ImmutableMap.builder();
+    var builder = ImmutableMap.<String,ScanExecutor>builder();
 
     for (ScanExecutorConfig sec : scanExecCfg) {
       builder.put(sec.name, new ScanExecutorImpl(sec, scanExecQueues.get(sec.name)));
@@ -555,23 +550,13 @@ public class TabletServerResourceManager {
       memUsageReports = new LinkedBlockingQueue<>();
       maxMem = context.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
 
-      Runnable r1 = new Runnable() {
-        @Override
-        public void run() {
-          processTabletMemStats();
-        }
-      };
+      Runnable r1 = () -> processTabletMemStats();
 
       memoryGuardThread = new Daemon(new LoggingRunnable(log, r1));
       memoryGuardThread.setPriority(Thread.NORM_PRIORITY + 1);
       memoryGuardThread.setName("Accumulo Memory Guard");
 
-      Runnable r2 = new Runnable() {
-        @Override
-        public void run() {
-          manageMemory();
-        }
-      };
+      Runnable r2 = () -> manageMemory();
 
       minorCompactionInitiatorThread = new Daemon(new LoggingRunnable(log, r2));
       minorCompactionInitiatorThread.setName("Accumulo Minor Compaction Initiator");
@@ -722,8 +707,9 @@ public class TabletServerResourceManager {
       synchronized (commitHold) {
         while (holdCommits) {
           try {
-            if (System.currentTimeMillis() > timeout)
+            if (System.currentTimeMillis() > timeout) {
               throw new HoldTimeoutException("Commits are held");
+            }
             commitHold.wait(1000);
           } catch (InterruptedException e) {}
         }
@@ -732,8 +718,9 @@ public class TabletServerResourceManager {
   }
 
   public long holdTime() {
-    if (!holdCommits)
+    if (!holdCommits) {
       return 0;
+    }
     synchronized (commitHold) {
       return System.currentTimeMillis() - holdStartTime;
     }
@@ -780,8 +767,9 @@ public class TabletServerResourceManager {
     }
 
     public synchronized ScanFileManager newScanFileManager() {
-      if (closed)
+      if (closed) {
         throw new IllegalStateException("closed");
+      }
       return fileManager.newScanFileManager(extent);
     }
 
@@ -817,13 +805,15 @@ public class TabletServerResourceManager {
       long currentTime = System.currentTimeMillis();
       if ((delta > 32000 || delta < 0 || (currentTime - lastReportedCommitTime > 1000))
           && lastReportedSize.compareAndSet(lrs, totalSize)) {
-        if (delta > 0)
+        if (delta > 0) {
           lastReportedCommitTime = currentTime;
+        }
         report = true;
       }
 
-      if (report)
+      if (report) {
         memMgmt.updateMemoryUsageStats(tablet, size, lastReportedCommitTime, mincSize);
+      }
     }
 
     // END methods that Tablets call to manage memory
@@ -833,13 +823,15 @@ public class TabletServerResourceManager {
     // to one map file
     public boolean needsMajorCompaction(SortedMap<FileRef,DataFileValue> tabletFiles,
         MajorCompactionReason reason) {
-      if (closed)
+      if (closed) {
         return false;// throw new IOException("closed");
+      }
 
       // int threshold;
 
-      if (reason == MajorCompactionReason.USER)
+      if (reason == MajorCompactionReason.USER) {
         return true;
+      }
 
       if (reason == MajorCompactionReason.IDLE) {
         // threshold = 1;
@@ -883,10 +875,12 @@ public class TabletServerResourceManager {
       // always obtain locks in same order to avoid deadlock
       synchronized (TabletServerResourceManager.this) {
         synchronized (this) {
-          if (closed)
+          if (closed) {
             throw new IOException("closed");
-          if (openFilesReserved)
+          }
+          if (openFilesReserved) {
             throw new IOException("tired to close files while open files reserved");
+          }
 
           memMgmt.tabletClosed(extent);
           memoryManager.tabletClosed(extent);

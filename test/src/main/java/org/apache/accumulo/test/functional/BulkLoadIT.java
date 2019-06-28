@@ -78,9 +78,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -142,8 +139,9 @@ public class BulkLoadIT extends SharedMiniClusterBase {
       throws Exception {
     addSplits(c, tableName, "0333");
 
-    if (offline)
+    if (offline) {
       c.tableOperations().offline(tableName);
+    }
 
     String dir = getDir("/testSingleTabletSingleFileNoSplits-");
 
@@ -151,12 +149,12 @@ public class BulkLoadIT extends SharedMiniClusterBase {
 
     c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime).load();
 
-    if (offline)
+    if (offline) {
       c.tableOperations().online(tableName);
+    }
 
     verifyData(c, tableName, 0, 332, setTime);
-    verifyMetadata(c, tableName,
-        ImmutableMap.of("0333", ImmutableSet.of(h1), "null", ImmutableSet.of()));
+    verifyMetadata(c, tableName, Map.of("0333", Set.of(h1), "null", Set.of()));
   }
 
   @Test
@@ -187,8 +185,9 @@ public class BulkLoadIT extends SharedMiniClusterBase {
 
   private void testSingleTabletSingleFileNoSplits(AccumuloClient c, boolean offline)
       throws Exception {
-    if (offline)
+    if (offline) {
       c.tableOperations().offline(tableName);
+    }
 
     String dir = getDir("/testSingleTabletSingleFileNoSplits-");
 
@@ -196,11 +195,12 @@ public class BulkLoadIT extends SharedMiniClusterBase {
 
     c.tableOperations().importDirectory(dir).to(tableName).load();
 
-    if (offline)
+    if (offline) {
       c.tableOperations().online(tableName);
+    }
 
     verifyData(c, tableName, 0, 333, false);
-    verifyMetadata(c, tableName, ImmutableMap.of("null", ImmutableSet.of(h1)));
+    verifyMetadata(c, tableName, Map.of("null", Set.of(h1)));
   }
 
   @Test
@@ -234,8 +234,9 @@ public class BulkLoadIT extends SharedMiniClusterBase {
       } catch (Exception e) {
         Throwable cause = e.getCause();
         if (!(cause instanceof FileNotFoundException)
-            && !(cause.getCause() instanceof FileNotFoundException))
+            && !(cause.getCause() instanceof FileNotFoundException)) {
           fail("Expected FileNotFoundException but threw " + e.getCause());
+        }
       } finally {
         fs.setPermission(rFilePath, originalPerms);
       }
@@ -245,8 +246,9 @@ public class BulkLoadIT extends SharedMiniClusterBase {
       try {
         c.tableOperations().importDirectory(dir).to(tableName).load();
       } catch (AccumuloException ae) {
-        if (!(ae.getCause() instanceof FileNotFoundException))
+        if (!(ae.getCause() instanceof FileNotFoundException)) {
           fail("Expected FileNotFoundException but threw " + ae.getCause());
+        }
       } finally {
         fs.setPermission(new Path(dir), originalPerms);
       }
@@ -257,8 +259,9 @@ public class BulkLoadIT extends SharedMiniClusterBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       addSplits(c, tableName, "0333 0666 0999 1333 1666");
 
-      if (offline)
+      if (offline) {
         c.tableOperations().offline(tableName);
+      }
 
       String dir = getDir("/testBulkFile-");
 
@@ -301,8 +304,9 @@ public class BulkLoadIT extends SharedMiniClusterBase {
         c.tableOperations().importDirectory(dir).to(tableName).load();
       }
 
-      if (offline)
+      if (offline) {
         c.tableOperations().online(tableName);
+      }
 
       verifyData(c, tableName, 0, 1999, false);
       verifyMetadata(c, tableName, hashes);
@@ -374,8 +378,9 @@ public class BulkLoadIT extends SharedMiniClusterBase {
   private void addSplits(AccumuloClient client, String tableName, String splitString)
       throws Exception {
     SortedSet<Text> splits = new TreeSet<>();
-    for (String split : splitString.split(" "))
+    for (String split : splitString.split(" ")) {
       splits.add(new Text(split));
+    }
     client.tableOperations().addSplits(tableName, splits);
   }
 
@@ -386,25 +391,30 @@ public class BulkLoadIT extends SharedMiniClusterBase {
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
       for (int i = start; i <= end; i++) {
-        if (!iter.hasNext())
+        if (!iter.hasNext()) {
           throw new Exception("row " + i + " not found");
+        }
 
         Entry<Key,Value> entry = iter.next();
 
         String row = String.format("%04d", i);
 
-        if (!entry.getKey().getRow().equals(new Text(row)))
+        if (!entry.getKey().getRow().equals(new Text(row))) {
           throw new Exception("unexpected row " + entry.getKey() + " " + i);
+        }
 
-        if (Integer.parseInt(entry.getValue().toString()) != i)
+        if (Integer.parseInt(entry.getValue().toString()) != i) {
           throw new Exception("unexpected value " + entry + " " + i);
+        }
 
-        if (setTime)
+        if (setTime) {
           assertEquals(1L, entry.getKey().getTimestamp());
+        }
       }
 
-      if (iter.hasNext())
+      if (iter.hasNext()) {
         throw new Exception("found more than expected " + iter.next());
+      }
     }
   }
 

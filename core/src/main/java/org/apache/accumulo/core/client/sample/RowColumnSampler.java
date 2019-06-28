@@ -24,8 +24,6 @@ import java.util.Set;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 
-import com.google.common.collect.ImmutableSet;
-
 /**
  * This sampler can hash any subset of a Key's fields. The fields that hashed for the sample are
  * determined by the configuration options passed in {@link #init(SamplerConfiguration)}. The
@@ -69,7 +67,7 @@ public class RowColumnSampler extends AbstractHashSampler {
   private boolean visibility = true;
 
   private static final Set<String> VALID_OPTIONS =
-      ImmutableSet.of("row", "family", "qualifier", "visibility");
+      Set.of("row", "family", "qualifier", "visibility");
 
   private boolean hashField(SamplerConfiguration config, String field) {
     String optValue = config.getOptions().get(field);

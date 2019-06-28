@@ -29,8 +29,6 @@ import org.apache.accumulo.core.spi.common.IteratorConfiguration;
 import org.apache.accumulo.core.spi.common.Stats;
 import org.apache.accumulo.core.util.Stat;
 
-import com.google.common.collect.ImmutableMap;
-
 public class TestScanInfo implements ScanInfo {
 
   String testId;
@@ -59,7 +57,7 @@ public class TestScanInfo implements ScanInfo {
   }
 
   TestScanInfo setExecutionHints(String k, String v) {
-    this.executionHints = ImmutableMap.of(k, v);
+    this.executionHints = Map.of(k, v);
     return this;
   }
 

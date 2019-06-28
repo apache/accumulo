@@ -20,12 +20,12 @@ import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
@@ -48,8 +48,7 @@ public class IteratorTestCaseFinder {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    ImmutableSet<ClassInfo> classes =
-        cp.getTopLevelClasses(IteratorTestCase.class.getPackage().getName());
+    Set<ClassInfo> classes = cp.getTopLevelClasses(IteratorTestCase.class.getPackage().getName());
 
     final List<IteratorTestCase> testCases = new ArrayList<>();
     // final Set<Class<? extends IteratorTestCase>> classes =

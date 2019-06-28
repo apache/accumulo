@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.hadoop.io.Text;
@@ -37,7 +38,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @since 2.0.0
  */
 public class LoadPlan {
-  private final ImmutableList<Destination> destinations;
+  private final List<Destination> destinations;
 
   private static byte[] copy(byte[] data) {
     return data == null ? null : Arrays.copyOf(data, data.length);
@@ -143,7 +144,7 @@ public class LoadPlan {
     }
   }
 
-  private LoadPlan(ImmutableList<Destination> destinations) {
+  private LoadPlan(List<Destination> destinations) {
     this.destinations = destinations;
   }
 

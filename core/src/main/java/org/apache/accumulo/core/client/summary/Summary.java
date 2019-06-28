@@ -19,8 +19,6 @@ package org.apache.accumulo.core.client.summary;
 
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
-
 /**
  * This class encapsulates summary statistics, information about how those statistics were
  * generated, and information about files the statistics were obtained from.
@@ -117,13 +115,13 @@ public class Summary {
     }
   }
 
-  private final ImmutableMap<String,Long> statistics;
+  private final Map<String,Long> statistics;
   private final SummarizerConfiguration config;
   private final FileStatistics fileStats;
 
   public Summary(Map<String,Long> summary, SummarizerConfiguration config, long totalFiles,
       long filesMissingSummary, long filesWithExtra, long filesWithLarge, long deletedFiles) {
-    this.statistics = ImmutableMap.copyOf(summary);
+    this.statistics = Map.copyOf(summary);
     this.config = config;
     this.fileStats = new FileStatistics(totalFiles, filesMissingSummary, filesWithExtra,
         filesWithLarge, deletedFiles);

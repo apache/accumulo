@@ -50,12 +50,9 @@ import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
 public class TableLoadBalancerTest {
 
-  private static Map<String,String> TABLE_ID_MAP =
-      ImmutableMap.of("t1", "a1", "t2", "b12", "t3", "c4");
+  private static Map<String,String> TABLE_ID_MAP = Map.of("t1", "a1", "t2", "b12", "t3", "c4");
 
   private static TServerInstance mkts(String address, String session) {
     return new TServerInstance(HostAndPort.fromParts(address, 1234), session);
@@ -194,8 +191,9 @@ public class TableLoadBalancerTest {
     movedByTable.put(TableId.of(t2Id), 0);
     movedByTable.put(TableId.of(t3Id), 0);
     for (TabletMigration migration : migrationsOut) {
-      if (migration.oldServer.equals(svr))
+      if (migration.oldServer.equals(svr)) {
         count++;
+      }
       TableId key = migration.tablet.getTableId();
       movedByTable.put(key, movedByTable.get(key) + 1);
     }

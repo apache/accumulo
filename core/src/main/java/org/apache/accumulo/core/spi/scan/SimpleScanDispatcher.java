@@ -22,8 +22,6 @@ import java.util.Set;
 import org.apache.accumulo.core.client.ScannerBase;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * If no options are given, then this will dispatch to an executor named {@code default}. This
@@ -50,8 +48,7 @@ public class SimpleScanDispatcher implements ScanDispatcher {
 
   private final String EXECUTOR_PREFIX = "executor.";
 
-  private final Set<String> VALID_OPTS =
-      ImmutableSet.of("executor", "multi_executor", "single_executor");
+  private final Set<String> VALID_OPTS = Set.of("executor", "multi_executor", "single_executor");
   private String multiExecutor;
   private String singleExecutor;
 
@@ -63,7 +60,7 @@ public class SimpleScanDispatcher implements ScanDispatcher {
   public void init(InitParameters params) {
     Map<String,String> options = params.getOptions();
 
-    Builder<String,String> teb = ImmutableMap.builder();
+    var teb = ImmutableMap.<String,String>builder();
 
     options.forEach((k, v) -> {
       if (k.startsWith(EXECUTOR_PREFIX)) {

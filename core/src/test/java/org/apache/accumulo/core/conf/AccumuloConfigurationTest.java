@@ -34,8 +34,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.google.common.collect.ImmutableMap;
-
 public class AccumuloConfigurationTest {
 
   @Rule
@@ -271,8 +269,8 @@ public class AccumuloConfigurationTest {
     Map<String,String> pmF = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
     assertSame(pmE, pmF);
     assertNotSame(pm5, pmE);
-    assertEquals(ImmutableMap.of(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123",
-        "hdfs://ib/p1"), pmE);
+    assertEquals(
+        Map.of(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1"), pmE);
 
     Map<String,String> pmG = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     Map<String,String> pmH = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
@@ -363,7 +361,7 @@ public class AccumuloConfigurationTest {
     assertEquals(66, sec7.maxThreads);
     assertEquals(3, sec7.priority.getAsInt());
     assertEquals("com.foo.ScanPrioritizer", sec7.prioritizerClass.get());
-    assertEquals(ImmutableMap.of("k1", "v1", "k2", "v3"), sec7.prioritizerOpts);
+    assertEquals(Map.of("k1", "v1", "k2", "v3"), sec7.prioritizerOpts);
 
     tc.set(prefix + "hulksmash.threads", "44");
     assertEquals(66, sec7.maxThreads);

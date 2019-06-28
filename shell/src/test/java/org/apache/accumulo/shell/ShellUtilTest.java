@@ -31,8 +31,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.collect.ImmutableList;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
@@ -53,7 +51,7 @@ public class ShellUtilTest {
     File testFile = new File(folder.getRoot(), "testFileNoDecode.txt");
     FileUtils.writeStringToFile(testFile, FILEDATA, UTF_8);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), false);
-    assertEquals(ImmutableList.of(new Text("line1"), new Text("line2")), output);
+    assertEquals(List.of(new Text("line1"), new Text("line2")), output);
   }
 
   @Test
@@ -61,7 +59,7 @@ public class ShellUtilTest {
     File testFile = new File(folder.getRoot(), "testFileWithDecode.txt");
     FileUtils.writeStringToFile(testFile, B64_FILEDATA, UTF_8);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), true);
-    assertEquals(ImmutableList.of(new Text("line1"), new Text("line2")), output);
+    assertEquals(List.of(new Text("line1"), new Text("line2")), output);
   }
 
   @Test(expected = FileNotFoundException.class)

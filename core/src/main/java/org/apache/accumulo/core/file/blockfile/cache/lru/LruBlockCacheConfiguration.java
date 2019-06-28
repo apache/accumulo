@@ -26,7 +26,6 @@ import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.spi.cache.CacheType;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 
 public final class LruBlockCacheConfiguration {
 
@@ -216,7 +215,7 @@ public final class LruBlockCacheConfiguration {
     }
 
     public Map<String,String> buildMap() {
-      return ImmutableMap.copyOf(props);
+      return Map.copyOf(props);
     }
   }
 

@@ -19,12 +19,12 @@ package org.apache.accumulo.test.constraints;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.util.List;
+
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
 
 public class AlphaNumKeyConstraintTest {
 
@@ -39,9 +39,8 @@ public class AlphaNumKeyConstraintTest {
     // Check that violations are in row, cf, cq order
     Mutation badMutation = new Mutation(new Text("Row#1"));
     badMutation.put(new Text("Colf$2"), new Text("Colq%3"), new Value("value".getBytes()));
-    assertEquals(
-        ImmutableList.of(AlphaNumKeyConstraint.NON_ALPHA_NUM_ROW,
-            AlphaNumKeyConstraint.NON_ALPHA_NUM_COLF, AlphaNumKeyConstraint.NON_ALPHA_NUM_COLQ),
+    assertEquals(List.of(AlphaNumKeyConstraint.NON_ALPHA_NUM_ROW,
+        AlphaNumKeyConstraint.NON_ALPHA_NUM_COLF, AlphaNumKeyConstraint.NON_ALPHA_NUM_COLQ),
         ankc.check(null, badMutation));
   }
 

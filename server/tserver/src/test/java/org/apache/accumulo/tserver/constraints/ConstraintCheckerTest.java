@@ -38,8 +38,6 @@ import org.apache.hadoop.io.BinaryComparable;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 public class ConstraintCheckerTest {
@@ -74,7 +72,7 @@ public class ConstraintCheckerTest {
     Constraint c = createMock(Constraint.class);
     short code1 = 2;
     short code2 = 4;
-    List<Short> vCodes = ImmutableList.of(code1, code2);
+    List<Short> vCodes = List.of(code1, code2);
     expect(c.getViolationDescription(code1)).andReturn("ViolationCode1");
     expect(c.getViolationDescription(code2)).andReturn("ViolationCode2");
     expect(c.check(env, m)).andReturn(vCodes);
@@ -122,7 +120,7 @@ public class ConstraintCheckerTest {
     for (ConstraintViolationSummary cvs : cvsList) {
       violationDescs.add(cvs.getViolationDescription());
     }
-    assertEquals(ImmutableSet.of("ViolationCode1", "ViolationCode2"), violationDescs);
+    assertEquals(Set.of("ViolationCode1", "ViolationCode2"), violationDescs);
   }
 
   @Test

@@ -154,7 +154,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -2442,7 +2441,7 @@ public class Tablet {
      * Ensuring referencedLogs accurately tracks these sets ensures in use walogs are not GCed.
      */
 
-    Builder<DfsLogger> builder = ImmutableSet.builder();
+    var builder = ImmutableSet.<DfsLogger>builder();
     builder.addAll(currentLogs);
     builder.addAll(otherLogs);
     referencedLogs = builder.build();

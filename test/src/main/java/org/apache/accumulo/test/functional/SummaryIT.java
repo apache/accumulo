@@ -89,8 +89,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -712,7 +710,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   }
 
   private Map<String,Long> nm(Object... entries) {
-    Builder<String,Long> imb = ImmutableMap.builder();
+    var imb = ImmutableMap.<String,Long>builder();
     for (int i = 0; i < entries.length; i += 2) {
       imb.put((String) entries[i], (Long) entries[i + 1]);
     }
@@ -729,10 +727,10 @@ public class SummaryIT extends AccumuloClusterHarness {
       ntc.enableSummarization(sc1, sc2);
 
       Map<String,Set<Text>> lgroups = new HashMap<>();
-      lgroups.put("lg1", ImmutableSet.of(new Text("chocolate"), new Text("coffee")));
-      lgroups.put("lg2", ImmutableSet.of(new Text(" broccoli "), new Text("cabbage")));
+      lgroups.put("lg1", Set.of(new Text("chocolate"), new Text("coffee")));
+      lgroups.put("lg2", Set.of(new Text(" broccoli "), new Text("cabbage")));
       // create a locality group that will not have data in it
-      lgroups.put("lg3", ImmutableSet.of(new Text(" apple "), new Text("orange")));
+      lgroups.put("lg3", Set.of(new Text(" apple "), new Text("orange")));
 
       ntc.setLocalityGroups(lgroups);
       c.tableOperations().create(table, ntc);

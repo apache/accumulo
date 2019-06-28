@@ -28,8 +28,6 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
 public class HintScanPrioritizerTest {
   @Test
   public void testSort() {
@@ -57,8 +55,8 @@ public class HintScanPrioritizerTest {
 
           @Override
           public Map<String,String> getOptions() {
-            return ImmutableMap.of("priority.isbn", "10", "priority.background", "30",
-                "default_priority", "20");
+            return Map.of("priority.isbn", "10", "priority.background", "30", "default_priority",
+                "20");
           }
 
           @Override

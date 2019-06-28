@@ -34,8 +34,6 @@ import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -56,7 +54,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
 
-  private final ImmutableMap<String,String> config;
+  private final Map<String,String> config;
 
   public SiteConfiguration() {
     this(getAccumuloPropsLocation());
@@ -85,7 +83,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
       justification = "location of props is specified by an admin")
-  private static ImmutableMap<String,String> createMap(URL accumuloPropsLocation,
+  private static Map<String,String> createMap(URL accumuloPropsLocation,
       Map<String,String> overrides) {
     CompositeConfiguration config = new CompositeConfiguration();
     if (accumuloPropsLocation != null) {
@@ -120,7 +118,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
         }
       }
     }
-    return ImmutableMap.copyOf(result);
+    return Map.copyOf(result);
   }
 
   private static URL toURL(File f) {
