@@ -20,22 +20,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
-import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CredentialProviderTokenTest {
-
-  private static boolean isCredentialProviderAvailable = false;
 
   // Keystore contains: {'root.password':'password', 'bob.password':'bob'}
   private static String keystorePath;
@@ -44,13 +39,6 @@ public class CredentialProviderTokenTest {
       justification = "keystoreUrl location isn't provided by user input")
   @BeforeClass
   public static void setup() {
-    try {
-      Class.forName(CredentialProviderFactoryShim.HADOOP_CRED_PROVIDER_CLASS_NAME);
-      isCredentialProviderAvailable = true;
-    } catch (Exception e) {
-      isCredentialProviderAvailable = false;
-    }
-
     URL keystoreUrl = CredentialProviderTokenTest.class.getResource("/passwords.jceks");
     assertNotNull(keystoreUrl);
     keystorePath = "jceks://file/" + new File(keystoreUrl.getFile()).getAbsolutePath();
@@ -58,10 +46,6 @@ public class CredentialProviderTokenTest {
 
   @Test
   public void testPasswordsFromCredentialProvider() throws Exception {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     CredentialProviderToken token = new CredentialProviderToken("root.password", keystorePath);
     assertEquals("root.password", token.getName());
     assertEquals(keystorePath, token.getCredentialProviders());
@@ -73,10 +57,6 @@ public class CredentialProviderTokenTest {
 
   @Test
   public void testEqualityAfterInit() throws Exception {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     CredentialProviderToken token = new CredentialProviderToken("root.password", keystorePath);
 
     CredentialProviderToken uninitializedToken = new CredentialProviderToken();
@@ -89,25 +69,7 @@ public class CredentialProviderTokenTest {
   }
 
   @Test
-  public void testMissingClassesThrowsException() {
-    if (isCredentialProviderAvailable) {
-      return;
-    }
-
-    try {
-      new CredentialProviderToken("root.password", keystorePath);
-      fail("Should fail to create CredentialProviderToken when classes are not available");
-    } catch (IOException e) {
-      // pass
-    }
-  }
-
-  @Test
   public void cloneReturnsCorrectObject() throws Exception {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     CredentialProviderToken token = new CredentialProviderToken("root.password", keystorePath);
     CredentialProviderToken clone = token.clone();
 

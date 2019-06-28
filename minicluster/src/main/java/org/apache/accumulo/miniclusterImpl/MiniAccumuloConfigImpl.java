@@ -26,7 +26,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
+import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.minicluster.MemoryUnit;
@@ -199,15 +199,10 @@ public class MiniAccumuloConfigImpl {
       return;
     }
 
-    if (!CredentialProviderFactoryShim.isHadoopCredentialProviderAvailable()) {
-      throw new RuntimeException("Cannot use CredentialProvider when"
-          + " implementation is not available. Be sure to use >=Hadoop-2.6.0");
-    }
-
     File keystoreFile = new File(getConfDir(), "credential-provider.jks");
     String keystoreUri = "jceks://file" + keystoreFile.getAbsolutePath();
-    Configuration conf =
-        CredentialProviderFactoryShim.getConfiguration(getHadoopConfiguration(), keystoreUri);
+    Configuration conf = getHadoopConfiguration();
+    HadoopCredentialProvider.setPath(conf, keystoreUri);
 
     // Set the URI on the siteCfg
     siteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), keystoreUri);
@@ -223,8 +218,7 @@ public class MiniAccumuloConfigImpl {
 
       // Add the @Sensitive Property to the CredentialProvider
       try {
-        CredentialProviderFactoryShim.createEntry(conf, entry.getKey(),
-            entry.getValue().toCharArray());
+        HadoopCredentialProvider.createEntry(conf, entry.getKey(), entry.getValue().toCharArray());
       } catch (IOException e) {
         log.warn("Attempted to add " + entry.getKey() + " to CredentialProvider but failed", e);
         continue;

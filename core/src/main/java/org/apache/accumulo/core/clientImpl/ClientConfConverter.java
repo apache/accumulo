@@ -25,8 +25,8 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.hadoop.security.authentication.util.KerberosName;
@@ -165,8 +165,7 @@ public class ClientConfConverter {
         if (property.isSensitive()) {
           org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
           if (hadoopConf != null) {
-            char[] value =
-                CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+            char[] value = HadoopCredentialProvider.getValue(hadoopConf, key);
             if (value != null) {
               log.trace("Loaded sensitive value for {} from CredentialProvider", key);
               return new String(value);
@@ -177,9 +176,9 @@ public class ClientConfConverter {
           }
         }
 
-        if (config.containsKey(key))
+        if (config.containsKey(key)) {
           return config.getString(key);
-        else {
+        } else {
           // Reconstitute the server kerberos property from the client config
           if (property == Property.GENERAL_KERBEROS_PRINCIPAL) {
             if (config.containsKey(
@@ -203,8 +202,9 @@ public class ClientConfConverter {
         Iterator<String> keyIter = config.getKeys();
         while (keyIter.hasNext()) {
           String key = keyIter.next();
-          if (filter.test(key))
+          if (filter.test(key)) {
             props.put(key, config.getString(key));
+          }
         }
 
         // Two client props that don't exist on the server config. Client doesn't need to know about
@@ -226,13 +226,12 @@ public class ClientConfConverter {
         // Attempt to load sensitive properties from a CredentialProvider, if configured
         org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
         if (hadoopConf != null) {
-          for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
+          for (String key : HadoopCredentialProvider.getKeys(hadoopConf)) {
             if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
               continue;
             }
             if (filter.test(key)) {
-              char[] value =
-                  CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+              char[] value = HadoopCredentialProvider.getValue(hadoopConf, key);
               if (value != null) {
                 props.put(key, new String(value));
               }
@@ -246,7 +245,7 @@ public class ClientConfConverter {
             config.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
         if (credProviderPaths != null && !credProviderPaths.isEmpty()) {
           org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
-          hConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPaths);
+          HadoopCredentialProvider.setPath(hConf, credProviderPaths);
           return hConf;
         }
 
