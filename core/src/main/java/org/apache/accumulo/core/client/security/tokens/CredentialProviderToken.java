@@ -23,7 +23,7 @@ import java.nio.CharBuffer;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
+import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -51,9 +51,9 @@ public class CredentialProviderToken extends PasswordToken {
     this.name = name;
     this.credentialProviders = credentialProviders;
     final Configuration conf = new Configuration();
-    conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credentialProviders);
+    HadoopCredentialProvider.setPath(conf, credentialProviders);
 
-    char[] password = CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, name);
+    char[] password = HadoopCredentialProvider.getValue(conf, name);
 
     if (password == null) {
       throw new IOException(

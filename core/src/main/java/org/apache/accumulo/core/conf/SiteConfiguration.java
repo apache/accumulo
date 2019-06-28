@@ -110,11 +110,10 @@ public class SiteConfiguration extends AccumuloConfiguration {
     String credProvider = result.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
     if (credProvider != null) {
       org.apache.hadoop.conf.Configuration hadoopConf = new org.apache.hadoop.conf.Configuration();
-      hadoopConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProvider);
+      HadoopCredentialProvider.setPath(hadoopConf, credProvider);
       for (Property property : Property.values()) {
         if (property.isSensitive()) {
-          char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
-              property.getKey());
+          char[] value = HadoopCredentialProvider.getValue(hadoopConf, property.getKey());
           if (value != null) {
             result.put(property.getKey(), new String(value));
           }
@@ -198,8 +197,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
       parent.getProperties(props, filter);
     }
     config.keySet().forEach(k -> {
-      if (filter.test(k))
+      if (filter.test(k)) {
         props.put(k, config.get(k));
+      }
     });
   }
 }

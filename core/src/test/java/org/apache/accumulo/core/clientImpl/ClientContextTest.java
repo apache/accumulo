@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.Property;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -36,7 +35,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClientContextTest {
 
-  private static boolean isCredentialProviderAvailable = false;
   private static final String keystoreName = "/site-cfg.jceks";
 
   // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
@@ -47,20 +45,9 @@ public class ClientContextTest {
       justification = "provided keystoreUrl path isn't user provided")
   @BeforeClass
   public static void setUpBeforeClass() {
-    try {
-      Class.forName(CredentialProviderFactoryShim.HADOOP_CRED_PROVIDER_CLASS_NAME);
-      isCredentialProviderAvailable = true;
-    } catch (Exception e) {
-      isCredentialProviderAvailable = false;
-    }
-
-    if (isCredentialProviderAvailable) {
-      URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
-
-      assertNotNull("Could not find " + keystoreName, keystoreUrl);
-
-      keystore = new File(keystoreUrl.getFile());
-    }
+    URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
+    assertNotNull("Could not find " + keystoreName, keystoreUrl);
+    keystore = new File(keystoreUrl.getFile());
   }
 
   protected String getKeyStoreUrl(File absoluteFilePath) {
@@ -69,10 +56,6 @@ public class ClientContextTest {
 
   @Test
   public void loadSensitivePropertyFromCredentialProvider() {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     String absPath = getKeyStoreUrl(keystore);
     Properties props = new Properties();
     props.setProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
@@ -82,9 +65,6 @@ public class ClientContextTest {
 
   @Test
   public void defaultValueForSensitiveProperty() {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
     Properties props = new Properties();
     AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(props);
     assertEquals(Property.INSTANCE_SECRET.getDefaultValue(),
@@ -93,10 +73,6 @@ public class ClientContextTest {
 
   @Test
   public void sensitivePropertiesIncludedInProperties() {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     String absPath = getKeyStoreUrl(keystore);
     Properties clientProps = new Properties();
     clientProps.setProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);

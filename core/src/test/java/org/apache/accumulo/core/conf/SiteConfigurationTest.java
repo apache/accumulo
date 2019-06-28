@@ -25,7 +25,6 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -33,27 +32,12 @@ import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SiteConfigurationTest {
-  private static boolean isCredentialProviderAvailable;
-
-  @BeforeClass
-  public static void checkCredentialProviderAvailable() {
-    try {
-      Class.forName(CredentialProviderFactoryShim.HADOOP_CRED_PROVIDER_CLASS_NAME);
-      isCredentialProviderAvailable = true;
-    } catch (Exception e) {
-      isCredentialProviderAvailable = false;
-    }
-  }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "path to keystore not provided by user input")
   @Test
   public void testOnlySensitivePropertiesExtractedFromCredentialProvider()
       throws SecurityException {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
     // 'general.rpc.timeout'=>'timeout'}
     URL keystore = SiteConfigurationTest.class.getResource("/site-cfg.jceks");
