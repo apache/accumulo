@@ -72,7 +72,8 @@ public class UserImpersonationTest {
 
   // preserve order
   private void setValidUsers(String... remoteToAllowedUsers) {
-    assertEquals(0, remoteToAllowedUsers.length % 2); // make sure pairs are odd
+    // make sure args come in pairs (even), mapping remote servers to corresponding users
+    assertEquals(0, remoteToAllowedUsers.length % 2);
     StringBuilder sb = new StringBuilder();
     for (int v = 1; v < remoteToAllowedUsers.length; v += 2) {
       if (sb.length() > 0) {
