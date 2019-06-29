@@ -119,7 +119,7 @@ public class RestoreZookeeper {
     Opts opts = new Opts();
     opts.parseArgs(RestoreZookeeper.class.getName(), args);
 
-    ZooReaderWriter zoo = new ZooReaderWriter(new SiteConfiguration());
+    var zoo = new ZooReaderWriter(SiteConfiguration.auto());
 
     InputStream in = System.in;
     if (opts.file != null) {

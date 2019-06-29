@@ -146,8 +146,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public ProcessInfo exec(Class<?> clazz, List<String> jvmArgs, String... args) throws IOException {
     ArrayList<String> jvmArgs2 = new ArrayList<>(1 + (jvmArgs == null ? 0 : jvmArgs.size()));
     jvmArgs2.add("-Xmx" + config.getDefaultMemory());
-    if (jvmArgs != null)
+    if (jvmArgs != null) {
       jvmArgs2.addAll(jvmArgs);
+    }
     return _exec(clazz, jvmArgs2, args);
   }
 
@@ -155,9 +156,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     StringBuilder classpathBuilder = new StringBuilder();
     classpathBuilder.append(config.getConfDir().getAbsolutePath());
 
-    if (config.getHadoopConfDir() != null)
+    if (config.getHadoopConfDir() != null) {
       classpathBuilder.append(File.pathSeparator)
           .append(config.getHadoopConfDir().getAbsolutePath());
+    }
 
     if (config.getClasspathItems() == null) {
       String javaClassPath = System.getProperty("java.class.path");
@@ -166,8 +168,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
       classpathBuilder.append(File.pathSeparator).append(javaClassPath);
     } else {
-      for (String s : config.getClasspathItems())
+      for (String s : config.getClasspathItems()) {
         classpathBuilder.append(File.pathSeparator).append(s);
+      }
     }
 
     return classpathBuilder.toString();
@@ -236,14 +239,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     // if we're running under accumulo.start, we forward these env vars
     String env = System.getenv("HADOOP_HOME");
-    if (env != null)
+    if (env != null) {
       builder.environment().put("HADOOP_HOME", env);
+    }
     env = System.getenv("ZOOKEEPER_HOME");
-    if (env != null)
+    if (env != null) {
       builder.environment().put("ZOOKEEPER_HOME", env);
+    }
     builder.environment().put("ACCUMULO_CONF_DIR", config.getConfDir().getAbsolutePath());
-    if (config.getHadoopConfDir() != null)
+    if (config.getHadoopConfDir() != null) {
       builder.environment().put("HADOOP_CONF_DIR", config.getHadoopConfDir().getAbsolutePath());
+    }
 
     log.debug("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName()
         + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath + "\n, args: " + argList
@@ -311,8 +317,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     mkdirs(config.getLibExtDir());
 
     if (!config.useExistingInstance()) {
-      if (!config.useExistingZooKeepers())
+      if (!config.useExistingZooKeepers()) {
         mkdirs(config.getZooKeeperDir());
+      }
       mkdirs(config.getAccumuloDir());
     }
 
@@ -333,10 +340,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
       String oldTestBuildData = System.setProperty("test.build.data", dfs.getAbsolutePath());
       miniDFS = new MiniDFSCluster.Builder(conf).build();
-      if (oldTestBuildData == null)
+      if (oldTestBuildData == null) {
         System.clearProperty("test.build.data");
-      else
+      } else {
         System.setProperty("test.build.data", oldTestBuildData);
+      }
       miniDFS.waitClusterUp();
       InetSocketAddress dfsAddress = miniDFS.getNameNode().getNameNodeAddress();
       dfsUri = "hdfs://" + dfsAddress.getHostName() + ":" + dfsAddress.getPort();
@@ -376,7 +384,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     File siteFile = new File(config.getConfDir(), "accumulo.properties");
     writeConfigProperties(siteFile, config.getSiteConfig());
-    siteConfig = new SiteConfiguration(siteFile);
+    siteConfig = SiteConfiguration.fromFile(siteFile).build();
 
     if (!config.useExistingInstance() && !config.useExistingZooKeepers()) {
       zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
@@ -423,8 +431,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private void writeConfigProperties(File file, Map<String,String> settings) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
 
-    for (Entry<String,String> entry : settings.entrySet())
+    for (Entry<String,String> entry : settings.entrySet()) {
       fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
+    }
     fileWriter.close();
   }
 
@@ -474,13 +483,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       } catch (KeeperException e) {
         throw new RuntimeException("Unable to read instance name from zookeeper.", e);
       }
-      if (instanceName == null)
+      if (instanceName == null) {
         throw new RuntimeException("Unable to read instance name from zookeeper.");
+      }
 
       config.setInstanceName(instanceName);
-      if (!AccumuloStatus.isAccumuloOffline(zrw, rootPath))
+      if (!AccumuloStatus.isAccumuloOffline(zrw, rootPath)) {
         throw new RuntimeException(
             "The Accumulo instance being used is already running. Aborting.");
+      }
     } else {
       if (!initialized) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -494,8 +505,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         }));
       }
 
-      if (!config.useExistingZooKeepers())
+      if (!config.useExistingZooKeepers()) {
         control.start(ServerType.ZOOKEEPER);
+      }
 
       if (!initialized) {
         if (!config.useExistingZooKeepers()) {
@@ -510,8 +522,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               s.getOutputStream().flush();
               byte[] buffer = new byte[100];
               int n = s.getInputStream().read(buffer);
-              if (n >= 4 && new String(buffer, 0, 4).equals("imok"))
+              if (n >= 4 && new String(buffer, 0, 4).equals("imok")) {
                 break;
+              }
             } catch (Exception e) {
               if (System.currentTimeMillis() - startTime >= config.getZooKeeperStartupTime()) {
                 throw new ZooKeeperBindException("Zookeeper did not start within "
@@ -521,8 +534,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               // Don't spin absurdly fast
               sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
             } finally {
-              if (s != null)
+              if (s != null) {
                 s.close();
+              }
             }
           }
         }
@@ -561,8 +575,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     for (int i = 0; i < 5; i++) {
       ret = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString())
           .getProcess().waitFor();
-      if (ret == 0)
+      if (ret == 0) {
         break;
+      }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
     if (ret != 0) {
@@ -670,8 +685,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       executor = null;
     }
 
-    if (config.useMiniDFS() && miniDFS != null)
+    if (config.useMiniDFS() && miniDFS != null) {
       miniDFS.shutdown();
+    }
     for (Process p : cleanup) {
       p.destroy();
       p.waitFor();

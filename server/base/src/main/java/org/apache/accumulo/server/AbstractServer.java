@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -42,7 +41,7 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
     this.applicationName = appName;
     this.hostname = Objects.requireNonNull(opts.getAddress());
     opts.parseArgs(appName, args);
-    SiteConfiguration siteConfig = opts.getSiteConfiguration();
+    var siteConfig = opts.getSiteConfiguration();
     context = new ServerContext(siteConfig);
     SecurityUtil.serverLogin(siteConfig);
     log.info("Version " + Constants.VERSION);

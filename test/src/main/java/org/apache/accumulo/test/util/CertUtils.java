@@ -127,9 +127,9 @@ public class CertUtils {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     public SiteConfiguration getSiteConfiguration() {
       if (accumuloPropsFile == null) {
-        return new SiteConfiguration();
+        return SiteConfiguration.auto();
       } else {
-        return new SiteConfiguration(new File(accumuloPropsFile));
+        return SiteConfiguration.fromFile(new File(accumuloPropsFile)).build();
       }
     }
   }

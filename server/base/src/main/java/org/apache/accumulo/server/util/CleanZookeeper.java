@@ -50,7 +50,7 @@ public class CleanZookeeper {
     Opts opts = new Opts();
     opts.parseArgs(CleanZookeeper.class.getName(), args);
 
-    try (ServerContext context = new ServerContext(new SiteConfiguration())) {
+    try (var context = new ServerContext(SiteConfiguration.auto())) {
 
       String root = Constants.ZROOT;
       IZooReaderWriter zk = context.getZooReaderWriter();

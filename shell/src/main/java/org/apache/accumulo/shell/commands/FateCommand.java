@@ -113,7 +113,7 @@ public class FateCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException {
     ClientContext context = shellState.getContext();
-    SiteConfiguration siteConfig = new SiteConfiguration();
+    var siteConfig = SiteConfiguration.auto();
     String[] args = cl.getArgs();
     if (args.length <= 0) {
       throw new ParseException("Must provide a command to execute");
@@ -174,11 +174,11 @@ public class FateCommand extends Command {
       if (cl.hasOption(statusOption.getOpt())) {
         filterStatus = EnumSet.noneOf(TStatus.class);
         String[] tstat = cl.getOptionValues(statusOption.getOpt());
-        for (int i = 0; i < tstat.length; i++) {
+        for (String element : tstat) {
           try {
-            filterStatus.add(TStatus.valueOf(tstat[i]));
+            filterStatus.add(TStatus.valueOf(element));
           } catch (IllegalArgumentException iae) {
-            System.out.printf("Invalid transaction status name: %s%n", tstat[i]);
+            System.out.printf("Invalid transaction status name: %s%n", element);
             return 1;
           }
         }

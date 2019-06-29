@@ -34,7 +34,7 @@ public class CacheTestClean {
     String rootDir = args[0];
     File reportDir = new File(args[1]);
 
-    SiteConfiguration siteConfig = new SiteConfiguration();
+    var siteConfig = SiteConfiguration.auto();
     IZooReaderWriter zoo = new ZooReaderWriter(siteConfig);
 
     if (zoo.exists(rootDir)) {

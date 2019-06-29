@@ -37,20 +37,22 @@ import org.apache.hadoop.fs.Path;
 public class ListVolumesUsed {
 
   public static void main(String[] args) throws Exception {
-    listVolumes(new ServerContext(new SiteConfiguration()));
+    listVolumes(new ServerContext(SiteConfiguration.auto()));
   }
 
   private static String getTableURI(String rootTabletDir) {
     Path ret = FileType.TABLE.getVolume(new Path(rootTabletDir));
-    if (ret == null)
+    if (ret == null) {
       return "RELATIVE";
+    }
     return ret.toString();
   }
 
   private static String getLogURI(String logEntry) {
     Path ret = FileType.WAL.getVolume(new Path(logEntry));
-    if (ret == null)
+    if (ret == null) {
       return "RELATIVE";
+    }
     return ret.toString();
   }
 
@@ -70,8 +72,9 @@ public class ListVolumesUsed {
       getLogURIs(volumes, logEntry);
     }
 
-    for (String volume : volumes)
+    for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);
+    }
 
   }
 
@@ -102,8 +105,9 @@ public class ListVolumesUsed {
       }
     }
 
-    for (String volume : volumes)
+    for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);
+    }
 
     volumes.clear();
 
@@ -119,8 +123,9 @@ public class ListVolumesUsed {
     System.out.println("Listing volumes referenced in " + name
         + " deletes section (volume replacement occurrs at deletion time)");
 
-    for (String volume : volumes)
+    for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);
+    }
 
     volumes.clear();
 
@@ -131,8 +136,9 @@ public class ListVolumesUsed {
 
     System.out.println("Listing volumes referenced in " + name + " current logs");
 
-    for (String volume : volumes)
+    for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);
+    }
   }
 
   public static void listVolumes(ServerContext context) throws Exception {

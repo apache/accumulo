@@ -145,7 +145,7 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
     public MonitorLocation get() {
       // lazily set up path and zooCache (see comment in constructor)
       if (this.context == null) {
-        this.context = new ServerContext(new SiteConfiguration());
+        this.context = new ServerContext(SiteConfiguration.auto());
         this.path = context.getZooKeeperRoot() + Constants.ZMONITOR_LOG4J_ADDR;
         this.zooCache = context.getZooCache();
       }

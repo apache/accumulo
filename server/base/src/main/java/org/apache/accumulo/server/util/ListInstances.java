@@ -65,7 +65,7 @@ public class ListInstances {
     opts.parseArgs(ListInstances.class.getName(), args);
 
     if (opts.keepers == null) {
-      SiteConfiguration siteConfig = new SiteConfiguration();
+      var siteConfig = SiteConfiguration.auto();
       opts.keepers = siteConfig.get(Property.INSTANCE_ZK_HOST);
     }
 
@@ -126,8 +126,9 @@ public class ListInstances {
     public void formatTo(Formatter formatter, int flags, int width, int precision) {
 
       StringBuilder sb = new StringBuilder();
-      for (int i = 0; i < width; i++)
+      for (int i = 0; i < width; i++) {
         sb.append(c);
+      }
       formatter.format(sb.toString());
     }
 
@@ -212,8 +213,9 @@ public class ListInstances {
       List<String> children = zk.getChildren(Constants.ZROOT);
 
       for (String iid : children) {
-        if (iid.equals("instances"))
+        if (iid.equals("instances")) {
           continue;
+        }
         try {
           ts.add(UUID.fromString(iid));
         } catch (Exception e) {

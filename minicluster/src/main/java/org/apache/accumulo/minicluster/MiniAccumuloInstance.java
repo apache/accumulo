@@ -41,10 +41,11 @@ public class MiniAccumuloInstance extends org.apache.accumulo.core.client.ZooKee
 
   // Keep this private to avoid bringing it into the public API
   private static String getZooKeepersFromDir(File directory) {
-    if (!directory.isDirectory())
+    if (!directory.isDirectory()) {
       throw new IllegalArgumentException("Not a directory " + directory.getPath());
+    }
     File configFile = new File(new File(directory, "conf"), "accumulo.properties");
-    SiteConfiguration conf = new SiteConfiguration(configFile);
+    var conf = SiteConfiguration.fromFile(configFile).build();
     return conf.get(Property.INSTANCE_ZK_HOST);
   }
 }

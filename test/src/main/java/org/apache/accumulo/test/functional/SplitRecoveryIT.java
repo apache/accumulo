@@ -292,7 +292,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   public static void main(String[] args) throws Exception {
-    new SplitRecoveryIT().run(new ServerContext(new SiteConfiguration()));
+    new SplitRecoveryIT().run(new ServerContext(SiteConfiguration.auto()));
   }
 
   @Test

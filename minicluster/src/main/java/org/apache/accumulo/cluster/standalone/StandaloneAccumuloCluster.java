@@ -74,7 +74,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     this.tmp = tmp;
     this.users = users;
     this.serverAccumuloConfDir = serverAccumuloConfDir;
-    siteConfig = new SiteConfiguration(new File(serverAccumuloConfDir, "accumulo.properties"));
+    siteConfig =
+        SiteConfiguration.fromFile(new File(serverAccumuloConfDir, "accumulo.properties")).build();
   }
 
   public String getAccumuloHome() {

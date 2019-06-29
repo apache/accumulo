@@ -32,7 +32,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -46,7 +45,7 @@ public class CacheTestWriter {
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "OBJECT_DESERIALIZATION"},
       justification = "path provided by test; object deserialization is okay for test")
   public static void main(String[] args) throws Exception {
-    IZooReaderWriter zk = new ZooReaderWriter(new SiteConfiguration());
+    var zk = new ZooReaderWriter(SiteConfiguration.auto());
 
     String rootDir = args[0];
     File reportDir = new File(args[1]);
@@ -159,8 +158,9 @@ public class CacheTestWriter {
             }
           }
 
-          if (ok)
+          if (ok) {
             break;
+          }
         }
 
         sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
