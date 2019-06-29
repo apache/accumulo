@@ -61,7 +61,7 @@ public class ChangeSecret {
   }
 
   public static void main(String[] args) throws Exception {
-    SiteConfiguration siteConfig = new SiteConfiguration();
+    var siteConfig = SiteConfiguration.auto();
     VolumeManager fs = VolumeManagerImpl.get(siteConfig, new Configuration());
     verifyHdfsWritePermission(fs);
 
@@ -108,12 +108,10 @@ public class ChangeSecret {
         context.getZooKeepersSessionTimeOut(), oldPassword);
     String root = context.getZooKeeperRoot();
     final List<String> ephemerals = new ArrayList<>();
-    recurse(zooReader, root, new Visitor() {
-      @Override
-      public void visit(ZooReader zoo, String path) throws Exception {
-        Stat stat = zoo.getStatus(path);
-        if (stat.getEphemeralOwner() != 0)
-          ephemerals.add(path);
+    recurse(zooReader, root, (zoo, path) -> {
+      Stat stat = zoo.getStatus(path);
+      if (stat.getEphemeralOwner() != 0) {
+        ephemerals.add(path);
       }
     });
     if (ephemerals.size() > 0) {
@@ -133,28 +131,25 @@ public class ChangeSecret {
         context.getZooKeepersSessionTimeOut(), newPass);
 
     String root = context.getZooKeeperRoot();
-    recurse(orig, root, new Visitor() {
-      @Override
-      public void visit(ZooReader zoo, String path) throws Exception {
-        String newPath = path.replace(context.getInstanceID(), newInstanceId);
-        byte[] data = zoo.getData(path, null);
-        List<ACL> acls = orig.getZooKeeper().getACL(path, new Stat());
-        if (acls.containsAll(Ids.READ_ACL_UNSAFE)) {
-          new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
-        } else {
-          // upgrade
-          if (acls.containsAll(Ids.OPEN_ACL_UNSAFE)) {
-            // make user nodes private, they contain the user's password
-            String[] parts = path.split("/");
-            if (parts[parts.length - 2].equals("users")) {
-              new_.putPrivatePersistentData(newPath, data, NodeExistsPolicy.FAIL);
-            } else {
-              // everything else can have the readable acl
-              new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
-            }
-          } else {
+    recurse(orig, root, (zoo, path) -> {
+      String newPath = path.replace(context.getInstanceID(), newInstanceId);
+      byte[] data = zoo.getData(path, null);
+      List<ACL> acls = orig.getZooKeeper().getACL(path, new Stat());
+      if (acls.containsAll(Ids.READ_ACL_UNSAFE)) {
+        new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
+      } else {
+        // upgrade
+        if (acls.containsAll(Ids.OPEN_ACL_UNSAFE)) {
+          // make user nodes private, they contain the user's password
+          String[] parts = path.split("/");
+          if (parts[parts.length - 2].equals("users")) {
             new_.putPrivatePersistentData(newPath, data, NodeExistsPolicy.FAIL);
+          } else {
+            // everything else can have the readable acl
+            new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
           }
+        } else {
+          new_.putPrivatePersistentData(newPath, data, NodeExistsPolicy.FAIL);
         }
       }
     });

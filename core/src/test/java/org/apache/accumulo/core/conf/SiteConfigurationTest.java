@@ -42,8 +42,9 @@ public class SiteConfigurationTest {
     assertNotNull(keystore);
     String credProvPath = "jceks://file" + new File(keystore.getFile()).getAbsolutePath();
 
-    SiteConfiguration config = new SiteConfiguration(
-        Map.of(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath));
+    var overrides =
+        Map.of(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath);
+    var config = new SiteConfiguration.Builder().noFile().withOverrides(overrides).build();
 
     assertEquals("mysecret", config.get(Property.INSTANCE_SECRET));
     assertNull(config.get("ignored.property"));
@@ -53,7 +54,7 @@ public class SiteConfigurationTest {
 
   @Test
   public void testDefault() {
-    SiteConfiguration conf = new SiteConfiguration();
+    var conf = SiteConfiguration.auto();
     assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
     assertEquals("DEFAULT", conf.get(Property.INSTANCE_SECRET));
     assertEquals("", conf.get(Property.INSTANCE_VOLUMES));
@@ -66,7 +67,7 @@ public class SiteConfigurationTest {
   @Test
   public void testFile() {
     URL propsUrl = getClass().getClassLoader().getResource("accumulo2.properties");
-    SiteConfiguration conf = new SiteConfiguration(propsUrl);
+    var conf = new SiteConfiguration.Builder().fromUrl(propsUrl).build();
     assertEquals("myhost123:2181", conf.get(Property.INSTANCE_ZK_HOST));
     assertEquals("mysecret", conf.get(Property.INSTANCE_SECRET));
     assertEquals("hdfs://localhost:8020/accumulo123", conf.get(Property.INSTANCE_VOLUMES));
@@ -78,14 +79,14 @@ public class SiteConfigurationTest {
 
   @Test
   public void testConfigOverrides() {
-    SiteConfiguration conf = new SiteConfiguration();
+    var conf = SiteConfiguration.auto();
     assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
 
-    conf = new SiteConfiguration((URL) null,
-        Map.of(Property.INSTANCE_ZK_HOST.getKey(), "myhost:2181"));
+    conf = new SiteConfiguration.Builder().noFile()
+        .withOverrides(Map.of(Property.INSTANCE_ZK_HOST.getKey(), "myhost:2181")).build();
     assertEquals("myhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
 
-    Map<String,String> results = new HashMap<>();
+    var results = new HashMap<String,String>();
     conf.getProperties(results, p -> p.startsWith("instance"));
     assertEquals("myhost:2181", results.get(Property.INSTANCE_ZK_HOST.getKey()));
   }

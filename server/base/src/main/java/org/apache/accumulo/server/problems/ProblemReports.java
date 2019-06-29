@@ -85,28 +85,23 @@ public class ProblemReports implements Iterable<ProblemReport> {
       problemReports.put(pr, System.currentTimeMillis());
     }
 
-    Runnable r = new Runnable() {
+    Runnable r = () -> {
 
-      @Override
-      public void run() {
+      log.debug("Filing problem report {} {} {}", pr.getTableId(), pr.getProblemType(),
+          pr.getResource());
 
-        log.debug("Filing problem report {} {} {}", pr.getTableId(), pr.getProblemType(),
-            pr.getResource());
-
-        try {
-          if (isMeta(pr.getTableId())) {
-            // file report in zookeeper
-            pr.saveToZooKeeper(context);
-          } else {
-            // file report in metadata table
-            pr.saveToMetadataTable(context);
-          }
-        } catch (Exception e) {
-          log.error("Failed to file problem report " + pr.getTableId() + " " + pr.getProblemType()
-              + " " + pr.getResource(), e);
+      try {
+        if (isMeta(pr.getTableId())) {
+          // file report in zookeeper
+          pr.saveToZooKeeper(context);
+        } else {
+          // file report in metadata table
+          pr.saveToMetadataTable(context);
         }
+      } catch (Exception e) {
+        log.error("Failed to file problem report " + pr.getTableId() + " " + pr.getProblemType()
+            + " " + pr.getResource(), e);
       }
-
     };
 
     try {
@@ -128,22 +123,18 @@ public class ProblemReports implements Iterable<ProblemReport> {
   public void deleteProblemReport(TableId table, ProblemType pType, String resource) {
     final ProblemReport pr = new ProblemReport(table, pType, resource, null);
 
-    Runnable r = new Runnable() {
-
-      @Override
-      public void run() {
-        try {
-          if (isMeta(pr.getTableId())) {
-            // file report in zookeeper
-            pr.removeFromZooKeeper(context);
-          } else {
-            // file report in metadata table
-            pr.removeFromMetadataTable(context);
-          }
-        } catch (Exception e) {
-          log.error("Failed to delete problem report {} {} {}", pr.getTableId(),
-              pr.getProblemType(), pr.getResource(), e);
+    Runnable r = () -> {
+      try {
+        if (isMeta(pr.getTableId())) {
+          // file report in zookeeper
+          pr.removeFromZooKeeper(context);
+        } else {
+          // file report in metadata table
+          pr.removeFromMetadataTable(context);
         }
+      } catch (Exception e) {
+        log.error("Failed to delete problem report {} {} {}", pr.getTableId(), pr.getProblemType(),
+            pr.getResource(), e);
       }
     };
 
@@ -180,8 +171,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
       delMut.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
     }
 
-    if (hasProblems)
+    if (hasProblems) {
       MetadataTableUtil.getMetadataTable(context).update(delMut);
+    }
   }
 
   private static boolean isMeta(TableId tableId) {
@@ -191,7 +183,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   public Iterator<ProblemReport> iterator(final TableId table) {
     try {
 
-      return new Iterator<ProblemReport>() {
+      return new Iterator<>() {
 
         IZooReaderWriter zoo = context.getZooReaderWriter();
         private int iter1Count = 0;
@@ -296,7 +288,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   }
 
   public static void main(String[] args) {
-    ServerContext context = new ServerContext(new SiteConfiguration());
+    var context = new ServerContext(SiteConfiguration.auto());
     getInstance(context).printProblems();
   }
 

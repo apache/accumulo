@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.CryptoUtils;
@@ -147,7 +146,7 @@ public class PrintInfo implements KeywordExecutable {
       System.err.println("No files were given");
       System.exit(1);
     }
-    SiteConfiguration siteConfig = opts.getSiteConfiguration();
+    var siteConfig = opts.getSiteConfiguration();
 
     Configuration conf = new Configuration();
     for (String confFile : opts.configFiles) {
@@ -166,9 +165,9 @@ public class PrintInfo implements KeywordExecutable {
     for (String arg : opts.files) {
       Path path = new Path(arg);
       FileSystem fs;
-      if (arg.contains(":"))
+      if (arg.contains(":")) {
         fs = path.getFileSystem(conf);
-      else {
+      } else {
         log.warn(
             "Attempting to find file across filesystems. Consider providing URI instead of path");
         fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
@@ -183,13 +182,16 @@ public class PrintInfo implements KeywordExecutable {
       Reader iter = new RFile.Reader(cb);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 
-      if (opts.vis || opts.hash)
+      if (opts.vis || opts.hash) {
         iter.registerMetrics(vmg);
+      }
 
       iter.printInfo(opts.printIndex);
       System.out.println();
-      org.apache.accumulo.core.file.rfile.bcfile.PrintInfo
-          .main(new String[] {"-props", opts.getPropertiesPath(), arg});
+      String propsPath = opts.getPropertiesPath();
+      String[] mainArgs =
+          propsPath == null ? new String[] {arg} : new String[] {"-props", propsPath, arg};
+      org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(mainArgs);
 
       Map<String,ArrayList<ByteSequence>> localityGroupCF = null;
 
@@ -223,8 +225,9 @@ public class PrintInfo implements KeywordExecutable {
             Value value = dataIter.getTopValue();
             if (opts.dump) {
               System.out.println(key + " -> " + value);
-              if (System.out.checkError())
+              if (System.out.checkError()) {
                 return;
+              }
             }
             if (opts.histogram) {
               kvHistogram.add(key.getSize() + value.getSize());
@@ -262,8 +265,9 @@ public class PrintInfo implements KeywordExecutable {
         indexKeyStats.print("\t");
       }
       // If the output stream has closed, there is no reason to keep going.
-      if (System.out.checkError())
+      if (System.out.checkError()) {
         return;
+      }
     }
   }
 

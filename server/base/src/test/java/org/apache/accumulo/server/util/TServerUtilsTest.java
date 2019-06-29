@@ -62,7 +62,7 @@ public class TServerUtilsTest {
     private ConfigurationCopy conf = null;
 
     public TestServerConfigurationFactory(ServerContext context) {
-      super(context, new SiteConfiguration());
+      super(context, SiteConfiguration.auto());
       conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     }
 

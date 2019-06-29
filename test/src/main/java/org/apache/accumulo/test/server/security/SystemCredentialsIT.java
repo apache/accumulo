@@ -58,12 +58,13 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
   }
 
   public static void main(final String[] args) throws AccumuloException, TableNotFoundException {
-    SiteConfiguration siteConfig = new SiteConfiguration();
+    var siteConfig = SiteConfiguration.auto();
     try (ServerContext context = new ServerContext(siteConfig)) {
       Credentials creds;
       String badInstanceID = SystemCredentials.class.getName();
-      if (args.length < 2)
+      if (args.length < 2) {
         throw new RuntimeException("Incorrect usage; expected to be run by test only");
+      }
       switch (args[0]) {
         case "bad":
           creds = SystemCredentials.get(badInstanceID, siteConfig);

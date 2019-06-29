@@ -38,7 +38,7 @@ public class SetGoalState {
       System.exit(-1);
     }
 
-    ServerContext context = new ServerContext(new SiteConfiguration());
+    var context = new ServerContext(SiteConfiguration.auto());
     SecurityUtil.serverLogin(context.getConfiguration());
     ServerUtil.waitForZookeeperAndHdfs(context);
     context.getZooReaderWriter().putPersistentData(

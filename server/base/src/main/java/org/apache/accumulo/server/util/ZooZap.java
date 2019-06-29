@@ -42,8 +42,9 @@ public class ZooZap {
   private static final Logger log = LoggerFactory.getLogger(ZooZap.class);
 
   private static void message(String msg, Opts opts) {
-    if (opts.verbose)
+    if (opts.verbose) {
       System.out.println(msg);
+    }
   }
 
   static class Opts extends Help {
@@ -66,7 +67,7 @@ public class ZooZap {
       return;
     }
 
-    SiteConfiguration siteConf = new SiteConfiguration();
+    var siteConf = SiteConfiguration.auto();
     Configuration hadoopConf = new Configuration();
     // Login as the server on secure HDFS
     if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
@@ -95,9 +96,9 @@ public class ZooZap {
         for (String child : children) {
           message("Deleting " + tserversPath + "/" + child + " from zookeeper", opts);
 
-          if (opts.zapMaster)
+          if (opts.zapMaster) {
             zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
-          else {
+          } else {
             String path = tserversPath + "/" + child;
             if (zoo.getChildren(path).size() > 0) {
               if (!ZooLock.deleteLock(zoo, path, "tserver")) {

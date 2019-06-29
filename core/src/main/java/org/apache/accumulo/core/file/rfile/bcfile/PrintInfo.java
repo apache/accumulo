@@ -76,16 +76,17 @@ public class PrintInfo {
       System.err.println("No files were given");
       System.exit(-1);
     }
-    SiteConfiguration siteConfig = opts.getSiteConfiguration();
+    var siteConfig = opts.getSiteConfiguration();
     Configuration conf = new Configuration();
     FileSystem hadoopFs = FileSystem.get(conf);
     FileSystem localFs = FileSystem.getLocal(conf);
     Path path = new Path(opts.file);
     FileSystem fs;
-    if (opts.file.contains(":"))
+    if (opts.file.contains(":")) {
       fs = path.getFileSystem(conf);
-    else
+    } else {
       fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
+    }
     printMetaBlockInfo(siteConfig, conf, fs, path);
   }
 }

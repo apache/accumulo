@@ -42,7 +42,7 @@ public class SystemCredentialsTest {
   @Rule
   public TestName test = new TestName();
 
-  private static SiteConfiguration siteConfig = new SiteConfiguration();
+  private static SiteConfiguration siteConfig = SiteConfiguration.auto();
   private String instanceId =
       UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString();
 

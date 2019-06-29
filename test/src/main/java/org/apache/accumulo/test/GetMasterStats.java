@@ -41,7 +41,7 @@ public class GetMasterStats {
   public static void main(String[] args) throws Exception {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
-    ServerContext context = new ServerContext(new SiteConfiguration());
+    var context = new ServerContext(SiteConfiguration.auto());
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);
@@ -51,8 +51,9 @@ public class GetMasterStats {
         // Let it loop, fetching a new location
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
-        if (client != null)
+        if (client != null) {
           MasterClient.close(client);
+        }
       }
     }
     out(0, "State: " + stats.state.name());
@@ -109,8 +110,9 @@ public class GetMasterStats {
         out(2, "Time Difference: %.1f", ((now - server.lastContact) / 1000.));
         out(2, "Total Records: %d", summary.recs);
         out(2, "Lookups: %d", server.lookups);
-        if (server.holdTime > 0)
+        if (server.holdTime > 0) {
           out(2, "Hold Time: %d", server.holdTime);
+        }
         if (server.tableMap != null && server.tableMap.size() > 0) {
           out(2, "Tables");
           for (Entry<String,TableInfo> status : server.tableMap.entrySet()) {

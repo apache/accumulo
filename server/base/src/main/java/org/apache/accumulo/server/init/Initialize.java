@@ -403,7 +403,7 @@ public class Initialize implements KeywordExecutable {
       // If they did not, fall back to the credentials present in accumulo.properties that the
       // servers will use themselves.
       try {
-        final SiteConfiguration siteConf = context.getServerConfFactory().getSiteConfiguration();
+        final var siteConf = context.getServerConfFactory().getSiteConfiguration();
         if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
           final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
           // We don't have any valid creds to talk to HDFS
@@ -946,7 +946,7 @@ public class Initialize implements KeywordExecutable {
   public void execute(final String[] args) {
     Opts opts = new Opts();
     opts.parseArgs("accumulo init", args);
-    SiteConfiguration siteConfig = new SiteConfiguration();
+    var siteConfig = SiteConfiguration.auto();
 
     try {
       setZooReaderWriter(new ZooReaderWriter(siteConfig));

@@ -76,7 +76,7 @@ public class LogReader {
   public static void main(String[] args) throws IOException {
     Opts opts = new Opts();
     opts.parseArgs(LogReader.class.getName(), args);
-    SiteConfiguration siteConfig = new SiteConfiguration();
+    var siteConfig = SiteConfiguration.auto();
     VolumeManager fs = VolumeManagerImpl.get(siteConfig, new Configuration());
 
     Matcher rowMatcher = null;
@@ -86,8 +86,9 @@ public class LogReader {
       new JCommander(opts).usage();
       return;
     }
-    if (opts.row != null)
+    if (opts.row != null) {
       row = new Text(opts.row);
+    }
     if (opts.extent != null) {
       String[] sa = opts.extent.split(";");
       ke = new KeyExtent(TableId.of(sa[0]), new Text(sa[1]), new Text(sa[2]));
@@ -174,8 +175,9 @@ public class LogReader {
           }
         }
 
-        if (!found)
+        if (!found) {
           return;
+        }
       } else {
         return;
       }

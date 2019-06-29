@@ -88,7 +88,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
         TestDefaultBalancer.class.getName());
   }
 
-  private static SiteConfiguration siteConfg = new SiteConfiguration();
+  private static SiteConfiguration siteConfg = SiteConfiguration.auto();
 
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
 
@@ -253,10 +253,11 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
         && (host.equals("192.168.0.6") || host.equals("192.168.0.7") || host.equals("192.168.0.8")
             || host.equals("192.168.0.9") || host.equals("192.168.0.10"))) {
       return true;
-    } else
+    } else {
       return tid.equals("3") && (host.equals("192.168.0.11") || host.equals("192.168.0.12")
           || host.equals("192.168.0.13") || host.equals("192.168.0.14")
           || host.equals("192.168.0.15"));
+    }
   }
 
   protected String idToTableName(TableId id) {

@@ -51,7 +51,7 @@ public class ServerConfigurationFactoryTest {
   // use the same mock ZooCacheFactory and ZooCache for all tests
   private static ZooCacheFactory zcf;
   private static ZooCache zc;
-  private static SiteConfiguration siteConfig = new SiteConfiguration();
+  private static SiteConfiguration siteConfig = SiteConfiguration.auto();
 
   @BeforeClass
   public static void setUpClass() {
@@ -107,7 +107,7 @@ public class ServerConfigurationFactoryTest {
   @Test
   public void testGetSiteConfiguration() {
     ready();
-    SiteConfiguration c = scf.getSiteConfiguration();
+    var c = scf.getSiteConfiguration();
     assertNotNull(c);
   }
 

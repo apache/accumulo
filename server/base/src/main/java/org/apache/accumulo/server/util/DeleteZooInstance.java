@@ -59,7 +59,7 @@ public class DeleteZooInstance {
     Opts opts = new Opts();
     opts.parseArgs(DeleteZooInstance.class.getName(), args);
 
-    ZooReaderWriter zk = new ZooReaderWriter(new SiteConfiguration());
+    var zk = new ZooReaderWriter(SiteConfiguration.auto());
     // try instance name:
     Set<String> instances = new HashSet<>(zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES));
     Set<String> uuids = new HashSet<>(zk.getChildren(Constants.ZROOT));
@@ -74,8 +74,9 @@ public class DeleteZooInstance {
       for (String instance : instances) {
         String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + instance;
         byte[] data = zk.getData(path, null);
-        if (opts.instance.equals(new String(data, UTF_8)))
+        if (opts.instance.equals(new String(data, UTF_8))) {
           deleteRetry(zk, path);
+        }
       }
       deleteRetry(zk, Constants.ZROOT + "/" + opts.instance);
     }

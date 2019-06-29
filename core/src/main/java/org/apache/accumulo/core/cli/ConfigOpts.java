@@ -42,9 +42,6 @@ public class ConfigOpts extends Help {
   private String propsPath;
 
   public synchronized String getPropertiesPath() {
-    if (propsPath == null) {
-      propsPath = SiteConfiguration.getAccumuloPropsLocation().getFile();
-    }
     return propsPath;
   }
 
@@ -66,7 +63,9 @@ public class ConfigOpts extends Help {
       justification = "process runs in same security context as admin who provided path")
   public synchronized SiteConfiguration getSiteConfiguration() {
     if (siteConfig == null) {
-      siteConfig = new SiteConfiguration(new File(getPropertiesPath()), getOverrides());
+      String propsPath = getPropertiesPath();
+      siteConfig = (propsPath == null ? SiteConfiguration.fromEnv()
+          : SiteConfiguration.fromFile(new File(propsPath))).withOverrides(getOverrides()).build();
     }
     return siteConfig;
   }

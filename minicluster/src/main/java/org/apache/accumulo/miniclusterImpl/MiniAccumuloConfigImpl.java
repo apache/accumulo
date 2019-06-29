@@ -719,7 +719,7 @@ public class MiniAccumuloConfigImpl {
     System.setProperty("accumulo.properties", "accumulo.properties");
     this.hadoopConfDir = hadoopConfDir;
     hadoopConf = new Configuration(false);
-    accumuloConf = new SiteConfiguration(accumuloProps);
+    accumuloConf = SiteConfiguration.fromFile(accumuloProps).build();
     File coreSite = new File(hadoopConfDir, "core-site.xml");
     File hdfsSite = new File(hadoopConfDir, "hdfs-site.xml");
 

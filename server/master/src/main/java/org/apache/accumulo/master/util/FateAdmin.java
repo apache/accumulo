@@ -77,7 +77,7 @@ public class FateAdmin {
 
     AdminUtil<Master> admin = new AdminUtil<>();
 
-    try (ServerContext context = new ServerContext(new SiteConfiguration())) {
+    try (var context = new ServerContext(SiteConfiguration.auto())) {
       final String zkRoot = context.getZooKeeperRoot();
       String path = zkRoot + Constants.ZFATE;
       String masterPath = zkRoot + Constants.ZMASTER_LOCK;
