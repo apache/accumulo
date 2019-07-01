@@ -28,7 +28,10 @@ import org.apache.accumulo.server.ServerContext;
  * This interface is used for the system which will be used for getting a users Authorizations. If
  * the implementation does not support configuration through Accumulo, it should throw an
  * AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
+ *
+ * @deprecated Use the {@link SecurityModule} and {@link Auth}Module
  */
+@Deprecated
 public interface Authorizor {
 
   /**
