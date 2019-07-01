@@ -90,6 +90,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -665,7 +666,7 @@ public class Tablet {
             entriesAdded);
         tabletClosed = true;
       } catch (IOException ioe) {
-        if (shutdownInProgress()) {
+        if (ShutdownUtil.isShutdownInProgress()) {
           // assume HDFS shutdown hook caused this exception
           log.debug("IOException while shutdown in progress", ioe);
           handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
@@ -870,20 +871,6 @@ public class Tablet {
     }
 
     return new Batch(skipContinueKey, results, continueKey, resultBytes);
-  }
-
-  /**
-   * Determine if a JVM shutdown is in progress.
-   *
-   */
-  boolean shutdownInProgress() {
-    try {
-      Runtime.getRuntime().removeShutdownHook(new Thread(() -> {}));
-    } catch (IllegalStateException ise) {
-      return true;
-    }
-
-    return false;
   }
 
   public Scanner createScanner(Range range, int num, Set<Column> columns,
