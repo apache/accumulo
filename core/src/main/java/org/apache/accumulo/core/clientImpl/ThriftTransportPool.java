@@ -17,17 +17,17 @@
 package org.apache.accumulo.core.clientImpl;
 
 import java.security.SecureRandom;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingDeque;
 
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.singletons.SingletonManager;
@@ -50,8 +50,8 @@ public class ThriftTransportPool {
   private long killTime = 1000 * 3;
 
   private static class CachedConnections {
-    Deque<CachedConnection> unreserved = new LinkedBlockingDeque<>(); // stack - LIFO
-    Map<CachedTTransport,CachedConnection> reserved = new ConcurrentHashMap<>();
+    Deque<CachedConnection> unreserved = new ArrayDeque<>(); // stack - LIFO
+    Map<CachedTTransport,CachedConnection> reserved = new HashMap<>();
 
     public CachedConnection reserveAny() {
 
@@ -67,11 +67,10 @@ public class ThriftTransportPool {
     }
   }
 
-  private Map<ThriftTransportKey,CachedConnections> cache = new ConcurrentHashMap<>();
-  private Map<ThriftTransportKey,Long> errorCount = new ConcurrentHashMap<>();
-  private Map<ThriftTransportKey,Long> errorTime = new ConcurrentHashMap<>();
-  private Set<ThriftTransportKey> serversWarnedAbout = ConcurrentHashMap.newKeySet(); // effectively
-                                                                                      // ConcurrentHashSet
+  private Map<ThriftTransportKey,CachedConnections> cache = new HashMap<>();
+  private Map<ThriftTransportKey,Long> errorCount = new HashMap<>();
+  private Map<ThriftTransportKey,Long> errorTime = new HashMap<>();
+  private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<>();
 
   private Thread checkThread;
 
@@ -123,14 +122,14 @@ public class ThriftTransportPool {
 
         synchronized (pool) {
           for (CachedConnections cachedConns : pool.getCache().values()) {
-            Iterator<CachedConnection> iter = cachedConns.unreserved.iterator();
-            while (iter.hasNext()) {
-              CachedConnection cachedConnection = iter.next();
+            Deque<CachedConnection> unres = cachedConns.unreserved;
 
-              if (System.currentTimeMillis() - cachedConnection.lastReturnTime > pool.killTime) {
-                connectionsToClose.add(cachedConnection);
-                iter.remove();
-              }
+            long currTime = System.currentTimeMillis();
+
+            // The following code is structured to avoid removing from the middle of the array
+            // deqeue which would be costly. It also assumes the oldest are at the end.
+            while (!unres.isEmpty() && currTime - unres.peekLast().lastReturnTime > pool.killTime) {
+              connectionsToClose.add(unres.removeLast());
             }
 
             for (CachedConnection cachedConnection : cachedConns.reserved.values()) {
@@ -150,7 +149,6 @@ public class ThriftTransportPool {
         }
 
         // close connections outside of sync block
-        // Couldn't this close a used connection
         for (CachedConnection cachedConnection : connectionsToClose) {
           cachedConnection.transport.close();
         }
@@ -537,7 +535,7 @@ public class ThriftTransportPool {
             // logs the first time an error occurred
             errorTime.computeIfAbsent(ctsc.getCacheKey(), k -> System.currentTimeMillis());
 
-            if (ecount >= ERROR_THRESHOLD && !serversWarnedAbout.add(ctsc.getCacheKey())) {
+            if (ecount >= ERROR_THRESHOLD && serversWarnedAbout.add(ctsc.getCacheKey())) {
               log.warn(
                   "Server {} had {} failures in a short time period, will not complain anymore",
                   ctsc.getCacheKey(), ecount);
