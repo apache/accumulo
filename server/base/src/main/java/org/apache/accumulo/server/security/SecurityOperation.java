@@ -32,7 +32,6 @@ import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -50,14 +49,9 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.security.handler.Authenticator;
-import org.apache.accumulo.server.security.handler.Authorizor;
-import org.apache.accumulo.server.security.handler.KerberosAuthenticator;
 import org.apache.accumulo.server.security.handler.PermImpl;
 import org.apache.accumulo.server.security.handler.SecurityModule;
 import org.apache.accumulo.server.security.handler.SecurityModuleImpl;
-import org.apache.accumulo.server.security.handler.ZKAuthenticator;
-import org.apache.accumulo.server.security.handler.ZKAuthorizor;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,9 +64,6 @@ public class SecurityOperation {
   protected SecurityModuleImpl securityModule;
   protected PermImpl permModule;
 
-  protected Authorizor authorizor;
-  protected Authenticator authenticator;
-  protected boolean isKerberos;
   private static String rootUserName = null;
   private final ZooCache zooCache;
   private final String ZKUserPath;
@@ -81,33 +72,12 @@ public class SecurityOperation {
 
   static SecurityOperation instance;
 
-  protected static Authorizor getAuthorizor(ServerContext context) {
-    Authorizor toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
-        Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, new ZKAuthorizor());
-    toRet.initialize(context);
-    return toRet;
-  }
-
-  protected static Authenticator getAuthenticator(ServerContext context) {
-    Authenticator toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
-        Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class, new ZKAuthenticator());
-    toRet.initialize(context);
-    return toRet;
-  }
-
-  protected SecurityOperation(ServerContext context) {
+  public SecurityOperation(ServerContext context) {
     this.context = context;
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
-  }
-
-  public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent) {
-    this(context);
     securityModule = new SecurityModuleImpl(context);
-    authorizor = author;
-    authenticator = authent;
     permModule = securityModule.getPerm();
-    isKerberos = KerberosAuthenticator.class.isAssignableFrom(authenticator.getClass());
   }
 
   public void initializeSecurity(TCredentials credentials, String rootPrincipal, byte[] token)
@@ -145,52 +115,38 @@ public class SecurityOperation {
     Credentials creds = Credentials.fromThrift(credentials);
 
     if (isSystemUser(credentials)) {
-      if (isKerberos) {
-        // Don't need to re-check the principal as TCredentialsUpdatingInvocationHandler will check
-        // the provided against
-        // the credentials provided on the wire.
-        if (!context.getCredentials().getToken().equals(creds.getToken())) {
-          log.debug("With SASL enabled, System AuthenticationTokens did not match.");
-          throw new ThriftSecurityException(creds.getPrincipal(),
-              SecurityErrorCode.BAD_CREDENTIALS);
-        }
-      } else {
-        if (!(context.getCredentials().equals(creds))) {
-          log.debug("Provided credentials did not match server's expected"
-              + " credentials. Expected {} but got {}", context.getCredentials(), creds);
-          throw new ThriftSecurityException(creds.getPrincipal(),
-              SecurityErrorCode.BAD_CREDENTIALS);
-        }
+      if (!(context.getCredentials().equals(creds))) {
+        log.debug("Provided credentials did not match server's expected"
+            + " credentials. Expected {} but got {}", context.getCredentials(), creds);
+        throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
       }
     } else {
       // Not the system user
 
-      if (isKerberos) {
-        // If we have kerberos credentials for a user from the network but no account
-        // in the system, we need to make one before proceeding
-        if (!authenticator.userExists(creds.getPrincipal())) {
-          // If we call the normal createUser method, it will loop back into this method
-          // when it tries to check if the user has permission to create users
-          try {
-            _createUser(credentials, creds);
-          } catch (ThriftSecurityException e) {
-            if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
-              // For Kerberos, a user acct is automatically created because there is no notion of
-              // a password
-              // in the traditional sense of Accumulo users. As such, if a user acct already
-              // exists when we
-              // try to automatically create a user account, we should avoid returning this
-              // exception back to the user.
-              // We want to let USER_EXISTS code pass through and continue
-              throw e;
-            }
+      // if (isKerberos) {
+      // If we have kerberos credentials for a user from the network but no account
+      // in the system, we need to make one before proceeding
+      if (!securityModule.getAuth().userExists(creds.getPrincipal())) {
+        // If we call the normal createUser method, it will loop back into this method
+        // when it tries to check if the user has permission to create users
+        try {
+          _createUser(credentials, creds);
+        } catch (ThriftSecurityException e) {
+          if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
+            // For Kerberos, a user acct is automatically created because there is no notion of
+            // a password in the traditional sense of Accumulo users. If a user acct already
+            // exists when we try to automatically create a user account, we should avoid
+            // returning this exception back to the user.
+            // We want to let USER_EXISTS code pass through and continue
+            throw e;
           }
         }
+        // }
       }
 
       // Check that the user is authenticated (a no-op at this point for kerberos)
       try {
-        if (!authenticator.authenticateUser(creds.getPrincipal(), creds.getToken())) {
+        if (!securityModule.auth().authenticate(creds.getPrincipal(), creds.getToken())) {
           throw new ThriftSecurityException(creds.getPrincipal(),
               SecurityErrorCode.BAD_CREDENTIALS);
         }
@@ -219,18 +175,18 @@ public class SecurityOperation {
     try {
       Credentials toCreds = Credentials.fromThrift(toAuth);
 
-      if (isKerberos) {
-        // If we have kerberos credentials for a user from the network but no account
-        // in the system, we need to make one before proceeding
-        if (!authenticator.userExists(toCreds.getPrincipal())) {
-          createUser(credentials, toCreds, Authorizations.EMPTY);
-        }
-        // Likely that the KerberosAuthenticator will fail as we don't have the credentials for the
-        // other user,
-        // we only have our own Kerberos credentials.
+      // if (isKerberos) {
+      // If we have kerberos credentials for a user from the network but no account
+      // in the system, we need to make one before proceeding
+      if (!securityModule.getAuth().userExists(toCreds.getPrincipal())) {
+        createUser(credentials, toCreds, Authorizations.EMPTY);
       }
+      // Likely that the KerberosAuthenticator will fail as we don't have the credentials for the
+      // other user,
+      // we only have our own Kerberos credentials.
+      // }
 
-      return authenticator.authenticateUser(toCreds.getPrincipal(), toCreds.getToken());
+      return securityModule.auth().authenticate(toCreds.getPrincipal(), toCreds.getToken());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }
@@ -248,7 +204,7 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
 
-    return authorizor.getCachedUserAuthorizations(user);
+    return securityModule.auth().getAuthorizations(user);
   }
 
   public Authorizations getUserAuthorizations(TCredentials credentials)
@@ -270,7 +226,7 @@ public class SecurityOperation {
       // system user doesn't need record-level authorizations for the tables it reads (for now)
       return list.isEmpty();
     }
-    return authorizor.isValidAuthorizations(credentials.getPrincipal(), list);
+    return securityModule.auth().hasAuths(credentials.getPrincipal(), new Authorizations(list));
   }
 
   private boolean hasSystemPermission(TCredentials credentials, SystemPermission permission,
@@ -394,7 +350,7 @@ public class SecurityOperation {
   private void targetUserExists(String user) throws ThriftSecurityException {
     if (user.equals(getRootUsername()))
       return;
-    if (!authenticator.userExists(user))
+    if (!securityModule.getAuth().userExists(user))
       throw new ThriftSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST);
   }
 
@@ -620,7 +576,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      authorizor.changeAuthorizations(user, authorizations);
+      securityModule.auth().changeAuthorizations(user, authorizations);
       log.info("Changed authorizations for user {} at the request of user {}", user,
           credentials.getPrincipal());
     } catch (AccumuloSecurityException ase) {
@@ -635,7 +591,7 @@ public class SecurityOperation {
           SecurityErrorCode.PERMISSION_DENIED);
     try {
       AuthenticationToken token = toChange.getToken();
-      authenticator.changePassword(toChange.getPrincipal(), token);
+      securityModule.auth().changePassword(toChange.getPrincipal(), token);
       log.info("Changed password for user {} at the request of user {}", toChange.getPrincipal(),
           credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
@@ -651,7 +607,7 @@ public class SecurityOperation {
     _createUser(credentials, newUser);
     if (canChangeAuthorizations(credentials, newUser.getPrincipal())) {
       try {
-        authorizor.changeAuthorizations(newUser.getPrincipal(), authorizations);
+        securityModule.auth().changeAuthorizations(newUser.getPrincipal(), authorizations);
       } catch (AccumuloSecurityException ase) {
         throw ase.asThriftException();
       }
@@ -662,8 +618,7 @@ public class SecurityOperation {
       throws ThriftSecurityException {
     try {
       AuthenticationToken token = newUser.getToken();
-      authenticator.createUser(newUser.getPrincipal(), token);
-      authorizor.initUser(newUser.getPrincipal());
+      securityModule.auth().createUser(newUser.getPrincipal(), token);
       permModule.initUser(newUser.getPrincipal());
       log.info("Created user {} at the request of user {}", newUser.getPrincipal(),
           credentials.getPrincipal());
@@ -677,8 +632,7 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     try {
-      authorizor.dropUser(user);
-      authenticator.dropUser(user);
+      securityModule.auth().dropUser(user);
       permModule.cleanUser(user);
       log.info("Deleted user {} at the request of user {}", user, credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
@@ -817,7 +771,7 @@ public class SecurityOperation {
 
   public Set<String> listUsers(TCredentials credentials) throws ThriftSecurityException {
     authenticate(credentials);
-    return authenticator.listUsers();
+    return securityModule.auth().listUsers();
   }
 
   public void deleteTable(TCredentials credentials, TableId tableId, NamespaceId namespaceId)

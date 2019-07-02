@@ -47,8 +47,6 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.security.handler.Authenticator;
-import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,14 +56,13 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static final String AUDITLOG = "org.apache.accumulo.audit";
   public static final Logger audit = LoggerFactory.getLogger(AUDITLOG);
 
-  public AuditedSecurityOperation(ServerContext context, Authorizor author, Authenticator authent) {
-    super(context, author, authent);
+  public AuditedSecurityOperation(ServerContext context) {
+    super(context);
   }
 
   public static synchronized SecurityOperation getInstance(ServerContext context) {
     if (instance == null) {
-      instance =
-          new AuditedSecurityOperation(context, getAuthorizor(context), getAuthenticator(context));
+      instance = new AuditedSecurityOperation(context);
     }
     return instance;
   }

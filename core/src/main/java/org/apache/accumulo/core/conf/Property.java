@@ -122,17 +122,24 @@ public enum Property {
           + "currently in use, run 'accumulo admin volumes -l'. To use a comma or "
           + "other reserved characters in a URI use standard URI hex encoding. For "
           + "example replace commas with %2C."),
+  @Experimental
+  INSTANCE_SECURITY_MODULE("instance.security.module",
+      "org.apache.accumulo.server.security.handler.SecurityModuleImpl", PropertyType.CLASSNAME,
+      "The pluggable security module."),
+  @Deprecated
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
-      "The authenticator class that accumulo will use to determine if a user "
+      "Deprecated since 2.1 see instance.security.module. The authenticator class that accumulo will use to determine if a user "
           + "has privilege to perform an action"),
+  @Deprecated
   INSTANCE_SECURITY_AUTHORIZOR("instance.security.authorizor",
       "org.apache.accumulo.server.security.handler.ZKAuthorizor", PropertyType.CLASSNAME,
-      "The authorizor class that accumulo will use to determine what labels a "
+      "Deprecated since 2.1 see instance.security.module.The authorizor class that accumulo will use to determine what labels a "
           + "user has privilege to see"),
+  @Deprecated
   INSTANCE_SECURITY_PERMISSION_HANDLER("instance.security.permissionHandler",
       "org.apache.accumulo.server.security.handler.ZKPermHandler", PropertyType.CLASSNAME,
-      "The permission handler class that accumulo will use to determine if a "
+      "Deprecated since 2.1 see instance.security.module. The permission handler class that accumulo will use to determine if a "
           + "user has privilege to perform an action"),
   INSTANCE_RPC_SSL_ENABLED("instance.rpc.ssl.enabled", "false", PropertyType.BOOLEAN,
       "Use SSL for socket connections from clients and among accumulo services. "

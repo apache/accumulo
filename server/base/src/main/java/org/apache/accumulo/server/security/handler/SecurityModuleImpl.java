@@ -47,11 +47,11 @@ import org.slf4j.LoggerFactory;
 public class SecurityModuleImpl implements SecurityModule {
   private static final Logger log = LoggerFactory.getLogger(SecurityModuleImpl.class);
 
-  private ServerContext context;
-  private AuthImpl auth;
-  private PermImpl perm;
-  private ZooCache zooCache;
-  private String ZKUserPath;
+  protected ServerContext context;
+  protected AuthImpl auth;
+  protected PermImpl perm;
+  protected ZooCache zooCache;
+  protected String ZKUserPath;
 
   public SecurityModuleImpl(ServerContext context) {
     this.context = context;
@@ -66,7 +66,7 @@ public class SecurityModuleImpl implements SecurityModule {
   public void initialize(String rootUser, byte[] token) {
     ZooReaderWriter zoo = context.getZooReaderWriter();
 
-    // authenticator.initializeSecurity(rootPrincipal, token);
+    // ZKAuthenticator.initializeSecurity(rootPrincipal, token);
     try {
       // remove old settings from zookeeper first, if any
       synchronized (zooCache) {
@@ -86,7 +86,7 @@ public class SecurityModuleImpl implements SecurityModule {
       throw new RuntimeException(e);
     }
 
-    // authorizor.initializeSecurity(credentials, rootPrincipal);
+    // ZKAuthorizor.initializeSecurity(credentials, rootPrincipal);
     // create the root user with no record-level authorizations
     try {
       // prep parent node of users with root username
@@ -102,7 +102,7 @@ public class SecurityModuleImpl implements SecurityModule {
       throw new RuntimeException(e);
     }
 
-    // permHandle.initializeSecurity(credentials, rootPrincipal);
+    // ZKPermHandler.initializeSecurity(credentials, rootPrincipal);
     // create the root user with all system privileges, no table privileges, and no record-level
     // authorizations
     Set<SystemPermission> rootPerms = new TreeSet<>();
@@ -189,7 +189,17 @@ public class SecurityModuleImpl implements SecurityModule {
     return this.perm;
   }
 
+  /**
+   * TODO: Find a better way to not expose Impl code
+   */
   public PermImpl getPerm() {
     return this.perm;
+  }
+
+  /**
+   * TODO: Find a better way to not expose Impl code
+   */
+  public AuthImpl getAuth() {
+    return this.auth;
   }
 }

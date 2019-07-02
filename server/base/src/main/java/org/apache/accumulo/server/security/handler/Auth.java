@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import java.util.Set;
+
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.Authorizations;
@@ -42,8 +44,7 @@ public interface Auth {
       throws AccumuloSecurityException;
 
   /**
-   * Returns Authorizations for the provided userPrincipal. Requires a previous call to
-   * {@link #authenticate(String, AuthenticationToken)} otherwise throws IllegalStateException.
+   * Returns Authorizations (cached) for the provided userPrincipal.
    *
    * @param userPrincipal
    *          get authorizations of this user
@@ -89,4 +90,13 @@ public interface Auth {
    */
   void dropUser(String principal) throws AccumuloSecurityException;
 
+  /**
+   * Get all the users. Different impl between Kerberos vs ZK
+   */
+  Set<String> listUsers();
+
+  /**
+   * TODO: Determine if we want this on the interface or not
+   */
+  boolean userExists(String user);
 }
