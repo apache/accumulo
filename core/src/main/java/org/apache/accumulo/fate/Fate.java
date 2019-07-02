@@ -135,8 +135,9 @@ public class Fate<T> {
      */
     private void blockIfHadoopShutdown(long tid, Exception e) {
       if (isIOException(e) && ShutdownUtil.isShutdownInProgress()) {
+        String tidStr = String.format("%016x", tid);
         log.info("Ignoring exception that was likely caused by Hadoop Shutdown hook. tid : {} ",
-            tid, e);
+            tidStr, e);
 
         while (true) {
           // Nothing is going to work well at this point, so why even try. Just wait for the end.
