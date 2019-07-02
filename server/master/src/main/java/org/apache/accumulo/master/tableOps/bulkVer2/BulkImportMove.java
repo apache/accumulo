@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master.tableOps.bulkVer2;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -109,7 +110,29 @@ class BulkImportMove extends MasterRepo {
       results.add(workers.submit(() -> {
         final Path originalPath = new Path(sourceDir, renameEntry.getKey());
         Path newPath = new Path(bulkDir, renameEntry.getValue());
-        boolean success = fs.rename(originalPath, newPath);
+        boolean success;
+        try {
+          success = fs.rename(originalPath, newPath);
+        } catch (IOException e) {
+          // The rename could have failed because this is the second time its running (failures
+          // could cause this to run multiple times).
+          if (!fs.exists(newPath) || fs.exists(originalPath)) {
+            throw e;
+          }
+
+          log.debug(
+              "Ingoring rename exception because destination already exists. tid: {} orig: {} new: {}",
+              fmtTid, originalPath, newPath, e);
+          success = true;
+        }
+
+        if (!success && fs.exists(newPath) && !fs.exists(originalPath)) {
+          log.debug(
+              "Ingoring rename failure because destination already exists. tid: {} orig: {} new: {}",
+              fmtTid, originalPath, newPath);
+          success = true;
+        }
+
         if (success && log.isTraceEnabled())
           log.trace("tid {} moved {} to {}", fmtTid, originalPath, newPath);
         return success;
