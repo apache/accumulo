@@ -19,6 +19,8 @@ package org.apache.accumulo.server.security.handler;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -32,25 +34,26 @@ public interface Perm {
 
   boolean hasSystem(String user, SystemPermission perm);
 
-  boolean hasTable(String user, String table, TablePermission perm) throws TableNotFoundException;
+  boolean hasTable(String user, TableId tableId, TablePermission perm)
+      throws TableNotFoundException;
 
-  boolean hasNamespace(String user, String namespace, NamespacePermission perm)
+  boolean hasNamespace(String user, NamespaceId namespaceId, NamespacePermission perm)
       throws NamespaceNotFoundException;
 
   void grantSystem(String user, SystemPermission perm) throws AccumuloSecurityException;
 
   void revokeSystem(String user, SystemPermission perm) throws AccumuloSecurityException;
 
-  void grantTable(String user, String table, TablePermission perm)
+  void grantTable(String user, TableId tableId, TablePermission perm)
       throws AccumuloSecurityException, TableNotFoundException;
 
-  void revokeTable(String user, String table, TablePermission perm)
+  void revokeTable(String user, TableId tableId, TablePermission perm)
       throws AccumuloSecurityException, TableNotFoundException;
 
-  void grantNamespace(String user, String namespace, NamespacePermission perm)
+  void grantNamespace(String user, NamespaceId namespaceId, NamespacePermission perm)
       throws AccumuloSecurityException, NamespaceNotFoundException;
 
-  void revokeNamespace(String user, String namespace, NamespacePermission perm)
+  void revokeNamespace(String user, NamespaceId namespaceId, NamespacePermission perm)
       throws AccumuloSecurityException, NamespaceNotFoundException;
 
 }

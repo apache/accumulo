@@ -53,12 +53,11 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.KerberosAuthenticator;
-import org.apache.accumulo.server.security.handler.PermissionHandler;
+import org.apache.accumulo.server.security.handler.PermImpl;
 import org.apache.accumulo.server.security.handler.SecurityModule;
 import org.apache.accumulo.server.security.handler.SecurityModuleImpl;
 import org.apache.accumulo.server.security.handler.ZKAuthenticator;
 import org.apache.accumulo.server.security.handler.ZKAuthorizor;
-import org.apache.accumulo.server.security.handler.ZKPermHandler;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,11 +67,11 @@ import org.slf4j.LoggerFactory;
  */
 public class SecurityOperation {
   private static final Logger log = LoggerFactory.getLogger(SecurityOperation.class);
-  protected SecurityModule securityModule;
+  protected SecurityModuleImpl securityModule;
+  protected PermImpl permModule;
 
   protected Authorizor authorizor;
   protected Authenticator authenticator;
-  protected PermissionHandler permHandle;
   protected boolean isKerberos;
   private static String rootUserName = null;
   private final ZooCache zooCache;
@@ -81,14 +80,6 @@ public class SecurityOperation {
   protected final ServerContext context;
 
   static SecurityOperation instance;
-
-  public static synchronized SecurityOperation getInstance(ServerContext context) {
-    if (instance == null) {
-      instance = new SecurityOperation(context, getAuthorizor(context), getAuthenticator(context),
-          getPermHandler(context));
-    }
-    return instance;
-  }
 
   protected static Authorizor getAuthorizor(ServerContext context) {
     Authorizor toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
@@ -104,35 +95,18 @@ public class SecurityOperation {
     return toRet;
   }
 
-  protected static PermissionHandler getPermHandler(ServerContext context) {
-    PermissionHandler toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
-        Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class,
-        new ZKPermHandler());
-    toRet.initialize(context);
-    return toRet;
-  }
-
   protected SecurityOperation(ServerContext context) {
     this.context = context;
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
   }
 
-  public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
-      PermissionHandler pm) {
+  public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent) {
     this(context);
     securityModule = new SecurityModuleImpl(context);
     authorizor = author;
     authenticator = authent;
-    permHandle = pm;
-
-    if (!authorizor.validSecurityHandlers(authenticator, pm)
-        || !authenticator.validSecurityHandlers()
-        || !permHandle.validSecurityHandlers(authent, author))
-      throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
-          + " do not play nice with eachother. Please choose authentication and"
-          + " authorization mechanisms that are compatible with one another.");
-
+    permModule = securityModule.getPerm();
     isKerberos = KerberosAuthenticator.class.isAssignableFrom(authenticator.getClass());
   }
 
@@ -144,7 +118,7 @@ public class SecurityOperation {
 
     securityModule.initialize(rootPrincipal, token);
     try {
-      securityModule.perm().grantTable(rootPrincipal, MetadataTable.ID.canonical(),
+      securityModule.perm().grantTable(rootPrincipal, MetadataTable.ID,
           TablePermission.ALTER_TABLE);
     } catch (TableNotFoundException e) {
       // Shouldn't happen
@@ -339,8 +313,8 @@ public class SecurityOperation {
     targetUserExists(user);
 
     if (useCached)
-      return permHandle.hasCachedSystemPermission(user, permission);
-    return permHandle.hasSystemPermission(user, permission);
+      return permModule.hasCachedSystemPermission(user, permission);
+    return permModule.hasSystem(user, permission);
   }
 
   /**
@@ -374,8 +348,8 @@ public class SecurityOperation {
 
     try {
       if (useCached)
-        return permHandle.hasCachedTablePermission(user, table.canonical(), permission);
-      return permHandle.hasTablePermission(user, table.canonical(), permission);
+        return permModule.hasCachedTablePermission(user, table, permission);
+      return permModule.hasTable(user, table, permission);
     } catch (TableNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.TABLE_DOESNT_EXIST);
     }
@@ -399,8 +373,8 @@ public class SecurityOperation {
 
     try {
       if (useCached)
-        return permHandle.hasCachedNamespacePermission(user, namespace.canonical(), permission);
-      return permHandle.hasNamespacePermission(user, namespace.canonical(), permission);
+        return permModule.hasCachedNamespacePermission(user, namespace, permission);
+      return permModule.hasNamespace(user, namespace, permission);
     } catch (NamespaceNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }
@@ -690,7 +664,7 @@ public class SecurityOperation {
       AuthenticationToken token = newUser.getToken();
       authenticator.createUser(newUser.getPrincipal(), token);
       authorizor.initUser(newUser.getPrincipal());
-      permHandle.initUser(newUser.getPrincipal());
+      permModule.initUser(newUser.getPrincipal());
       log.info("Created user {} at the request of user {}", newUser.getPrincipal(),
           credentials.getPrincipal());
     } catch (AccumuloSecurityException ase) {
@@ -705,7 +679,7 @@ public class SecurityOperation {
     try {
       authorizor.dropUser(user);
       authenticator.dropUser(user);
-      permHandle.cleanUser(user);
+      permModule.cleanUser(user);
       log.info("Deleted user {} at the request of user {}", user, credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
@@ -721,7 +695,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.grantSystemPermission(user, permissionById);
+      permModule.grantSystem(user, permissionById);
       log.info("Granted system permission {} for user {} at the request of user {}", permissionById,
           user, credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
@@ -737,7 +711,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.grantTablePermission(user, tableId.canonical(), permission);
+      permModule.grantTable(user, tableId, permission);
       log.info("Granted table permission {} for user {} on the table {} at the request of user {}",
           permission, user, tableId, c.getPrincipal());
     } catch (AccumuloSecurityException e) {
@@ -755,13 +729,11 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.grantNamespacePermission(user, namespace.canonical(), permission);
+      permModule.grantNamespace(user, namespace, permission);
       log.info("Granted namespace permission {} for user {} on the namespace {}"
           + " at the request of user {}", permission, user, namespace, c.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
-    } catch (NamespaceNotFoundException e) {
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }
   }
 
@@ -774,7 +746,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.revokeSystemPermission(user, permission);
+      permModule.revokeSystem(user, permission);
       log.info("Revoked system permission {} for user {} at the request of user {}", permission,
           user, credentials.getPrincipal());
 
@@ -791,7 +763,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.revokeTablePermission(user, tableId.canonical(), permission);
+      permModule.revokeTable(user, tableId, permission);
       log.info("Revoked table permission {} for user {} on the table {} at the request of user {}",
           permission, user, tableId, c.getPrincipal());
 
@@ -810,14 +782,12 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.revokeNamespacePermission(user, namespace.canonical(), permission);
+      permModule.revokeNamespace(user, namespace, permission);
       log.info("Revoked namespace permission {} for user {} on the namespace {}"
           + " at the request of user {}", permission, user, namespace, c.getPrincipal());
 
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
-    } catch (NamespaceNotFoundException e) {
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }
   }
 
@@ -856,13 +826,10 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     try {
-      permHandle.cleanTablePermissions(tableId.canonical());
+      permModule.cleanTableOrNamespace(tableId, SecurityModule.ZKUserTablePerms);
     } catch (AccumuloSecurityException e) {
       e.setUser(credentials.getPrincipal());
       throw e.asThriftException();
-    } catch (TableNotFoundException e) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.TABLE_DOESNT_EXIST);
     }
   }
 
@@ -872,13 +839,10 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     try {
-      permHandle.cleanNamespacePermissions(namespace.canonical());
+      permModule.cleanTableOrNamespace(namespace, SecurityModule.ZKUserNamespacePerms);
     } catch (AccumuloSecurityException e) {
       e.setUser(credentials.getPrincipal());
       throw e.asThriftException();
-    } catch (NamespaceNotFoundException e) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }
   }
 

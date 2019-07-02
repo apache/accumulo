@@ -46,14 +46,10 @@ import org.slf4j.LoggerFactory;
 
 public class SecurityModuleImpl implements SecurityModule {
   private static final Logger log = LoggerFactory.getLogger(SecurityModuleImpl.class);
-  private final String ZKUserAuths = "/Authorizations";
-  private final String ZKUserSysPerms = "/System";
-  private final String ZKUserTablePerms = "/Tables";
-  private final String ZKUserNamespacePerms = "/Namespaces";
 
   private ServerContext context;
   private AuthImpl auth;
-  private Perm perm;
+  private PermImpl perm;
   private ZooCache zooCache;
   private String ZKUserPath;
 
@@ -63,10 +59,10 @@ public class SecurityModuleImpl implements SecurityModule {
     this.zooCache = new ZooCache(context.getZooReaderWriter(), null);
 
     this.auth = new AuthImpl(zooCache, context, ZKUserPath);
-    this.perm = new PermImpl();
+    this.perm = new PermImpl(zooCache, context, ZKUserPath);
   }
 
-  // @Override
+  @Override
   public void initialize(String rootUser, byte[] token) {
     ZooReaderWriter zoo = context.getZooReaderWriter();
 
@@ -190,6 +186,10 @@ public class SecurityModuleImpl implements SecurityModule {
 
   @Override
   public Perm perm() {
+    return this.perm;
+  }
+
+  public PermImpl getPerm() {
     return this.perm;
   }
 }

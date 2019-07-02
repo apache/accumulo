@@ -25,6 +25,10 @@ package org.apache.accumulo.server.security.handler;
  * @since 2.1
  */
 public interface SecurityModule {
+  String ZKUserAuths = "/Authorizations";
+  String ZKUserSysPerms = "/System";
+  String ZKUserTablePerms = "/Tables";
+  String ZKUserNamespacePerms = "/Namespaces";
 
   /**
    * Initialize the security for Accumulo. WARNING: Calling this will drop all users for Accumulo
