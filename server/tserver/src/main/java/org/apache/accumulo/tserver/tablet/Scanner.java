@@ -27,6 +27,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.util.ShutdownUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,7 +119,7 @@ public class Scanner {
       else
         throw iie;
     } catch (IOException ioe) {
-      if (tablet.shutdownInProgress()) {
+      if (ShutdownUtil.isShutdownInProgress()) {
         log.debug("IOException while shutdown in progress ", ioe);
         throw new TabletClosedException(ioe); // assume IOException was caused by execution of HDFS
                                               // shutdown hook
