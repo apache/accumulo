@@ -32,6 +32,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -73,7 +74,10 @@ class BulkImportMove extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     final Path sourceDir = new Path(bulkInfo.sourceDir);
-    log.debug(" tid {} sourceDir {}", tid, sourceDir);
+
+    String fmtTid = FateTxId.formatTid(tid);
+
+    log.debug("{} sourceDir {}", fmtTid, sourceDir);
 
     VolumeManager fs = master.getFileSystem();
 
@@ -84,7 +88,7 @@ class BulkImportMove extends MasterRepo {
     try {
       Map<String,String> oldToNewNameMap =
           BulkSerialize.readRenameMap(bulkDir.toString(), p -> fs.open(p));
-      moveFiles(String.format("%016x", tid), sourceDir, bulkDir, master, fs, oldToNewNameMap);
+      moveFiles(tid, sourceDir, bulkDir, master, fs, oldToNewNameMap);
 
       return new LoadFiles(bulkInfo);
     } catch (Exception ex) {
@@ -97,14 +101,16 @@ class BulkImportMove extends MasterRepo {
   /**
    * For every entry in renames, move the file from the key path to the value path
    */
-  private void moveFiles(String fmtTid, Path sourceDir, Path bulkDir, Master master,
+  private void moveFiles(long tid, Path sourceDir, Path bulkDir, Master master,
       final VolumeManager fs, Map<String,String> renames) throws Exception {
     MetadataTableUtil.addBulkLoadInProgressFlag(master.getContext(),
-        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
+        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
 
     int workerCount = master.getConfiguration().getCount(Property.MASTER_BULK_RENAME_THREADS);
     SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulkDir move");
     List<Future<Boolean>> results = new ArrayList<>();
+
+    String fmtTid = FateTxId.formatTid(tid);
 
     for (Map.Entry<String,String> renameEntry : renames.entrySet()) {
       results.add(workers.submit(() -> {
@@ -121,20 +127,20 @@ class BulkImportMove extends MasterRepo {
           }
 
           log.debug(
-              "Ingoring rename exception because destination already exists. tid: {} orig: {} new: {}",
+              "Ingoring rename exception because destination already exists. {} orig: {} new: {}",
               fmtTid, originalPath, newPath, e);
           success = true;
         }
 
         if (!success && fs.exists(newPath) && !fs.exists(originalPath)) {
           log.debug(
-              "Ingoring rename failure because destination already exists. tid: {} orig: {} new: {}",
+              "Ingoring rename failure because destination already exists. {} orig: {} new: {}",
               fmtTid, originalPath, newPath);
           success = true;
         }
 
         if (success && log.isTraceEnabled())
-          log.trace("tid {} moved {} to {}", fmtTid, originalPath, newPath);
+          log.trace("{} moved {} to {}", fmtTid, originalPath, newPath);
         return success;
       }));
     }

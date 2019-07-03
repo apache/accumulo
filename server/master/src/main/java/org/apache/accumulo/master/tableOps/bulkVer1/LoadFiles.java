@@ -47,6 +47,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -107,7 +108,7 @@ class LoadFiles extends MasterRepo {
     for (FileStatus entry : fs.listStatus(new Path(bulk))) {
       files.add(entry);
     }
-    log.debug("tid " + tid + " importing " + files.size() + " files");
+    log.debug(FateTxId.formatTid(tid) + " importing " + files.size() + " files");
 
     Path writable = new Path(this.errorDir, ".iswritable");
     if (!fs.createNewFile(writable)) {
@@ -129,7 +130,8 @@ class LoadFiles extends MasterRepo {
       List<Future<Void>> results = new ArrayList<>();
 
       if (master.onlineTabletServers().size() == 0)
-        log.warn("There are no tablet server to process bulk import, waiting (tid = " + tid + ")");
+        log.warn("There are no tablet server to process bulk import, waiting (tid = "
+            + FateTxId.formatTid(tid) + ")");
 
       while (master.onlineTabletServers().size() == 0) {
         sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
@@ -178,7 +180,8 @@ class LoadFiles extends MasterRepo {
                 loaded.add(file);
               }
             } catch (Exception ex) {
-              log.error("rpc failed server:" + server + ", tid:" + tid + " " + ex);
+              log.error(
+                  "rpc failed server:" + server + ", tid:" + FateTxId.formatTid(tid) + " " + ex);
             } finally {
               ThriftUtil.returnClient(client);
             }
@@ -191,8 +194,8 @@ class LoadFiles extends MasterRepo {
       }
       filesToLoad.removeAll(loaded);
       if (filesToLoad.size() > 0) {
-        log.debug("tid " + tid + " attempt " + (attempt + 1) + " " + sampleList(filesToLoad, 10)
-            + " failed");
+        log.debug(FateTxId.formatTid(tid) + " attempt " + (attempt + 1) + " "
+            + sampleList(filesToLoad, 10) + " failed");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       }
     }

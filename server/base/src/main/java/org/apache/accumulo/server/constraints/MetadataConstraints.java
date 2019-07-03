@@ -44,6 +44,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.io.Text;
@@ -229,7 +230,7 @@ public class MetadataConstraints implements Constraint {
           }
 
           if (!isSplitMutation && !isLocationMutation) {
-            long tid = Long.parseLong(tidString);
+            long tid = MetadataTableUtil.getBulkLoadTid(new Value(tidString));
 
             try {
               if (otherTidCount > 0 || !dataFiles.equals(loadedFiles) || !getArbitrator(context)

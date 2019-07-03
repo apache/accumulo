@@ -135,9 +135,9 @@ public class Fate<T> {
      */
     private void blockIfHadoopShutdown(long tid, Exception e) {
       if (isIOException(e) && ShutdownUtil.isShutdownInProgress()) {
-        String tidStr = String.format("%016x", tid);
-        log.info("Ignoring exception that was likely caused by Hadoop Shutdown hook. tid : {} ",
-            tidStr, e);
+        String tidStr = FateTxId.formatTid(tid);
+        log.info("Ignoring exception that was likely caused by Hadoop Shutdown hook. {} ", tidStr,
+            e);
 
         while (true) {
           // Nothing is going to work well at this point, so why even try. Just wait for the end.
@@ -147,8 +147,8 @@ public class Fate<T> {
     }
 
     private void transitionToFailed(long tid, Exception e) {
-      String tidStr = String.format("%016x", tid);
-      final String msg = "Failed to execute Repo, tid=" + tidStr;
+      String tidStr = FateTxId.formatTid(tid);
+      final String msg = "Failed to execute Repo, " + tidStr;
       // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
       // as a warning. They're a normal, handled failure condition.
       if (e instanceof AcceptableException) {
@@ -158,7 +158,7 @@ public class Fate<T> {
       }
       store.setProperty(tid, EXCEPTION_PROP, e);
       store.setStatus(tid, TStatus.FAILED_IN_PROGRESS);
-      log.info("Updated status for Repo with tid={} to FAILED_IN_PROGRESS", tidStr);
+      log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", tidStr);
     }
 
     private void processFailed(long tid, Repo<T> op) {
@@ -189,7 +189,7 @@ public class Fate<T> {
       try {
         op.undo(tid, environment);
       } catch (Exception e) {
-        log.warn("Failed to undo Repo, tid=" + String.format("%016x", tid), e);
+        log.warn("Failed to undo Repo, " + FateTxId.formatTid(tid), e);
       }
     }
 
@@ -273,7 +273,7 @@ public class Fate<T> {
         case FAILED_IN_PROGRESS:
         case IN_PROGRESS:
           throw new IllegalStateException(
-              "Can not delete in progress transaction " + String.format("%016x", tid));
+              "Can not delete in progress transaction " + FateTxId.formatTid(tid));
         case UNKNOWN:
           // nothing to do, it does not exist
           break;
@@ -288,7 +288,7 @@ public class Fate<T> {
     try {
       if (store.getStatus(tid) != TStatus.SUCCESSFUL)
         throw new IllegalStateException("Tried to get exception when transaction "
-            + String.format("%016x", tid) + " not in successful state");
+            + FateTxId.formatTid(tid) + " not in successful state");
       return (String) store.getProperty(tid, RETURN_PROP);
     } finally {
       store.unreserve(tid, 0);
@@ -301,7 +301,7 @@ public class Fate<T> {
     try {
       if (store.getStatus(tid) != TStatus.FAILED)
         throw new IllegalStateException("Tried to get exception when transaction "
-            + String.format("%016x", tid) + " not in failed state");
+            + FateTxId.formatTid(tid) + " not in failed state");
       return (Exception) store.getProperty(tid, EXCEPTION_PROP);
     } finally {
       store.unreserve(tid, 0);
