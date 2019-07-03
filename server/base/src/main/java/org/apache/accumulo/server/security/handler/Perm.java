@@ -19,6 +19,7 @@ package org.apache.accumulo.server.security.handler;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -27,18 +28,24 @@ import org.apache.accumulo.core.security.TablePermission;
 
 /**
  * Pluggable permissions module returned by {@link SecurityModule#perm()} ()}.
+ * Lots of room for improvement here.
  *
  * @since 2.1
  */
 public interface Perm {
 
   boolean hasSystem(String user, SystemPermission perm);
+  boolean hasCachedSystemPermission(String user, SystemPermission permission);
 
   boolean hasTable(String user, TableId tableId, TablePermission perm)
       throws TableNotFoundException;
+  boolean hasCachedTablePermission(String user, TableId tableId,
+                                   TablePermission permission);
 
   boolean hasNamespace(String user, NamespaceId namespaceId, NamespacePermission perm)
       throws NamespaceNotFoundException;
+  boolean hasCachedNamespacePermission(String user, NamespaceId namespaceId,
+                                       NamespacePermission permission);
 
   void grantSystem(String user, SystemPermission perm) throws AccumuloSecurityException;
 
@@ -55,5 +62,8 @@ public interface Perm {
 
   void revokeNamespace(String user, NamespaceId namespaceId, NamespacePermission perm)
       throws AccumuloSecurityException, NamespaceNotFoundException;
+
+  void cleanTableOrNamespace(AbstractId<?> tableOrNs, String zkTableOrNsPerms)
+          throws AccumuloSecurityException;
 
 }

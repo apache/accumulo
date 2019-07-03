@@ -32,6 +32,8 @@ import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -49,7 +51,8 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.security.handler.PermImpl;
+import org.apache.accumulo.server.security.handler.KerberosSecurityModule;
+import org.apache.accumulo.server.security.handler.Perm;
 import org.apache.accumulo.server.security.handler.SecurityModule;
 import org.apache.accumulo.server.security.handler.SecurityModuleImpl;
 import org.apache.hadoop.io.Text;
@@ -62,8 +65,8 @@ import org.slf4j.LoggerFactory;
 public class SecurityOperation {
   private static final Logger log = LoggerFactory.getLogger(SecurityOperation.class);
 
-  protected final SecurityModuleImpl securityModule;
-  protected final PermImpl permModule;
+  protected final SecurityModule securityModule;
+  protected final Perm permModule;
   protected final boolean isKerberos;
   protected final ServerContext context;
 
@@ -78,9 +81,14 @@ public class SecurityOperation {
     context = serverContext;
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
-    securityModule = new SecurityModuleImpl(context);
-    permModule = securityModule.getPerm();
-    isKerberos = false; // TODO determine if Kerberos or not... Ideally this shouldn't be here
+    securityModule = loadModule(context.getConfiguration());
+    permModule = securityModule.perm();
+    isKerberos = securityModule.getClass().isAssignableFrom(KerberosSecurityModule.class);
+  }
+
+  private SecurityModule loadModule(AccumuloConfiguration conf) {
+    return Property.createInstanceFromPropertyName(conf, Property.INSTANCE_SECURITY_MODULE,
+            SecurityModule.class, new SecurityModuleImpl(context));
   }
 
   public void initializeSecurity(TCredentials credentials, String rootPrincipal, byte[] token)
@@ -130,7 +138,7 @@ public class SecurityOperation {
       if (isKerberos) {
         // If we have kerberos credentials for a user from the network but no account
         // in the system, we need to make one before proceeding
-        if (!securityModule.getAuth().userExists(creds.getPrincipal())) {
+        if (!securityModule.auth().userExists(creds.getPrincipal())) {
           // If we call the normal createUser method, it will loop back into this method
           // when it tries to check if the user has permission to create users
           try {
@@ -182,7 +190,7 @@ public class SecurityOperation {
       if (isKerberos) {
         // If we have kerberos credentials for a user from the network but no account
         // in the system, we need to make one before proceeding
-        if (!securityModule.getAuth().userExists(toCreds.getPrincipal())) {
+        if (!securityModule.auth().userExists(toCreds.getPrincipal())) {
           createUser(credentials, toCreds, Authorizations.EMPTY);
         }
         // Likely that the KerberosAuthenticator will fail as we don't have the credentials for the
@@ -354,7 +362,7 @@ public class SecurityOperation {
   private void targetUserExists(String user) throws ThriftSecurityException {
     if (user.equals(getRootUsername()))
       return;
-    if (!securityModule.getAuth().userExists(user))
+    if (!securityModule.auth().userExists(user))
       throw new ThriftSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST);
   }
 
@@ -623,7 +631,6 @@ public class SecurityOperation {
     try {
       AuthenticationToken token = newUser.getToken();
       securityModule.auth().createUser(newUser.getPrincipal(), token);
-      permModule.initUser(newUser.getPrincipal());
       log.info("Created user {} at the request of user {}", newUser.getPrincipal(),
           credentials.getPrincipal());
     } catch (AccumuloSecurityException ase) {
@@ -637,7 +644,6 @@ public class SecurityOperation {
           SecurityErrorCode.PERMISSION_DENIED);
     try {
       securityModule.auth().dropUser(user);
-      permModule.cleanUser(user);
       log.info("Deleted user {} at the request of user {}", user, credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
@@ -692,6 +698,8 @@ public class SecurityOperation {
           + " at the request of user {}", permission, user, namespace, c.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
+    } catch (NamespaceNotFoundException e) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }
   }
 
@@ -746,6 +754,8 @@ public class SecurityOperation {
 
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
+    } catch (NamespaceNotFoundException e) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }
   }
 

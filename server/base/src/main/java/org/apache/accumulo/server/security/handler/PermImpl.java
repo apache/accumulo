@@ -365,46 +365,7 @@ public class PermImpl implements Perm {
     }
   }
 
-  public void cleanUser(String user) throws AccumuloSecurityException {
-    try {
-      synchronized (zooCache) {
-        zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserSysPerms,
-            ZooUtil.NodeMissingPolicy.SKIP);
-        zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms,
-            ZooUtil.NodeMissingPolicy.SKIP);
-        zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserNamespacePerms,
-            ZooUtil.NodeMissingPolicy.SKIP);
-        zooCache.clear(ZKUserPath + "/" + user);
-      }
-    } catch (InterruptedException e) {
-      log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
-    } catch (KeeperException e) {
-      log.error("{}", e.getMessage(), e);
-      if (e.code().equals(KeeperException.Code.NONODE))
-        throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
-      throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
-
-    }
-  }
-
-  public void initUser(String user) throws AccumuloSecurityException {
-    try {
-      zoo.putPersistentData(ZKUserPath + "/" + user, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
-      zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms, new byte[0],
-          ZooUtil.NodeExistsPolicy.SKIP);
-      zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserNamespacePerms, new byte[0],
-          ZooUtil.NodeExistsPolicy.SKIP);
-    } catch (KeeperException e) {
-      log.error("{}", e.getMessage(), e);
-      throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
-    } catch (InterruptedException e) {
-      log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
-    }
-  }
-
-  public void cleanTableOrNamespace(AbstractId tableOrNs, String zkTableOrNsPerms)
+  public void cleanTableOrNamespace(AbstractId<?> tableOrNs, String zkTableOrNsPerms)
       throws AccumuloSecurityException {
     try {
       synchronized (zooCache) {

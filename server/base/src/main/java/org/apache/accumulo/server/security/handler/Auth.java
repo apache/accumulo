@@ -69,7 +69,7 @@ public interface Auth {
   void changePassword(String principal, AuthenticationToken token) throws AccumuloSecurityException;
 
   /**
-   * Create the provided user
+   * Create the provided user and init permissions.
    *
    * @param principal
    *          user to create
@@ -81,7 +81,7 @@ public interface Auth {
   void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException;
 
   /**
-   * Drop the provided user.
+   * Drop the provided user and clean permissions.
    *
    * @param principal
    *          user to drop
