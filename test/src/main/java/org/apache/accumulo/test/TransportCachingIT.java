@@ -135,12 +135,35 @@ public class TransportCachingIT extends AccumuloClusterHarness {
           // Get a non-cached transport
           third = pool.getAnyTransport(servers, false).getSecond();
         } catch (TTransportException e) {
-          log.warn("Failed obtain 2nd transport to {}", servers);
+          log.warn("Failed obtain 3rd transport to {}", servers);
         }
       }
 
       assertNotSame("Expected second and third transport to be different instances", second, third);
       pool.returnTransport(third);
+
+      // ensure the LIFO scheme with a fourth and fifth entry
+      TTransport fourth = null;
+      while (fourth == null) {
+        try {
+          // Get a non-cached transport
+          fourth = pool.getAnyTransport(servers, false).getSecond();
+        } catch (TTransportException e) {
+          log.warn("Failed obtain 4th transport to {}", servers);
+        }
+      }
+      pool.returnTransport(fourth);
+      TTransport fifth = null;
+      while (fifth == null) {
+        try {
+          // Get a cached transport
+          fifth = pool.getAnyTransport(servers, true).getSecond();
+        } catch (TTransportException e) {
+          log.warn("Failed obtain 5th transport to {}", servers);
+        }
+      }
+      assertSame("Expected fourth and fifth transport to be the same instance", fourth, fifth);
+      pool.returnTransport(fifth);
     }
   }
 }
