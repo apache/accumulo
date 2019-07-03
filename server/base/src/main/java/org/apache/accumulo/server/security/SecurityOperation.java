@@ -61,23 +61,26 @@ import org.slf4j.LoggerFactory;
  */
 public class SecurityOperation {
   private static final Logger log = LoggerFactory.getLogger(SecurityOperation.class);
-  protected SecurityModuleImpl securityModule;
-  protected PermImpl permModule;
 
+  protected final SecurityModuleImpl securityModule;
+  protected final PermImpl permModule;
+  protected final boolean isKerberos;
+  protected final ServerContext context;
+
+  // root user static since it may not have been bootstrapped yet
   private static String rootUserName = null;
   private final ZooCache zooCache;
   private final String ZKUserPath;
 
-  protected final ServerContext context;
-
   static SecurityOperation instance;
 
-  public SecurityOperation(ServerContext context) {
-    this.context = context;
+  public SecurityOperation(ServerContext serverContext) {
+    context = serverContext;
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
     securityModule = new SecurityModuleImpl(context);
     permModule = securityModule.getPerm();
+    isKerberos = false; // TODO determine if Kerberos or not... Ideally this shouldn't be here
   }
 
   public void initializeSecurity(TCredentials credentials, String rootPrincipal, byte[] token)
@@ -96,6 +99,7 @@ public class SecurityOperation {
     }
   }
 
+  // TODO move rootUserName into ServerContext... shouldn't need to be synchronized or static
   public synchronized String getRootUsername() {
     if (rootUserName == null)
       rootUserName = new String(zooCache.get(ZKUserPath), UTF_8);
@@ -123,25 +127,25 @@ public class SecurityOperation {
     } else {
       // Not the system user
 
-      // if (isKerberos) {
-      // If we have kerberos credentials for a user from the network but no account
-      // in the system, we need to make one before proceeding
-      if (!securityModule.getAuth().userExists(creds.getPrincipal())) {
-        // If we call the normal createUser method, it will loop back into this method
-        // when it tries to check if the user has permission to create users
-        try {
-          _createUser(credentials, creds);
-        } catch (ThriftSecurityException e) {
-          if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
-            // For Kerberos, a user acct is automatically created because there is no notion of
-            // a password in the traditional sense of Accumulo users. If a user acct already
-            // exists when we try to automatically create a user account, we should avoid
-            // returning this exception back to the user.
-            // We want to let USER_EXISTS code pass through and continue
-            throw e;
+      if (isKerberos) {
+        // If we have kerberos credentials for a user from the network but no account
+        // in the system, we need to make one before proceeding
+        if (!securityModule.getAuth().userExists(creds.getPrincipal())) {
+          // If we call the normal createUser method, it will loop back into this method
+          // when it tries to check if the user has permission to create users
+          try {
+            _createUser(credentials, creds);
+          } catch (ThriftSecurityException e) {
+            if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
+              // For Kerberos, a user acct is automatically created because there is no notion of
+              // a password in the traditional sense of Accumulo users. If a user acct already
+              // exists when we try to automatically create a user account, we should avoid
+              // returning this exception back to the user.
+              // We want to let USER_EXISTS code pass through and continue
+              throw e;
+            }
           }
         }
-        // }
       }
 
       // Check that the user is authenticated (a no-op at this point for kerberos)
@@ -175,16 +179,16 @@ public class SecurityOperation {
     try {
       Credentials toCreds = Credentials.fromThrift(toAuth);
 
-      // if (isKerberos) {
-      // If we have kerberos credentials for a user from the network but no account
-      // in the system, we need to make one before proceeding
-      if (!securityModule.getAuth().userExists(toCreds.getPrincipal())) {
-        createUser(credentials, toCreds, Authorizations.EMPTY);
+      if (isKerberos) {
+        // If we have kerberos credentials for a user from the network but no account
+        // in the system, we need to make one before proceeding
+        if (!securityModule.getAuth().userExists(toCreds.getPrincipal())) {
+          createUser(credentials, toCreds, Authorizations.EMPTY);
+        }
+        // Likely that the KerberosAuthenticator will fail as we don't have the credentials for the
+        // other user,
+        // we only have our own Kerberos credentials.
       }
-      // Likely that the KerberosAuthenticator will fail as we don't have the credentials for the
-      // other user,
-      // we only have our own Kerberos credentials.
-      // }
 
       return securityModule.auth().authenticate(toCreds.getPrincipal(), toCreds.getToken());
     } catch (AccumuloSecurityException e) {
