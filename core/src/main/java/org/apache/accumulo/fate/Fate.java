@@ -16,14 +16,18 @@
  */
 package org.apache.accumulo.fate;
 
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +78,7 @@ public class Fate<T> {
                 continue;
 
             } catch (Exception e) {
+              blockIfHadoopShutdown(tid, e);
               transitionToFailed(tid, e);
               continue;
             }
@@ -105,6 +110,39 @@ public class Fate<T> {
           }
         }
 
+      }
+    }
+
+    private boolean isIOException(Throwable e) {
+      if (e == null)
+        return false;
+
+      if (e instanceof IOException)
+        return true;
+
+      for (Throwable suppressed : e.getSuppressed())
+        if (isIOException(suppressed))
+          return true;
+
+      return isIOException(e.getCause());
+    }
+
+    /**
+     * The Hadoop Filesystem registers a java shutdown hook that closes the file system. This can
+     * cause threads to get spurious IOException. If this happens, instead of failing a FATE
+     * transaction just wait for process to die. When the master start elsewhere the FATE
+     * transaction can resume.
+     */
+    private void blockIfHadoopShutdown(long tid, Exception e) {
+      if (isIOException(e) && ShutdownUtil.isShutdownInProgress()) {
+        String tidStr = String.format("%016x", tid);
+        log.info("Ignoring exception that was likely caused by Hadoop Shutdown hook. tid : {} ",
+            tidStr, e);
+
+        while (true) {
+          // Nothing is going to work well at this point, so why even try. Just wait for the end.
+          UtilWaitThread.sleepUninterruptibly(1, TimeUnit.MINUTES);
+        }
       }
     }
 
