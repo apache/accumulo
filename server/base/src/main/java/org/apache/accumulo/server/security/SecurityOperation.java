@@ -88,7 +88,7 @@ public class SecurityOperation {
 
   private SecurityModule loadModule(AccumuloConfiguration conf) {
     return Property.createInstanceFromPropertyName(conf, Property.INSTANCE_SECURITY_MODULE,
-            SecurityModule.class, new SecurityModuleImpl(context));
+        SecurityModule.class, new SecurityModuleImpl(context));
   }
 
   public void initializeSecurity(TCredentials credentials, String rootPrincipal, byte[] token)
@@ -127,10 +127,22 @@ public class SecurityOperation {
     Credentials creds = Credentials.fromThrift(credentials);
 
     if (isSystemUser(credentials)) {
-      if (!(context.getCredentials().equals(creds))) {
-        log.debug("Provided credentials did not match server's expected"
-            + " credentials. Expected {} but got {}", context.getCredentials(), creds);
-        throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
+      if (isKerberos) {
+        // Don't need to re-check the principal as TCredentialsUpdatingInvocationHandler will check
+        // the provided against
+        // the credentials provided on the wire.
+        if (!context.getCredentials().getToken().equals(creds.getToken())) {
+          log.debug("With SASL enabled, System AuthenticationTokens did not match.");
+          throw new ThriftSecurityException(creds.getPrincipal(),
+              SecurityErrorCode.BAD_CREDENTIALS);
+        }
+      } else {
+        if (!(context.getCredentials().equals(creds))) {
+          log.debug("Provided credentials did not match server's expected"
+              + " credentials. Expected {} but got {}", context.getCredentials(), creds);
+          throw new ThriftSecurityException(creds.getPrincipal(),
+              SecurityErrorCode.BAD_CREDENTIALS);
+        }
       }
     } else {
       // Not the system user
@@ -280,9 +292,7 @@ public class SecurityOperation {
 
     targetUserExists(user);
 
-    if (useCached)
-      return permModule.hasCachedSystemPermission(user, permission);
-    return permModule.hasSystem(user, permission);
+    return permModule.hasSystem(user, permission, useCached);
   }
 
   /**
@@ -315,9 +325,7 @@ public class SecurityOperation {
       return true;
 
     try {
-      if (useCached)
-        return permModule.hasCachedTablePermission(user, table, permission);
-      return permModule.hasTable(user, table, permission);
+      return permModule.hasTable(user, table, permission, useCached);
     } catch (TableNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.TABLE_DOESNT_EXIST);
     }
@@ -340,9 +348,7 @@ public class SecurityOperation {
       return true;
 
     try {
-      if (useCached)
-        return permModule.hasCachedNamespacePermission(user, namespace, permission);
-      return permModule.hasNamespace(user, namespace, permission);
+      return permModule.hasNamespace(user, namespace, permission, useCached);
     } catch (NamespaceNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }

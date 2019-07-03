@@ -161,9 +161,9 @@ public class AuthImpl implements Auth {
     try {
       zoo.putPersistentData(ZKUserPath + "/" + user, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
       zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms, new byte[0],
-              ZooUtil.NodeExistsPolicy.SKIP);
+          ZooUtil.NodeExistsPolicy.SKIP);
       zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserNamespacePerms, new byte[0],
-              ZooUtil.NodeExistsPolicy.SKIP);
+          ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException e) {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
@@ -239,11 +239,11 @@ public class AuthImpl implements Auth {
     try {
       synchronized (zooCache) {
         zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserSysPerms,
-                ZooUtil.NodeMissingPolicy.SKIP);
+            ZooUtil.NodeMissingPolicy.SKIP);
         zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms,
-                ZooUtil.NodeMissingPolicy.SKIP);
+            ZooUtil.NodeMissingPolicy.SKIP);
         zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserNamespacePerms,
-                ZooUtil.NodeMissingPolicy.SKIP);
+            ZooUtil.NodeMissingPolicy.SKIP);
         zooCache.clear(ZKUserPath + "/" + user);
       }
     } catch (InterruptedException e) {

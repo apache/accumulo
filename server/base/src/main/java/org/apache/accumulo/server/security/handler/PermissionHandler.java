@@ -30,7 +30,7 @@ import org.apache.accumulo.server.ServerContext;
  * implementation does not support configuration through Accumulo, it should throw an
  * AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
  *
- * @deprecated Use the {@link SecurityModule} and {@link Perm}Module
+ * @deprecated See {@link SecurityModule}
  */
 @Deprecated
 public interface PermissionHandler {

@@ -63,7 +63,10 @@ public class PermImpl implements Perm {
   }
 
   @Override
-  public boolean hasSystem(String user, SystemPermission permission) {
+  public boolean hasSystem(String user, SystemPermission permission, boolean useCache) {
+    if (useCache)
+      return hasCachedSystemPermission(user, permission);
+
     byte[] perms;
     try {
       String path = ZKUserPath + "/" + user + ZKUserSysPerms;
@@ -85,19 +88,19 @@ public class PermImpl implements Perm {
     return ZKSecurityTool.convertSystemPermissions(perms).contains(permission);
   }
 
-  public boolean hasCachedTablePermission(String user, TableId tableId,
-      TablePermission permission) {
-    byte[] serializedPerms =
-        zooCache.get(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + tableId);
-    if (serializedPerms != null) {
-      return ZKSecurityTool.convertTablePermissions(serializedPerms).contains(permission);
-    }
-    return false;
+  private boolean hasCachedSystemPermission(String user, SystemPermission permission) {
+    byte[] perms = zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms);
+    if (perms == null)
+      return false;
+    return ZKSecurityTool.convertSystemPermissions(perms).contains(permission);
   }
 
   @Override
-  public boolean hasTable(String user, TableId tableId, TablePermission permission)
-      throws TableNotFoundException {
+  public boolean hasTable(String user, TableId tableId, TablePermission permission,
+      boolean useCache) throws TableNotFoundException {
+    if (useCache)
+      return hasCachedTablePermission(user, tableId, permission);
+
     byte[] serializedPerms;
     try {
       String path = ZKUserPath + "/" + user + ZKUserTablePerms + "/" + tableId;
@@ -136,16 +139,21 @@ public class PermImpl implements Perm {
     return false;
   }
 
-  public boolean hasCachedSystemPermission(String user, SystemPermission permission) {
-    byte[] perms = zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms);
-    if (perms == null)
-      return false;
-    return ZKSecurityTool.convertSystemPermissions(perms).contains(permission);
+  private boolean hasCachedTablePermission(String user, TableId tableId,
+      TablePermission permission) {
+    byte[] serializedPerms =
+        zooCache.get(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + tableId);
+    if (serializedPerms != null) {
+      return ZKSecurityTool.convertTablePermissions(serializedPerms).contains(permission);
+    }
+    return false;
   }
 
   @Override
-  public boolean hasNamespace(String user, NamespaceId namespaceId, NamespacePermission permission)
-      throws NamespaceNotFoundException {
+  public boolean hasNamespace(String user, NamespaceId namespaceId, NamespacePermission permission,
+      boolean useCache) throws NamespaceNotFoundException {
+    if (useCache)
+      return hasCachedNamespacePermission(user, namespaceId, permission);
     byte[] serializedPerms;
     try {
       String path = ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespaceId;
@@ -179,6 +187,16 @@ public class PermImpl implements Perm {
       log.warn("Unhandled InterruptedException, failing closed for table permission check", e);
       return false;
     }
+    if (serializedPerms != null) {
+      return ZKSecurityTool.convertNamespacePermissions(serializedPerms).contains(permission);
+    }
+    return false;
+  }
+
+  private boolean hasCachedNamespacePermission(String user, NamespaceId namespaceId,
+      NamespacePermission permission) {
+    byte[] serializedPerms = zooCache
+        .get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespaceId.canonical());
     if (serializedPerms != null) {
       return ZKSecurityTool.convertNamespacePermissions(serializedPerms).contains(permission);
     }
@@ -382,15 +400,5 @@ public class PermImpl implements Perm {
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
-  }
-
-  public boolean hasCachedNamespacePermission(String user, NamespaceId namespaceId,
-      NamespacePermission permission) {
-    byte[] serializedPerms = zooCache
-        .get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespaceId.canonical());
-    if (serializedPerms != null) {
-      return ZKSecurityTool.convertNamespacePermissions(serializedPerms).contains(permission);
-    }
-    return false;
   }
 }

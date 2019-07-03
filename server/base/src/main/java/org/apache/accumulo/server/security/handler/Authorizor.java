@@ -29,7 +29,7 @@ import org.apache.accumulo.server.ServerContext;
  * the implementation does not support configuration through Accumulo, it should throw an
  * AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
  *
- * @deprecated Use the {@link SecurityModule} and {@link Auth}Module
+ * @deprecated See {@link SecurityModule}
  */
 @Deprecated
 public interface Authorizor {

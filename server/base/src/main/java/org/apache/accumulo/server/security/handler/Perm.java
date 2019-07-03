@@ -27,25 +27,20 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 
 /**
- * Pluggable permissions module returned by {@link SecurityModule#perm()} ()}.
- * Lots of room for improvement here.
+ * Pluggable permissions module returned by {@link SecurityModule#perm()} ()}. Lots of room for
+ * improvement here.
  *
  * @since 2.1
  */
 public interface Perm {
 
-  boolean hasSystem(String user, SystemPermission perm);
-  boolean hasCachedSystemPermission(String user, SystemPermission permission);
+  boolean hasSystem(String user, SystemPermission perm, boolean useCache);
 
-  boolean hasTable(String user, TableId tableId, TablePermission perm)
+  boolean hasTable(String user, TableId tableId, TablePermission perm, boolean useCache)
       throws TableNotFoundException;
-  boolean hasCachedTablePermission(String user, TableId tableId,
-                                   TablePermission permission);
 
-  boolean hasNamespace(String user, NamespaceId namespaceId, NamespacePermission perm)
-      throws NamespaceNotFoundException;
-  boolean hasCachedNamespacePermission(String user, NamespaceId namespaceId,
-                                       NamespacePermission permission);
+  boolean hasNamespace(String user, NamespaceId namespaceId, NamespacePermission perm,
+      boolean useCache) throws NamespaceNotFoundException;
 
   void grantSystem(String user, SystemPermission perm) throws AccumuloSecurityException;
 
@@ -64,6 +59,6 @@ public interface Perm {
       throws AccumuloSecurityException, NamespaceNotFoundException;
 
   void cleanTableOrNamespace(AbstractId<?> tableOrNs, String zkTableOrNsPerms)
-          throws AccumuloSecurityException;
+      throws AccumuloSecurityException;
 
 }

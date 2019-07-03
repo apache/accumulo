@@ -188,18 +188,4 @@ public class SecurityModuleImpl implements SecurityModule {
   public Perm perm() {
     return this.perm;
   }
-
-  /**
-   * TODO: Find a better way to not expose Impl code
-   */
-  public PermImpl getPerm() {
-    return this.perm;
-  }
-
-  /**
-   * TODO: Find a better way to not expose Impl code
-   */
-  public AuthImpl getAuth() {
-    return this.auth;
-  }
 }
