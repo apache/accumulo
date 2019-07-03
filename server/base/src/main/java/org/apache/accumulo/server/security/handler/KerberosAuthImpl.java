@@ -119,9 +119,4 @@ public class KerberosAuthImpl extends AuthImpl {
   public void dropUser(String principal) throws AccumuloSecurityException {
     super.dropUser(Base64.getEncoder().encodeToString(principal.getBytes(UTF_8)));
   }
-
-  @Override
-  public boolean userExists(String principal) {
-    return super.userExists(Base64.getEncoder().encodeToString(principal.getBytes(UTF_8)));
-  }
 }

@@ -91,12 +91,7 @@ public interface Auth {
   void dropUser(String principal) throws AccumuloSecurityException;
 
   /**
-   * Get all the users. Different impl between Kerberos vs ZK
+   * Get all the users.
    */
   Set<String> listUsers();
-
-  /**
-   * TODO: Determine if we want this on the interface or not
-   */
-  boolean userExists(String user);
 }

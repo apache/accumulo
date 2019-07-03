@@ -150,7 +150,7 @@ public class SecurityOperation {
       if (isKerberos) {
         // If we have kerberos credentials for a user from the network but no account
         // in the system, we need to make one before proceeding
-        if (!securityModule.auth().userExists(creds.getPrincipal())) {
+        if (!securityModule.auth().listUsers().contains(creds.getPrincipal())) {
           // If we call the normal createUser method, it will loop back into this method
           // when it tries to check if the user has permission to create users
           try {
@@ -202,7 +202,7 @@ public class SecurityOperation {
       if (isKerberos) {
         // If we have kerberos credentials for a user from the network but no account
         // in the system, we need to make one before proceeding
-        if (!securityModule.auth().userExists(toCreds.getPrincipal())) {
+        if (!securityModule.auth().listUsers().contains(toCreds.getPrincipal())) {
           createUser(credentials, toCreds, Authorizations.EMPTY);
         }
         // Likely that the KerberosAuthenticator will fail as we don't have the credentials for the
@@ -368,7 +368,7 @@ public class SecurityOperation {
   private void targetUserExists(String user) throws ThriftSecurityException {
     if (user.equals(getRootUsername()))
       return;
-    if (!securityModule.auth().userExists(user))
+    if (!securityModule.auth().listUsers().contains(user))
       throw new ThriftSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST);
   }
 
