@@ -23,7 +23,7 @@ import com.google.common.base.Preconditions;
 
 public class FateTxId {
 
-  private static final String PREFIX = "FTID[";
+  private static final String PREFIX = "FATE[";
   private static final String SUFFIX = "]";
 
   private final static Pattern PATTERN =
