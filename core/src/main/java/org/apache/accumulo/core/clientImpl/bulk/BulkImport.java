@@ -462,7 +462,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       }
 
       if (fileStatus.isDirectory()) {
-        log.warn("{} is a directory, ignoring.", fileStatus.getPath());
+        log.debug("{} is a directory, ignoring.", fileStatus.getPath());
         continue;
       }
 
@@ -473,7 +473,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       }
 
       if (!FileOperations.getValidExtensions().contains(extension)) {
-        log.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
+        log.debug("{} does not have a valid extension, ignoring", fileStatus.getPath());
         continue;
       }
 
