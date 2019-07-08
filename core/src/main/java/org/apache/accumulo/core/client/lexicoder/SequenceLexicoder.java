@@ -16,7 +16,10 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.*;
+import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.concat;
+import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.escape;
+import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.split;
+import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.unescape;
 
 import java.util.ArrayList;
 import java.util.List;
