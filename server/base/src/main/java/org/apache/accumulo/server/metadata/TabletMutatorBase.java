@@ -71,6 +71,13 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
+  public Ample.TabletMutator deleteFile(Ample.FileMeta path) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.putDelete(DataFileColumnFamily.NAME, path.meta());
+    return this;
+  }
+
+  @Override
   public Ample.TabletMutator putScan(Ample.FileMeta path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.put(ScanFileColumnFamily.NAME, path.meta(), new Value(new byte[0]));
@@ -78,9 +85,9 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
-  public Ample.TabletMutator deleteFile(Ample.FileMeta path) {
+  public Ample.TabletMutator deleteScan(Ample.FileMeta path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(DataFileColumnFamily.NAME, path.meta());
+    mutation.putDelete(ScanFileColumnFamily.NAME, path.meta());
     return this;
   }
 
@@ -174,6 +181,13 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   public Ample.TabletMutator deleteBulkFile(Ample.FileMeta bulkref) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.putDelete(TabletsSection.BulkFileColumnFamily.NAME, bulkref.meta());
+    return this;
+  }
+
+  @Override
+  public Ample.TabletMutator putChopped() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    TabletsSection.ChoppedColumnFamily.CHOPPED_COLUMN.put(mutation, new Value("chopped"));
     return this;
   }
 

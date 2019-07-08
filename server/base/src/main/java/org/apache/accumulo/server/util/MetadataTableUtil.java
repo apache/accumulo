@@ -65,14 +65,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -167,53 +166,53 @@ public class MetadataTableUtil {
   public static void updateTabletFlushID(KeyExtent extent, long flushID, ServerContext context,
       ZooLock zooLock) {
     if (!extent.isRootTablet()) {
-      Mutation m = new Mutation(extent.getMetadataEntry());
-      TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m,
-          new Value((flushID + "").getBytes(UTF_8)));
-      update(context, zooLock, m, extent);
+      TabletMutator tablet = context.getAmple().mutateTablet(extent);
+      tablet.putFlushId(flushID);
+      tablet.putZooLock(zooLock);
+      tablet.mutate();
     }
   }
 
   public static void updateTabletCompactID(KeyExtent extent, long compactID, ServerContext context,
       ZooLock zooLock) {
     if (!extent.isRootTablet()) {
-      Mutation m = new Mutation(extent.getMetadataEntry());
-      TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(m,
-          new Value((compactID + "").getBytes(UTF_8)));
-      update(context, zooLock, m, extent);
+      TabletMutator tablet = context.getAmple().mutateTablet(extent);
+      tablet.putCompactionId(compactID);
+      tablet.putZooLock(zooLock);
+      tablet.mutate();
     }
   }
 
   public static void updateTabletDataFile(long tid, KeyExtent extent,
       Map<FileRef,DataFileValue> estSizes, String time, ServerContext context, ZooLock zooLock) {
-    Mutation m = new Mutation(extent.getMetadataEntry());
-    byte[] tidBytes = Long.toString(tid).getBytes(UTF_8);
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    tablet.putTime(time);
+    estSizes.forEach(tablet::putFile);
 
-    for (Entry<FileRef,DataFileValue> entry : estSizes.entrySet()) {
-      Text file = entry.getKey().meta();
-      m.put(DataFileColumnFamily.NAME, file, new Value(entry.getValue().encode()));
-      m.put(TabletsSection.BulkFileColumnFamily.NAME, file, new Value(tidBytes));
+    for (FileRef file : estSizes.keySet()) {
+      tablet.putBulkFile(file, tid);
     }
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(UTF_8)));
-    update(context, zooLock, m, extent);
+    tablet.putZooLock(zooLock);
+    tablet.mutate();
   }
 
   public static void updateTabletDir(KeyExtent extent, String newDir, ServerContext context,
-      ZooLock lock) {
-    Mutation m = new Mutation(extent.getMetadataEntry());
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(newDir.getBytes(UTF_8)));
-    update(context, lock, m, extent);
+      ZooLock zooLock) {
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    tablet.putDir(newDir);
+    tablet.putZooLock(zooLock);
+    tablet.mutate();
   }
 
   public static void addTablet(KeyExtent extent, String path, ServerContext context, char timeType,
-      ZooLock lock) {
-    Mutation m = extent.getPrevRowUpdateMutation();
+      ZooLock zooLock) {
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    tablet.putPrevEndRow(extent.getPrevEndRow());
+    tablet.putDir(path);
+    tablet.putTime(timeType + "0");
+    tablet.putZooLock(zooLock);
+    tablet.mutate();
 
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(path.getBytes(UTF_8)));
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m,
-        new Value((timeType + "0").getBytes(UTF_8)));
-
-    update(context, lock, m, extent);
   }
 
   public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove,
@@ -229,7 +228,7 @@ public class MetadataTableUtil {
         throw new IllegalArgumentException("files not expected for " + extent);
     }
 
-    Ample.TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
+    TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
     logsToRemove.forEach(tabletMutator::deleteWal);
     logsToAdd.forEach(tabletMutator::putWal);
 
@@ -334,12 +333,10 @@ public class MetadataTableUtil {
 
   public static void removeScanFiles(KeyExtent extent, Set<FileRef> scanFiles,
       ServerContext context, ZooLock zooLock) {
-    Mutation m = new Mutation(extent.getMetadataEntry());
-
-    for (FileRef pathToRemove : scanFiles)
-      m.putDelete(ScanFileColumnFamily.NAME, pathToRemove.meta());
-
-    update(context, zooLock, m, extent);
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    scanFiles.forEach(tablet::deleteScan);
+    tablet.putZooLock(zooLock);
+    tablet.mutate();
   }
 
   public static void splitDatafiles(Text midRow, double splitRatio,
@@ -489,9 +486,10 @@ public class MetadataTableUtil {
 
   public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
       final List<LogEntry> entries, ZooLock zooLock) {
-    Ample.TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
-    entries.forEach(tabletMutator::deleteWal);
-    tabletMutator.putZooLock(zooLock);
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    entries.forEach(tablet::deleteWal);
+    tablet.putZooLock(zooLock);
+    tablet.mutate();
   }
 
   private static void getFiles(Set<String> files, Collection<String> tabletFiles,
@@ -717,9 +715,10 @@ public class MetadataTableUtil {
   }
 
   public static void chopped(ServerContext context, KeyExtent extent, ZooLock zooLock) {
-    Mutation m = new Mutation(extent.getMetadataEntry());
-    ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("chopped".getBytes(UTF_8)));
-    update(context, zooLock, m, extent);
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    tablet.putChopped();
+    tablet.putZooLock(zooLock);
+    tablet.mutate();
   }
 
   public static void removeBulkLoadEntries(AccumuloClient client, TableId tableId, long tid)

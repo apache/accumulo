@@ -132,9 +132,11 @@ public interface Ample {
 
     public TabletMutator putFile(FileMeta path, DataFileValue dfv);
 
+    public TabletMutator deleteFile(FileMeta path);
+
     public TabletMutator putScan(FileMeta path);
 
-    public TabletMutator deleteFile(FileMeta path);
+    public TabletMutator deleteScan(FileMeta path);
 
     public TabletMutator putCompactionId(long compactionId);
 
@@ -159,6 +161,8 @@ public interface Ample {
     public TabletMutator putBulkFile(Ample.FileMeta bulkref, long tid);
 
     public TabletMutator deleteBulkFile(Ample.FileMeta bulkref);
+
+    public TabletMutator putChopped();
 
     /**
      * This method persist (or queues for persisting) previous put and deletes against this object.
