@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -42,13 +41,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -70,32 +66,32 @@ public class MasterMetadataUtil {
       Map<Long,? extends Collection<FileRef>> bulkLoadedFiles, String time, long lastFlushID,
       long lastCompactID, ZooLock zooLock) {
 
-    TabletMutator mutator = context.getAmple().mutateTablet(extent);
-    mutator.putPrevEndRow(extent.getPrevEndRow());
-    mutator.putZooLock(zooLock);
-    mutator.putDir(path);
-    mutator.putTime(time);
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    tablet.putPrevEndRow(extent.getPrevEndRow());
+    tablet.putZooLock(zooLock);
+    tablet.putDir(path);
+    tablet.putTime(time);
 
     if (lastFlushID > 0)
-      mutator.putFlushId(lastFlushID);
+      tablet.putFlushId(lastFlushID);
 
     if (lastCompactID > 0)
-      mutator.putCompactionId(lastCompactID);
+      tablet.putCompactionId(lastCompactID);
 
     if (location != null) {
-      mutator.putLocation(location, LocationType.CURRENT);
-      mutator.deleteLocation(location, LocationType.FUTURE);
+      tablet.putLocation(location, LocationType.CURRENT);
+      tablet.deleteLocation(location, LocationType.FUTURE);
     }
 
-    datafileSizes.forEach(mutator::putFile);
+    datafileSizes.forEach(tablet::putFile);
 
     for (Entry<Long,? extends Collection<FileRef>> entry : bulkLoadedFiles.entrySet()) {
       for (FileRef ref : entry.getValue()) {
-        mutator.putBulkFile(ref, entry.getKey().longValue());
+        tablet.putBulkFile(ref, entry.getKey().longValue());
       }
     }
 
-    mutator.mutate();
+    tablet.mutate();
   }
 
   public static KeyExtent fixSplit(ServerContext context, Text metadataEntry,
@@ -212,7 +208,7 @@ public class MasterMetadataUtil {
 
     context.getAmple().putGcCandidates(extent.getTableId(), datafilesToDelete);
 
-    Ample.TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
 
     datafilesToDelete.forEach(tablet::deleteFile);
     scanFiles.forEach(tablet::putScan);
@@ -247,61 +243,59 @@ public class MasterMetadataUtil {
       String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
       long flushId) {
     if (extent.isRootTablet()) {
-      if (unusedWalLogs != null) {
-        updateRootTabletDataFile(context, unusedWalLogs);
-      }
-      return;
+      updateRootTabletDataFile(context, unusedWalLogs);
+    } else {
+      updateForTabletDataFile(context, extent, path, mergeFile, dfv, time, filesInUseByScans,
+          address, zooLock, unusedWalLogs, lastLocation, flushId);
     }
-    Mutation m = getUpdateForTabletDataFile(extent, path, mergeFile, dfv, time, filesInUseByScans,
-        address, zooLock, unusedWalLogs, lastLocation, flushId);
-    MetadataTableUtil.update(context, zooLock, m, extent);
+
   }
 
   /**
    * Update the data file for the root tablet
    */
   private static void updateRootTabletDataFile(ServerContext context, Set<String> unusedWalLogs) {
-    TabletMutator tablet = context.getAmple().mutateTablet(RootTable.EXTENT);
-    unusedWalLogs.forEach(tablet::deleteWal);
-    tablet.mutate();
+    if (unusedWalLogs != null) {
+      TabletMutator tablet = context.getAmple().mutateTablet(RootTable.EXTENT);
+      unusedWalLogs.forEach(tablet::deleteWal);
+      tablet.mutate();
+    }
   }
 
   /**
    * Create an update that updates a tablet
    *
-   * @return A Mutation to update a tablet from the given information
    */
-  private static Mutation getUpdateForTabletDataFile(KeyExtent extent, FileRef path,
+  private static void updateForTabletDataFile(ServerContext context, KeyExtent extent, FileRef path,
       FileRef mergeFile, DataFileValue dfv, String time, Set<FileRef> filesInUseByScans,
       String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
       long flushId) {
-    Mutation m = new Mutation(extent.getMetadataEntry());
+
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
 
     if (dfv.getNumEntries() > 0) {
-      m.put(DataFileColumnFamily.NAME, path.meta(), new Value(dfv.encode()));
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(UTF_8)));
-      // stuff in this location
+      tablet.putFile(path, dfv);
+      tablet.putTime(time);
+
       TServerInstance self = getTServerInstance(address, zooLock);
-      self.putLastLocation(m);
-      // erase the old location
-      if (lastLocation != null && !lastLocation.equals(self))
-        lastLocation.clearLastLocation(m);
-    }
-    if (unusedWalLogs != null) {
-      for (String entry : unusedWalLogs) {
-        m.putDelete(LogColumnFamily.NAME, new Text(entry));
+      tablet.putLocation(self, LocationType.LAST);
+
+      // remove the old location
+      if (lastLocation != null && !lastLocation.equals(self)) {
+        tablet.deleteLocation(lastLocation, LocationType.LAST);
       }
     }
+    tablet.putFlushId(flushId);
 
-    for (FileRef scanFile : filesInUseByScans)
-      m.put(ScanFileColumnFamily.NAME, scanFile.meta(), new Value(new byte[0]));
+    if (mergeFile != null) {
+      tablet.deleteFile(mergeFile);
+    }
 
-    if (mergeFile != null)
-      m.putDelete(DataFileColumnFamily.NAME, mergeFile.meta());
+    unusedWalLogs.forEach(tablet::deleteWal);
+    filesInUseByScans.forEach(tablet::putScan);
 
-    TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m,
-        new Value(Long.toString(flushId).getBytes(UTF_8)));
+    tablet.putZooLock(zooLock);
 
-    return m;
+    tablet.mutate();
   }
 }
