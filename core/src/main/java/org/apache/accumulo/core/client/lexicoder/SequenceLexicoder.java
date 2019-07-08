@@ -16,10 +16,7 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.concat;
-import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.escape;
-import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.split;
-import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.unescape;
+import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,15 +27,15 @@ import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
  * A lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each
  * encoded element sorts lexicographically.
  *
- * Note: Empty lists are not supported.
+ * Note: Unlike {@link ListLexicoder}, this implementation supports empty lists.
  *
- * @since 1.6.0
+ * @since 2.0.0
  */
-public class ListLexicoder<LT> extends AbstractLexicoder<List<LT>> {
+public class SequenceLexicoder<LT> extends AbstractLexicoder<List<LT>> {
 
   private Lexicoder<LT> lexicoder;
 
-  public ListLexicoder(Lexicoder<LT> lexicoder) {
+  public SequenceLexicoder(Lexicoder<LT> lexicoder) {
     this.lexicoder = lexicoder;
   }
 
@@ -49,30 +46,27 @@ public class ListLexicoder<LT> extends AbstractLexicoder<List<LT>> {
    */
   @Override
   public byte[] encode(List<LT> v) {
-    byte[][] encElements = new byte[v.size()][];
+    byte[][] encElements = new byte[v.size() + 1][];
 
     int index = 0;
     for (LT element : v) {
       encElements[index++] = escape(lexicoder.encode(element));
     }
 
-    return concat(encElements);
-  }
+    encElements[v.size()] = new byte[0];
 
-  @Override
-  public List<LT> decode(byte[] b) {
-    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed
-    // in 2.0. See ACCUMULO-3789.
-    return super.decode(b);
+    return concat(encElements);
   }
 
   @Override
   protected List<LT> decodeUnchecked(byte[] b, int offset, int len) {
 
     byte[][] escapedElements = split(b, offset, len);
+    assert escapedElements.length > 0;
     ArrayList<LT> ret = new ArrayList<>(escapedElements.length);
 
-    for (byte[] escapedElement : escapedElements) {
+    for (int i = 0; i < escapedElements.length - 1; i++) {
+      byte[] escapedElement = escapedElements[i];
       ret.add(lexicoder.decode(unescape(escapedElement)));
     }
 
