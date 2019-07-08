@@ -126,7 +126,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       VolumeManager vm = asCtx.getVolumeManager();
 
       // move the file into a directory for the table and rename the file to something unique
-      String bulkDir = BulkImport.prepareBulkImport(asCtx, vm, testFile, TableId.of(tableId));
+      String bulkDir =
+          BulkImport.prepareBulkImport(asCtx, vm, testFile, TableId.of(tableId), fateTxid);
 
       // determine the files new name and path
       FileStatus status = fs.listStatus(new Path(bulkDir))[0];

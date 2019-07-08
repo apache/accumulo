@@ -36,6 +36,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -108,7 +109,9 @@ public class BulkImport extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    log.debug(" tid {} sourceDir {}", tid, sourceDir);
+    String fmtTid = FateTxId.formatTid(tid);
+
+    log.debug(" {} sourceDir {}", fmtTid, sourceDir);
 
     Utils.getReadLock(master, tableId, tid).lock();
 
@@ -139,8 +142,8 @@ public class BulkImport extends MasterRepo {
     master.updateBulkImportStatus(sourceDir, BulkImportState.MOVING);
     // move the files into the directory
     try {
-      String bulkDir = prepareBulkImport(master.getContext(), fs, sourceDir, tableId);
-      log.debug(" tid {} bulkDir {}", tid, bulkDir);
+      String bulkDir = prepareBulkImport(master.getContext(), fs, sourceDir, tableId, tid);
+      log.debug(" {} bulkDir {}", tid, bulkDir);
       return new LoadFiles(tableId, sourceDir, bulkDir, errorDir, setTime);
     } catch (IOException ex) {
       log.error("error preparing the bulk import directory", ex);
@@ -185,11 +188,11 @@ public class BulkImport extends MasterRepo {
 
   @VisibleForTesting
   public static String prepareBulkImport(ServerContext master, final VolumeManager fs, String dir,
-      TableId tableId) throws Exception {
+      TableId tableId, long tid) throws Exception {
     final Path bulkDir = createNewBulkDir(master, fs, dir, tableId);
 
     MetadataTableUtil.addBulkLoadInProgressFlag(master,
-        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
+        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
 
     Path dirPath = new Path(dir);
     FileStatus[] mapFiles = fs.listStatus(dirPath);

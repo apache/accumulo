@@ -48,6 +48,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -88,9 +89,9 @@ public class MasterMetadataUtil {
     }
 
     for (Entry<Long,? extends Collection<FileRef>> entry : bulkLoadedFiles.entrySet()) {
-      Value tidBytes = new Value(Long.toString(entry.getKey()).getBytes());
+      Value tidVal = new Value(FateTxId.formatTid(entry.getKey()));
       for (FileRef ref : entry.getValue()) {
-        m.put(TabletsSection.BulkFileColumnFamily.NAME, ref.meta(), new Value(tidBytes));
+        m.put(TabletsSection.BulkFileColumnFamily.NAME, ref.meta(), tidVal);
       }
     }
 
