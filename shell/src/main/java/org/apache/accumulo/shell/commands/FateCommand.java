@@ -34,6 +34,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.Repo;
@@ -109,6 +110,14 @@ public class FateCommand extends Command {
   private Option statusOption;
   private Option disablePaginationOpt;
 
+  private long parseTxid(String s) {
+    if (FateTxId.isFormatedTid(s)) {
+      return FateTxId.fromString(s);
+    } else {
+      return Long.parseLong(s, 16);
+    }
+  }
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException {
@@ -158,7 +167,7 @@ public class FateCommand extends Command {
         filterTxid = new HashSet<>(args.length);
         for (int i = 1; i < args.length; i++) {
           try {
-            Long val = Long.parseLong(args[i], 16);
+            Long val = parseTxid(args[i]);
             filterTxid.add(val);
           } catch (NumberFormatException nfe) {
             // Failed to parse, will exit instead of displaying everything since the intention was
@@ -198,7 +207,7 @@ public class FateCommand extends Command {
       } else {
         txids = new ArrayList<>();
         for (int i = 1; i < args.length; i++) {
-          txids.add(Long.parseLong(args[i], 16));
+          txids.add(parseTxid(args[i]));
         }
       }
 

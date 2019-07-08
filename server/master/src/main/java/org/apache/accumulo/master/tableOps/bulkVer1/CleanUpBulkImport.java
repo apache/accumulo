@@ -20,6 +20,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -63,7 +64,7 @@ public class CleanUpBulkImport extends MasterRepo {
     Utils.unreserveHdfsDirectory(master, source, tid);
     Utils.unreserveHdfsDirectory(master, error, tid);
     Utils.getReadLock(master, tableId, tid).unlock();
-    log.debug("completing bulkDir import transaction " + tid);
+    log.debug("completing bulkDir import transaction " + FateTxId.formatTid(tid));
     ZooArbitrator.cleanup(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     master.removeBulkImportStatus(source);
     return null;

@@ -29,7 +29,6 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -81,6 +80,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -721,6 +721,18 @@ public class MetadataTableUtil {
     tablet.mutate();
   }
 
+  public static long getBulkLoadTid(Value v) {
+    String vs = v.toString();
+
+    if (FateTxId.isFormatedTid(vs)) {
+      return FateTxId.fromString(vs);
+    } else {
+      // a new serialization format was introduce in 2.0. This code support deserializing the old
+      // format.
+      return Long.parseLong(vs);
+    }
+  }
+
   public static void removeBulkLoadEntries(AccumuloClient client, TableId tableId, long tid)
       throws Exception {
     try (
@@ -729,10 +741,11 @@ public class MetadataTableUtil {
         BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
-      byte[] tidAsBytes = Long.toString(tid).getBytes(UTF_8);
+
       for (Entry<Key,Value> entry : mscanner) {
         log.trace("Looking at entry {} with tid {}", entry, tid);
-        if (Arrays.equals(entry.getValue().get(), tidAsBytes)) {
+        long entryTid = getBulkLoadTid(entry.getValue());
+        if (tid == entryTid) {
           log.trace("deleting entry {}", entry);
           Key key = entry.getKey();
           Mutation m = new Mutation(key.getRow());
@@ -740,27 +753,6 @@ public class MetadataTableUtil {
           bw.addMutation(m);
         }
       }
-    }
-  }
-
-  public static List<FileRef> getBulkFilesLoaded(ServerContext context, AccumuloClient client,
-      KeyExtent extent, long tid) {
-    List<FileRef> result = new ArrayList<>();
-    try (Scanner mscanner = new IsolatedScanner(client.createScanner(
-        extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY))) {
-      VolumeManager fs = context.getVolumeManager();
-      mscanner.setRange(extent.toMetadataRange());
-      mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
-      for (Entry<Key,Value> entry : mscanner) {
-        if (Long.parseLong(entry.getValue().toString()) == tid) {
-          result.add(new FileRef(fs, entry.getKey()));
-        }
-      }
-
-      return result;
-    } catch (TableNotFoundException ex) {
-      // unlikely
-      throw new RuntimeException("Onos! teh metadata table has vanished!!");
     }
   }
 
@@ -775,21 +767,18 @@ public class MetadataTableUtil {
       scanner.setRange(new Range(metadataRow));
       scanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
-        Long tid = Long.parseLong(entry.getValue().toString());
-        List<FileRef> lst = result.get(tid);
-        if (lst == null) {
-          result.put(tid, lst = new ArrayList<>());
-        }
+        Long tid = getBulkLoadTid(entry.getValue());
+        List<FileRef> lst = result.computeIfAbsent(tid, k -> new ArrayList<FileRef>());
         lst.add(new FileRef(fs, entry.getKey()));
       }
     }
     return result;
   }
 
-  public static void addBulkLoadInProgressFlag(ServerContext context, String path) {
+  public static void addBulkLoadInProgressFlag(ServerContext context, String path, long fateTxid) {
 
     Mutation m = new Mutation(MetadataSchema.BlipSection.getRowPrefix() + path);
-    m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(new byte[] {}));
+    m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root
     // table

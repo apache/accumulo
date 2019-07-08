@@ -54,6 +54,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -85,7 +86,8 @@ class LoadFiles extends MasterRepo {
   @Override
   public long isReady(long tid, Master master) throws Exception {
     if (master.onlineTabletServers().size() == 0) {
-      log.warn("There are no tablet server to process bulkDir import, waiting (tid = " + tid + ")");
+      log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
+          + FateTxId.formatTid(tid) + ")");
       return 100;
     }
     VolumeManager fs = master.getFileSystem();
@@ -143,7 +145,7 @@ class LoadFiles extends MasterRepo {
       super.start(bulkDir, master, tid, setTime);
 
       timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
-      fmtTid = String.format("%016x", tid);
+      fmtTid = FateTxId.formatTid(tid);
 
       loadMsgs = new MapCounter<>();
 
@@ -155,7 +157,7 @@ class LoadFiles extends MasterRepo {
         loadQueue.forEach((server, tabletFiles) -> {
 
           if (log.isTraceEnabled()) {
-            log.trace("tid {} asking {} to bulk import {} files for {} tablets", fmtTid, server,
+            log.trace("{} asking {} to bulk import {} files for {} tablets", fmtTid, server,
                 tabletFiles.values().stream().mapToInt(Map::size).sum(), tabletFiles.size());
           }
 
@@ -165,8 +167,7 @@ class LoadFiles extends MasterRepo {
             client.loadFiles(TraceUtil.traceInfo(), master.getContext().rpcCreds(), tid,
                 bulkDir.toString(), tabletFiles, setTime);
           } catch (TException ex) {
-            log.debug("rpc failed server: " + server + ", tid:" + fmtTid + " " + ex.getMessage(),
-                ex);
+            log.debug("rpc failed server: " + server + ", " + fmtTid + " " + ex.getMessage(), ex);
           } finally {
             ThriftUtil.returnClient(client);
           }

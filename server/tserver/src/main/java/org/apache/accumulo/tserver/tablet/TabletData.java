@@ -55,6 +55,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.tablets.TabletTime;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -112,12 +113,8 @@ public class TabletData {
       } else if (family.equals(LastLocationColumnFamily.NAME)) {
         lastLocation = new TServerInstance(value, key.getColumnQualifier());
       } else if (family.equals(BulkFileColumnFamily.NAME)) {
-        Long id = Long.decode(value.toString());
-        List<FileRef> lst = bulkImported.get(id);
-        if (lst == null) {
-          bulkImported.put(id, lst = new ArrayList<>());
-        }
-        lst.add(new FileRef(fs, key));
+        Long id = MetadataTableUtil.getBulkLoadTid(value);
+        bulkImported.computeIfAbsent(id, l -> new ArrayList<FileRef>()).add(new FileRef(fs, key));
       } else if (PREV_ROW_COLUMN.hasColumns(key)) {
         KeyExtent check = new KeyExtent(key.getRow(), value);
         if (!check.equals(extent)) {

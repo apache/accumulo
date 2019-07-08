@@ -227,7 +227,7 @@ public class ZooStore<T> implements TStore<T> {
     synchronized (this) {
       if (!reserved.remove(tid))
         throw new IllegalStateException(
-            "Tried to unreserve id that was not reserved " + String.format("%016x", tid));
+            "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
 
       // do not want this unreserve to unesc wake up threads in reserve()... this leads to infinite
       // loop when tx is stuck in NEW...
@@ -246,7 +246,7 @@ public class ZooStore<T> implements TStore<T> {
     synchronized (this) {
       if (!reserved.remove(tid))
         throw new IllegalStateException(
-            "Tried to unreserve id that was not reserved " + String.format("%016x", tid));
+            "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
 
       if (deferTime > 0)
         defered.put(tid, System.currentTimeMillis() + deferTime);
@@ -260,7 +260,7 @@ public class ZooStore<T> implements TStore<T> {
     synchronized (this) {
       if (!reserved.contains(tid))
         throw new IllegalStateException(
-            "Tried to operate on unreserved transaction " + String.format("%016x", tid));
+            "Tried to operate on unreserved transaction " + FateTxId.formatTid(tid));
     }
   }
 
@@ -341,7 +341,7 @@ public class ZooStore<T> implements TStore<T> {
       String txpath = getTXPath(tid);
       String top = findTop(txpath);
       if (top == null)
-        throw new IllegalStateException("Tried to pop when empty " + tid);
+        throw new IllegalStateException("Tried to pop when empty " + FateTxId.formatTid(tid));
       zk.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
     } catch (Exception e) {
       throw new RuntimeException(e);

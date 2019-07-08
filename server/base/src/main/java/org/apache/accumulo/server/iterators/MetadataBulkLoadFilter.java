@@ -29,6 +29,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.slf4j.Logger;
@@ -50,7 +51,7 @@ public class MetadataBulkLoadFilter extends Filter {
   @Override
   public boolean accept(Key k, Value v) {
     if (!k.isDeleted() && k.compareColumnFamily(TabletsSection.BulkFileColumnFamily.NAME) == 0) {
-      long txid = Long.parseLong(v.toString());
+      long txid = MetadataTableUtil.getBulkLoadTid(v);
 
       Status status = bulkTxStatusCache.get(txid);
       if (status == null) {
