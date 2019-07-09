@@ -27,7 +27,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 
-import javax.annotation.Nonnull;
 
 /**
  * A lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each
@@ -36,41 +35,41 @@ import javax.annotation.Nonnull;
  * Note: Unlike {@link ListLexicoder}, this implementation supports empty lists.
  *
  * @since 2.0.0
- * @param <LT> list element type.
+ * @param <E> list element type.
  */
-public class SequenceLexicoder<LT> extends AbstractLexicoder<List<LT>> {
+public class SequenceLexicoder<E> extends AbstractLexicoder<List<E>> {
 
-  private Lexicoder<LT> lexicoder;
+  private Lexicoder<E> lexicoder;
 
   /**
    * Primary constructor.
    *
    * @param lexicoder Lexicoder to apply to elements.
    */
-  public SequenceLexicoder(@Nonnull final Lexicoder<LT> lexicoder) {
+  public SequenceLexicoder(final Lexicoder<E> lexicoder) {
     this.lexicoder = requireNonNull(lexicoder, "lexicoder");
   }
+
 
   /**
    * {@inheritDoc}
    *
    * @return a byte array containing the concatenation of each element in the list encoded.
    */
-  @Nonnull
   @Override
-  public byte[] encode(@Nonnull final List<LT> v) {
+  public byte[] encode(final List<E> v) {
     final byte[][] encElements = new byte[v.size() + 1][];
     int index = 0;
-    for (final LT element : v) {
+    for (final E element : v) {
       encElements[index++] = escape(lexicoder.encode(element));
     }
     encElements[v.size()] = new byte[0];
     return concat(encElements);
   }
 
-  @Nonnull
+
   @Override
-  protected List<LT> decodeUnchecked(@Nonnull final byte[] b, final int offset, final int len) {
+  protected List<E> decodeUnchecked(final byte[] b, final int offset, final int len) {
     final byte[][] escapedElements = split(b, offset, len);
     assert escapedElements.length > 0 : "ByteUtils.split always returns a minimum of 1 element, even for empty input";
     // There should be no bytes after the final delimiter. Lack of delimiter indicates empty list.
@@ -78,7 +77,7 @@ public class SequenceLexicoder<LT> extends AbstractLexicoder<List<LT>> {
     if (lastElement.length > 0) {
       throw new IllegalArgumentException(lastElement.length + " trailing bytes found at end of list");
     }
-    final ArrayList<LT> ret = new ArrayList<>(escapedElements.length);
+    final ArrayList<E> ret = new ArrayList<>(escapedElements.length);
     for (int i = 0; i < escapedElements.length - 1; i++) {
       final byte[] escapedElement = escapedElements[i];
       ret.add(lexicoder.decode(unescape(escapedElement)));
