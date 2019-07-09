@@ -26,7 +26,9 @@ import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
 
 import com.google.common.base.Optional;
@@ -124,6 +126,10 @@ public interface VolumeManager {
 
   // return the item in options that is in the same volume as source
   Path matchingFileSystem(Path source, String[] options);
+
+  // forward to appropriate FileSystem object.
+  RemoteIterator<LocatedFileStatus> listStatus(final Path path, final boolean recursive)
+      throws IOException;
 
   // forward to the appropriate FileSystem object
   FileStatus[] listStatus(Path path) throws IOException;

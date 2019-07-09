@@ -49,7 +49,9 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
@@ -275,6 +277,12 @@ public class VolumeManagerImpl implements VolumeManager {
 
   private Map<String,Volume> getFileSystems() {
     return volumesByName;
+  }
+
+  @Override
+  public RemoteIterator<LocatedFileStatus> listStatus(final Path path, final boolean recursive)
+      throws IOException {
+    return getVolumeByPath(path).getFileSystem().listFiles(path, recursive);
   }
 
   @Override
