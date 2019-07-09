@@ -101,7 +101,7 @@ function refreshServerBulkTable() {
           val.server + '">' + val.server + '</a>'));
       items.push(createRightCell(val.importSize, val.importSize));
       items.push(createRightCell(val.oldestAge, (val.oldestAge > 0 ?
-          val.oldestAge : '&mdash;')));
+          new Date(val.oldestAge) : '&mdash;')));
       $('<tr/>', {
         html: items.join('')
       }).appendTo('#bulkImportStatus tbody');
