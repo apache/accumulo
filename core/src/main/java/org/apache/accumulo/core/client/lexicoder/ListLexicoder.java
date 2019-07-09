@@ -31,7 +31,7 @@ import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
  * encoded element sorts lexicographically.
  *
  * Note: Empty lists are not supported.
- * @see SequenceLexicoder for an encoding that supports empty lists.
+ * See {@link SequenceLexicoder} for an encoding that supports empty lists.
  *
  * @since 1.6.0
  */
