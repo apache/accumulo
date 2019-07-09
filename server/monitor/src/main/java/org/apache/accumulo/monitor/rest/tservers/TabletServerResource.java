@@ -34,9 +34,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response.Status;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -83,7 +81,7 @@ public class TabletServerResource {
   public TabletServers getTserverSummary() {
     MasterMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
-      throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
+      return new TabletServers();
     }
 
     TabletServers tserverInfo = new TabletServers(mmi.tServerInfo.size());
@@ -123,7 +121,7 @@ public class TabletServerResource {
 
     MasterMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
-      throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
+      return new TabletServersRecovery();
     }
 
     for (TabletServerStatus server : mmi.tServerInfo) {
@@ -154,9 +152,12 @@ public class TabletServerResource {
   public TabletServerSummary getTserverDetails(
       @PathParam("address") @NotNull @Pattern(regexp = HOSTNAME_PORT_REGEX) String tserverAddress)
       throws Exception {
+    MasterMonitorInfo mmi = monitor.getMmi();
+    if (mmi == null)
+      return new TabletServerSummary();
 
     boolean tserverExists = false;
-    for (TabletServerStatus ts : monitor.getMmi().getTServerInfo()) {
+    for (TabletServerStatus ts : mmi.getTServerInfo()) {
       if (tserverAddress.equals(ts.getName())) {
         tserverExists = true;
         break;
@@ -188,7 +189,7 @@ public class TabletServerResource {
       TabletClientService.Client client =
           ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
-        for (String tableId : monitor.getMmi().tableMap.keySet()) {
+        for (String tableId : mmi.tableMap.keySet()) {
           tsStats.addAll(client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId));
         }
         historical = client.getHistoricalStats(TraceUtil.traceInfo(), context.rpcCreds());

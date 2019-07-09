@@ -232,9 +232,13 @@ public class MasterResource {
    * @return servers shutting down list
    */
   public static ServersShuttingDown getServersShuttingDown(Monitor monitor) {
+    MasterMonitorInfo mmi = monitor.getMmi();
     ServersShuttingDown servers = new ServersShuttingDown();
+    if (mmi == null)
+      return servers;
+
     // Add new servers to the list
-    for (String server : monitor.getMmi().serversShuttingDown) {
+    for (String server : mmi.serversShuttingDown) {
       servers.addServerShuttingDown(new ServerShuttingDownInformation(server));
     }
     return servers;

@@ -256,6 +256,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
             retry = false;
           } else {
             mmi = null;
+            log.error("Unable to get info from Master");
           }
           gcStatus = fetchGcStatus();
         } catch (Exception e) {
