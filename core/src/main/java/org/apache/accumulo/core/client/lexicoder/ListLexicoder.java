@@ -31,6 +31,7 @@ import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
  * encoded element sorts lexicographically.
  *
  * Note: Empty lists are not supported.
+ * @see SequenceLexicoder for an encoding that supports empty lists.
  *
  * @since 1.6.0
  */
@@ -49,6 +50,9 @@ public class ListLexicoder<LT> extends AbstractLexicoder<List<LT>> {
    */
   @Override
   public byte[] encode(List<LT> v) {
+    if (v.isEmpty()) {
+      throw new IllegalArgumentException("ListLexicoder does not support empty lists");
+    }
     byte[][] encElements = new byte[v.size()][];
 
     int index = 0;
