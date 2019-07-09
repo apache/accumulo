@@ -223,15 +223,6 @@ public class TableDiskUsage {
           String name = status.getPath().getName();
           tdu.addFileSize(name, status.getLen());
         }
-
-        // if (files != null) {
-        // for (FileStatus fileStatus : files) {
-        // // Assumes that all filenames are unique
-        // String name = fileStatus.getPath().getName();
-        // tdu.addFileSize(name, fileStatus.getLen());
-        // }
-        // }
-
       }
     }
 
