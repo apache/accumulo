@@ -21,7 +21,9 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
