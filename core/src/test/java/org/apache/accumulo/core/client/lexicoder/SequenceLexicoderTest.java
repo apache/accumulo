@@ -36,7 +36,7 @@ public class SequenceLexicoderTest extends AbstractLexicoderTest {
   private final List<String> nodata = emptyList();
   private final List<String> data0 = singletonList("");
   private final List<String> data1 = asList("a", "b");
-  private final List<String> data2 = asList("a");
+  private final List<String> data2 = singletonList("a");
   private final List<String> data3 = asList("a", "c");
   private final List<String> data4 = asList("a", "b", "c");
   private final List<String> data5 = asList("b", "a");
