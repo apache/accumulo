@@ -23,7 +23,8 @@ import com.google.common.cache.CacheBuilder;
 
 /**
  * A strongly typed representation of a table ID. This class cannot be used to get a table ID from a
- * table name, but does provide the table ID string wrapped with a stronger type.
+ * table name, but does provide the table ID string wrapped with a stronger type. The constructor
+ * for this class will throw an error if the canonical parameter is empty or null.
  *
  * @since 2.0.0
  */
@@ -36,7 +37,7 @@ public class TableId extends AbstractId<TableId> {
   }
 
   /**
-   * Get a Table.ID object for the provided canonical string.
+   * Get a TableId object for the provided canonical string. This is guaranteed to be non-null.
    *
    * @param canonical
    *          table ID string
