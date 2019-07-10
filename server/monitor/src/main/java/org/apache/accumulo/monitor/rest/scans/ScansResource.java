@@ -24,6 +24,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
@@ -48,13 +49,16 @@ public class ScansResource {
    */
   @GET
   public Scans getTables() {
-
     Scans scans = new Scans();
+    MasterMonitorInfo mmi = monitor.getMmi();
+    if (mmi == null) {
+      return scans;
+    }
 
     Map<HostAndPort,ScanStats> entry = monitor.getScans();
 
     // Adds new scans to the array
-    for (TabletServerStatus tserverInfo : monitor.getMmi().getTServerInfo()) {
+    for (TabletServerStatus tserverInfo : mmi.getTServerInfo()) {
       ScanStats stats = entry.get(HostAndPort.fromString(tserverInfo.name));
       if (stats != null) {
         scans.addScan(new ScanInformation(tserverInfo, stats.scanCount, stats.oldestScan));

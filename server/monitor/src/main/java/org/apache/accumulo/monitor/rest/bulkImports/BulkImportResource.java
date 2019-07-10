@@ -25,6 +25,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.master.thrift.BulkImportStatus;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 
@@ -48,17 +49,19 @@ public class BulkImportResource {
    */
   @GET
   public BulkImport getTables() {
-
     BulkImport bulkImport = new BulkImport();
+    MasterMonitorInfo mmi = monitor.getMmi();
+    if (mmi == null)
+      return bulkImport;
 
     // Generating Bulk Import and adding it to the return object
-    for (BulkImportStatus bulk : monitor.getMmi().bulkImports) {
+    for (BulkImportStatus bulk : mmi.bulkImports) {
       bulkImport
           .addBulkImport(new BulkImportInformation(bulk.filename, bulk.startTime, bulk.state));
     }
 
     // Generating TServer Bulk Import and adding it to the return object
-    for (TabletServerStatus tserverInfo : monitor.getMmi().getTServerInfo()) {
+    for (TabletServerStatus tserverInfo : mmi.getTServerInfo()) {
       int size = 0;
       long oldest = 0L;
 
