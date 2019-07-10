@@ -29,25 +29,30 @@ import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 
 
 /**
- * A lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each
+ * A Lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each
  * encoded element sorts lexicographically.
  *
  * Note: Unlike {@link ListLexicoder}, this implementation supports empty lists.
+ *
+ * The lists are encoded with the elements separated by null (0x0) bytes, which null bytes appearing in the
+ * elements escaped as 0x1 bytes, and 0x1 bytes appearing in the elements escaped as two 0x1 bytes. The list
+ * is terminated with a final delimiter, with no bytes following it.
  *
  * @since 2.0.0
  * @param <E> list element type.
  */
 public class SequenceLexicoder<E> extends AbstractLexicoder<List<E>> {
 
-  private Lexicoder<E> lexicoder;
+  private static final byte[] EMPTY_ELEMENT = new byte[0];
+  private final Lexicoder<E> elementLexicoder;
 
   /**
    * Primary constructor.
    *
-   * @param lexicoder Lexicoder to apply to elements.
+   * @param elementLexicoder Lexicoder to apply to elements.
    */
-  public SequenceLexicoder(final Lexicoder<E> lexicoder) {
-    this.lexicoder = requireNonNull(lexicoder, "lexicoder");
+  public SequenceLexicoder(final Lexicoder<E> elementLexicoder) {
+    this.elementLexicoder = requireNonNull(elementLexicoder, "elementLexicoder");
   }
 
 
@@ -61,9 +66,9 @@ public class SequenceLexicoder<E> extends AbstractLexicoder<List<E>> {
     final byte[][] encElements = new byte[v.size() + 1][];
     int index = 0;
     for (final E element : v) {
-      encElements[index++] = escape(lexicoder.encode(element));
+      encElements[index++] = escape(elementLexicoder.encode(element));
     }
-    encElements[v.size()] = new byte[0];
+    encElements[v.size()] = EMPTY_ELEMENT;
     return concat(encElements);
   }
 
@@ -77,11 +82,12 @@ public class SequenceLexicoder<E> extends AbstractLexicoder<List<E>> {
     if (lastElement.length > 0) {
       throw new IllegalArgumentException(lastElement.length + " trailing bytes found at end of list");
     }
-    final ArrayList<E> ret = new ArrayList<>(escapedElements.length);
+    final ArrayList<E> decodedElements = new ArrayList<>(escapedElements.length - 1);
     for (int i = 0; i < escapedElements.length - 1; i++) {
       final byte[] escapedElement = escapedElements[i];
-      ret.add(lexicoder.decode(unescape(escapedElement)));
+      final byte[] unescapedElement = unescape(escapedElement);
+      decodedElements.add(elementLexicoder.decode(unescapedElement));
     }
-    return ret;
+    return decodedElements;
   }
 }
