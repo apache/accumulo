@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.metrics;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.metrics2.MetricsCollector;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
 import org.apache.hadoop.metrics2.MetricsSource;
@@ -37,7 +36,7 @@ public abstract class Metrics implements MetricsSource {
   public static MetricsSystem initSystem(String serviceName) {
     processName = serviceName;
     String serviceInstance = System.getProperty("accumulo.metrics.service.instance", "");
-    if (StringUtils.isNotBlank(serviceInstance)) {
+    if (!serviceInstance.isBlank()) {
       processName += serviceInstance;
     }
 

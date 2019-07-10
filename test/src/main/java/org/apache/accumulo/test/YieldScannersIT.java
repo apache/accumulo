@@ -37,7 +37,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.YieldingIterator;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -101,7 +100,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
             yieldNextCount++;
             yieldSeekCount++;
           }
-          String[] value = StringUtils.split(next.getValue().toString(), ',');
+          String[] value = next.getValue().toString().split(",");
           assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount), value[0]);
           assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount), value[1]);
           assertEquals("Unexpected rebuild count",
@@ -157,7 +156,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
             yieldNextCount++;
             yieldSeekCount++;
           }
-          String[] value = StringUtils.split(next.getValue().toString(), ',');
+          String[] value = next.getValue().toString().split(",");
           assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount), value[0]);
           assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount), value[1]);
           assertEquals("Unexpected rebuild count",

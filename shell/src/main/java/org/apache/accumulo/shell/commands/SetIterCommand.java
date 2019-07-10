@@ -45,7 +45,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.commons.lang.StringUtils;
 
 import jline.console.ConsoleReader;
 
@@ -85,15 +84,14 @@ public class SetIterCommand extends Command {
     // we are setting a shell iterator). If so, temporarily set the table state to an
     // existing table such as accumulo.metadata. This allows the command to complete successfully.
     // After completion reassign the table to its original value and continue.
-    String currentTableName = null;
+    String currentTableName = shellState.getTableName();
     String tmpTable = null;
     String configuredName;
     try {
-      if (profileOpt != null && StringUtils.isBlank(shellState.getTableName())) {
-        currentTableName = shellState.getTableName();
+      if (profileOpt != null && (currentTableName == null || currentTableName.isBlank())) {
         tmpTable = "accumulo.metadata";
         shellState.setTableName(tmpTable);
-        tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
+        tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !currentTableName.isEmpty();
       }
       ClassLoader classloader = shellState.getClassLoader(cl, shellState);
       // Get the iterator options, with potentially a name provided by the OptionDescriber impl or
@@ -307,7 +305,7 @@ public class SetIterCommand extends Command {
       if (iteratorName == null) {
         reader.println();
         throw new IOException("Input stream closed");
-      } else if (StringUtils.isWhitespace(iteratorName)) {
+      } else if (iteratorName.isBlank()) {
         // Treat whitespace or empty string as no name provided
         iteratorName = null;
       }
@@ -323,7 +321,7 @@ public class SetIterCommand extends Command {
         if (input == null) {
           reader.println();
           throw new IOException("Input stream closed");
-        } else if (StringUtils.isWhitespace(input)) {
+        } else if (input.isBlank()) {
           break;
         }
 

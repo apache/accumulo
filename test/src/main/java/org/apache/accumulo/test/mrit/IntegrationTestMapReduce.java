@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -146,7 +145,7 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
         } else {
           log.info("{} failed", className);
           context.getCounter(TestCounts.FAIL).increment(1);
-          context.write(FAIL, new Text(className + "(" + StringUtils.join(failures, ", ") + ")"));
+          context.write(FAIL, new Text(className + "(" + String.join(", ", failures) + ")"));
         }
       } catch (Exception e) {
         // most likely JUnit issues, like no tests to run

@@ -71,7 +71,6 @@ import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -720,7 +719,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     // Add our name, and send it
     final String name = conf.get(Property.REPLICATION_NAME);
-    if (StringUtils.isBlank(name)) {
+    if (name.isBlank()) {
       throw new IllegalArgumentException("Local system has no replication name configured");
     }
 

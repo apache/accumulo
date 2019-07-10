@@ -24,7 +24,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.replication.ReplicaSystem;
 import org.apache.accumulo.server.replication.ReplicaSystemHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +85,7 @@ public class MockReplicaSystem implements ReplicaSystem {
 
   @Override
   public void configure(ServerContext context, String configuration) {
-    if (StringUtils.isBlank(configuration)) {
+    if (configuration.isBlank()) {
       log.debug("No configuration, using default sleep of {}", sleep);
       return;
     }

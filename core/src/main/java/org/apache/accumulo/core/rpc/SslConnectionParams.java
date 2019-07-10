@@ -23,7 +23,6 @@ import java.util.Arrays;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.transport.TSSLTransportFactory.TSSLTransportParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,11 +79,11 @@ public class SslConnectionParams {
 
     String ciphers = conf.get(Property.RPC_SSL_CIPHER_SUITES);
     if (ciphers != null && !ciphers.isEmpty()) {
-      result.cipherSuites = StringUtils.split(ciphers, ',');
+      result.cipherSuites = ciphers.split(",");
     }
 
     String enabledProtocols = conf.get(Property.RPC_SSL_ENABLED_PROTOCOLS);
-    result.serverProtocols = StringUtils.split(enabledProtocols, ',');
+    result.serverProtocols = enabledProtocols.split(",");
 
     result.clientProtocol = conf.get(Property.RPC_SSL_CLIENT_PROTOCOL);
 

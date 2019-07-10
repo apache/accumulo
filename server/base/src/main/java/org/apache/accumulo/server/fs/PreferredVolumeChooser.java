@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,8 +125,8 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
   private String[] parsePreferred(String property, String preferredVolumes, String[] options) {
     log.trace("Found {} = {}", property, preferredVolumes);
 
-    Set<String> preferred = Arrays.stream(StringUtils.split(preferredVolumes, ','))
-        .map(String::trim).collect(Collectors.toSet());
+    Set<String> preferred =
+        Arrays.stream(preferredVolumes.split(",")).map(String::trim).collect(Collectors.toSet());
     if (preferred.isEmpty()) {
       String msg = "No volumes could be parsed from '" + property + "', which had a value of '"
           + preferredVolumes + "'";

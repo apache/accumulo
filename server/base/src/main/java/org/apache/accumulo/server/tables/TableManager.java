@@ -41,7 +41,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TablePropUtil;
-import org.apache.commons.lang.StringUtils;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -128,7 +127,7 @@ public class TableManager {
       this.oldState = oldState;
       this.newState = newState;
 
-      if (StringUtils.isNotEmpty(message))
+      if (message != null && !message.isEmpty())
         this.message = message;
       else {
         this.message = "Error transitioning from " + oldState + " state to " + newState + " state";

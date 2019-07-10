@@ -30,7 +30,6 @@ import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.tracer.thrift.Annotation;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -111,7 +110,7 @@ public class TraceFormatter implements Formatter {
 
   @Override
   public void remove() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override

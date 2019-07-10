@@ -40,9 +40,7 @@ import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.NotImplementedException;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
@@ -317,7 +315,7 @@ public class VolumeManagerImpl implements VolumeManager {
     FileSystem source = srcVolume.getFileSystem();
     FileSystem dest = destVolume.getFileSystem();
     if (source != dest) {
-      throw new NotImplementedException(
+      throw new UnsupportedOperationException(
           "Cannot rename files across volumes: " + path + " -> " + newPath);
     }
     return source.rename(path, newPath);
@@ -455,7 +453,7 @@ public class VolumeManagerImpl implements VolumeManager {
     // in the relative path. Fail when this doesn't appear to happen.
     if (fileType == FileType.TABLE) {
       // Trailing slash doesn't create an additional element
-      String[] pathComponents = StringUtils.split(path, Path.SEPARATOR_CHAR);
+      String[] pathComponents = path.split(Path.SEPARATOR);
 
       // Is an rfile
       if (path.endsWith(RFILE_SUFFIX)) {

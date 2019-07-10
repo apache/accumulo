@@ -25,8 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang.NotImplementedException;
-
 /**
  * Transient in memory store for transactions.
  */
@@ -44,7 +42,7 @@ public class SimpleStore<T> implements TStore<T> {
 
   @Override
   public long reserve() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -64,17 +62,17 @@ public class SimpleStore<T> implements TStore<T> {
 
   @Override
   public Repo<T> top(long tid) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void push(long tid, Repo<T> repo) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void pop(long tid) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -100,17 +98,17 @@ public class SimpleStore<T> implements TStore<T> {
   @Override
   public org.apache.accumulo.fate.TStore.TStatus waitForStatusChange(long tid,
       EnumSet<org.apache.accumulo.fate.TStore.TStatus> expected) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void setProperty(long tid, String prop, Serializable val) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Serializable getProperty(long tid, String prop) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -127,7 +125,7 @@ public class SimpleStore<T> implements TStore<T> {
 
   @Override
   public List<ReadOnlyRepo<T>> getStack(long tid) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
 }
