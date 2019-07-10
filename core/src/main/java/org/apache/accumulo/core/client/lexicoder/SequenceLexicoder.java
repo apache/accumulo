@@ -35,7 +35,7 @@ import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
  * Note: Unlike {@link ListLexicoder}, this implementation supports empty lists.
  *
  * The lists are encoded with the elements separated by null (0x0) bytes, which null bytes appearing in the
- * elements escaped as 0x1 bytes, and 0x1 bytes appearing in the elements escaped as two 0x1 bytes. The list
+ * elements escaped as two 0x1 bytes, and 0x1 bytes appearing in the elements escaped as 0x1 and 0x2 bytes. The list
  * is terminated with a final delimiter, with no bytes following it.
  *
  * @since 2.0.0
