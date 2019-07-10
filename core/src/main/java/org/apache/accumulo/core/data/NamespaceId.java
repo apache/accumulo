@@ -24,6 +24,7 @@ import com.google.common.cache.CacheBuilder;
 /**
  * A strongly typed representation of a namespace ID. This class cannot be used to get a namespace
  * ID from a namespace name, but does provide the namespace ID string wrapped with a stronger type.
+ * The constructor for this class will throw an error if the canonical parameter is null.
  *
  * @since 2.0.0
  */
@@ -36,7 +37,7 @@ public class NamespaceId extends AbstractId<NamespaceId> {
   }
 
   /**
-   * Get a Namespace.ID object for the provided canonical string.
+   * Get a NamespaceId object for the provided canonical string. This is guaranteed to be non-null
    *
    * @param canonical
    *          Namespace ID string
