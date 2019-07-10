@@ -56,7 +56,7 @@ public abstract class AbstractId<T extends AbstractId<T>> implements Comparable<
   }
 
   /**
-   * Returns a string of the canonical ID
+   * Returns a string of the canonical ID. This is guaranteed to be non-null.
    */
   @Override
   public String toString() {

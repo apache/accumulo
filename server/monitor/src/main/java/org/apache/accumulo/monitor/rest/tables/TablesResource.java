@@ -38,6 +38,7 @@ import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -79,15 +80,19 @@ public class TablesResource {
 
   public static TableInformationList getTables(Monitor monitor) {
     TableInformationList tableList = new TableInformationList();
+    MasterMonitorInfo mmi = monitor.getMmi();
+    if (mmi == null) {
+      return tableList;
+    }
     SortedMap<TableId,TableInfo> tableStats = new TreeMap<>();
 
-    if (monitor.getMmi() != null && monitor.getMmi().tableMap != null) {
-      for (Map.Entry<String,TableInfo> te : monitor.getMmi().tableMap.entrySet()) {
+    if (mmi.tableMap != null) {
+      for (Map.Entry<String,TableInfo> te : mmi.tableMap.entrySet()) {
         tableStats.put(TableId.of(te.getKey()), te.getValue());
       }
     }
 
-    Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(monitor.getMmi());
+    Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(mmi);
     TableManager tableManager = monitor.getContext().getTableManager();
 
     // Add tables to the list
@@ -125,8 +130,13 @@ public class TablesResource {
       regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
     String rootTabletLocation = monitor.getContext().getRootTabletLocation();
     TableId tableId = TableId.of(tableIdStr);
+    MasterMonitorInfo mmi = monitor.getMmi();
+    // fail fast if unable to get monitor info
+    if (mmi == null) {
+      return new TabletServers();
+    }
 
-    TabletServers tabletServers = new TabletServers(monitor.getMmi().tServerInfo.size());
+    TabletServers tabletServers = new TabletServers(mmi.tServerInfo.size());
 
     if (StringUtils.isBlank(tableIdStr)) {
       return tabletServers;
@@ -158,15 +168,13 @@ public class TablesResource {
     }
 
     List<TabletServerStatus> tservers = new ArrayList<>();
-    if (monitor.getMmi() != null) {
-      for (TabletServerStatus tss : monitor.getMmi().tServerInfo) {
-        try {
-          if (tss.name != null && locs.contains(tss.name)) {
-            tservers.add(tss);
-          }
-        } catch (Exception ex) {
-          return tabletServers;
+    for (TabletServerStatus tss : mmi.tServerInfo) {
+      try {
+        if (tss.name != null && locs.contains(tss.name)) {
+          tservers.add(tss);
         }
+      } catch (Exception ex) {
+        return tabletServers;
       }
     }
 
@@ -175,10 +183,7 @@ public class TablesResource {
       if (status == null) {
         status = NO_STATUS;
       }
-      TableInfo summary = TableInfoUtil.summarizeTableStats(status);
-      if (tableId != null) {
-        summary = status.tableMap.get(tableId.canonical());
-      }
+      TableInfo summary = status.tableMap.get(tableId.canonical());
       if (summary == null) {
         continue;
       }
@@ -190,7 +195,6 @@ public class TablesResource {
     }
 
     return tabletServers;
-
   }
 
 }

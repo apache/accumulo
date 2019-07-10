@@ -24,6 +24,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
@@ -57,8 +58,9 @@ public class StatusResource {
     Status masterStatus;
     Status gcStatus;
     Status tServerStatus = Status.ERROR;
+    MasterMonitorInfo mmi = monitor.getMmi();
 
-    if (monitor.getMmi() != null) {
+    if (mmi != null) {
       if (monitor.getGcStatus() != null) {
         gcStatus = Status.OK;
       } else {
@@ -68,9 +70,9 @@ public class StatusResource {
       List<String> masters = monitor.getContext().getMasterLocations();
       masterStatus = masters.size() == 0 ? Status.ERROR : Status.OK;
 
-      int tServerUp = monitor.getMmi().getTServerInfoSize();
-      int tServerDown = monitor.getMmi().getDeadTabletServersSize();
-      int tServerBad = monitor.getMmi().getBadTServersSize();
+      int tServerUp = mmi.getTServerInfoSize();
+      int tServerDown = mmi.getDeadTabletServersSize();
+      int tServerBad = mmi.getBadTServersSize();
 
       /*
        * If there are no dead or bad servers and there are tservers up, status is OK, if there are
