@@ -29,7 +29,10 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -55,11 +58,19 @@ public class LinkingIteratorTest {
     }
   }
 
-  private static void check(List<TabletMetadata> expected, IterFactory iterFactory) {
+  private static void check(List<TabletMetadata> expected, IterFactory iterFactory, Range range) {
     List<KeyExtent> actual = new ArrayList<>();
-    new LinkingIterator(iterFactory, new Range())
-        .forEachRemaining(tm -> actual.add(tm.getExtent()));
+    new LinkingIterator(iterFactory, range).forEachRemaining(tm -> actual.add(tm.getExtent()));
     assertEquals(Lists.transform(expected, TabletMetadata::getExtent), actual);
+  }
+
+  private static void check(List<TabletMetadata> expected, IterFactory iterFactory) {
+    check(expected, iterFactory, new Range());
+  }
+
+  private static void check(List<TabletMetadata> expected, IterFactory iterFactory,
+      TableId tableId) {
+    check(expected, iterFactory, TabletsSection.getRange(tableId));
   }
 
   @Test
@@ -108,5 +119,38 @@ public class LinkingIteratorTest {
         create("5", null, "h"), create("5", "h", null));
 
     check(tablets2, new IterFactory(tablets1, tablets2));
+  }
+
+  @Test
+  public void testFirstTabletSplits() {
+    // check when first tablet has a prev end row that points to a non existent tablet. This could
+    // be caused by the first table splitting concurrently with a metadata scan of the first tablet.
+    List<TabletMetadata> tablets1 = Arrays.asList(create("4", "f", "m"), create("4", "m", null));
+    List<TabletMetadata> tablets2 =
+        Arrays.asList(create("4", null, "f"), create("4", "f", "m"), create("4", "m", null));
+
+    check(tablets2, new IterFactory(tablets1, tablets2), TableId.of("4"));
+    check(tablets2, new IterFactory(tablets1, tablets2),
+        new KeyExtent(TableId.of("4"), null, new Text("e")).toMetadataRange());
+
+    // following should not care about missing tablet
+    check(tablets1, new IterFactory(tablets1, tablets2),
+        new KeyExtent(TableId.of("4"), null, new Text("g")).toMetadataRange());
+    check(tablets1, new IterFactory(tablets1, tablets2),
+        new KeyExtent(TableId.of("4"), null, new Text("f")).toMetadataRange());
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testIncompleteTable() {
+    // the last tablet in a table should have a null end row. Ensure the code detects when this does
+    // not happen.
+    List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"));
+
+    LinkingIterator li = new LinkingIterator(new IterFactory(tablets1, tablets1),
+        TabletsSection.getRange(TableId.of("4")));
+
+    while (li.hasNext()) {
+      li.next();
+    }
   }
 }

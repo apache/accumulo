@@ -62,7 +62,21 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
   @Override
   public boolean hasNext() {
-    return source.hasNext();
+    boolean hasNext = source.hasNext();
+    // TODO open issue to make Ample handle case of not tablets seen
+
+    // Always expect the default tablet to exist for a table. The following checks for the case when
+    // the default tablet was not seen when it should have been seen.
+    if (!hasNext && prevTablet != null && prevTablet.getEndRow() != null) {
+      Text defaultTabletRow = TabletsSection.getRow(prevTablet.getTableId(), null);
+      if (range.contains(new Key(defaultTabletRow))) {
+        throw new IllegalStateException(
+            "Read all tablets but did not see default tablet.  Last tablet seen : "
+                + prevTablet.getExtent());
+      }
+    }
+
+    return hasNext;
   }
 
   static boolean goodTransition(TabletMetadata prev, TabletMetadata curr) {
@@ -101,6 +115,7 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
   private void resetSource() {
     if (prevTablet == null) {
+      log.debug("Resetting scanner to {}", range);
       source = iteratorFactory.apply(range);
     } else {
       // get the metadata table row for the previous tablet
@@ -115,7 +130,7 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
       Range seekRange = new Range(new Key(prevMetaRow).followingKey(PartialKey.ROW), true,
           range.getEndKey(), range.isEndKeyInclusive());
 
-      log.info("Resetting scanner to {}", seekRange);
+      log.debug("Resetting scanner to {}", seekRange);
 
       source = iteratorFactory.apply(seekRange);
     }
@@ -132,7 +147,25 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
       if (prevTablet == null) {
         if (tmp.sawPrevEndRow()) {
-          currTablet = tmp;
+
+          Text prevRow = tmp.getExtent().getPrevEndRow();
+          Text prevMetaRow = null;
+          if (prevRow != null) {
+            prevMetaRow = TabletsSection.getRow(tmp.getExtent().getTableId(), prevRow);
+          }
+
+          // TODO check table ID in range??
+
+          // If the first tablet seen has a prev endrow within the range it means a preceding tablet
+          // exists that we need to go back and read. This could be caused by the first tablet in
+          // the range splitting concurrently while this code is reading.
+
+          if (prevRow == null || range.beforeStartKey(new Key(prevMetaRow))) {
+            currTablet = tmp;
+          } else {
+            log.info("First tablet prev end row falls within range, retrying {} {} ", prevMetaRow,
+                range);
+          }
         } else {
           log.warn("Tablet has no prev end row " + tmp.getTableId() + " " + tmp.getEndRow());
         }
