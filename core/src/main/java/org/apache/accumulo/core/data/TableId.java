@@ -24,7 +24,7 @@ import com.google.common.cache.CacheBuilder;
 /**
  * A strongly typed representation of a table ID. This class cannot be used to get a table ID from a
  * table name, but does provide the table ID string wrapped with a stronger type. The constructor
- * for this class will throw an error if the canonical parameter is empty or null.
+ * for this class will throw an error if the canonical parameter is null.
  *
  * @since 2.0.0
  */
