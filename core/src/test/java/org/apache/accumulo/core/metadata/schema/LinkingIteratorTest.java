@@ -153,4 +153,13 @@ public class LinkingIteratorTest {
       li.next();
     }
   }
+
+  @Test
+  public void testIncompleteTableWithRange() {
+    // because the scan range does not got to end of table, this should not care about missing
+    // tablets at end of table.
+    List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"));
+    check(tablets1, new IterFactory(tablets1, tablets1),
+        new KeyExtent(TableId.of("4"), new Text("r"), new Text("e")).toMetadataRange());
+  }
 }

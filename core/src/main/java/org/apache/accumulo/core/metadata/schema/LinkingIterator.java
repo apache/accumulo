@@ -63,7 +63,6 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
   @Override
   public boolean hasNext() {
     boolean hasNext = source.hasNext();
-    // TODO open issue to make Ample handle case of not tablets seen
 
     // Always expect the default tablet to exist for a table. The following checks for the case when
     // the default tablet was not seen when it should have been seen.
@@ -153,8 +152,6 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
           if (prevRow != null) {
             prevMetaRow = TabletsSection.getRow(tmp.getExtent().getTableId(), prevRow);
           }
-
-          // TODO check table ID in range??
 
           // If the first tablet seen has a prev endrow within the range it means a preceding tablet
           // exists that we need to go back and read. This could be caused by the first tablet in
