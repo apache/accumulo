@@ -26,6 +26,7 @@ import java.util.function.Function;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -62,7 +63,20 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
   @Override
   public boolean hasNext() {
-    return source.hasNext();
+    boolean hasNext = source.hasNext();
+
+    // Always expect the default tablet to exist for a table. The following checks for the case when
+    // the default tablet was not seen when it should have been seen.
+    if (!hasNext && prevTablet != null && prevTablet.getEndRow() != null) {
+      Text defaultTabletRow = TabletsSection.getRow(prevTablet.getTableId(), null);
+      if (range.contains(new Key(defaultTabletRow))) {
+        throw new IllegalStateException(
+            "Scan range incudled default tablet, but did not see default tablet.  Last tablet seen : "
+                + prevTablet.getExtent());
+      }
+    }
+
+    return hasNext;
   }
 
   static boolean goodTransition(TabletMetadata prev, TabletMetadata curr) {
@@ -101,6 +115,7 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
   private void resetSource() {
     if (prevTablet == null) {
+      log.debug("Resetting scanner to {}", range);
       source = iteratorFactory.apply(range);
     } else {
       // get the metadata table row for the previous tablet
@@ -115,7 +130,7 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
       Range seekRange = new Range(new Key(prevMetaRow).followingKey(PartialKey.ROW), true,
           range.getEndKey(), range.isEndKeyInclusive());
 
-      log.info("Resetting scanner to {}", seekRange);
+      log.debug("Resetting scanner to {}", seekRange);
 
       source = iteratorFactory.apply(seekRange);
     }
@@ -132,7 +147,26 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
       if (prevTablet == null) {
         if (tmp.sawPrevEndRow()) {
-          currTablet = tmp;
+
+          Text prevMetaRow = null;
+
+          KeyExtent extent = tmp.getExtent();
+
+          if (extent.getPrevEndRow() != null) {
+            prevMetaRow = TabletsSection.getRow(extent.getTableId(), extent.getPrevEndRow());
+          }
+
+          // If the first tablet seen has a prev endrow within the range it means a preceding tablet
+          // exists that we need to go back and read. This could be caused by the first tablet in
+          // the range splitting concurrently while this code is reading.
+
+          if (prevMetaRow == null || range.beforeStartKey(new Key(prevMetaRow))) {
+            currTablet = tmp;
+          } else {
+            log.debug(
+                "First tablet seen provides evidence of earlier tablet in range, retrying {} {} ",
+                prevMetaRow, range);
+          }
         } else {
           log.warn("Tablet has no prev end row " + tmp.getTableId() + " " + tmp.getEndRow());
         }
