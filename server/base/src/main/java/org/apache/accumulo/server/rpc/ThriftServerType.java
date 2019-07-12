@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.rpc;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * The type of configured Thrift server to start. This is meant more as a developer knob to ensure

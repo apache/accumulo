@@ -64,7 +64,6 @@ import org.apache.accumulo.tracer.TraceDump;
 import org.apache.accumulo.tracer.TraceFormatter;
 import org.apache.accumulo.tracer.thrift.Annotation;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -280,10 +279,6 @@ public class TracesResource {
     long startTime = endTime - millisSince;
 
     String startHexTime = Long.toHexString(startTime), endHexTime = Long.toHexString(endTime);
-    if (startHexTime.length() < endHexTime.length()) {
-      StringUtils.leftPad(startHexTime, endHexTime.length(), '0');
-    }
-
     return new Range(new Text("start:" + startHexTime), new Text("start:" + endHexTime));
   }
 

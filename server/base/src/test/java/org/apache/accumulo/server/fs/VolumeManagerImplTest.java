@@ -26,7 +26,6 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.junit.Before;
@@ -76,7 +75,7 @@ public class VolumeManagerImplTest {
     List<String> volumes = Arrays.asList("file://one/", "file://two/", "file://three/");
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(INSTANCE_DFS_URI, volumes.get(0));
-    conf.set(Property.INSTANCE_VOLUMES, StringUtils.join(volumes, ","));
+    conf.set(Property.INSTANCE_VOLUMES, String.join(",", volumes));
     conf.set(Property.GENERAL_VOLUME_CHOOSER,
         "org.apache.accumulo.server.fs.ChooserThatDoesntExist");
     thrown.expect(RuntimeException.class);
@@ -133,7 +132,7 @@ public class VolumeManagerImplTest {
     List<String> volumes = Arrays.asList("file://one/", "file://two/", "file://three/");
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(INSTANCE_DFS_URI, volumes.get(0));
-    conf.set(Property.INSTANCE_VOLUMES, StringUtils.join(volumes, ","));
+    conf.set(Property.INSTANCE_VOLUMES, String.join(",", volumes));
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     thrown.expect(RuntimeException.class);
     VolumeManager vm = VolumeManagerImpl.get(conf, hadoopConf);

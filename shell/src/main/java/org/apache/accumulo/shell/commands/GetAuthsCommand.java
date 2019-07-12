@@ -30,7 +30,6 @@ import org.apache.accumulo.shell.ShellOptions;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.lang.StringUtils;
 
 public class GetAuthsCommand extends Command {
   private Option userOpt;
@@ -44,7 +43,7 @@ public class GetAuthsCommand extends Command {
     Authorizations auths =
         shellState.getAccumuloClient().securityOperations().getUserAuthorizations(user);
     List<String> set = sortAuthorizations(auths);
-    shellState.getReader().println(StringUtils.join(set, ','));
+    shellState.getReader().println(String.join(",", set));
     return 0;
   }
 

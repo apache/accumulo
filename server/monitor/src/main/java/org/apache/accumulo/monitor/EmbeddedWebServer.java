@@ -20,7 +20,6 @@ import java.util.EnumSet;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.server.AbstractConnectionFactory;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
@@ -80,17 +79,17 @@ public class EmbeddedWebServer {
 
       final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
       if (!Property.MONITOR_SSL_INCLUDE_CIPHERS.getDefaultValue().equals(includedCiphers)) {
-        sslContextFactory.setIncludeCipherSuites(StringUtils.split(includedCiphers, ','));
+        sslContextFactory.setIncludeCipherSuites(includedCiphers.split(","));
       }
 
       final String excludedCiphers = conf.get(Property.MONITOR_SSL_EXCLUDE_CIPHERS);
       if (!Property.MONITOR_SSL_EXCLUDE_CIPHERS.getDefaultValue().equals(excludedCiphers)) {
-        sslContextFactory.setExcludeCipherSuites(StringUtils.split(excludedCiphers, ','));
+        sslContextFactory.setExcludeCipherSuites(excludedCiphers.split(","));
       }
 
       final String includeProtocols = conf.get(Property.MONITOR_SSL_INCLUDE_PROTOCOLS);
       if (includeProtocols != null && !includeProtocols.isEmpty()) {
-        sslContextFactory.setIncludeProtocols(StringUtils.split(includeProtocols, ','));
+        sslContextFactory.setIncludeProtocols(includeProtocols.split(","));
       }
 
       SslConnectionFactory sslFactory =

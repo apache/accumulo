@@ -117,6 +117,8 @@ public class SetIterCommandTest {
         EasyMock.eq(EnumSet.allOf(IteratorScope.class)));
     EasyMock.expectLastCall().once();
 
+    EasyMock.expect(shellState.getTableName()).andReturn("foo").anyTimes();
+
     EasyMock.replay(client, cli, shellState, reader, tableOperations);
 
     cmd.execute(

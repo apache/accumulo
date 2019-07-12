@@ -33,7 +33,6 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -305,7 +304,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
       throw new IllegalArgumentException(
           COLUMNS_KEY + " was not provided in the iterator configuration");
     }
-    String[] columns = StringUtils.split(columnsValue, ',');
+    String[] columns = columnsValue.split(",");
     setTerms(source, Arrays.asList(columns), env);
     LOG.trace("Set sources: {}", this.sources);
   }

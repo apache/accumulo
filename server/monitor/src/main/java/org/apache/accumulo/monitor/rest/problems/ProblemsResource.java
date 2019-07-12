@@ -42,7 +42,6 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,7 +108,7 @@ public class ProblemsResource {
       ProblemReports.getInstance(monitor.getContext()).deleteProblemReports(TableId.of(tableID));
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table "
-          + (StringUtils.isEmpty(tableID) ? StringUtils.EMPTY : sanitize(tableID)), e);
+          + (tableID.isEmpty() ? "" : sanitize(tableID)), e);
     }
   }
 
@@ -169,7 +168,7 @@ public class ProblemsResource {
           ProblemType.valueOf(ptype), resource);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table "
-          + (StringUtils.isBlank(tableID) ? "" : sanitize(tableID)), e);
+          + (tableID.isBlank() ? "" : sanitize(tableID)), e);
     }
   }
 

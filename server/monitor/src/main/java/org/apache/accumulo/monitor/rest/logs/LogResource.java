@@ -27,7 +27,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.spi.LoggingEvent;
 
 /**
@@ -56,7 +55,9 @@ public class LogResource {
         application = "";
       String msg = ev.getMessage().toString();
       // truncate if full hadoop errors get logged as a message
-      msg = StringUtils.abbreviate(sanitize(msg), 300);
+      msg = sanitize(msg);
+      if (msg.length() > 300)
+        msg = msg.substring(0, 300);
 
       String[] stacktrace = ev.getThrowableStrRep();
       if (stacktrace != null)

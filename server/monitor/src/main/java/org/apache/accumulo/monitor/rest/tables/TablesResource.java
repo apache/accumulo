@@ -51,7 +51,6 @@ import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.TableInfoUtil;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -138,7 +137,7 @@ public class TablesResource {
 
     TabletServers tabletServers = new TabletServers(mmi.tServerInfo.size());
 
-    if (StringUtils.isBlank(tableIdStr)) {
+    if (tableIdStr.isBlank()) {
       return tabletServers;
     }
 

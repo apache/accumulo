@@ -21,8 +21,6 @@ import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGE
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
 import static org.apache.accumulo.monitor.util.ParameterValidator.RESOURCE_REGEX;
-import static org.apache.commons.lang.StringUtils.isEmpty;
-import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -80,7 +78,7 @@ public class WebViews {
   private void addExternalResources(Map<String,Object> model) {
     AccumuloConfiguration conf = monitor.getContext().getConfiguration();
     String resourcesProperty = conf.get(Property.MONITOR_RESOURCES_EXTERNAL);
-    if (isEmpty(resourcesProperty)) {
+    if (resourcesProperty.isBlank()) {
       return;
     }
     List<String> monitorResources = new ArrayList<>();
@@ -161,7 +159,7 @@ public class WebViews {
 
     Map<String,Object> model = getModel();
     model.put("title", "Tablet Server Status");
-    if (isNotBlank(server)) {
+    if (server != null && !server.isBlank()) {
       model.put("template", "server.ftl");
       model.put("js", "server.js");
       model.put("server", server);
@@ -379,7 +377,7 @@ public class WebViews {
     model.put("template", "problems.ftl");
     model.put("js", "problems.js");
 
-    if (isNotBlank(table)) {
+    if (table != null && !table.isBlank()) {
       model.put("table", table);
     }
 

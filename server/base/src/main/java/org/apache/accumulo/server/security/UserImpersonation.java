@@ -27,7 +27,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.commons.lang.StringUtils;
 
 /**
  * When SASL is enabled, this parses properties from the site configuration to build up a set of all
@@ -181,10 +180,10 @@ public class UserImpersonation {
 
     final String hostConfigString = conf.get(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION);
     // Pull out the config values, defaulting to at least one value
-    final String[] userConfigs = userConfigString.trim().isEmpty() ? new String[] {""}
-        : StringUtils.split(userConfigString, ';');
-    final String[] hostConfigs = hostConfigString.trim().isEmpty() ? new String[] {""}
-        : StringUtils.split(hostConfigString, ';');
+    final String[] userConfigs =
+        userConfigString.trim().isEmpty() ? new String[] {""} : userConfigString.split(";");
+    final String[] hostConfigs =
+        hostConfigString.trim().isEmpty() ? new String[] {""} : hostConfigString.split(";");
 
     if (userConfigs.length != hostConfigs.length) {
       String msg = String.format("Should have equal number of user and host"
@@ -197,7 +196,7 @@ public class UserImpersonation {
       final String userConfig = userConfigs[i];
       final String hostConfig = hostConfigs[i];
 
-      final String[] splitUserConfig = StringUtils.split(userConfig, ':');
+      final String[] splitUserConfig = userConfig.split(":");
       if (splitUserConfig.length != 2) {
         throw new IllegalArgumentException(
             "Expect a single colon-separated pair, but found '" + userConfig + "'");
@@ -212,7 +211,7 @@ public class UserImpersonation {
       if (ALL.equals(allowedImpersonationsForRemoteUser)) {
         usersWithHosts.setAcceptAllUsers(true);
       } else {
-        String[] allowedUsers = StringUtils.split(allowedImpersonationsForRemoteUser, ",");
+        String[] allowedUsers = allowedImpersonationsForRemoteUser.split(",");
         Set<String> usersSet = new HashSet<>();
         usersSet.addAll(Arrays.asList(allowedUsers));
         usersWithHosts.setUsers(usersSet);
@@ -221,7 +220,7 @@ public class UserImpersonation {
       if (ALL.equals(hostConfig)) {
         usersWithHosts.setAcceptAllHosts(true);
       } else {
-        String[] allowedHosts = StringUtils.split(hostConfig, ",");
+        String[] allowedHosts = hostConfig.split(",");
         Set<String> hostsSet = new HashSet<>();
         hostsSet.addAll(Arrays.asList(allowedHosts));
         usersWithHosts.setHosts(hostsSet);

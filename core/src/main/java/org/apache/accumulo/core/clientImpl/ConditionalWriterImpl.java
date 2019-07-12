@@ -81,7 +81,7 @@ import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.commons.collections4.map.LRUMap;
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.Trace;
 import org.apache.thrift.TApplicationException;

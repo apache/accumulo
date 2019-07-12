@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.util.Shell.ShellCommandExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +78,7 @@ public class RemoteShell extends ShellCommandExecutor {
       hostWithUser = options.getUserName() + "@" + hostWithUser;
     }
 
-    String remoteCmd = StringUtils.join(super.getExecString(), ' ');
+    String remoteCmd = String.join(" ", super.getExecString());
 
     String cmd = String.format("%1$s %2$s %3$s \"%4$s\"", options.getSshCommand(),
         options.getSshOptions(), hostWithUser, remoteCmd);

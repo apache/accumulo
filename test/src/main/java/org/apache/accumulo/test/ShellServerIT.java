@@ -17,6 +17,7 @@
 package org.apache.accumulo.test;
 
 import static java.nio.file.Files.newBufferedReader;
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -94,7 +95,6 @@ import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -1996,7 +1996,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     log.debug("countFiles(): {}", ts.output.get());
 
-    String[] lines = StringUtils.split(ts.output.get(), "\n");
+    String[] lines = ts.output.get().split("\n");
     ts.output.clear();
 
     if (lines.length == 0) {
@@ -2775,13 +2775,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private static String encode(final Text text, final boolean encode) {
-    if (StringUtils.isBlank(text.toString()))
+    if (text.toString().isBlank())
       return null;
     return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text)) : text.toString();
   }
 
   private Text decode(final String text, final boolean decode) {
-    if (StringUtils.isBlank(text))
+    if (requireNonNull(text).isBlank())
       return null;
     return decode ? new Text(Base64.getDecoder().decode(text)) : new Text(text);
   }
