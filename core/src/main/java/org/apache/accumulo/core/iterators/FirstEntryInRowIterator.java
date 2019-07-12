@@ -147,7 +147,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   @Override
   public boolean validateOptions(Map<String,String> options) {
     String o = options.get(NUM_SCANS_STRING_NAME);
-    if (o != null && !NumberUtils.isNumber(o))
+    if (o != null && !NumberUtils.isCreatable(o))
       throw new IllegalArgumentException(
           "bad integer " + NUM_SCANS_STRING_NAME + ":" + options.get(NUM_SCANS_STRING_NAME));
     return true;
