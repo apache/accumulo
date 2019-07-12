@@ -40,9 +40,8 @@ import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.NotImplementedException;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
@@ -317,7 +316,7 @@ public class VolumeManagerImpl implements VolumeManager {
     FileSystem source = srcVolume.getFileSystem();
     FileSystem dest = destVolume.getFileSystem();
     if (source != dest) {
-      throw new NotImplementedException(
+      throw new UnsupportedOperationException(
           "Cannot rename files across volumes: " + path + " -> " + newPath);
     }
     return source.rename(path, newPath);

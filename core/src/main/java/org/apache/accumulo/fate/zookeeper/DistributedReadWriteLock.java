@@ -27,7 +27,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.commons.lang.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,7 +188,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     @Override
     public Condition newCondition() {
-      throw new NotImplementedException();
+      throw new UnsupportedOperationException();
     }
   }
 

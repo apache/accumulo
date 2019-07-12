@@ -42,7 +42,6 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -77,13 +76,13 @@ public class BulkImporterTest {
     @Override
     public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
         Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
-      throw new NotImplementedException();
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public List<Range> binRanges(ClientContext context, List<Range> ranges,
         Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
-      throw new NotImplementedException();
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -93,17 +92,17 @@ public class BulkImporterTest {
 
     @Override
     public void invalidateCache(Collection<KeyExtent> keySet) {
-      throw new NotImplementedException();
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public void invalidateCache() {
-      throw new NotImplementedException();
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public void invalidateCache(ClientContext context, String server) {
-      throw new NotImplementedException();
+      throw new UnsupportedOperationException();
     }
   }
 

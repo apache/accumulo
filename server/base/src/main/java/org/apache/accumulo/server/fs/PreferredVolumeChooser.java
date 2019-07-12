@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
