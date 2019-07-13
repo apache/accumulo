@@ -26,7 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.util.Pair;
-import org.apache.commons.lang.math.IntRange;
+import org.apache.commons.lang3.Range;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.base.Preconditions;
@@ -307,7 +307,7 @@ public enum PropertyType {
 
   public static class PortRange extends Matches {
 
-    private static final IntRange VALID_RANGE = new IntRange(1024, 65535);
+    private static final Range<Integer> VALID_RANGE = Range.between(1024, 65535);
 
     public PortRange(final String pattern) {
       super(pattern);
@@ -332,8 +332,7 @@ public enum PropertyType {
       if (idx != -1) {
         int low = Integer.parseInt(portRange.substring(0, idx));
         int high = Integer.parseInt(portRange.substring(idx + 1));
-        if (!VALID_RANGE.containsInteger(low) || !VALID_RANGE.containsInteger(high)
-            || !(low <= high)) {
+        if (!VALID_RANGE.contains(low) || !VALID_RANGE.contains(high) || low > high) {
           throw new IllegalArgumentException(
               "Invalid port range specified, only 1024 to 65535 supported.");
         }

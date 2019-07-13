@@ -27,7 +27,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.spi.LoggingEvent;
 
 /**

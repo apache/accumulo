@@ -23,7 +23,7 @@ import java.util.Arrays;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.thrift.transport.TSSLTransportFactory.TSSLTransportParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

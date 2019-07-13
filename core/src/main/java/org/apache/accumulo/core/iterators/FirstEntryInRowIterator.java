@@ -27,7 +27,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.hadoop.io.Text;
 
 public class FirstEntryInRowIterator extends SkippingIterator implements OptionDescriber {
@@ -147,7 +147,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   @Override
   public boolean validateOptions(Map<String,String> options) {
     String o = options.get(NUM_SCANS_STRING_NAME);
-    if (o != null && !NumberUtils.isNumber(o))
+    if (o != null && !NumberUtils.isParsable(o))
       throw new IllegalArgumentException(
           "bad integer " + NUM_SCANS_STRING_NAME + ":" + options.get(NUM_SCANS_STRING_NAME));
     return true;

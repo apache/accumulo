@@ -18,7 +18,7 @@ package org.apache.accumulo.core.client;
 
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * An Accumulo Exception for security violations, authentication failures, authorization failures,
