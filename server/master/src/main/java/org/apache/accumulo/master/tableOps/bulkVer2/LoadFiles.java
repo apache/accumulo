@@ -22,11 +22,12 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -343,27 +344,53 @@ class LoadFiles extends MasterRepo {
     return sleepTime;
   }
 
+  private static final Comparator<Text> PREV_COMP = Comparator.nullsFirst(Text::compareTo);
+  private static final Comparator<Text> END_COMP = Comparator.nullsLast(Text::compareTo);
+
   /**
    * Find all the tablets within the provided bulk load mapping range.
    */
   private List<TabletMetadata> findOverlappingTablets(KeyExtent loadRange,
       Iterator<TabletMetadata> tabletIter) {
-    List<TabletMetadata> tablets = new ArrayList<>();
-    TabletMetadata currentTablet = tabletIter.next();
 
-    // skip tablets until we find the prevEndRow of loadRange
-    while (!Objects.equals(currentTablet.getPrevEndRow(), loadRange.getPrevEndRow())) {
-      currentTablet = tabletIter.next();
-    }
-    // we have found the first tablet in the range, add it to the list
-    tablets.add(currentTablet);
+    TabletMetadata currTablet = null;
 
-    // find the remaining tablets within the loadRange by
-    // adding tablets to the list until the endRow matches the loadRange
-    while (!Objects.equals(currentTablet.getEndRow(), loadRange.getEndRow())) {
-      currentTablet = tabletIter.next();
-      tablets.add(currentTablet);
+    try {
+
+      List<TabletMetadata> tablets = new ArrayList<>();
+      currTablet = tabletIter.next();
+
+      int cmp;
+
+      // skip tablets until we find the prevEndRow of loadRange
+      while ((cmp = PREV_COMP.compare(currTablet.getPrevEndRow(), loadRange.getPrevEndRow())) < 0) {
+        currTablet = tabletIter.next();
+      }
+
+      if (cmp != 0) {
+        throw new IllegalStateException("Unexpected prev end row " + currTablet + " " + loadRange);
+      }
+
+      // we have found the first tablet in the range, add it to the list
+      tablets.add(currTablet);
+
+      // find the remaining tablets within the loadRange by
+      // adding tablets to the list until the endRow matches the loadRange
+      while ((cmp = END_COMP.compare(currTablet.getEndRow(), loadRange.getEndRow())) < 0) {
+        currTablet = tabletIter.next();
+        tablets.add(currTablet);
+      }
+
+      if (cmp != 0) {
+        throw new IllegalStateException("Unexpected end row " + currTablet + " " + loadRange);
+      }
+
+      return tablets;
+    } catch (NoSuchElementException e) {
+      NoSuchElementException ne2 = new NoSuchElementException(
+          "Failed to find overlapping tablets " + currTablet + " " + loadRange);
+      ne2.initCause(e);
+      throw ne2;
     }
-    return tablets;
   }
 }
