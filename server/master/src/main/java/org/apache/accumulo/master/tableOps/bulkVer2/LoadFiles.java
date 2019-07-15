@@ -349,10 +349,13 @@ class LoadFiles extends MasterRepo {
    */
   private List<TabletMetadata> findOverlappingTablets(KeyExtent loadRange,
       Iterator<TabletMetadata> tabletIter) {
+
+    TabletMetadata currTablet = null;
+
     try {
 
       List<TabletMetadata> tablets = new ArrayList<>();
-      TabletMetadata currTablet = tabletIter.next();
+      currTablet = tabletIter.next();
 
       int cmp;
 
@@ -381,8 +384,8 @@ class LoadFiles extends MasterRepo {
 
       return tablets;
     } catch (NoSuchElementException e) {
-      NoSuchElementException ne2 =
-          new NoSuchElementException("Failed to find overlapping tablets for " + loadRange);
+      NoSuchElementException ne2 = new NoSuchElementException(
+          "Failed to find overlapping tablets " + currTablet + " " + loadRange);
       ne2.initCause(e);
       throw ne2;
     }
