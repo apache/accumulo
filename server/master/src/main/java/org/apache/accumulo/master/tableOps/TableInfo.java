@@ -20,6 +20,7 @@ import java.io.Serializable;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 
@@ -31,7 +32,7 @@ public class TableInfo implements Serializable {
   private TableId tableId;
   private NamespaceId namespaceId;
 
-  private char timeType;
+  private TimeType timeType;
   private String user;
 
   // Record requested initial state at creation
@@ -69,11 +70,11 @@ public class TableInfo implements Serializable {
     this.namespaceId = namespaceId;
   }
 
-  public char getTimeType() {
+  public TimeType getTimeType() {
     return timeType;
   }
 
-  public void setTimeType(char timeType) {
+  public void setTimeType(TimeType timeType) {
     this.timeType = timeType;
   }
 

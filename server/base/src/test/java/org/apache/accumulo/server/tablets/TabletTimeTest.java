@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.tablets.TabletTime.LogicalTime;
 import org.apache.accumulo.server.tablets.TabletTime.MillisTime;
@@ -56,31 +57,36 @@ public class TabletTimeTest {
 
   @Test
   public void testGetInstance_Logical() {
-    TabletTime t = TabletTime.getInstance("L1234");
+    MetadataTime mTime = MetadataTime.parse("L1234");
+    TabletTime t = TabletTime.getInstance(mTime);
     assertEquals(LogicalTime.class, t.getClass());
     assertEquals("L1234", t.getMetadataValue());
   }
 
   @Test
   public void testGetInstance_Millis() {
-    TabletTime t = TabletTime.getInstance("M1234");
+    MetadataTime mTime = MetadataTime.parse("M1234");
+    TabletTime t = TabletTime.getInstance(mTime);
     assertEquals(MillisTime.class, t.getClass());
     assertEquals("M1234", t.getMetadataValue());
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testGetInstance_InvalidType() {
-    TabletTime.getInstance("X1234");
+    MetadataTime mTime = MetadataTime.parse("X1234");
+    TabletTime.getInstance(mTime);
   }
 
-  @Test(expected = NumberFormatException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testGetInstance_Logical_ParseFailure() {
-    TabletTime.getInstance("LABCD");
+    MetadataTime mTime = MetadataTime.parse("LABCD");
+    TabletTime.getInstance(mTime);
   }
 
-  @Test(expected = NumberFormatException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testGetInstance_Millis_ParseFailure() {
-    TabletTime.getInstance("MABCD");
+    MetadataTime mTime = MetadataTime.parse("MABCD");
+    TabletTime.getInstance(mTime);
   }
 
   @Test

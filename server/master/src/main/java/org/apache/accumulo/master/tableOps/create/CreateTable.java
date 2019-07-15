@@ -28,7 +28,6 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.TableInfo;
 import org.apache.accumulo.master.tableOps.Utils;
-import org.apache.accumulo.server.tablets.TabletTime;
 
 public class CreateTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
@@ -40,7 +39,7 @@ public class CreateTable extends MasterRepo {
       NamespaceId namespaceId) {
     tableInfo = new TableInfo();
     tableInfo.setTableName(tableName);
-    tableInfo.setTimeType(TabletTime.getTimeID(timeType));
+    tableInfo.setTimeType(timeType);
     tableInfo.setUser(user);
     tableInfo.props = props;
     tableInfo.setNamespaceId(namespaceId);

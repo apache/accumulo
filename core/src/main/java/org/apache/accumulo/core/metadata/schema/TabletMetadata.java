@@ -79,7 +79,7 @@ public class TabletMetadata {
   private KeyExtent extent;
   private Location last;
   private String dir;
-  private String time;
+  private MetadataTime time;
   private String cloned;
   private SortedMap<Key,Value> keyValues;
   private OptionalLong flush = OptionalLong.empty();
@@ -208,7 +208,7 @@ public class TabletMetadata {
     return dir;
   }
 
-  public String getTime() {
+  public MetadataTime getTime() {
     ensureFetched(ColumnType.TIME);
     return time;
   }
@@ -283,7 +283,7 @@ public class TabletMetadata {
               te.dir = val;
               break;
             case TIME_QUAL:
-              te.time = val;
+              te.time = MetadataTime.parse(val);
               break;
             case FLUSH_QUAL:
               te.flush = OptionalLong.of(Long.parseLong(val));
