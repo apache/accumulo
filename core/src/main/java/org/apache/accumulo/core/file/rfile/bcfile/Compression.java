@@ -604,12 +604,12 @@ public final class Compression {
      * size. If the neither the specified codec type or the default codec type can be found, null
      * will be returned.
      */
-    CompressionCodec createNewCodec(final String codecClazz, final String defaultClazz,
+    CompressionCodec createNewCodec(final String codecClazzProp, final String defaultClazz,
         final int bufferSize, final String bufferSizeConfigOpt) {
-      String extClazz = (conf.get(codecClazz) == null ? System.getProperty(codecClazz) : null);
+      String extClazz = (conf.get(codecClazzProp) == null ? System.getProperty(codecClazzProp) : null);
       String clazz = (extClazz != null) ? extClazz : defaultClazz;
       try {
-        log.info("Trying to load codec class {} for {}", clazz, codecClazz);
+        log.info("Trying to load codec class {} for {}", clazz, codecClazzProp);
         Configuration config = new Configuration(conf);
         updateBuffer(config, bufferSizeConfigOpt, bufferSize);
         return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), config);
