@@ -111,7 +111,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putTime(MetadataTime time) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation, new Value(time.toString()));
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation, new Value(time.encode()));
     return this;
   }
 

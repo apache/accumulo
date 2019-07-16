@@ -42,19 +42,19 @@ public class LogicalTimeTest {
 
   @Test
   public void testGetMetadataValue() {
-    assertEquals("L1234", ltime.getMetadataValue());
+    assertEquals("L1234", ltime.getMetadataTime().encode());
   }
 
   @Test
   public void testUseMaxTimeFromWALog_Update() {
     ltime.useMaxTimeFromWALog(5678L);
-    assertEquals("L5678", ltime.getMetadataValue());
+    assertEquals("L5678", ltime.getMetadataTime().encode());
   }
 
   @Test
   public void testUseMaxTimeFromWALog_NoUpdate() {
     ltime.useMaxTimeFromWALog(0L);
-    assertEquals("L1234", ltime.getMetadataValue());
+    assertEquals("L1234", ltime.getMetadataTime().encode());
   }
 
   @Test

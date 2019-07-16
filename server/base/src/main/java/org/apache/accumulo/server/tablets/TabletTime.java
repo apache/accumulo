@@ -26,22 +26,8 @@ import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.util.time.RelativeTime;
 
 public abstract class TabletTime {
-  public static final char LOGICAL_TIME_ID = MetadataTime.getCode(TimeType.LOGICAL);
-  public static final char MILLIS_TIME_ID = MetadataTime.getCode(TimeType.MILLIS);
-
-  public static char getTimeID(TimeType timeType) {
-    /*
-     * switch (timeType) { case LOGICAL: return LOGICAL_TIME_ID; case MILLIS: return MILLIS_TIME_ID;
-     * }
-     */ return MetadataTime.getCode(timeType);
-    // throw new IllegalArgumentException("Unknown time type " + timeType);
-  }
 
   public abstract void useMaxTimeFromWALog(long time);
-
-  public abstract String getMetadataValue(long time);
-
-  public abstract String getMetadataValue();
 
   public abstract MetadataTime getMetadataTime();
 
@@ -72,34 +58,26 @@ public abstract class TabletTime {
     if (mv1 == null && mv2 == null) {
       return null;
     }
-
+    // the parse is used to validate the string
     if (mv1 == null) {
-      checkType(mv2);
-      return mv2;
+      return MetadataTime.parse(mv2).encode();
     }
 
     if (mv2 == null) {
-      checkType(mv1);
-      return mv1;
+      return MetadataTime.parse(mv1).encode();
     }
 
-    if (mv1.charAt(0) != mv2.charAt(0))
+    MetadataTime mv1Time = MetadataTime.parse(mv1);
+    MetadataTime mv2Time = MetadataTime.parse(mv2);
+
+    if (mv1Time.getType() != mv2Time.getType())
       throw new IllegalArgumentException("Time types differ " + mv1 + " " + mv2);
-    checkType(mv1);
 
-    long t1 = Long.parseLong(mv1.substring(1));
-    long t2 = Long.parseLong(mv2.substring(1));
-
-    if (t1 < t2)
+    if (mv1Time.getTime() < mv2Time.getTime())
       return mv2;
     else
       return mv1;
 
-  }
-
-  private static void checkType(String mv1) {
-    if (mv1.charAt(0) != LOGICAL_TIME_ID && mv1.charAt(0) != MILLIS_TIME_ID)
-      throw new IllegalArgumentException("Invalid time type " + mv1);
   }
 
   static class MillisTime extends TabletTime {
@@ -109,16 +87,6 @@ public abstract class TabletTime {
 
     public MillisTime(long time) {
       this.lastTime = time;
-    }
-
-    @Override
-    public String getMetadataValue(long time) {
-      return MILLIS_TIME_ID + "" + time;
-    }
-
-    @Override
-    public String getMetadataValue() {
-      return getMetadataValue(lastTime);
     }
 
     @Override
@@ -204,16 +172,6 @@ public abstract class TabletTime {
       if (this.nextTime.get() < time) {
         this.nextTime.set(time);
       }
-    }
-
-    @Override
-    public String getMetadataValue() {
-      return getMetadataValue(getTime());
-    }
-
-    @Override
-    public String getMetadataValue(long time) {
-      return LOGICAL_TIME_ID + "" + time;
     }
 
     @Override

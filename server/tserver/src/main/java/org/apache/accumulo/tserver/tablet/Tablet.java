@@ -2257,7 +2257,7 @@ public class Tablet {
       log.debug("Files for low split {} {}", low, lowDatafileSizes.keySet());
       log.debug("Files for high split {} {}", high, highDatafileSizes.keySet());
 
-      MetadataTime time = tabletTime.getMetadataTime(); /** hik **/
+      MetadataTime time = tabletTime.getMetadataTime();
 
       MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio,
           getTabletServer().getContext(), getTabletServer().getLock());

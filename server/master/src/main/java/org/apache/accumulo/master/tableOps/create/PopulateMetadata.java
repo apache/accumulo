@@ -90,7 +90,7 @@ class PopulateMetadata extends MasterRepo {
           (split == null) ? new Value(tableInfo.defaultTabletDir) : new Value(data.get(split));
       MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, dirValue);
       MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut,
-          new Value(new MetadataTime(0, timeType).toString()));
+          new Value(new MetadataTime(0, timeType).encode()));
       MetadataTableUtil.putLockID(ctx, lock, mut);
       prevSplit = split;
       bw.addMutation(mut);

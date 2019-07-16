@@ -84,6 +84,10 @@ public class MetadataTime {
     return getCode(this.type);
   }
 
+  public String encode() {
+    return "" + getCode() + time;
+  }
+
   public TimeType getType() {
     return type;
   }
@@ -104,11 +108,6 @@ public class MetadataTime {
   @Override
   public int hashCode() {
     return Objects.hash(time, type);
-  }
-
-  @Override
-  public String toString() {
-    return "" + getCode() + time;
   }
 
 }

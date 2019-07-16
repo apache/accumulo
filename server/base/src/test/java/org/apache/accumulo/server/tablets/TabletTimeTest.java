@@ -40,12 +40,6 @@ public class TabletTimeTest {
   }
 
   @Test
-  public void testGetTimeID() {
-    assertEquals('L', TabletTime.getTimeID(TimeType.LOGICAL));
-    assertEquals('M', TabletTime.getTimeID(TimeType.MILLIS));
-  }
-
-  @Test
   public void testSetSystemTimes() {
     ServerMutation m = createMock(ServerMutation.class);
     long lastCommitTime = 1234L;
@@ -57,36 +51,16 @@ public class TabletTimeTest {
 
   @Test
   public void testGetInstance_Logical() {
-    MetadataTime mTime = MetadataTime.parse("L1234");
-    TabletTime t = TabletTime.getInstance(mTime);
+    TabletTime t = TabletTime.getInstance(new MetadataTime(1234, TimeType.LOGICAL));
     assertEquals(LogicalTime.class, t.getClass());
-    assertEquals("L1234", t.getMetadataValue());
+    assertEquals("L1234", t.getMetadataTime().encode());
   }
 
   @Test
   public void testGetInstance_Millis() {
-    MetadataTime mTime = MetadataTime.parse("M1234");
-    TabletTime t = TabletTime.getInstance(mTime);
+    TabletTime t = TabletTime.getInstance(new MetadataTime(1234, TimeType.MILLIS));
     assertEquals(MillisTime.class, t.getClass());
-    assertEquals("M1234", t.getMetadataValue());
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testGetInstance_InvalidType() {
-    MetadataTime mTime = MetadataTime.parse("X1234");
-    TabletTime.getInstance(mTime);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testGetInstance_Logical_ParseFailure() {
-    MetadataTime mTime = MetadataTime.parse("LABCD");
-    TabletTime.getInstance(mTime);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testGetInstance_Millis_ParseFailure() {
-    MetadataTime mTime = MetadataTime.parse("MABCD");
-    TabletTime.getInstance(mTime);
+    assertEquals("M1234", t.getMetadataTime().encode());
   }
 
   @Test
