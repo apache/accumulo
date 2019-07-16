@@ -29,5 +29,6 @@ env:
   - BUILD_CMD="mvn clean verify javadoc:jar -DskipITs"  # main build of unit tests and javadoc
   - BUILD_CMD="travis_wait 30 mvn clean verify -PskipQA,sec-bugs -Dspotbugs.skip=false -Dspotbugs.timeout=1800000"  # check for spotbugs+security
   - BUILD_CMD="mvn clean package -DskipTests -Dhadoop.version=3.0.3"  # quick compile to verify older API
+# suppress download logs which cause travis to exceed the 4MB build log output limit
 script:
-  - $BUILD_CMD
+  - $BUILD_CMD -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
