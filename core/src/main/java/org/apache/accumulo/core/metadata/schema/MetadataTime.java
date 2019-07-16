@@ -25,7 +25,7 @@ import org.apache.accumulo.core.client.admin.TimeType;
  */
 public class MetadataTime {
   private final long time;
-  private final TimeType type; // default type is M for milliseconds
+  private final TimeType type;
 
   public MetadataTime(long time, TimeType type) {
     this.time = time;
