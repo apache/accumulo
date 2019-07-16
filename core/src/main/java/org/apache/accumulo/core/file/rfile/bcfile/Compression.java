@@ -49,7 +49,7 @@ import com.google.common.collect.Maps;
  */
 public final class Compression {
 
-  private static final Logger LOG = LoggerFactory.getLogger(Compression.class);
+  private static final Logger log = LoggerFactory.getLogger(Compression.class);
 
   /**
    * Prevent the instantiation of this class.
@@ -238,11 +238,7 @@ public final class Compression {
       }
 
       /**
-       * Create a new GZ codec
-       *
-       * @param bufferSize
-       *          buffer size to for GZ
-       * @return created codec
+       * Creates a new GZ codec
        */
       @Override
       protected CompressionCodec createNewCodec(final int bufferSize) {
@@ -341,10 +337,6 @@ public final class Compression {
 
       /**
        * Creates a new snappy codec.
-       *
-       * @param bufferSize
-       *          incoming buffer size
-       * @return new codec or null, depending on if installed
        */
       @Override
       protected CompressionCodec createNewCodec(final int bufferSize) {
@@ -415,10 +407,6 @@ public final class Compression {
 
       /**
        * Creates a new ZStandard codec.
-       *
-       * @param bufferSize
-       *          incoming buffer size
-       * @return new codec or null, depending on if installed
        */
       @Override
       protected CompressionCodec createNewCodec(final int bufferSize) {
@@ -474,22 +462,18 @@ public final class Compression {
     protected static final Configuration conf;
 
     // The model defined by the static block below creates a singleton for each defined codec in the
-    // Algorithm
-    // enumeration. By creating the codecs, each call to isSupported shall return true/false
-    // depending on if the codec
-    // singleton is defined. The static initializer, below, will ensure this occurs when the
-    // Enumeration is loaded.
-    // Furthermore, calls to getCodec will return the singleton, whether it is null or not.
+    // Algorithm enumeration. By creating the codecs, each call to isSupported shall return
+    // true/false depending on if the codec singleton is defined. The static initializer, below,
+    // will ensure this occurs when the Enumeration is loaded. Furthermore, calls to getCodec will
+    // return the singleton, whether it is null or not.
     //
     // Calls to createCompressionStream and createDecompressionStream may return a different codec
-    // than getCodec, if
-    // the incoming downStreamBufferSize is different than the default. In such a case, we will
-    // place the resulting
-    // codec into the codecCache, defined below, to ensure we have cache codecs.
+    // than getCodec, if the incoming downStreamBufferSize is different than the default. In such a
+    // case, we will place the resulting codec into the codecCache, defined below, to ensure we have
+    // cache codecs.
     //
     // Since codecs are immutable, there is no concern about concurrent access to the
-    // CompressionCodec objects within
-    // the guava cache.
+    // CompressionCodec objects within the guava cache.
     static {
       conf = new Configuration();
       for (final Algorithm al : Algorithm.values()) {
@@ -528,10 +512,6 @@ public final class Compression {
     /**
      * Shared function to create new codec objects. It is expected that if buffersize is invalid, a
      * codec will be created with the default buffer size.
-     *
-     * @param bufferSize
-     *          configured buffer size.
-     * @return new codec
      */
     abstract CompressionCodec createNewCodec(int bufferSize);
 
@@ -542,9 +522,9 @@ public final class Compression {
         if (compressor != null) {
           if (compressor.finished()) {
             // Somebody returns the compressor to CodecPool but is still using it.
-            LOG.warn("Compressor obtained from CodecPool already finished()");
+            log.warn("Compressor obtained from CodecPool already finished()");
           } else {
-            LOG.debug("Got a compressor: {}", compressor.hashCode());
+            log.debug("Got a compressor: {}", compressor.hashCode());
           }
           // The following statement is necessary to get around bugs in 0.18 where a compressor is
           // referenced after it's
@@ -558,7 +538,7 @@ public final class Compression {
 
     public void returnCompressor(final Compressor compressor) {
       if (compressor != null) {
-        LOG.debug("Return a compressor: {}", compressor.hashCode());
+        log.debug("Return a compressor: {}", compressor.hashCode());
         CodecPool.returnCompressor(compressor);
       }
     }
@@ -570,9 +550,9 @@ public final class Compression {
         if (decompressor != null) {
           if (decompressor.finished()) {
             // Somebody returns the decompressor to CodecPool but is still using it.
-            LOG.warn("Decompressor obtained from CodecPool already finished()");
+            log.warn("Decompressor obtained from CodecPool already finished()");
           } else {
-            LOG.debug("Got a decompressor: {}", decompressor.hashCode());
+            log.debug("Got a decompressor: {}", decompressor.hashCode());
           }
           // The following statement is necessary to get around bugs in 0.18 where a decompressor is
           // referenced after
@@ -585,14 +565,11 @@ public final class Compression {
     }
 
     /**
-     * Returns the given {@link Decompressor} to the codec cache if it is not null.
-     *
-     * @param decompressor
-     *          the decompressor to return
+     * Returns the specified {@link Decompressor} to the codec cache if it is not null.
      */
     public void returnDecompressor(final Decompressor decompressor) {
       if (decompressor != null) {
-        LOG.debug("Returned a decompressor: {}", decompressor.hashCode());
+        log.debug("Returned a decompressor: {}", decompressor.hashCode());
         CodecPool.returnDecompressor(decompressor);
       }
     }
@@ -610,14 +587,6 @@ public final class Compression {
      * Initializes and returns a new codec with the specified buffer size if and only if the
      * specified {@link AtomicBoolean} has a value of false, or returns the specified original coded
      * otherwise.
-     *
-     * @param checked
-     *          whether or not the codec has already been checked
-     * @param bufferSize
-     *          the default buffer size for the new coded
-     * @param originalCodec
-     *          the original codec
-     * @return a codec
      */
     CompressionCodec initCodec(final AtomicBoolean checked, final int bufferSize,
         final CompressionCodec originalCodec) {
@@ -632,24 +601,15 @@ public final class Compression {
      * Returns a new {@link CompressionCodec} of the specified type, or the default type if no
      * primary type is specified. If the specified buffer size is greater than 0, the specified
      * buffer size configuration option will be updated in the codec's configuration with the buffer
-     * size.
-     *
-     * @param codecClazz
-     *          the codec type to initialize and return
-     * @param defaultClazz
-     *          the default codec type to return if codecClazz is null
-     * @param bufferSize
-     *          the buffer size to use (if greater than 0)
-     * @param bufferSizeConfigOpt
-     *          the configuration opt for the buffer size
-     * @return the initialized {@link CompressionCodec}, or null if the codec type was not found
+     * size. If the neither the specified codec type or the default codec type can be found, null
+     * will be returned.
      */
     CompressionCodec createNewCodec(final String codecClazz, final String defaultClazz,
         final int bufferSize, final String bufferSizeConfigOpt) {
       String extClazz = (conf.get(codecClazz) == null ? System.getProperty(codecClazz) : null);
       String clazz = (extClazz != null) ? extClazz : defaultClazz;
       try {
-        LOG.info("Trying to load codec class: {}", clazz);
+        log.info("Trying to load codec class {} for {}", clazz, codecClazz);
         Configuration config = new Configuration(conf);
         updateBuffer(config, bufferSizeConfigOpt, bufferSize);
         return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), config);
@@ -678,14 +638,6 @@ public final class Compression {
     /**
      * Returns a new {@link FinishOnFlushCompressionStream} initialized for the specified output
      * stream and compressor.
-     *
-     * @param downStream
-     *          the output stream
-     * @param compressor
-     *          the compressor
-     * @param downStreamBufferSize
-     *          the buffer size to use for the output stream
-     * @return the new output stream
      */
     OutputStream createFinishedOnFlushCompressionStream(final OutputStream downStream,
         final Compressor compressor, final int downStreamBufferSize) throws IOException {
@@ -697,12 +649,6 @@ public final class Compression {
     /**
      * Return the given stream wrapped as a {@link BufferedOutputStream} with the given buffer size
      * if the buffer size is greater than 0, or return the original stream otherwise.
-     *
-     * @param stream
-     *          the original stream
-     * @param bufferSize
-     *          the buffer size
-     * @return the stream
      */
     OutputStream bufferStream(final OutputStream stream, final int bufferSize) {
       if (bufferSize > 0) {
@@ -714,12 +660,6 @@ public final class Compression {
     /**
      * Return the given stream wrapped as a {@link BufferedInputStream} with the given buffer size
      * if the buffer size is greater than 0, or return the original stream otherwise.
-     *
-     * @param stream
-     *          the original stream
-     * @param bufferSize
-     *          the buffer size
-     * @return the stream
      */
     InputStream bufferStream(final InputStream stream, final int bufferSize) {
       if (bufferSize > 0) {
@@ -731,13 +671,6 @@ public final class Compression {
     /**
      * Updates the value of the specified buffer size opt in the given {@link Configuration} if the
      * new buffer size is greater than 0.
-     *
-     * @param config
-     *          the configuration to update
-     * @param bufferSizeOpt
-     *          the buffer size opt
-     * @param bufferSize
-     *          the new buffer size
      */
     void updateBuffer(final Configuration config, final String bufferSizeOpt,
         final int bufferSize) {
