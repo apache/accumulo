@@ -16,19 +16,19 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
-import org.apache.accumulo.core.util.TextUtil;
-import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static org.junit.Assert.assertEquals;
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
+import org.apache.accumulo.core.util.TextUtil;
+import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link SequenceLexicoder}.
@@ -43,13 +43,13 @@ public class SequenceLexicoderTest extends AbstractLexicoderTest {
   private final List<String> data4 = asList("a", "b", "c");
   private final List<String> data5 = asList("b", "a");
 
-
   @Test
   public void testSortOrder() {
     // expected sort order
     final List<List<String>> data = asList(nodata, data0, data2, data1, data4, data3, data5);
     final TreeSet<Text> sortedEnc = new TreeSet<>();
-    final SequenceLexicoder<String> sequenceLexicoder = new SequenceLexicoder<>(new StringLexicoder());
+    final SequenceLexicoder<String> sequenceLexicoder =
+        new SequenceLexicoder<>(new StringLexicoder());
     for (final List<String> list : data) {
       sortedEnc.add(new Text(sequenceLexicoder.encode(list)));
     }

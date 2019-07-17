@@ -27,19 +27,19 @@ import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 
-
 /**
  * A Lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each
  * encoded element sorts lexicographically.
  *
  * Note: Unlike {@link ListLexicoder}, this implementation supports empty lists.
  *
- * The lists are encoded with the elements separated by null (0x0) bytes, which null bytes appearing in the
- * elements escaped as two 0x1 bytes, and 0x1 bytes appearing in the elements escaped as 0x1 and 0x2 bytes. The list
- * is terminated with a final delimiter, with no bytes following it.
+ * The lists are encoded with the elements separated by null (0x0) bytes, which null bytes appearing
+ * in the elements escaped as two 0x1 bytes, and 0x1 bytes appearing in the elements escaped as 0x1
+ * and 0x2 bytes. The list is terminated with a final delimiter, with no bytes following it.
  *
  * @since 2.0.0
- * @param <E> list element type.
+ * @param <E>
+ *          list element type.
  */
 public class SequenceLexicoder<E> extends AbstractLexicoder<List<E>> {
 
@@ -49,12 +49,12 @@ public class SequenceLexicoder<E> extends AbstractLexicoder<List<E>> {
   /**
    * Primary constructor.
    *
-   * @param elementLexicoder Lexicoder to apply to elements.
+   * @param elementLexicoder
+   *          Lexicoder to apply to elements.
    */
   public SequenceLexicoder(final Lexicoder<E> elementLexicoder) {
     this.elementLexicoder = requireNonNull(elementLexicoder, "elementLexicoder");
   }
-
 
   /**
    * {@inheritDoc}
@@ -72,15 +72,16 @@ public class SequenceLexicoder<E> extends AbstractLexicoder<List<E>> {
     return concat(encElements);
   }
 
-
   @Override
   protected List<E> decodeUnchecked(final byte[] b, final int offset, final int len) {
     final byte[][] escapedElements = split(b, offset, len);
-    assert escapedElements.length > 0 : "ByteUtils.split always returns a minimum of 1 element, even for empty input";
+    assert escapedElements.length
+        > 0 : "ByteUtils.split always returns a minimum of 1 element, even for empty input";
     // There should be no bytes after the final delimiter. Lack of delimiter indicates empty list.
     final byte[] lastElement = escapedElements[escapedElements.length - 1];
     if (lastElement.length > 0) {
-      throw new IllegalArgumentException(lastElement.length + " trailing bytes found at end of list");
+      throw new IllegalArgumentException(
+          lastElement.length + " trailing bytes found at end of list");
     }
     final ArrayList<E> decodedElements = new ArrayList<>(escapedElements.length - 1);
     for (int i = 0; i < escapedElements.length - 1; i++) {

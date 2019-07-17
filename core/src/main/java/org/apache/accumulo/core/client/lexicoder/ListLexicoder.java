@@ -30,8 +30,8 @@ import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
  * A lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each
  * encoded element sorts lexicographically.
  *
- * Note: Empty lists are not supported.
- * See {@link SequenceLexicoder} for an encoding that supports empty lists.
+ * Note: Empty lists are not supported. See {@link SequenceLexicoder} for an encoding that supports
+ * empty lists.
  *
  * @since 1.6.0
  */
