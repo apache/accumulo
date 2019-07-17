@@ -118,7 +118,6 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
-import org.apache.accumulo.tserver.TConstraintViolationException;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper;
@@ -1115,53 +1114,52 @@ public class Tablet {
     return commitSession;
   }
 
-  public CommitSession prepareMutationsForCommit(TservConstraintEnv cenv, List<Mutation> mutations)
-      throws TConstraintViolationException {
-
-    ConstraintChecker cc = constraintChecker.derive();
-
-    List<Mutation> violators = null;
-    Violations violations = new Violations();
+  public TabletMutationPrepAttempt prepareMutationsForCommit(final TservConstraintEnv cenv,
+      final List<Mutation> mutations) {
     cenv.setExtent(extent);
+    final ConstraintChecker constraints = constraintChecker.derive();
+    final TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
+
+    // Check each mutation for any constraint violations.
+    Violations violations = null;
+    List<Mutation> violators = null;
     for (Mutation mutation : mutations) {
-      Violations more = cc.check(cenv, mutation);
-      if (more != null) {
-        violations.add(more);
+      Violations mutationViolations = constraints.check(cenv, mutation);
+      if (mutationViolations != null) {
+        if (violations == null) {
+          violations = new Violations();
+        }
         if (violators == null) {
           violators = new ArrayList<>();
         }
+        violations.add(mutationViolations);
         violators.add(mutation);
       }
     }
+    attempt.setViolations(violations);
+    attempt.setViolators(violators);
 
-    long time = tabletTime.setUpdateTimes(mutations);
-
-    if (!violations.isEmpty()) {
-
-      HashSet<Mutation> violatorsSet = new HashSet<>(violators);
-      ArrayList<Mutation> nonViolators = new ArrayList<>();
-
+    // If there are no violations, use the original list for non-violators.
+    if (violations == null) {
+      attempt.setNonViolators(mutations);
+    } else if (violators.size() != mutations.size()) {
+      // Otherwise, find all non-violators.
+      List<Mutation> nonViolators = new ArrayList<>((mutations.size() - violators.size()));
       for (Mutation mutation : mutations) {
-        if (!violatorsSet.contains(mutation)) {
+        if (violators.contains(mutation)) {
           nonViolators.add(mutation);
         }
       }
-
-      CommitSession commitSession = null;
-
-      if (nonViolators.size() > 0) {
-        // if everything is a violation, then it is expected that
-        // code calling this will not log or commit
-        commitSession = finishPreparingMutations(time);
-        if (commitSession == null) {
-          return null;
-        }
-      }
-
-      throw new TConstraintViolationException(violations, violators, nonViolators, commitSession);
+      attempt.setNonViolators(nonViolators);
     }
 
-    return finishPreparingMutations(time);
+    // If there are any mutations that do not violate the constraints, attempt to prepare the tablet
+    // and retrieve the commit session.
+    if (attempt.hasNonViolators()) {
+      long time = tabletTime.setUpdateTimes(mutations);
+      attempt.setCommitSession(finishPreparingMutations(time));
+    }
+    return attempt;
   }
 
   private synchronized void incrementWritesInProgress(CommitSession cs) {
