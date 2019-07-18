@@ -21,29 +21,17 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.util.time.RelativeTime;
 
 public abstract class TabletTime {
-  public static final char LOGICAL_TIME_ID = 'L';
-  public static final char MILLIS_TIME_ID = 'M';
-
-  public static char getTimeID(TimeType timeType) {
-    switch (timeType) {
-      case LOGICAL:
-        return LOGICAL_TIME_ID;
-      case MILLIS:
-        return MILLIS_TIME_ID;
-    }
-
-    throw new IllegalArgumentException("Unknown time type " + timeType);
-  }
 
   public abstract void useMaxTimeFromWALog(long time);
 
-  public abstract String getMetadataValue(long time);
+  public abstract MetadataTime getMetadataTime();
 
-  public abstract String getMetadataValue();
+  public abstract MetadataTime getMetadataTime(long time);
 
   public abstract long setUpdateTimes(List<Mutation> mutations);
 
@@ -56,49 +44,40 @@ public abstract class TabletTime {
     m.setSystemTimestamp(lastCommitTime);
   }
 
-  public static TabletTime getInstance(String metadataValue) {
-    if (metadataValue.charAt(0) == LOGICAL_TIME_ID) {
-      return new LogicalTime(Long.parseLong(metadataValue.substring(1)));
-    } else if (metadataValue.charAt(0) == MILLIS_TIME_ID) {
-      return new MillisTime(Long.parseLong(metadataValue.substring(1)));
-    }
+  public static TabletTime getInstance(MetadataTime metadataTime) throws IllegalArgumentException {
 
-    throw new IllegalArgumentException("Time type unknown : " + metadataValue);
-
+    if (metadataTime.getType().equals(TimeType.LOGICAL)) {
+      return new LogicalTime(metadataTime.getTime());
+    } else if (metadataTime.getType().equals(TimeType.MILLIS)) {
+      return new MillisTime(metadataTime.getTime());
+    } else // this should really never happen here
+      throw new IllegalArgumentException("Time type unknown : " + metadataTime);
   }
 
   public static String maxMetadataTime(String mv1, String mv2) {
     if (mv1 == null && mv2 == null) {
       return null;
     }
-
+    // the parse is used to validate the string
     if (mv1 == null) {
-      checkType(mv2);
-      return mv2;
+      return MetadataTime.parse(mv2).encode();
     }
 
     if (mv2 == null) {
-      checkType(mv1);
-      return mv1;
+      return MetadataTime.parse(mv1).encode();
     }
 
-    if (mv1.charAt(0) != mv2.charAt(0))
+    MetadataTime mv1Time = MetadataTime.parse(mv1);
+    MetadataTime mv2Time = MetadataTime.parse(mv2);
+
+    if (mv1Time.getType() != mv2Time.getType())
       throw new IllegalArgumentException("Time types differ " + mv1 + " " + mv2);
-    checkType(mv1);
 
-    long t1 = Long.parseLong(mv1.substring(1));
-    long t2 = Long.parseLong(mv2.substring(1));
-
-    if (t1 < t2)
+    if (mv1Time.getTime() < mv2Time.getTime())
       return mv2;
     else
       return mv1;
 
-  }
-
-  private static void checkType(String mv1) {
-    if (mv1.charAt(0) != LOGICAL_TIME_ID && mv1.charAt(0) != MILLIS_TIME_ID)
-      throw new IllegalArgumentException("Invalid time type " + mv1);
   }
 
   static class MillisTime extends TabletTime {
@@ -111,13 +90,13 @@ public abstract class TabletTime {
     }
 
     @Override
-    public String getMetadataValue(long time) {
-      return MILLIS_TIME_ID + "" + time;
+    public MetadataTime getMetadataTime() {
+      return getMetadataTime(lastTime);
     }
 
     @Override
-    public String getMetadataValue() {
-      return getMetadataValue(lastTime);
+    public MetadataTime getMetadataTime(long time) {
+      return new MetadataTime(time, TimeType.MILLIS);
     }
 
     @Override
@@ -196,13 +175,13 @@ public abstract class TabletTime {
     }
 
     @Override
-    public String getMetadataValue() {
-      return getMetadataValue(getTime());
+    public MetadataTime getMetadataTime() {
+      return getMetadataTime(getTime());
     }
 
     @Override
-    public String getMetadataValue(long time) {
-      return LOGICAL_TIME_ID + "" + time;
+    public MetadataTime getMetadataTime(long time) {
+      return new MetadataTime(time, TimeType.LOGICAL);
     }
 
     @Override

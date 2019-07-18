@@ -388,8 +388,10 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
 
-  private static List<FileRef> getTabletFiles(ServerContext context, KeyExtent ke) {
-    return new ArrayList<>(MetadataTableUtil.getDataFileSizes(ke, context).keySet());
+  private static List<FileRef> getTabletFiles(ServerContext context, KeyExtent ke)
+      throws IOException {
+    return new ArrayList<>(
+        MetadataTableUtil.getFileAndLogEntries(context, ke).getSecond().keySet());
   }
 
   private static void reportHdfsBlockLocations(ServerContext context, List<FileRef> files)

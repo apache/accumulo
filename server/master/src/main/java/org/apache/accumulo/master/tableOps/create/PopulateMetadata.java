@@ -24,11 +24,13 @@ import java.util.SortedSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.master.Master;
@@ -78,7 +80,7 @@ class PopulateMetadata extends MasterRepo {
   }
 
   private void writeSplitsToMetadataTable(ServerContext ctx, TableId tableId,
-      SortedSet<Text> splits, Map<Text,Text> data, char timeType, ZooLock lock, BatchWriter bw)
+      SortedSet<Text> splits, Map<Text,Text> data, TimeType timeType, ZooLock lock, BatchWriter bw)
       throws MutationsRejectedException {
     Text prevSplit = null;
     Value dirValue;
@@ -88,7 +90,7 @@ class PopulateMetadata extends MasterRepo {
           (split == null) ? new Value(tableInfo.defaultTabletDir) : new Value(data.get(split));
       MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, dirValue);
       MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut,
-          new Value(timeType + "0"));
+          new Value(new MetadataTime(0, timeType).encode()));
       MetadataTableUtil.putLockID(ctx, lock, mut);
       prevSplit = split;
       bw.addMutation(mut);

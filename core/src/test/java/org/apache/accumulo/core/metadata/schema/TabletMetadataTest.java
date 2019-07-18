@@ -115,7 +115,7 @@ public class TabletMetadataTest {
     assertEquals(extent.getPrevEndRow(), tm.getPrevEndRow());
     assertEquals(extent.getTableId(), tm.getTableId());
     assertTrue(tm.sawPrevEndRow());
-    assertEquals("M123456789", tm.getTime());
+    assertEquals("M123456789", tm.getTime().encode());
     assertEquals(Set.of("sf1", "sf2"), Set.copyOf(tm.getScans()));
   }
 

@@ -24,6 +24,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.tablets.TabletTime.LogicalTime;
 import org.junit.Before;
@@ -35,24 +36,25 @@ public class LogicalTimeTest {
 
   @Before
   public void setUp() {
-    ltime = (LogicalTime) TabletTime.getInstance("L1234");
+    MetadataTime mTime = MetadataTime.parse("L1234");
+    ltime = (LogicalTime) TabletTime.getInstance(mTime);
   }
 
   @Test
   public void testGetMetadataValue() {
-    assertEquals("L1234", ltime.getMetadataValue());
+    assertEquals("L1234", ltime.getMetadataTime().encode());
   }
 
   @Test
   public void testUseMaxTimeFromWALog_Update() {
     ltime.useMaxTimeFromWALog(5678L);
-    assertEquals("L5678", ltime.getMetadataValue());
+    assertEquals("L5678", ltime.getMetadataTime().encode());
   }
 
   @Test
   public void testUseMaxTimeFromWALog_NoUpdate() {
     ltime.useMaxTimeFromWALog(0L);
-    assertEquals("L1234", ltime.getMetadataValue());
+    assertEquals("L1234", ltime.getMetadataTime().encode());
   }
 
   @Test

@@ -32,6 +32,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.clientImpl.Writer;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -45,6 +46,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
@@ -57,7 +59,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -147,7 +148,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
       String tdir =
           ServerConstants.getTablesDirs(context)[0] + "/" + extent.getTableId() + "/dir_" + i;
-      MetadataTableUtil.addTablet(extent, tdir, context, TabletTime.LOGICAL_TIME_ID, zl);
+      MetadataTableUtil.addTablet(extent, tdir, context, TimeType.LOGICAL, zl);
       SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<>();
       mapFiles.put(new FileRef(tdir + "/" + RFile.EXTENSION + "_000_000"),
           new DataFileValue(1000017 + i, 10000 + i));
@@ -157,7 +158,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       }
       int tid = 0;
       TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, tid);
-      MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles, "L0", context, zl);
+      MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles,
+          new MetadataTime(0, TimeType.LOGICAL), context, zl);
     }
 
     KeyExtent extent = extents[extentToSplit];
@@ -192,7 +194,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       Map<Long,? extends Collection<FileRef>> bulkFiles =
           MetadataTableUtil.getBulkFilesLoaded(context, extent);
       MasterMetadataUtil.addNewTablet(context, low, "/lowDir", instance, lowDatafileSizes,
-          bulkFiles, TabletTime.LOGICAL_TIME_ID + "0", -1L, -1L, zl);
+          bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
     }
     if (steps >= 2) {
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context, zl);
@@ -267,7 +269,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       }
 
       SortedMap<FileRef,DataFileValue> fixedMapFiles =
-          MetadataTableUtil.getDataFileSizes(extent, context);
+          MetadataTableUtil.getFileAndLogEntries(context, extent).getSecond();
       verifySame(expectedMapFiles, fixedMapFiles);
     }
   }

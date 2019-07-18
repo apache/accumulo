@@ -51,13 +51,13 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.BatchWriterImpl;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.clientImpl.Writer;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -71,6 +71,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -92,7 +93,6 @@ import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -184,7 +184,8 @@ public class MetadataTableUtil {
   }
 
   public static void updateTabletDataFile(long tid, KeyExtent extent,
-      Map<FileRef,DataFileValue> estSizes, String time, ServerContext context, ZooLock zooLock) {
+      Map<FileRef,DataFileValue> estSizes, MetadataTime time, ServerContext context,
+      ZooLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putTime(time);
     estSizes.forEach(tablet::putFile);
@@ -204,12 +205,12 @@ public class MetadataTableUtil {
     tablet.mutate();
   }
 
-  public static void addTablet(KeyExtent extent, String path, ServerContext context, char timeType,
-      ZooLock zooLock) {
+  public static void addTablet(KeyExtent extent, String path, ServerContext context,
+      TimeType timeType, ZooLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.getPrevEndRow());
     tablet.putDir(path);
-    tablet.putTime(timeType + "0");
+    tablet.putTime(new MetadataTime(0, timeType));
     tablet.putZooLock(zooLock);
     tablet.mutate();
 
@@ -241,30 +242,6 @@ public class MetadataTableUtil {
     tabletMutator.putZooLock(zooLock);
 
     tabletMutator.mutate();
-  }
-
-  public static SortedMap<FileRef,DataFileValue> getDataFileSizes(KeyExtent extent,
-      ServerContext context) {
-    TreeMap<FileRef,DataFileValue> sizes = new TreeMap<>();
-
-    try (Scanner mdScanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
-      mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      Text row = extent.getMetadataEntry();
-
-      Key endKey = new Key(row, DataFileColumnFamily.NAME, new Text(""));
-      endKey = endKey.followingKey(PartialKey.ROW_COLFAM);
-
-      mdScanner.setRange(new Range(new Key(row), endKey));
-      for (Entry<Key,Value> entry : mdScanner) {
-
-        if (!entry.getKey().getRow().equals(row))
-          break;
-        DataFileValue dfv = new DataFileValue(entry.getValue().get());
-        sizes.put(new FileRef(context.getVolumeManager(), entry.getKey()), dfv);
-      }
-
-      return sizes;
-    }
   }
 
   public static void rollBackSplit(Text metadataEntry, Text oldPrevEndRow, ServerContext context,
@@ -449,8 +426,7 @@ public class MetadataTableUtil {
   }
 
   public static Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>>
-      getFileAndLogEntries(ServerContext context, KeyExtent extent)
-          throws KeeperException, InterruptedException, IOException {
+      getFileAndLogEntries(ServerContext context, KeyExtent extent) throws IOException {
     ArrayList<LogEntry> result = new ArrayList<>();
     TreeMap<FileRef,DataFileValue> sizes = new TreeMap<>();
 

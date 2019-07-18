@@ -42,19 +42,19 @@ public class MillisTimeTest {
 
   @Test
   public void testGetMetadataValue() {
-    assertEquals("M1234", mtime.getMetadataValue());
+    assertEquals("M1234", mtime.getMetadataTime().encode());
   }
 
   @Test
   public void testUseMaxTimeFromWALog_Yes() {
     mtime.useMaxTimeFromWALog(5678L);
-    assertEquals("M5678", mtime.getMetadataValue());
+    assertEquals("M5678", mtime.getMetadataTime().encode());
   }
 
   @Test
   public void testUseMaxTimeFromWALog_No() {
     mtime.useMaxTimeFromWALog(0L);
-    assertEquals("M1234", mtime.getMetadataValue());
+    assertEquals("M1234", mtime.getMetadataTime().encode());
   }
 
   @Test

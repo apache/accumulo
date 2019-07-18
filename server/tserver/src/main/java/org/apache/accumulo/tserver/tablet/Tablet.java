@@ -79,6 +79,7 @@ import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.security.Authorizations;
@@ -301,7 +302,8 @@ public class Tablet {
   }
 
   public Tablet(final TabletServer tabletServer, final KeyExtent extent,
-      final TabletResourceManager trm, TabletData data) throws IOException {
+      final TabletResourceManager trm, TabletData data)
+      throws IOException, IllegalArgumentException {
 
     this.tabletServer = tabletServer;
     this.context = tabletServer.getContext();
@@ -2255,7 +2257,7 @@ public class Tablet {
       log.debug("Files for low split {} {}", low, lowDatafileSizes.keySet());
       log.debug("Files for high split {} {}", high, highDatafileSizes.keySet());
 
-      String time = tabletTime.getMetadataValue();
+      MetadataTime time = tabletTime.getMetadataTime();
 
       MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio,
           getTabletServer().getContext(), getTabletServer().getLock());
@@ -2726,7 +2728,7 @@ public class Tablet {
       }
 
       MetadataTableUtil.updateTabletDataFile(tid, extent, paths,
-          tabletTime.getMetadataValue(persistedTime), getTabletServer().getContext(),
+          tabletTime.getMetadataTime(persistedTime), getTabletServer().getContext(),
           getTabletServer().getLock());
     }
 
@@ -2739,10 +2741,10 @@ public class Tablet {
         persistedTime = maxCommittedTime;
       }
 
-      String time = tabletTime.getMetadataValue(persistedTime);
       MasterMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent, newDatafile,
-          absMergeFile, dfv, time, filesInUseByScans, tabletServer.getClientAddressString(),
-          tabletServer.getLock(), unusedWalLogs, lastLocation, flushId);
+          absMergeFile, dfv, tabletTime.getMetadataTime(persistedTime), filesInUseByScans,
+          tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs,
+          lastLocation, flushId);
     }
 
   }

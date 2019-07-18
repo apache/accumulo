@@ -156,7 +156,7 @@ public interface Ample {
 
     public TabletMutator deleteWal(LogEntry logEntry);
 
-    public TabletMutator putTime(String time);
+    public TabletMutator putTime(MetadataTime time);
 
     public TabletMutator putBulkFile(Ample.FileMeta bulkref, long tid);
 

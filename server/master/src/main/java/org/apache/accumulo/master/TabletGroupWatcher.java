@@ -61,6 +61,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ch
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.Daemon;
@@ -582,7 +583,7 @@ abstract class TabletGroupWatcher extends Daemon {
     KeyExtent extent = info.getExtent();
     String targetSystemTable = extent.isMeta() ? RootTable.NAME : MetadataTable.NAME;
     Master.log.debug("Deleting tablets for {}", extent);
-    char timeType = '\0';
+    MetadataTime metadataTime = null;
     KeyExtent followingTablet = null;
     if (extent.getEndRow() != null) {
       Key nextExtent = new Key(extent.getEndRow()).followingKey(PartialKey.ROW);
@@ -615,7 +616,7 @@ abstract class TabletGroupWatcher extends Daemon {
             datafiles.clear();
           }
         } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
-          timeType = entry.getValue().toString().charAt(0);
+          metadataTime = MetadataTime.parse(entry.getValue().toString());
         } else if (key.compareColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
           throw new IllegalStateException(
               "Tablet " + key.getRow() + " is assigned during a merge!");
@@ -669,7 +670,7 @@ abstract class TabletGroupWatcher extends Daemon {
             + Path.SEPARATOR + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;
         MetadataTableUtil.addTablet(
             new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir,
-            master.getContext(), timeType, this.master.masterLock);
+            master.getContext(), metadataTime.getType(), this.master.masterLock);
       }
     } catch (RuntimeException | TableNotFoundException ex) {
       throw new AccumuloException(ex);

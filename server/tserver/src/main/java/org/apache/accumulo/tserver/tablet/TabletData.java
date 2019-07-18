@@ -33,6 +33,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.La
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
@@ -54,7 +56,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -69,7 +70,7 @@ import org.slf4j.LoggerFactory;
 public class TabletData {
   private static Logger log = LoggerFactory.getLogger(TabletData.class);
 
-  private String time = null;
+  private MetadataTime time = null;
   private SortedMap<FileRef,DataFileValue> dataFiles = new TreeMap<>();
   private List<LogEntry> logEntries = new ArrayList<>();
   private HashSet<FileRef> scanFiles = new HashSet<>();
@@ -95,7 +96,7 @@ public class TabletData {
       }
       if (ServerColumnFamily.TIME_COLUMN.hasColumns(entry.getKey())) {
         if (time == null) {
-          time = value.toString();
+          time = MetadataTime.parse(value.toString());
         }
       } else if (DataFileColumnFamily.NAME.equals(family)) {
         FileRef ref = new FileRef(fs, key);
@@ -124,7 +125,7 @@ public class TabletData {
     }
     if (time == null && dataFiles.isEmpty() && extent.equals(RootTable.OLD_EXTENT)) {
       // recovery... old root tablet has no data, so time doesn't matter:
-      time = TabletTime.LOGICAL_TIME_ID + "" + Long.MIN_VALUE;
+      time = new MetadataTime(Long.MIN_VALUE, TimeType.LOGICAL);
     }
   }
 
@@ -160,7 +161,7 @@ public class TabletData {
         }
       }
       if (maxTime > rtime) {
-        time = TabletTime.LOGICAL_TIME_ID + "" + maxTime;
+        time = new MetadataTime(maxTime, TimeType.LOGICAL);
         rtime = maxTime;
       }
     }
@@ -174,7 +175,7 @@ public class TabletData {
 
   // Data pulled from an existing tablet to make a split
   public TabletData(String tabletDirectory, SortedMap<FileRef,DataFileValue> highDatafileSizes,
-      String time, long lastFlushID, long lastCompactID, TServerInstance lastLocation,
+      MetadataTime time, long lastFlushID, long lastCompactID, TServerInstance lastLocation,
       Map<Long,List<FileRef>> bulkIngestedFiles) {
     this.directory = tabletDirectory;
     this.dataFiles = highDatafileSizes;
@@ -186,7 +187,7 @@ public class TabletData {
     this.splitTime = System.currentTimeMillis();
   }
 
-  public String getTime() {
+  public MetadataTime getTime() {
     return time;
   }
 

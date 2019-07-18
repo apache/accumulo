@@ -40,6 +40,7 @@ import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -69,6 +70,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
@@ -99,7 +101,6 @@ import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.tables.TableManager;
-import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
@@ -571,8 +572,7 @@ public class Initialize implements KeywordExecutable {
     Value EMPTY_SIZE = new DataFileValue(0, 0).encodeAsValue();
     Text extent = new Text(TabletsSection.getRow(tablet.tableId, tablet.endRow));
     addEntry(map, extent, DIRECTORY_COLUMN, new Value(tablet.dir.getBytes(UTF_8)));
-    addEntry(map, extent, TIME_COLUMN,
-        new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(UTF_8)));
+    addEntry(map, extent, TIME_COLUMN, new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
     addEntry(map, extent, PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(tablet.prevEndRow));
     for (String file : tablet.files) {
       addEntry(map, extent, new ColumnFQ(DataFileColumnFamily.NAME, new Text(file)), EMPTY_SIZE);

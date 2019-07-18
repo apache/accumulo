@@ -45,6 +45,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -63,7 +64,7 @@ public class MasterMetadataUtil {
 
   public static void addNewTablet(ServerContext context, KeyExtent extent, String path,
       TServerInstance location, Map<FileRef,DataFileValue> datafileSizes,
-      Map<Long,? extends Collection<FileRef>> bulkLoadedFiles, String time, long lastFlushID,
+      Map<Long,? extends Collection<FileRef>> bulkLoadedFiles, MetadataTime time, long lastFlushID,
       long lastCompactID, ZooLock zooLock) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
@@ -239,7 +240,7 @@ public class MasterMetadataUtil {
    *
    */
   public static void updateTabletDataFile(ServerContext context, KeyExtent extent, FileRef path,
-      FileRef mergeFile, DataFileValue dfv, String time, Set<FileRef> filesInUseByScans,
+      FileRef mergeFile, DataFileValue dfv, MetadataTime time, Set<FileRef> filesInUseByScans,
       String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
       long flushId) {
     if (extent.isRootTablet()) {
@@ -267,7 +268,7 @@ public class MasterMetadataUtil {
    *
    */
   private static void updateForTabletDataFile(ServerContext context, KeyExtent extent, FileRef path,
-      FileRef mergeFile, DataFileValue dfv, String time, Set<FileRef> filesInUseByScans,
+      FileRef mergeFile, DataFileValue dfv, MetadataTime time, Set<FileRef> filesInUseByScans,
       String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
       long flushId) {
 
