@@ -1446,13 +1446,15 @@ public class TabletServer extends AbstractServer {
       return attempt.hasViolations() && (!attempt.hasNonViolators() || attempt.hasCommitSession());
     }
 
+    /**
+     * Transform and add each mutation as a {@link TCMResult} with the mutation's ID and the
+     * specified status to the {@link TCMResult} list.
+     */
     private void addMutationsAsTCMResults(final List<TCMResult> list,
         final Collection<? extends Mutation> mutations, final TCMStatus status) {
-      mutations.stream().map(mutation -> toTCMResult(mutation, status)).forEach(list::add);
-    }
-
-    private TCMResult toTCMResult(final Mutation mutation, final TCMStatus status) {
-      return new TCMResult(((ServerConditionalMutation) mutation).getID(), status);
+      mutations.stream()
+          .map(mutation -> new TCMResult(((ServerConditionalMutation) mutation).getID(), status))
+          .forEach(list::add);
     }
 
     private Map<KeyExtent,List<ServerConditionalMutation>> conditionalUpdate(ConditionalSession cs,

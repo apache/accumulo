@@ -25,10 +25,10 @@ import org.apache.accumulo.core.data.Mutation;
 public class TabletMutationPrepAttempt {
 
   private final Violations violations = new Violations();
+  private List<Mutation> violators = new ArrayList<>();
+  private List<Mutation> nonViolators = new ArrayList<>();
 
   private CommitSession commitSession;
-  private List<Mutation> violators;
-  private List<Mutation> nonViolators;
   private boolean attemptedTabletPrep;
 
   /**
@@ -70,15 +70,15 @@ public class TabletMutationPrepAttempt {
   }
 
   /**
-   * Return the list of mutations that violated a constraint. Either null or a non-empty list.
+   * Return the list of mutations that violated a constraint. Possibly empty, but never null.
    */
   public List<Mutation> getViolators() {
     return violators;
   }
 
   /**
-   * Return the list of mutations that did not violate any constraints. Either null or a non-empty
-   * list.
+   * Return the list of mutations that did not violate any constraints. Possibly empty, but never
+   * null.
    */
   public List<Mutation> getNonViolators() {
     return nonViolators;
@@ -88,7 +88,7 @@ public class TabletMutationPrepAttempt {
    * Return true if at least one mutation that did not violate any constraints was found.
    */
   public boolean hasNonViolators() {
-    return nonViolators != null && !nonViolators.isEmpty();
+    return !nonViolators.isEmpty();
   }
 
   /**
@@ -105,9 +105,6 @@ public class TabletMutationPrepAttempt {
    * violated.
    */
   void addViolator(final Mutation mutation, final Violations mutationViolations) {
-    if (violators == null) {
-      violators = new ArrayList<>();
-    }
     violators.add(mutation);
     violations.add(mutationViolations);
   }
@@ -116,9 +113,6 @@ public class TabletMutationPrepAttempt {
    * Add a mutation that did not violate any constraints.
    */
   void addNonViolator(final Mutation mutation) {
-    if (nonViolators == null) {
-      nonViolators = new ArrayList<>();
-    }
     nonViolators.add(mutation);
   }
 }
