@@ -134,13 +134,22 @@ public class Fate<T> {
      * transaction can resume.
      */
     private void blockIfHadoopShutdown(long tid, Exception e) {
-      if (isIOException(e) && ShutdownUtil.isShutdownInProgress()) {
+      if (ShutdownUtil.isShutdownInProgress()) {
         String tidStr = FateTxId.formatTid(tid);
-        log.info("Ignoring exception that was likely caused by Hadoop Shutdown hook. {} ", tidStr,
-            e);
+
+        if (e instanceof AcceptableException) {
+          log.debug("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", tidStr, e);
+        } else if (isIOException(e)) {
+          log.info("Ignoring exception likely caused by Hadoop Shutdown hook. {} ", tidStr, e);
+        } else {
+          // sometimes code will catch an IOException caused by the hadoop shutdown hook and throw
+          // another exception without setting the cause.
+          log.warn("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", tidStr, e);
+        }
 
         while (true) {
-          // Nothing is going to work well at this point, so why even try. Just wait for the end.
+          // Nothing is going to work well at this point, so why even try. Just wait for the end,
+          // preventing this FATE thread from processing further work and likely failing.
           UtilWaitThread.sleepUninterruptibly(1, TimeUnit.MINUTES);
         }
       }
