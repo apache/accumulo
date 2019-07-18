@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.admin.TimeType;
 /**
  * Immutable metadata time object
  */
-public class MetadataTime {
+public final class MetadataTime {
   private final long time;
   private final TimeType type;
 
