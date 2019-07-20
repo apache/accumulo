@@ -35,7 +35,9 @@ import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
  *
  * The lists are encoded with the elements separated by null (0x0) bytes, which null bytes appearing
  * in the elements escaped as two 0x1 bytes, and 0x1 bytes appearing in the elements escaped as 0x1
- * and 0x2 bytes. The list is terminated with a final delimiter, with no bytes following it.
+ * and 0x2 bytes. The list is terminated with a final delimiter after the last element, with no
+ * bytes following it. An empty list is represented as an empty byte array, with no delimiter,
+ * whereas a list with a single empty element is represented as a single terminating delimiter.
  *
  * @since 2.0.0
  * @param <E>
