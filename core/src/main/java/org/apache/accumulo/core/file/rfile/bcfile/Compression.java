@@ -606,7 +606,8 @@ public final class Compression {
      */
     CompressionCodec createNewCodec(final String codecClazzProp, final String defaultClazz,
         final int bufferSize, final String bufferSizeConfigOpt) {
-      String extClazz = (conf.get(codecClazzProp) == null ? System.getProperty(codecClazzProp) : null);
+      String extClazz =
+          (conf.get(codecClazzProp) == null ? System.getProperty(codecClazzProp) : null);
       String clazz = (extClazz != null) ? extClazz : defaultClazz;
       try {
         log.info("Trying to load codec class {} for {}", clazz, codecClazzProp);
