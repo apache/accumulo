@@ -913,7 +913,7 @@ public class Master extends AbstractServer
             String message = "Getting status from " + server;
             t.setName(message);
             long startForServer = System.currentTimeMillis();
-            log.debug(message);
+            log.trace(message);
             TServerConnection connection1 = tserverSet.getConnection(server);
             if (connection1 == null) {
               throw new IOException("No connection to " + server);
@@ -922,7 +922,7 @@ public class Master extends AbstractServer
             result.put(server, status);
 
             long duration = System.currentTimeMillis() - startForServer;
-            log.debug("Got status from {} in {} ms", server, duration);
+            log.trace("Got status from {} in {} ms", server, duration);
 
           } finally {
             t.setName(oldName);
