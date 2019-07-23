@@ -42,8 +42,16 @@ public abstract class FileOperations {
   private static final HashSet<String> validExtensions =
       new HashSet<>(Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
 
+  // Sometimes we want to know what files accumulo creates
+  private static final HashSet<String> workingFiles =
+      new HashSet<>(Arrays.asList(Constants.BULK_LOAD_MAPPING, Constants.BULK_RENAME_FILE));
+
   public static Set<String> getValidExtensions() {
     return validExtensions;
+  }
+
+  public static Set<String> getWorkingFiles() {
+    return workingFiles;
   }
 
   public static String getNewFileExtension(AccumuloConfiguration acuconf) {
