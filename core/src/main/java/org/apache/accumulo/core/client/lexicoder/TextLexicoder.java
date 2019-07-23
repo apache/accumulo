@@ -35,8 +35,8 @@ public class TextLexicoder extends AbstractLexicoder<Text> {
 
   @Override
   public Text decode(byte[] b) {
-    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed
-    // in 2.0. See ACCUMULO-3789.
+    // This concrete implementation is provided for binary compatibility, since the corresponding
+    // superclass method has type-erased return type Object. See ACCUMULO-3789 and #1285.
     return super.decode(b);
   }
 

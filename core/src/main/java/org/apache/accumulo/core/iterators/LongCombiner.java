@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.lexicoder.Encoder;
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -53,7 +54,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   protected static final String TYPE = "type";
   protected static final String CLASS_PREFIX = "class:";
 
-  public static enum Type {
+  public enum Type {
     /**
      * indicates a variable-length encoding of a Long using {@link LongCombiner.VarLenEncoder}
      */
@@ -143,8 +144,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
 
     @Override
     public Long decode(byte[] b) {
-      // This concrete implementation is provided for binary compatibility with 1.6; it can be
-      // removed in 2.0. See ACCUMULO-3789.
+      // This concrete implementation is provided for binary compatibility, since the corresponding
+      // superclass method has type-erased return type Object. See ACCUMULO-3789 and #1285.
       return super.decode(b);
     }
 
@@ -179,8 +180,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
 
     @Override
     public Long decode(byte[] b) {
-      // This concrete implementation is provided for binary compatibility with 1.6; it can be
-      // removed in 2.0. See ACCUMULO-3789.
+      // This concrete implementation is provided for binary compatibility, since the corresponding
+      // superclass method has type-erased return type Object. See ACCUMULO-3789 and #1285.
       return super.decode(b);
     }
 
@@ -225,8 +226,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
 
     @Override
     public Long decode(byte[] b) {
-      // This concrete implementation is provided for binary compatibility with 1.6; it can be
-      // removed in 2.0. See ACCUMULO-3789.
+      // This concrete implementation is provided for binary compatibility, since the corresponding
+      // superclass method has type-erased return type Object. See ACCUMULO-3789 and #1285.
       return super.decode(b);
     }
 
