@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.lexicoder.Encoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -107,16 +108,6 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     public void remove() {
       source.remove();
     }
-  }
-
-  /**
-   * An interface for translating from byte[] to V and back. Decodes the entire contents of the byte
-   * array.
-   */
-  public interface Encoder<V> {
-    byte[] encode(V v);
-
-    V decode(byte[] b) throws ValueFormatException;
   }
 
   /**

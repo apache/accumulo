@@ -205,8 +205,6 @@
                 <allow>javax[.]security[.]auth[.]DestroyFailedException</allow>
                 <!-- allow questionable Hadoop exceptions for mapreduce -->
                 <allow>org[.]apache[.]hadoop[.]mapred[.](FileAlreadyExistsException|InvalidJobConfException)</allow>
-                <!-- allow lexicoders to throw iterator exceptions -->
-                <allow>org[.]apache[.]accumulo[.]core[.]iterators[.]ValueFormatException</allow>
               </allows>
             </configuration>
           </execution>
