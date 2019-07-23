@@ -1152,17 +1152,13 @@ public class TabletServer extends AbstractServer {
     }
 
     private void updateAvgCommitTime(long time, int size) {
-      if (size < 1) {
-        return;
-      }
-      updateMetrics.addCommitTime((long) (time / (double) size));
+     if(size > 0)
+        updateMetrics.addCommitTime((long) (time / (double) size));
     }
 
     private void updateAvgPrepTime(long time, int size) {
-      if (size < 1) {
-        return;
-      }
-      updateMetrics.addCommitPrep((long) (time / (double) size));
+     if(size > 0)
+       updateMetrics.addCommitPrep((long) (time / (double) size));
     }
 
     @Override
