@@ -92,7 +92,7 @@ public class MasterClient {
 
   public static <T> T execute(ClientContext context,
       ClientExecReturn<T,MasterClientService.Client> exec)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, ThriftTableOperationException {
     MasterClientService.Client client = null;
     while (true) {
       try {
@@ -103,17 +103,8 @@ public class MasterClient {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (AccumuloException e) {
+      } catch (AccumuloException | ThriftTableOperationException e) {
         throw e;
-      } catch (ThriftTableOperationException e) {
-        switch (e.getType()) {
-          case NAMESPACE_NOTFOUND:
-            throw new TableNotFoundException(e.getTableName(), new NamespaceNotFoundException(e));
-          case NOTFOUND:
-            throw new TableNotFoundException(e);
-          default:
-            throw new AccumuloException(e);
-        }
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         log.debug("Contacted a Master which is no longer active, retrying");
@@ -129,7 +120,7 @@ public class MasterClient {
 
   public static void executeGeneric(ClientContext context,
       ClientExec<MasterClientService.Client> exec)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, ThriftTableOperationException {
     MasterClientService.Client client = null;
     while (true) {
       try {
@@ -141,17 +132,8 @@ public class MasterClient {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (AccumuloException e) {
+      } catch (AccumuloException | ThriftTableOperationException e) {
         throw e;
-      } catch (ThriftTableOperationException e) {
-        switch (e.getType()) {
-          case NAMESPACE_NOTFOUND:
-            throw new TableNotFoundException(e.getTableName(), new NamespaceNotFoundException(e));
-          case NOTFOUND:
-            throw new TableNotFoundException(e);
-          default:
-            throw new AccumuloException(e);
-        }
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         log.debug("Contacted a Master which is no longer active, re-creating"
@@ -168,7 +150,17 @@ public class MasterClient {
   public static void executeTable(ClientContext context,
       ClientExec<MasterClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    executeGeneric(context, exec);
+    try {
+      executeGeneric(context, exec);
+    } catch (ThriftTableOperationException e) {
+      switch (e.getType()) {
+        case NAMESPACE_NOTFOUND:
+        case NOTFOUND:
+          throw new TableNotFoundException(e);
+        default:
+          throw new AccumuloException(e);
+      }
+    }
   }
 
   public static void executeNamespace(ClientContext context,
@@ -176,9 +168,14 @@ public class MasterClient {
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     try {
       executeGeneric(context, exec);
-    } catch (TableNotFoundException e) {
-      if (e.getCause() instanceof NamespaceNotFoundException)
-        throw (NamespaceNotFoundException) e.getCause();
+    } catch (ThriftTableOperationException e) {
+      switch (e.getType()) {
+        case NAMESPACE_NOTFOUND:
+        case NOTFOUND:
+          throw new NamespaceNotFoundException(e);
+        default:
+          throw new AccumuloException(e);
+      }
     }
   }
 
@@ -186,8 +183,15 @@ public class MasterClient {
       throws AccumuloException, AccumuloSecurityException {
     try {
       executeGeneric(context, exec);
-    } catch (TableNotFoundException e) {
-      throw new AssertionError(e);
+    } catch (ThriftTableOperationException e) {
+      switch (e.getType()) {
+        case NAMESPACE_NOTFOUND:
+          throw new AssertionError(new NamespaceNotFoundException(e));
+        case NOTFOUND:
+          throw new AssertionError(new TableNotFoundException(e));
+        default:
+          throw new AccumuloException(e);
+      }
     }
   }
 }

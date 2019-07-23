@@ -24,7 +24,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -288,10 +287,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
     try {
       thriftToken = MasterClient.execute(context,
           client -> client.getDelegationToken(TraceUtil.traceInfo(), context.rpcCreds(), tConfig));
-    } catch (TableNotFoundException e) {
+    } catch (ThriftTableOperationException e) {
       // should never happen
-      throw new AssertionError(
-          "Received TableNotFoundException on method which should not throw that exception", e);
+      throw new AssertionError("Exception on method which should not throw that exception", e);
     }
 
     AuthenticationTokenIdentifier identifier =

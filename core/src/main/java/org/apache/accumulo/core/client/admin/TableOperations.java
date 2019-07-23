@@ -507,7 +507,7 @@ public interface TableOperations {
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
-   *           if a general error occurs
+   *           if a general error occurs. Wrapped TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
@@ -543,7 +543,7 @@ public interface TableOperations {
    * @param value
    *          the value to set a per-table property to
    * @throws AccumuloException
-   *           if a general error occurs
+   *           if a general error occurs. Wrapped TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
@@ -561,7 +561,7 @@ public interface TableOperations {
    * @param property
    *          the name of a per-table property
    * @throws AccumuloException
-   *           if a general error occurs
+   *           if a general error occurs. Wrapped TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
