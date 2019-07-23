@@ -19,12 +19,10 @@ package org.apache.accumulo.core.client.lexicoder;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
-import org.apache.accumulo.core.iterators.ValueFormatException;
-
 /**
- * AbstractEncoder is an {@link org.apache.accumulo.core.client.lexicoder.Encoder} that implements
- * all of Encoder's methods validating the input, but has those methods defer logic to to a new
- * method, {@link #decodeUnchecked(byte[], int, int)}.
+ * AbstractEncoder is an {@link Encoder} that implements all of Encoder's methods validating the
+ * input, but has those methods defer logic to to a new method,
+ * {@link #decodeUnchecked(byte[], int, int)}.
  *
  * @since 1.7.0
  */
@@ -34,7 +32,8 @@ public abstract class AbstractEncoder<T> implements Encoder<T> {
    * Decodes a byte array without checking if the offset and len exceed the bounds of the actual
    * array.
    */
-  protected abstract T decodeUnchecked(byte[] b, int offset, int len) throws ValueFormatException;
+  protected abstract T decodeUnchecked(byte[] b, int offset, int len)
+      throws IllegalArgumentException;
 
   @Override
   public T decode(byte[] b) {

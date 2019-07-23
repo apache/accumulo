@@ -24,7 +24,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.clientImpl.lexicoder.FixedByteArrayOutputStream;
-import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
  * A lexicoder for a UUID that maintains its lexicographic sorting order.
@@ -58,13 +57,13 @@ public class UUIDLexicoder extends AbstractLexicoder<UUID> {
 
   @Override
   public UUID decode(byte[] b) {
-    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed
-    // in 2.0. See ACCUMULO-3789.
+    // This concrete implementation is provided for binary compatibility, since the corresponding
+    // superclass method has type-erased return type Object. See ACCUMULO-3789 and #1285.
     return super.decode(b);
   }
 
   @Override
-  protected UUID decodeUnchecked(byte[] b, int offset, int len) throws ValueFormatException {
+  protected UUID decodeUnchecked(byte[] b, int offset, int len) {
     try {
       DataInputStream in = new DataInputStream(new ByteArrayInputStream(b, offset, len));
       return new UUID(in.readLong() ^ 0x8000000000000000L, in.readLong() ^ 0x8000000000000000L);

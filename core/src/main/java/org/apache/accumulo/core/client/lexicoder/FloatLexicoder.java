@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
-import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
  * A lexicoder for preserving the native Java sort order of Float values.
@@ -42,13 +41,13 @@ public class FloatLexicoder extends AbstractLexicoder<Float> {
 
   @Override
   public Float decode(byte[] b) {
-    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed
-    // in 2.0. See ACCUMULO-3789.
+    // This concrete implementation is provided for binary compatibility, since the corresponding
+    // superclass method has type-erased return type Object. See ACCUMULO-3789 and #1285.
     return super.decode(b);
   }
 
   @Override
-  protected Float decodeUnchecked(byte[] b, int offset, int len) throws ValueFormatException {
+  protected Float decodeUnchecked(byte[] b, int offset, int len) {
     int i = intEncoder.decodeUnchecked(b, offset, len);
     if (i < 0) {
       i = i ^ 0x80000000;
