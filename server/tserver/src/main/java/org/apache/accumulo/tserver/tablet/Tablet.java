@@ -1132,7 +1132,7 @@ public class Tablet {
 
     // If there are no violations, or at least some mutations that do not violate the constraints,
     // attempt to prepare the tablet and retrieve the commit session.
-    if (!attempt.hasViolations() || attempt.hasNonViolators()) {
+    if (attempt.hasNonViolators()) {
       long time = tabletTime.setUpdateTimes(mutations);
       attempt.setCommitSession(finishPreparingMutations(time));
     }
