@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -114,20 +113,8 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,
       final String tableName, final Set<String> wals)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    boolean result;
-    try {
-      result = MasterClient.execute(context,
+    return MasterClient.execute(context,
           client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
-    } catch (ThriftTableOperationException e) {
-      switch (e.getType()) {
-        case NAMESPACE_NOTFOUND:
-        case NOTFOUND:
-          throw new TableNotFoundException(e);
-        default:
-          throw new AccumuloException(e);
-      }
-    }
-    return result;
   }
 
   protected TableId getTableId(AccumuloClient client, String tableName)
