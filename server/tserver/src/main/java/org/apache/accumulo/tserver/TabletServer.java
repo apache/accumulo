@@ -40,7 +40,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
@@ -143,6 +142,7 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
@@ -278,11 +278,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
 
-  private static final String INGEST_COUNT = "INGEST COUNT";
-  private static final String INGEST_RATE = "INGEST RATE";
-  private static final String QUERY_COUNT = "QUERY COUNT";
-  private static final String QUERY_RATE = "QUERY RATE";
-
   private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   private final TransactionWatcher watcher = new TransactionWatcher();
   private final ZooCache masterLockCache = new ZooCache();
@@ -372,65 +367,30 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     // query count every #{logBusiestTabletsDelay}
     if (numBusyTabletsToLog > 0) {
       SimpleTimer.getInstance(aconf).schedule(new Runnable() {
+        private BusiestTracker ingestTracker =
+            BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
+        private BusiestTracker queryTracker =
+            BusiestTracker.newBusiestQueryTracker(numBusyTabletsToLog);
+
         @Override
         public void run() {
-          Comparator<Pair<String,Double>> busiestTabletComparator =
-              new Comparator<Pair<String,Double>>() {
-                @Override
-                public int compare(Pair<String,Double> first, Pair<String,Double> second) {
-                  return second.getSecond().compareTo(first.getSecond());
-                }
-              };
-          Map<String,PriorityQueue<Pair<String,Double>>> busyTabletMap = new HashMap<>();
-          busyTabletMap.put(INGEST_COUNT,
-              new PriorityQueue<>(numBusyTabletsToLog, busiestTabletComparator));
-          busyTabletMap.put(INGEST_RATE,
-              new PriorityQueue<>(numBusyTabletsToLog, busiestTabletComparator));
-          busyTabletMap.put(QUERY_COUNT,
-              new PriorityQueue<>(numBusyTabletsToLog, busiestTabletComparator));
-          busyTabletMap.put(QUERY_RATE,
-              new PriorityQueue<>(numBusyTabletsToLog, busiestTabletComparator));
+
           List<Tablet> tablets;
           synchronized (onlineTablets) {
             tablets = new ArrayList<>(onlineTablets.values());
           }
-          for (Tablet tablet : tablets) {
-            String extentString = tablet.getExtent().toString();
-            addToBusiestTablets(extentString, tablet.totalQueries(), busyTabletMap.get(QUERY_COUNT),
-                numBusyTabletsToLog);
-            addToBusiestTablets(extentString, tablet.queryRate(), busyTabletMap.get(QUERY_RATE),
-                numBusyTabletsToLog);
-            addToBusiestTablets(extentString, tablet.totalIngest(), busyTabletMap.get(INGEST_COUNT),
-                numBusyTabletsToLog);
-            addToBusiestTablets(extentString, tablet.ingestRate(), busyTabletMap.get(INGEST_RATE),
-                numBusyTabletsToLog);
-          }
 
-          logBusyTablets(busyTabletMap, QUERY_COUNT);
-          logBusyTablets(busyTabletMap, QUERY_RATE);
-          logBusyTablets(busyTabletMap, INGEST_COUNT);
-          logBusyTablets(busyTabletMap, INGEST_RATE);
+          logBusyTablets(ingestTracker.computeBusiest(tablets), "ingest count");
+          logBusyTablets(queryTracker.computeBusiest(tablets), "query count");
         }
 
-        private void addToBusiestTablets(String extent, double count,
-            PriorityQueue<Pair<String,Double>> busiestTabletsQueue, int numBusiestTabletsToLog) {
-          if (busiestTabletsQueue.size() < numBusiestTabletsToLog
-              || busiestTabletsQueue.peek().getSecond() < count) {
-            if (busiestTabletsQueue.size() == numBusiestTabletsToLog) {
-              busiestTabletsQueue.remove();
-            }
-            busiestTabletsQueue.add(new Pair<String,Double>(extent, count));
-          }
-        }
-
-        private void logBusyTablets(Map<String,PriorityQueue<Pair<String,Double>>> busyTabletsMap,
+        private void logBusyTablets(List<ComparablePair<Long,KeyExtent>> busyTablets,
             String label) {
-          PriorityQueue<Pair<String,Double>> busyTabletsQueue = busyTabletsMap.get(label);
+
           int i = 1;
-          while(!busyTabletsQueue.isEmpty()) {
-            Pair<String,Double> pair = busyTabletsQueue.poll();
-            log.debug("{} busiest tablet by {}: {} -- extent: {} ", i, label.toLowerCase(), pair.getSecond(),
-                    pair.getFirst());
+          for (Pair<Long,KeyExtent> pair : busyTablets) {
+            log.debug("{} busiest tablet by {}: {} -- extent: {} ", i, label.toLowerCase(),
+                pair.getFirst(), pair.getSecond());
             i++;
           }
         }
