@@ -462,18 +462,12 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         continue;
       }
 
-      if (fname.equals("_SUCCESS") || fname.equals("_logs")) {
-        log.debug("Ignoring file likely created by map reduce : {}", fileStatus.getPath());
-        continue;
-      }
-
-      if (FileOperations.getWorkingFiles().contains(fname)) {
+      if (FileOperations.getBulkWorkingFiles().contains(fname)) {
         log.debug("{} is an internal working file, ignoring.", fileStatus.getPath());
         continue;
       }
 
       if (!FileOperations.getValidExtensions().contains(FilenameUtils.getExtension(fname))) {
-
         log.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
         continue;
       }
