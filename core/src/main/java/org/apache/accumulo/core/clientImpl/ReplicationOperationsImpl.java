@@ -114,7 +114,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
       final String tableName, final Set<String> wals)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     return MasterClient.execute(context,
-          client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
+        client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
   }
 
   protected TableId getTableId(AccumuloClient client, String tableName)

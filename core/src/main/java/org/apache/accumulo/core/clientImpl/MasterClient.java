@@ -168,7 +168,7 @@ public class MasterClient {
   public static void executeTable(ClientContext context,
       ClientExec<MasterClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-      executeGeneric(context, exec);
+    executeGeneric(context, exec);
   }
 
   public static void executeNamespace(ClientContext context,
