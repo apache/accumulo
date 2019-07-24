@@ -1658,13 +1658,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return sci.toSamplerConfiguration();
   }
 
-  private static class LoctionsImpl implements Locations {
+  private static class LocationsImpl implements Locations {
 
     private Map<Range,List<TabletId>> groupedByRanges;
     private Map<TabletId,List<Range>> groupedByTablets;
     private Map<TabletId,String> tabletLocations;
 
-    public LoctionsImpl(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
+    public LocationsImpl(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
       groupedByTablets = new HashMap<>();
       groupedByRanges = null;
       tabletLocations = new HashMap<>();
@@ -1768,7 +1768,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       locator.invalidateCache();
     }
 
-    return new LoctionsImpl(binnedRanges);
+    return new LocationsImpl(binnedRanges);
   }
 
   @Override
