@@ -627,6 +627,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.8.1</version>
           <configuration>
             <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
@@ -1421,6 +1422,15 @@
       </activation>
       <properties>
         <hadoop.version>3.0.0</hadoop.version>
+      </properties>
+    </profile>
+    <profile>
+      <id>jdk-release-flag</id>
+      <activation>
+        <jdk>[9,)</jdk>
+      </activation>
+      <properties>
+        <maven.compiler.release>7</maven.compiler.release>
       </properties>
     </profile>
   </profiles>
