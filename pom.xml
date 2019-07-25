@@ -785,7 +785,7 @@
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>${spotbugs.version}</version>
+          <version>${spotbugs.version}.1</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
