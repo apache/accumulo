@@ -81,12 +81,11 @@ import org.junit.Test;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * Tests new bulk import technique. If the old technique ever gets removed this will replace
- * {@link BulkFileIT}
+ * Tests new bulk import technique. For the old technique see {@link BulkOldIT}
  *
  * @since 2.0
  */
-public class BulkLoadIT extends SharedMiniClusterBase {
+public class BulkNewIT extends SharedMiniClusterBase {
 
   @BeforeClass
   public static void setup() throws Exception {

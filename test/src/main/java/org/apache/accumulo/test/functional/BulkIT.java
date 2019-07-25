@@ -33,6 +33,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
+/**
+ * Tests Old and New Bulk import
+ */
 public class BulkIT extends AccumuloClusterHarness {
 
   private static final int N = 100000;
