@@ -374,6 +374,16 @@ public class BulkNewIT extends SharedMiniClusterBase {
     }
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testEmptyDir() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String dir = getDir("/testBulkFile-");
+      FileSystem fs = getCluster().getFileSystem();
+      fs.mkdirs(new Path(dir));
+      c.tableOperations().importDirectory(dir).to(tableName).load();
+    }
+  }
+
   private void addSplits(AccumuloClient client, String tableName, String splitString)
       throws Exception {
     SortedSet<Text> splits = new TreeSet<>();

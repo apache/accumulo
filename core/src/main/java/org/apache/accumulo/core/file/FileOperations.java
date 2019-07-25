@@ -34,16 +34,29 @@ import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.mapred.FileOutputCommitter;
 
 import com.google.common.cache.Cache;
 
 public abstract class FileOperations {
 
+  private static final String HADOOP_JOBHISTORY_LOCATION = "_logs"; // dir related to
+                                                                    // hadoop.job.history.user.location
+
   private static final HashSet<String> validExtensions =
       new HashSet<>(Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
 
+  // Sometimes we want to know what files accumulo bulk processing creates
+  private static final HashSet<String> bulkWorkingFiles =
+      new HashSet<>(Arrays.asList(Constants.BULK_LOAD_MAPPING, Constants.BULK_RENAME_FILE,
+          FileOutputCommitter.SUCCEEDED_FILE_NAME, HADOOP_JOBHISTORY_LOCATION));
+
   public static Set<String> getValidExtensions() {
     return validExtensions;
+  }
+
+  public static Set<String> getBulkWorkingFiles() {
+    return bulkWorkingFiles;
   }
 
   public static String getNewFileExtension(AccumuloConfiguration acuconf) {

@@ -72,6 +72,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -130,6 +131,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       mappings = computeMappingFromPlan(fs, tableId, srcPath);
     }
 
+    if (mappings.isEmpty())
+      throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
+
     BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
@@ -185,7 +189,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   @Override
   public ImportMappingOptions plan(LoadPlan plan) {
-    this.plan = plan;
+    this.plan = Objects.requireNonNull(plan);
     return this;
   }
 
@@ -449,31 +453,25 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   }
 
-  private static List<FileStatus> filterInvalid(FileStatus[] files) {
-    ArrayList<FileStatus> fileList = new ArrayList<>(files.length);
+  public static List<FileStatus> filterInvalid(FileStatus[] files) {
 
+    ArrayList<FileStatus> fileList = new ArrayList<>(files.length);
     for (FileStatus fileStatus : files) {
 
       String fname = fileStatus.getPath().getName();
-
-      if (fname.equals("_SUCCESS") || fname.equals("_logs")) {
-        log.debug("Ignoring file likely created by map reduce : {}", fileStatus.getPath());
-        continue;
-      }
 
       if (fileStatus.isDirectory()) {
         log.debug("{} is a directory, ignoring.", fileStatus.getPath());
         continue;
       }
 
-      String[] sa = fname.split("\\.");
-      String extension = "";
-      if (sa.length > 1) {
-        extension = sa[sa.length - 1];
+      if (FileOperations.getBulkWorkingFiles().contains(fname)) {
+        log.debug("{} is an internal working file, ignoring.", fileStatus.getPath());
+        continue;
       }
 
-      if (!FileOperations.getValidExtensions().contains(extension)) {
-        log.debug("{} does not have a valid extension, ignoring", fileStatus.getPath());
+      if (!FileOperations.getValidExtensions().contains(FilenameUtils.getExtension(fname))) {
+        log.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
         continue;
       }
 

@@ -22,6 +22,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -30,13 +31,13 @@ import java.util.function.Function;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.fate.Repo;
@@ -48,6 +49,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -180,37 +182,23 @@ public class PrepBulkImport extends MasterRepo {
     VolumeManager fs = master.getFileSystem();
     final UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
     Path sourceDir = new Path(bulkInfo.sourceDir);
-    FileStatus[] files = fs.listStatus(sourceDir);
+    List<FileStatus> files = BulkImport.filterInvalid(fs.listStatus(sourceDir));
 
     Path bulkDir = createNewBulkDir(master.getContext(), fs, bulkInfo.tableId);
     Path mappingFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
 
     Map<String,String> oldToNewNameMap = new HashMap<>();
-    for (FileStatus file : files) {
-      final FileStatus fileStatus = file;
-      final Path originalPath = fileStatus.getPath();
-      String[] fileNameParts = originalPath.getName().split("\\.");
-      String extension = "";
-      boolean invalidFileName;
-      if (fileNameParts.length > 1) {
-        extension = fileNameParts[fileNameParts.length - 1];
-        invalidFileName = !FileOperations.getValidExtensions().contains(extension);
-      } else {
-        invalidFileName = true;
-      }
-      if (invalidFileName) {
-        log.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
-        continue;
-      }
 
-      String newName = "I" + namer.getNextName() + "." + extension;
-      Path newPath = new Path(bulkDir, newName);
-      oldToNewNameMap.put(originalPath.getName(), newPath.getName());
+    for (FileStatus file : files) {
+      // since these are only valid files we know it has an extension
+      String newName =
+          "I" + namer.getNextName() + "." + FilenameUtils.getExtension(file.getPath().getName());
+      oldToNewNameMap.put(file.getPath().getName(), new Path(bulkDir, newName).getName());
     }
 
     // also have to move mapping file
-    Path newMappingFile = new Path(bulkDir, mappingFile.getName());
-    oldToNewNameMap.put(mappingFile.getName(), newMappingFile.getName());
+    oldToNewNameMap.put(mappingFile.getName(), new Path(bulkDir, mappingFile.getName()).getName());
+
     BulkSerialize.writeRenameMap(oldToNewNameMap, bulkDir.toString(), p -> fs.create(p));
 
     bulkInfo.bulkDir = bulkDir.toString();
