@@ -60,7 +60,8 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import jline.console.ConsoleReader;
 
 @RunWith(PowerMockRunner.class)
-@PowerMockIgnore("javax.security.*")
+@PowerMockIgnore({"javax.security.*", "javax.xml.*", "org.xml.*", "com.sun.org.apache.xerces.*",
+    "org.w3c.dom.*", "org.apache.xerces.*"})
 @PrepareForTest({Shell.class, ZooUtil.class, ConfigSanityCheck.class})
 public class ShellSetInstanceTest {
   public static class TestOutputStream extends OutputStream {

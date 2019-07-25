@@ -138,7 +138,7 @@
     <maven.plugin-version>3.0.5</maven.plugin-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>1.7.4</powermock.version>
+    <powermock.version>2.0.2</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <slf4j.version>1.7.25</slf4j.version>
@@ -367,8 +367,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-vfs2</artifactId>
-        <!-- commons-vfs2 version 2.2 has defects that impacts changing Accumulo classpath contexts. -->
-        <version>2.1</version>
+        <version>2.3</version>
       </dependency>
       <dependency>
         <groupId>org.apache.curator</groupId>
@@ -478,7 +477,7 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>3.6</version>
+        <version>4.0.2</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
