@@ -20,5 +20,4 @@
  * <p>
  * Deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
  */
-@Deprecated
 package org.apache.accumulo.core.client.mock;

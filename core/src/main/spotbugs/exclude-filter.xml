@@ -105,4 +105,9 @@
     <Class name="org.apache.accumulo.core.client.impl.ScannerOptionsTest" />
     <Bug code="NP" pattern="NP_NULL_PARAM_DEREF_ALL_TARGETS_DANGEROUS" />
   </Match>
+  <Match>
+    <!-- Must ignore these everywhere, because of a javac byte code generation bug -->
+    <!-- https://github.com/spotbugs/spotbugs/issues/756 -->
+    <Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE" />
+  </Match>
 </FindBugsFilter>
