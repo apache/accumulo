@@ -131,6 +131,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       mappings = computeMappingFromPlan(fs, tableId, srcPath);
     }
 
+    if (mappings.isEmpty())
+      throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
+
     BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
@@ -186,7 +189,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   @Override
   public ImportMappingOptions plan(LoadPlan plan) {
-    this.plan = plan;
+    this.plan = Objects.requireNonNull(plan);
     return this;
   }
 
