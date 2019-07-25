@@ -2311,6 +2311,10 @@ public class Tablet {
     return this.queryCount;
   }
 
+  public long totalIngest() {
+    return this.ingestCount;
+  }
+
   // synchronized?
   public void updateRates(long now) {
     queryRate.update(now, queryCount);

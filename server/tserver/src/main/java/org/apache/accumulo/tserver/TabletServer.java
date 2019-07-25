@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -152,6 +153,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
@@ -371,6 +373,39 @@ public class TabletServer extends AbstractServer {
     this.logSorter = new LogSorter(context, fs, aconf);
     this.replWorker = new ReplicationWorker(context, fs);
     this.statsKeeper = new TabletStatsKeeper();
+    final int numBusyTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSY_TABLETS_COUNT);
+    final long logBusyTabletsDelay =
+        aconf.getTimeInMillis(Property.TSERV_LOG_BUSY_TABLETS_INTERVAL);
+
+    // This thread will calculate and log out the busiest tablets based on ingest count and
+    // query count every #{logBusiestTabletsDelay}
+    if (numBusyTabletsToLog > 0) {
+      SimpleTimer.getInstance(aconf).schedule(new Runnable() {
+        private BusiestTracker ingestTracker =
+            BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
+        private BusiestTracker queryTracker =
+            BusiestTracker.newBusiestQueryTracker(numBusyTabletsToLog);
+
+        @Override
+        public void run() {
+          Collection<Tablet> tablets = onlineTablets.snapshot().values();
+          logBusyTablets(ingestTracker.computeBusiest(tablets), "ingest count");
+          logBusyTablets(queryTracker.computeBusiest(tablets), "query count");
+        }
+
+        private void logBusyTablets(List<ComparablePair<Long,KeyExtent>> busyTablets,
+            String label) {
+
+          int i = 1;
+          for (Pair<Long,KeyExtent> pair : busyTablets) {
+            log.debug("{} busiest tablet by {}: {} -- extent: {} ", i, label.toLowerCase(),
+                pair.getFirst(), pair.getSecond());
+            i++;
+          }
+        }
+      }, logBusyTabletsDelay, logBusyTabletsDelay);
+    }
+
     SimpleTimer.getInstance(aconf).schedule(() -> {
       long now = System.currentTimeMillis();
       for (Tablet tablet : getOnlineTablets().values()) {
