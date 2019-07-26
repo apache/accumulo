@@ -25,8 +25,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -86,11 +88,15 @@ public class MetadataSchema {
       /**
        * A temporary field in case a split fails and we need to roll back
        */
-      public static final ColumnFQ OLD_PREV_ROW_COLUMN = new ColumnFQ(NAME, new Text("oldprevrow"));
+      public static final String OLD_PREV_ROW_QUAL = "oldprevrow";
+      public static final ColumnFQ OLD_PREV_ROW_COLUMN =
+          new ColumnFQ(NAME, new Text(OLD_PREV_ROW_QUAL));
       /**
        * A temporary field for splits to optimize certain operations
        */
-      public static final ColumnFQ SPLIT_RATIO_COLUMN = new ColumnFQ(NAME, new Text("splitRatio"));
+      public static final String SPLIT_RATIO_QUAL = "splitRatio";
+      public static final ColumnFQ SPLIT_RATIO_COLUMN =
+          new ColumnFQ(NAME, new Text(SPLIT_RATIO_QUAL));
     }
 
     /**
@@ -167,6 +173,20 @@ public class MetadataSchema {
     public static class BulkFileColumnFamily {
       public static final String STR_NAME = "loaded";
       public static final Text NAME = new Text(STR_NAME);
+
+      public static long getBulkLoadTid(Value v) {
+        return getBulkLoadTid(v.toString());
+      }
+
+      public static long getBulkLoadTid(String vs) {
+        if (FateTxId.isFormatedTid(vs)) {
+          return FateTxId.fromString(vs);
+        } else {
+          // a new serialization format was introduce in 2.0. This code support deserializing the
+          // old format.
+          return Long.parseLong(vs);
+        }
+      }
     }
 
     /**

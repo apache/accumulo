@@ -36,6 +36,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
@@ -45,7 +46,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
@@ -123,7 +123,7 @@ class CopyFailed extends MasterRepo {
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
 
       for (Entry<Key,Value> entry : mscanner) {
-        if (MetadataTableUtil.getBulkLoadTid(entry.getValue()) == tid) {
+        if (BulkFileColumnFamily.getBulkLoadTid(entry.getValue()) == tid) {
           FileRef loadedFile = new FileRef(fs, entry.getKey());
           String absPath = failures.remove(loadedFile);
           if (absPath != null) {

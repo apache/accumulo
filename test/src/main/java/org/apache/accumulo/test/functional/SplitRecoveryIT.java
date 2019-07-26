@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
@@ -62,8 +64,8 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -171,6 +173,17 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         "localhost:1234", failPoint, zl);
   }
 
+  private static Map<Long,List<FileRef>> getBulkFilesLoaded(ServerContext context,
+      KeyExtent extent) {
+    Map<Long,List<FileRef>> bulkFiles = new HashMap<>();
+
+    context.getAmple().readTablet(extent).getLoaded()
+        .forEach((path, txid) -> bulkFiles.computeIfAbsent(txid, k -> new ArrayList<FileRef>())
+            .add(new FileRef(context.getVolumeManager(), path, extent.getTableId())));
+
+    return bulkFiles;
+  }
+
   private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent, KeyExtent high,
       KeyExtent low, double splitRatio, SortedMap<FileRef,DataFileValue> mapFiles, Text midRow,
       String location, int steps, ZooLock zl) throws Exception {
@@ -191,8 +204,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     writer.update(m);
 
     if (steps >= 1) {
-      Map<Long,? extends Collection<FileRef>> bulkFiles =
-          MetadataTableUtil.getBulkFilesLoaded(context, extent);
+      Map<Long,List<FileRef>> bulkFiles = getBulkFilesLoaded(context, extent);
+
       MasterMetadataUtil.addNewTablet(context, low, "/lowDir", instance, lowDatafileSizes,
           bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
     }
@@ -200,17 +213,19 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context, zl);
     }
 
-    TabletServer.verifyTabletInformation(context, high, instance, new TreeMap<>(), "127.0.0.1:0",
-        zl);
+    TabletMetadata meta = context.getAmple().readTablet(high);
+    KeyExtent fixedExtent = MasterMetadataUtil.fixSplit(context, meta, zl);
+
+    if (steps < 2)
+      assertEquals(splitRatio, meta.getSplitRatio(), 0.0);
 
     if (steps >= 1) {
+      Assert.assertEquals(high, fixedExtent);
       ensureTabletHasNoUnexpectedMetadataEntries(context, low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(context, high, highDatafileSizes);
 
-      Map<Long,? extends Collection<FileRef>> lowBulkFiles =
-          MetadataTableUtil.getBulkFilesLoaded(context, low);
-      Map<Long,? extends Collection<FileRef>> highBulkFiles =
-          MetadataTableUtil.getBulkFilesLoaded(context, high);
+      Map<Long,? extends Collection<FileRef>> lowBulkFiles = getBulkFilesLoaded(context, low);
+      Map<Long,? extends Collection<FileRef>> highBulkFiles = getBulkFilesLoaded(context, high);
 
       if (!lowBulkFiles.equals(highBulkFiles)) {
         throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
@@ -220,6 +235,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         throw new Exception(" no bulk files " + low);
       }
     } else {
+      Assert.assertEquals(extent, fixedExtent);
       ensureTabletHasNoUnexpectedMetadataEntries(context, extent, mapFiles);
     }
   }
@@ -243,12 +259,23 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       expectedColumnFamilies.add(TabletsSection.BulkFileColumnFamily.NAME);
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
+
+      boolean sawPer = false;
+
       while (iter.hasNext()) {
-        Key key = iter.next().getKey();
+        Entry<Key,Value> entry = iter.next();
+        Key key = entry.getKey();
 
         if (!key.getRow().equals(extent.getMetadataEntry())) {
           throw new Exception(
               "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
+        }
+
+        if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+          sawPer = true;
+          if (!new KeyExtent(key.getRow(), entry.getValue()).equals(extent)) {
+            throw new Exception("Unexpected prev end row " + entry);
+          }
         }
 
         if (expectedColumnFamilies.contains(key.getColumnFamily())) {
@@ -263,10 +290,11 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
             "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
       }
 
-      System.out.println("expectedColumns " + expectedColumns);
       if (expectedColumns.size() > 1 || (expectedColumns.size() == 1)) {
         throw new Exception("Not all expected columns seen " + extent + " " + expectedColumns);
       }
+
+      assertTrue(sawPer);
 
       SortedMap<FileRef,DataFileValue> fixedMapFiles =
           MetadataTableUtil.getFileAndLogEntries(context, extent).getSecond();

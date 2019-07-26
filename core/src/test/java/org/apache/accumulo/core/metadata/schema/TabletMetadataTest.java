@@ -102,7 +102,7 @@ public class TabletMetadataTest {
     assertEquals(Map.of("df1", dfv1, "df2", dfv2), tm.getFilesMap());
     assertEquals(6L, tm.getFlushId().getAsLong());
     assertEquals(rowMap, tm.getKeyValues());
-    assertEquals(Set.of("bf1", "bf2"), Set.copyOf(tm.getLoaded()));
+    assertEquals(Set.of("bf1", "bf2"), Set.copyOf(tm.getLoaded().keySet()));
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
     assertEquals("s001", tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());

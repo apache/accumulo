@@ -68,6 +68,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -697,18 +698,6 @@ public class MetadataTableUtil {
     tablet.mutate();
   }
 
-  public static long getBulkLoadTid(Value v) {
-    String vs = v.toString();
-
-    if (FateTxId.isFormatedTid(vs)) {
-      return FateTxId.fromString(vs);
-    } else {
-      // a new serialization format was introduce in 2.0. This code support deserializing the old
-      // format.
-      return Long.parseLong(vs);
-    }
-  }
-
   public static void removeBulkLoadEntries(AccumuloClient client, TableId tableId, long tid)
       throws Exception {
     try (
@@ -720,7 +709,7 @@ public class MetadataTableUtil {
 
       for (Entry<Key,Value> entry : mscanner) {
         log.trace("Looking at entry {} with tid {}", entry, tid);
-        long entryTid = getBulkLoadTid(entry.getValue());
+        long entryTid = BulkFileColumnFamily.getBulkLoadTid(entry.getValue());
         if (tid == entryTid) {
           log.trace("deleting entry {}", entry);
           Key key = entry.getKey();
@@ -730,25 +719,6 @@ public class MetadataTableUtil {
         }
       }
     }
-  }
-
-  public static Map<Long,? extends Collection<FileRef>> getBulkFilesLoaded(ServerContext context,
-      KeyExtent extent) {
-    Text metadataRow = extent.getMetadataEntry();
-    Map<Long,List<FileRef>> result = new HashMap<>();
-
-    VolumeManager fs = context.getVolumeManager();
-    try (Scanner scanner = new ScannerImpl(context,
-        extent.isMeta() ? RootTable.ID : MetadataTable.ID, Authorizations.EMPTY)) {
-      scanner.setRange(new Range(metadataRow));
-      scanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
-      for (Entry<Key,Value> entry : scanner) {
-        Long tid = getBulkLoadTid(entry.getValue());
-        List<FileRef> lst = result.computeIfAbsent(tid, k -> new ArrayList<FileRef>());
-        lst.add(new FileRef(fs, entry.getKey()));
-      }
-    }
-    return result;
   }
 
   public static void addBulkLoadInProgressFlag(ServerContext context, String path, long fateTxid) {

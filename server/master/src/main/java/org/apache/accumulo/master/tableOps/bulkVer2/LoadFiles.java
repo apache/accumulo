@@ -211,7 +211,7 @@ class LoadFiles extends MasterRepo {
           server = location.getHostAndPort();
         }
 
-        Set<String> loadedFiles = tablet.getLoaded();
+        Set<String> loadedFiles = tablet.getLoaded().keySet();
 
         Map<String,MapFileInfo> thriftImports = new HashMap<>();
 

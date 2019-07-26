@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.ArrayList;
@@ -46,9 +45,9 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
@@ -95,43 +94,26 @@ public class MasterMetadataUtil {
     tablet.mutate();
   }
 
-  public static KeyExtent fixSplit(ServerContext context, Text metadataEntry,
-      SortedMap<ColumnFQ,Value> columns, ZooLock lock) throws AccumuloException {
-    log.info("Incomplete split {} attempting to fix", metadataEntry);
+  public static KeyExtent fixSplit(ServerContext context, TabletMetadata meta, ZooLock lock)
+      throws AccumuloException {
+    log.info("Incomplete split {} attempting to fix", meta.getExtent());
 
-    Value oper = columns.get(TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN);
-
-    if (columns.get(TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN) == null) {
+    if (meta.getSplitRatio() == null) {
       throw new IllegalArgumentException(
-          "Metadata entry does not have split ratio (" + metadataEntry + ")");
+          "Metadata entry does not have split ratio (" + meta.getExtent() + ")");
     }
 
-    double splitRatio = Double.parseDouble(
-        new String(columns.get(TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN).get(), UTF_8));
-
-    Value prevEndRowIBW = columns.get(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN);
-
-    if (prevEndRowIBW == null) {
+    if (meta.getTime() == null) {
       throw new IllegalArgumentException(
-          "Metadata entry does not have prev row (" + metadataEntry + ")");
+          "Metadata entry does not have time (" + meta.getExtent() + ")");
     }
 
-    Value time = columns.get(TabletsSection.ServerColumnFamily.TIME_COLUMN);
-
-    if (time == null) {
-      throw new IllegalArgumentException(
-          "Metadata entry does not have time (" + metadataEntry + ")");
-    }
-
-    Text metadataPrevEndRow = KeyExtent.decodePrevEndRow(prevEndRowIBW);
-
-    TableId tableId = (new KeyExtent(metadataEntry, (Text) null)).getTableId();
-
-    return fixSplit(context, tableId, metadataEntry, metadataPrevEndRow, oper, splitRatio, lock);
+    return fixSplit(context, meta.getTableId(), meta.getExtent().getMetadataEntry(),
+        meta.getPrevEndRow(), meta.getOldPrevEndRow(), meta.getSplitRatio(), lock);
   }
 
   private static KeyExtent fixSplit(ServerContext context, TableId tableId, Text metadataEntry,
-      Text metadataPrevEndRow, Value oper, double splitRatio, ZooLock lock)
+      Text metadataPrevEndRow, Text oper, double splitRatio, ZooLock lock)
       throws AccumuloException {
     if (metadataPrevEndRow == null)
       // something is wrong, this should not happen... if a tablet is split, it will always have a
@@ -147,9 +129,8 @@ public class MasterMetadataUtil {
 
       if (!scanner2.iterator().hasNext()) {
         log.info("Rolling back incomplete split {} {}", metadataEntry, metadataPrevEndRow);
-        MetadataTableUtil.rollBackSplit(metadataEntry, KeyExtent.decodePrevEndRow(oper), context,
-            lock);
-        return new KeyExtent(metadataEntry, KeyExtent.decodePrevEndRow(oper));
+        MetadataTableUtil.rollBackSplit(metadataEntry, oper, context, lock);
+        return new KeyExtent(metadataEntry, oper);
       } else {
         log.info("Finishing incomplete split {} {}", metadataEntry, metadataPrevEndRow);
 
