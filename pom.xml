@@ -146,6 +146,7 @@
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <surefire.groups />
+    <surefire.version>3.0.0-M3</surefire.version>
     <!-- Thrift version -->
     <thrift.version>0.9.3-1</thrift.version>
     <!-- ZooKeeper version -->
@@ -686,6 +687,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
+          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
@@ -698,6 +700,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
