@@ -14,9 +14,6 @@
 
 package org.apache.accumulo.core.util;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.Serializable;
 
 /**
@@ -123,9 +120,9 @@ public final class HostAndPort implements Serializable {
    *           if {@code host} contains a port number, or {@code port} is out of range.
    */
   public static HostAndPort fromParts(String host, int port) {
-    checkArgument(isValidPort(port), "Port out of range: %s", port);
+    checkArgument(isValidPort(port), "Port out of range: " + port);
     HostAndPort parsedHost = fromString(host);
-    checkArgument(!parsedHost.hasPort(), "Host has a port: %s", host);
+    checkArgument(!parsedHost.hasPort(), "Host has a port: " + host);
     return new HostAndPort(parsedHost.host, port, parsedHost.hasBracketlessColons);
   }
 
@@ -168,13 +165,13 @@ public final class HostAndPort implements Serializable {
     if (portString != null && !portString.trim().isEmpty()) {
       // Try to parse the whole port string as a number.
       // JDK7 accepts leading plus signs. We don't want to.
-      checkArgument(!portString.startsWith("+"), "Unparseable port number: %s", hostPortString);
+      checkArgument(!portString.startsWith("+"), "Unparseable port number: " + hostPortString);
       try {
         port = Integer.parseInt(portString);
       } catch (NumberFormatException e) {
         throw new IllegalArgumentException("Unparseable port number: " + hostPortString);
       }
-      checkArgument(isValidPort(port), "Port number out of range: %s", hostPortString);
+      checkArgument(isValidPort(port), "Port number out of range: " + hostPortString);
     }
 
     return new HostAndPort(host, port, hasBracketlessColons);
@@ -193,21 +190,21 @@ public final class HostAndPort implements Serializable {
     int colonIndex = 0;
     int closeBracketIndex = 0;
     checkArgument(hostPortString.charAt(0) == '[',
-        "Bracketed host-port string must start with a bracket: %s", hostPortString);
+        "Bracketed host-port string must start with a bracket: " + hostPortString);
     colonIndex = hostPortString.indexOf(':');
     closeBracketIndex = hostPortString.lastIndexOf(']');
     checkArgument(colonIndex > -1 && closeBracketIndex > colonIndex,
-        "Invalid bracketed host/port: %s", hostPortString);
+        "Invalid bracketed host/port: " + hostPortString);
 
     String host = hostPortString.substring(1, closeBracketIndex);
     if (closeBracketIndex + 1 == hostPortString.length()) {
       return new String[] {host, ""};
     } else {
       checkArgument(hostPortString.charAt(closeBracketIndex + 1) == ':',
-          "Only a colon may follow a close bracket: %s", hostPortString);
+          "Only a colon may follow a close bracket: " + hostPortString);
       for (int i = closeBracketIndex + 2; i < hostPortString.length(); ++i) {
-        checkArgument(Character.isDigit(hostPortString.charAt(i)), "Port must be numeric: %s",
-            hostPortString);
+        checkArgument(Character.isDigit(hostPortString.charAt(i)),
+            "Port must be numeric: " + hostPortString);
       }
       return new String[] {host, hostPortString.substring(closeBracketIndex + 2)};
     }
@@ -277,6 +274,24 @@ public final class HostAndPort implements Serializable {
    */
   public int getPortOrDefault(int defaultPort) {
     return hasPort() ? port : defaultPort;
+  }
+
+  public static void checkArgument(boolean b, String errorMessage) {
+    if (!b) {
+      throw new IllegalArgumentException(errorMessage);
+    }
+  }
+
+  public static void checkArgument(boolean expression) {
+    if (!expression) {
+      throw new IllegalArgumentException();
+    }
+  }
+
+  public static void checkState(boolean expression) {
+    if (!expression) {
+      throw new IllegalStateException();
+    }
   }
 
 }
