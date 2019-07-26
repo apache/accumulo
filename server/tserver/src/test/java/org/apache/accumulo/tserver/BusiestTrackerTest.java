@@ -143,8 +143,8 @@ public class BusiestTrackerTest {
   public void testReload2() {
     BusiestTracker tracker = newTestTracker(3);
 
-    // This test differs from testReload in the that tablet that has its count decrease does not
-    // show up in the first busy set
+    // This test differs from testReload because the tablet that has its count decrease does not
+    // show up in busy1
     Collection<Tablet> data1 = createTablets("e1", 115L, "e2", 73L, "e3", 206L, "e4", 85L);
     Collection<ComparablePair<Long,KeyExtent>> busy1 = tracker.computeBusiest(data1);
     assertEquals(createExpected("e3", 206L, "e1", 115L, "e4", 85L), new HashSet<>(busy1));
