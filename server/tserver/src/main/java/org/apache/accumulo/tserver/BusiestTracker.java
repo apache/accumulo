@@ -60,9 +60,13 @@ public abstract class BusiestTracker {
 
       counts.put(extent, count);
 
-      long delta = count - lastCounts.getOrDefault(extent, 0L);
+      long lastCount = lastCounts.getOrDefault(extent, 0L);
 
-      // handle case where tablet leaves tserver and returns OR tablet had no activity
+      // if a tablet leaves a tserver and comes back, then its count will be reset. This could make
+      // lastCount higher than the current count. That is why lastCount > count is checked below.
+      long delta = (lastCount > count) ? count : count - lastCount;
+
+      // handle case where tablet had no activity
       if (delta > 0)
         tabletsWithDelta.add(new ComparablePair<>(delta, extent));
     }

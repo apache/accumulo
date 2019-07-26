@@ -39,13 +39,7 @@ import com.google.common.base.Preconditions;
 public class BusiestTrackerTest {
 
   private static BusiestTracker newTestTracker(int numToLog) {
-    return new BusiestTracker(3) {
-
-      @Override
-      protected long extractCount(Tablet tablet) {
-        return tablet.totalIngest();
-      }
-    };
+    return BusiestTracker.newBusiestIngestTracker(numToLog);
   }
 
   private static Collection<Tablet> createTablets(Object... testData) {
@@ -137,14 +131,34 @@ public class BusiestTrackerTest {
     Collection<ComparablePair<Long,KeyExtent>> busy1 = tracker.computeBusiest(data1);
     assertEquals(createExpected("e1", 5L, "e2", 3L), new HashSet<>(busy1));
 
-    // when count is less than previously seen tablet should be ignored
+    // when count is less than previously seen, previous count should be ignored
     Collection<Tablet> data2 = createTablets("e1", 7L, "e2", 1L);
     Collection<ComparablePair<Long,KeyExtent>> busy2 = tracker.computeBusiest(data2);
-    assertEquals(createExpected("e1", 2L), new HashSet<>(busy2));
+    assertEquals(createExpected("e1", 2L, "e2", 1L), new HashSet<>(busy2));
 
     Collection<Tablet> data3 = createTablets("e1", 8L, "e2", 4L);
     Collection<ComparablePair<Long,KeyExtent>> busy3 = tracker.computeBusiest(data3);
     assertEquals(createExpected("e1", 1L, "e2", 3L), new HashSet<>(busy3));
+  }
+
+  @Test
+  public void testReload2() {
+    BusiestTracker tracker = newTestTracker(3);
+
+    // This test differs from testReload because the tablet that has its count decrease does not
+    // show up in busy1
+    Collection<Tablet> data1 = createTablets("e1", 115L, "e2", 73L, "e3", 206L, "e4", 85L);
+    Collection<ComparablePair<Long,KeyExtent>> busy1 = tracker.computeBusiest(data1);
+    assertEquals(createExpected("e3", 206L, "e1", 115L, "e4", 85L), new HashSet<>(busy1));
+
+    // the count for e2 decreases, simulating a tablet leaving a tserver and coming back
+    Collection<Tablet> data2 = createTablets("e1", 118L, "e2", 20L, "e3", 216L, "e4", 89L);
+    Collection<ComparablePair<Long,KeyExtent>> busy2 = tracker.computeBusiest(data2);
+    assertEquals(createExpected("e2", 20L, "e3", 10L, "e4", 4L), new HashSet<>(busy2));
+
+    Collection<Tablet> data3 = createTablets("e1", 118L, "e2", 21L, "e3", 218L, "e4", 89L);
+    Collection<ComparablePair<Long,KeyExtent>> busy3 = tracker.computeBusiest(data3);
+    assertEquals(createExpected("e2", 1L, "e3", 2L), new HashSet<>(busy3));
   }
 
   @Test
