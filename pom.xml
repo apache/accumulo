@@ -1099,6 +1099,10 @@
           <name>m2e.version</name>
         </property>
       </activation>
+      <properties>
+        <!-- enforces Java 7 compiler compliance, even when Eclipse uses JDK 9 or later -->
+        <maven.compiler.release>7</maven.compiler.release>
+      </properties>
       <build>
         <pluginManagement>
           <plugins>

@@ -2711,7 +2711,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     File jarDir = new File(System.getProperty("user.dir"), "target");
     assertTrue(jarDir.mkdirs() || jarDir.isDirectory());
     File jarFile = new File(jarDir, "TestCompactionStrat.jar");
-    FileUtils.copyInputStreamToFile(Class.class.getResourceAsStream("/TestCompactionStrat.jar"),
+    FileUtils.copyInputStreamToFile(getClass().getResourceAsStream("/TestCompactionStrat.jar"),
         jarFile);
     client.setProperty(creds, Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1",
         jarFile.toString());
