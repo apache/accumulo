@@ -413,7 +413,8 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-minikdc</artifactId>
-        <version>${hadoop.version}</version>
+        <!-- this version works better with java 11 than Hadoop 2 versions -->
+        <version>3.0.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
