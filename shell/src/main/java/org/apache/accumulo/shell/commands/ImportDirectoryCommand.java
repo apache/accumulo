@@ -29,21 +29,33 @@ public class ImportDirectoryCommand extends Command {
 
   @Override
   public String description() {
-    return "bulk imports an entire directory of data files to the current"
-        + " table. The boolean argument determines if accumulo sets the time.";
+    return "bulk imports an entire directory of data files into an existing table."
+        + " The table is either passed with the -t tablename opt, or into to the current"
+        + " table if the -t option is not provided. The boolean argument determines if accumulo sets the time.";
   }
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    shellState.checkTableState();
+
+    boolean tableOptPassed = cl.hasOption(OptUtil.tableOpt().getOpt());
+
+    final String tableName;
+
+    if (tableOptPassed) {
+      tableName = OptUtil.getTableOpt(cl, shellState);
+    } else {
+      tableName = shellState.getTableName();
+      shellState.checkTableState();
+    }
 
     String dir = cl.getArgs()[0];
     String failureDir = cl.getArgs()[1];
     final boolean setTime = Boolean.parseBoolean(cl.getArgs()[2]);
 
-    shellState.getConnector().tableOperations().importDirectory(shellState.getTableName(), dir,
-        failureDir, setTime);
+    shellState.getConnector().tableOperations().importDirectory(tableName, dir, failureDir,
+        setTime);
+
     return 0;
   }
 
