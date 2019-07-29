@@ -147,10 +147,10 @@
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-minikdc</artifactId>
       <exclusions>
-        <!-- Pulls in an older bouncycastle version -->
+        <!-- avoid vuln in JOSE library see https://nvd.nist.gov/vuln/detail/CVE-2017-12974 -->
         <exclusion>
-          <groupId>bouncycastle</groupId>
-          <artifactId>bcprov-jdk15</artifactId>
+          <groupId>com.nimbusds</groupId>
+          <artifactId>nimbus-jose-jwt</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
