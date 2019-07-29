@@ -110,7 +110,9 @@ public class SimpleGarbageCollectorTest {
   @Test
   public void testConstruction() {
     assertSame(opts, gc.getOpts());
-    assertNotNull(gc.getStatus(createMock(TInfo.class), createMock(TCredentials.class)));
+    TCredentials tcreds = createMock(TCredentials.class);
+    TInfo tinfo = createMock(TInfo.class);
+    assertNotNull(gc.getStatus(tinfo, tcreds));
   }
 
   private ConfigurationCopy createSystemConfig() {

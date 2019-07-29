@@ -363,7 +363,10 @@ public class AccumuloVFSClassLoader {
             break;
         }
 
-        if (classLoader instanceof URLClassLoader) {
+        if (classLoader.getClass().getName().startsWith("jdk.internal")) {
+          out.print("Level " + classLoaderDescription + " " + classLoader.getClass().getName()
+              + " configuration not inspectable.");
+        } else if (classLoader instanceof URLClassLoader) {
           // If VFS class loader enabled, but no contexts defined.
           out.print("Level " + classLoaderDescription + " URL classpath items are:");
 

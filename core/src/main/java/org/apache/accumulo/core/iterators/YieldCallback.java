@@ -46,7 +46,7 @@ public class YieldCallback<K> {
    * range in a subsequent seek call when the iterator is rebuilt. This will also reset the state
    * returned by hasYielded.
    *
-   * @return <tt>K</tt> The key position
+   * @return <code>K</code> The key position
    */
   public K getPositionAndReset() {
     try {

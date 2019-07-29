@@ -800,8 +800,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void classpath() throws Exception {
     // classpath
-    ts.exec("classpath", true, "Level 2: Java Classloader (loads everything"
-        + " defined by java classpath) URL classpath items are", true);
+    ts.exec("classpath", true,
+        "Level 2: Java Classloader (loads everything defined by java classpath)", true);
   }
 
   @Test

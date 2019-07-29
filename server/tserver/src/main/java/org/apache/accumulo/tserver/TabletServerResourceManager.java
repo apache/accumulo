@@ -113,7 +113,7 @@ public class TabletServerResourceManager {
     return tp;
   }
 
-  private ExecutorService addEs(final Property maxThreads, String name,
+  private ExecutorService addEs(final Property maxThreads, final String name,
       final ThreadPoolExecutor tp) {
     ExecutorService result = addEs(name, tp);
     SimpleTimer.getInstance(tserver.getConfiguration()).schedule(new Runnable() {
@@ -121,17 +121,26 @@ public class TabletServerResourceManager {
       public void run() {
         try {
           int max = tserver.getConfiguration().getCount(maxThreads);
-          if (tp.getMaximumPoolSize() != max) {
-            log.info("Changing " + maxThreads.getKey() + " to " + max);
-            tp.setCorePoolSize(max);
-            tp.setMaximumPoolSize(max);
+          int currentMax = tp.getMaximumPoolSize();
+          if (currentMax != max) {
+            log.info("Changing {} for {} from {} to {}", maxThreads.getKey(), name, currentMax,
+                max);
+            if (max > currentMax) {
+              // increasing, increase the max first, or the core will fail to be increased
+              tp.setMaximumPoolSize(max);
+              tp.setCorePoolSize(max);
+            } else {
+              // decreasing, lower the core size first, or the max will fail to be lowered
+              tp.setCorePoolSize(max);
+              tp.setMaximumPoolSize(max);
+            }
           }
         } catch (Throwable t) {
           log.error("Failed to change thread pool size", t);
         }
       }
 
-    }, 1000, 10 * 1000);
+    }, 1000, 10_000);
     return result;
   }
 
