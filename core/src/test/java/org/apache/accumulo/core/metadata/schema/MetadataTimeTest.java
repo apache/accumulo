@@ -26,17 +26,17 @@ public class MetadataTimeTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testGetInstance_InvalidType() {
-    MetadataTime mTime = MetadataTime.parse("X1234");
+    MetadataTime.parse("X1234");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testGetInstance_Logical_ParseFailure() {
-    MetadataTime mTime = MetadataTime.parse("LABCD");
+    MetadataTime.parse("LABCD");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testGetInstance_Millis_ParseFailure() {
-    MetadataTime mTime = MetadataTime.parse("MABCD");
+    MetadataTime.parse("MABCD");
   }
 
   @Test
