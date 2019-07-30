@@ -1120,18 +1120,41 @@ public class Tablet {
     final ConstraintChecker constraints = constraintChecker.derive();
     final TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
 
-    // Check each mutation for violations.
-    mutations.forEach(mutation -> {
-      Violations violations = constraints.check(cenv, mutation);
-      if (violations != null) {
-        attempt.addViolator(mutation, violations);
-      } else {
-        attempt.addNonViolator(mutation);
+    // Check each mutation for any constraint violations.
+    Violations violations = null;
+    List<Mutation> violators = null;
+    for (Mutation mutation : mutations) {
+      Violations mutationViolations = constraints.check(cenv, mutation);
+      if (mutationViolations != null) {
+        if (violations == null) {
+          violations = new Violations();
+        }
+        if (violators == null) {
+          violators = new ArrayList<>();
+        }
+        violations.add(mutationViolations);
+        violators.add(mutation);
       }
-    });
+    }
+    attempt.setViolations(violations);
+    attempt.setViolators(violators);
 
-    // If there are no violations, or at least some mutations that do not violate the constraints,
-    // attempt to prepare the tablet and retrieve the commit session.
+    // If there are no violations, use the original list for non-violators.
+    if (violations == null) {
+      attempt.setNonViolators(mutations);
+    } else if (violators.size() != mutations.size()) {
+      // Otherwise, find all non-violators.
+      List<Mutation> nonViolators = new ArrayList<>((mutations.size() - violators.size()));
+      for (Mutation mutation : mutations) {
+        if (violators.contains(mutation)) {
+          nonViolators.add(mutation);
+        }
+      }
+      attempt.setNonViolators(nonViolators);
+    }
+
+    // If there are any mutations that do not violate the constraints, attempt to prepare the tablet
+    // and retrieve the commit session.
     if (attempt.hasNonViolators()) {
       long time = tabletTime.setUpdateTimes(mutations);
       attempt.setCommitSession(finishPreparingMutations(time));

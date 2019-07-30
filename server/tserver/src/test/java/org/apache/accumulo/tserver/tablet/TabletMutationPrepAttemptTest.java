@@ -16,12 +16,16 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.accumulo.core.constraints.Violations;
-import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
 import org.junit.Test;
 
@@ -48,35 +52,53 @@ public class TabletMutationPrepAttemptTest {
   }
 
   @Test
-  public void hasViolations_givenEmptyViolations_returnsTrue() {
+  public void hasNonViolators_givenNullNonViolatorList_returnsFalse() {
+    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
+    attempt.setNonViolators(null);
+    assertFalse(attempt.hasNonViolators());
+  }
+
+  @Test
+  public void hasNonViolators_givenEmptyNonViolatorList_returnsFalse() {
+    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
+    attempt.setNonViolators(new ArrayList<>());
+    assertFalse(attempt.hasNonViolators());
+  }
+
+  @Test
+  public void hasNonViolators_givenNonEmptyNonViolatorList_returnsTrue() {
+    List<Mutation> nonViolators = new ArrayList<>();
+    nonViolators.add(mock(Mutation.class));
+    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
+    attempt.setNonViolators(nonViolators);
+    assertTrue(attempt.hasNonViolators());
+  }
+
+  @Test
+  public void hasViolations_givenNullViolations_returnsFalse() {
+    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
+    attempt.setViolations(null);
+    assertFalse(attempt.hasViolations());
+  }
+
+  @Test
+  public void hasViolations_givenEmptyViolations_returnsFalse() {
+    Violations violations = mock(Violations.class);
+    expect(violations.isEmpty()).andReturn(Boolean.TRUE);
+    replay(violations);
+
     TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
     assertFalse(attempt.hasViolations());
   }
 
   @Test
-  public void hasViolations_givenViolator_returnsTrue() {
-    Violations violations = new Violations();
-    violations.add(new ConstraintViolationSummary("clazz", (short) 1, "desc", 1));
-    Mutation mutation = mock(Mutation.class);
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    attempt.addViolator(mutation, violations);
+  public void hasViolations_givenNonEmptyViolations_returnsTrue() {
+    Violations violations = mock(Violations.class);
+    expect(violations.isEmpty()).andReturn(Boolean.FALSE);
+    replay(violations);
 
+    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
+    attempt.setViolations(violations);
     assertTrue(attempt.hasViolations());
-    assertFalse(attempt.getViolators().isEmpty());
-  }
-
-  @Test
-  public void hasNonViolators_byDefault_returnsFalse() {
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    assertFalse(attempt.hasNonViolators());
-  }
-
-  @Test
-  public void hasNonViolator_givenNonViolator_returnsTrue() {
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    attempt.addNonViolator(mock(Mutation.class));
-    assertTrue(attempt.hasNonViolators());
-    assertFalse(attempt.getNonViolators().isEmpty());
-
   }
 }

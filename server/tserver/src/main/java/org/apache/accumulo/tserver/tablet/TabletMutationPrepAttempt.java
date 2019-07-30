@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.constraints.Violations;
@@ -24,10 +23,9 @@ import org.apache.accumulo.core.data.Mutation;
 
 public class TabletMutationPrepAttempt {
 
-  private final Violations violations = new Violations();
-  private List<Mutation> violators = new ArrayList<>();
-  private List<Mutation> nonViolators = new ArrayList<>();
-
+  private Violations violations;
+  private List<Mutation> violators;
+  private List<Mutation> nonViolators;
   private CommitSession commitSession;
   private boolean attemptedTabletPrep;
 
@@ -56,7 +54,7 @@ public class TabletMutationPrepAttempt {
   }
 
   /**
-   * Retrieve the constraint violations found across the mutations. Never null.
+   * Retrieve the constraint violations found across the mutations. Possibly null.
    */
   public Violations getViolations() {
     return violations;
@@ -66,19 +64,18 @@ public class TabletMutationPrepAttempt {
    * Return true if at least one constraint violation was found, or false otherwise.
    */
   public boolean hasViolations() {
-    return !violations.isEmpty();
+    return violations != null && !violations.isEmpty();
   }
 
   /**
-   * Return the list of mutations that violated a constraint. Possibly empty, but never null.
+   * Return the list of mutations that violated a constraint. Possibly null.
    */
   public List<Mutation> getViolators() {
     return violators;
   }
 
   /**
-   * Return the list of mutations that did not violate any constraints. Possibly empty, but never
-   * null.
+   * Return the list of mutations that did not violate any constraints. Possibly null.
    */
   public List<Mutation> getNonViolators() {
     return nonViolators;
@@ -88,7 +85,7 @@ public class TabletMutationPrepAttempt {
    * Return true if at least one mutation that did not violate any constraints was found.
    */
   public boolean hasNonViolators() {
-    return !nonViolators.isEmpty();
+    return nonViolators != null && !nonViolators.isEmpty();
   }
 
   /**
@@ -101,18 +98,23 @@ public class TabletMutationPrepAttempt {
   }
 
   /**
-   * Add a mutation that violates a constraint, along with information about the constraints that it
-   * violated.
+   * Set the constraint violations that were found.
    */
-  void addViolator(final Mutation mutation, final Violations mutationViolations) {
-    violators.add(mutation);
-    violations.add(mutationViolations);
+  void setViolations(final Violations violations) {
+    this.violations = violations;
   }
 
   /**
-   * Add a mutation that did not violate any constraints.
+   * Set the list of mutations that violated constraints.
    */
-  void addNonViolator(final Mutation mutation) {
-    nonViolators.add(mutation);
+  void setViolators(final List<Mutation> violators) {
+    this.violators = violators;
+  }
+
+  /**
+   * Set the list of mutations that did not violate any constraints.
+   */
+  void setNonViolators(final List<Mutation> nonViolators) {
+    this.nonViolators = nonViolators;
   }
 }
