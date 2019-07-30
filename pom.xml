@@ -122,7 +122,7 @@
     <failsafe.groups />
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
-    <hadoop.version>3.1.1</hadoop.version>
+    <hadoop.version>3.1.2</hadoop.version>
     <hk2.version>2.5.0</hk2.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.2.0-incubating</htrace.version>
@@ -132,6 +132,7 @@
     <jaxb.version>2.3.0.1</jaxb.version>
     <jersey.version>2.28</jersey.version>
     <jetty.version>9.4.19.v20190610</jetty.version>
+    <maven.compiler.release>8</maven.compiler.release>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <!-- surefire/failsafe plugin option -->
@@ -878,7 +879,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>3.1.1</version>
           <configuration>
             <quiet>true</quiet>
             <additionalJOption>-J-Xmx512m</additionalJOption>
@@ -944,17 +945,6 @@
           <version>1.5.0</version>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-enforcer-plugin</artifactId>
-          <dependencies>
-            <dependency>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>animal-sniffer-enforcer-rule</artifactId>
-              <version>1.18</version>
-            </dependency>
-          </dependencies>
-        </plugin>
-        <plugin>
           <!-- Allows us to get the apache-ds bundle artifacts -->
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
@@ -1008,7 +998,7 @@
         <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>impsort-maven-plugin</artifactId>
-          <version>1.2.0</version>
+          <version>1.3.0</version>
           <configuration>
             <removeUnused>true</removeUnused>
             <groups>java.,javax.,org.,com.</groups>
@@ -1116,26 +1106,8 @@
                   <version>[3.5.0,)</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
-                  <version>[${maven.compiler.target},)</version>
+                  <version>[11,)</version>
                 </requireJavaVersion>
-              </rules>
-            </configuration>
-          </execution>
-          <execution>
-            <id>enforce-java-signatures</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <phase>process-test-classes</phase>
-            <configuration>
-              <rules>
-                <checkSignatureRule implementation="org.codehaus.mojo.animal_sniffer.enforcer.CheckSignatureRule">
-                  <signature>
-                    <groupId>org.codehaus.mojo.signature</groupId>
-                    <artifactId>java18</artifactId>
-                    <version>1.0</version>
-                  </signature>
-                </checkSignatureRule>
               </rules>
             </configuration>
           </execution>
@@ -1353,10 +1325,6 @@
           <name>m2e.version</name>
         </property>
       </activation>
-      <properties>
-        <!-- enforces Java 8 compiler compliance, even when Eclipse uses JDK 9 or later -->
-        <maven.compiler.release>8</maven.compiler.release>
-      </properties>
       <build>
         <pluginManagement>
           <plugins>
@@ -1632,15 +1600,6 @@
           </plugin>
         </plugins>
       </build>
-    </profile>
-    <profile>
-      <id>jdk-release-flag</id>
-      <activation>
-        <jdk>[9,)</jdk>
-      </activation>
-      <properties>
-        <maven.compiler.release>8</maven.compiler.release>
-      </properties>
     </profile>
   </profiles>
 </project>
