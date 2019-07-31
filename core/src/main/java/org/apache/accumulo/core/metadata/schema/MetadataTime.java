@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.admin.TimeType;
 /**
  * Immutable metadata time object
  */
-public final class MetadataTime {
+public final class MetadataTime implements Comparable<MetadataTime> {
   private final long time;
   private final TimeType type;
 
@@ -43,7 +43,7 @@ public final class MetadataTime {
   public static MetadataTime parse(String timestr) throws IllegalArgumentException {
 
     if (timestr != null && timestr.length() > 1) {
-      return new MetadataTime(Long.parseLong(timestr.substring(1)), valueOf(timestr.charAt(0)));
+      return new MetadataTime(Long.parseLong(timestr.substring(1)), getType(timestr.charAt(0)));
     } else
       throw new IllegalArgumentException("Unknown metadata time value " + timestr);
   }
@@ -55,7 +55,7 @@ public final class MetadataTime {
    *          character M or L otherwise exception thrown
    * @return a TimeType {@link TimeType} represented by code.
    */
-  public static TimeType valueOf(char code) {
+  public static TimeType getType(char code) {
     switch (code) {
       case 'M':
         return TimeType.MILLIS;
@@ -108,6 +108,15 @@ public final class MetadataTime {
   @Override
   public int hashCode() {
     return Objects.hash(time, type);
+  }
+
+  @Override
+  public int compareTo(MetadataTime mtime) {
+    if (this.type.equals(mtime.getType()))
+      return Long.compare(this.time, mtime.getTime());
+    else
+      throw new IllegalArgumentException(
+          "Cannot compare different time types: " + this + " and " + mtime);
   }
 
 }

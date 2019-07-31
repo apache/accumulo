@@ -18,6 +18,7 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.junit.Test;
@@ -26,17 +27,17 @@ public class MetadataTimeTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testGetInstance_InvalidType() {
-    MetadataTime mTime = MetadataTime.parse("X1234");
+    MetadataTime.parse("X1234");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testGetInstance_Logical_ParseFailure() {
-    MetadataTime mTime = MetadataTime.parse("LABCD");
+    MetadataTime.parse("LABCD");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testGetInstance_Millis_ParseFailure() {
-    MetadataTime mTime = MetadataTime.parse("MABCD");
+    MetadataTime.parse("MABCD");
   }
 
   @Test
@@ -48,9 +49,9 @@ public class MetadataTimeTest {
 
   @Test
   public void testGetInstance_Logical() {
-    MetadataTime mTime = new MetadataTime(1234, TimeType.LOGICAL);
-    assertEquals(1234, mTime.getTime());
-    assertEquals(TimeType.LOGICAL, mTime.getType());
+    MetadataTime lTime = new MetadataTime(1234, TimeType.LOGICAL);
+    assertEquals(1234, lTime.getTime());
+    assertEquals(TimeType.LOGICAL, lTime.getType());
 
   }
 
@@ -63,17 +64,17 @@ public class MetadataTimeTest {
 
   @Test
   public void testValueOfM() {
-    assertEquals(TimeType.MILLIS, MetadataTime.valueOf('M'));
+    assertEquals(TimeType.MILLIS, MetadataTime.getType('M'));
   }
 
   @Test
   public void testValueOfL() {
-    assertEquals(TimeType.LOGICAL, MetadataTime.valueOf('L'));
+    assertEquals(TimeType.LOGICAL, MetadataTime.getType('L'));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testValueOfOtherChar() {
-    MetadataTime.valueOf('x');
+    MetadataTime.getType('x');
   }
 
   @Test
@@ -100,4 +101,50 @@ public class MetadataTimeTest {
     assertEquals("L45678", new MetadataTime(45678, TimeType.LOGICAL).encode());
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testCompareTypesDiffer1() {
+    MetadataTime mTime = new MetadataTime(1234, TimeType.MILLIS);
+    MetadataTime lTime = new MetadataTime(1234, TimeType.LOGICAL);
+    mTime.compareTo(lTime);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testCompareTypesDiffer2() {
+    MetadataTime mTime = new MetadataTime(1234, TimeType.MILLIS);
+    MetadataTime lTime = new MetadataTime(1234, TimeType.LOGICAL);
+    lTime.compareTo(mTime);
+  }
+
+  @Test
+  public void testCompareSame() {
+    MetadataTime mTime1 = new MetadataTime(1234, TimeType.MILLIS);
+    MetadataTime mTime2 = new MetadataTime(1234, TimeType.MILLIS);
+    assertTrue(mTime1.compareTo(mTime2) == 0);
+
+    MetadataTime lTime1 = new MetadataTime(1234, TimeType.LOGICAL);
+    MetadataTime lTime2 = new MetadataTime(1234, TimeType.LOGICAL);
+    assertTrue(lTime1.compareTo(lTime2) == 0);
+  }
+
+  @Test
+  public void testCompare1() {
+    MetadataTime mTime1 = new MetadataTime(1234, TimeType.MILLIS);
+    MetadataTime mTime2 = new MetadataTime(5678, TimeType.MILLIS);
+    assertTrue(mTime1.compareTo(mTime2) < 0);
+
+    MetadataTime lTime1 = new MetadataTime(1234, TimeType.LOGICAL);
+    MetadataTime lTime2 = new MetadataTime(5678, TimeType.LOGICAL);
+    assertTrue(lTime1.compareTo(lTime2) < 0);
+  }
+
+  @Test
+  public void testCompare2() {
+    MetadataTime mTime1 = new MetadataTime(1234, TimeType.MILLIS);
+    MetadataTime mTime2 = new MetadataTime(5678, TimeType.MILLIS);
+    assertTrue(mTime2.compareTo(mTime1) > 0);
+
+    MetadataTime lTime1 = new MetadataTime(1234, TimeType.LOGICAL);
+    MetadataTime lTime2 = new MetadataTime(5678, TimeType.LOGICAL);
+    assertTrue(lTime2.compareTo(lTime1) > 0);
+  }
 }

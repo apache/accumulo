@@ -33,6 +33,10 @@ import org.junit.Test;
 public class TabletTimeTest {
   private static final long TIME = 1234L;
   private MillisTime mtime;
+  private static final MetadataTime m1234 = new MetadataTime(1234, TimeType.MILLIS);
+  private static final MetadataTime m5678 = new MetadataTime(5678, TimeType.MILLIS);
+  private static final MetadataTime l1234 = new MetadataTime(1234, TimeType.LOGICAL);
+  private static final MetadataTime l5678 = new MetadataTime(5678, TimeType.LOGICAL);
 
   @Before
   public void setUp() {
@@ -65,72 +69,44 @@ public class TabletTimeTest {
 
   @Test
   public void testMaxMetadataTime_Logical() {
-    assertEquals("L5678", TabletTime.maxMetadataTime("L1234", "L5678"));
-    assertEquals("L5678", TabletTime.maxMetadataTime("L5678", "L1234"));
-    assertEquals("L5678", TabletTime.maxMetadataTime("L5678", "L5678"));
+    assertEquals(l5678, TabletTime.maxMetadataTime(l1234, l5678));
+    assertEquals(l5678, TabletTime.maxMetadataTime(l5678, l1234));
+    assertEquals(l5678, TabletTime.maxMetadataTime(l5678, l5678));
   }
 
   @Test
   public void testMaxMetadataTime_Millis() {
-    assertEquals("M5678", TabletTime.maxMetadataTime("M1234", "M5678"));
-    assertEquals("M5678", TabletTime.maxMetadataTime("M5678", "M1234"));
-    assertEquals("M5678", TabletTime.maxMetadataTime("M5678", "M5678"));
+    assertEquals(m5678, TabletTime.maxMetadataTime(m1234, m5678));
+    assertEquals(m5678, TabletTime.maxMetadataTime(m5678, m1234));
+    assertEquals(m5678, TabletTime.maxMetadataTime(m5678, m5678));
   }
 
   @Test
   public void testMaxMetadataTime_Null1() {
-    assertEquals("L5678", TabletTime.maxMetadataTime(null, "L5678"));
-    assertEquals("M5678", TabletTime.maxMetadataTime(null, "M5678"));
+    assertEquals(l5678, TabletTime.maxMetadataTime(null, l5678));
+    assertEquals(m5678, TabletTime.maxMetadataTime(null, m5678));
   }
 
   @Test
   public void testMaxMetadataTime_Null2() {
-    assertEquals("L5678", TabletTime.maxMetadataTime("L5678", null));
-    assertEquals("M5678", TabletTime.maxMetadataTime("M5678", null));
+    assertEquals(l5678, TabletTime.maxMetadataTime(l5678, null));
+    assertEquals(m5678, TabletTime.maxMetadataTime(m5678, null));
   }
 
   @Test
   public void testMaxMetadataTime_Null3() {
-    assertNull(TabletTime.maxMetadataTime(null, null));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testMaxMetadataTime_Null1_Invalid() {
-    TabletTime.maxMetadataTime(null, "X5678");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testMaxMetadataTime_Null2_Invalid() {
-    TabletTime.maxMetadataTime("X5678", null);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testMaxMetadataTime_Invalid1() {
-    TabletTime.maxMetadataTime("X1234", "L5678");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testMaxMetadataTime_Invalid2() {
-    TabletTime.maxMetadataTime("L1234", "X5678");
+    MetadataTime nullTime = null;
+    assertNull(TabletTime.maxMetadataTime(nullTime, nullTime));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testMaxMetadataTime_DifferentTypes1() {
-    TabletTime.maxMetadataTime("L1234", "M5678");
+    TabletTime.maxMetadataTime(l1234, m5678);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testMaxMetadataTime_DifferentTypes2() {
-    TabletTime.maxMetadataTime("X1234", "Y5678");
+    TabletTime.maxMetadataTime(m1234, l5678);
   }
 
-  @Test(expected = NumberFormatException.class)
-  public void testMaxMetadataTime_ParseFailure1() {
-    TabletTime.maxMetadataTime("L1234", "LABCD");
-  }
-
-  @Test(expected = NumberFormatException.class)
-  public void testMaxMetadataTime_ParseFailure2() {
-    TabletTime.maxMetadataTime("LABCD", "L5678");
-  }
 }
