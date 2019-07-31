@@ -16,14 +16,15 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.Mutation;
@@ -31,74 +32,47 @@ import org.junit.Test;
 
 public class TabletMutationPrepAttemptTest {
 
-  @Test
-  public void attemptedTabletPrep_byDefault_returnsFalse() {
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    assertFalse(attempt.attemptedTabletPrep());
+  public void ensureTabletClosed() {
+    PreparedMutations prepared = new PreparedMutations();
+    assertTrue(prepared.tabletClosed());
   }
 
-  @Test
-  public void attemptedTabletPrep_givenNullCommitSessionSet_returnsTrue() {
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    attempt.setCommitSession(null);
-    assertTrue(attempt.attemptedTabletPrep());
+  @Test(expected = IllegalStateException.class)
+  public void callGetSessionWhenClosed() {
+    PreparedMutations prepared = new PreparedMutations();
+    prepared.getCommitSession();
   }
 
-  @Test
-  public void attemptedTabletPrep_givenNonNullCommitSessionSet_returnsTrue() {
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    attempt.setCommitSession(mock(CommitSession.class));
-    assertTrue(attempt.attemptedTabletPrep());
+  @Test(expected = IllegalStateException.class)
+  public void callGetNonViolatorsWhenClosed() {
+    PreparedMutations prepared = new PreparedMutations();
+    prepared.getNonViolators();
   }
 
-  @Test
-  public void hasNonViolators_givenNullNonViolatorList_returnsFalse() {
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    attempt.setNonViolators(null);
-    assertFalse(attempt.hasNonViolators());
+  @Test(expected = IllegalStateException.class)
+  public void callGetViolatorsWhenClosed() {
+    PreparedMutations prepared = new PreparedMutations();
+    prepared.getViolators();
   }
 
-  @Test
-  public void hasNonViolators_givenEmptyNonViolatorList_returnsFalse() {
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    attempt.setNonViolators(new ArrayList<>());
-    assertFalse(attempt.hasNonViolators());
+  @Test(expected = IllegalStateException.class)
+  public void callGetViolationsWhenClosed() {
+    PreparedMutations prepared = new PreparedMutations();
+    prepared.getViolations();
   }
 
-  @Test
-  public void hasNonViolators_givenNonEmptyNonViolatorList_returnsTrue() {
-    List<Mutation> nonViolators = new ArrayList<>();
-    nonViolators.add(mock(Mutation.class));
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    attempt.setNonViolators(nonViolators);
-    assertTrue(attempt.hasNonViolators());
-  }
+  public void testTabletOpen() {
+    CommitSession cs = mock(CommitSession.class);
+    List<Mutation> nonViolators = new ArrayList<Mutation>();
+    Violations violations = new Violations();
+    Set<Mutation> violators = new HashSet<Mutation>();
 
-  @Test
-  public void hasViolations_givenNullViolations_returnsFalse() {
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    attempt.setViolations(null);
-    assertFalse(attempt.hasViolations());
-  }
+    PreparedMutations prepared = new PreparedMutations(cs, nonViolators, violations, violators);
 
-  @Test
-  public void hasViolations_givenEmptyViolations_returnsFalse() {
-    Violations violations = mock(Violations.class);
-    expect(violations.isEmpty()).andReturn(Boolean.TRUE);
-    replay(violations);
-
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    assertFalse(attempt.hasViolations());
-  }
-
-  @Test
-  public void hasViolations_givenNonEmptyViolations_returnsTrue() {
-    Violations violations = mock(Violations.class);
-    expect(violations.isEmpty()).andReturn(Boolean.FALSE);
-    replay(violations);
-
-    TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
-    attempt.setViolations(violations);
-    assertTrue(attempt.hasViolations());
+    assertFalse(prepared.tabletClosed());
+    assertSame(cs, prepared.getCommitSession());
+    assertSame(nonViolators, prepared.getNonViolators());
+    assertSame(violations, prepared.getViolations());
+    assertSame(violators, prepared.getNonViolators());
   }
 }
