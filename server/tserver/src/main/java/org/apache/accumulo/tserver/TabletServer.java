@@ -255,6 +255,7 @@ import org.apache.accumulo.tserver.tablet.CompactionInfo;
 import org.apache.accumulo.tserver.tablet.CompactionWatcher;
 import org.apache.accumulo.tserver.tablet.Compactor;
 import org.apache.accumulo.tserver.tablet.KVEntry;
+import org.apache.accumulo.tserver.tablet.PreparedMutations;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
@@ -1080,38 +1081,33 @@ public class TabletServer extends AbstractServer {
             try {
               updateMetrics.addMutationArraySize(mutations.size());
 
-              CommitSession commitSession = tablet.prepareMutationsForCommit(us.cenv, mutations);
-              if (commitSession == null) {
+              PreparedMutations prepared = tablet.prepareMutationsForCommit(us.cenv, mutations);
+
+              if (prepared.tabletClosed()) {
                 if (us.currentTablet == tablet) {
                   us.currentTablet = null;
                 }
                 us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
               } else {
-                if (durability != Durability.NONE) {
-                  loggables.put(commitSession,
-                      new TabletMutations(commitSession, mutations, durability));
+                if (!prepared.getNonViolators().isEmpty()) {
+                  List<Mutation> validMutations = prepared.getNonViolators();
+                  CommitSession session = prepared.getCommitSession();
+                  if (durability != Durability.NONE) {
+                    loggables.put(session,
+                        new TabletMutations(session, validMutations, durability));
+                  }
+                  sendables.put(session, validMutations);
                 }
-                sendables.put(commitSession, mutations);
+
+                if (!prepared.getViolations().isEmpty()) {
+                  us.violations.add(prepared.getViolations());
+                  updateMetrics.addConstraintViolations(0);
+                }
+                // Use the size of the original mutation list, regardless of how many mutations
+                // did not violate constraints.
                 mutationCount += mutations.size();
+
               }
-
-            } catch (TConstraintViolationException e) {
-              us.violations.add(e.getViolations());
-              updateMetrics.addConstraintViolations(0);
-
-              if (e.getNonViolators().size() > 0) {
-                // only log and commit mutations if there were some
-                // that did not violate constraints... this is what
-                // prepareMutationsForCommit() expects
-                CommitSession cs = e.getCommitSession();
-                if (durability != Durability.NONE) {
-                  loggables.put(cs, new TabletMutations(cs, e.getNonViolators(), durability));
-                }
-                sendables.put(cs, e.getNonViolators());
-              }
-
-              mutationCount += mutations.size();
-
             } catch (Throwable t) {
               error = t;
               log.error("Unexpected error preparing for commit", error);
@@ -1286,35 +1282,38 @@ public class TabletServer extends AbstractServer {
         final Mutation mutation = new ServerMutation(tmutation);
         final List<Mutation> mutations = Collections.singletonList(mutation);
 
-        CommitSession cs;
+        PreparedMutations prepared;
         try (TraceScope prep = Trace.startSpan("prep")) {
-          cs = tablet.prepareMutationsForCommit(
+          prepared = tablet.prepareMutationsForCommit(
               new TservConstraintEnv(getContext(), security, credentials), mutations);
         }
-        if (cs == null) {
-          throw new NotServingTabletException(tkeyExtent);
-        }
 
-        Durability durability = DurabilityImpl
-            .resolveDurabilty(DurabilityImpl.fromThrift(tdurability), tabletDurability);
-        // instead of always looping on true, skip completely when durability is NONE
-        while (durability != Durability.NONE) {
-          try {
-            try (TraceScope wal = Trace.startSpan("wal")) {
-              logger.log(cs, mutation, durability);
+        if (prepared.tabletClosed()) {
+          throw new NotServingTabletException(tkeyExtent);
+        } else if (!prepared.getViolators().isEmpty()) {
+          throw new ConstraintViolationException(
+              Translator.translate(prepared.getViolations().asList(), Translators.CVST));
+        } else {
+          CommitSession session = prepared.getCommitSession();
+          Durability durability = DurabilityImpl
+              .resolveDurabilty(DurabilityImpl.fromThrift(tdurability), tabletDurability);
+
+          // Instead of always looping on true, skip completely when durability is NONE.
+          while (durability != Durability.NONE) {
+            try {
+              try (TraceScope wal = Trace.startSpan("wal")) {
+                logger.log(session, mutation, durability);
+              }
+              break;
+            } catch (IOException ex) {
+              log.warn("Error writing mutations to log", ex);
             }
-            break;
-          } catch (IOException ex) {
-            log.warn("Error writing mutations to log", ex);
+          }
+
+          try (TraceScope commit = Trace.startSpan("commit")) {
+            session.commit(mutations);
           }
         }
-
-        try (TraceScope commit = Trace.startSpan("commit")) {
-          cs.commit(mutations);
-        }
-      } catch (TConstraintViolationException e) {
-        throw new ConstraintViolationException(
-            Translator.translate(e.getViolations().asList(), Translators.CVST));
       } finally {
         writeTracker.finishWrite(opid);
       }
@@ -1392,52 +1391,36 @@ public class TabletServer extends AbstractServer {
         for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : es) {
           final Tablet tablet = getOnlineTablet(entry.getKey());
           if (tablet == null || tablet.isClosed() || sessionCanceled) {
-            for (ServerConditionalMutation scm : entry.getValue()) {
-              results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
-            }
+            addMutationsAsTCMResults(results, entry.getValue(), TCMStatus.IGNORED);
           } else {
             final Durability durability =
                 DurabilityImpl.resolveDurabilty(sess.durability, tablet.getDurability());
-            try {
 
-              @SuppressWarnings("unchecked")
-              List<Mutation> mutations =
-                  (List<Mutation>) (List<? extends Mutation>) entry.getValue();
-              if (mutations.size() > 0) {
+            @SuppressWarnings("unchecked")
+            List<Mutation> mutations = (List<Mutation>) (List<? extends Mutation>) entry.getValue();
+            if (!mutations.isEmpty()) {
 
-                CommitSession cs = tablet.prepareMutationsForCommit(
-                    new TservConstraintEnv(getContext(), security, sess.credentials), mutations);
+              PreparedMutations prepared = tablet.prepareMutationsForCommit(
+                  new TservConstraintEnv(getContext(), security, sess.credentials), mutations);
 
-                if (cs == null) {
-                  for (ServerConditionalMutation scm : entry.getValue()) {
-                    results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
-                  }
-                } else {
-                  for (ServerConditionalMutation scm : entry.getValue()) {
-                    results.add(new TCMResult(scm.getID(), TCMStatus.ACCEPTED));
-                  }
+              if (prepared.tabletClosed()) {
+                addMutationsAsTCMResults(results, mutations, TCMStatus.IGNORED);
+              } else {
+                if (!prepared.getNonViolators().isEmpty()) {
+                  // Only log and commit mutations that did not violate constraints.
+                  List<Mutation> validMutations = prepared.getNonViolators();
+                  addMutationsAsTCMResults(results, validMutations, TCMStatus.ACCEPTED);
+                  CommitSession session = prepared.getCommitSession();
                   if (durability != Durability.NONE) {
-                    loggables.put(cs, new TabletMutations(cs, mutations, durability));
+                    loggables.put(session,
+                        new TabletMutations(session, validMutations, durability));
                   }
-                  sendables.put(cs, mutations);
+                  sendables.put(session, validMutations);
                 }
-              }
-            } catch (TConstraintViolationException e) {
-              CommitSession cs = e.getCommitSession();
-              if (e.getNonViolators().size() > 0) {
-                if (durability != Durability.NONE) {
-                  loggables.put(cs, new TabletMutations(cs, e.getNonViolators(), durability));
-                }
-                sendables.put(cs, e.getNonViolators());
-                for (Mutation m : e.getNonViolators()) {
-                  results.add(
-                      new TCMResult(((ServerConditionalMutation) m).getID(), TCMStatus.ACCEPTED));
-                }
-              }
 
-              for (Mutation m : e.getViolators()) {
-                results.add(
-                    new TCMResult(((ServerConditionalMutation) m).getID(), TCMStatus.VIOLATED));
+                if (!prepared.getViolators().isEmpty()) {
+                  addMutationsAsTCMResults(results, prepared.getViolators(), TCMStatus.VIOLATED);
+                }
               }
             }
           }
@@ -1471,7 +1454,17 @@ public class TabletServer extends AbstractServer {
         long t2 = System.currentTimeMillis();
         updateAvgCommitTime(t2 - t1, sendables.size());
       }
+    }
 
+    /**
+     * Transform and add each mutation as a {@link TCMResult} with the mutation's ID and the
+     * specified status to the {@link TCMResult} list.
+     */
+    private void addMutationsAsTCMResults(final List<TCMResult> list,
+        final Collection<? extends Mutation> mutations, final TCMStatus status) {
+      mutations.stream()
+          .map(mutation -> new TCMResult(((ServerConditionalMutation) mutation).getID(), status))
+          .forEach(list::add);
     }
 
     private Map<KeyExtent,List<ServerConditionalMutation>> conditionalUpdate(ConditionalSession cs,
