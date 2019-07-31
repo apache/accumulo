@@ -1114,52 +1114,60 @@ public class Tablet {
     return commitSession;
   }
 
-  public TabletMutationPrepAttempt prepareMutationsForCommit(final TservConstraintEnv cenv,
+  public PreparedMutations prepareMutationsForCommit(final TservConstraintEnv cenv,
       final List<Mutation> mutations) {
     cenv.setExtent(extent);
     final ConstraintChecker constraints = constraintChecker.derive();
-    final TabletMutationPrepAttempt attempt = new TabletMutationPrepAttempt();
 
     // Check each mutation for any constraint violations.
     Violations violations = null;
-    List<Mutation> violators = null;
+    Set<Mutation> violators = null;
+    List<Mutation> nonViolators = null;
+
     for (Mutation mutation : mutations) {
       Violations mutationViolations = constraints.check(cenv, mutation);
       if (mutationViolations != null) {
         if (violations == null) {
           violations = new Violations();
+          violators = new HashSet<>();
         }
-        if (violators == null) {
-          violators = new ArrayList<>();
-        }
+
         violations.add(mutationViolations);
         violators.add(mutation);
       }
     }
-    attempt.setViolations(violations);
-    attempt.setViolators(violators);
 
-    // If there are no violations, use the original list for non-violators.
     if (violations == null) {
-      attempt.setNonViolators(mutations);
+      // If there are no violations, use the original list for non-violators.
+      nonViolators = mutations;
+      violators = Collections.emptySet();
+      violations = Violations.EMPTY;
     } else if (violators.size() != mutations.size()) {
       // Otherwise, find all non-violators.
-      List<Mutation> nonViolators = new ArrayList<>((mutations.size() - violators.size()));
+      nonViolators = new ArrayList<>((mutations.size() - violators.size()));
       for (Mutation mutation : mutations) {
-        if (violators.contains(mutation)) {
+        if (!violators.contains(mutation)) {
           nonViolators.add(mutation);
         }
       }
-      attempt.setNonViolators(nonViolators);
+    } else {
+      // all mutations violated a constraint
+      nonViolators = Collections.emptyList();
     }
 
     // If there are any mutations that do not violate the constraints, attempt to prepare the tablet
     // and retrieve the commit session.
-    if (attempt.hasNonViolators()) {
-      long time = tabletTime.setUpdateTimes(mutations);
-      attempt.setCommitSession(finishPreparingMutations(time));
+    CommitSession cs = null;
+    if (!nonViolators.isEmpty()) {
+      long time = tabletTime.setUpdateTimes(nonViolators);
+      cs = finishPreparingMutations(time);
+      if (cs == null) {
+        // tablet is closed
+        return new PreparedMutations();
+      }
     }
-    return attempt;
+
+    return new PreparedMutations(cs, nonViolators, violations, violators);
   }
 
   private synchronized void incrementWritesInProgress(CommitSession cs) {

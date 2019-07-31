@@ -254,11 +254,11 @@ import org.apache.accumulo.tserver.tablet.CompactionInfo;
 import org.apache.accumulo.tserver.tablet.CompactionWatcher;
 import org.apache.accumulo.tserver.tablet.Compactor;
 import org.apache.accumulo.tserver.tablet.KVEntry;
+import org.apache.accumulo.tserver.tablet.PreparedMutations;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.apache.accumulo.tserver.tablet.TabletData;
-import org.apache.accumulo.tserver.tablet.TabletMutationPrepAttempt;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
@@ -1047,36 +1047,32 @@ public class TabletServer extends AbstractServer {
             try {
               updateMetrics.addMutationArraySize(mutations.size());
 
-              TabletMutationPrepAttempt attempt =
-                  tablet.prepareMutationsForCommit(us.cenv, mutations);
+              PreparedMutations prepared = tablet.prepareMutationsForCommit(us.cenv, mutations);
 
-              if (attempt.attemptedTabletPrep()) {
-                if (!attempt.hasCommitSession()) {
-                  if (us.currentTablet == tablet) {
-                    us.currentTablet = null;
-                  }
-                  us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
-                } else {
-                  // Only log and commit mutations that did not violate constraints.
-                  List<Mutation> validMutations = attempt.getNonViolators();
-                  CommitSession session = attempt.getCommitSession();
+              if (prepared.tabletClosed()) {
+                if (us.currentTablet == tablet) {
+                  us.currentTablet = null;
+                }
+                us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
+              } else {
+                if (!prepared.getNonViolators().isEmpty()) {
+                  List<Mutation> validMutations = prepared.getNonViolators();
+                  CommitSession session = prepared.getCommitSession();
                   if (durability != Durability.NONE) {
                     loggables.put(session,
                         new TabletMutations(session, validMutations, durability));
                   }
                   sendables.put(session, validMutations);
-
-                  // Use the size of the original mutation list, regardless of how many mutations
-                  // did not violate constraints.
-                  mutationCount += mutations.size();
                 }
-              }
 
-              // Include information about any violations if every mutation violated constraints
-              // or if there were some non-violators and the tablet is available for commit.
-              if (hasViolationsAndMayHaveWritableNonViolators(attempt)) {
-                us.violations.add(attempt.getViolations());
-                updateMetrics.addConstraintViolations(0);
+                if (!prepared.getViolations().isEmpty()) {
+                  us.violations.add(prepared.getViolations());
+                  updateMetrics.addConstraintViolations(0);
+                }
+                // Use the size of the original mutation list, regardless of how many mutations
+                // did not violate constraints.
+                mutationCount += mutations.size();
+
               }
             } catch (Throwable t) {
               error = t;
@@ -1250,27 +1246,19 @@ public class TabletServer extends AbstractServer {
         final Mutation mutation = new ServerMutation(tmutation);
         final List<Mutation> mutations = Collections.singletonList(mutation);
 
-        TabletMutationPrepAttempt attempt;
+        PreparedMutations prepared;
         try (TraceScope prep = Trace.startSpan("prep")) {
-          attempt = tablet.prepareMutationsForCommit(
+          prepared = tablet.prepareMutationsForCommit(
               new TservConstraintEnv(getContext(), security, credentials), mutations);
         }
 
-        // If every mutation violated constraints or if there were some non-violators and the tablet
-        // is available for commit, throw an exception with the violations.
-        if (hasViolationsAndMayHaveWritableNonViolators(attempt)) {
-          throw new ConstraintViolationException(
-              Translator.translate(attempt.getViolations().asList(), Translators.CVST));
-        }
-
-        // A tablet update was attempted, but the tablet is not available for commits.
-        if (attempt.attemptedTabletPrep() && !attempt.hasCommitSession()) {
+        if (prepared.tabletClosed()) {
           throw new NotServingTabletException(tkeyExtent);
-        }
-
-        // There were no violations and the tablet is available.
-        if (attempt.hasCommitSession() && !attempt.hasViolations()) {
-          CommitSession session = attempt.getCommitSession();
+        } else if (!prepared.getViolators().isEmpty()) {
+          throw new ConstraintViolationException(
+              Translator.translate(prepared.getViolations().asList(), Translators.CVST));
+        } else {
+          CommitSession session = prepared.getCommitSession();
           Durability durability = DurabilityImpl
               .resolveDurabilty(DurabilityImpl.fromThrift(tdurability), tabletDurability);
 
@@ -1290,7 +1278,6 @@ public class TabletServer extends AbstractServer {
             session.commit(mutations);
           }
         }
-
       } finally {
         writeTracker.finishWrite(opid);
       }
@@ -1377,30 +1364,27 @@ public class TabletServer extends AbstractServer {
             List<Mutation> mutations = (List<Mutation>) (List<? extends Mutation>) entry.getValue();
             if (!mutations.isEmpty()) {
 
-              TabletMutationPrepAttempt attempt = tablet.prepareMutationsForCommit(
+              PreparedMutations prepared = tablet.prepareMutationsForCommit(
                   new TservConstraintEnv(getContext(), security, sess.credentials), mutations);
 
-              if (attempt.attemptedTabletPrep()) {
-                // If the tablet is not available for commits, consider each mutation IGNORED.
-                if (!attempt.hasCommitSession()) {
-                  addMutationsAsTCMResults(results, mutations, TCMStatus.IGNORED);
-                } else {
+              if (prepared.tabletClosed()) {
+                addMutationsAsTCMResults(results, mutations, TCMStatus.IGNORED);
+              } else {
+                if (!prepared.getNonViolators().isEmpty()) {
                   // Only log and commit mutations that did not violate constraints.
-                  List<Mutation> validMutations = attempt.getNonViolators();
+                  List<Mutation> validMutations = prepared.getNonViolators();
                   addMutationsAsTCMResults(results, validMutations, TCMStatus.ACCEPTED);
-                  CommitSession session = attempt.getCommitSession();
+                  CommitSession session = prepared.getCommitSession();
                   if (durability != Durability.NONE) {
                     loggables.put(session,
                         new TabletMutations(session, validMutations, durability));
                   }
                   sendables.put(session, validMutations);
                 }
-              }
 
-              // Include information about any violations if every mutation violated constraints
-              // or if there were some non-violators and the tablet is available for commit.
-              if (hasViolationsAndMayHaveWritableNonViolators(attempt)) {
-                addMutationsAsTCMResults(results, attempt.getViolators(), TCMStatus.VIOLATED);
+                if (!prepared.getViolators().isEmpty()) {
+                  addMutationsAsTCMResults(results, prepared.getViolators(), TCMStatus.VIOLATED);
+                }
               }
             }
           }
@@ -1434,16 +1418,6 @@ public class TabletServer extends AbstractServer {
         long t2 = System.currentTimeMillis();
         updateAvgCommitTime(t2 - t1, sendables.size());
       }
-    }
-
-    /**
-     * Return true if and only if the attempt has at least one mutation that violated constraints,
-     * and either no valid mutations, or some valid mutations and the commit session was available
-     * from the tablet's memory.
-     */
-    private boolean
-        hasViolationsAndMayHaveWritableNonViolators(final TabletMutationPrepAttempt attempt) {
-      return attempt.hasViolations() && (!attempt.hasNonViolators() || attempt.hasCommitSession());
     }
 
     /**
