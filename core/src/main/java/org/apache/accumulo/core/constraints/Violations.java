@@ -17,8 +17,10 @@
 package org.apache.accumulo.core.constraints;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -55,13 +57,19 @@ public class Violations {
     }
   }
 
-  private HashMap<CVSKey,ConstraintViolationSummary> cvsmap;
+  public static final Violations EMPTY = new Violations(Collections.emptyMap());
+
+  private Map<CVSKey,ConstraintViolationSummary> cvsmap;
 
   /**
    * Creates a new empty object.
    */
   public Violations() {
     cvsmap = new HashMap<>();
+  }
+
+  private Violations(Map<CVSKey,ConstraintViolationSummary> cvsmap) {
+    this.cvsmap = cvsmap;
   }
 
   /**
