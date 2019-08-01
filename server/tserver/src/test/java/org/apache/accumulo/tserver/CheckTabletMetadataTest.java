@@ -63,7 +63,7 @@ public class CheckTabletMetadataTest {
           EnumSet.allOf(ColumnType.class), true);
       assertFalse(TabletServer.checkTabletMetadata(ke, tsi, tm));
     } catch (Exception e) {
-
+      e.printStackTrace();
     }
   }
 
@@ -76,7 +76,7 @@ public class CheckTabletMetadataTest {
           EnumSet.allOf(ColumnType.class), true);
       assertFalse(TabletServer.checkTabletMetadata(ke, tsi, tm));
     } catch (Exception e) {
-      // exception is expected
+      e.printStackTrace();
     }
   }
 

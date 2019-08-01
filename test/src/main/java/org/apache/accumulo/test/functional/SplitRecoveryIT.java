@@ -65,7 +65,6 @@ import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -220,7 +219,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       assertEquals(splitRatio, meta.getSplitRatio(), 0.0);
 
     if (steps >= 1) {
-      Assert.assertEquals(high, fixedExtent);
+      assertEquals(high, fixedExtent);
       ensureTabletHasNoUnexpectedMetadataEntries(context, low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(context, high, highDatafileSizes);
 
@@ -235,7 +234,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         throw new Exception(" no bulk files " + low);
       }
     } else {
-      Assert.assertEquals(extent, fixedExtent);
+      assertEquals(extent, fixedExtent);
       ensureTabletHasNoUnexpectedMetadataEntries(context, extent, mapFiles);
     }
   }
