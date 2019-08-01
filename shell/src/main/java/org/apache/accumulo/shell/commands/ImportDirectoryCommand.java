@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
 
 public class ImportDirectoryCommand extends Command {
 
@@ -38,19 +39,11 @@ public class ImportDirectoryCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    boolean tableOptPassed = cl.hasOption(OptUtil.tableOpt().getOpt());
-
-    final String tableName;
-
-    if (tableOptPassed) {
-      tableName = OptUtil.getTableOpt(cl, shellState);
-    } else {
-      tableName = shellState.getTableName();
-      shellState.checkTableState();
-    }
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     String dir = cl.getArgs()[0];
     String failureDir = cl.getArgs()[1];
+
     final boolean setTime = Boolean.parseBoolean(cl.getArgs()[2]);
 
     shellState.getConnector().tableOperations().importDirectory(tableName, dir, failureDir,
@@ -61,12 +54,20 @@ public class ImportDirectoryCommand extends Command {
 
   @Override
   public int numArgs() {
+    // arg count for args not handled with Options
     return 3;
   }
 
   @Override
   public String usage() {
-    return getName() + " <directory> <failureDirectory> true|false";
+    return getName() + "[-t tablename] <directory> <failureDirectory> true|false";
+  }
+
+  @Override
+  public Options getOptions() {
+    final Options opts = super.getOptions();
+    opts.addOption(OptUtil.tableOpt("name of the table to import files into"));
+    return opts;
   }
 
 }

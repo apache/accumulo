@@ -84,12 +84,10 @@ public class ImportDirectoryCommandTest {
 
     cmd.execute("importdirectory in_dir fail_dir false", cli, shellState);
 
-    // assertTrue("-b should say it is inclusive",
-    // new ImportDirectoryCommand());
   }
 
   /**
-   * Test original command form - no -t tablename option provided.
+   * Test with -t tablename option provided.
    *
    * @throws Exception
    *           any exception is a test failure.
@@ -128,8 +126,5 @@ public class ImportDirectoryCommandTest {
 
     cmd.execute("importdirectory in_dir fail_dir false", cli, shellState);
 
-    // assertTrue("-b should say it is inclusive",
-    // new ImportDirectoryCommand());
   }
-
 }
