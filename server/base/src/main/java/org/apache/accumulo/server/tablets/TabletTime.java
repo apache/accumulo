@@ -54,30 +54,12 @@ public abstract class TabletTime {
       throw new IllegalArgumentException("Time type unknown : " + metadataTime);
   }
 
-  public static String maxMetadataTime(String mv1, String mv2) {
-    if (mv1 == null && mv2 == null) {
-      return null;
-    }
-    // the parse is used to validate the string
-    if (mv1 == null) {
-      return MetadataTime.parse(mv2).encode();
-    }
+  public static MetadataTime maxMetadataTime(MetadataTime mv1, MetadataTime mv2) {
+    // null value will sort lower
+    if (mv1 == null || mv2 == null)
+      return mv1 == null ? (mv2 == null ? null : mv2) : mv1;
 
-    if (mv2 == null) {
-      return MetadataTime.parse(mv1).encode();
-    }
-
-    MetadataTime mv1Time = MetadataTime.parse(mv1);
-    MetadataTime mv2Time = MetadataTime.parse(mv2);
-
-    if (mv1Time.getType() != mv2Time.getType())
-      throw new IllegalArgumentException("Time types differ " + mv1 + " " + mv2);
-
-    if (mv1Time.getTime() < mv2Time.getTime())
-      return mv2;
-    else
-      return mv1;
-
+    return mv1.compareTo(mv2) < 0 ? mv2 : mv1;
   }
 
   static class MillisTime extends TabletTime {

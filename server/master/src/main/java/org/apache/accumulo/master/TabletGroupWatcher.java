@@ -708,7 +708,7 @@ abstract class TabletGroupWatcher extends Daemon {
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       Mutation m = new Mutation(stopRow);
-      String maxLogicalTime = null;
+      MetadataTime maxLogicalTime = null;
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         Value value = entry.getValue();
@@ -720,7 +720,8 @@ abstract class TabletGroupWatcher extends Daemon {
           Master.log.debug("prevRow entry for lowest tablet is {}", value);
           firstPrevRowValue = new Value(value);
         } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
-          maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, value.toString());
+          maxLogicalTime =
+              TabletTime.maxMetadataTime(maxLogicalTime, MetadataTime.parse(value.toString()));
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           bw.addMutation(ServerAmpleImpl.createDeleteMutation(master.getContext(),
               range.getTableId(), entry.getValue().toString()));
@@ -734,12 +735,13 @@ abstract class TabletGroupWatcher extends Daemon {
       TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       for (Entry<Key,Value> entry : scanner) {
         if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(entry.getKey())) {
-          maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, entry.getValue().toString());
+          maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime,
+              MetadataTime.parse(entry.getValue().toString()));
         }
       }
 
       if (maxLogicalTime != null)
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes()));
+        TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(maxLogicalTime.encode()));
 
       if (!m.getUpdates().isEmpty()) {
         bw.addMutation(m);
