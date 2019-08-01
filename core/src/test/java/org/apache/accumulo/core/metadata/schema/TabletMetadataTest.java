@@ -48,6 +48,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -64,8 +65,8 @@ public class TabletMetadataTest {
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
 
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier("bf1").put("");
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier("bf2").put("");
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier("bf1").put(FateTxId.formatTid(56));
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier("bf2").put(FateTxId.formatTid(59));
 
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
@@ -102,7 +103,7 @@ public class TabletMetadataTest {
     assertEquals(Map.of("df1", dfv1, "df2", dfv2), tm.getFilesMap());
     assertEquals(6L, tm.getFlushId().getAsLong());
     assertEquals(rowMap, tm.getKeyValues());
-    assertEquals(Set.of("bf1", "bf2"), Set.copyOf(tm.getLoaded().keySet()));
+    assertEquals(Map.of("bf1", 56L, "bf2", 59L), tm.getLoaded());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
     assertEquals("s001", tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
