@@ -25,6 +25,11 @@ import org.junit.Test;
 
 public class MetadataTimeTest {
 
+  private static final MetadataTime m1234 = new MetadataTime(1234, TimeType.MILLIS);
+  private static final MetadataTime m5678 = new MetadataTime(5678, TimeType.MILLIS);
+  private static final MetadataTime l1234 = new MetadataTime(1234, TimeType.LOGICAL);
+  private static final MetadataTime l5678 = new MetadataTime(5678, TimeType.LOGICAL);
+
   @Test(expected = IllegalArgumentException.class)
   public void testGetInstance_InvalidType() {
     MetadataTime.parse("X1234");
@@ -42,24 +47,22 @@ public class MetadataTimeTest {
 
   @Test
   public void testGetInstance_Millis() {
-    MetadataTime mTime = new MetadataTime(1234, TimeType.MILLIS);
-    assertEquals(1234, mTime.getTime());
-    assertEquals(TimeType.MILLIS, mTime.getType());
+    assertEquals(1234, m1234.getTime());
+    assertEquals(TimeType.MILLIS, m1234.getType());
   }
 
   @Test
   public void testGetInstance_Logical() {
-    MetadataTime lTime = new MetadataTime(1234, TimeType.LOGICAL);
-    assertEquals(1234, lTime.getTime());
-    assertEquals(TimeType.LOGICAL, lTime.getType());
+    assertEquals(1234, l1234.getTime());
+    assertEquals(TimeType.LOGICAL, l1234.getType());
 
   }
 
   @Test
   public void testEquality() {
-    assertEquals(new MetadataTime(21, TimeType.MILLIS), MetadataTime.parse("M21"));
-    assertNotEquals(new MetadataTime(21, TimeType.MILLIS), MetadataTime.parse("L21"));
-    assertNotEquals(new MetadataTime(21, TimeType.LOGICAL), new MetadataTime(44, TimeType.LOGICAL));
+    assertEquals(m1234, new MetadataTime(1234, TimeType.MILLIS));
+    assertNotEquals(m1234, l1234);
+    assertNotEquals(l1234, l5678);
   }
 
   @Test
@@ -85,14 +88,12 @@ public class MetadataTimeTest {
 
   @Test
   public void testgetCodeforMillis() {
-    MetadataTime mTime = new MetadataTime(0, TimeType.MILLIS);
-    assertEquals('M', mTime.getCode());
+    assertEquals('M', m1234.getCode());
   }
 
   @Test
   public void testgetCodeforLogical() {
-    MetadataTime mTime = new MetadataTime(0, TimeType.LOGICAL);
-    assertEquals('L', mTime.getCode());
+    assertEquals('L', l1234.getCode());
   }
 
   @Test
@@ -103,48 +104,29 @@ public class MetadataTimeTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testCompareTypesDiffer1() {
-    MetadataTime mTime = new MetadataTime(1234, TimeType.MILLIS);
-    MetadataTime lTime = new MetadataTime(1234, TimeType.LOGICAL);
-    mTime.compareTo(lTime);
+    m1234.compareTo(l1234);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testCompareTypesDiffer2() {
-    MetadataTime mTime = new MetadataTime(1234, TimeType.MILLIS);
-    MetadataTime lTime = new MetadataTime(1234, TimeType.LOGICAL);
-    lTime.compareTo(mTime);
+    l1234.compareTo(m1234);
   }
 
   @Test
   public void testCompareSame() {
-    MetadataTime mTime1 = new MetadataTime(1234, TimeType.MILLIS);
-    MetadataTime mTime2 = new MetadataTime(1234, TimeType.MILLIS);
-    assertTrue(mTime1.compareTo(mTime2) == 0);
-
-    MetadataTime lTime1 = new MetadataTime(1234, TimeType.LOGICAL);
-    MetadataTime lTime2 = new MetadataTime(1234, TimeType.LOGICAL);
-    assertTrue(lTime1.compareTo(lTime2) == 0);
+    assertTrue(m1234.compareTo(m1234) == 0);
+    assertTrue(l1234.compareTo(l1234) == 0);
   }
 
   @Test
   public void testCompare1() {
-    MetadataTime mTime1 = new MetadataTime(1234, TimeType.MILLIS);
-    MetadataTime mTime2 = new MetadataTime(5678, TimeType.MILLIS);
-    assertTrue(mTime1.compareTo(mTime2) < 0);
-
-    MetadataTime lTime1 = new MetadataTime(1234, TimeType.LOGICAL);
-    MetadataTime lTime2 = new MetadataTime(5678, TimeType.LOGICAL);
-    assertTrue(lTime1.compareTo(lTime2) < 0);
+    assertTrue(m1234.compareTo(m5678) < 0);
+    assertTrue(l1234.compareTo(l5678) < 0);
   }
 
   @Test
   public void testCompare2() {
-    MetadataTime mTime1 = new MetadataTime(1234, TimeType.MILLIS);
-    MetadataTime mTime2 = new MetadataTime(5678, TimeType.MILLIS);
-    assertTrue(mTime2.compareTo(mTime1) > 0);
-
-    MetadataTime lTime1 = new MetadataTime(1234, TimeType.LOGICAL);
-    MetadataTime lTime2 = new MetadataTime(5678, TimeType.LOGICAL);
-    assertTrue(lTime2.compareTo(lTime1) > 0);
+    assertTrue(m5678.compareTo(m1234) > 0);
+    assertTrue(l5678.compareTo(l1234) > 0);
   }
 }
