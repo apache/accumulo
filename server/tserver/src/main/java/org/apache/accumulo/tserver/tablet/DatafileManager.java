@@ -521,20 +521,17 @@ class DatafileManager {
     final KeyExtent extent = tablet.getExtent();
     long t1, t2;
 
-    if (!extent.isRootTablet()) {
+    if (tablet.getTabletServer().getFileSystem().exists(newDatafile.path())) {
+      log.error("Target map file already exist " + newDatafile, new Exception());
+      throw new IllegalStateException("Target map file already exist " + newDatafile);
+    }
 
-      if (tablet.getTabletServer().getFileSystem().exists(newDatafile.path())) {
-        log.error("Target map file already exist " + newDatafile, new Exception());
-        throw new IllegalStateException("Target map file already exist " + newDatafile);
-      }
+    // rename before putting in metadata table, so files in metadata table should
+    // always exist
+    rename(tablet.getTabletServer().getFileSystem(), tmpDatafile.path(), newDatafile.path());
 
-      // rename before putting in metadata table, so files in metadata table should
-      // always exist
-      rename(tablet.getTabletServer().getFileSystem(), tmpDatafile.path(), newDatafile.path());
-
-      if (dfv.getNumEntries() == 0) {
-        tablet.getTabletServer().getFileSystem().deleteRecursively(newDatafile.path());
-      }
+    if (dfv.getNumEntries() == 0) {
+      tablet.getTabletServer().getFileSystem().deleteRecursively(newDatafile.path());
     }
 
     TServerInstance lastLocation = null;
@@ -542,32 +539,9 @@ class DatafileManager {
 
       t1 = System.currentTimeMillis();
 
-      IZooReaderWriter zoo = tablet.getContext().getZooReaderWriter();
+      // TODO should the removed check in ZK for tserver lock still be done??
 
       tablet.incrementDataSourceDeletions();
-
-      if (extent.isRootTablet()) {
-
-        waitForScansToFinish(oldDatafiles, true, Long.MAX_VALUE);
-
-        try {
-          if (!zoo.isLockHeld(tablet.getTabletServer().getLock().getLockID())) {
-            throw new IllegalStateException();
-          }
-        } catch (Exception e) {
-          throw new IllegalStateException("Can not bring major compaction online, lock not held",
-              e);
-        }
-
-        // mark files as ready for deletion, but
-        // do not delete them until we successfully
-        // rename the compacted map file, in case
-        // the system goes down
-
-        RootFiles.replaceFiles(tablet.getTableConfiguration(),
-            tablet.getTabletServer().getFileSystem(), tablet.getLocation(), oldDatafiles,
-            tmpDatafile, newDatafile);
-      }
 
       // atomically remove old files and add new file
       for (FileRef oldDatafile : oldDatafiles) {
@@ -597,16 +571,14 @@ class DatafileManager {
       t2 = System.currentTimeMillis();
     }
 
-    if (!extent.isRootTablet()) {
-      Set<FileRef> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
-      if (filesInUseByScans.size() > 0)
-        log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
-      MasterMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
-          filesInUseByScans, newDatafile, compactionId, dfv,
-          tablet.getTabletServer().getClientAddressString(), lastLocation,
-          tablet.getTabletServer().getLock());
-      removeFilesAfterScan(filesInUseByScans);
-    }
+    Set<FileRef> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
+    if (filesInUseByScans.size() > 0)
+      log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
+    MasterMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
+        filesInUseByScans, newDatafile, compactionId, dfv,
+        tablet.getTabletServer().getClientAddressString(), lastLocation,
+        tablet.getTabletServer().getLock());
+    removeFilesAfterScan(filesInUseByScans);
 
     log.debug(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));
     log.debug("TABLET_HIST {} MajC  --> {}", oldDatafiles, newDatafile);

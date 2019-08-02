@@ -16,9 +16,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,26 +24,14 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-
-import com.google.common.base.Preconditions;
 
 /*
  * Basic information needed to create a tablet.
@@ -83,45 +69,6 @@ public class TabletData {
       bulkImported.computeIfAbsent(txid, k -> new ArrayList<FileRef>())
           .add(new FileRef(fs, path, meta.getTableId()));
     });
-  }
-
-  // Read basic root table metadata from zookeeper
-  public TabletData(ServerContext context, VolumeManager fs, AccumuloConfiguration conf,
-      TabletMetadata rootMeta) throws IOException {
-    Preconditions.checkArgument(rootMeta.getExtent().equals(RootTable.EXTENT));
-
-    directory = VolumeUtil.switchRootTableVolume(context, rootMeta.getDir());
-
-    Path location = new Path(directory);
-
-    // cleanReplacement() has special handling for deleting files
-    FileStatus[] files = fs.listStatus(location);
-    Collection<String> goodPaths = RootFiles.cleanupReplacement(fs, files, true);
-    long rtime = Long.MIN_VALUE;
-    for (String good : goodPaths) {
-      Path path = new Path(good);
-      String filename = path.getName();
-      FileRef ref = new FileRef(location + "/" + filename, path);
-      DataFileValue dfv = new DataFileValue(0, 0);
-      dataFiles.put(ref, dfv);
-
-      FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
-      long maxTime = -1;
-      try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-          .withTableConfiguration(conf).seekToBeginning().build()) {
-        while (reader.hasTop()) {
-          maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());
-          reader.next();
-        }
-      }
-      if (maxTime > rtime) {
-        time = new MetadataTime(maxTime, TimeType.LOGICAL);
-        rtime = maxTime;
-      }
-    }
-
-    this.logEntries.addAll(rootMeta.getLogs());
   }
 
   // Data pulled from an existing tablet to make a split

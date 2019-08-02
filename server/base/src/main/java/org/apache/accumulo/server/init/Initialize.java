@@ -96,6 +96,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -365,15 +366,18 @@ public class Initialize implements KeywordExecutable {
         fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR
             + Path.SEPARATOR + RootTable.ID + RootTable.ROOT_TABLET_LOCATION).toString();
 
+    String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
+    String rootTabletFileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + ext;
+
     try {
-      initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDir);
+      initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDir, rootTabletFileName);
     } catch (Exception e) {
       log.error("FATAL: Failed to initialize zookeeper", e);
       return false;
     }
 
     try {
-      initFileSystem(siteConfig, hadoopConf, fs, uuid, rootTabletDir);
+      initFileSystem(siteConfig, hadoopConf, fs, uuid, rootTabletDir, rootTabletFileName);
     } catch (Exception e) {
       log.error("FATAL Failed to initialize filesystem", e);
 
@@ -489,7 +493,8 @@ public class Initialize implements KeywordExecutable {
   }
 
   private void initFileSystem(SiteConfiguration siteConfig, Configuration hadoopConf,
-      VolumeManager fs, UUID uuid, String rootTabletDir) throws IOException {
+      VolumeManager fs, UUID uuid, String rootTabletDir, String rootTabletFileName)
+      throws IOException {
     initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf), false);
 
     // initialize initial system tables config in zookeeper
@@ -523,7 +528,6 @@ public class Initialize implements KeywordExecutable {
     createMetadataFile(fs, metadataFileName, siteConfig, replicationTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
-    String rootTabletFileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + ext;
     Text splitPoint = TabletsSection.getRange().getEndKey().getRow();
     Tablet tablesTablet =
         new Tablet(MetadataTable.ID, tableMetadataTabletDir, null, splitPoint, metadataFileName);
@@ -603,7 +607,8 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static void initZooKeeper(Opts opts, String uuid, String instanceNamePath,
-      String rootTabletDir) throws KeeperException, InterruptedException {
+      String rootTabletDir, String rootTabletFileName)
+      throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
     zoo.putPersistentData(Constants.ZROOT, new byte[0], -1, NodeExistsPolicy.SKIP,
         Ids.OPEN_ACL_UNSAFE);
@@ -641,7 +646,10 @@ public class Initialize implements KeywordExecutable {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET,
-        RootTabletMetadata.getInitialJson(rootTabletDir), NodeExistsPolicy.FAIL);
+        RootTabletMetadata.getInitialJson(rootTabletDir, rootTabletFileName),
+        NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_GC_CANDIDATES,
+        new RootGcCandidates().toJson().getBytes(UTF_8), NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTERS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_LOCK, EMPTY_BYTE_ARRAY,

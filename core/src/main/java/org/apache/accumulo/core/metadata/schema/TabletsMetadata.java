@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -69,7 +70,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     private List<Text> families = new ArrayList<>();
     private List<ColumnFQ> qualifiers = new ArrayList<>();
-    private String table = MetadataTable.NAME;
+    private Ample.DataLevel level;
+    private String table;
     private Range range;
     private EnumSet<ColumnType> fetchedCols = EnumSet.noneOf(ColumnType.class);
     private Text endRow;
@@ -77,30 +79,26 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private boolean saveKeyValues;
     private TableId tableId;
 
-    // An internal constant that represents a fictional table where the root tablet stores its
-    // metadata
-    private static String SEED_TABLE = "accumulo.seed";
-
     @Override
     public TabletsMetadata build(AccumuloClient client) {
-      if (table.equals(SEED_TABLE)) {
-        return buildSeed(client);
+      Preconditions.checkState(level == null ^ table == null);
+      if (level == DataLevel.ROOT) {
+        ClientContext ctx = ((ClientContext) client);
+        ZooCache zc = ctx.getZooCache();
+        String zkRoot = ctx.getZooKeeperRoot();
+        return new TabletsMetadata(getRootMetadata(zkRoot, zc));
       } else {
-        return buildNonSeed(client);
+        return buildNonRoot(client);
       }
     }
 
-    private TabletsMetadata buildSeed(AccumuloClient client) {
-      ClientContext ctx = ((ClientContext) client);
-      ZooCache zc = ctx.getZooCache();
-      String zkRoot = ctx.getZooKeeperRoot();
-
-      return new TabletsMetadata(getRootMetadata(zkRoot, zc));
-    }
-
-    private TabletsMetadata buildNonSeed(AccumuloClient client) {
+    private TabletsMetadata buildNonRoot(AccumuloClient client) {
       try {
-        Scanner scanner = new IsolatedScanner(client.createScanner(table, Authorizations.EMPTY));
+
+        String resolvedTable = table == null ? level.metaTable() : table;
+
+        Scanner scanner =
+            new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY));
         scanner.setRange(range);
 
         if (checkConsistency && !fetchedCols.contains(ColumnType.PREV_ROW)) {
@@ -198,11 +196,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     @Override
     public TableRangeOptions forTable(TableId tableId) {
       if (tableId.equals(RootTable.ID)) {
-        this.table = SEED_TABLE;
+        this.level = DataLevel.ROOT;
       } else if (tableId.equals(MetadataTable.ID)) {
-        this.table = RootTable.NAME;
+        this.level = DataLevel.METADATA;
       } else {
-        this.table = MetadataTable.NAME;
+        this.level = DataLevel.USER;
       }
 
       this.tableId = tableId;
@@ -239,7 +237,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public RangeOptions scanTable(String tableName) {
-      Preconditions.checkArgument(!tableName.equals(SEED_TABLE));
       this.table = tableName;
       this.range = TabletsSection.getRange();
       return this;

@@ -37,6 +37,11 @@ public class RootTable {
    */
   public static final String ZROOT_TABLET = ROOT_TABLET_LOCATION;
 
+  /**
+   * ZK path relative to the zookeeper node where the root tablet gc candidates are stored.
+   */
+  public static final String ZROOT_TABLET_GC_CANDIDATES = ZROOT_TABLET + "/gc_candidates";
+
   public static final KeyExtent EXTENT = new KeyExtent(ID, null, null);
   public static final KeyExtent OLD_EXTENT =
       new KeyExtent(MetadataTable.ID, TabletsSection.getRow(MetadataTable.ID, null), null);

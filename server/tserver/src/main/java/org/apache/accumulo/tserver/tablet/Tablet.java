@@ -77,7 +77,6 @@ import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -1427,25 +1426,12 @@ public class Tablet {
         throw new RuntimeException(msg);
       }
 
-      if (extent.isRootTablet()) {
-        if (!fileLog.getSecond().keySet()
-            .equals(getDatafileManager().getDatafileSizes().keySet())) {
-          String msg = "Data file in " + RootTable.NAME + " differ from in memory data " + extent
-              + "  " + fileLog.getSecond().keySet() + "  "
-              + getDatafileManager().getDatafileSizes().keySet();
-          log.error(msg);
-          throw new RuntimeException(msg);
-        }
-      } else {
-        if (!fileLog.getSecond().equals(getDatafileManager().getDatafileSizes())) {
-          String msg =
-              "Data file in " + MetadataTable.NAME + " differ from in memory data " + extent + "  "
-                  + fileLog.getSecond() + "  " + getDatafileManager().getDatafileSizes();
-          log.error(msg);
-          throw new RuntimeException(msg);
-        }
+      if (!fileLog.getSecond().equals(getDatafileManager().getDatafileSizes())) {
+        String msg = "Data files in differ from in memory data " + extent + "  "
+            + fileLog.getSecond() + "  " + getDatafileManager().getDatafileSizes();
+        log.error(msg);
+        throw new RuntimeException(msg);
       }
-
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
       log.error(msg, e);
@@ -1797,14 +1783,6 @@ public class Tablet {
       majorCompactionState = CompactionState.IN_PROGRESS;
       notifyAll();
 
-      VolumeManager fs = getTabletServer().getFileSystem();
-      if (extent.isRootTablet()) {
-        // very important that we call this before doing major compaction,
-        // otherwise deleted compacted files could possible be brought back
-        // at some point if the file they were compacted to was legitimately
-        // removed by a major compaction
-        RootFiles.cleanupReplacement(fs, fs.listStatus(this.location), false);
-      }
       SortedMap<FileRef,DataFileValue> allFiles = getDatafileManager().getDatafileSizes();
       List<FileRef> inputFiles = new ArrayList<>();
       if (reason == MajorCompactionReason.CHOP) {

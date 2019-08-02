@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -34,6 +35,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.hadoop.io.Text;
 
@@ -175,10 +178,14 @@ public class RootTabletMetadata {
   /**
    * Generate initial json for the root tablet metadata.
    */
-  public static byte[] getInitialJson(String dir) {
+  public static byte[] getInitialJson(String dir, String file) {
     Mutation mutation = RootTable.EXTENT.getPrevRowUpdateMutation();
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation,
-        new Value(dir.getBytes(UTF_8)));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dir.getBytes(UTF_8)));
+
+    mutation.put(DataFileColumnFamily.STR_NAME, file, new DataFileValue(0, 0).encodeAsValue());
+
+    ServerColumnFamily.TIME_COLUMN.put(mutation,
+        new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
 
     RootTabletMetadata rtm = new RootTabletMetadata();
 
