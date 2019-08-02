@@ -21,7 +21,9 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_QUAL;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -31,7 +33,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.OptionalLong;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.function.Function;
 
@@ -61,7 +62,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
 
@@ -70,11 +70,13 @@ public class TabletMetadata {
   private TableId tableId;
   private Text prevEndRow;
   private boolean sawPrevEndRow = false;
+  private Text oldPrevEndRow;
+  private boolean sawOldPrevEndRow = false;
   private Text endRow;
   private Location location;
   private Map<String,DataFileValue> files;
   private List<String> scans;
-  private Set<String> loadedFiles;
+  private Map<String,Long> loadedFiles;
   private EnumSet<ColumnType> fetchedCols;
   private KeyExtent extent;
   private Location last;
@@ -85,13 +87,27 @@ public class TabletMetadata {
   private OptionalLong flush = OptionalLong.empty();
   private List<LogEntry> logs;
   private OptionalLong compact = OptionalLong.empty();
+  private Double splitRatio = null;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
   }
 
   public enum ColumnType {
-    LOCATION, PREV_ROW, FILES, LAST, LOADED, SCANS, DIR, TIME, CLONED, FLUSH_ID, LOGS, COMPACT_ID
+    LOCATION,
+    PREV_ROW,
+    OLD_PREV_ROW,
+    FILES,
+    LAST,
+    LOADED,
+    SCANS,
+    DIR,
+    TIME,
+    CLONED,
+    FLUSH_ID,
+    LOGS,
+    COMPACT_ID,
+    SPLIT_RATIO
   }
 
   public static class Location {
@@ -159,6 +175,20 @@ public class TabletMetadata {
     return sawPrevEndRow;
   }
 
+  public Text getOldPrevEndRow() {
+    ensureFetched(ColumnType.OLD_PREV_ROW);
+    if (!sawOldPrevEndRow) {
+      throw new IllegalStateException(
+          "No old prev endrow seen.  tableId: " + tableId + " endrow: " + endRow);
+    }
+    return oldPrevEndRow;
+  }
+
+  public boolean sawOldPrevEndRow() {
+    ensureFetched(ColumnType.OLD_PREV_ROW);
+    return sawOldPrevEndRow;
+  }
+
   public Text getEndRow() {
     return endRow;
   }
@@ -173,7 +203,7 @@ public class TabletMetadata {
     return location != null && location.getType() == LocationType.CURRENT;
   }
 
-  public Set<String> getLoaded() {
+  public Map<String,Long> getLoaded() {
     ensureFetched(ColumnType.LOADED);
     return loadedFiles;
   }
@@ -228,12 +258,18 @@ public class TabletMetadata {
     return compact;
   }
 
+  public Double getSplitRatio() {
+    ensureFetched(ColumnType.SPLIT_RATIO);
+    return splitRatio;
+  }
+
   public SortedMap<Key,Value> getKeyValues() {
     Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
     return keyValues;
   }
 
-  static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter,
+  @VisibleForTesting
+  public static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter,
       EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap) {
     Objects.requireNonNull(rowIter);
 
@@ -246,7 +282,7 @@ public class TabletMetadata {
     var filesBuilder = ImmutableMap.<String,DataFileValue>builder();
     var scansBuilder = ImmutableList.<String>builder();
     var logsBuilder = ImmutableList.<LogEntry>builder();
-    final var loadedFilesBuilder = ImmutableSet.<String>builder();
+    final var loadedFilesBuilder = ImmutableMap.<String,Long>builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
@@ -272,9 +308,18 @@ public class TabletMetadata {
 
       switch (fam.toString()) {
         case TabletColumnFamily.STR_NAME:
-          if (PREV_ROW_QUAL.equals(qual)) {
-            te.prevEndRow = KeyExtent.decodePrevEndRow(kv.getValue());
-            te.sawPrevEndRow = true;
+          switch (qual) {
+            case PREV_ROW_QUAL:
+              te.prevEndRow = KeyExtent.decodePrevEndRow(kv.getValue());
+              te.sawPrevEndRow = true;
+              break;
+            case OLD_PREV_ROW_QUAL:
+              te.oldPrevEndRow = KeyExtent.decodePrevEndRow(kv.getValue());
+              te.sawOldPrevEndRow = true;
+              break;
+            case SPLIT_RATIO_QUAL:
+              te.splitRatio = Double.parseDouble(val);
+              break;
           }
           break;
         case ServerColumnFamily.STR_NAME:
@@ -297,7 +342,7 @@ public class TabletMetadata {
           filesBuilder.put(qual, new DataFileValue(val));
           break;
         case BulkFileColumnFamily.STR_NAME:
-          loadedFilesBuilder.add(qual);
+          loadedFilesBuilder.put(qual, BulkFileColumnFamily.getBulkLoadTid(val));
           break;
         case CurrentLocationColumnFamily.STR_NAME:
           te.setLocationOnce(val, qual, LocationType.CURRENT);

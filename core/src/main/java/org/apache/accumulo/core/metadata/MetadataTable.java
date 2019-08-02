@@ -25,5 +25,4 @@ public class MetadataTable {
 
   public static final TableId ID = TableId.of("!0");
   public static final String NAME = Namespace.ACCUMULO.name() + ".metadata";
-
 }

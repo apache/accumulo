@@ -17,9 +17,11 @@
 
 package org.apache.accumulo.tserver;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import java.util.EnumSet;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
@@ -27,6 +29,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.io.Text;
@@ -55,9 +59,11 @@ public class CheckTabletMetadataTest {
 
   private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi) {
     try {
-      assertNull(TabletServer.checkTabletMetadata(ke, tsi, tabletMeta, ke.getMetadataEntry()));
+      TabletMetadata tm = TabletMetadata.convertRow(tabletMeta.entrySet().iterator(),
+          EnumSet.allOf(ColumnType.class), true);
+      assertFalse(TabletServer.checkTabletMetadata(ke, tsi, tm));
     } catch (Exception e) {
-
+      e.printStackTrace();
     }
   }
 
@@ -66,9 +72,11 @@ public class CheckTabletMetadataTest {
     TreeMap<Key,Value> copy = new TreeMap<>(tabletMeta);
     assertNotNull(copy.remove(keyToDelete));
     try {
-      assertNull(TabletServer.checkTabletMetadata(ke, tsi, copy, ke.getMetadataEntry()));
+      TabletMetadata tm = TabletMetadata.convertRow(copy.entrySet().iterator(),
+          EnumSet.allOf(ColumnType.class), true);
+      assertFalse(TabletServer.checkTabletMetadata(ke, tsi, tm));
     } catch (Exception e) {
-
+      e.printStackTrace();
     }
   }
 
@@ -87,7 +95,9 @@ public class CheckTabletMetadataTest {
 
     TServerInstance tsi = new TServerInstance("127.0.0.1:9997", 4);
 
-    assertNotNull(TabletServer.checkTabletMetadata(ke, tsi, tabletMeta, ke.getMetadataEntry()));
+    TabletMetadata tm = TabletMetadata.convertRow(tabletMeta.entrySet().iterator(),
+        EnumSet.allOf(ColumnType.class), true);
+    assertTrue(TabletServer.checkTabletMetadata(ke, tsi, tm));
 
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 4));
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 5));
