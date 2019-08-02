@@ -22,6 +22,7 @@ import java.lang.annotation.RetentionPolicy;
 
 /**
  * An annotation to denote experimental {@link AccumuloConfiguration} {@link Property} keys.
+ * Experimental is a feature that is considered a work in progress or incomplete and could change.
  */
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
