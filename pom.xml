@@ -1533,11 +1533,6 @@
                   <sourceFileInclude>**/org/apache/accumulo/core/security/**/*.java</sourceFileInclude>
                   <sourceFileInclude>**/org/apache/accumulo/minicluster/**/*.java</sourceFileInclude>
                 </sourceFileIncludes>
-                <sourceFileExcludes>
-                  <sourceFileExclude>**/crypto/**/*.java</sourceFileExclude>
-                  <sourceFileExclude>**/impl/**/*.java</sourceFileExclude>
-                  <sourceFileExclude>**/thrift/**/*.java</sourceFileExclude>
-                </sourceFileExcludes>
               </configuration>
             </plugin>
           </plugins>
