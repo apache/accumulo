@@ -129,3 +129,11 @@ BATCH_WALKER_THREADS=8
 # sleep in seconds
 SCANNER_SLEEP_TIME=10
 SCANNER_ENTRIES=5000
+
+# bulk ingest options
+BULK_DIR=/bulk
+# number of mappers
+BULK_MAP_TASKS=10
+# number of key value pairs to generate per mapper
+BULK_MAP_NODES=10000
+
