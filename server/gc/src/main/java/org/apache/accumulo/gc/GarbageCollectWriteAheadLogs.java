@@ -99,11 +99,12 @@ public class GarbageCollectWriteAheadLogs {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted,
           Set<TServerInstance> added) {
-        log.debug("New tablet servers noticed: " + added);
-        log.debug("Tablet servers removed: " + deleted);
+        log.debug("Number of current servers {}", current == null ? -1 : current.size());
+        log.debug("New tablet servers noticed: {}", added);
+        log.debug("Tablet servers removed: {}", deleted);
       }
     });
-    liveServers.startListeningForTabletServerChanges();
+
     this.walMarker = new WalStateManager(context.getInstance(), ZooReaderWriter.getInstance());
     this.store = new Iterable<TabletLocationState>() {
       @Override
@@ -163,6 +164,7 @@ public class GarbageCollectWriteAheadLogs {
       span.stop();
 
       // now it's safe to get the liveServers
+      liveServers.scanServers();
       Set<TServerInstance> currentServers = liveServers.getCurrentServers();
 
       Map<UUID,TServerInstance> uuidToTServer;
