@@ -55,7 +55,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
 
   List<TServerInstance> randomize(Set<TServerInstance> locations) {
     List<TServerInstance> result = new ArrayList<>(locations);
-    Collections.shuffle(result, ThreadLocalRandom.current());
+    Collections.shuffle(result);
     return result;
   }
 
