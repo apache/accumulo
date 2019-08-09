@@ -38,7 +38,6 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -342,17 +341,6 @@ class DatafileManager {
   void bringMinorCompactionOnline(FileRef tmpDatafile, FileRef newDatafile, FileRef absMergeFile,
       DataFileValue dfv, CommitSession commitSession, long flushId) {
 
-    IZooReaderWriter zoo = tablet.getContext().getZooReaderWriter();
-    if (tablet.getExtent().isRootTablet()) {
-      try {
-        if (!zoo.isLockHeld(tablet.getTabletServer().getLock().getLockID())) {
-          throw new IllegalStateException();
-        }
-      } catch (Exception e) {
-        throw new IllegalStateException("Can not bring major compaction online, lock not held", e);
-      }
-    }
-
     // rename before putting in metadata table, so files in metadata table should
     // always exist
     do {
@@ -538,8 +526,6 @@ class DatafileManager {
     synchronized (tablet) {
 
       t1 = System.currentTimeMillis();
-
-      // TODO should the removed check in ZK for tserver lock still be done??
 
       tablet.incrementDataSourceDeletions();
 
