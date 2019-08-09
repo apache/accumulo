@@ -566,6 +566,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     ProbabilitySampler sampler =
         new ProbabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
+    // This is created outside of the run loop and passed to the walogCollector so that
+    // only a single timed task is created (internal to LiveTServerSet using SimpleTimer.
     final LiveTServerSet liveTServerSet = new LiveTServerSet(this, new LiveTServerSet.Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted,
