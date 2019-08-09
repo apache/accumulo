@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
@@ -54,7 +55,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
 
   List<TServerInstance> randomize(Set<TServerInstance> locations) {
     List<TServerInstance> result = new ArrayList<>(locations);
-    Collections.shuffle(result);
+    Collections.shuffle(result, ThreadLocalRandom.current());
     return result;
   }
 
@@ -149,8 +150,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
       }
 
       // order from low to high
-      Collections.sort(totals);
-      Collections.reverse(totals);
+      Collections.sort(totals, Collections.reverseOrder());
       int even = total / totals.size();
       int numServersOverEven = total % totals.size();
 
@@ -204,10 +204,11 @@ public class DefaultLoadBalancer extends TabletBalancer {
   List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count,
       Map<String,Map<KeyExtent,TabletStats>> donerTabletStats) {
 
-    List<TabletMigration> result = new ArrayList<>();
-    if (count == 0)
-      return result;
+    if (count == 0) {
+      return Collections.emptyList();
+    }
 
+    List<TabletMigration> result = new ArrayList<>();
     // Copy counts so we can update them as we propose migrations
     Map<String,Integer> tooMuchMap = tabletCountsPerTable(tooMuch.status);
     Map<String,Integer> tooLittleMap = tabletCountsPerTable(tooLittle.status);
