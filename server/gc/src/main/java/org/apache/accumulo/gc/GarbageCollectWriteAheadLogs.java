@@ -155,6 +155,7 @@ public class GarbageCollectWriteAheadLogs {
       span.stop();
 
       // now it's safe to get the liveServers
+      liveServers.scanServers();
       Set<TServerInstance> currentServers = liveServers.getCurrentServers();
 
       Map<UUID,TServerInstance> uuidToTServer;
