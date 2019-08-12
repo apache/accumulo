@@ -18,12 +18,15 @@ package org.apache.accumulo.core.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Scanner;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
@@ -37,7 +40,10 @@ import org.apache.htrace.TraceScope;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.IParameterSplitter;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClientOpts extends Help {
 
@@ -45,26 +51,6 @@ public class ClientOpts extends Help {
     @Override
     public Authorizations convert(String value) {
       return new Authorizations(value.split(","));
-    }
-  }
-
-  public static class Password {
-    public byte[] value;
-
-    public Password(String dfault) {
-      value = dfault.getBytes(UTF_8);
-    }
-
-    @Override
-    public String toString() {
-      return new String(value, UTF_8);
-    }
-  }
-
-  public static class PasswordConverter implements IStringConverter<Password> {
-    @Override
-    public Password convert(String value) {
-      return new Password(value);
     }
   }
 
@@ -79,6 +65,78 @@ public class ClientOpts extends Help {
     @Override
     public List<String> split(String value) {
       return Collections.singletonList(value);
+    }
+  }
+
+  public static class PasswordConverter implements IStringConverter<String> {
+    public static final String STDIN = "stdin";
+
+    private enum KeyType {
+      PASS("pass:"), ENV("env:") {
+        @Override
+        String process(String value) {
+          return System.getenv(value);
+        }
+      },
+      FILE("file:") {
+        @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+            justification = "app is run in same security context as user providing the filename")
+        @Override
+        String process(String value) {
+          Scanner scanner = null;
+          try {
+            scanner = new Scanner(new File(value), UTF_8);
+            return scanner.nextLine();
+          } catch (IOException e) {
+            throw new ParameterException(e);
+          } finally {
+            if (scanner != null) {
+              scanner.close();
+            }
+          }
+        }
+      },
+      STDIN(PasswordConverter.STDIN) {
+        @Override
+        public boolean matches(String value) {
+          return prefix.equals(value);
+        }
+
+        @Override
+        public String convert(String value) {
+          // Will check for this later
+          return prefix;
+        }
+      };
+
+      String prefix;
+
+      private KeyType(String prefix) {
+        this.prefix = prefix;
+      }
+
+      public boolean matches(String value) {
+        return value.startsWith(prefix);
+      }
+
+      public String convert(String value) {
+        return process(value.substring(prefix.length()));
+      }
+
+      String process(String value) {
+        return value;
+      }
+    }
+
+    @Override
+    public String convert(String value) {
+      for (KeyType keyType : KeyType.values()) {
+        if (keyType.matches(value)) {
+          return keyType.convert(value);
+        }
+      }
+
+      return value;
     }
   }
 
@@ -98,8 +156,11 @@ public class ClientOpts extends Help {
   public String principal = null;
 
   @Parameter(names = "--password", converter = PasswordConverter.class,
-      description = "Enter the connection password", password = true)
-  private Password securePassword = null;
+      description = "conection password (can be specified as '<password>', 'pass:<password>',"
+          + " 'file:<local file containing the password>' or 'env:<variable containing"
+          + " the pass>')",
+      password = true)
+  private String securePassword = null;
 
   public AuthenticationToken getToken() {
     return ClientProperty.getAuthenticationToken(getClientProps());

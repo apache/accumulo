@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.shell;
+package org.apache.accumulo.core.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
@@ -29,7 +29,6 @@ import java.io.PipedOutputStream;
 import java.security.SecureRandom;
 import java.util.Scanner;
 
-import org.apache.accumulo.shell.ShellOptionsJC.PasswordConverter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -42,7 +41,7 @@ import com.beust.jcommander.ParameterException;
 public class PasswordConverterTest {
 
   private class Password {
-    @Parameter(names = "--password", converter = PasswordConverter.class)
+    @Parameter(names = "--password", converter = ClientOpts.PasswordConverter.class)
     String password;
   }
 
@@ -111,5 +110,12 @@ public class PasswordConverterTest {
     argv[1] = "stdin";
     new JCommander(password).parse(argv);
     assertEquals("stdin", password.password);
+  }
+
+  @Test
+  public void testPlainText() {
+    argv[1] = "passwordString";
+    new JCommander(password).parse(argv);
+    assertEquals("passwordString", password.password);
   }
 }

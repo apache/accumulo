@@ -16,26 +16,21 @@
  */
 package org.apache.accumulo.shell;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Scanner;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.security.UserGroupInformation;
 
 import com.beust.jcommander.DynamicParameter;
-import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.FileConverter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -45,84 +40,12 @@ public class ShellOptionsJC {
   @Parameter(names = {"-u", "--user"}, description = "username")
   private String username = null;
 
-  public static class PasswordConverter implements IStringConverter<String> {
-    public static final String STDIN = "stdin";
-
-    private enum KeyType {
-      PASS("pass:"), ENV("env:") {
-        @Override
-        String process(String value) {
-          return System.getenv(value);
-        }
-      },
-      FILE("file:") {
-        @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-            justification = "app is run in same security context as user providing the filename")
-        @Override
-        String process(String value) {
-          Scanner scanner = null;
-          try {
-            scanner = new Scanner(new File(value), UTF_8);
-            return scanner.nextLine();
-          } catch (IOException e) {
-            throw new ParameterException(e);
-          } finally {
-            if (scanner != null) {
-              scanner.close();
-            }
-          }
-        }
-      },
-      STDIN(PasswordConverter.STDIN) {
-        @Override
-        public boolean matches(String value) {
-          return prefix.equals(value);
-        }
-
-        @Override
-        public String convert(String value) {
-          // Will check for this later
-          return prefix;
-        }
-      };
-
-      String prefix;
-
-      private KeyType(String prefix) {
-        this.prefix = prefix;
-      }
-
-      public boolean matches(String value) {
-        return value.startsWith(prefix);
-      }
-
-      public String convert(String value) {
-        return process(value.substring(prefix.length()));
-      }
-
-      String process(String value) {
-        return value;
-      }
-    }
-
-    @Override
-    public String convert(String value) {
-      for (KeyType keyType : KeyType.values()) {
-        if (keyType.matches(value)) {
-          return keyType.convert(value);
-        }
-      }
-
-      return value;
-    }
-  }
-
   // Note: Don't use "password = true" because then it will prompt even if we have a token
   @Parameter(names = {"-p", "--password"},
       description = "password (can be specified as 'pass:<password>',"
           + " 'file:<local file containing the password>', 'env:<variable containing"
           + " the pass>', or stdin)",
-      converter = PasswordConverter.class)
+      converter = ClientOpts.PasswordConverter.class)
   private String password;
 
   @DynamicParameter(names = {"-l"},

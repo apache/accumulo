@@ -18,7 +18,6 @@ package org.apache.accumulo.core.util;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -50,11 +49,11 @@ public class CreateToken implements KeywordExecutable {
 
     @Parameter(names = "-p", converter = PasswordConverter.class,
         description = "Connection password")
-    public Password password = null;
+    public String password = null;
 
     @Parameter(names = "--password", converter = PasswordConverter.class,
         description = "Enter the connection password", password = true)
-    public Password securePassword = null;
+    public String securePassword = null;
 
     @Parameter(names = {"-tc", "--tokenClass"},
         description = "The class of the authentication token")
@@ -80,7 +79,7 @@ public class CreateToken implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs("accumulo create-token", args);
 
-    Password pass = opts.password;
+    String pass = opts.password;
     if (pass == null && opts.securePassword != null) {
       pass = opts.securePassword;
     }
@@ -97,7 +96,7 @@ public class CreateToken implements KeywordExecutable {
       for (TokenProperty tp : token.getProperties()) {
         String input;
         if (pass != null && tp.getKey().equals("password")) {
-          input = pass.toString();
+          input = pass;
         } else {
           if (tp.getMask()) {
             input = getConsoleReader().readLine(tp.getDescription() + ": ", '*');

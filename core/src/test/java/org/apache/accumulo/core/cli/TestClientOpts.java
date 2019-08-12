@@ -48,4 +48,18 @@ public class TestClientOpts {
     assertTrue(opts.getToken() instanceof PasswordToken);
     assertEquals("myinst", props.getProperty("instance.name"));
   }
+
+  @Test
+  public void testPassword() {
+    ClientOpts opts = new ClientOpts();
+    String[] args =
+        new String[] {"--password", "mypass", "-u", "userabc", "-o", "instance.name=myinst", "-o",
+            "instance.zookeepers=zoo1,zoo2", "-o", "auth.principal=user123"};
+    opts.parseArgs("test", args);
+    Properties props = opts.getClientProps();
+    assertEquals("user123", ClientProperty.AUTH_PRINCIPAL.getValue(props));
+    assertTrue(opts.getToken() instanceof PasswordToken);
+    assertTrue(opts.getToken().equals(new PasswordToken("mypass")));
+    assertEquals("myinst", props.getProperty("instance.name"));
+  }
 }
