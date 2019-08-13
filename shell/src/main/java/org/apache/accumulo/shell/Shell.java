@@ -44,6 +44,7 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -329,7 +330,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         Runtime.getRuntime()
             .addShutdownHook(new Thread(() -> reader.getTerminal().setEchoEnabled(true)));
         // Read password if the user explicitly asked for it, or didn't specify anything at all
-        if ("stdin".equals(password) || password == null) {
+        if (PasswordConverter.STDIN.equals(password) || password == null) {
           password = reader.readLine("Password: ", '*');
         }
         if (password == null) {

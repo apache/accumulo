@@ -42,7 +42,7 @@ public class ShellOptionsJC {
 
   // Note: Don't use "password = true" because then it will prompt even if we have a token
   @Parameter(names = {"-p", "--password"},
-      description = "password (can be specified as 'pass:<password>',"
+      description = "password (can be specified as '<password>', 'pass:<password>',"
           + " 'file:<local file containing the password>', 'env:<variable containing"
           + " the pass>', or stdin)",
       converter = ClientOpts.PasswordConverter.class)
