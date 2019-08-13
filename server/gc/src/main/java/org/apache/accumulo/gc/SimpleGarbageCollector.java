@@ -572,9 +572,12 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted,
           Set<TServerInstance> added) {
-        if (!deleted.isEmpty() || !added.isEmpty()) {
-          log.debug("Number of current servers {}, tservers added {}, removed {}",
-              current == null ? -1 : current.size(), added, deleted);
+
+        log.debug("Number of current servers {}, tservers added {}, removed {}",
+            current == null ? -1 : current.size(), added, deleted);
+
+        if (log.isTraceEnabled()) {
+          log.trace("Current servers: {}\nAdded: {}\n Removed: {}", current, added, deleted);
         }
       }
     });
