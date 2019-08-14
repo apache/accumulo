@@ -35,6 +35,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -45,6 +46,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -285,6 +287,20 @@ public class CloneTestIT extends AccumuloClusterHarness {
       }
 
       assertEquals(rows, actualRows);
+    }
+  }
+
+  @Test(expected = AccumuloException.class)
+  public void testCloneRootTable() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().clone(RootTable.NAME, "rc1", true, null, null);
+    }
+  }
+
+  @Test(expected = AccumuloException.class)
+  public void testCloneMetadataTable() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().clone(MetadataTable.NAME, "mc1", true, null, null);
     }
   }
 }

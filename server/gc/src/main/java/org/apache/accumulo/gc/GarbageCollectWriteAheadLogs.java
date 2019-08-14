@@ -53,6 +53,7 @@ import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
+import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -94,8 +95,8 @@ public class GarbageCollectWriteAheadLogs {
     });
     liveServers.startListeningForTabletServerChanges();
     this.walMarker = new WalStateManager(context);
-    this.store = () -> Iterators.concat(new RootTabletStateStore(context).iterator(),
-        new MetaDataStateStore(context).iterator());
+    this.store = () -> Iterators.concat(new ZooTabletStateStore(context.getAmple()).iterator(),
+        new RootTabletStateStore(context).iterator(), new MetaDataStateStore(context).iterator());
   }
 
   /**

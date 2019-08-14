@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master;
 
+import static org.apache.accumulo.master.util.TableValidators.CAN_CLONE;
 import static org.apache.accumulo.master.util.TableValidators.NOT_METADATA;
 import static org.apache.accumulo.master.util.TableValidators.NOT_ROOT_ID;
 import static org.apache.accumulo.master.util.TableValidators.NOT_SYSTEM;
@@ -250,7 +251,7 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_CLONE: {
         TableOperation tableOp = TableOperation.CLONE;
         validateArgumentCount(arguments, tableOp, 2);
-        TableId srcTableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
+        TableId srcTableId = validateTableIdArgument(arguments.get(0), tableOp, CAN_CLONE);
         String tableName = validateTableNameArgument(arguments.get(1), tableOp, NOT_SYSTEM);
         NamespaceId namespaceId;
         try {
