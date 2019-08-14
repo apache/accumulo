@@ -80,6 +80,28 @@ public class TableValidators {
     }
   };
 
+  public static final Validator<TableId> CAN_CLONE = new Validator<TableId>() {
+
+    private List<TableId> metaIDs = Arrays.asList(RootTable.ID, MetadataTable.ID);
+
+    @Override
+    public boolean test(TableId tableId) {
+      return !metaIDs.contains(tableId);
+    }
+
+    @Override
+    public String invalidMessage(TableId tableId) {
+      String msg;
+      if (tableId.equals(MetadataTable.ID)) {
+        msg = " Cloning " + MetadataTable.NAME
+            + " is dangerous and no longer supported, see https://github.com/apache/accumulo/issues/1309.";
+      } else {
+        msg = "Can not clone " + RootTable.NAME;
+      }
+      return msg;
+    }
+  };
+
   public static final Validator<String> NOT_SYSTEM = new Validator<String>() {
 
     @Override
