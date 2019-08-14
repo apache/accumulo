@@ -93,7 +93,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
         log.debug("Root GC candidates after change  : {}", newJson);
 
-        if (newJson.length() > 1 << 18) {
+        if (newJson.length() > 262_144) {
           log.warn(
               "Root tablet deletion candidates stored in ZK at {} are getting large ({} bytes), is"
                   + " Accumulo GC process running?  Large nodes may cause problems for Zookeeper!",
@@ -101,7 +101,6 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         }
 
         return newJson.getBytes(UTF_8);
-
       });
     } catch (Exception e) {
       throw new RuntimeException(e);

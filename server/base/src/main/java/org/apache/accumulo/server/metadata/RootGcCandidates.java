@@ -100,10 +100,7 @@ public class RootGcCandidates {
   public String toJson() {
     GSonData gd = new GSonData();
     gd.candidates = candidates;
-
-    // replace two space indentation with one space to save bytes in ZK while still leaving it human
-    // readable
-    return GSON.toJson(gd).replaceAll("  ", " ");
+    return GSON.toJson(gd);
   }
 
   public static RootGcCandidates fromJson(String json) {
