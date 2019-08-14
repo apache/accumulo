@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# usage: run-bulk-generate.sh [bulk-dir]
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
@@ -29,6 +30,12 @@ script=$( basename "${SOURCE}" )
 
 CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-${bin}}
 . "$CONTINUOUS_CONF_DIR/continuous-env.sh"
+
+# first arg will override bulk dir if set
+if [[ -n "$1" ]]; then
+   echo "Overriding configured BULK_DIR=$BULK_DIR with $1"
+   BULK_DIR=$1
+fi
 
 SERVER_LIBJAR="$ACCUMULO_HOME/lib/accumulo-test.jar"
 
