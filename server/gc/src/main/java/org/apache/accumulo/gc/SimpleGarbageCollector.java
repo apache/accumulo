@@ -23,6 +23,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -36,20 +37,12 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IsolatedScanner;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.PartialKey;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
@@ -57,6 +50,8 @@ import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -90,7 +85,6 @@ import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 import org.apache.htrace.impl.ProbabilitySampler;
@@ -109,7 +103,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
-  private static final Text EMPTY_TEXT = new Text();
 
   /**
    * Options for the garbage collector.
@@ -185,32 +178,23 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private class GCEnv implements GarbageCollectionEnvironment {
 
-    private String tableName;
+    private DataLevel level;
 
-    GCEnv(String tableName) {
-      this.tableName = tableName;
+    GCEnv(Ample.DataLevel level) {
+      this.level = level;
     }
 
     @Override
     public boolean getCandidates(String continuePoint, List<String> result)
         throws TableNotFoundException {
-      // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing
-      // them,
-      // then will never inspect deletes after N
-      Range range = MetadataSchema.DeletesSection.getRange();
-      if (continuePoint != null && !continuePoint.isEmpty()) {
-        String continueRow = MetadataSchema.DeletesSection.getRowPrefix() + continuePoint;
-        range = new Range(new Key(continueRow).followingKey(PartialKey.ROW), true,
-            range.getEndKey(), range.isEndKeyInclusive());
-      }
 
-      Scanner scanner = getContext().createScanner(tableName, Authorizations.EMPTY);
-      scanner.setRange(range);
+      Iterator<String> candidates = getContext().getAmple().getGcCandidates(level, continuePoint);
+
       result.clear();
-      // find candidates for deletion; chop off the prefix
-      for (Entry<Key,Value> entry : scanner) {
-        String cand = entry.getKey().getRow().toString()
-            .substring(MetadataSchema.DeletesSection.getRowPrefix().length());
+
+      while (candidates.hasNext()) {
+        String cand = candidates.next();
+
         result.add(cand);
         if (almostOutOfMemory(Runtime.getRuntime())) {
           log.info("List of delete candidates has exceeded the memory"
@@ -224,9 +208,14 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     @Override
     public Iterator<String> getBlipIterator() throws TableNotFoundException {
+
+      if (level == DataLevel.ROOT) {
+        return Collections.<String>emptySet().iterator();
+      }
+
       @SuppressWarnings("resource")
       IsolatedScanner scanner =
-          new IsolatedScanner(getContext().createScanner(tableName, Authorizations.EMPTY));
+          new IsolatedScanner(getContext().createScanner(level.metaTable(), Authorizations.EMPTY));
 
       scanner.setRange(MetadataSchema.BlipSection.getRange());
 
@@ -237,8 +226,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     @Override
     public Stream<Reference> getReferences() {
 
-      Stream<TabletMetadata> tabletStream = TabletsMetadata.builder().scanTable(tableName)
-          .checkConsistency().fetch(DIR, FILES, SCANS).build(getContext()).stream();
+      Stream<TabletMetadata> tabletStream;
+
+      if (level == DataLevel.ROOT) {
+        tabletStream =
+            Stream.of(getContext().getAmple().readTablet(RootTable.EXTENT, DIR, FILES, SCANS));
+      } else {
+        tabletStream = TabletsMetadata.builder().scanTable(level.metaTable()).checkConsistency()
+            .fetch(DIR, FILES, SCANS).build(getContext()).stream();
+      }
 
       Stream<Reference> refStream = tabletStream.flatMap(tm -> {
         Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
@@ -275,13 +271,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         return;
       }
 
-      AccumuloClient c = getContext();
-      BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig());
-
       // when deleting a dir and all files in that dir, only need to delete the dir
       // the dir will sort right before the files... so remove the files in this case
       // to minimize namenode ops
       Iterator<Entry<String,String>> cdIter = confirmedDeletes.entrySet().iterator();
+
+      List<String> processedDeletes = Collections.synchronizedList(new ArrayList<String>());
 
       String lastDir = null;
       while (cdIter.hasNext()) {
@@ -294,19 +289,13 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         } else if (lastDir != null) {
           if (absPath.startsWith(lastDir)) {
             log.debug("Ignoring {} because {} exist", entry.getValue(), lastDir);
-            try {
-              putMarkerDeleteMutation(entry.getValue(), writer);
-            } catch (MutationsRejectedException e) {
-              throw new RuntimeException(e);
-            }
+            processedDeletes.add(entry.getValue());
             cdIter.remove();
           } else {
             lastDir = null;
           }
         }
       }
-
-      final BatchWriter finalWriter = writer;
 
       ExecutorService deleteThreadPool =
           Executors.newFixedThreadPool(getNumDeleteThreads(), new NamingThreadFactory("deleting"));
@@ -377,8 +366,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
             // proceed to clearing out the flags for successful deletes and
             // non-existent files
-            if (removeFlag && finalWriter != null) {
-              putMarkerDeleteMutation(delete, finalWriter);
+            if (removeFlag) {
+              processedDeletes.add(delete);
             }
           } catch (Exception e) {
             log.error("{}", e.getMessage(), e);
@@ -397,13 +386,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         log.error("{}", e1.getMessage(), e1);
       }
 
-      if (writer != null) {
-        try {
-          writer.close();
-        } catch (MutationsRejectedException e) {
-          log.error("Problem removing entries from the metadata table: ", e);
-        }
-      }
+      getContext().getAmple().deleteGcCandidates(level, processedDeletes);
     }
 
     @Override
@@ -501,8 +484,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
             status.current.started = System.currentTimeMillis();
 
-            new GarbageCollectionAlgorithm().collect(new GCEnv(RootTable.NAME));
-            new GarbageCollectionAlgorithm().collect(new GCEnv(MetadataTable.NAME));
+            new GarbageCollectionAlgorithm().collect(new GCEnv(DataLevel.ROOT));
+            new GarbageCollectionAlgorithm().collect(new GCEnv(DataLevel.METADATA));
+            new GarbageCollectionAlgorithm().collect(new GCEnv(DataLevel.USER));
 
             log.info("Number of data file candidates for deletion: {}", status.current.candidates);
             log.info("Number of data file candidates still in use: {}", status.current.inUse);
@@ -652,13 +636,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   static boolean almostOutOfMemory(Runtime runtime) {
     return runtime.totalMemory() - runtime.freeMemory()
         > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
-  }
-
-  private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer)
-      throws MutationsRejectedException {
-    Mutation m = new Mutation(MetadataSchema.DeletesSection.getRowPrefix() + delete);
-    m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
-    writer.addMutation(m);
   }
 
   /**

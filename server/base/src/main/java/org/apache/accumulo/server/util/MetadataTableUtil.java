@@ -91,14 +91,12 @@ import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 
 /**
  * provides a reference to the metadata table for updates by tablet servers
@@ -166,22 +164,18 @@ public class MetadataTableUtil {
 
   public static void updateTabletFlushID(KeyExtent extent, long flushID, ServerContext context,
       ZooLock zooLock) {
-    if (!extent.isRootTablet()) {
-      TabletMutator tablet = context.getAmple().mutateTablet(extent);
-      tablet.putFlushId(flushID);
-      tablet.putZooLock(zooLock);
-      tablet.mutate();
-    }
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    tablet.putFlushId(flushID);
+    tablet.putZooLock(zooLock);
+    tablet.mutate();
   }
 
   public static void updateTabletCompactID(KeyExtent extent, long compactID, ServerContext context,
       ZooLock zooLock) {
-    if (!extent.isRootTablet()) {
-      TabletMutator tablet = context.getAmple().mutateTablet(extent);
-      tablet.putCompactionId(compactID);
-      tablet.putZooLock(zooLock);
-      tablet.mutate();
-    }
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    tablet.putCompactionId(compactID);
+    tablet.putZooLock(zooLock);
+    tablet.mutate();
   }
 
   public static void updateTabletDataFile(long tid, KeyExtent extent,
@@ -221,14 +215,6 @@ public class MetadataTableUtil {
       List<LogEntry> logsToAdd, List<FileRef> filesToRemove,
       SortedMap<FileRef,DataFileValue> filesToAdd, String newDir, ZooLock zooLock,
       ServerContext context) {
-
-    if (extent.isRootTablet()) {
-      if (newDir != null)
-        throw new IllegalArgumentException("newDir not expected for " + extent);
-
-      if (filesToRemove.size() != 0 || filesToAdd.size() != 0)
-        throw new IllegalArgumentException("files not expected for " + extent);
-    }
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
     logsToRemove.forEach(tabletMutator::deleteWal);
@@ -440,23 +426,9 @@ public class MetadataTableUtil {
 
     result.addAll(tablet.getLogs());
 
-    if (extent.isRootTablet()) {
-      Preconditions.checkState(tablet.getFiles().isEmpty(),
-          "Saw unexpected files in root tablet metadata %s", tablet.getFiles());
-
-      FileStatus[] files = fs.listStatus(new Path(tablet.getDir()));
-      for (FileStatus fileStatus : files) {
-        if (fileStatus.getPath().toString().endsWith("_tmp")) {
-          continue;
-        }
-        DataFileValue dfv = new DataFileValue(0, 0);
-        sizes.put(new FileRef(fileStatus.getPath().toString(), fileStatus.getPath()), dfv);
-      }
-    } else {
-      tablet.getFilesMap().forEach((k, v) -> {
-        sizes.put(new FileRef(k, fs.getFullPath(tablet.getTableId(), k)), v);
-      });
-    }
+    tablet.getFilesMap().forEach((k, v) -> {
+      sizes.put(new FileRef(k, fs.getFullPath(tablet.getTableId(), k)), v);
+    });
 
     return new Pair<>(result, sizes);
   }

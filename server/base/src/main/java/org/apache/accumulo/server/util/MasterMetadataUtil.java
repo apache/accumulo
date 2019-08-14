@@ -39,7 +39,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -221,34 +220,6 @@ public class MasterMetadataUtil {
    *
    */
   public static void updateTabletDataFile(ServerContext context, KeyExtent extent, FileRef path,
-      FileRef mergeFile, DataFileValue dfv, MetadataTime time, Set<FileRef> filesInUseByScans,
-      String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
-      long flushId) {
-    if (extent.isRootTablet()) {
-      updateRootTabletDataFile(context, unusedWalLogs);
-    } else {
-      updateForTabletDataFile(context, extent, path, mergeFile, dfv, time, filesInUseByScans,
-          address, zooLock, unusedWalLogs, lastLocation, flushId);
-    }
-
-  }
-
-  /**
-   * Update the data file for the root tablet
-   */
-  private static void updateRootTabletDataFile(ServerContext context, Set<String> unusedWalLogs) {
-    if (unusedWalLogs != null) {
-      TabletMutator tablet = context.getAmple().mutateTablet(RootTable.EXTENT);
-      unusedWalLogs.forEach(tablet::deleteWal);
-      tablet.mutate();
-    }
-  }
-
-  /**
-   * Create an update that updates a tablet
-   *
-   */
-  private static void updateForTabletDataFile(ServerContext context, KeyExtent extent, FileRef path,
       FileRef mergeFile, DataFileValue dfv, MetadataTime time, Set<FileRef> filesInUseByScans,
       String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
       long flushId) {

@@ -19,24 +19,42 @@ package org.apache.accumulo.master.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
+import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET_GC_CANDIDATES;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +113,20 @@ public class Upgrader9to10 implements Upgrader {
 
       logs.forEach(tabletMutator::putWal);
 
+      Map<String,DataFileValue> files = cleanupRootTabletFiles(ctx.getVolumeManager(), dir);
+      files.forEach((path, dfv) -> tabletMutator.putFile(new FileRef(path), dfv));
+
+      tabletMutator.putTime(computeRootTabletTime(ctx, files.keySet()));
+
       tabletMutator.mutate();
+    }
+
+    try {
+      ctx.getZooReaderWriter().putPersistentData(
+          ctx.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES,
+          new RootGcCandidates().toJson().getBytes(UTF_8), NodeExistsPolicy.SKIP);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException(e);
     }
 
     // this operation must be idempotent, so deleting after updating is very important
@@ -217,6 +248,107 @@ public class Upgrader9to10 implements Upgrader {
           NodeMissingPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  MetadataTime computeRootTabletTime(ServerContext context, Collection<String> goodPaths) {
+
+    try {
+      long rtime = Long.MIN_VALUE;
+      for (String good : goodPaths) {
+        Path path = new Path(good);
+
+        FileSystem ns = context.getVolumeManager().getVolumeByPath(path).getFileSystem();
+        long maxTime = -1;
+        try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
+            .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
+            .withTableConfiguration(
+                context.getServerConfFactory().getTableConfiguration(RootTable.ID))
+            .seekToBeginning().build()) {
+          while (reader.hasTop()) {
+            maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());
+            reader.next();
+          }
+        }
+        if (maxTime > rtime) {
+
+          rtime = maxTime;
+        }
+      }
+
+      if (rtime < 0) {
+        throw new IllegalStateException("Unexpected root tablet logical time " + rtime);
+      }
+
+      return new MetadataTime(rtime, TimeType.LOGICAL);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  static Map<String,DataFileValue> cleanupRootTabletFiles(VolumeManager fs, String dir) {
+
+    try {
+      FileStatus[] files = fs.listStatus(new Path(dir));
+
+      Map<String,DataFileValue> goodFiles = new HashMap<>(files.length);
+
+      for (FileStatus file : files) {
+
+        String path = file.getPath().toString();
+        if (file.getPath().toUri().getScheme() == null) {
+          // depending on the behavior of HDFS, if list status does not return fully qualified
+          // volumes
+          // then could switch to the default volume
+          throw new IllegalArgumentException("Require fully qualified paths " + file.getPath());
+        }
+
+        String filename = file.getPath().getName();
+
+        // check for incomplete major compaction, this should only occur
+        // for root tablet
+        if (filename.startsWith("delete+")) {
+          String expectedCompactedFile =
+              path.substring(0, path.lastIndexOf("/delete+")) + "/" + filename.split("\\+")[1];
+          if (fs.exists(new Path(expectedCompactedFile))) {
+            // compaction finished, but did not finish deleting compacted files.. so delete it
+            if (!fs.deleteRecursively(file.getPath()))
+              log.warn("Delete of file: {} return false", file.getPath());
+            continue;
+          }
+          // compaction did not finish, so put files back
+
+          // reset path and filename for rest of loop
+          filename = filename.split("\\+", 3)[2];
+          path = path.substring(0, path.lastIndexOf("/delete+")) + "/" + filename;
+          Path src = file.getPath();
+          Path dst = new Path(path);
+
+          if (!fs.rename(src, dst)) {
+            throw new IOException("Rename " + src + " to " + dst + " returned false ");
+          }
+        }
+
+        if (filename.endsWith("_tmp")) {
+          log.warn("cleaning up old tmp file: {}", path);
+          if (!fs.deleteRecursively(file.getPath()))
+            log.warn("Delete of tmp file: {} return false", file.getPath());
+
+          continue;
+        }
+
+        if (!filename.startsWith(Constants.MAPFILE_EXTENSION + "_")
+            && !FileOperations.getValidExtensions().contains(filename.split("\\.")[1])) {
+          log.error("unknown file in tablet: {}", path);
+          continue;
+        }
+
+        goodFiles.put(path, new DataFileValue(file.getLen(), 0));
+      }
+
+      return goodFiles;
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 

@@ -2486,12 +2486,7 @@ public class TabletServer extends AbstractServer {
 
         TabletResourceManager trm =
             resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
-        TabletData data;
-        if (extent.isRootTablet()) {
-          data = new TabletData(getContext(), fs, getTableConfiguration(extent), tabletMetadata);
-        } else {
-          data = new TabletData(extent, fs, tabletMetadata);
-        }
+        TabletData data = new TabletData(extent, fs, tabletMetadata);
 
         tablet = new Tablet(TabletServer.this, extent, trm, data);
         // If a minor compaction starts after a tablet opens, this indicates a log recovery

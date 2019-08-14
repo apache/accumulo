@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.tablet;
+package org.apache.accumulo.master.upgrade;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -42,11 +42,17 @@ import org.junit.rules.TemporaryFolder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class RootFilesTest {
+public class RootFilesUpgradeTest {
 
   @Rule
   public TemporaryFolder tempFolder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
+  static void rename(VolumeManager fs, Path src, Path dst) throws IOException {
+    if (!fs.rename(src, dst)) {
+      throw new IOException("Rename " + src + " to " + dst + " returned false ");
+    }
+  }
 
   private class TestWrapper {
     File rootTabletDir;
@@ -56,6 +62,35 @@ public class RootFilesTest {
     FileRef newDatafile;
     VolumeManager vm;
     AccumuloConfiguration conf;
+
+    public void prepareReplacement(VolumeManager fs, Path location, Set<FileRef> oldDatafiles,
+        String compactName) throws IOException {
+      for (FileRef ref : oldDatafiles) {
+        Path path = ref.path();
+        rename(fs, path, new Path(location + "/delete+" + compactName + "+" + path.getName()));
+      }
+    }
+
+    public void renameReplacement(VolumeManager fs, FileRef tmpDatafile, FileRef newDatafile)
+        throws IOException {
+      if (fs.exists(newDatafile.path())) {
+        throw new IllegalStateException("Target map file already exist " + newDatafile);
+      }
+
+      rename(fs, tmpDatafile.path(), newDatafile.path());
+    }
+
+    public void finishReplacement(AccumuloConfiguration acuTableConf, VolumeManager fs,
+        Path location, Set<FileRef> oldDatafiles, String compactName) throws IOException {
+      // start deleting files, if we do not finish they will be cleaned
+      // up later
+      for (FileRef ref : oldDatafiles) {
+        Path path = ref.path();
+        Path deleteFile = new Path(location + "/delete+" + compactName + "+" + path.getName());
+        if (acuTableConf.getBoolean(Property.GC_TRASH_IGNORE) || !fs.moveToTrash(deleteFile))
+          fs.deleteRecursively(deleteFile);
+      }
+    }
 
     TestWrapper(VolumeManager vm, AccumuloConfiguration conf, String compactName,
         String... inputFiles) throws IOException {
@@ -81,21 +116,20 @@ public class RootFilesTest {
     }
 
     void prepareReplacement() throws IOException {
-      RootFiles.prepareReplacement(vm, new Path(rootTabletDir.toURI()), oldDatafiles, compactName);
+      prepareReplacement(vm, new Path(rootTabletDir.toURI()), oldDatafiles, compactName);
     }
 
     void renameReplacement() throws IOException {
-      RootFiles.renameReplacement(vm, tmpDatafile, newDatafile);
+      renameReplacement(vm, tmpDatafile, newDatafile);
     }
 
     public void finishReplacement() throws IOException {
-      RootFiles.finishReplacement(conf, vm, new Path(rootTabletDir.toURI()), oldDatafiles,
-          compactName);
+      finishReplacement(conf, vm, new Path(rootTabletDir.toURI()), oldDatafiles, compactName);
     }
 
     public Collection<String> cleanupReplacement(String... expectedFiles) throws IOException {
       Collection<String> ret =
-          RootFiles.cleanupReplacement(vm, vm.listStatus(new Path(rootTabletDir.toURI())), true);
+          Upgrader9to10.cleanupRootTabletFiles(vm, rootTabletDir.toString()).keySet();
 
       HashSet<String> expected = new HashSet<>();
       for (String efile : expectedFiles)

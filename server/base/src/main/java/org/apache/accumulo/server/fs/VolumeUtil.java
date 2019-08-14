@@ -18,7 +18,6 @@ package org.apache.accumulo.server.fs;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -44,7 +43,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +53,6 @@ import org.slf4j.LoggerFactory;
 public class VolumeUtil {
 
   private static final Logger log = LoggerFactory.getLogger(VolumeUtil.class);
-  private static final SecureRandom rand = new SecureRandom();
 
   private static boolean isActiveVolume(ServerContext context, Path dir) {
 
@@ -203,21 +200,17 @@ public class VolumeUtil {
       }
     }
 
-    if (extent.isRootTablet()) {
-      ret.datafiles = tabletFiles.datafiles;
-    } else {
-      for (Entry<FileRef,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
-        String metaPath = entry.getKey().meta().toString();
-        String switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
-        if (switchedPath != null) {
-          filesToRemove.add(entry.getKey());
-          FileRef switchedRef = new FileRef(switchedPath, new Path(switchedPath));
-          filesToAdd.put(switchedRef, entry.getValue());
-          ret.datafiles.put(switchedRef, entry.getValue());
-          log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);
-        } else {
-          ret.datafiles.put(entry.getKey(), entry.getValue());
-        }
+    for (Entry<FileRef,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
+      String metaPath = entry.getKey().meta().toString();
+      String switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
+      if (switchedPath != null) {
+        filesToRemove.add(entry.getKey());
+        FileRef switchedRef = new FileRef(switchedPath, new Path(switchedPath));
+        filesToAdd.put(switchedRef, entry.getValue());
+        ret.datafiles.put(switchedRef, entry.getValue());
+        log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);
+      } else {
+        ret.datafiles.put(entry.getKey(), entry.getValue());
       }
     }
 
@@ -276,52 +269,10 @@ public class VolumeUtil {
         + Path.SEPARATOR + dir.getName());
 
     log.info("Updating directory for {} from {} to {}", extent, dir, newDir);
-    if (extent.isRootTablet()) {
-      // the root tablet is special case, its files need to be copied if its dir is changed
 
-      // this code needs to be idempotent
+    MetadataTableUtil.updateTabletDir(extent, newDir.toString(), context, zooLock);
+    return newDir.toString();
 
-      FileSystem fs1 = vm.getVolumeByPath(dir).getFileSystem();
-      FileSystem fs2 = vm.getVolumeByPath(newDir).getFileSystem();
-
-      if (!same(fs1, dir, fs2, newDir)) {
-        if (fs2.exists(newDir)) {
-          Path newDirBackup = getBackupName(newDir);
-          // never delete anything because were dealing with the root tablet
-          // one reason this dir may exist is because this method failed previously
-          log.info("renaming {} to {}", newDir, newDirBackup);
-          if (!fs2.rename(newDir, newDirBackup)) {
-            throw new IOException("Failed to rename " + newDir + " to " + newDirBackup);
-          }
-        }
-
-        // do a lot of logging since this is the root tablet
-        log.info("copying {} to {}", dir, newDir);
-        if (!FileUtil.copy(fs1, dir, fs2, newDir, false, context.getHadoopConf())) {
-          throw new IOException("Failed to copy " + dir + " to " + newDir);
-        }
-
-        // only set the new location in zookeeper after a successful copy
-        log.info("setting root tablet location to {}", newDir);
-        context.getAmple().mutateTablet(RootTable.EXTENT).putDir(newDir.toString()).mutate();
-
-        // rename the old dir to avoid confusion when someone looks at filesystem... its ok if we
-        // fail here and this does not happen because the location in
-        // zookeeper is the authority
-        Path dirBackup = getBackupName(dir);
-        log.info("renaming {} to {}", dir, dirBackup);
-        fs1.rename(dir, dirBackup);
-
-      } else {
-        log.info("setting root tablet location to {}", newDir);
-        context.getAmple().mutateTablet(RootTable.EXTENT).putDir(newDir.toString()).mutate();
-      }
-
-      return newDir.toString();
-    } else {
-      MetadataTableUtil.updateTabletDir(extent, newDir.toString(), context, zooLock);
-      return newDir.toString();
-    }
   }
 
   static boolean same(FileSystem fs1, Path dir, FileSystem fs2, Path newDir)
@@ -372,10 +323,4 @@ public class VolumeUtil {
     }
 
   }
-
-  private static Path getBackupName(Path path) {
-    return new Path(path.getParent(), path.getName() + "_" + System.currentTimeMillis() + "_"
-        + (rand.nextInt(Integer.MAX_VALUE) + 1) + ".bak");
-  }
-
 }

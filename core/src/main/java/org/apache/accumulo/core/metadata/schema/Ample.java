@@ -18,9 +18,12 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Collection;
+import java.util.Iterator;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -54,6 +57,31 @@ import org.apache.hadoop.io.Text;
  * </UL>
  */
 public interface Ample {
+
+  /**
+   * Accumulo is a distributed tree with three levels. This enum is used to communicate to Ample
+   * that code is interested in operating on the metadata of a data level. Sometimes tables ids or
+   * key extents are passed to Ample in lieu of a data level, in these cases the data level is
+   * derived from the table id.
+   */
+  public enum DataLevel {
+    ROOT(null), METADATA(RootTable.NAME), USER(MetadataTable.NAME);
+
+    private final String table;
+
+    private DataLevel(String table) {
+      this.table = table;
+    }
+
+    /**
+     * @return The name of the Accumulo table in which this data level stores its metadata.
+     */
+    public String metaTable() {
+      if (table == null)
+        throw new UnsupportedOperationException();
+      return table;
+    }
+  }
 
   /**
    * Read a single tablets metadata. No checking is done for prev row, so it could differ.
@@ -90,7 +118,11 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
-  default void deleteGcCandidates(TableId tableId, Collection<String> paths) {
+  default void deleteGcCandidates(DataLevel level, Collection<String> paths) {
+    throw new UnsupportedOperationException();
+  }
+
+  default Iterator<String> getGcCandidates(DataLevel level, String continuePoint) {
     throw new UnsupportedOperationException();
   }
 
