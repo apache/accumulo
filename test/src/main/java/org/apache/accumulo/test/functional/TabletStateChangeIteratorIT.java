@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
@@ -34,7 +35,9 @@ import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -78,11 +81,13 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   @Test
   public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException {
-    String[] tables = getUniqueNames(4);
+    String[] tables = getUniqueNames(6);
     final String t1 = tables[0];
     final String t2 = tables[1];
     final String t3 = tables[2];
-    final String cloned = tables[3];
+    final String metaCopy1 = tables[3];
+    final String metaCopy2 = tables[4];
+    final String metaCopy3 = tables[5];
 
     // create some metadata
     createTable(t1, true);
@@ -90,25 +95,30 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     createTable(t3, true);
 
     // examine a clone of the metadata table, so we can manipulate it
-    cloneMetadataTable(cloned);
+    copyTable(MetadataTable.NAME, metaCopy1);
 
     State state = new State();
-    while (findTabletsNeedingAttention(cloned, state) > 0) {
+    while (findTabletsNeedingAttention(metaCopy1, state) > 0) {
       UtilWaitThread.sleep(500);
+      copyTable(MetadataTable.NAME, metaCopy1);
     }
-    assertEquals("No tables should need attention", 0, findTabletsNeedingAttention(cloned, state));
+    assertEquals("No tables should need attention", 0,
+        findTabletsNeedingAttention(metaCopy1, state));
+
+    // The metadata table stabilized and metaCopy1 contains a copy suitable for testing. Before
+    // metaCopy1 is modified, copy it for subsequent test.
+    copyTable(metaCopy1, metaCopy2);
+    copyTable(metaCopy1, metaCopy3);
 
     // test the assigned case (no location)
-    removeLocation(cloned, t3);
+    removeLocation(metaCopy1, t3);
     assertEquals("Should have two tablets without a loc", 2,
-        findTabletsNeedingAttention(cloned, state));
+        findTabletsNeedingAttention(metaCopy1, state));
 
     // test the cases where the assignment is to a dead tserver
-    getConnector().tableOperations().delete(cloned);
-    cloneMetadataTable(cloned);
-    reassignLocation(cloned, t3);
+    reassignLocation(metaCopy2, t3);
     assertEquals("Should have one tablet that needs to be unassigned", 1,
-        findTabletsNeedingAttention(cloned, state));
+        findTabletsNeedingAttention(metaCopy2, state));
 
     // test the cases where there is ongoing merges
     state = new State() {
@@ -120,17 +130,16 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       }
     };
     assertEquals("Should have 2 tablets that need to be chopped or unassigned", 1,
-        findTabletsNeedingAttention(cloned, state));
+        findTabletsNeedingAttention(metaCopy2, state));
 
     // test the bad tablet location state case (inconsistent metadata)
     state = new State();
-    cloneMetadataTable(cloned);
-    addDuplicateLocation(cloned, t3);
+    addDuplicateLocation(metaCopy3, t3);
     assertEquals("Should have 1 tablet that needs a metadata repair", 1,
-        findTabletsNeedingAttention(cloned, state));
+        findTabletsNeedingAttention(metaCopy3, state));
 
     // clean up
-    dropTables(t1, t2, t3, cloned);
+    dropTables(t1, t2, t3, metaCopy1, metaCopy2, metaCopy3);
   }
 
   private void addDuplicateLocation(String table, String tableNameToModify)
@@ -183,6 +192,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       if (e != null)
         results++;
     }
+
     return results;
   }
 
@@ -199,14 +209,37 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     }
   }
 
-  private void cloneMetadataTable(String cloned) throws AccumuloException,
+  private void copyTable(String source, String copy) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, TableExistsException {
     try {
-      dropTables(cloned);
+      dropTables(copy);
     } catch (TableNotFoundException ex) {
       // ignored
     }
-    getConnector().tableOperations().clone(MetadataTable.NAME, cloned, true, null, null);
+
+    getConnector().tableOperations().create(copy);
+
+    try (Scanner scanner = getConnector().createScanner(source, Authorizations.EMPTY);
+        BatchWriter writer = getConnector().createBatchWriter(copy, new BatchWriterConfig())) {
+      RowIterator rows = new RowIterator(new IsolatedScanner(scanner));
+
+      while (rows.hasNext()) {
+        Iterator<Entry<Key,Value>> row = rows.next();
+        Mutation m = null;
+
+        while (row.hasNext()) {
+          Entry<Key,Value> entry = row.next();
+          Key k = entry.getKey();
+          if (m == null)
+            m = new Mutation(k.getRow());
+
+          m.put(k.getColumnFamily(), k.getColumnQualifier(), k.getColumnVisibilityParsed(),
+              k.getTimestamp(), entry.getValue());
+        }
+
+        writer.addMutation(m);
+      }
+    }
   }
 
   private void dropTables(String... tables)
