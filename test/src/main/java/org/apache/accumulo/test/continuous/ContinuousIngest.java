@@ -213,8 +213,12 @@ public class ContinuousIngest {
     Mutation m = new Mutation(new Text(rowString));
 
     m.put(new Text(cfString), new Text(cqString), cv,
-        createValue(ingestInstanceId, count, prevRow, cksum));
+        new Value(createValue(ingestInstanceId, count, prevRow, cksum)));
     return m;
+  }
+
+  public static byte[] genCol(int cfInt) {
+    return FastFormat.toZeroPaddedString(cfInt, 4, 16, EMPTY_BYTES);
   }
 
   public static final long genLong(long min, long max, Random r) {
@@ -229,8 +233,7 @@ public class ContinuousIngest {
     return FastFormat.toZeroPaddedString(rowLong, 16, 16, EMPTY_BYTES);
   }
 
-  private static Value createValue(byte[] ingestInstanceId, long count, byte[] prevRow,
-      Checksum cksum) {
+  static byte[] createValue(byte[] ingestInstanceId, long count, byte[] prevRow, Checksum cksum) {
     int dataLen = ingestInstanceId.length + 16 + (prevRow == null ? 0 : prevRow.length) + 3;
     if (cksum != null)
       dataLen += 8;
@@ -258,6 +261,6 @@ public class ContinuousIngest {
 
     // System.out.println("val "+new String(val));
 
-    return new Value(val);
+    return val;
   }
 }
