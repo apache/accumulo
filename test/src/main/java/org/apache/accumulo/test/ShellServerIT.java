@@ -1926,7 +1926,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table);
   }
 
-
   /**
    * Validate importdirectory command accepts addinig -t tablename option or the accepts original
    * format that uses the current working table. Currently this test does not validate the actual

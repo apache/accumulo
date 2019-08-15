@@ -18,7 +18,7 @@ package org.apache.accumulo.shell.commands;
 
 import static org.easymock.EasyMock.expectLastCall;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -30,7 +30,7 @@ public class ImportDirectoryCommandTest {
 
   private ImportDirectoryCommand cmd;
 
-  private Connector conn;
+  private AccumuloClient client;
   private CommandLine cli;
   private Shell shellState;
   private TableOperations tableOperations;
@@ -42,7 +42,7 @@ public class ImportDirectoryCommandTest {
     // Initialize that internal state
     cmd.getOptions();
 
-    conn = EasyMock.createMock(Connector.class);
+    client = EasyMock.createMock(AccumuloClient.class);
     cli = EasyMock.createMock(CommandLine.class);
     shellState = EasyMock.createMock(Shell.class);
     tableOperations = EasyMock.createMock(TableOperations.class);
@@ -68,19 +68,19 @@ public class ImportDirectoryCommandTest {
     EasyMock.expect(cli.getArgs()).andReturn(cliArgs);
     EasyMock.expect(cli.getArgs()).andReturn(cliArgs);
 
-    EasyMock.expect(shellState.getConnector()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
     EasyMock.expect(shellState.getTableName()).andReturn("tablename");
 
     shellState.checkTableState();
     expectLastCall().andVoid();
 
     // Table exists
-    EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
+    EasyMock.expect(client.tableOperations()).andReturn(tableOperations);
 
     tableOperations.importDirectory("tablename", "in_dir", "fail_dir", false);
     expectLastCall().times(3);
 
-    EasyMock.replay(conn, cli, shellState, tableOperations);
+    EasyMock.replay(client, cli, shellState, tableOperations);
 
     cmd.execute("importdirectory in_dir fail_dir false", cli, shellState);
 
@@ -104,25 +104,25 @@ public class ImportDirectoryCommandTest {
     EasyMock.expect(cli.getOptionValue("t")).andReturn("passedName");
 
     EasyMock.expect(tableOperations.exists("passedName")).andReturn(true);
-    EasyMock.expect(shellState.getConnector()).andReturn(conn);
-    EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
+    EasyMock.expect(client.tableOperations()).andReturn(tableOperations);
 
     EasyMock.expect(cli.getArgs()).andReturn(cliArgs);
     EasyMock.expect(cli.getArgs()).andReturn(cliArgs);
     EasyMock.expect(cli.getArgs()).andReturn(cliArgs);
 
-    EasyMock.expect(shellState.getConnector()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
 
     shellState.checkTableState();
     expectLastCall().andVoid();
 
     // Table exists
-    EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
+    EasyMock.expect(client.tableOperations()).andReturn(tableOperations);
 
     tableOperations.importDirectory("passedName", "in_dir", "fail_dir", false);
     expectLastCall().times(3);
 
-    EasyMock.replay(conn, cli, shellState, tableOperations);
+    EasyMock.replay(client, cli, shellState, tableOperations);
 
     cmd.execute("importdirectory in_dir fail_dir false", cli, shellState);
 

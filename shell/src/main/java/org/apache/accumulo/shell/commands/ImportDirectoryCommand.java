@@ -51,8 +51,8 @@ public class ImportDirectoryCommand extends Command {
     // new bulk import only takes 2 args
     if (args.length == 2) {
       setTime = Boolean.parseBoolean(cl.getArgs()[1]);
-      shellState.getAccumuloClient().tableOperations().importDirectory(dir)
-          .to(tableName).tableTime(setTime).load();
+      shellState.getAccumuloClient().tableOperations().importDirectory(dir).to(tableName)
+          .tableTime(setTime).load();
     } else if (args.length == 3) {
       // warn using deprecated bulk import
       Shell.log.warn(
@@ -60,8 +60,8 @@ public class ImportDirectoryCommand extends Command {
               + "as an argument.");
       String failureDir = args[1];
       setTime = Boolean.parseBoolean(cl.getArgs()[2]);
-      shellState.getAccumuloClient().tableOperations().importDirectory(tableName,
-          dir, failureDir, setTime);
+      shellState.getAccumuloClient().tableOperations().importDirectory(tableName, dir, failureDir,
+          setTime);
       return 0;
     } else {
       shellState.printException(
