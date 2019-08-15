@@ -53,11 +53,13 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.master.LiveTServerSet;
+import org.apache.accumulo.server.master.LiveTServerSet.Listener;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
+import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -100,8 +102,13 @@ public class GarbageCollectWriteAheadLogs {
     this.store = new Iterable<TabletLocationState>() {
       @Override
       public Iterator<TabletLocationState> iterator() {
-        return Iterators.concat(new RootTabletStateStore(context).iterator(),
-            new MetaDataStateStore(context).iterator());
+        try {
+          return Iterators.concat(new ZooTabletStateStore().iterator(),
+              new RootTabletStateStore(context).iterator(),
+              new MetaDataStateStore(context).iterator());
+        } catch (DistributedStoreException e) {
+          throw new RuntimeException(e);
+        }
       }
     };
   }
