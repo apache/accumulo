@@ -92,6 +92,8 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.master.LiveTServerSet;
+import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.rpc.RpcWrapper;
@@ -564,6 +566,22 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     ProbabilitySampler sampler =
         new ProbabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
+    // This is created outside of the run loop and passed to the walogCollector so that
+    // only a single timed task is created (internal to LiveTServerSet using SimpleTimer.
+    final LiveTServerSet liveTServerSet = new LiveTServerSet(this, new LiveTServerSet.Listener() {
+      @Override
+      public void update(LiveTServerSet current, Set<TServerInstance> deleted,
+          Set<TServerInstance> added) {
+
+        log.debug("Number of current servers {}, tservers added {}, removed {}",
+            current == null ? -1 : current.size(), added, deleted);
+
+        if (log.isTraceEnabled()) {
+          log.trace("Current servers: {}\nAdded: {}\n Removed: {}", current, added, deleted);
+        }
+      }
+    });
+
     while (true) {
       Trace.on("gc", sampler);
 
@@ -607,9 +625,10 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       }
 
       Span waLogs = Trace.start("walogs");
+
       try {
         GarbageCollectWriteAheadLogs walogCollector =
-            new GarbageCollectWriteAheadLogs(this, fs, isUsingTrash());
+            new GarbageCollectWriteAheadLogs(this, fs, liveTServerSet, isUsingTrash());
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {

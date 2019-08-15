@@ -53,7 +53,6 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.master.LiveTServerSet;
-import org.apache.accumulo.server.master.LiveTServerSet.Listener;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.RootTabletStateStore;
@@ -92,20 +91,13 @@ public class GarbageCollectWriteAheadLogs {
    * @param useTrash
    *          true to move files to trash rather than delete them
    */
-  GarbageCollectWriteAheadLogs(final AccumuloServerContext context, VolumeManager fs,
-      boolean useTrash) throws IOException {
+  GarbageCollectWriteAheadLogs(final AccumuloServerContext context, final VolumeManager fs,
+      final LiveTServerSet liveServers, boolean useTrash) throws IOException {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
-    this.liveServers = new LiveTServerSet(context, new Listener() {
-      @Override
-      public void update(LiveTServerSet current, Set<TServerInstance> deleted,
-          Set<TServerInstance> added) {
-        log.debug("New tablet servers noticed: " + added);
-        log.debug("Tablet servers removed: " + deleted);
-      }
-    });
-    liveServers.startListeningForTabletServerChanges();
+    this.liveServers = liveServers;
+
     this.walMarker = new WalStateManager(context.getInstance(), ZooReaderWriter.getInstance());
     this.store = new Iterable<TabletLocationState>() {
       @Override
@@ -170,6 +162,7 @@ public class GarbageCollectWriteAheadLogs {
       span.stop();
 
       // now it's safe to get the liveServers
+      liveServers.scanServers();
       Set<TServerInstance> currentServers = liveServers.getCurrentServers();
 
       Map<UUID,TServerInstance> uuidToTServer;
