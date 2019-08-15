@@ -85,15 +85,12 @@ public class GarbageCollectWriteAheadLogs {
    * @param useTrash
    *          true to move files to trash rather than delete them
    */
-  GarbageCollectWriteAheadLogs(final ServerContext context, VolumeManager fs, boolean useTrash) {
+  GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
+      final LiveTServerSet liveServers, boolean useTrash) {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
-    this.liveServers = new LiveTServerSet(context, (current, deleted, added) -> {
-      log.debug("New tablet servers noticed: {}", added);
-      log.debug("Tablet servers removed: {}", deleted);
-    });
-    liveServers.startListeningForTabletServerChanges();
+    this.liveServers = liveServers;
     this.walMarker = new WalStateManager(context);
     this.store = () -> Iterators.concat(new ZooTabletStateStore(context).iterator(),
         new RootTabletStateStore(context).iterator(), new MetaDataStateStore(context).iterator());
@@ -152,6 +149,7 @@ public class GarbageCollectWriteAheadLogs {
       }
 
       // now it's safe to get the liveServers
+      liveServers.scanServers();
       Set<TServerInstance> currentServers = liveServers.getCurrentServers();
 
       Map<UUID,TServerInstance> uuidToTServer;

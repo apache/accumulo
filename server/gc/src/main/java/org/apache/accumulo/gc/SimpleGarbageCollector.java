@@ -79,6 +79,7 @@ import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
@@ -489,6 +490,18 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     ProbabilitySampler sampler =
         TraceUtil.probabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
+    // This is created outside of the run loop and passed to the walogCollector so that
+    // only a single timed task is created (internal to LiveTServerSet using SimpleTimer.
+    final LiveTServerSet liveTServerSet =
+        new LiveTServerSet(getContext(), (current, deleted, added) -> {
+          log.debug("Number of current servers {}, tservers added {}, removed {}",
+              current == null ? -1 : current.size(), added, deleted);
+
+          if (log.isTraceEnabled()) {
+            log.trace("Current servers: {}\nAdded: {}\n Removed: {}", current, added, deleted);
+          }
+        });
+
     while (true) {
       try (TraceScope gcOuterSpan = Trace.startSpan("gc", sampler)) {
         try (TraceScope gcSpan = Trace.startSpan("loop")) {
@@ -532,7 +545,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           // Clean up any unused write-ahead logs
           try (TraceScope waLogs = Trace.startSpan("walogs")) {
             GarbageCollectWriteAheadLogs walogCollector =
-                new GarbageCollectWriteAheadLogs(getContext(), fs, isUsingTrash());
+                new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, isUsingTrash());
             log.info("Beginning garbage collection of write-ahead logs");
             walogCollector.collect(status);
           } catch (Exception e) {
