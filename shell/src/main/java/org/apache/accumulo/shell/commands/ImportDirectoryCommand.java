@@ -24,22 +24,25 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
 
 public class ImportDirectoryCommand extends Command {
 
   @Override
   public String description() {
-    return "bulk imports an entire directory of data files to the current"
-        + " table. The boolean argument determines if accumulo sets the time. "
-        + "Passing 3 arguments will use the old bulk import.  The new bulk import only takes 2 "
-        + "arguments: <directory> true|false";
+    return "bulk imports an entire directory of data files into an existing table."
+        + " The table is either passed with the -t tablename opt, or into to the current"
+        + " table if the -t option is not provided. The boolean argument determines if accumulo"
+        + " sets the time. Passing 3 arguments will use the old bulk import.  The new bulk"
+        + " import only takes 2 arguments: <directory> true|false";
   }
 
   @SuppressWarnings("deprecation")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    shellState.checkTableState();
+
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     String[] args = cl.getArgs();
     String dir = args[0];
@@ -48,8 +51,8 @@ public class ImportDirectoryCommand extends Command {
     // new bulk import only takes 2 args
     if (args.length == 2) {
       setTime = Boolean.parseBoolean(cl.getArgs()[1]);
-      shellState.getAccumuloClient().tableOperations().importDirectory(dir)
-          .to(shellState.getTableName()).tableTime(setTime).load();
+      shellState.getAccumuloClient().tableOperations().importDirectory(dir).to(tableName)
+          .tableTime(setTime).load();
     } else if (args.length == 3) {
       // warn using deprecated bulk import
       Shell.log.warn(
@@ -57,8 +60,8 @@ public class ImportDirectoryCommand extends Command {
               + "as an argument.");
       String failureDir = args[1];
       setTime = Boolean.parseBoolean(cl.getArgs()[2]);
-      shellState.getAccumuloClient().tableOperations().importDirectory(shellState.getTableName(),
-          dir, failureDir, setTime);
+      shellState.getAccumuloClient().tableOperations().importDirectory(tableName, dir, failureDir,
+          setTime);
       return 0;
     } else {
       shellState.printException(
@@ -77,7 +80,14 @@ public class ImportDirectoryCommand extends Command {
 
   @Override
   public String usage() {
-    return getName() + " <directory> [failureDirectory] true|false";
+    return getName() + "[-t tablename] <directory> [failureDirectory] true|false";
+  }
+
+  @Override
+  public Options getOptions() {
+    final Options opts = super.getOptions();
+    opts.addOption(OptUtil.tableOpt("name of the table to import files into"));
+    return opts;
   }
 
 }
