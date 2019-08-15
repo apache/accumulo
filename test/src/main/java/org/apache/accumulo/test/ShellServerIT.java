@@ -1926,6 +1926,68 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table);
   }
 
+
+  /**
+   * Validate importdirectory command accepts addinig -t tablename option or the accepts original
+   * format that uses the current working table. Currently this test does not validate the actual
+   * import - only the command syntax.
+   *
+   * @throws Exception
+   *           any exception is a test failure.
+   */
+  @Test
+  public void importDirectoryCmdFmt() throws Exception {
+
+    final String table = name.getMethodName();
+
+    Configuration conf = new Configuration();
+    FileSystem fs = FileSystem.get(conf);
+    File importDir = new File(rootPath, "import_" + table);
+    assertTrue(importDir.mkdir());
+
+    File errorsDir = new File(rootPath, "errors_" + table);
+    assertTrue(errorsDir.mkdir());
+
+    // expect fail - table does not exist.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), false);
+    assertTrue(checkErrorMsg("TableNotFoundException", ts.output.get().split("\n")));
+
+    ts.exec(String.format("table %s", table), false);
+    assertTrue(checkErrorMsg("TableNotFoundException", ts.output.get().split("\n")));
+
+    ts.exec("createtable " + table, true);
+
+    // validate -t option is used.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
+
+    // validate original cmd format.
+    ts.exec(String.format("table %s", table), true);
+    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), true);
+
+    // expect fail - invalid command,
+    ts.exec(String.format("importdirectory false"), false);
+    assertTrue(checkErrorMsg("Expected 3 arguments. There was 1.", ts.output.get().split("\n")));
+
+    // expect fail - original cmd without a table.
+    ts.exec("notable", true);
+    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), false);
+
+    assertTrue(checkErrorMsg("java.lang.IllegalStateException: Not in a table context.",
+        ts.output.get().split("\n")));
+  }
+
+  private boolean checkErrorMsg(final String expectedText, final String[] lines) {
+    boolean foundText = false;
+
+    for (String line : lines) {
+      if (line.contains(expectedText)) {
+        foundText = true;
+      }
+      log.trace("shell output>: \'{}\'", line);
+    }
+    return foundText;
+  }
+
   private static final String FAKE_CONTEXT = "FAKE";
   private static final String FAKE_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
       + "/target/" + ShellServerIT.class.getSimpleName() + "-fake-iterators.jar";
