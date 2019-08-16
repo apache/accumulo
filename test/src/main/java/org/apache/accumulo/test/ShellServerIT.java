@@ -1959,7 +1959,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), true);
 
     // expect fail - invalid command,
-    ts.exec("importdirectory false", false, "Expected 3 arguments. There was 1.");
+    ts.exec("importdirectory false", false, "Expected 2 or 3 arguments. There was 1.");
 
     // expect fail - original cmd without a table.
     ts.exec("notable", true);

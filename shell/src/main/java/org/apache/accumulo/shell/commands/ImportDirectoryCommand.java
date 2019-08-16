@@ -68,6 +68,7 @@ public class ImportDirectoryCommand extends Command {
           new IllegalArgumentException(String.format("Expected 2 or 3 arguments. There %s %d.",
               args.length == 1 ? "was" : "were", args.length)));
       printHelp(shellState);
+      return 1;
     }
 
     return 0;
