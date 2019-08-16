@@ -1898,7 +1898,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table);
   }
 
-
   /**
    * Validate importdirectory command accepts addinig -t tablename option or the accepts original
    * format that uses the current working table. Currently this test does not validate the actual
@@ -1909,14 +1908,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
    */
   @Test
   public void importDirectoryCmdFmt() throws Exception {
-
     final String table = name.getMethodName();
 
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
     File importDir = new File(rootPath, "import_" + table);
     assertTrue(importDir.mkdir());
-
     File errorsDir = new File(rootPath, "errors_" + table);
     assertTrue(errorsDir.mkdir());
 
