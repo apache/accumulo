@@ -3048,8 +3048,6 @@ public class TabletServer extends AbstractServer {
     AccumuloConfiguration aconf = getConfiguration();
     SimpleTimer.getInstance(aconf).schedule(contextCleaner, 60000, 60000);
 
-    FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
-
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 
     SimpleTimer.getInstance(aconf).schedule(gcDebugTask, 0, TIME_BETWEEN_GC_CHECKS);
