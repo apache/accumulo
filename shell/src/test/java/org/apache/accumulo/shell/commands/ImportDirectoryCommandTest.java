@@ -24,6 +24,7 @@ import static org.easymock.EasyMock.verify;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.junit.After;
@@ -38,6 +39,7 @@ public class ImportDirectoryCommandTest {
   private CommandLine cli;
   private Shell shellState;
   private TableOperations tableOperations;
+  private BulkImport bulkImport;
 
   @Before
   public void setup() {
@@ -50,11 +52,12 @@ public class ImportDirectoryCommandTest {
     cli = createMock(CommandLine.class);
     shellState = createMock(Shell.class);
     tableOperations = createMock(TableOperations.class);
+    bulkImport = createMock(BulkImport.class);
   }
 
   @After
   public void verifyMocks() {
-    verify(client, cli, shellState, tableOperations);
+    verify(client, cli, shellState, tableOperations, bulkImport);
   }
 
   /**
@@ -65,7 +68,7 @@ public class ImportDirectoryCommandTest {
    */
   @Test
   public void testOriginalCmdForm() throws Exception {
-    String[] cliArgs = {"in_dir", "fail_dir", "false"};
+    String[] cliArgs = {"in_dir", "false"};
 
     // no -t option, use current table context
     expect(cli.hasOption("t")).andReturn(false).once();
@@ -78,11 +81,14 @@ public class ImportDirectoryCommandTest {
     shellState.checkTableState();
     expectLastCall().once();
 
-    tableOperations.importDirectory("tablename", "in_dir", "fail_dir", false);
+    expect(tableOperations.importDirectory("in_dir")).andReturn(bulkImport).once();
+    expect(bulkImport.to("tablename")).andReturn(bulkImport).once();
+    expect(bulkImport.tableTime(false)).andReturn(bulkImport).once();
+    bulkImport.load();
     expectLastCall().once();
 
-    replay(client, cli, shellState, tableOperations);
-    cmd.execute("importdirectory in_dir fail_dir false", cli, shellState);
+    replay(client, cli, shellState, tableOperations, bulkImport);
+    cmd.execute("importdirectory in_dir false", cli, shellState);
   }
 
   /**
@@ -93,7 +99,7 @@ public class ImportDirectoryCommandTest {
    */
   @Test
   public void testPassTableOptCmdForm() throws Exception {
-    String[] cliArgs = {"in_dir", "fail_dir", "false"};
+    String[] cliArgs = {"in_dir", "false"};
 
     // -t option specified, table is from option
     expect(cli.hasOption("t")).andReturn(true).once();
@@ -106,10 +112,13 @@ public class ImportDirectoryCommandTest {
 
     // shellState.checkTableState() is NOT called
 
-    tableOperations.importDirectory("passedName", "in_dir", "fail_dir", false);
+    expect(tableOperations.importDirectory("in_dir")).andReturn(bulkImport).once();
+    expect(bulkImport.to("passedName")).andReturn(bulkImport).once();
+    expect(bulkImport.tableTime(false)).andReturn(bulkImport).once();
+    bulkImport.load();
     expectLastCall().once();
 
-    replay(client, cli, shellState, tableOperations);
-    cmd.execute("importdirectory in_dir fail_dir false", cli, shellState);
+    replay(client, cli, shellState, tableOperations, bulkImport);
+    cmd.execute("importdirectory in_dir false", cli, shellState);
   }
 }
