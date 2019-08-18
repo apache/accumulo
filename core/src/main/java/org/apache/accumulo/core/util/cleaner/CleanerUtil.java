@@ -50,7 +50,7 @@ import org.slf4j.Logger;
  */
 public class CleanerUtil {
 
-  private static final Cleaner CLEANER = Cleaner.create();
+  public static final Cleaner CLEANER = Cleaner.create();
 
   // helper method to keep logging consistent
   private static void logUnclosed(Logger log, String className, Exception e) {
