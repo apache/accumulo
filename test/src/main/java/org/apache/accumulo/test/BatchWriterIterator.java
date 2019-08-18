@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
@@ -42,6 +41,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.test.util.SerializationUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -61,6 +61,26 @@ import org.slf4j.LoggerFactory;
 public class BatchWriterIterator extends WrappingIterator {
   private static final Logger log = LoggerFactory.getLogger(BatchWriterIterator.class);
 
+  private static final String OPT_sleepAfterFirstWrite = "sleepAfterFirstWrite";
+  private static final String OPT_numEntriesToWritePerEntry = "numEntriesToWritePerEntry";
+  private static final String OPT_batchWriterTimeout = "batchWriterTimeout";
+  private static final String OPT_batchWriterMaxMemory = "batchWriterMaxMemory";
+  private static final String OPT_clearCacheAfterFirstWrite = "clearCacheAfterFirstWrite";
+  private static final String OPT_splitAfterFirstWrite = "splitAfterFirstWrite";
+
+  private static final String ZOOKEEPERHOST = "zookeeperHost";
+  private static final String INSTANCENAME = "instanceName";
+  private static final String TABLENAME = "tableName";
+  private static final String USERNAME = "username";
+  private static final String ZOOKEEPERTIMEOUT = "zookeeperTimeout";
+  // base64 encoding of token
+  private static final String AUTHENTICATION_TOKEN = "authenticationToken";
+  // class of token
+  private static final String AUTHENTICATION_TOKEN_CLASS = "authenticationTokenClass";
+  private static final String SUCCESS_STRING = "success";
+
+  public static final Value SUCCESS_VALUE = new Value(SUCCESS_STRING.getBytes());
+
   private Map<String,String> originalOptions; // remembered for deepCopy
 
   private int sleepAfterFirstWrite = 0;
@@ -69,33 +89,16 @@ public class BatchWriterIterator extends WrappingIterator {
   private long batchWriterMaxMemory = 0;
   private boolean clearCacheAfterFirstWrite = false;
   private boolean splitAfterFirstWrite = false;
-
-  public static final String OPT_sleepAfterFirstWrite = "sleepAfterFirstWrite",
-      OPT_numEntriesToWritePerEntry = "numEntriesToWritePerEntry",
-      OPT_batchWriterTimeout = "batchWriterTimeout",
-      OPT_batchWriterMaxMemory = "batchWriterMaxMemory",
-      OPT_clearCacheAfterFirstWrite = "clearCacheAfterFirstWrite",
-      OPT_splitAfterFirstWrite = "splitAfterFirstWrite";
-
   private String instanceName;
   private String tableName;
   private String zookeeperHost;
   private int zookeeperTimeout = -1;
   private String username;
   private AuthenticationToken auth = null;
-
-  public static final String ZOOKEEPERHOST = "zookeeperHost", INSTANCENAME = "instanceName",
-      TABLENAME = "tableName", USERNAME = "username", ZOOKEEPERTIMEOUT = "zookeeperTimeout",
-      AUTHENTICATION_TOKEN = "authenticationToken", // base64 encoding of token
-      AUTHENTICATION_TOKEN_CLASS = "authenticationTokenClass"; // class of token
-
   private BatchWriter batchWriter;
   private boolean firstWrite = true;
   private Value topValue = null;
   private AccumuloClient accumuloClient;
-
-  public static final String SUCCESS_STRING = "success";
-  public static final Value SUCCESS_VALUE = new Value(SUCCESS_STRING.getBytes());
 
   public static IteratorSetting iteratorSetting(int priority, int sleepAfterFirstWrite,
       long batchWriterTimeout, long batchWriterMaxMemory, int numEntriesToWrite, String tableName,
@@ -167,13 +170,8 @@ public class BatchWriterIterator extends WrappingIterator {
   }
 
   private void initBatchWriter() {
-    try {
-      accumuloClient = Accumulo.newClient().to(instanceName, zookeeperHost).as(username, auth)
-          .zkTimeout(zookeeperTimeout).build();
-    } catch (Exception e) {
-      log.error("failed to connect to Accumulo instance " + instanceName, e);
-      throw new RuntimeException(e);
-    }
+    accumuloClient = Accumulo.newClient().to(instanceName, zookeeperHost).as(username, auth)
+        .zkTimeout(zookeeperTimeout).build();
 
     BatchWriterConfig bwc = new BatchWriterConfig();
     bwc.setMaxMemory(batchWriterMaxMemory);
@@ -183,8 +181,13 @@ public class BatchWriterIterator extends WrappingIterator {
       batchWriter = accumuloClient.createBatchWriter(tableName, bwc);
     } catch (TableNotFoundException e) {
       log.error(tableName + " does not exist in instance " + instanceName, e);
+      accumuloClient.close();
       throw new RuntimeException(e);
+    } catch (RuntimeException e) {
+      accumuloClient.close();
+      throw e;
     }
+    CleanerUtil.batchWriterAndClientCloser(this, batchWriter, accumuloClient, log);
   }
 
   /**
@@ -226,18 +229,6 @@ public class BatchWriterIterator extends WrappingIterator {
       failure = e.getClass().getSimpleName() + ": " + e.getMessage();
     }
     topValue = failure == null ? SUCCESS_VALUE : new Value(failure.getBytes());
-  }
-
-  @Override
-  protected void finalize() throws Throwable {
-    super.finalize();
-    try {
-      batchWriter.close();
-    } catch (MutationsRejectedException e) {
-      log.error("Failed to close BatchWriter; some mutations may not be applied", e);
-    } finally {
-      accumuloClient.close();
-    }
   }
 
   @Override

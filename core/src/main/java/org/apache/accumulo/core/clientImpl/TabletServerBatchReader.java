@@ -18,11 +18,13 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.lang.ref.Cleaner.Cleanable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.data.Key;
@@ -31,29 +33,23 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TabletServerBatchReader extends ScannerOptions implements BatchScanner {
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReader.class);
+  private static final AtomicInteger nextBatchReaderInstance = new AtomicInteger(1);
 
-  private TableId tableId;
-  private int numThreads;
-  private ExecutorService queryThreadPool;
-
+  private final int batchReaderInstance = nextBatchReaderInstance.getAndIncrement();
+  private final TableId tableId;
+  private final int numThreads;
+  private final ExecutorService queryThreadPool;
   private final ClientContext context;
-  private ArrayList<Range> ranges;
+  private final Authorizations authorizations;
+  private final Cleanable cleanable;
 
-  private Authorizations authorizations = Authorizations.EMPTY;
-  private Throwable ex = null;
-
-  private static int nextBatchReaderInstance = 1;
-
-  private static synchronized int getNextBatchReaderInstance() {
-    return nextBatchReaderInstance++;
-  }
-
-  private final int batchReaderInstance = getNextBatchReaderInstance();
+  private ArrayList<Range> ranges = null;
 
   public TabletServerBatchReader(ClientContext context, TableId tableId,
       Authorizations authorizations, int numQueryThreads) {
@@ -67,30 +63,22 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
 
     queryThreadPool =
         new SimpleThreadPool(numQueryThreads, "batch scanner " + batchReaderInstance + "-");
+    cleanable = CleanerUtil.unclosedBatchScanner(this, queryThreadPool, log);
+  }
 
-    ranges = null;
-    ex = new Throwable();
+  private boolean isClosed() {
+    return queryThreadPool.isShutdown();
   }
 
   @Override
   public void close() {
     queryThreadPool.shutdownNow();
+    cleanable.clean();
   }
 
   @Override
   public Authorizations getAuthorizations() {
     return authorizations;
-  }
-
-  // WARNING: do not rely upon finalize to close this class. Finalize is not guaranteed to be
-  // called.
-  @Override
-  protected void finalize() {
-    if (!queryThreadPool.isShutdown()) {
-      log.warn(TabletServerBatchReader.class.getSimpleName()
-          + " not shutdown; did you forget to call close()?", ex);
-      close();
-    }
   }
 
   @Override
@@ -99,12 +87,11 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
       throw new IllegalArgumentException("ranges must be non null and contain at least 1 range");
     }
 
-    if (queryThreadPool.isShutdown()) {
+    if (isClosed()) {
       throw new IllegalStateException("batch reader closed");
     }
 
     this.ranges = new ArrayList<>(ranges);
-
   }
 
   @Override
@@ -113,7 +100,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
       throw new IllegalStateException("ranges not set");
     }
 
-    if (queryThreadPool.isShutdown()) {
+    if (isClosed()) {
       throw new IllegalStateException("batch reader closed");
     }
 

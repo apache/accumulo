@@ -481,8 +481,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
 
     @Override
-    protected void finalize() throws Throwable {
-      super.finalize();
+    protected void finalize() {
       if (nmiPointer != 0) {
         // log.debug("Deleting native map iterator pointer in finalize");
         deleteNMI(nmiPointer);
@@ -500,8 +499,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   }
 
   @Override
-  protected void finalize() throws Throwable {
-    super.finalize();
+  protected void finalize() {
     if (nmPointer != 0) {
       log.warn(String.format("Deallocating native map 0x%016x in finalize", nmPointer));
       deleteNativeMap(nmPointer);

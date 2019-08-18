@@ -112,8 +112,8 @@ public class TabletServerBatchWriter {
   private final Durability durability;
 
   // state
-  private boolean flushing;
-  private boolean closed;
+  private volatile boolean flushing;
+  private volatile boolean closed;
   private MutationSet mutations;
 
   // background writer
