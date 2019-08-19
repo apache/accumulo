@@ -52,7 +52,12 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
 
   private ArrayList<Range> ranges = null;
 
-  public TabletServerBatchReader(ClientContext context, Class<?> scopeClass, TableId tableId,
+  public TabletServerBatchReader(ClientContext context, TableId tableId,
+      Authorizations authorizations, int numQueryThreads) {
+    this(context, BatchScanner.class, tableId, authorizations, numQueryThreads);
+  }
+
+  protected TabletServerBatchReader(ClientContext context, Class<?> scopeClass, TableId tableId,
       Authorizations authorizations, int numQueryThreads) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");

@@ -37,8 +37,7 @@ public class TabletServerBatchReaderTest {
   @Test
   public void testGetAuthorizations() {
     Authorizations expected = new Authorizations("a,b");
-    try (BatchScanner s =
-        new TabletServerBatchReader(context, BatchScanner.class, TableId.of("foo"), expected, 1)) {
+    try (BatchScanner s = new TabletServerBatchReader(context, TableId.of("foo"), expected, 1)) {
       assertEquals(expected, s.getAuthorizations());
     }
   }
@@ -46,6 +45,6 @@ public class TabletServerBatchReaderTest {
   @SuppressWarnings("resource")
   @Test(expected = IllegalArgumentException.class)
   public void testNullAuthorizationsFails() {
-    new TabletServerBatchReader(context, BatchScanner.class, TableId.of("foo"), null, 1);
+    new TabletServerBatchReader(context, TableId.of("foo"), null, 1);
   }
 }
