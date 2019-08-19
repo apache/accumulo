@@ -37,6 +37,8 @@ import org.apache.hadoop.io.Text;
 public class MetadataSchema {
 
   public static final String RESERVED_PREFIX = "~";
+  public static final int ENCODED_PREFIX_LENGTH =
+      MetadataSchema.DeletesSection.getRowPrefix().length() + SortSkew.SORTSKEW_LENGTH;
 
   /**
    * Used for storing information about tablets
@@ -261,6 +263,14 @@ public class MetadataSchema {
 
     public static String getRowPrefix() {
       return section.getRowPrefix();
+    }
+
+    public static String encodeRow(String value) {
+      return getRowPrefix() + SortSkew.getCode(value) + value;
+    }
+
+    public static String decodeRow(String row) {
+      return row.substring(ENCODED_PREFIX_LENGTH);
     }
 
   }

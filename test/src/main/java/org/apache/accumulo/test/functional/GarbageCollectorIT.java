@@ -186,7 +186,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   private Mutation createDelMutation(String path, String cf, String cq, String val) {
-    Text row = new Text(MetadataSchema.DeletesSection.getRowPrefix() + path);
+    Text row = new Text(MetadataSchema.DeletesSection.encodeRow(path));
     Mutation delFlag = new Mutation(row);
     delFlag.put(cf, cq, val);
     return delFlag;
@@ -297,18 +297,15 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     return Iterators.size(Arrays.asList(cluster.getFileSystem().globStatus(path)).iterator());
   }
 
-  public static void addEntries(AccumuloClient client) throws Exception {
+  private void addEntries(AccumuloClient client) throws Exception {
     client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
     try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
       for (int i = 0; i < 100000; ++i) {
         final Text emptyText = new Text("");
-        Text row =
-            new Text(String.format("%s/%020d/%s", MetadataSchema.DeletesSection.getRowPrefix(), i,
-                "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
-                    + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
-        Mutation delFlag = new Mutation(row);
-        delFlag.put(emptyText, emptyText, new Value(new byte[] {}));
+        String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
+            + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
+        Mutation delFlag = createDelMutation(String.format("/%020d/%s", i, longpath), "", "", "");
         bw.addMutation(delFlag);
       }
     }
