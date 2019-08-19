@@ -187,7 +187,8 @@ public class BatchWriterIterator extends WrappingIterator {
       accumuloClient.close();
       throw e;
     }
-    CleanerUtil.batchWriterAndClientCloser(this, batchWriter, accumuloClient, log);
+    // this is dubious, but necessary since iterators aren't closeable
+    CleanerUtil.batchWriterAndClientCloser(this, log, batchWriter, accumuloClient);
   }
 
   /**

@@ -93,8 +93,8 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(context, context.getTableId(tableName), authorizations,
-        numQueryThreads, new BatchWriterConfig().setMaxMemory(maxMemory)
+    return new TabletServerBatchDeleter(context, BatchDeleter.class, context.getTableId(tableName),
+        authorizations, numQueryThreads, new BatchWriterConfig().setMaxMemory(maxMemory)
             .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 

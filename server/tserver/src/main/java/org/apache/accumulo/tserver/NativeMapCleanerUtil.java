@@ -29,10 +29,10 @@ import org.slf4j.Logger;
  */
 public class NativeMapCleanerUtil {
 
-  public static Cleanable deleteNM(Object o, AtomicLong nmPtr, Logger log) {
+  public static Cleanable deleteNM(Object obj, Logger log, AtomicLong nmPtr) {
     requireNonNull(nmPtr);
     requireNonNull(log);
-    return CleanerUtil.CLEANER.register(o, () -> {
+    return CleanerUtil.CLEANER.register(obj, () -> {
       long nmPointer = nmPtr.get();
       if (nmPointer != 0) {
         log.warn(String.format("Deallocating native map 0x%016x in finalize", nmPointer));
@@ -41,9 +41,9 @@ public class NativeMapCleanerUtil {
     });
   }
 
-  public static Cleanable deleteNMIterator(Object o, AtomicLong nmiPtr) {
+  public static Cleanable deleteNMIterator(Object obj, AtomicLong nmiPtr) {
     requireNonNull(nmiPtr);
-    return CleanerUtil.CLEANER.register(o, () -> {
+    return CleanerUtil.CLEANER.register(obj, () -> {
       long nmiPointer = nmiPtr.get();
       if (nmiPointer != 0) {
         NativeMap._deleteNMI(nmiPointer);

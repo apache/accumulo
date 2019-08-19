@@ -21,7 +21,7 @@ package org.apache.accumulo.core.client;
  * each table, each has its own memory and network resources. Using this class these resources may
  * be shared among multiple tables.
  */
-public interface MultiTableBatchWriter {
+public interface MultiTableBatchWriter extends AutoCloseable {
 
   /**
    * Returns a BatchWriter for a particular table.
@@ -54,6 +54,7 @@ public interface MultiTableBatchWriter {
    *           when queued mutations are unable to be inserted
    *
    */
+  @Override
   void close() throws MutationsRejectedException;
 
   /**

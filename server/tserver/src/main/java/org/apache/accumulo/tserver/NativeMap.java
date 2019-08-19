@@ -491,7 +491,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public NativeMap() {
     final long nmPointer = createNativeMap();
     nmPtr.set(nmPointer);
-    cleanableNM = NativeMapCleanerUtil.deleteNM(this, nmPtr, log);
+    cleanableNM = NativeMapCleanerUtil.deleteNM(this, log, nmPtr);
     rwLock = new ReentrantReadWriteLock();
     rlock = rwLock.readLock();
     wlock = rwLock.writeLock();

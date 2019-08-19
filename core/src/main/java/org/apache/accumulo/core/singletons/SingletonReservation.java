@@ -20,6 +20,7 @@ package org.apache.accumulo.core.singletons;
 import java.lang.ref.Cleaner.Cleanable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +37,7 @@ public class SingletonReservation implements AutoCloseable {
   private final Cleanable cleanable;
 
   public SingletonReservation() {
-    cleanable = CleanerUtil.unclosedClient(this, closed, log);
+    cleanable = CleanerUtil.unclosed(this, AccumuloClient.class, closed, log, null);
   }
 
   @Override

@@ -20,17 +20,11 @@ import static java.util.Objects.requireNonNull;
 
 import java.lang.ref.Cleaner;
 import java.lang.ref.Cleaner.Cleanable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.clientImpl.TabletServerBatchWriter;
-import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.slf4j.Logger;
 
@@ -52,71 +46,56 @@ public class CleanerUtil {
 
   public static final Cleaner CLEANER = Cleaner.create();
 
-  // helper method to keep logging consistent
-  private static void logUnclosed(Logger log, String className, Exception e) {
-    log.warn("{} found unreferenced without calling close()", className, e);
-  }
-
-  public static Cleanable unclosedMetaDataTableScanner(Object o, ScannerBase scanner,
-      AtomicBoolean closed, Logger log) {
-    requireNonNull(scanner);
+  /**
+   * Register an action to warn about caller failing to close an {@link AutoCloseable} object.
+   *
+   * <p>
+   * This task will register a generic action to:
+   * <ol>
+   * <li>check that the monitored object wasn't closed,
+   * <li>log a warning that the monitored object was not closed,
+   * <li>attempt to close a resource within the object, and
+   * <li>log an error if the resource cannot be closed for any reason
+   * </ol>
+   *
+   * @param obj
+   *          the object to monitor for becoming phantom-reachable without having been closed
+   * @param objClass
+   *          the class whose simple name will be used in the log message for <code>o</code>
+   *          (usually an interface name, rather than the actual impl name of the object)
+   * @param closed
+   *          a flag to check whether <code>o</code> has already been closed
+   * @param log
+   *          the logger to use when emitting error/warn messages
+   * @param closeable
+   *          the resource within <code>o</code> to close when <code>o</code> is cleaned; must not
+   *          contain a reference to the <code>monitoredObject</code> or it won't become
+   *          phantom-reachable and will never be cleaned
+   * @return the registered {@link Cleanable} from {@link Cleaner#register(Object, Runnable)}
+   */
+  public static Cleanable unclosed(AutoCloseable obj, Class<?> objClass, AtomicBoolean closed,
+      Logger log, AutoCloseable closeable) {
+    String className = requireNonNull(objClass).getSimpleName();
     requireNonNull(closed);
     requireNonNull(log);
-    // Exception is just for a stack trace in the log to instance left unclosed
-    var e = new Exception();
-    String className = o.getClass().getSimpleName();
-    return CLEANER.register(o, () -> {
-      if (!closed.get()) {
-        logUnclosed(log, className, e);
-        scanner.close();
-      }
-    });
-  }
+    String closeableClassName = closeable == null ? null : closeable.getClass().getSimpleName();
 
-  public static Cleanable unclosedBatchScanner(BatchScanner o, ExecutorService es, Logger log) {
-    requireNonNull(es);
-    requireNonNull(log);
-    // Exception is just for a stack trace in the log to instance left unclosed
-    var e = new Exception();
-    String className = BatchScanner.class.getSimpleName();
-    return CLEANER.register(o, () -> {
-      if (!es.isShutdown()) {
-        logUnclosed(log, className, e);
-        es.shutdownNow();
-      }
-    });
-  }
+    // capture the stack trace during setup for logging later, so user can find unclosed object
+    var stackTrace = new Exception();
 
-  public static Cleanable unclosedMultiTableBatchWriter(MultiTableBatchWriter o,
-      TabletServerBatchWriter tsbw, AtomicBoolean closed, Logger log) {
-    requireNonNull(tsbw);
-    requireNonNull(closed);
-    requireNonNull(log);
-    // Exception is just for a stack trace in the log to instance left unclosed
-    var e = new Exception();
-    String className = o.getClass().getSimpleName();
-    return CLEANER.register(o, () -> {
-      if (!closed.get()) {
-        logUnclosed(log, className, e);
+    // register the action to run when obj becomes phantom-reachable or clean is explicitly called
+    return CLEANER.register(obj, () -> {
+      if (closed.get()) {
+        // already closed; nothing to do
+        return;
+      }
+      log.warn("{} found unreferenced without calling close()", className, stackTrace);
+      if (closeable != null) {
         try {
-          tsbw.close();
-        } catch (MutationsRejectedException mre) {
-          log.error("{} internal error; exception closing {}", className,
-              tsbw.getClass().getSimpleName(), mre);
+          closeable.close();
+        } catch (Exception e1) {
+          log.error("{} internal error; exception closing {}", objClass, closeableClassName, e1);
         }
-      }
-    });
-  }
-
-  public static Cleanable unclosedClient(SingletonReservation o, AtomicBoolean closed, Logger log) {
-    requireNonNull(closed);
-    requireNonNull(log);
-    // Exception is just for a stack trace in the log to instance left unclosed
-    var e = new Exception();
-    String className = AccumuloClient.class.getSimpleName();
-    return CLEANER.register(o, () -> {
-      if (!closed.get()) {
-        logUnclosed(log, className, e);
       }
     });
   }
@@ -124,11 +103,11 @@ public class CleanerUtil {
   // this done for the BatchWriterIterator test code; I don't trust that pattern, but
   // registering a cleaner is something any user is probably going to have to do to clean up
   // resources used in an iterator, until iterators properly implement their own close()
-  public static Cleanable batchWriterAndClientCloser(Object o, BatchWriter bw,
-      AccumuloClient client, Logger log) {
+  public static Cleanable batchWriterAndClientCloser(Object o, Logger log, BatchWriter bw,
+      AccumuloClient client) {
+    requireNonNull(log);
     requireNonNull(bw);
     requireNonNull(client);
-    requireNonNull(log);
     return CLEANER.register(o, () -> {
       try {
         bw.close();
@@ -141,7 +120,7 @@ public class CleanerUtil {
   }
 
   // this is dubious; MetadataConstraints should probably use the ZooCache provided by context
-  // can be done in a follow-on action; this merely replaces the previous finalizer
+  // can be done in a follow-on action; for now, this merely replaces the previous finalizer
   public static Cleanable zooCacheClearer(Object o, ZooCache zc) {
     requireNonNull(zc);
     return CLEANER.register(o, zc::clear);

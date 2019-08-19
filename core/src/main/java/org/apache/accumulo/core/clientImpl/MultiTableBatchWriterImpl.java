@@ -83,7 +83,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
     checkArgument(config != null, "config is null");
     this.context = context;
     this.bw = new TabletServerBatchWriter(context, config);
-    this.cleanable = CleanerUtil.unclosedMultiTableBatchWriter(this, bw, closed, log);
+    this.cleanable = CleanerUtil.unclosed(this, MultiTableBatchWriter.class, closed, log, bw);
   }
 
   @Override

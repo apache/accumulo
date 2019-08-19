@@ -65,7 +65,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Metadata table " + tableName + " should exist", e);
     }
-    cleanable = CleanerUtil.unclosedMetaDataTableScanner(this, mdScanner, closed, log);
+    cleanable = CleanerUtil.unclosed(this, MetaDataTableScanner.class, closed, log, mdScanner);
     configureScanner(mdScanner, state);
     mdScanner.setRanges(Collections.singletonList(range));
     iter = mdScanner.iterator();

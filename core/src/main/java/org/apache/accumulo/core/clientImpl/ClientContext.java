@@ -434,8 +434,8 @@ public class ClientContext implements AccumuloClient {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
     ensureOpen();
-    return new TabletServerBatchReader(this, getTableId(tableName), authorizations,
-        numQueryThreads);
+    return new TabletServerBatchReader(this, BatchScanner.class, getTableId(tableName),
+        authorizations, numQueryThreads);
   }
 
   @Override
@@ -461,8 +461,8 @@ public class ClientContext implements AccumuloClient {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
     ensureOpen();
-    return new TabletServerBatchDeleter(this, getTableId(tableName), authorizations,
-        numQueryThreads, config.merge(getBatchWriterConfig()));
+    return new TabletServerBatchDeleter(this, BatchDeleter.class, getTableId(tableName),
+        authorizations, numQueryThreads, config.merge(getBatchWriterConfig()));
   }
 
   @Override

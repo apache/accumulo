@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.BatchScanner;
@@ -44,14 +44,15 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   private final int batchReaderInstance = nextBatchReaderInstance.getAndIncrement();
   private final TableId tableId;
   private final int numThreads;
-  private final ExecutorService queryThreadPool;
+  private final SimpleThreadPool queryThreadPool;
   private final ClientContext context;
   private final Authorizations authorizations;
+  private final AtomicBoolean closed = new AtomicBoolean(false);
   private final Cleanable cleanable;
 
   private ArrayList<Range> ranges = null;
 
-  public TabletServerBatchReader(ClientContext context, TableId tableId,
+  public TabletServerBatchReader(ClientContext context, Class<?> scopeClass, TableId tableId,
       Authorizations authorizations, int numQueryThreads) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
@@ -63,17 +64,17 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
 
     queryThreadPool =
         new SimpleThreadPool(numQueryThreads, "batch scanner " + batchReaderInstance + "-");
-    cleanable = CleanerUtil.unclosedBatchScanner(this, queryThreadPool, log);
-  }
-
-  private boolean isClosed() {
-    return queryThreadPool.isShutdown();
+    cleanable = CleanerUtil.unclosed(this, scopeClass, closed, log, queryThreadPool.asCloseable());
   }
 
   @Override
   public void close() {
-    queryThreadPool.shutdownNow();
-    cleanable.clean();
+    if (closed.compareAndSet(false, true)) {
+      // deregister cleanable, but it won't run because it checks
+      // the value of closed first, which is now true
+      cleanable.clean();
+      queryThreadPool.shutdownNow();
+    }
   }
 
   @Override
@@ -87,7 +88,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
       throw new IllegalArgumentException("ranges must be non null and contain at least 1 range");
     }
 
-    if (isClosed()) {
+    if (closed.get()) {
       throw new IllegalStateException("batch reader closed");
     }
 
@@ -100,7 +101,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
       throw new IllegalStateException("ranges not set");
     }
 
-    if (isClosed()) {
+    if (closed.get()) {
       throw new IllegalStateException("batch reader closed");
     }
 
