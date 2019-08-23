@@ -72,8 +72,8 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
     final LocalityGroup defaultGroup;
     final Map<ByteSequence,LocalityGroup> groupByCf;
 
-    public LocalityGroupContext(LocalityGroup[] groups) {
-      this.groups = Collections.unmodifiableList(Arrays.asList(groups));
+    public LocalityGroupContext(final List<? extends LocalityGroup> groups) {
+      this.groups = Collections.unmodifiableList(groups);
       this.groupByCf = new HashMap<>();
       LocalityGroup foundDefault = null;
 
@@ -95,6 +95,11 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
         }
       }
       defaultGroup = foundDefault;
+    }
+
+    @Deprecated
+    public LocalityGroupContext(LocalityGroup[] groups) {
+      this(Arrays.asList(groups));
     }
   }
 

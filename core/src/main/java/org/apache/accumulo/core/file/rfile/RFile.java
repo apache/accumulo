@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1132,12 +1131,12 @@ public class RFile {
 
     private final CachableBlockFile.Reader reader;
 
-    private final ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
-    private final ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
+    private final List<LocalityGroupMetadata> localityGroups = new ArrayList<>();
+    private final List<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
 
-    private final LocalityGroupReader[] currentReaders;
-    private final LocalityGroupReader[] readers;
-    private final LocalityGroupReader[] sampleReaders;
+    private final List<LocalityGroupReader> currentReaders;
+    private final List<LocalityGroupReader> readers;
+    private final List<LocalityGroupReader> sampleReaders;
     private final LocalityGroupContext lgContext;
     private LocalityGroupSeekCache lgCache;
 
@@ -1166,29 +1165,27 @@ public class RFile {
           throw new IOException("Did not see expected version, saw " + ver);
 
         int size = mb.readInt();
-        currentReaders = new LocalityGroupReader[size];
+        currentReaders = new ArrayList<>(size);
 
-        deepCopies = new LinkedList<>();
+        deepCopies = new ArrayList<>();
 
         for (int i = 0; i < size; i++) {
           LocalityGroupMetadata lgm = new LocalityGroupMetadata(ver, rdr);
           lgm.readFields(mb);
           localityGroups.add(lgm);
-
-          currentReaders[i] = new LocalityGroupReader(reader, lgm, ver);
+          currentReaders.add(new LocalityGroupReader(reader, lgm, ver));
         }
 
         readers = currentReaders;
 
         if (ver == RINDEX_VER_8 && mb.readBoolean()) {
-          sampleReaders = new LocalityGroupReader[size];
+          sampleReaders = new ArrayList<>(size);
 
           for (int i = 0; i < size; i++) {
             LocalityGroupMetadata lgm = new LocalityGroupMetadata(ver, rdr);
             lgm.readFields(mb);
             sampleGroups.add(lgm);
-
-            sampleReaders[i] = new LocalityGroupReader(reader, lgm, ver);
+            sampleReaders.add(new LocalityGroupReader(reader, lgm, ver));
           }
 
           samplerConfig = new SamplerConfigurationImpl(mb);
@@ -1203,30 +1200,30 @@ public class RFile {
 
       lgContext = new LocalityGroupContext(currentReaders);
 
-      createHeap(currentReaders.length);
+      createHeap(currentReaders.size());
     }
 
-    private Reader(Reader r, LocalityGroupReader[] sampleReaders) {
-      super(sampleReaders.length);
+    private Reader(Reader r, List<LocalityGroupReader> sampleReaders) {
+      super(sampleReaders.size());
       this.reader = r.reader;
-      this.currentReaders = new LocalityGroupReader[sampleReaders.length];
+      this.currentReaders = new ArrayList<>(sampleReaders.size());
       this.deepCopies = r.deepCopies;
       this.deepCopy = false;
       this.readers = r.readers;
       this.sampleReaders = r.sampleReaders;
       this.samplerConfig = r.samplerConfig;
       this.rfileVersion = r.rfileVersion;
-      for (int i = 0; i < sampleReaders.length; i++) {
-        this.currentReaders[i] = sampleReaders[i];
-        this.currentReaders[i].setInterruptFlag(r.interruptFlag);
+      for (LocalityGroupReader reader : sampleReaders) {
+        reader.setInterruptFlag(r.interruptFlag);
+        this.currentReaders.add(reader);
       }
       this.lgContext = new LocalityGroupContext(currentReaders);
     }
 
     private Reader(Reader r, boolean useSample) {
-      super(r.currentReaders.length);
+      super(r.currentReaders.size());
       this.reader = r.reader;
-      this.currentReaders = new LocalityGroupReader[r.currentReaders.length];
+      this.currentReaders = new ArrayList<>(r.currentReaders.size());
       this.deepCopies = r.deepCopies;
       this.deepCopy = true;
       this.samplerConfig = r.samplerConfig;
@@ -1234,15 +1231,11 @@ public class RFile {
       this.readers = r.readers;
       this.sampleReaders = r.sampleReaders;
 
-      for (int i = 0; i < r.readers.length; i++) {
-        if (useSample) {
-          this.currentReaders[i] = new LocalityGroupReader(r.sampleReaders[i]);
-          this.currentReaders[i].setInterruptFlag(r.interruptFlag);
-        } else {
-          this.currentReaders[i] = new LocalityGroupReader(r.readers[i]);
-          this.currentReaders[i].setInterruptFlag(r.interruptFlag);
-        }
-
+      List<LocalityGroupReader> readers = (useSample) ? r.sampleReaders : r.readers;
+      for (LocalityGroupReader reader : readers) {
+        LocalityGroupReader newReader = new LocalityGroupReader(reader);
+        newReader.setInterruptFlag(r.interruptFlag);
+        this.currentReaders.add(newReader);
       }
       this.lgContext = new LocalityGroupContext(currentReaders);
     }
@@ -1263,11 +1256,13 @@ public class RFile {
 
     @Override
     public void closeDeepCopies() {
-      if (deepCopy)
+      if (deepCopy) {
         throw new RuntimeException("Calling closeDeepCopies on a deep copy is not supported");
+      }
 
-      for (Reader deepCopy : deepCopies)
+      for (Reader deepCopy : deepCopies) {
         deepCopy.closeLocalityGroupReaders();
+      }
 
       deepCopies.clear();
     }
@@ -1301,7 +1296,7 @@ public class RFile {
 
     @Override
     public Key getFirstKey() throws IOException {
-      if (currentReaders.length == 0) {
+      if (currentReaders.isEmpty()) {
         return null;
       }
 
@@ -1322,7 +1317,7 @@ public class RFile {
 
     @Override
     public Key getLastKey() throws IOException {
-      if (currentReaders.length == 0) {
+      if (currentReaders.isEmpty()) {
         return null;
       }
 
@@ -1398,7 +1393,7 @@ public class RFile {
         if (lcg.columnFamilies == null) {
           Preconditions.checkState(lcg.isDefaultLG, "Group %s has null families. "
               + "Only expect default locality group to have null families.", lcg.name);
-          setCF = new ArrayList<>();
+          setCF = new ArrayList<>(0);
         } else {
           setCF = new ArrayList<>(lcg.columnFamilies.keySet());
         }
@@ -1497,11 +1492,13 @@ public class RFile {
 
     @Override
     public void setInterruptFlag(AtomicBoolean flag) {
-      if (deepCopy)
+      if (deepCopy) {
         throw new RuntimeException("Calling setInterruptFlag on a deep copy is not supported");
+      }
 
-      if (deepCopies.size() != 0)
+      if (!deepCopies.isEmpty()) {
         throw new RuntimeException("Setting interrupt flag after calling deep copy not supported");
+      }
 
       setInterruptFlagInternal(flag);
     }
