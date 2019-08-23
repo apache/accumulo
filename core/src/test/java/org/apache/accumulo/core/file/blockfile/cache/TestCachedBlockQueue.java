@@ -18,8 +18,9 @@
 package org.apache.accumulo.core.file.blockfile.cache;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-import java.util.LinkedList;
+import java.util.Iterator;
 
 import org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlockQueue;
 import org.junit.Test;
@@ -59,16 +60,19 @@ public class TestCachedBlockQueue {
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
-        queue.getList();
-    assertEquals(blocks.poll().getName(), "cb1");
-    assertEquals(blocks.poll().getName(), "cb2");
-    assertEquals(blocks.poll().getName(), "cb3");
-    assertEquals(blocks.poll().getName(), "cb4");
-    assertEquals(blocks.poll().getName(), "cb5");
-    assertEquals(blocks.poll().getName(), "cb6");
-    assertEquals(blocks.poll().getName(), "cb7");
-    assertEquals(blocks.poll().getName(), "cb8");
+    Iterator<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
+        queue.getList().iterator();
+    assertEquals(blocks.next().getName(), "cb1");
+    assertEquals(blocks.next().getName(), "cb2");
+    assertEquals(blocks.next().getName(), "cb3");
+    assertEquals(blocks.next().getName(), "cb4");
+    assertEquals(blocks.next().getName(), "cb5");
+    assertEquals(blocks.next().getName(), "cb6");
+    assertEquals(blocks.next().getName(), "cb7");
+    assertEquals(blocks.next().getName(), "cb8");
+    assertEquals(blocks.next().getName(), "cb9");
+    assertEquals(blocks.next().getName(), "cb10");
+    assertFalse(blocks.hasNext());
 
   }
 
@@ -112,17 +116,20 @@ public class TestCachedBlockQueue {
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
-        queue.getList();
-    assertEquals(blocks.poll().getName(), "cb0");
-    assertEquals(blocks.poll().getName(), "cb1");
-    assertEquals(blocks.poll().getName(), "cb2");
-    assertEquals(blocks.poll().getName(), "cb3");
-    assertEquals(blocks.poll().getName(), "cb4");
-    assertEquals(blocks.poll().getName(), "cb5");
-    assertEquals(blocks.poll().getName(), "cb6");
-    assertEquals(blocks.poll().getName(), "cb7");
-    assertEquals(blocks.poll().getName(), "cb8");
+    Iterator<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
+        queue.getList().iterator();
+    assertEquals(blocks.next().getName(), "cb0");
+    assertEquals(blocks.next().getName(), "cb1");
+    assertEquals(blocks.next().getName(), "cb2");
+    assertEquals(blocks.next().getName(), "cb3");
+    assertEquals(blocks.next().getName(), "cb4");
+    assertEquals(blocks.next().getName(), "cb5");
+    assertEquals(blocks.next().getName(), "cb6");
+    assertEquals(blocks.next().getName(), "cb7");
+    assertEquals(blocks.next().getName(), "cb8");
+    assertEquals(blocks.next().getName(), "cb9");
+    assertEquals(blocks.next().getName(), "cb10");
+    assertFalse(blocks.hasNext());
 
   }
 

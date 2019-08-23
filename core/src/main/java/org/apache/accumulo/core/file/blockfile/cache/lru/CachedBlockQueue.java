@@ -17,7 +17,9 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
-import java.util.LinkedList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.PriorityQueue;
 
 /**
@@ -91,11 +93,10 @@ public class CachedBlockQueue implements HeapSize {
    * @return list of cached elements in descending order
    */
   public CachedBlock[] get() {
-    LinkedList<CachedBlock> blocks = new LinkedList<>();
-    while (!queue.isEmpty()) {
-      blocks.addFirst(queue.poll());
-    }
-    return blocks.toArray(new CachedBlock[blocks.size()]);
+     CachedBlock[] blocks = queue.toArray(new CachedBlock[0]);
+     Arrays.sort(blocks, Collections.reverseOrder(queue.comparator()));
+     queue.clear();
+     return blocks;
   }
 
   /**
@@ -103,12 +104,8 @@ public class CachedBlockQueue implements HeapSize {
    *
    * @return list of cached elements in descending order
    */
-  public LinkedList<CachedBlock> getList() {
-    LinkedList<CachedBlock> blocks = new LinkedList<>();
-    while (!queue.isEmpty()) {
-      blocks.addFirst(queue.poll());
-    }
-    return blocks;
+  public List<CachedBlock> getList() {
+    return Arrays.asList(get());
   }
 
   /**
