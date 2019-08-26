@@ -17,12 +17,15 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
@@ -68,6 +71,12 @@ public class ImportDirectoryCommand extends Command {
     final Options opts = super.getOptions();
     opts.addOption(OptUtil.tableOpt("name of the table to import files into"));
     return opts;
+  }
+
+  @Override
+  public void registerCompletion(final Token root,
+      final Map<CompletionSet,Set<String>> completionSet) {
+    registerCompletionForTables(root, completionSet);
   }
 
 }
