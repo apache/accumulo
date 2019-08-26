@@ -1153,6 +1153,14 @@ public enum Property {
   }
 
   /**
+   * Checks if the given property key is a valid property and is of type boolean.
+   * @param key  property key
+   * @return true if key is valid and is of type boolean, false otherwise
+   */
+  public static boolean isValidBooleanPropertyKey(String key) {
+    return validProperties.contains(key) && getPropertyByKey(key).getType().equals(PropertyType.BOOLEAN);
+  }
+  /**
    * Checks if the given property key is for a valid table property. A valid table property key is
    * either equal to the key of some defined table property (which each start with
    * {@link #TABLE_PREFIX}) or has a prefix matching {@link #TABLE_CONSTRAINT_PREFIX},

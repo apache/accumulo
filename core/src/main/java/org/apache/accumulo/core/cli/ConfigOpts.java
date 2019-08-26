@@ -23,6 +23,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.beust.jcommander.IParameterValidator;
+import com.beust.jcommander.ParameterException;
+import com.google.common.base.Strings;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.slf4j.Logger;
@@ -43,6 +46,15 @@ public class ConfigOpts extends Help {
 
   public synchronized String getPropertiesPath() {
     return propsPath;
+  }
+
+
+  public static class DeprecatedOption implements IParameterValidator {
+    @Override
+    public void validate(String option, String value) throws ParameterException {
+      System.err.println(
+          "WARNING: Option " + option + " is Deprecated.  Use properties override -o instead.");
+    }
   }
 
   public static class NullSplitter implements IParameterSplitter {
@@ -78,15 +90,20 @@ public class ConfigOpts extends Help {
     Map<String,String> config = new HashMap<>();
     for (String prop : args) {
       String[] propArgs = prop.split("=", 2);
-      if (propArgs.length == 2) {
+      if (propArgs.length >= 1){
         String key = propArgs[0].trim();
-        String value = propArgs[1].trim();
+        String value = "";
+        if (propArgs.length == 2) {
+          value = propArgs[1].trim();
+        } else { //if a boolean property then it's mere existence assumes true
+          value = String.valueOf(Property.isValidBooleanPropertyKey(key.trim()));
+        }
         if (key.isEmpty() || value.isEmpty()) {
           throw new IllegalArgumentException("Invalid command line -o option: " + prop);
         } else {
           config.put(key, value);
         }
-      } else {
+      } else { //this will never happen
         throw new IllegalArgumentException("Invalid command line -o option: " + prop);
       }
     }
