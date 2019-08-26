@@ -32,7 +32,6 @@ public class SimpleGarbageCollectorOptsTest {
 
   @Test
   public void testIt() {
-    assertFalse(opts.verbose);
     assertFalse(opts.safeMode);
   }
 }

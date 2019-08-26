@@ -23,15 +23,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.beust.jcommander.IParameterValidator;
-import com.beust.jcommander.ParameterException;
-import com.google.common.base.Strings;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.IParameterSplitter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -48,12 +48,12 @@ public class ConfigOpts extends Help {
     return propsPath;
   }
 
-
   public static class DeprecatedOption implements IParameterValidator {
     @Override
     public void validate(String option, String value) throws ParameterException {
-      System.err.println(
-          "WARNING: Option " + option + " is Deprecated.  Use properties override -o instead.");
+      log.warn("WARNING: Option {} is Deprecated.  Use properties override -o option instead.",
+          option);
+      processDeprecation(option, value);
     }
   }
 
@@ -68,6 +68,9 @@ public class ConfigOpts extends Help {
       description = "Overrides configuration set in accumulo.properties (but NOT system-wide config"
           + " set in Zookeeper). Expected format: -o <key>=<value>")
   private List<String> overrides = new ArrayList<>();
+
+  // holds property overrides that may be generated from deprecation:
+  private static List<String> deprecated_overrides = new ArrayList<>();
 
   private SiteConfiguration siteConfig = null;
 
@@ -88,23 +91,20 @@ public class ConfigOpts extends Help {
 
   public static Map<String,String> getOverrides(List<String> args) {
     Map<String,String> config = new HashMap<>();
-    for (String prop : args) {
+    List<String> allproperties = ListUtils.union(args, deprecated_overrides); // order matters here
+    for (String prop : allproperties) {
       String[] propArgs = prop.split("=", 2);
-      if (propArgs.length >= 1){
-        String key = propArgs[0].trim();
-        String value = "";
-        if (propArgs.length == 2) {
-          value = propArgs[1].trim();
-        } else { //if a boolean property then it's mere existence assumes true
-          value = String.valueOf(Property.isValidBooleanPropertyKey(key.trim()));
-        }
-        if (key.isEmpty() || value.isEmpty()) {
-          throw new IllegalArgumentException("Invalid command line -o option: " + prop);
-        } else {
-          config.put(key, value);
-        }
-      } else { //this will never happen
+      String key = propArgs[0].trim();
+      String value = "";
+      if (propArgs.length == 2) {
+        value = propArgs[1].trim();
+      } else { // if a boolean property then it's mere existence assumes true
+        value = String.valueOf(Property.isValidBooleanPropertyKey(key));
+      }
+      if (key.isEmpty() || value.isEmpty()) {
         throw new IllegalArgumentException("Invalid command line -o option: " + prop);
+      } else {
+        config.put(key, value);
       }
     }
     return config;
@@ -119,6 +119,16 @@ public class ConfigOpts extends Help {
         String key = entry.getKey();
         log.info(key + " = " + (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
       }
+    }
+  }
+
+  /**
+   * Performs special processing of deprecated options. Could be cleaned up periodically as
+   * deprecations are deleted
+   */
+  private static void processDeprecation(String option, String value) {
+    if ("-s".equals(option)) {
+      deprecated_overrides.add(Property.GC_SAFEMODE.getKey() + "=true");
     }
   }
 }

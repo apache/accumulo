@@ -523,6 +523,8 @@ public enum Property {
       "Do not use the Trash, even if it is configured."),
   GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION,
       "Percent of gc cycles to trace"),
+  GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
+      "Provides listing of files to be deleted but does not delete any files"),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
@@ -1154,12 +1156,16 @@ public enum Property {
 
   /**
    * Checks if the given property key is a valid property and is of type boolean.
-   * @param key  property key
+   *
+   * @param key
+   *          property key
    * @return true if key is valid and is of type boolean, false otherwise
    */
   public static boolean isValidBooleanPropertyKey(String key) {
-    return validProperties.contains(key) && getPropertyByKey(key).getType().equals(PropertyType.BOOLEAN);
+    return validProperties.contains(key)
+        && getPropertyByKey(key).getType().equals(PropertyType.BOOLEAN);
   }
+
   /**
    * Checks if the given property key is for a valid table property. A valid table property key is
    * either equal to the key of some defined table property (which each start with

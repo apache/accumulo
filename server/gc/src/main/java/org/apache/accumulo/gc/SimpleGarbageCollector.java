@@ -109,10 +109,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
    * Options for the garbage collector.
    */
   static class GCOpts extends ServerOpts {
-    @Parameter(names = {"-v", "--verbose"},
-        description = "extra information will get printed to stdout also")
-    boolean verbose = false;
-    @Parameter(names = {"-s", "--safemode"}, description = "safe mode will not delete files")
+    @Parameter(names = {"-s", "--safemode"}, validateWith = DeprecatedOption.class,
+        description = "Safe mode will list files but not delete them."
+            + " NOTE: This option is DEPRECATED and replaced with property gc.safemode=true.")
+    @Deprecated
     boolean safeMode = false;
   }
 
@@ -124,8 +124,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
-  private GCOpts opts;
   private ZooLock lock;
+  private final boolean safemode;
 
   private GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
@@ -138,13 +138,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   SimpleGarbageCollector(GCOpts opts, String[] args) {
     super("gc", opts, args);
-    this.opts = opts;
-
+    safemode = getConfiguration().getBoolean(Property.GC_SAFEMODE);
     long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
-    log.info("safemode: {}", opts.safeMode);
-    log.info("verbose: {}", opts.verbose);
+    log.info("safemode: {}", safemode);
     log.info("memory threshold: {} of {} bytes", CANDIDATE_MEMORY_PERCENTAGE,
         Runtime.getRuntime().maxMemory());
     log.info("delete threads: {}", getNumDeleteThreads());
@@ -258,12 +256,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     public void delete(SortedMap<String,String> confirmedDeletes) throws TableNotFoundException {
       final VolumeManager fs = getContext().getVolumeManager();
 
-      if (opts.safeMode) {
-        if (opts.verbose) {
-          System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
-              + " data file candidates marked for deletion.%n"
-              + "          Examine the log files to identify them.%n");
-        }
+      if (safemode) {
+        System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
+            + " data file candidates marked for deletion.%n"
+            + "          Examine the log files to identify them.%n");
         log.info("SAFEMODE: Listing all data file candidates for deletion");
         for (String s : confirmedDeletes.values()) {
           log.info("SAFEMODE: {}", s);
@@ -620,7 +616,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       processor = new Processor<>(rpcProxy);
     }
     int[] port = getConfiguration().getPort(Property.GC_PORT);
-    HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
+    HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
       ServerAddress server = TServerUtils.startTServer(getMetricsSystem(), getConfiguration(),
