@@ -872,8 +872,16 @@ public class Master extends AccumuloServerContext
       }
       // Handle merge transitions
       if (mergeInfo.getExtent() != null) {
-        log.debug("mergeInfo overlaps: " + extent + " " + mergeInfo.overlaps(extent));
-        if (mergeInfo.overlaps(extent)) {
+
+        final boolean overlaps = mergeInfo.overlaps(extent);
+
+        if (overlaps && log.isDebugEnabled()) {
+          log.debug("mergeInfo overlaps: {} {}", extent, overlaps);
+        } else if (log.isTraceEnabled()) {
+          log.trace("mergeInfo overlaps: {} {}", extent, overlaps);
+        }
+
+        if (overlaps) {
           switch (mergeInfo.getState()) {
             case NONE:
             case COMPLETE:
