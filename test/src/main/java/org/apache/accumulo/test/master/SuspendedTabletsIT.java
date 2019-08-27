@@ -49,6 +49,7 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -304,7 +305,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     private void scan(ClientContext ctx, String tableName) {
       Map<String,String> idMap = ctx.tableOperations().tableIdMap();
       String tableId = Objects.requireNonNull(idMap.get(tableName));
-      try (MetaDataTableScanner scanner = new MetaDataTableScanner(ctx, new Range())) {
+      try (var scanner = new MetaDataTableScanner(ctx, new Range(), MetadataTable.NAME)) {
         while (scanner.hasNext()) {
           TabletLocationState tls = scanner.next();
 

@@ -37,4 +37,25 @@ public class SimpleThreadPool extends ThreadPoolExecutor {
     allowCoreThreadTimeOut(true);
   }
 
+  /**
+   * Wrap this with a trivial object whose {@link AutoCloseable#close()} method calls
+   * {@link #shutdownNow()}.
+   */
+  public CloseableSimpleThreadPool asCloseable() {
+    return new CloseableSimpleThreadPool(this);
+  }
+
+  public static class CloseableSimpleThreadPool implements AutoCloseable {
+    private final SimpleThreadPool stp;
+
+    public CloseableSimpleThreadPool(SimpleThreadPool simpleThreadPool) {
+      this.stp = simpleThreadPool;
+    }
+
+    @Override
+    public void close() {
+      stp.shutdownNow();
+    }
+  }
+
 }

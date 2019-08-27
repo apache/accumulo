@@ -41,6 +41,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -53,14 +54,13 @@ import org.slf4j.LoggerFactory;
 
 public class MetadataConstraints implements Constraint {
 
+  private static final Logger log = LoggerFactory.getLogger(MetadataConstraints.class);
+
   private ZooCache zooCache = null;
   private String zooRoot = null;
 
-  private static final Logger log = LoggerFactory.getLogger(MetadataConstraints.class);
-
-  private static boolean[] validTableNameChars = new boolean[256];
-
-  {
+  private static final boolean[] validTableNameChars = new boolean[256];
+  static {
     for (int i = 0; i < 256; i++) {
       validTableNameChars[i] =
           ((i >= 'a' && i <= 'z') || (i >= '0' && i <= '9')) || i == '!' || i == '+';
@@ -265,6 +265,7 @@ public class MetadataConstraints implements Constraint {
             .equals(TabletsSection.ServerColumnFamily.LOCK_COLUMN)) {
           if (zooCache == null) {
             zooCache = new ZooCache(context.getZooReaderWriter(), null);
+            CleanerUtil.zooCacheClearer(this, zooCache);
           }
 
           if (zooRoot == null) {
@@ -327,9 +328,4 @@ public class MetadataConstraints implements Constraint {
     return null;
   }
 
-  @Override
-  protected void finalize() {
-    if (zooCache != null)
-      zooCache.clear();
-  }
 }
