@@ -876,7 +876,7 @@ public class Master extends AccumuloServerContext
         final boolean overlaps = mergeInfo.overlaps(extent);
 
         if (overlaps && log.isDebugEnabled()) {
-          log.debug("mergeInfo overlaps: {} {}", extent, overlaps);
+          log.debug("mergeInfo overlaps: {} true", extent);
         } else if (log.isTraceEnabled()) {
           log.trace("mergeInfo overlaps: {} {}", extent, overlaps);
         }
