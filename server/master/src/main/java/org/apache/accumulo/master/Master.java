@@ -583,6 +583,7 @@ public class Master extends AbstractServer
         return TabletGoalState.DELETED;
       case OFFLINE:
       case NEW:
+      case TRASH:
         return TabletGoalState.UNASSIGNED;
       default:
         return TabletGoalState.HOSTED;
@@ -1163,6 +1164,15 @@ public class Master extends AbstractServer
       log.info("Failed to register {} metrics modules", failureCount);
     } else {
       log.info("All metrics modules registered");
+    }
+
+    if (getConfiguration().getBoolean(Property.GENERAL_TRASH_ENABLED)) {
+      long delayBetweenChecks =
+          getConfiguration().getTimeInMillis(Property.GENERAL_TRASH_TIMER_PERIOD);
+      long spendsInTrash = getConfiguration().getTimeInMillis(Property.GENERAL_TRASH_PERIOD);
+
+      DeleteTrashTablesTask task = new DeleteTrashTablesTask(fate, getContext(), spendsInTrash);
+      SimpleTimer.getInstance(getConfiguration()).schedule(task, 1000l, delayBetweenChecks);
     }
 
     // The master is fully initialized. Clients are allowed to connect now.

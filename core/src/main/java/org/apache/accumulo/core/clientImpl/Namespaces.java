@@ -104,6 +104,16 @@ public class Namespaces {
     return names;
   }
 
+  public static List<String> getTrashTableNames(ClientContext context, NamespaceId namespaceId)
+      throws NamespaceNotFoundException {
+    String namespace = getNamespaceName(context, namespaceId);
+    List<String> names = new LinkedList<>();
+    for (String name : Tables.getTrashNameToIdMap(context).keySet())
+      if (namespace.equals(Tables.qualify(name).getFirst()))
+        names.add(name);
+    return names;
+  }
+
   /**
    * Gets all the namespaces from ZK. The first arg (t) the BiConsumer accepts is the ID and the
    * second (u) is the namespaceName.

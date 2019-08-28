@@ -136,6 +136,33 @@ public class Tables {
     return tableName;
   }
 
+  public static TableId _getTrashTableId(ClientContext context, String tableName)
+      throws NamespaceNotFoundException, TableNotFoundException {
+    TableId tableId = getTrashNameToIdMap(context).get(tableName);
+    if (tableId == null) {
+      // maybe the table exist, but the cache was not updated yet... so try to clear the cache and
+      // check again
+      clearCache(context);
+      tableId = getTrashNameToIdMap(context).get(tableName);
+      if (tableId == null) {
+        String namespace = qualify(tableName).getFirst();
+        if (Namespaces.getNameToIdMap(context).containsKey(namespace))
+          throw new TableNotFoundException(null, tableName, null);
+        else
+          throw new NamespaceNotFoundException(null, namespace, null);
+      }
+    }
+    return tableId;
+  }
+
+  public static String getTrashTableName(ClientContext context, TableId tableId)
+      throws TableNotFoundException {
+    String tableName = getTrashIdToNameMap(context).get(tableId);
+    if (tableName == null)
+      throw new TableNotFoundException(tableId.canonical(), null, null);
+    return tableName;
+  }
+
   public static String getTableOfflineMsg(ClientContext context, TableId tableId) {
     if (tableId == null)
       return "Table <unknown table> is offline";
@@ -153,6 +180,14 @@ public class Tables {
 
   public static Map<TableId,String> getIdToNameMap(ClientContext context) {
     return getTableMap(context).getIdtoNameMap();
+  }
+
+  public static Map<String,TableId> getTrashNameToIdMap(ClientContext context) {
+    return getTableMap(context).getTrashNameToIdMap();
+  }
+
+  public static Map<TableId,String> getTrashIdToNameMap(ClientContext context) {
+    return getTableMap(context).getTrashIdToNameMap();
   }
 
   /**

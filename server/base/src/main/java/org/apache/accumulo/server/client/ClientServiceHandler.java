@@ -99,6 +99,20 @@ public class ClientServiceHandler implements ClientService.Iface {
     throw new ThriftTableOperationException(null, tableName, operation, reason, null);
   }
 
+  public static TableId checkTrashTableId(ClientContext context, String tableName,
+      TableOperation operation) throws ThriftTableOperationException {
+    TableOperationExceptionType reason = null;
+    try {
+      return Tables._getTrashTableId(context, tableName);
+    } catch (NamespaceNotFoundException e) {
+      reason = TableOperationExceptionType.NAMESPACE_NOTFOUND;
+    } catch (TableNotFoundException e) {
+      reason = TableOperationExceptionType.NOTFOUND;
+    }
+    throw new ThriftTableOperationException(null, tableName, operation, reason,
+        "Finding TableId for trash table failed");
+  }
+
   public static NamespaceId checkNamespaceId(ClientContext context, String namespaceName,
       TableOperation operation) throws ThriftTableOperationException {
     NamespaceId namespaceId = Namespaces.lookupNamespaceId(context, namespaceName);

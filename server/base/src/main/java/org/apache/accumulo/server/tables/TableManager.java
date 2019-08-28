@@ -167,6 +167,7 @@ public class TableManager {
               break;
             case ONLINE: // fall-through intended
             case UNKNOWN:// fall through intended
+            case TRASH: // fall through intended
             case OFFLINE:
               transition = (newState != TableState.NEW);
               break;

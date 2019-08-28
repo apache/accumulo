@@ -31,5 +31,9 @@ public enum TableState {
 
   // UNKNOWN is NOT a valid state; it is reserved for unrecognized serialized
   // representations of table state
-  UNKNOWN
+  UNKNOWN,
+
+  // TRASH optional temporary state before deletion, allows the table to be restored, but otherwise
+  // behaves as deleted
+  TRASH
 }

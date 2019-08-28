@@ -48,8 +48,10 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.master.thrift.FateService;
@@ -68,6 +70,8 @@ import org.apache.accumulo.master.tableOps.compact.CompactRange;
 import org.apache.accumulo.master.tableOps.compact.cancel.CancelCompactions;
 import org.apache.accumulo.master.tableOps.create.CreateTable;
 import org.apache.accumulo.master.tableOps.delete.DeleteTable;
+import org.apache.accumulo.master.tableOps.delete.TrashTable;
+import org.apache.accumulo.master.tableOps.delete.UndeleteTable;
 import org.apache.accumulo.master.tableOps.merge.TableRangeOp;
 import org.apache.accumulo.master.tableOps.namespace.create.CreateNamespace;
 import org.apache.accumulo.master.tableOps.namespace.delete.DeleteNamespace;
@@ -304,8 +308,16 @@ class FateServiceHandler implements FateService.Iface {
         validateArgumentCount(arguments, tableOp, 1);
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
 
-        final TableId tableId =
-            ClientServiceHandler.checkTableId(master.getContext(), tableName, tableOp);
+        Boolean trashEnabled = master.getConfiguration().getBoolean(Property.GENERAL_TRASH_ENABLED);
+        TableId tableId = null;
+        try {
+          tableId = ClientServiceHandler.checkTableId(master.getContext(), tableName, tableOp);
+        } catch (ThriftTableOperationException e) {
+          if (!trashEnabled)
+            throw e;
+          tableId = ClientServiceHandler.checkTrashTableId(master.getContext(), tableName, tableOp);
+        }
+
         NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canDeleteTable;
@@ -315,11 +327,70 @@ class FateServiceHandler implements FateService.Iface {
           throwIfTableMissingSecurityException(e, tableId, tableName, TableOperation.DELETE);
           throw e;
         }
-
         if (!canDeleteTable)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-        master.fate.seedTransaction(opid, new TraceRepo<>(new DeleteTable(namespaceId, tableId)),
+
+        TableState state = Tables.getTableState(master.getContext(), tableId);
+
+        if (!trashEnabled || state == TableState.TRASH)
+          master.fate.seedTransaction(opid, new TraceRepo<>(new DeleteTable(namespaceId, tableId)),
+              autoCleanup);
+
+        master.fate.seedTransaction(opid, new TraceRepo<>(new TrashTable(namespaceId, tableId)),
             autoCleanup);
+        break;
+      }
+      case TABLE_UNDELETE: {
+        TableOperation tableOp = TableOperation.UNDELETE;
+        Boolean trashEnabled = master.getConfiguration().getBoolean(Property.GENERAL_TRASH_ENABLED);
+        if (!trashEnabled)
+          throw new ThriftTableOperationException(null, null, tableOp,
+              TableOperationExceptionType.OTHER,
+              "Enable Accumulo Trash can functionality to use this operation");
+
+        validateArgumentCount(arguments, tableOp, arguments.size() > 1 ? 2 : 1);
+        final String trashTableName =
+            validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
+        String newTableName = null;
+        if (arguments.size() > 1) {
+          newTableName =
+              validateTableNameArgument(arguments.get(1), tableOp, new Validator<String>() {
+
+                @Override
+                public boolean test(String argument) {
+                  // this argument is optional
+                  if (argument == null)
+                    return true;
+                  // verify they are in the same namespace
+                  String oldNamespace = Tables.qualify(trashTableName).getFirst();
+                  return oldNamespace.equals(Tables.qualify(argument).getFirst());
+                }
+
+                @Override
+                public String invalidMessage(String argument) {
+                  return "Cannot move tables to a new namespace by undeleting. The namespace for "
+                      + trashTableName + " does not match " + argument;
+                }
+              });
+        }
+        TableId tableId =
+            ClientServiceHandler.checkTrashTableId(master.getContext(), trashTableName, tableOp);
+        NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+
+        final boolean canUndeleteTable;
+        try {
+          canUndeleteTable = master.security.canUndeleteTable(c, tableId, namespaceId);
+        } catch (ThriftSecurityException e) {
+          throwIfTableMissingSecurityException(e, tableId, trashTableName, TableOperation.UNDELETE);
+          throw e;
+        }
+
+        if (!canUndeleteTable)
+          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
+        master.fate.seedTransaction(opid,
+            new TraceRepo<>(new UndeleteTable(namespaceId, tableId, newTableName)), autoCleanup);
+
         break;
       }
       case TABLE_ONLINE: {

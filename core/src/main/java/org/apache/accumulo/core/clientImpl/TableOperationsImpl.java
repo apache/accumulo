@@ -1658,6 +1658,39 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return sci.toSamplerConfiguration();
   }
 
+  @Override
+  public SortedSet<String> listTrash() {
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Fetching list of tables...", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
+
+    TreeSet<String> tableNames = new TreeSet<>(Tables.getTrashNameToIdMap(context).keySet());
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Fetched {} table names in {}", Thread.currentThread().getId(),
+          tableNames.size(), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
+
+    return tableNames;
+  }
+
+  @Override
+  public void undelete(String trashTableName, String tableName) throws TableNotFoundException,
+      TableExistsException, AccumuloException, AccumuloSecurityException {
+
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(trashTableName.getBytes(UTF_8)));
+    if (tableName != null) {
+      args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
+    }
+    Map<String,String> opts = new HashMap<>();
+    doTableFateOperation(trashTableName, TableNotFoundException.class, FateOperation.TABLE_UNDELETE,
+        args, opts);
+  }
+
   private static class LocationsImpl implements Locations {
 
     private Map<Range,List<TabletId>> groupedByRanges;

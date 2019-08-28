@@ -520,6 +520,13 @@ public class SecurityOperation {
         || hasTablePermission(c, tableId, namespaceId, TablePermission.DROP_TABLE, false);
   }
 
+  public boolean canUndeleteTable(TCredentials c, TableId tableId, NamespaceId namespaceId)
+      throws ThriftSecurityException {
+    authenticate(c);
+    return hasSystemPermissionWithNamespaceId(c, SystemPermission.DROP_TABLE, namespaceId, false)
+        || hasTablePermission(c, tableId, namespaceId, TablePermission.DROP_TABLE, false);
+  }
+
   public boolean canOnlineOfflineTable(TCredentials c, TableId tableId, FateOperation op,
       NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);

@@ -89,6 +89,41 @@ public class DUCommand extends Command {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
+
+    final SortedSet<String> trashTables = new TreeSet<>();
+
+    // Add any patterns
+    if (cl.hasOption(optTablePattern.getOpt())) {
+      for (String table : shellState.getAccumuloClient().tableOperations().listTrash()) {
+        if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) {
+          trashTables.add(table);
+        }
+      }
+    }
+
+    if (cl.hasOption(optNamespace.getOpt())) {
+      NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(),
+          cl.getOptionValue(optNamespace.getOpt()));
+      trashTables.addAll(Namespaces.getTrashTableNames(shellState.getContext(), namespaceId));
+    }
+
+    if (trashTables.size() == 0)
+      return 0;
+
+    shellState.getReader().println();
+    shellState.getReader().println("tables in trash:");
+    try {
+      String valueFormat = prettyPrint ? "%9s" : "%,24d";
+      for (DiskUsage usage : shellState.getAccumuloClient().tableOperations()
+          .getDiskUsage(trashTables)) {
+        Object value = prettyPrint ? NumUtil.bigNumberForSize(usage.getUsage()) : usage.getUsage();
+        shellState.getReader()
+            .println(String.format(valueFormat + " %s", value, usage.getTables()));
+      }
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+
     return 0;
   }
 

@@ -160,6 +160,7 @@ enum FateOperation {
   NAMESPACE_DELETE
   NAMESPACE_RENAME
   TABLE_BULK_IMPORT2
+  TABLE_UNDELETE
 }
 
 service FateService {

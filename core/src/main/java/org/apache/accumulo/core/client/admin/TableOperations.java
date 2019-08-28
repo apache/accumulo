@@ -1031,6 +1031,43 @@ public interface TableOperations {
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
+   * @return tables currently in trash
+   */
+  SortedSet<String> listTrash();
+
+  /**
+   * Undelete a table to its former name.
+   *
+   * @param trashTableName
+   *          the name of a table currently in trash
+   *
+   * @throws TableNotFoundException
+   *           if trash table does not exists
+   * @throws TableExistsException
+   *           if former name is in use
+   */
+  default void undelete(String trashTableName) throws TableNotFoundException, TableExistsException,
+      AccumuloException, AccumuloSecurityException {
+    undelete(trashTableName, null);
+  }
+
+  /**
+   * Undelete a table to a new name.
+   *
+   * @param trashTableName
+   *          the name of a table currently in trash
+   * @param tableName
+   *          the name to use for this table after undeleting
+   *
+   * @throws TableNotFoundException
+   *           if trash table does not exists
+   * @throws TableExistsException
+   *           if new name is in use
+   */
+  void undelete(String trashTableName, String tableName) throws TableNotFoundException,
+      TableExistsException, AccumuloException, AccumuloSecurityException;
+
+  /**
    * Entry point for retrieving summaries with optional restrictions.
    *
    * <p>

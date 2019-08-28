@@ -34,7 +34,10 @@ import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.Locations;
@@ -219,6 +222,15 @@ public class TableOperationsHelperTest {
     public SamplerConfiguration getSamplerConfiguration(String tableName) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public SortedSet<String> listTrash() {
+      return null;
+    }
+
+    @Override
+    public void undelete(String trashTableName, String tableName) throws TableNotFoundException,
+        TableExistsException, AccumuloException, AccumuloSecurityException {}
 
     @Override
     public Locations locate(String tableName, Collection<Range> ranges) {

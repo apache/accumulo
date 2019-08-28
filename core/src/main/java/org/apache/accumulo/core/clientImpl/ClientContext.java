@@ -423,8 +423,11 @@ public class ClientContext implements AccumuloClient {
 
   TableId getTableId(String tableName) throws TableNotFoundException {
     TableId tableId = Tables.getTableId(this, tableName);
-    if (Tables.getTableState(this, tableId) == TableState.OFFLINE)
+    TableState state = Tables.getTableState(this, tableId);
+    if (state == TableState.OFFLINE)
       throw new TableOfflineException(Tables.getTableOfflineMsg(this, tableId));
+    if (state == TableState.TRASH)
+      throw new TableNotFoundException(null, tableName, null);
     return tableId;
   }
 

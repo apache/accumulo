@@ -41,6 +41,8 @@ public class TableMap {
 
   private final Map<String,TableId> tableNameToIdMap;
   private final Map<TableId,String> tableIdToNameMap;
+  private final Map<String,TableId> trashTableNameToIdMap;
+  private final Map<TableId,String> trashTableIdToNameMap;
 
   private final ZooCache zooCache;
   private final long updateCount;
@@ -55,6 +57,8 @@ public class TableMap {
     Map<NamespaceId,String> namespaceIdToNameMap = new HashMap<>();
     var tableNameToIdBuilder = ImmutableMap.<String,TableId>builder();
     var tableIdToNameBuilder = ImmutableMap.<TableId,String>builder();
+    var trashTableNameToIdBuilder = ImmutableMap.<String,TableId>builder();
+    var trashTableIdToNameBuilder = ImmutableMap.<TableId,String>builder();
 
     // use StringBuilder to construct zPath string efficiently across many tables
     StringBuilder zPathBuilder = new StringBuilder();
@@ -93,12 +97,19 @@ public class TableMap {
       if (tableName != null && namespaceName != null) {
         String tableNameStr = qualified(new String(tableName, UTF_8), namespaceName);
         TableId tableId = TableId.of(tableIdStr);
-        tableNameToIdBuilder.put(tableNameStr, tableId);
-        tableIdToNameBuilder.put(tableId, tableNameStr);
+        if (Constants.TRASH_TABLE_NAME_PATTERN.matcher(tableNameStr).find()) {
+          trashTableNameToIdBuilder.put(tableNameStr, tableId);
+          trashTableIdToNameBuilder.put(tableId, tableNameStr);
+        } else {
+          tableNameToIdBuilder.put(tableNameStr, tableId);
+          tableIdToNameBuilder.put(tableId, tableNameStr);
+        }
       }
     }
     tableNameToIdMap = tableNameToIdBuilder.build();
     tableIdToNameMap = tableIdToNameBuilder.build();
+    trashTableNameToIdMap = trashTableNameToIdBuilder.build();
+    trashTableIdToNameMap = trashTableIdToNameBuilder.build();
   }
 
   public Map<String,TableId> getNameToIdMap() {
@@ -107,6 +118,14 @@ public class TableMap {
 
   public Map<TableId,String> getIdtoNameMap() {
     return tableIdToNameMap;
+  }
+
+  public Map<String,TableId> getTrashNameToIdMap() {
+    return trashTableNameToIdMap;
+  }
+
+  public Map<TableId,String> getTrashIdToNameMap() {
+    return trashTableIdToNameMap;
   }
 
   public boolean isCurrent(ZooCache zc) {

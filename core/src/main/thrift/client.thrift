@@ -38,6 +38,8 @@ enum TableOperation {
   IMPORT
   EXPORT
   COMPACT_CANCEL
+  TRASH
+  UNDELETE
 }
 
 enum TableOperationExceptionType {

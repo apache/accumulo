@@ -226,6 +226,13 @@ public enum Property {
   GENERAL_MAX_SCANNER_RETRY_PERIOD("general.max.scanner.retry.period", "5s",
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC"),
+  GENERAL_TRASH_ENABLED("general.trash.ebaled", "false", PropertyType.BOOLEAN,
+      "On delete move the table to Trash first, allowing it to be restored"
+          + " and only delete it after a given time period"),
+  GENERAL_TRASH_PERIOD("general.trash.period", "1d", PropertyType.TIMEDURATION,
+      "The maximum amount of time a table spends in Trash before deleted"),
+  GENERAL_TRASH_TIMER_PERIOD("general.trash.timer.period", "1h", PropertyType.TIMEDURATION,
+      "The time interval between checks for outdated trash tables."),
 
   // properties that are specific to master server behavior
   MASTER_PREFIX("master.", null, PropertyType.PREFIX,

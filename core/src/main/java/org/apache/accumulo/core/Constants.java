@@ -18,6 +18,8 @@ package org.apache.accumulo.core;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.regex.Pattern;
+
 public class Constants {
 
   public static final String VERSION = FilteredConstants.VERSION;
@@ -118,4 +120,8 @@ public class Constants {
   public static final String HDFS_TABLES_DIR = "/tables";
 
   public static final int DEFAULT_VISIBILITY_CACHE_SIZE = 1000;
+
+  public static final String TRASH_DATE_FORMAT = "yyyyMMddHHmmss";
+  public static final Pattern TRASH_TABLE_NAME_PATTERN =
+      Pattern.compile("^trash_(.*)_(\\d{14})_(\\d*)");
 }
