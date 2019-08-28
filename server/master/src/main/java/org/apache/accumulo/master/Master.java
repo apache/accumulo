@@ -880,7 +880,7 @@ public class Master extends AccumuloServerContext
         } else if (overlaps) {
           log.debug("mergeInfo overlaps: {} true", extent);
         }
-        
+
         if (overlaps) {
           switch (mergeInfo.getState()) {
             case NONE:

@@ -77,11 +77,11 @@ public class MergeStats {
     if (info.getState().equals(MergeState.NONE))
       return;
     if (!upperSplit && info.getExtent().getEndRow().equals(ke.getPrevEndRow())) {
-      log.info("Upper split found {}", ke.getPrevEndRow());
+      log.info("Upper split found: {}", ke.getPrevEndRow());
       upperSplit = true;
     }
     if (!lowerSplit && info.getExtent().getPrevEndRow().equals(ke.getEndRow())) {
-      log.info("Lower split found {}", ke.getEndRow());
+      log.info("Lower split found: {}", ke.getEndRow());
       lowerSplit = true;
     }
     if (!info.overlaps(ke))
