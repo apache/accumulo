@@ -106,8 +106,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   // basic configuration
   private final ClientContext context;
+  private static double MAX_MEM_PERCENTAGE = 0.98;
   private final long maxMem;
+  private static long MAX_MEMORY_DIVISOR = 20;
   private final long maxLatency;
+  private static long MAX_LATENCY_DIVISOR = 16;
   private final long timeout;
   private final Durability durability;
 
@@ -141,6 +144,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private AtomicInteger tabletServersBatchSum = new AtomicInteger(0);
   private AtomicInteger tabletBatchSum = new AtomicInteger(0);
   private AtomicInteger numBatches = new AtomicInteger(0);
+  private AtomicInteger consecutiveFailedProcessCalls = new AtomicInteger(0);
   private AtomicInteger maxTabletBatch = new AtomicInteger(Integer.MIN_VALUE);
   private AtomicInteger minTabletBatch = new AtomicInteger(Integer.MAX_VALUE);
   private AtomicInteger minTabletServersBatch = new AtomicInteger(Integer.MAX_VALUE);
@@ -219,7 +223,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
             updateUnknownErrors("Max latency task failed " + t.getMessage(), t);
           }
         }
-      }, 0, this.maxLatency / 4);
+      }, 0, this.maxLatency / MAX_LATENCY_DIVISOR);
     }
   }
 
@@ -280,8 +284,19 @@ public class TabletServerBatchWriter implements AutoCloseable {
     mutations.addMutation(table, m);
     totalAdded++;
 
-    if (mutations.getMemoryUsed() >= maxMem / 2) {
+    if (mutations.getMemoryUsed() >= maxMem / MAX_MEMORY_DIVISOR) {
+
       startProcessing();
+
+      if (!somethingFailed)
+        consecutiveFailedProcessCalls.set(0);
+
+      if (consecutiveFailedProcessCalls.get() > 5000)
+        log.error(
+            "TabletServerBatchWriter::startProcessing is not occurring in over 5000 attempts in addMutation.");
+      else if (somethingFailed)
+        consecutiveFailedProcessCalls.getAndIncrement();
+
       checkForFailures();
     }
   }
