@@ -82,7 +82,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   private static final int NUM_ROWS = 1000;
   private static final long SLOW_SCAN_SLEEP_MS = 250L;
 
+  private static final int DEFAULT_PAUSE_MILLS = 250;
+
   private Connector connector;
+  private Instance instance;
 
   private static final ExecutorService pool = Executors.newCachedThreadPool();
 
@@ -94,6 +97,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   public void setup() {
 
     connector = getConnector();
+
+    instance = connector.getInstance();
 
     tableName = getUniqueNames(1)[0];
 
@@ -168,17 +173,13 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing3 = task.get();
 
-    assertTrue("online should take less time than expected compaction time",
-        timing3.runningTime() < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS,
-            TimeUnit.MILLISECONDS));
+    assertTrue("online should take less time than expected compaction time", timing3.runningTime()
+        < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS, TimeUnit.MILLISECONDS));
 
     assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
 
     assertTrue("verify compaction still running and fate transaction still exists",
         blockUntilCompactionRunning(tableName));
-
-    // test complete, cancel compaction and move on.
-    connector.tableOperations().cancelCompaction(tableName);
 
     log.debug("Success: Timing results for online commands.");
     log.debug("Time for unblocked online {} ms",
@@ -188,8 +189,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     log.debug("Time for blocked online {} ms",
         TimeUnit.MILLISECONDS.convert(timing3.runningTime(), TimeUnit.NANOSECONDS));
 
-    // block if compaction still running
-    compactTask.get();
+    // test complete, cancel compaction, wait for cancel and then move on.
+    cleanupCompactionTask(compactTask);
 
   }
 
@@ -201,7 +202,6 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   @Test
   public void getFateStatus() {
 
-    Instance instance = connector.getInstance();
     String tableId;
 
     try {
@@ -222,44 +222,20 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     assertTrue("compaction fate transaction exits", findFate(tableName));
 
-    AdminUtil.FateStatus withLocks = null;
-    List<AdminUtil.TransactionStatus> noLocks = null;
+    AdminUtil.FateStatus withLocks;
+    List<AdminUtil.TransactionStatus> noLocks;
 
-    int maxRetries = 3;
+    try {
 
-    AdminUtil<String> admin = new AdminUtil<>(false);
+      withLocks = getFateStatus(tableId);
 
-    while (maxRetries > 0) {
+      // call method that does not use locks.
+      noLocks = getTransactionStatus();
 
-      try {
-
-        IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
-            instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
-
-        ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
-
-        withLocks = admin.getStatus(zs, zk,
-            ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
-
-        // call method that does not use locks.
-        noLocks = admin.getTransactionStatus(zs, null, null);
-
-        // no zk exception, no need to retry
-        break;
-
-      } catch (InterruptedException ex) {
-        Thread.currentThread().interrupt();
-        fail("Interrupt received - test failed");
-        return;
-      } catch (KeeperException ex) {
-        maxRetries--;
-        try {
-          Thread.sleep(1000);
-        } catch (InterruptedException intr_ex) {
-          Thread.currentThread().interrupt();
-          return;
-        }
-      }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      fail("Interrupt received - test failed");
+      return;
     }
 
     assertNotNull(withLocks);
@@ -286,9 +262,13 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     assertTrue("Number of fates matches should be > 0", matchCount > 0);
 
+    cleanupCompactionTask(compactTask);
+  }
+
+  private void cleanupCompactionTask(Future<?> compactTask) {
+
     try {
 
-      // test complete, cancel compaction and move on.
       connector.tableOperations().cancelCompaction(tableName);
 
       // block if compaction still running
@@ -344,7 +324,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       }
 
       try {
-        Thread.sleep(250);
+        Thread.sleep(DEFAULT_PAUSE_MILLS);
       } catch (InterruptedException ex) {
         // reassert interrupt
         Thread.currentThread().interrupt();
@@ -364,20 +344,15 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    */
   private boolean findFate(final String tableName) {
 
-    Instance instance = connector.getInstance();
-    AdminUtil<String> admin = new AdminUtil<>(false);
+    String tableId = "?";
 
     try {
 
-      String tableId = Tables.getTableId(instance, tableName);
+      tableId = Tables.getTableId(connector.getInstance(), tableName);
 
       log.trace("tid: {}", tableId);
 
-      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
-          instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
-      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
-      AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk,
-          ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
+      AdminUtil.FateStatus fateStatus = getFateStatus(tableId);
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());
 
@@ -387,12 +362,73 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
           return true;
       }
 
-    } catch (KeeperException | TableNotFoundException | InterruptedException ex) {
-      throw new IllegalStateException(ex);
+    } catch (TableNotFoundException ex) {
+      throw new IllegalStateException(
+          String.format("Could not get fate for table: %s, id: %s", tableName, tableId), ex);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
     }
 
     // did not find appropriate fate transaction for compaction.
     return Boolean.FALSE;
+  }
+
+  private AdminUtil.FateStatus getFateStatus(String tableId) throws InterruptedException {
+
+    Instance instance = connector.getInstance();
+    AdminUtil<String> admin = new AdminUtil<>(false);
+
+    int retries = 3;
+
+    while (retries > 0) {
+
+      try {
+
+        IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
+            instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
+
+        ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
+
+        return admin.getStatus(zs, zk,
+            ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
+
+      } catch (KeeperException ex) {
+        retries--;
+        log.debug("Failed to get fate status - keeper exception, attempts remaining {}", retries);
+      }
+
+      Thread.sleep(DEFAULT_PAUSE_MILLS);
+    }
+    throw new IllegalStateException(
+        "Failed to get fate status after multiple attempts - failing test");
+  }
+
+  private List<AdminUtil.TransactionStatus> getTransactionStatus() throws InterruptedException {
+
+    AdminUtil<String> admin = new AdminUtil<>(false);
+
+    int retries = 3;
+
+    while (retries > 0) {
+
+      try {
+
+        IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
+            instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
+        ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
+
+        return admin.getTransactionStatus(zs, null, null);
+
+      } catch (KeeperException ex) {
+        retries--;
+        log.debug("Failed to get fate status - keeper exception, attempts remaining {}", retries);
+      }
+
+      Thread.sleep(DEFAULT_PAUSE_MILLS);
+    }
+
+    throw new IllegalStateException(
+        "Failed to get transaction status after multiple attempts - failing test");
   }
 
   /**
