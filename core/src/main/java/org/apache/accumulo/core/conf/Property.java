@@ -416,7 +416,7 @@ public enum Property {
   TSERV_BLOOM_LOAD_MAXCONCURRENT("tserver.bloom.load.concurrent.max", "4", PropertyType.COUNT,
       "The number of concurrent threads that will load bloom filters in the background. "
           + "Setting this to zero will make bloom filters load in the foreground."),
-  TSERV_MONITOR_FS("tserver.monitor.fs", "true", PropertyType.BOOLEAN,
+  TSERV_MONITOR_FS("tserver.monitor.fs", "false", PropertyType.BOOLEAN,
       "When enabled the tserver will monitor file systems and kill itself when"
           + " one switches from rw to ro. This is usually and indication that Linux has"
           + " detected a bad disk."),
