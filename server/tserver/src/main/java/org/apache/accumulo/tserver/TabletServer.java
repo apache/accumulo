@@ -204,7 +204,6 @@ import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
-import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
@@ -3042,8 +3041,6 @@ public class TabletServer extends AbstractServer {
 
     AccumuloConfiguration aconf = getConfiguration();
     SimpleTimer.getInstance(aconf).schedule(contextCleaner, 60000, 60000);
-
-    FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
 
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 
