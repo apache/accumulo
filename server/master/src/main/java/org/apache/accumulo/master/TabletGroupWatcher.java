@@ -102,9 +102,8 @@ abstract class TabletGroupWatcher extends Daemon {
   private static final int ASSINGMENT_BUFFER_MAX_LENGTH = 4096;
 
   private final Master master;
-  final TabletStateStore store;
-  final TabletGroupWatcher dependentWatcher;
-
+  private final TabletStateStore store;
+  private final TabletGroupWatcher dependentWatcher;
   final TableStats stats = new TableStats();
   private SortedSet<TServerInstance> lastScanServers = ImmutableSortedSet.of();
 
@@ -129,7 +128,7 @@ abstract class TabletGroupWatcher extends Daemon {
    * True if the collection of live tservers specified in 'candidates' hasn't changed since the last
    * time an assignment scan was started.
    */
-  public synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
+  synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
     return candidates.equals(lastScanServers);
   }
 
