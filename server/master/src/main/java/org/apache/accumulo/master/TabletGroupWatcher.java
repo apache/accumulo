@@ -103,10 +103,8 @@ abstract class TabletGroupWatcher extends Daemon {
   private static final int ASSINGMENT_BUFFER_MAX_LENGTH = 4096;
 
   private final Master master;
-  final TabletStateStore store;
-  final TabletGroupWatcher dependentWatcher;
-
-  private MasterState masterState;
+  private final TabletStateStore store;
+  private final TabletGroupWatcher dependentWatcher;
 
   final TableStats stats = new TableStats();
   private SortedSet<TServerInstance> lastScanServers = ImmutableSortedSet.of();
@@ -124,11 +122,6 @@ abstract class TabletGroupWatcher extends Daemon {
     return stats.getLast();
   }
 
-  // returns the master state under which stats were collected
-  MasterState statsState() {
-    return masterState;
-  }
-
   TableCounts getStats(String tableId) {
     return stats.getLast(tableId);
   }
@@ -137,7 +130,7 @@ abstract class TabletGroupWatcher extends Daemon {
    * True if the collection of live tservers specified in 'candidates' hasn't changed since the last
    * time an assignment scan was started.
    */
-  public synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
+  synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
     return candidates.equals(lastScanServers);
   }
 
@@ -152,7 +145,6 @@ abstract class TabletGroupWatcher extends Daemon {
     while (this.master.stillMaster()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-      masterState = master.getMasterState();
 
       int totalUnloaded = 0;
       int unloaded = 0;
