@@ -195,13 +195,9 @@ abstract class TabletGroupWatcher extends Daemon {
             continue;
           }
 
-          if (Master.log.isTraceEnabled()) {
-            Master.log.trace("{} location State: {}", store.name(), tls);
-          } else {
-            TabletState state = tls.getState(currentTServers.keySet());
-            if (!state.equals(TabletState.HOSTED)) {
-              Master.log.debug("{} location {} State: {}", store.name(), tls, state);
-            }
+          // this can get spammy during merges
+          if (currentMerges.isEmpty()) {
+            Master.log.debug("{} location State: {}", store.name(), tls);
           }
 
           // ignore entries for tables that do not exist in zookeeper
