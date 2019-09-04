@@ -25,13 +25,10 @@ import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.IParameterSplitter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -48,13 +45,24 @@ public class ConfigOpts extends Help {
     return propsPath;
   }
 
-  public static class DeprecatedOption implements IParameterValidator {
-    @Override
-    public void validate(String option, String value) throws ParameterException {
-      log.warn("WARNING: Option {} is Deprecated.  Use properties override -o option instead.",
-          option);
-      processDeprecation(option, value);
-    }
+  // catch all for string based dropped options, including those specific to subclassed extensions
+  // uncomment below if needed
+  // @Parameter(names = {}, hidden=true)
+  private String legacyOpts = null;
+
+  // catch all for boolean dropped options, including those specific to subclassed extensions
+  @Parameter(names = {"-s", "--safemode"}, hidden = true)
+  private boolean legacyOptsBoolean = false;
+
+  // holds information on dealing with dropped options
+  // option -> Message describing replacement option or property
+  private static Map<String,String> LEGACY_OPTION_MSG = new HashMap<>();
+  static {
+    // garbage collector legacy options
+    LEGACY_OPTION_MSG.put("-s", "Replaced by configuration property " + Property.GC_SAFEMODE);
+    LEGACY_OPTION_MSG.put("--safemode",
+        "Replaced by configuration property " + Property.GC_SAFEMODE);
+
   }
 
   public static class NullSplitter implements IParameterSplitter {
@@ -68,9 +76,6 @@ public class ConfigOpts extends Help {
       description = "Overrides configuration set in accumulo.properties (but NOT system-wide config"
           + " set in Zookeeper). Expected format: -o <key>=<value>")
   private List<String> overrides = new ArrayList<>();
-
-  // holds property overrides that may be generated from deprecation:
-  private static List<String> deprecated_overrides = new ArrayList<>();
 
   private SiteConfiguration siteConfig = null;
 
@@ -91,15 +96,14 @@ public class ConfigOpts extends Help {
 
   public static Map<String,String> getOverrides(List<String> args) {
     Map<String,String> config = new HashMap<>();
-    List<String> allproperties = ListUtils.union(args, deprecated_overrides); // order matters here
-    for (String prop : allproperties) {
+    for (String prop : args) {
       String[] propArgs = prop.split("=", 2);
       String key = propArgs[0].trim();
-      String value = "";
+      String value;
       if (propArgs.length == 2) {
         value = propArgs[1].trim();
       } else { // if a boolean property then it's mere existence assumes true
-        value = String.valueOf(Property.isValidBooleanPropertyKey(key));
+        value = Property.isValidBooleanPropertyKey(key) ? "true" : "";
       }
       if (key.isEmpty() || value.isEmpty()) {
         throw new IllegalArgumentException("Invalid command line -o option: " + prop);
@@ -113,22 +117,25 @@ public class ConfigOpts extends Help {
   @Override
   public void parseArgs(String programName, String[] args, Object... others) {
     super.parseArgs(programName, args, others);
+    if (legacyOpts != null || legacyOptsBoolean) {
+      var errmsg = new StringBuilder();
+      for (String option : args) {
+        if (LEGACY_OPTION_MSG.keySet().contains(option)) {
+          errmsg.append("Option ").append(option).append(" has been dropped - ")
+              .append(LEGACY_OPTION_MSG.get(option)).append("\n");
+        }
+      }
+      // prints error to console if ran from the command line otherwise there is no way to know that
+      // an error occurred
+      System.err.println(errmsg.append("See '-o' property override option").toString());
+      throw new IllegalArgumentException(errmsg.toString());
+    }
     if (getOverrides().size() > 0) {
       log.info("The following configuration was set on the command line:");
       for (Map.Entry<String,String> entry : getOverrides().entrySet()) {
         String key = entry.getKey();
         log.info(key + " = " + (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
       }
-    }
-  }
-
-  /**
-   * Performs special processing of deprecated options. Could be cleaned up periodically as
-   * deprecations are deleted
-   */
-  private static void processDeprecation(String option, String value) {
-    if ("-s".equals(option)) {
-      deprecated_overrides.add(Property.GC_SAFEMODE.getKey() + "=true");
     }
   }
 }

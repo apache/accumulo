@@ -94,6 +94,7 @@ public class SimpleGarbageCollectorTest {
     assertTrue(gc.isUsingTrash());
     assertEquals(1000L, gc.getStartDelay());
     assertEquals(2, gc.getNumDeleteThreads());
+    assertFalse(gc.inSafeMode()); //false by default
   }
 
   @Test
