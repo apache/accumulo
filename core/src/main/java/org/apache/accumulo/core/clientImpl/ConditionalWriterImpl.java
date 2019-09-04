@@ -729,7 +729,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       CompressedIterators compressedIters) {
 
     mutations.getMutations().forEach((keyExtent, mutationList) -> {
-      ArrayList<TConditionalMutation> tcondMutaions = new ArrayList<>();
+      var tcondMutaions = new ArrayList<TConditionalMutation>();
 
       for (var cm : mutationList) {
         TMutation tm = cm.toThrift();
