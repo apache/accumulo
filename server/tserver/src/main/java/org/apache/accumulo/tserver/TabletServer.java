@@ -517,16 +517,14 @@ public class TabletServer extends AbstractServer {
         return watcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
           List<TKeyExtent> failures = new ArrayList<>();
 
-          for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
-            TKeyExtent tke = entry.getKey();
-            Map<String,MapFileInfo> fileMap = entry.getValue();
+          files.forEach((tke, fileMap) -> {
             Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
-            for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
-              Path path = new Path(mapping.getKey());
+            fileMap.forEach((key, mapping) -> {
+              Path path = new Path(key);
               FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
               path = ns.makeQualified(path);
-              fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
-            }
+              fileRefMap.put(new FileRef(path.toString(), path), mapping);
+            });
 
             Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
 
@@ -541,7 +539,8 @@ public class TabletServer extends AbstractServer {
                 failures.add(tke);
               }
             }
-          }
+          });
+
           return failures;
         });
       } catch (RuntimeException e) {
@@ -563,12 +562,12 @@ public class TabletServer extends AbstractServer {
       watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
         tabletImports.forEach((tke, fileMap) -> {
           Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
-          for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
-            Path path = new Path(dir, mapping.getKey());
+          fileMap.forEach((fileRef, mapping) -> {
+            Path path = new Path(dir, fileRef);
             FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
             path = ns.makeQualified(path);
-            fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
-          }
+            fileRefMap.put(new FileRef(path.toString(), path), mapping);
+          });
 
           Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
 
@@ -1635,10 +1634,8 @@ public class TabletServer extends AbstractServer {
       List<TabletStats> result = new ArrayList<>();
       TableId text = TableId.of(tableId);
       KeyExtent start = new KeyExtent(text, new Text(), null);
-      for (Entry<KeyExtent,Tablet> entry : getOnlineTablets().tailMap(start).entrySet()) {
-        KeyExtent ke = entry.getKey();
+      getOnlineTablets().tailMap(start).forEach((ke, tablet) -> {
         if (ke.getTableId().compareTo(text) == 0) {
-          Tablet tablet = entry.getValue();
           TabletStats stats = tablet.getTabletStats();
           stats.extent = ke.toThrift();
           stats.ingestRate = tablet.ingestRate();
@@ -1647,7 +1644,7 @@ public class TabletServer extends AbstractServer {
           stats.numEntries = tablet.getNumEntries();
           result.add(stats);
         }
-      }
+      });
       return result;
     }
 

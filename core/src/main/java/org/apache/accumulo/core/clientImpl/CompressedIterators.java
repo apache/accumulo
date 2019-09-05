@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -70,10 +69,10 @@ public class CompressedIterators {
       Map<String,String> opts = is.getOptions();
       out.writeVInt(opts.size());
 
-      for (Entry<String,String> entry : opts.entrySet()) {
-        out.writeVInt(getSymbolID(entry.getKey()));
-        out.writeVInt(getSymbolID(entry.getValue()));
-      }
+      opts.forEach((key, value) -> {
+        out.writeVInt(getSymbolID(key));
+        out.writeVInt(getSymbolID(value));
+      });
     }
 
     return out.toByteBuffer();
