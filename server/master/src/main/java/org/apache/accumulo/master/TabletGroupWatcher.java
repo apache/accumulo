@@ -295,7 +295,7 @@ abstract class TabletGroupWatcher extends Daemon {
                     assignments.add(new Assignment(tls.extent, returnInstance));
                   }
 
-                  // leave suspended, don't ask for a new assignment.
+                  // tablet server not back - leave suspended, don't ask for a new assignment.
 
                 } else {
                   // Treat as unassigned, ask for a new assignment.

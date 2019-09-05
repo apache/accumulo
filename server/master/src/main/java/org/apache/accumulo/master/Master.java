@@ -875,13 +875,8 @@ public class Master extends AccumuloServerContext
 
         final boolean overlaps = mergeInfo.overlaps(extent);
 
-        if (log.isTraceEnabled()) {
-          log.trace("mergeInfo overlaps: {} {}", extent, overlaps);
-        } else if (overlaps) {
-          log.debug("mergeInfo overlaps: {} true", extent);
-        }
-
         if (overlaps) {
+          log.debug("mergeInfo overlaps: {} true", extent);
           switch (mergeInfo.getState()) {
             case NONE:
             case COMPLETE:
@@ -903,6 +898,8 @@ public class Master extends AccumuloServerContext
             case MERGING:
               return TabletGoalState.UNASSIGNED;
           }
+        } else {
+          log.trace("mergeInfo overlaps: {} false", extent);
         }
       }
 
