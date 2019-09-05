@@ -75,7 +75,8 @@ public class CompactRange extends MasterRepo {
       this.config = WritableUtils.toByteArray(
           new UserCompactionConfig(this.startRow, this.endRow, iterators, compactionStrategy));
     } else {
-      log.info("No iterators or compaction strategy");
+      log.debug(
+          "Using default compaction strategy. No user iterators or compaction strategy provided.");
     }
 
     if (this.startRow != null && this.endRow != null
