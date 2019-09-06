@@ -556,6 +556,9 @@ public enum Property {
       "Archive any files/directories instead of moving to the HDFS trash or deleting."),
   GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION,
       "Percent of gc cycles to trace"),
+  GC_USE_FULL_COMPACTION("gc.use.full.compaction", "true", PropertyType.BOOLEAN,
+      "When gc completes, initiate afull compaction of the metadata table if set,"
+          + " otherwise flush"),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
