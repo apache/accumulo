@@ -53,15 +53,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MergeStats {
-  private static final Logger log = LoggerFactory.getLogger(MergeStats.class);
-  MergeInfo info;
-  int hosted = 0;
-  int unassigned = 0;
-  int chopped = 0;
-  int needsToBeChopped = 0;
-  int total = 0;
-  boolean lowerSplit = false;
-  boolean upperSplit = false;
+  final static private Logger log = LoggerFactory.getLogger(MergeStats.class);
+  private final MergeInfo info;
+  private int hosted = 0;
+  private int unassigned = 0;
+  private int chopped = 0;
+  private int needsToBeChopped = 0;
+  private int total = 0;
+  private boolean lowerSplit = false;
+  private boolean upperSplit = false;
 
   public MergeStats(MergeInfo info) {
     this.info = info;
@@ -81,11 +81,11 @@ public class MergeStats {
     if (info.getState().equals(MergeState.NONE))
       return;
     if (!upperSplit && info.getExtent().getEndRow().equals(ke.getPrevEndRow())) {
-      log.info("Upper split found");
+      log.info("Upper split found: {}", ke.getPrevEndRow());
       upperSplit = true;
     }
     if (!lowerSplit && info.getExtent().getPrevEndRow().equals(ke.getEndRow())) {
-      log.info("Lower split found");
+      log.info("Lower split found: {}", ke.getEndRow());
       lowerSplit = true;
     }
     if (!info.overlaps(ke))
