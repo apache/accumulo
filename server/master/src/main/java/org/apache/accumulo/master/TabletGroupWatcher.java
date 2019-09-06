@@ -698,11 +698,10 @@ abstract class TabletGroupWatcher extends Daemon {
       targetSystemTable = RootTable.NAME;
     }
 
-    try {
+    try (AccumuloClient client = this.master.getContext();
+        BatchWriter bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig())) {
       long fileCount = 0;
-      AccumuloClient client = this.master.getContext();
       // Make file entries in highest tablet
-      bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(scanRange);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
@@ -772,13 +771,6 @@ abstract class TabletGroupWatcher extends Daemon {
 
     } catch (Exception ex) {
       throw new AccumuloException(ex);
-    } finally {
-      if (bw != null)
-        try {
-          bw.close();
-        } catch (Exception ex) {
-          throw new AccumuloException(ex);
-        }
     }
   }
 
