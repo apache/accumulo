@@ -187,7 +187,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     final AccumuloConfiguration conf = getConfiguration();
 
     final long gcDelay = conf.getTimeInMillis(Property.GC_CYCLE_DELAY);
-    final boolean useFullCompaction = conf.getBoolean(Property.GC_USE_FULL_COMPACTION);
+    final String useFullCompaction = conf.get(Property.GC_USE_FULL_COMPACTION);
 
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
@@ -196,7 +196,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     log.info("memory threshold: {} of {} bytes", CANDIDATE_MEMORY_PERCENTAGE,
         Runtime.getRuntime().maxMemory());
     log.info("delete threads: {}", getNumDeleteThreads());
-    log.info("use full compactions {}", useFullCompaction);
+    log.info("gc post metadata action: {}", useFullCompaction);
   }
 
   /**
@@ -650,13 +650,22 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       try {
         Connector connector = getConnector();
 
-        if (getConfiguration().getBoolean(Property.GC_USE_FULL_COMPACTION)) {
-          connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
-          connector.tableOperations().compact(RootTable.NAME, null, null, true, true);
-        } else {
-          connector.tableOperations().flush(MetadataTable.NAME, null, null, true);
-          connector.tableOperations().flush(RootTable.NAME, null, null, true);
+        String action = getConfiguration().get(Property.GC_USE_FULL_COMPACTION);
+        log.debug("gc post action {} started", action);
+        switch (action) {
+          case "compact":
+            connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
+            connector.tableOperations().compact(RootTable.NAME, null, null, true, true);
+            break;
+          case "flush":
+            connector.tableOperations().flush(MetadataTable.NAME, null, null, true);
+            connector.tableOperations().flush(RootTable.NAME, null, null, true);
+            break;
+          default:
+            log.trace("\'none - no action\' or invalid value provided: {}", action);
         }
+        log.debug("gc post action {} complete", action);
+
       } catch (Exception e) {
         log.warn("{}", e.getMessage(), e);
       }
