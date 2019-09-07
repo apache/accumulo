@@ -700,8 +700,9 @@ abstract class TabletGroupWatcher extends Daemon {
       targetSystemTable = RootTable.NAME;
     }
 
-    try (AccumuloClient client = this.master.getContext();
-        BatchWriter bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig())) {
+    AccumuloClient client = this.master.getContext();
+
+    try (BatchWriter bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig())) {
       long fileCount = 0;
       // Make file entries in highest tablet
       Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
