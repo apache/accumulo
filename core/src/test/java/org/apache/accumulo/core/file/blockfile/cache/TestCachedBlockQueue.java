@@ -20,6 +20,7 @@ package org.apache.accumulo.core.file.blockfile.cache;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.util.Arrays;
 import java.util.Iterator;
 
 import org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlockQueue;
@@ -61,7 +62,7 @@ public class TestCachedBlockQueue {
     assertEquals(queue.heapSize(), expectedSize);
 
     Iterator<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
-        queue.getList().iterator();
+        Arrays.asList(queue.get()).iterator();
     assertEquals(blocks.next().getName(), "cb1");
     assertEquals(blocks.next().getName(), "cb2");
     assertEquals(blocks.next().getName(), "cb3");
@@ -117,7 +118,7 @@ public class TestCachedBlockQueue {
     assertEquals(queue.heapSize(), expectedSize);
 
     Iterator<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
-        queue.getList().iterator();
+        Arrays.asList(queue.get()).iterator();
     assertEquals(blocks.next().getName(), "cb0");
     assertEquals(blocks.next().getName(), "cb1");
     assertEquals(blocks.next().getName(), "cb2");
