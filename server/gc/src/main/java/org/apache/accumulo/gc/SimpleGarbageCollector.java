@@ -546,7 +546,6 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   }
 
   private void run() {
-    long tStart, tStop;
 
     // Sleep for an initial period, giving the master time to start up and
     // old data files to be unused
@@ -592,7 +591,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       Trace.on("gc", sampler);
 
       Span gcSpan = Trace.start("loop");
-      tStart = System.currentTimeMillis();
+      final long tStart = System.nanoTime();
       try {
         System.gc(); // make room
 
@@ -614,8 +613,9 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         log.error("{}", e.getMessage(), e);
       }
 
-      tStop = System.currentTimeMillis();
-      log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
+      final long tStop = System.nanoTime();
+      log.info(String.format("Collect cycle took %.2f seconds",
+          (TimeUnit.NANOSECONDS.toMillis(tStop - tStart) / 1000.0)));
 
       // We want to prune references to fully-replicated WALs from the replication table which are
       // no longer referenced in the metadata table
@@ -650,7 +650,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       try {
         Connector connector = getConnector();
 
-        long actionStart = System.currentTimeMillis();
+        final long actionStart = System.nanoTime();
 
         String action = getConfiguration().get(Property.GC_USE_FULL_COMPACTION);
         log.debug("gc post action {} started", action);
@@ -668,10 +668,10 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
             log.trace("\'none - no action\' or invalid value provided: {}", action);
         }
 
-        long actionComplete = System.currentTimeMillis();
+        final long actionComplete = System.nanoTime();
 
-        log.info("gc post action {} completed in {} seconds", action,
-            String.format("%.2f", ((actionComplete - actionStart) / 1000.0)));
+        log.info("gc post action {} completed in {} seconds", action, String.format("%.2f",
+            (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
 
       } catch (Exception e) {
         log.warn("{}", e.getMessage(), e);
