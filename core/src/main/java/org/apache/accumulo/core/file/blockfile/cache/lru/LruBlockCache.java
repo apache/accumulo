@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize.CONCU
 import static org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize.CONCURRENT_HASHMAP_SEGMENT;
 
 import java.lang.ref.WeakReference;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -410,7 +411,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     }
 
     public long free(long toFree) {
-      CachedBlock[] blocks = queue.get();
+      Collection<CachedBlock> blocks = queue.getAll();
       long freedBytes = 0;
       for (CachedBlock block : blocks) {
         freedBytes += evictBlock(block);
@@ -418,6 +419,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
           return freedBytes;
         }
       }
+      queue.clear();
       return freedBytes;
     }
 

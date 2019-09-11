@@ -17,7 +17,7 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.PriorityQueue;
 
@@ -36,7 +36,7 @@ import java.util.PriorityQueue;
  */
 public class CachedBlockQueue implements HeapSize {
 
-  private PriorityQueue<CachedBlock> queue;
+  private final PriorityQueue<CachedBlock> queue;
 
   private long heapSize;
   private long maxSize;
@@ -87,15 +87,19 @@ public class CachedBlockQueue implements HeapSize {
   }
 
   /**
-   * Get a sorted List of all elements in this queue, in descending order.
+   * Get a Collection of all elements in this queue, in queue order.
    *
-   * @return list of cached elements in descending order
+   * @return Collection of cached elements in queue order
    */
-  public CachedBlock[] get() {
-     CachedBlock[] blocks = queue.toArray(new CachedBlock[0]);
-     Arrays.sort(blocks, Collections.reverseOrder(queue.comparator()));
-     queue.clear();
-     return blocks;
+  public Collection<CachedBlock> getAll() {
+    return Collections.unmodifiableCollection(queue);
+  }
+
+  /**
+   * Clear all the elements in the queue.
+   */
+  public void clear() {
+    queue.clear();
   }
 
   /**
