@@ -77,9 +77,6 @@ public class CachedBlockQueue implements HeapSize {
    * @return true if the CachedBlock was added to the queue
    */
   public boolean add(final CachedBlock cb) {
-    if (cb.heapSize() > maxSize) {
-      return false;
-    }
     if (available() > 0) {
       heapSize += cb.heapSize();
       return queue.add(cb);

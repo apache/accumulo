@@ -243,9 +243,10 @@ public class TestLruBlockCache {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f)
-        .acceptableFactor(0.99f).singleFactor(0.25f).multiFactor(0.50f).memoryFactor(0.25f)
-        .buildMap().forEach(cc::set);
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false)
+        .minFactor(LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR)
+        .acceptableFactor(0.99f).singleFactor(0.25f).multiFactor(0.50f)
+        .memoryFactor(0.25f).buildMap().forEach(cc::set);
     manager.start(new BlockCacheConfiguration(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
@@ -268,10 +269,10 @@ public class TestLruBlockCache {
     }
 
     // A single eviction run should have occurred
-    assertEquals(cache.getEvictionCount(), 1);
+    assertEquals(1, cache.getEvictionCount());
 
     // We expect two entries evicted
-    assertEquals(cache.getEvictedCount(), 2);
+    assertEquals(2, cache.getEvictedCount());
 
     // Our expected size overruns acceptable limit
     assertTrue(

@@ -34,7 +34,7 @@ public class TestCachedBlockQueue {
     CachedBlockQueue queue = new CachedBlockQueue(10000L, 1000L);
     CachedBlock cb1 = new CachedBlock(10001L, "cb1", 1L);
     cb1.recordSize(new AtomicLong(10001L));
-    assertFalse(queue.add(cb1));
+    assertTrue(queue.add(cb1));
   }
 
   @Test
