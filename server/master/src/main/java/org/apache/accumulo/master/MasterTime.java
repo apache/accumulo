@@ -57,8 +57,7 @@ public class MasterTime extends TimerTask {
     try {
       zk.putPersistentData(zPath, "0".getBytes(UTF_8), NodeExistsPolicy.SKIP);
       skewAmount = new AtomicLong(
-          Long.parseLong(new String(zk.getData(zPath, null), UTF_8))
-              - System.nanoTime());
+          Long.parseLong(new String(zk.getData(zPath, null), UTF_8)) - System.nanoTime());
     } catch (Exception ex) {
       throw new IOException("Error updating master time", ex);
     }
@@ -105,7 +104,8 @@ public class MasterTime extends TimerTask {
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         try {
-          zk.putPersistentData(zPath, Long.toString(System.nanoTime() + skewAmount.get()).getBytes(UTF_8),
+          zk.putPersistentData(zPath,
+              Long.toString(System.nanoTime() + skewAmount.get()).getBytes(UTF_8),
               NodeExistsPolicy.OVERWRITE);
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
