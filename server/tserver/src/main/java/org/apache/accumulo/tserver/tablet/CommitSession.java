@@ -17,30 +17,36 @@
 package org.apache.accumulo.tserver.tablet;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.log.DfsLogger;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class CommitSession {
-
-  private static final Logger log = LoggerFactory.getLogger(CommitSession.class);
 
   private final long seq;
   private final InMemoryMap memTable;
   private final Tablet committer;
 
-  private int commitsInProgress;
+  private final Lock commitSessionLock = new ReentrantLock();
+  private final Condition noOutstandingCommits =
+      commitSessionLock.newCondition(); 
+
+  private final AtomicInteger commitsInProgress;
   private long maxCommittedTime = Long.MIN_VALUE;
 
   CommitSession(Tablet committer, long seq, InMemoryMap imm) {
     this.seq = seq;
     this.memTable = imm;
     this.committer = committer;
-    commitsInProgress = 0;
+    this.commitsInProgress = new AtomicInteger();
   }
 
   public long getWALogSeq() {
@@ -48,28 +54,36 @@ public class CommitSession {
   }
 
   public void decrementCommitsInProgress() {
-    if (commitsInProgress < 1)
-      throw new IllegalStateException("commitsInProgress = " + commitsInProgress);
-
-    commitsInProgress--;
-    if (commitsInProgress == 0)
-      committer.notifyAll();
+    this.commitSessionLock.lock();
+    try {
+      Preconditions.checkState(this.commitsInProgress.get() > 0);
+      final int newCount = this.commitsInProgress.decrementAndGet();
+      if (newCount == 0) {
+        this.noOutstandingCommits.signal();
+      }
+    } finally {
+      this.commitSessionLock.unlock();
+    }
   }
 
   public void incrementCommitsInProgress() {
-    if (commitsInProgress < 0)
-      throw new IllegalStateException("commitsInProgress = " + commitsInProgress);
-
-    commitsInProgress++;
+    this.commitSessionLock.lock();
+    try {
+      Preconditions.checkState(this.commitsInProgress.get() >= 0);
+      this.commitsInProgress.incrementAndGet();
+    } finally {
+      this.commitSessionLock.unlock();
+    }
   }
 
   public void waitForCommitsToFinish() {
-    while (commitsInProgress > 0) {
-      try {
-        committer.wait(50);
-      } catch (InterruptedException e) {
-        log.warn("InterruptedException", e);
+    this.commitSessionLock.lock();
+    try {
+      while (this.commitsInProgress.get() > 0) {
+        this.noOutstandingCommits.awaitUninterruptibly();
       }
+    } finally {
+      this.commitSessionLock.unlock();
     }
   }
 
