@@ -40,7 +40,7 @@ public class BulkImportCacheCleaner implements Runnable {
     // gather the list of transactions the tablets have cached
     final Set<Long> tids = new HashSet<>();
     for (Tablet tablet : server.getOnlineTablets().values()) {
-      tids.addAll(tablet.getBulkIngestedFiles().keySet());
+      tids.addAll(tablet.getBulkIngestedTxIds());
     }
     try {
       // get the current transactions from ZooKeeper
