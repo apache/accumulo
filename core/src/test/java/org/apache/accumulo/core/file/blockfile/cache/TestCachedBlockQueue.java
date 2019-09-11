@@ -19,13 +19,63 @@ package org.apache.accumulo.core.file.blockfile.cache;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlockQueue;
 import org.junit.Test;
 
 public class TestCachedBlockQueue {
+
+  @Test
+  public void testLargeBlock() {
+    CachedBlockQueue queue = new CachedBlockQueue(10000L, 1000L);
+    CachedBlock cb1 = new CachedBlock(10001L, "cb1", 1L);
+    cb1.recordSize(new AtomicLong(10001L));
+    assertFalse(queue.add(cb1));
+  }
+
+  @Test
+  public void testAddNewerBlock() {
+    CachedBlockQueue queue = new CachedBlockQueue(10000L, 1000L);
+
+    CachedBlock cb1 = new CachedBlock(5000L, "cb1", 1L);
+    cb1.recordSize(new AtomicLong(5000L));
+
+    CachedBlock cb2 = new CachedBlock(5000, "cb2", 2L);
+    cb2.recordSize(new AtomicLong(5000L));
+
+    CachedBlock cb3 = new CachedBlock(5000, "cb3", 3L);
+    cb3.recordSize(new AtomicLong(5000L));
+
+    assertTrue(queue.add(cb1));
+    assertTrue(queue.add(cb2));
+    assertFalse(queue.add(cb3));
+
+    assertEquals(2, queue.size());
+  }
+
+  @Test
+  public void testAddOlderBlock() {
+    CachedBlockQueue queue = new CachedBlockQueue(10000L, 1000L);
+
+    CachedBlock cb1 = new CachedBlock(5000L, "cb1", 3L);
+    cb1.recordSize(new AtomicLong(5000L));
+
+    CachedBlock cb2 = new CachedBlock(5000, "cb2", 2L);
+    cb2.recordSize(new AtomicLong(5000L));
+
+    CachedBlock cb3 = new CachedBlock(5000, "cb3", 1L);
+    cb3.recordSize(new AtomicLong(5000L));
+
+    assertTrue(queue.add(cb1));
+    assertTrue(queue.add(cb2));
+    assertTrue(queue.add(cb3));
+
+    assertEquals(2, queue.size());
+  }
 
   @Test
   public void testQueue() {
@@ -61,7 +111,7 @@ public class TestCachedBlockQueue {
     assertEquals(queue.heapSize(), expectedSize);
 
     Iterator<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
-       queue.getAll().iterator();
+       queue.getBlocks().iterator();
     assertEquals(blocks.next().getName(), "cb1");
     assertEquals(blocks.next().getName(), "cb2");
     assertEquals(blocks.next().getName(), "cb3");
@@ -117,7 +167,7 @@ public class TestCachedBlockQueue {
     assertEquals(queue.heapSize(), expectedSize);
 
     Iterator<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
-        queue.getAll().iterator();
+        queue.getBlocks().iterator();
     assertEquals(blocks.next().getName(), "cb0");
     assertEquals(blocks.next().getName(), "cb1");
     assertEquals(blocks.next().getName(), "cb2");

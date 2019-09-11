@@ -22,7 +22,7 @@ import static org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize.CONCU
 import static org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize.CONCURRENT_HASHMAP_SEGMENT;
 
 import java.lang.ref.WeakReference;
-import java.util.Collection;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -395,14 +395,14 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    */
   private class BlockBucket implements Comparable<BlockBucket> {
 
-    private CachedBlockQueue queue;
-    private long totalSize = 0;
+    private final CachedBlockQueue queue;
+    private long totalSize;
     private long bucketSize;
 
     public BlockBucket(long bytesToFree, long blockSize, long bucketSize) {
       this.bucketSize = bucketSize;
-      queue = new CachedBlockQueue(bytesToFree, blockSize);
-      totalSize = 0;
+      this.queue = new CachedBlockQueue(bytesToFree, blockSize);
+      this.totalSize = 0L;
     }
 
     public void add(CachedBlock block) {
@@ -410,16 +410,13 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
       queue.add(block);
     }
 
-    public long free(long toFree) {
-      Collection<CachedBlock> blocks = queue.getAll();
-      long freedBytes = 0;
-      for (CachedBlock block : blocks) {
-        freedBytes += evictBlock(block);
-        if (freedBytes >= toFree) {
-          return freedBytes;
-        }
+    public long free(final long toFree) {
+      final Iterator<CachedBlock> it = queue.getBlocks().iterator();
+      long freedBytes = 0L;
+      while (it.hasNext() && freedBytes < toFree) {
+        final CachedBlock cb = it.next();
+        freedBytes += evictBlock(cb);
       }
-      queue.clear();
       return freedBytes;
     }
 

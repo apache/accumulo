@@ -17,89 +17,92 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.PriorityQueue;
 
+import com.google.common.base.Preconditions;
+
 /**
- * A memory-bound queue that will grow until an element brings total size &gt;= maxSize. From then
- * on, only entries that are sorted larger than the smallest current entry will be
- * inserted/replaced.
+ * A memory-bound queue that will grow until an element brings total size &gt;=
+ * maxSize. From then on, only entries that are sorted larger than the smallest
+ * current entry will be inserted and the smallest entry is removed.
  *
  * <p>
- * Use this when you want to find the largest elements (according to their ordering, not their heap
- * size) that consume as close to the specified maxSize as possible. Default behavior is to grow
- * just above rather than just below specified max.
+ * Use this when you want to find the largest elements (according to their
+ * natural ordering, not their heap size) that consume as close to the specified
+ * maxSize as possible. Default behavior is to grow just above rather than just
+ * below specified max.
+ * </p>
  *
  * <p>
- * Object used in this queue must implement {@link HeapSize} as well as {@link Comparable}.
+ * Object used in this queue must implement {@link HeapSize} as well as
+ * {@link Comparable}.
+ * </p>
  */
 public class CachedBlockQueue implements HeapSize {
 
   private final PriorityQueue<CachedBlock> queue;
 
+  private final long maxSize;
   private long heapSize;
-  private long maxSize;
 
   /**
-   * @param maxSize
-   *          the target size of elements in the queue
-   * @param blockSize
-   *          expected average size of blocks
+   * Construct a CachedBlockQueue.
+   *
+   * @param maxSize the target size of elements in the queue
+   * @param blockSize expected average size of blocks
    */
-  public CachedBlockQueue(long maxSize, long blockSize) {
-    int initialSize = (int) Math.ceil(maxSize / (double) blockSize);
-    if (initialSize == 0)
-      initialSize++;
-    queue = new PriorityQueue<>(initialSize);
-    heapSize = 0;
+  public CachedBlockQueue(final long maxSize, final long blockSize) {
+    Preconditions.checkArgument(maxSize > 0L);
+    Preconditions.checkArgument(blockSize > 0L);
+
+    final long initialSize = (maxSize + blockSize - 1L) / blockSize;
+
+    this.queue = new PriorityQueue<>(Math.toIntExact(initialSize));
+    this.heapSize = 0L;
     this.maxSize = maxSize;
   }
 
   /**
    * Attempt to add the specified cached block to this queue.
    *
-   * <p>
-   * If the queue is smaller than the max size, or if the specified element is ordered before the
-   * smallest element in the queue, the element will be added to the queue. Otherwise, there is no
-   * side effect of this call.
+   * If the block fits within the max heap size, the element will be added to
+   * the queue. Otherwise, if the block being added is sorted larger than the
+   * smallest element, the block is inserted and the smallest element is removed
+   * from the queue.
    *
-   * @param cb
-   *          block to try to add to the queue
+   * @param cb block to try to add to the queue
+   * @return true if the CachedBlock was added to the queue
    */
-  public void add(CachedBlock cb) {
-    if (heapSize < maxSize) {
-      queue.add(cb);
-      heapSize += cb.heapSize();
-    } else {
-      CachedBlock head = queue.peek();
-      if (cb.compareTo(head) > 0) {
-        heapSize += cb.heapSize();
-        heapSize -= head.heapSize();
-        if (heapSize > maxSize) {
-          queue.poll();
-        } else {
-          heapSize += head.heapSize();
-        }
-        queue.add(cb);
-      }
+  public boolean add(final CachedBlock cb) {
+    if (cb.heapSize() > maxSize) {
+      return false;
     }
+    if (available() > 0) {
+      heapSize += cb.heapSize();
+      return queue.add(cb);
+    }
+    final CachedBlock mruPeek = queue.peek();
+    if (mruPeek.compareTo(cb) > 0) {
+      return false;
+    }
+    heapSize += cb.heapSize();
+    heapSize -= mruPeek.heapSize();
+    queue.poll();
+    return queue.add(cb);
   }
 
   /**
-   * Get a Collection of all elements in this queue, in queue order.
+   * Get a copy of all elements in this queue, in LRU ascending order.
    *
    * @return Collection of cached elements in queue order
    */
-  public Collection<CachedBlock> getAll() {
-    return Collections.unmodifiableCollection(queue);
-  }
-
-  /**
-   * Clear all the elements in the queue.
-   */
-  public void clear() {
-    queue.clear();
+  public Collection<CachedBlock> getBlocks() {
+    CachedBlock[] blocks = queue.toArray(new CachedBlock[0]);
+    Arrays.sort(blocks, Collections.reverseOrder());
+    return Arrays.asList(blocks);
   }
 
   /**
@@ -109,6 +112,19 @@ public class CachedBlockQueue implements HeapSize {
    */
   @Override
   public long heapSize() {
-    return heapSize;
+    return this.heapSize;
+  }
+
+  public int size() {
+    return this.queue.size();
+  }
+
+  /**
+   * The number of available bytes relative to the maxSize. May be negative.
+   *
+   * @return The number of bytes available before the max size is reached
+   */
+  public long available() {
+    return this.maxSize - this.heapSize;
   }
 }
