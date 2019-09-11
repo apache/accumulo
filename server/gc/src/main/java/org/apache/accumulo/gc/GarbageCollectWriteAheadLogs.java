@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -137,12 +138,16 @@ public class GarbageCollectWriteAheadLogs {
     this.store = store;
   }
 
-  public void collect(GCStatus status) {
+  public void collect(GCStatus status, Lock statusLock) {
 
     Span span = Trace.start("getCandidates");
     try {
-      status.currentLog.started = System.currentTimeMillis();
-
+      statusLock.lock();
+      try {
+        status.currentLog.started = System.currentTimeMillis();
+      } finally {
+        statusLock.unlock();
+      }
       Map<UUID,Path> recoveryLogs = getSortedWALogs();
 
       Map<TServerInstance,Set<UUID>> logsByServer = new HashMap<>();
@@ -156,9 +161,15 @@ public class GarbageCollectWriteAheadLogs {
       long count = getCurrent(logsByServer, logsState);
       long fileScanStop = System.currentTimeMillis();
 
-      log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count,
-          logsByServer.size(), (fileScanStop - status.currentLog.started) / 1000.));
-      status.currentLog.candidates = count;
+      statusLock.lock();
+      try {
+        log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count,
+            logsByServer.size(), (fileScanStop - status.currentLog.started) / 1000.));
+        status.currentLog.candidates = count;
+      } finally {
+        statusLock.unlock();
+      }
+
       span.stop();
 
       // now it's safe to get the liveServers
@@ -215,9 +226,14 @@ public class GarbageCollectWriteAheadLogs {
           (removeMarkersStop - removeStop) / 1000.));
       span.stop();
 
-      status.currentLog.finished = removeStop;
-      status.lastLog = status.currentLog;
-      status.currentLog = new GcCycleStats();
+      statusLock.lock();
+      try {
+        status.currentLog.finished = removeStop;
+        status.lastLog = status.currentLog;
+        status.currentLog = new GcCycleStats();
+      } finally {
+        statusLock.unlock();
+      }
 
     } catch (Exception e) {
       log.error("exception occured while garbage collecting write ahead logs", e);

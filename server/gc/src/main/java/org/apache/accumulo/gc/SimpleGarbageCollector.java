@@ -31,6 +31,8 @@ import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -144,8 +146,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
   private VolumeManager fs;
   private Opts opts = new Opts();
-  private ZooLock lock;
 
+  private final Lock statusLock = new ReentrantLock();
   private GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
@@ -417,21 +419,30 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
               if (archiveOrMoveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
                 // delete succeeded, still want to delete
                 removeFlag = true;
-                synchronized (SimpleGarbageCollector.this) {
+                statusLock.lock();
+                try {
                   ++status.current.deleted;
+                } finally {
+                  statusLock.unlock();
                 }
               } else if (fs.exists(fullPath)) {
                 // leave the entry in the metadata; we'll try again later
                 removeFlag = false;
-                synchronized (SimpleGarbageCollector.this) {
+                statusLock.lock();
+                try {
                   ++status.current.errors;
+                } finally {
+                  statusLock.unlock();
                 }
                 log.warn("File exists, but was not deleted for an unknown reason: " + fullPath);
               } else {
                 // this failure, we still want to remove the metadata entry
                 removeFlag = true;
-                synchronized (SimpleGarbageCollector.this) {
+                statusLock.lock();
+                try {
                   ++status.current.errors;
+                } finally {
+                  statusLock.unlock();
                 }
                 String parts[] = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
                 if (parts.length > 2) {
@@ -505,12 +516,22 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
     @Override
     public void incrementCandidatesStat(long i) {
-      status.current.candidates += i;
+      statusLock.lock();
+      try {
+        status.current.candidates += i;
+      } finally {
+        statusLock.unlock();
+      }
     }
 
     @Override
     public void incrementInUseStat(long i) {
-      status.current.inUse += i;
+      statusLock.lock();
+      try {
+        status.current.inUse += i;
+      } finally {
+        statusLock.unlock();
+      }
     }
 
     @Override
@@ -595,19 +616,30 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       try {
         System.gc(); // make room
 
-        status.current.started = System.currentTimeMillis();
+        statusLock.lock();
+        try {
+          status.current.started = System.currentTimeMillis();
+        } finally {
+          statusLock.unlock();
+        }
 
         new GarbageCollectionAlgorithm().collect(new GCEnv(RootTable.NAME));
         new GarbageCollectionAlgorithm().collect(new GCEnv(MetadataTable.NAME));
 
-        log.info("Number of data file candidates for deletion: " + status.current.candidates);
-        log.info("Number of data file candidates still in use: " + status.current.inUse);
-        log.info("Number of successfully deleted data files: " + status.current.deleted);
-        log.info("Number of data files delete failures: " + status.current.errors);
+        statusLock.lock();
+        try {
+          log.info("Number of data file candidates for deletion: " + status.current.candidates);
+          log.info("Number of data file candidates still in use: " + status.current.inUse);
+          log.info("Number of successfully deleted data files: " + status.current.deleted);
+          log.info("Number of data files delete failures: " + status.current.errors);
 
-        status.current.finished = System.currentTimeMillis();
-        status.last = status.current;
-        status.current = new GcCycleStats();
+          status.current.finished = System.currentTimeMillis();
+          status.last = status.current;
+          status.current = new GcCycleStats();
+
+        } finally {
+          statusLock.unlock();
+        }
 
       } catch (Exception e) {
         log.error("{}", e.getMessage(), e);
@@ -636,7 +668,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         GarbageCollectWriteAheadLogs walogCollector =
             new GarbageCollectWriteAheadLogs(this, fs, liveTServerSet, isUsingTrash());
         log.info("Beginning garbage collection of write-ahead logs");
-        walogCollector.collect(status);
+        walogCollector.collect(status, statusLock);
       } catch (Exception e) {
         log.error("{}", e.getMessage(), e);
       } finally {
@@ -788,7 +820,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     };
 
     while (true) {
-      lock = new ZooLock(path);
+      ZooLock lock = new ZooLock(path);
       if (lock.tryLock(lockWatcher,
           new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
         log.debug("Got GC ZooKeeper lock");
@@ -799,7 +831,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     }
   }
 
-  private HostAndPort startStatsService() throws UnknownHostException {
+  private HostAndPort startStatsService() {
     Iface rpcProxy = RpcWrapper.service(this, new Processor<Iface>(this));
     final Processor<Iface> processor;
     if (ThriftServerType.SASL == getThriftServerType()) {
@@ -865,6 +897,12 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
   @Override
   public GCStatus getStatus(TInfo info, TCredentials credentials) {
-    return status;
+    statusLock.lock();
+    try {
+      GCStatus copy = new GCStatus(status);
+      return copy;
+    } finally {
+      statusLock.unlock();
+    }
   }
 }

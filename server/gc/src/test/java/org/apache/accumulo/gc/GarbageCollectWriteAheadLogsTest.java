@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.gc;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -24,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -47,7 +47,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
@@ -68,10 +67,10 @@ public class GarbageCollectWriteAheadLogsTest {
 
   {
     try {
-      tabletAssignedToServer1 = new TabletLocationState(extent, (TServerInstance) null, server1,
-          (TServerInstance) null, null, walogs, false);
-      tabletAssignedToServer2 = new TabletLocationState(extent, (TServerInstance) null, server2,
-          (TServerInstance) null, null, walogs, false);
+      tabletAssignedToServer1 =
+          new TabletLocationState(extent, null, server1, null, null, walogs, false);
+      tabletAssignedToServer2 =
+          new TabletLocationState(extent, null, server2, null, null, walogs, false);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
@@ -81,8 +80,7 @@ public class GarbageCollectWriteAheadLogsTest {
       Collections.singletonList(tabletAssignedToServer1);
   private final Iterable<TabletLocationState> tabletOnServer2List =
       Collections.singletonList(tabletAssignedToServer2);
-  private final List<Entry<Key,Value>> emptyList = Collections.emptyList();
-  private final Iterator<Entry<Key,Value>> emptyKV = emptyList.iterator();
+  private final Iterator<Entry<Key,Value>> emptyKV = Collections.emptyIterator();
 
   @Test
   public void testRemoveUnusedLog() throws Exception {
@@ -106,17 +104,16 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
-      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates)
-          throws IOException, KeeperException, InterruptedException {
+      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
         return 0;
       }
 
       @Override
-      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+      protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
     };
-    gc.collect(status);
+    gc.collect(status, new ReentrantLock());
     EasyMock.verify(context, fs, marker, tserverSet);
   }
 
@@ -139,17 +136,16 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
-      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates)
-          throws IOException, KeeperException, InterruptedException {
+      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
         return 0;
       }
 
       @Override
-      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+      protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
     };
-    gc.collect(status);
+    gc.collect(status, new ReentrantLock());
     EasyMock.verify(context, marker, tserverSet, fs);
   }
 
@@ -195,11 +191,11 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
-      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+      protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
     };
-    gc.collect(status);
+    gc.collect(status, new ReentrantLock());
     EasyMock.verify(context, fs, marker, tserverSet, conn, rscanner, mscanner);
   }
 
@@ -240,11 +236,11 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer2List) {
       @Override
-      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+      protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
     };
-    gc.collect(status);
+    gc.collect(status, new ReentrantLock());
     EasyMock.verify(context, fs, marker, tserverSet, conn, rscanner, mscanner);
   }
 
@@ -290,11 +286,11 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
-      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+      protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
     };
-    gc.collect(status);
+    gc.collect(status, new ReentrantLock());
     EasyMock.verify(context, fs, marker, tserverSet, conn, rscanner, mscanner);
   }
 }
