@@ -59,7 +59,7 @@ public class CommitSession {
       Preconditions.checkState(this.commitsInProgress.get() > 0);
       final int newCount = this.commitsInProgress.decrementAndGet();
       if (newCount == 0) {
-        this.noOutstandingCommits.signal();
+        this.noOutstandingCommits.signalAll();
       }
     } finally {
       this.commitSessionLock.unlock();
