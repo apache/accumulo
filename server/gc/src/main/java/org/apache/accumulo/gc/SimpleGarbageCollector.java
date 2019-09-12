@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
@@ -140,7 +141,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     super("gc", opts, args);
     this.opts = opts;
 
-    long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
+    final AccumuloConfiguration conf = getConfiguration();
+
+    final long gcDelay = conf.getTimeInMillis(Property.GC_CYCLE_DELAY);
+    final String useFullCompaction = conf.get(Property.GC_USE_FULL_COMPACTION);
+
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
     log.info("safemode: {}", opts.safeMode);
@@ -148,6 +153,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("memory threshold: {} of {} bytes", CANDIDATE_MEMORY_PERCENTAGE,
         Runtime.getRuntime().maxMemory());
     log.info("delete threads: {}", getNumDeleteThreads());
+    log.info("gc post metadata action: {}", useFullCompaction);
   }
 
   /**
@@ -451,7 +457,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   @SuppressFBWarnings(value = "DM_EXIT", justification = "main class can call System.exit")
   public void run() {
     final VolumeManager fs = getContext().getVolumeManager();
-    long tStart, tStop;
 
     // Sleep for an initial period, giving the master time to start up and
     // old data files to be unused
@@ -491,7 +496,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     while (true) {
       try (TraceScope gcOuterSpan = Trace.startSpan("gc", sampler)) {
         try (TraceScope gcSpan = Trace.startSpan("loop")) {
-          tStart = System.currentTimeMillis();
+          final long tStart = System.nanoTime();
           try {
             System.gc(); // make room
 
@@ -514,8 +519,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             log.error("{}", e.getMessage(), e);
           }
 
-          tStop = System.currentTimeMillis();
-          log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
+          final long tStop = System.nanoTime();
+          log.info(String.format("Collect cycle took %.2f seconds",
+              (TimeUnit.NANOSECONDS.toMillis(tStop - tStart) / 1000.0)));
 
           /*
            * We want to prune references to fully-replicated WALs from the replication table which
@@ -543,8 +549,30 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         // we just made a lot of metadata changes: flush them out
         try {
           AccumuloClient accumuloClient = getContext();
-          accumuloClient.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
-          accumuloClient.tableOperations().compact(RootTable.NAME, null, null, true, true);
+
+          final long actionStart = System.nanoTime();
+
+          String action = getConfiguration().get(Property.GC_USE_FULL_COMPACTION);
+          log.debug("gc post action {} started", action);
+
+          switch (action) {
+            case "compact":
+              accumuloClient.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
+              accumuloClient.tableOperations().compact(RootTable.NAME, null, null, true, true);
+              break;
+            case "flush":
+              accumuloClient.tableOperations().flush(MetadataTable.NAME, null, null, true);
+              accumuloClient.tableOperations().flush(RootTable.NAME, null, null, true);
+              break;
+            default:
+              log.trace("\'none - no action\' or invalid value provided: {}", action);
+          }
+
+          final long actionComplete = System.nanoTime();
+
+          log.info("gc post action {} completed in {} seconds", action, String.format("%.2f",
+              (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
+
         } catch (Exception e) {
           log.warn("{}", e.getMessage(), e);
         }
