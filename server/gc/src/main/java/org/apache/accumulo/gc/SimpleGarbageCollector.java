@@ -249,11 +249,13 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     @Override
     public void delete(SortedMap<String,String> confirmedDeletes) throws TableNotFoundException {
       final VolumeManager fs = getContext().getVolumeManager();
+      var metadataLocation = level == DataLevel.ROOT
+          ? getContext().getZooKeeperRoot() + " for " + RootTable.NAME : level.metaTable();
 
       if (inSafeMode()) {
         System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
-            + " data file candidates marked for deletion.%n"
-            + "          Examine the log files to identify them.%n");
+            + " data file candidates marked for deletion in " + metadataLocation + ".\n"
+            + "          Examine the log files to identify them.\n");
         log.info("SAFEMODE: Listing all data file candidates for deletion");
         for (String s : confirmedDeletes.values()) {
           log.info("SAFEMODE: {}", s);

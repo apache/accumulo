@@ -1162,8 +1162,7 @@ public enum Property {
    * @return true if key is valid and is of type boolean, false otherwise
    */
   public static boolean isValidBooleanPropertyKey(String key) {
-    return validProperties.contains(key)
-        && getPropertyByKey(key).getType().equals(PropertyType.BOOLEAN);
+    return validProperties.contains(key) && getPropertyByKey(key).getType() == PropertyType.BOOLEAN;
   }
 
   /**

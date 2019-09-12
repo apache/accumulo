@@ -107,9 +107,8 @@ public class ConfigOpts extends Help {
       }
       if (key.isEmpty() || value.isEmpty()) {
         throw new IllegalArgumentException("Invalid command line -o option: " + prop);
-      } else {
-        config.put(key, value);
       }
+      config.put(key, value);
     }
     return config;
   }
@@ -118,17 +117,18 @@ public class ConfigOpts extends Help {
   public void parseArgs(String programName, String[] args, Object... others) {
     super.parseArgs(programName, args, others);
     if (legacyOpts != null || legacyOptsBoolean) {
-      var errmsg = new StringBuilder();
+      String errMsg = "";
       for (String option : args) {
-        if (LEGACY_OPTION_MSG.keySet().contains(option)) {
-          errmsg.append("Option ").append(option).append(" has been dropped - ")
-              .append(LEGACY_OPTION_MSG.get(option)).append("\n");
+        if (LEGACY_OPTION_MSG.containsKey(option)) {
+          errMsg +=
+              "Option " + option + " has been dropped - " + LEGACY_OPTION_MSG.get(option) + "\n";
         }
       }
+      errMsg += "See '-o' property override option";
       // prints error to console if ran from the command line otherwise there is no way to know that
       // an error occurred
-      System.err.println(errmsg.append("See '-o' property override option").toString());
-      throw new IllegalArgumentException(errmsg.toString());
+      System.err.println(errMsg);
+      throw new IllegalArgumentException(errMsg);
     }
     if (getOverrides().size() > 0) {
       log.info("The following configuration was set on the command line:");
