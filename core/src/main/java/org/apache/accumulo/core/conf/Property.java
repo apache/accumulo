@@ -523,6 +523,12 @@ public enum Property {
       "Do not use the Trash, even if it is configured."),
   GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION,
       "Percent of gc cycles to trace"),
+  GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
+      "When the gc runs it can make a lot of changes to the metadata, on completion, "
+          + " to force the changes to be written to disk, the metadata and root tables can be flushed"
+          + " and possibly compacted. Legal values are: compact - which both flushes and compacts the"
+          + " metadata; flush - which flushes only (compactions may be triggered if required); or none."
+          + " Since 2.0, the default is flush. Previously the default action was a full compaction."),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
