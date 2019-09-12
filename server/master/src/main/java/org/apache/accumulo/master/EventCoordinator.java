@@ -16,33 +16,53 @@
  */
 package org.apache.accumulo.master;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class EventCoordinator {
 
-  private static final Logger log = LoggerFactory.getLogger(EventCoordinator.class);
-  long eventCounter = 0;
+  private static final Logger log =
+      LoggerFactory.getLogger(EventCoordinator.class);
 
-  synchronized long waitForEvents(long millis, long lastEvent) {
-    // Did something happen since the last time we waited?
-    if (lastEvent == eventCounter) {
-      // no
-      if (millis <= 0)
-        return eventCounter;
-      try {
-        wait(millis);
-      } catch (InterruptedException e) {
-        log.debug("ignoring InterruptedException", e);
+  private final Lock eventCoordinatorLock = new ReentrantLock();
+  private final Condition eventReceived = eventCoordinatorLock.newCondition();
+
+  private final LongAdder eventCounter = new LongAdder();
+
+  long waitForEvents(final long millis, final long lastEvent) {
+    long nanos = TimeUnit.MILLISECONDS.toNanos(millis);
+    eventCoordinatorLock.lock();
+    try {
+      while (lastEvent == eventCounter.sum()) {
+        if (nanos <= 0L) {
+          return eventCounter.sum();
+        }
+        nanos = eventReceived.awaitNanos(nanos);
       }
+    } catch (InterruptedException e) {
+      log.debug("Uninterruptable", e);
+    } finally {
+      eventCoordinatorLock.unlock();
     }
-    return eventCounter;
+    return eventCounter.sum();
   }
 
-  public synchronized void event(String msg, Object... args) {
+  public void event(final String msg, final Object... args) {
     log.info(String.format(msg, args));
-    eventCounter++;
-    notifyAll();
+
+    eventCoordinatorLock.lock();
+    try {
+      eventCounter.increment();
+      eventReceived.signalAll();
+    } finally {
+      eventCoordinatorLock.unlock();
+    }
   }
 
   public Listener getListener() {
@@ -53,12 +73,11 @@ public class EventCoordinator {
     long lastEvent;
 
     Listener() {
-      lastEvent = eventCounter;
+      lastEvent = eventCounter.sum();
     }
 
     public void waitForEvents(long millis) {
       lastEvent = EventCoordinator.this.waitForEvents(millis, lastEvent);
     }
   }
-
 }
