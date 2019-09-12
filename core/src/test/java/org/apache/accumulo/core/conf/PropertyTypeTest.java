@@ -160,6 +160,12 @@ public class PropertyTypeTest {
   }
 
   @Test
+  public void testTypeGC_POST_ACTION() {
+    valid(null, "none", "flush", "compact");
+    invalid("", "other");
+  }
+
+  @Test
   public void testTypeFRACTION() {
     valid(null, "1", "0", "1.0", "25%", "2.5%", "10.2E-3", "10.2E-3%", ".3");
     invalid("", "other", "20%%", "-0.3", "3.6a", "%25", "3%a");
