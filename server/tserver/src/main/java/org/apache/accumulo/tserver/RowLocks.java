@@ -75,8 +75,7 @@ class RowLocks {
     rowLocks.compute(lock.rowSeq, (key, value) -> {
       Preconditions.checkState(value == lock);
       Preconditions.checkState(value.count > 0);
-      final int newCount = --value.count;
-      return (newCount > 0) ? value : null;
+      return (--value.count > 0) ? value : null;
     });
   }
 
@@ -84,7 +83,6 @@ class RowLocks {
       Map<KeyExtent,List<ServerConditionalMutation>> deferred) {
     ArrayList<RowLock> locks = new ArrayList<>();
 
-    // assume that mutations are in sorted order to avoid deadlock
     for (List<ServerConditionalMutation> scml : updates.values()) {
       for (ServerConditionalMutation scm : scml) {
         locks.add(getRowLock(new ArrayByteSequence(scm.getRow())));
@@ -93,8 +91,9 @@ class RowLocks {
 
     HashSet<ByteSequence> rowsNotLocked = null;
 
-    // acquire as many locks as possible, not blocking on rows that are already locked
     if (locks.size() > 1) {
+      // Assuming mutations are in sorted order which avoids deadlock. Acquire as many locks as
+      // possible, not blocking on rows that are already locked.
       for (RowLock rowLock : locks) {
         if (!rowLock.tryLock()) {
           if (rowsNotLocked == null)
