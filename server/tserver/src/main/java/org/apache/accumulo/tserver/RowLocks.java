@@ -72,8 +72,9 @@ class RowLocks {
   }
 
   private void returnRowLock(RowLock lock) {
+    Objects.requireNonNull(lock);
     rowLocks.compute(lock.rowSeq, (key, value) -> {
-      Objects.requireNonNull(value);
+      Preconditions.checkState(value == lock);
       Preconditions.checkState(value.count.intValue() > 0);
       final int newCount = value.count.decrementAndGet();
       return (newCount > 0) ? value : null;
