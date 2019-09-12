@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -39,12 +38,12 @@ class RowLocks {
 
   static class RowLock {
     ReentrantLock rlock;
-    AtomicInteger count;
+    int count;
     ByteSequence rowSeq;
 
     RowLock(ReentrantLock rlock, ByteSequence rowSeq) {
       this.rlock = rlock;
-      this.count = new AtomicInteger(1);
+      this.count = 1;
       this.rowSeq = rowSeq;
     }
 
@@ -66,7 +65,7 @@ class RowLocks {
       if (value == null) {
         return new RowLock(new ReentrantLock(), rowSeq);
       }
-      value.count.incrementAndGet();
+      value.count++;
       return value;
     });
   }
@@ -75,8 +74,8 @@ class RowLocks {
     Objects.requireNonNull(lock);
     rowLocks.compute(lock.rowSeq, (key, value) -> {
       Preconditions.checkState(value == lock);
-      Preconditions.checkState(value.count.intValue() > 0);
-      final int newCount = value.count.decrementAndGet();
+      Preconditions.checkState(value.count > 0);
+      final int newCount = --value.count;
       return (newCount > 0) ? value : null;
     });
   }
