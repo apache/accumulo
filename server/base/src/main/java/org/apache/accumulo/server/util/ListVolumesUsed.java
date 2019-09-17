@@ -79,11 +79,11 @@ public class ListVolumesUsed {
 
   }
 
-  private static void listTable(Ample.DataLevel name, ServerContext context) throws Exception {
+  private static void listTable(Ample.DataLevel level, ServerContext context) throws Exception {
 
-    System.out.println("Listing volumes referenced in " + name + " tablets section");
+    System.out.println("Listing volumes referenced in " + level + " tablets section");
 
-    Scanner scanner = context.createScanner(name.metaTable(), Authorizations.EMPTY);
+    Scanner scanner = context.createScanner(level.metaTable(), Authorizations.EMPTY);
 
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
@@ -110,11 +110,11 @@ public class ListVolumesUsed {
       System.out.println("\tVolume : " + volume);
     }
 
-    System.out.println("Listing volumes referenced in " + name
+    System.out.println("Listing volumes referenced in " + level
         + " deletes section (volume replacement occurrs at deletion time)");
     volumes.clear();
 
-    Iterator<String> delPaths = context.getAmple().getGcCandidates(name, "");
+    Iterator<String> delPaths = context.getAmple().getGcCandidates(level, "");
     while (delPaths.hasNext()) {
       volumes.add(getTableURI(delPaths.next()));
     }
@@ -122,7 +122,7 @@ public class ListVolumesUsed {
       System.out.println("\tVolume : " + volume);
     }
 
-    System.out.println("Listing volumes referenced in " + name + " current logs");
+    System.out.println("Listing volumes referenced in " + level + " current logs");
     volumes.clear();
 
     WalStateManager wals = new WalStateManager(context);
