@@ -34,6 +34,10 @@ import com.google.common.base.Preconditions;
 
 class RowLocks {
 
+  // The compute function in Concurrent Hash Map supports atomic execution of the remapping function
+  // and will only execute it once. Properly computing the reference counts relies on this specific
+  // behavior. Not all concurrent map implementations have the desired behavior. For example
+  // ConcurrentSkipListMap.compute is not atomic and may execute the function multiple times.
   private final Map<ByteSequence,RowLock> rowLocks = new ConcurrentHashMap<>();
 
   static class RowLock {
