@@ -38,8 +38,8 @@ public class UpgradeCoordinator {
   private boolean haveUpgradedZooKeeper = false;
   private boolean startedMetadataUpgrade = false;
   private int currentVersion;
-  private Map<Integer,Upgrader> upgraders =
-      Map.of(ServerConstants.SHORTEN_RFILE_KEYS, new Upgrader8to9());
+  private Map<Integer,Upgrader> upgraders = Map.of(ServerConstants.SHORTEN_RFILE_KEYS,
+      new Upgrader8to9(), ServerConstants.CRYPTO_CHANGES, new Upgrader9to10());
 
   public UpgradeCoordinator(ServerContext ctx) {
     int currentVersion = ServerUtil.getAccumuloPersistentVersion(ctx.getVolumeManager());
