@@ -255,12 +255,19 @@ public class MetadataSchema {
     private static final Section section =
         new Section(RESERVED_PREFIX + "del", true, RESERVED_PREFIX + "dem", false);
 
+    private static final int encoded_prefix_length =
+        section.getRowPrefix().length() + SortSkew.SORTSKEW_LENGTH;
+
     public static Range getRange() {
       return section.getRange();
     }
 
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
+    public static String encodeRow(String value) {
+      return section.getRowPrefix() + SortSkew.getCode(value) + value;
+    }
+
+    public static String decodeRow(String row) {
+      return row.substring(encoded_prefix_length);
     }
 
   }
