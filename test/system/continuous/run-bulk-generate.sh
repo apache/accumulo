@@ -45,4 +45,4 @@ VIS_OPT=''
 CHECKSUM_OPT='--addCheckSum'
 [[ $CHECKSUM == false ]] && CHECKSUM_OPT=''
 
-"$ACCUMULO_HOME/bin/tool.sh" "$SERVER_LIBJAR" org.apache.accumulo.test.continuous.BulkIngest -Dmapreduce.job.reduce.slowstart.completedmaps=0.95 -libjars "$SERVER_LIBJAR" "$VIS_OPT" -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --dir $BULK_DIR --mapTasks $BULK_MAP_TASKS --mapNodes $BULK_MAP_NODES --min $MIN --max $MAX --maxColF $MAX_CF --maxColQ $MAX_CQ $CHECKSUM_OPT
+"$ACCUMULO_HOME/bin/tool.sh" "$SERVER_LIBJAR" org.apache.accumulo.test.continuous.BulkIngest -Dmapreduce.job.reduce.slowstart.completedmaps=0.95 -libjars "$SERVER_LIBJAR" $VIS_OPT -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --dir $BULK_DIR --mapTasks $BULK_MAP_TASKS --mapNodes $BULK_MAP_NODES --min $MIN --max $MAX --maxColF $MAX_CF --maxColQ $MAX_CQ $CHECKSUM_OPT
