@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -46,7 +47,7 @@ public class MasterTime extends TimerTask {
    * Difference between time stored in ZooKeeper and System.nanoTime() when we last read from
    * ZooKeeper.
    */
-  private long skewAmount;
+  private final AtomicLong skewAmount;
 
   public MasterTime(Master master) throws IOException {
     this.zPath = master.getZooKeeperRoot() + Constants.ZMASTER_TICK;
@@ -55,7 +56,8 @@ public class MasterTime extends TimerTask {
 
     try {
       zk.putPersistentData(zPath, "0".getBytes(UTF_8), NodeExistsPolicy.SKIP);
-      skewAmount = Long.parseLong(new String(zk.getData(zPath, null), UTF_8)) - System.nanoTime();
+      skewAmount = new AtomicLong(
+          Long.parseLong(new String(zk.getData(zPath, null), UTF_8)) - System.nanoTime());
     } catch (Exception ex) {
       throw new IOException("Error updating master time", ex);
     }
@@ -69,8 +71,8 @@ public class MasterTime extends TimerTask {
    *
    * @return Approximate total duration this cluster has had a Master, in milliseconds.
    */
-  public synchronized long getTime() {
-    return MILLISECONDS.convert(System.nanoTime() + skewAmount, NANOSECONDS);
+  public long getTime() {
+    return MILLISECONDS.convert(System.nanoTime() + skewAmount.get(), NANOSECONDS);
   }
 
   /** Shut down the time keeping. */
@@ -88,9 +90,7 @@ public class MasterTime extends TimerTask {
       case STOP:
         try {
           long zkTime = Long.parseLong(new String(zk.getData(zPath, null), UTF_8));
-          synchronized (this) {
-            skewAmount = zkTime - System.nanoTime();
-          }
+          skewAmount.set(zkTime - System.nanoTime());
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
             log.debug("Failed to retrieve master tick time", ex);
@@ -104,7 +104,8 @@ public class MasterTime extends TimerTask {
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         try {
-          zk.putPersistentData(zPath, Long.toString(System.nanoTime() + skewAmount).getBytes(UTF_8),
+          zk.putPersistentData(zPath,
+              Long.toString(System.nanoTime() + skewAmount.get()).getBytes(UTF_8),
               NodeExistsPolicy.OVERWRITE);
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {

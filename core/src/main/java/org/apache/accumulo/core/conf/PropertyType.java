@@ -120,6 +120,9 @@ public enum PropertyType {
   DURABILITY("durability", in(false, null, "default", "none", "log", "flush", "sync"),
       "One of 'none', 'log', 'flush' or 'sync'."),
 
+  GC_POST_ACTION("gc_post_action", in(true, null, "none", "flush", "compact"),
+      "One of 'none', 'flush', or 'compact'."),
+
   STRING("string", x -> true,
       "An arbitrary string of characters whose format is unspecified and"
           + " interpreted based on the context of the property to which it applies."),

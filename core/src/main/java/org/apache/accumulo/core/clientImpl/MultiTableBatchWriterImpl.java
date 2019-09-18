@@ -18,6 +18,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.lang.ref.Cleaner.Cleanable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -29,6 +30,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,13 +39,12 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
   private static final Logger log = LoggerFactory.getLogger(MultiTableBatchWriterImpl.class);
-  private AtomicBoolean closed;
 
   private class TableBatchWriter implements BatchWriter {
 
-    private TableId tableId;
+    private final TableId tableId;
 
-    TableBatchWriter(TableId tableId) {
+    private TableBatchWriter(TableId tableId) {
       this.tableId = tableId;
     }
 
@@ -69,47 +70,34 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
       throw new UnsupportedOperationException(
           "Must flush all tables, can not flush an individual table");
     }
-
   }
 
-  private TabletServerBatchWriter bw;
-  private ConcurrentHashMap<TableId,BatchWriter> tableWriters;
+  private final ConcurrentHashMap<TableId,BatchWriter> tableWriters = new ConcurrentHashMap<>();
+  private final AtomicBoolean closed = new AtomicBoolean(false);
   private final ClientContext context;
+  private final TabletServerBatchWriter bw;
+  private final Cleanable cleanable;
 
-  public MultiTableBatchWriterImpl(ClientContext context, BatchWriterConfig config) {
+  MultiTableBatchWriterImpl(ClientContext context, BatchWriterConfig config) {
     checkArgument(context != null, "context is null");
     checkArgument(config != null, "config is null");
     this.context = context;
     this.bw = new TabletServerBatchWriter(context, config);
-    tableWriters = new ConcurrentHashMap<>();
-    this.closed = new AtomicBoolean(false);
+    this.cleanable = CleanerUtil.unclosed(this, MultiTableBatchWriter.class, closed, log, bw);
   }
 
   @Override
   public boolean isClosed() {
-    return this.closed.get();
+    return closed.get();
   }
 
   @Override
   public void close() throws MutationsRejectedException {
-    this.closed.set(true);
-    bw.close();
-  }
-
-  // WARNING: do not rely upon finalize to close this class. Finalize is not guaranteed to be
-  // called.
-  @Override
-  protected void finalize() {
-    if (!closed.get()) {
-      log.warn("{} not shutdown; did you forget to call close()?",
-          MultiTableBatchWriterImpl.class.getSimpleName());
-      try {
-        close();
-      } catch (MutationsRejectedException mre) {
-        log.error(MultiTableBatchWriterImpl.class.getSimpleName() + " internal error.", mre);
-        throw new RuntimeException(
-            "Exception when closing " + MultiTableBatchWriterImpl.class.getSimpleName(), mre);
-      }
+    if (closed.compareAndSet(false, true)) {
+      // deregister cleanable, but it won't run because it checks
+      // the value of closed first, which is now true
+      cleanable.clean();
+      bw.close();
     }
   }
 

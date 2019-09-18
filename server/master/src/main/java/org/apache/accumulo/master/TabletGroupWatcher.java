@@ -101,12 +101,11 @@ import com.google.common.collect.Iterators;
 abstract class TabletGroupWatcher extends Daemon {
   // Constants used to make sure assignment logging isn't excessive in quantity or size
   private static final String ASSIGNMENT_BUFFER_SEPARATOR = ", ";
-  private static final int ASSINGMENT_BUFFER_MAX_LENGTH = 4096;
+  private static final int ASSIGNMENT_BUFFER_MAX_LENGTH = 4096;
 
   private final Master master;
-  final TabletStateStore store;
-  final TabletGroupWatcher dependentWatcher;
-
+  private final TabletStateStore store;
+  private final TabletGroupWatcher dependentWatcher;
   final TableStats stats = new TableStats();
   private SortedSet<TServerInstance> lastScanServers = ImmutableSortedSet.of();
 
@@ -131,7 +130,7 @@ abstract class TabletGroupWatcher extends Daemon {
    * True if the collection of live tservers specified in 'candidates' hasn't changed since the last
    * time an assignment scan was started.
    */
-  public synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
+  synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
     return candidates.equals(lastScanServers);
   }
 
@@ -195,7 +194,12 @@ abstract class TabletGroupWatcher extends Daemon {
           if (tls == null) {
             continue;
           }
-          Master.log.debug("{} location State: {}", store.name(), tls);
+
+          // this can get spammy during merges
+          if (currentMerges.isEmpty()) {
+            Master.log.debug("{} location State: {}", store.name(), tls);
+          }
+
           // ignore entries for tables that do not exist in zookeeper
           if (master.getTableManager().getTableState(tls.extent.getTableId()) == null)
             continue;
@@ -289,9 +293,9 @@ abstract class TabletGroupWatcher extends Daemon {
                   // Old tablet server is back. Return this tablet to its previous owner.
                   if (returnInstance != null) {
                     assignments.add(new Assignment(tls.extent, returnInstance));
-                  } else {
-                    // leave suspended, don't ask for a new assignment.
                   }
+                  // else - tablet server not back. Don't ask for a new assignment right now.
+
                 } else {
                   // Treat as unassigned, ask for a new assignment.
                   unassigned.put(tls.extent, server);
@@ -302,7 +306,7 @@ abstract class TabletGroupWatcher extends Daemon {
                 TServerInstance dest = this.master.migrations.get(tls.extent);
                 if (dest != null) {
                   // if destination is still good, assign it
-                  if (destinations.keySet().contains(dest)) {
+                  if (destinations.containsKey(dest)) {
                     assignments.add(new Assignment(tls.extent, dest));
                   } else {
                     // get rid of this migration
@@ -567,7 +571,8 @@ abstract class TabletGroupWatcher extends Daemon {
             } else {
               mergeMetadataRecords(stats.getMergeInfo());
             }
-            this.master.setMergeState(stats.getMergeInfo(), update = MergeState.COMPLETE);
+            update = MergeState.COMPLETE;
+            this.master.setMergeState(stats.getMergeInfo(), update);
           } catch (Exception ex) {
             Master.log.error("Unable merge metadata table records", ex);
           }
@@ -695,12 +700,11 @@ abstract class TabletGroupWatcher extends Daemon {
       targetSystemTable = RootTable.NAME;
     }
 
-    BatchWriter bw = null;
-    try {
+    AccumuloClient client = this.master.getContext();
+
+    try (BatchWriter bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig())) {
       long fileCount = 0;
-      AccumuloClient client = this.master.getContext();
       // Make file entries in highest tablet
-      bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(scanRange);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
@@ -772,13 +776,6 @@ abstract class TabletGroupWatcher extends Daemon {
 
     } catch (Exception ex) {
       throw new AccumuloException(ex);
-    } finally {
-      if (bw != null)
-        try {
-          bw.close();
-        } catch (Exception ex) {
-          throw new AccumuloException(ex);
-        }
     }
   }
 
@@ -890,7 +887,7 @@ abstract class TabletGroupWatcher extends Daemon {
             builder.append(assignment);
 
             // Don't let the log message get too gigantic
-            if (builder.length() > ASSINGMENT_BUFFER_MAX_LENGTH) {
+            if (builder.length() > ASSIGNMENT_BUFFER_MAX_LENGTH) {
               builder.append("]");
               Master.log.debug("{} assigning tablets: [{}", store.name(), builder);
               builder.setLength(0);

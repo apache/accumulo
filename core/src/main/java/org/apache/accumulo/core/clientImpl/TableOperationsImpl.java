@@ -326,14 +326,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   public String doBulkFateOperation(List<ByteBuffer> args, String tableName)
-      throws AccumuloSecurityException, AccumuloException {
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     try {
       return doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(),
           tableName);
-    } catch (TableExistsException | TableNotFoundException | NamespaceNotFoundException
-        | NamespaceExistsException e) {
+    } catch (TableExistsException | NamespaceExistsException e) {
       // should not happen
       throw new AssertionError(e);
+    } catch (NamespaceNotFoundException ne) {
+      throw new TableNotFoundException(null, tableName, "Namespace not found", ne);
     }
   }
 

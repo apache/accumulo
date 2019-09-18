@@ -416,7 +416,7 @@ public enum Property {
   TSERV_BLOOM_LOAD_MAXCONCURRENT("tserver.bloom.load.concurrent.max", "4", PropertyType.COUNT,
       "The number of concurrent threads that will load bloom filters in the background. "
           + "Setting this to zero will make bloom filters load in the foreground."),
-  TSERV_MONITOR_FS("tserver.monitor.fs", "true", PropertyType.BOOLEAN,
+  TSERV_MONITOR_FS("tserver.monitor.fs", "false", PropertyType.BOOLEAN,
       "When enabled the tserver will monitor file systems and kill itself when"
           + " one switches from rw to ro. This is usually and indication that Linux has"
           + " detected a bad disk."),
@@ -525,6 +525,12 @@ public enum Property {
       "Percent of gc cycles to trace"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
       "Provides listing of files to be deleted but does not delete any files"),
+  GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
+      "When the gc runs it can make a lot of changes to the metadata, on completion, "
+          + " to force the changes to be written to disk, the metadata and root tables can be flushed"
+          + " and possibly compacted. Legal values are: compact - which both flushes and compacts the"
+          + " metadata; flush - which flushes only (compactions may be triggered if required); or none."
+          + " Since 2.0, the default is flush. Previously the default action was a full compaction."),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,

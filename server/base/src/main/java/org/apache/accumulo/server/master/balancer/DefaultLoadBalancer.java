@@ -150,8 +150,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
       }
 
       // order from low to high
-      Collections.sort(totals);
-      Collections.reverse(totals);
+      Collections.sort(totals, Collections.reverseOrder());
       int even = total / totals.size();
       int numServersOverEven = total % totals.size();
 
@@ -205,10 +204,11 @@ public class DefaultLoadBalancer extends TabletBalancer {
   List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count,
       Map<TableId,Map<KeyExtent,TabletStats>> donerTabletStats) {
 
-    List<TabletMigration> result = new ArrayList<>();
-    if (count == 0)
-      return result;
+    if (count == 0) {
+      return Collections.emptyList();
+    }
 
+    List<TabletMigration> result = new ArrayList<>();
     // Copy counts so we can update them as we propose migrations
     Map<TableId,Integer> tooMuchMap = tabletCountsPerTable(tooMuch.status);
     Map<TableId,Integer> tooLittleMap = tabletCountsPerTable(tooLittle.status);

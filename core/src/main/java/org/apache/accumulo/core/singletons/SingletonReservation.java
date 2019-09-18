@@ -17,6 +17,11 @@
 
 package org.apache.accumulo.core.singletons;
 
+import java.lang.ref.Cleaner.Cleanable;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,41 +30,34 @@ import org.slf4j.LoggerFactory;
  */
 public class SingletonReservation implements AutoCloseable {
 
-  // volatile so finalize does not need to synchronize to reliably read
-  protected volatile boolean closed = false;
+  private static final Logger log = LoggerFactory.getLogger(SingletonReservation.class);
 
-  private static Logger log = LoggerFactory.getLogger(SingletonReservation.class);
-
-  private final Exception e;
+  // AtomicBoolean so cleaner doesn't need to synchronize to reliably read
+  private final AtomicBoolean closed = new AtomicBoolean(false);
+  private final Cleanable cleanable;
 
   public SingletonReservation() {
-    e = new Exception();
+    cleanable = CleanerUtil.unclosed(this, AccumuloClient.class, closed, log, null);
   }
 
   @Override
-  public synchronized void close() {
-    if (closed) {
-      return;
-    }
-    closed = true;
-    SingletonManager.releaseRerservation();
-  }
-
-  @Override
-  protected void finalize() throws Throwable {
-    try {
-      if (!closed) {
-        log.warn("An Accumulo Client was garbage collected without being closed.", e);
-      }
-    } finally {
-      super.finalize();
+  public void close() {
+    if (closed.compareAndSet(false, true)) {
+      // deregister cleanable, but it won't run because it checks
+      // the value of closed first, which is now true
+      cleanable.clean();
+      SingletonManager.releaseRerservation();
     }
   }
 
   private static class NoopSingletonReservation extends SingletonReservation {
     NoopSingletonReservation() {
-      closed = true;
+      super();
+      super.closed.set(true);
+      // deregister the cleaner
+      super.cleanable.clean();
     }
+
   }
 
   private static final SingletonReservation NOOP = new NoopSingletonReservation();

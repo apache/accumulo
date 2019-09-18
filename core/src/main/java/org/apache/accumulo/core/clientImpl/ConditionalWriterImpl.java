@@ -30,7 +30,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
@@ -283,8 +282,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
         failedMutations.addAll(mutations2);
 
     } else {
-      for (QCMutation qcm : mutations)
-        qcm.resetDelay();
+      mutations.forEach(QCMutation::resetDelay);
       failedMutations.addAll(mutations);
     }
   }
@@ -303,8 +301,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
           throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
     } catch (Exception e) {
-      for (QCMutation qcm : mutations)
-        qcm.queueResult(new Result(e, qcm, null));
+      mutations.forEach(qcm -> qcm.queueResult(new Result(e, qcm, null)));
 
       // do not want to queue anything that was put in before binMutations() failed
       failures.clear();
@@ -314,10 +311,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     if (failures.size() > 0)
       queueRetry(failures, null);
 
-    for (Entry<String,TabletServerMutations<QCMutation>> entry : binnedMutations.entrySet()) {
-      queue(entry.getKey(), entry.getValue());
-    }
-
+    binnedMutations.forEach(this::queue);
   }
 
   private void queue(String location, TabletServerMutations<QCMutation> mutations) {
@@ -342,8 +336,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     // this code reschedules the the server for processing later... there may be other queues with
     // more data that need to be processed... also it will give the current server time to build
     // up more data... the thinking is that rescheduling instead or processing immediately will
-    // result
-    // in bigger batches and less RPC overhead
+    // result in bigger batches and less RPC overhead
 
     synchronized (serverQueue) {
       if (serverQueue.queue.size() > 0)
@@ -355,9 +348,9 @@ class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   private TabletServerMutations<QCMutation> dequeue(String location) {
-    BlockingQueue<TabletServerMutations<QCMutation>> queue = getServerQueue(location).queue;
+    var queue = getServerQueue(location).queue;
 
-    ArrayList<TabletServerMutations<QCMutation>> mutations = new ArrayList<>();
+    var mutations = new ArrayList<TabletServerMutations<QCMutation>>();
     queue.drainTo(mutations);
 
     if (mutations.size() == 0)
@@ -370,10 +363,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
       TabletServerMutations<QCMutation> tsm = mutations.get(0);
 
       for (int i = 1; i < mutations.size(); i++) {
-        for (Entry<KeyExtent,List<QCMutation>> entry : mutations.get(i).getMutations().entrySet()) {
-          tsm.getMutations().computeIfAbsent(entry.getKey(), k -> new ArrayList<>())
-              .addAll(entry.getValue());
-        }
+        mutations.get(i).getMutations().forEach((keyExtent, mutationList) -> tsm.getMutations()
+            .computeIfAbsent(keyExtent, k -> new ArrayList<>()).addAll(mutationList));
       }
 
       return tsm;
@@ -438,7 +429,6 @@ class ConditionalWriterImpl implements ConditionalWriter {
     queue(mutationList);
 
     return new RQIterator(resultQueue, count);
-
   }
 
   private class SendTask implements Runnable {
@@ -618,9 +608,6 @@ class ConditionalWriterImpl implements ConditionalWriter {
           new AccumuloSecurityException(context.getCredentials().getPrincipal(), tse.getCode(),
               Tables.getPrintableTableInfoFromId(context, tableId), tse);
       queueException(location, cmidToCm, ase);
-    } catch (TTransportException e) {
-      locator.invalidateCache(context, location.toString());
-      invalidateSession(location, cmidToCm, sessionId);
     } catch (TApplicationException tae) {
       queueException(location, cmidToCm, new AccumuloServerException(location.toString(), tae));
     } catch (TException e) {
@@ -741,25 +728,22 @@ class ConditionalWriterImpl implements ConditionalWriter {
       MutableLong cmid, Map<TKeyExtent,List<TConditionalMutation>> tmutations,
       CompressedIterators compressedIters) {
 
-    for (Entry<KeyExtent,List<QCMutation>> entry : mutations.getMutations().entrySet()) {
-      TKeyExtent tke = entry.getKey().toThrift();
-      ArrayList<TConditionalMutation> tcondMutaions = new ArrayList<>();
+    mutations.getMutations().forEach((keyExtent, mutationList) -> {
+      var tcondMutaions = new ArrayList<TConditionalMutation>();
 
-      List<QCMutation> condMutations = entry.getValue();
-
-      for (QCMutation cm : condMutations) {
+      for (var cm : mutationList) {
         TMutation tm = cm.toThrift();
 
         List<TCondition> conditions = convertConditions(cm, compressedIters);
 
-        cmidToCm.put(cmid.longValue(), new CMK(entry.getKey(), cm));
+        cmidToCm.put(cmid.longValue(), new CMK(keyExtent, cm));
         TConditionalMutation tcm = new TConditionalMutation(conditions, tm, cmid.longValue());
         cmid.increment();
         tcondMutaions.add(tcm);
       }
 
-      tmutations.put(tke, tcondMutaions);
-    }
+      tmutations.put(keyExtent.toThrift(), tcondMutaions);
+    });
   }
 
   private static final Comparator<Long> TIMESTAMP_COMPARATOR =

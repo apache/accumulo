@@ -18,6 +18,10 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.rpc.ThriftUtil.createClient;
+import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
+import static org.apache.accumulo.core.rpc.ThriftUtil.getTServerClient;
+import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,7 +38,6 @@ import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -45,7 +48,6 @@ import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfiguratio
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -112,11 +114,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
     String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
     List<String> results = new ArrayList<>();
     for (String candidate : cache.getChildren(path)) {
-      List<String> children = cache.getChildren(path + "/" + candidate);
+      var children = cache.getChildren(path + "/" + candidate);
       if (children != null && children.size() > 0) {
-        List<String> copy = new ArrayList<>(children);
+        var copy = new ArrayList<>(children);
         Collections.sort(copy);
-        byte[] data = cache.get(path + "/" + candidate + "/" + copy.get(0));
+        var data = cache.get(path + "/" + candidate + "/" + copy.get(0));
         if (data != null && !"master".equals(new String(data, UTF_8))) {
           results.add(candidate);
         }
@@ -128,14 +130,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException {
-    final HostAndPort parsedTserver = HostAndPort.fromString(tserver);
+    final var parsedTserver = HostAndPort.fromString(tserver);
     Client client = null;
     try {
-      client = ThriftUtil.getTServerClient(parsedTserver, context);
+      client = getTServerClient(parsedTserver, context);
 
       List<ActiveScan> as = new ArrayList<>();
-      for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : client
-          .getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
+      for (var activeScan : client.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
         try {
           as.add(new ActiveScanImpl(context, activeScan));
         } catch (TableNotFoundException e) {
@@ -143,15 +144,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
         }
       }
       return as;
-    } catch (TTransportException e) {
-      throw new AccumuloException(e);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TException e) {
       throw new AccumuloException(e);
     } finally {
       if (client != null)
-        ThriftUtil.returnClient(client);
+        returnClient(client);
     }
   }
 
@@ -165,26 +164,23 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException {
-    final HostAndPort parsedTserver = HostAndPort.fromString(tserver);
+    final var parsedTserver = HostAndPort.fromString(tserver);
     Client client = null;
     try {
-      client = ThriftUtil.getTServerClient(parsedTserver, context);
+      client = getTServerClient(parsedTserver, context);
 
       List<ActiveCompaction> as = new ArrayList<>();
-      for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : client
-          .getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
-        as.add(new ActiveCompactionImpl(context, activeCompaction));
+      for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
+        as.add(new ActiveCompactionImpl(context, tac));
       }
       return as;
-    } catch (TTransportException e) {
-      throw new AccumuloException(e);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TException e) {
       throw new AccumuloException(e);
     } finally {
       if (client != null)
-        ThriftUtil.returnClient(client);
+        returnClient(client);
     }
   }
 
@@ -192,9 +188,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void ping(String tserver) throws AccumuloException {
     TTransport transport = null;
     try {
-      transport = ThriftUtil.createTransport(AddressUtil.parseAddress(tserver, false), context);
-      TabletClientService.Client client =
-          ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
+      transport = createTransport(AddressUtil.parseAddress(tserver, false), context);
+      var client = createClient(new TabletClientService.Client.Factory(), transport);
       client.getTabletServerStatus(TraceUtil.traceInfo(), context.rpcCreds());
     } catch (TException e) {
       throw new AccumuloException(e);
@@ -223,9 +218,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     checkArgument(zooCache != null, "zooCache is null");
     checkArgument(instanceId != null, "instanceId is null");
     for (String name : zooCache.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
-      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
-      byte[] bytes = zooCache.get(instanceNamePath);
-      UUID iid = UUID.fromString(new String(bytes, UTF_8));
+      var bytes = zooCache.get(Constants.ZROOT + Constants.ZINSTANCES + "/" + name);
+      var iid = UUID.fromString(new String(bytes, UTF_8));
       if (iid.equals(instanceId)) {
         return name;
       }

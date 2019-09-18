@@ -100,7 +100,7 @@ import com.google.common.base.Joiner;
  *   + when a mutation enters the system memory is incremented
  *   + when a mutation successfully leaves the system memory is decremented
  */
-public class TabletServerBatchWriter {
+public class TabletServerBatchWriter implements AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchWriter.class);
 
@@ -324,6 +324,7 @@ public class TabletServerBatchWriter {
     }
   }
 
+  @Override
   public synchronized void close() throws MutationsRejectedException {
 
     if (closed)

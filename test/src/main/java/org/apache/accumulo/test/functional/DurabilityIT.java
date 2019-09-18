@@ -36,7 +36,6 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
-import org.apache.accumulo.test.categories.PerformanceTests;
 import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -46,7 +45,7 @@ import org.junit.experimental.categories.Category;
 
 import com.google.common.collect.Iterators;
 
-@Category({MiniClusterOnlyTests.class, PerformanceTests.class})
+@Category({MiniClusterOnlyTests.class})
 public class DurabilityIT extends ConfigurableMacBase {
 
   @Override

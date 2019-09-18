@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
@@ -23,8 +24,8 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
@@ -78,11 +79,11 @@ public class ListVolumesUsed {
 
   }
 
-  private static void listTable(String name, ServerContext context) throws Exception {
+  private static void listTable(Ample.DataLevel level, ServerContext context) throws Exception {
 
-    System.out.println("Listing volumes referenced in " + name + " tablets section");
+    System.out.println("Listing volumes referenced in " + level + " tablets section");
 
-    Scanner scanner = context.createScanner(name, Authorizations.EMPTY);
+    Scanner scanner = context.createScanner(level.metaTable(), Authorizations.EMPTY);
 
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
@@ -109,33 +110,25 @@ public class ListVolumesUsed {
       System.out.println("\tVolume : " + volume);
     }
 
+    System.out.println("Listing volumes referenced in " + level
+        + " deletes section (volume replacement occurrs at deletion time)");
     volumes.clear();
 
-    scanner.clearColumns();
-    scanner.setRange(MetadataSchema.DeletesSection.getRange());
-
-    for (Entry<Key,Value> entry : scanner) {
-      String delPath = entry.getKey().getRow().toString()
-          .substring(MetadataSchema.DeletesSection.getRowPrefix().length());
-      volumes.add(getTableURI(delPath));
+    Iterator<String> delPaths = context.getAmple().getGcCandidates(level, "");
+    while (delPaths.hasNext()) {
+      volumes.add(getTableURI(delPaths.next()));
     }
-
-    System.out.println("Listing volumes referenced in " + name
-        + " deletes section (volume replacement occurrs at deletion time)");
-
     for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);
     }
 
+    System.out.println("Listing volumes referenced in " + level + " current logs");
     volumes.clear();
 
     WalStateManager wals = new WalStateManager(context);
     for (Path path : wals.getAllState().keySet()) {
       volumes.add(getLogURI(path.toString()));
     }
-
-    System.out.println("Listing volumes referenced in " + name + " current logs");
-
     for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);
     }
@@ -144,9 +137,9 @@ public class ListVolumesUsed {
   public static void listVolumes(ServerContext context) throws Exception {
     listZookeeper(context);
     System.out.println();
-    listTable(RootTable.NAME, context);
+    listTable(Ample.DataLevel.METADATA, context);
     System.out.println();
-    listTable(MetadataTable.NAME, context);
+    listTable(Ample.DataLevel.USER, context);
   }
 
 }
