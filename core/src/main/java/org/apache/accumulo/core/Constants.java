@@ -91,6 +91,8 @@ public class Constants {
   public static final String BULK_PREFIX = "b-";
   public static final String BULK_RENAME_FILE = "renames.json";
   public static final String BULK_LOAD_MAPPING = "loadmap.json";
+  // used for client checking and retrying
+  public static final String BULK_CONCURRENT_MERGE_MSG = "Concurrent merge happened";
 
   public static final String CLONE_PREFIX = "c-";
   public static final byte[] CLONE_PREFIX_BYTES = CLONE_PREFIX.getBytes(UTF_8);

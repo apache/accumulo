@@ -28,7 +28,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.master.tableOps.bulkVer2.PrepBulkImport.TabletIterFactory;
@@ -103,13 +105,15 @@ public class PrepBulkImportTest {
         .collect(Collectors.joining(","));
   }
 
-  public void runExceptionTest(List<KeyExtent> loadRanges, List<KeyExtent> tabletRanges) {
+  public void runExceptionTest(List<KeyExtent> loadRanges, List<KeyExtent> tabletRanges)
+      throws AccumuloException {
     try {
       runTest(loadRanges, tabletRanges);
       fail("expected " + toRangeStrings(loadRanges) + " to fail against "
           + toRangeStrings(tabletRanges));
     } catch (Exception e) {
       assertTrue(e instanceof AcceptableThriftTableOperationException);
+      BulkImport.checkExceptionForMerge(new AccumuloException(e), "test_table");
     }
   }
 
@@ -144,7 +148,7 @@ public class PrepBulkImportTest {
   }
 
   @Test
-  public void testException() {
+  public void testException() throws Exception {
     for (List<KeyExtent> loadRanges : powerSet(nke(null, "b"), nke("b", "m"), nke("m", "r"),
         nke("r", "v"), nke("v", null))) {
 

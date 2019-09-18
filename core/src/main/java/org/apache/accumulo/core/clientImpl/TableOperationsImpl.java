@@ -325,14 +325,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   public String doBulkFateOperation(List<ByteBuffer> args, String tableName)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    try {
-      return doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(),
-          tableName);
-    } catch (TableExistsException | NamespaceExistsException e) {
-      // should not happen
-      throw new AssertionError(e);
-    } catch (NamespaceNotFoundException ne) {
-      throw new TableNotFoundException(null, tableName, "Namespace not found", ne);
+    // It is possible a tablet merged before the tablet was locked so retry until we are
+    // either successful or another error happens
+    while (true) {
+      try {
+        return doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(),
+            tableName);
+      } catch (TableExistsException | NamespaceExistsException e) {
+        // should not happen
+        throw new AssertionError(e);
+      } catch (NamespaceNotFoundException ne) {
+        throw new TableNotFoundException(null, tableName, "Namespace not found", ne);
+      } catch (AccumuloException ae) {
+        // we want to retry when a concurrent merge is detected
+        BulkImport.checkExceptionForMerge(ae, tableName);
+      }
     }
   }
 

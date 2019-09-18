@@ -54,6 +54,7 @@ import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -568,5 +569,23 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     }
 
     return mappings;
+  }
+
+  /**
+   * Check exception was a concurrent merge so we can retry
+   */
+  public static void checkExceptionForMerge(AccumuloException ae, String tableName)
+      throws AccumuloException {
+    Throwable cause = ae.getCause();
+    if (cause instanceof ThriftTableOperationException) {
+      String desc = ((ThriftTableOperationException) cause).getDescription();
+      if (desc.equals(Constants.BULK_CONCURRENT_MERGE_MSG)) {
+        log.info(Constants.BULK_CONCURRENT_MERGE_MSG + ". Retrying Bulk Import to " + tableName);
+      } else {
+        throw ae;
+      }
+    } else {
+      throw ae;
+    }
   }
 }
