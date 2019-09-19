@@ -35,13 +35,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -134,7 +133,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     try (BatchWriter writer = context.createBatchWriter(level.metaTable())) {
       for (String path : paths) {
-        Mutation m = new Mutation(MetadataSchema.DeletesSection.encodeRow(path));
+        Mutation m = new Mutation(DeletesSection.encodeRow(path));
         m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
         writer.addMutation(m);
       }
@@ -155,9 +154,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
       return candidates.iterator();
     } else if (level == DataLevel.METADATA || level == DataLevel.USER) {
-      Range range = MetadataSchema.DeletesSection.getRange();
+      Range range = DeletesSection.getRange();
       if (continuePoint != null && !continuePoint.isEmpty()) {
-        String continueRow = MetadataSchema.DeletesSection.encodeRow(continuePoint);
+        String continueRow = DeletesSection.encodeRow(continuePoint);
         range = new Range(new Key(continueRow).followingKey(PartialKey.ROW), true,
             range.getEndKey(), range.isEndKeyInclusive());
       }
@@ -170,8 +169,10 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       }
       scanner.setRange(range);
 
-      return Iterators.transform(scanner.iterator(),
-          entry -> MetadataSchema.DeletesSection.decodeRow(entry.getKey().getRow().toString()));
+      return Iterators.transform(
+          Iterators.filter(scanner.iterator(),
+              entry -> entry.getValue().equals(DeletesSection.SkewedKeyValue.NAME)),
+          entry -> DeletesSection.decodeRow(entry.getKey().getRow().toString()));
 
     } else {
       throw new IllegalArgumentException();
@@ -196,9 +197,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public static Mutation createDeleteMutation(ServerContext context, TableId tableId,
       String pathToRemove) {
     Path path = context.getVolumeManager().getFullPath(tableId, pathToRemove);
-    Mutation delFlag =
-        new Mutation(new Text(MetadataSchema.DeletesSection.encodeRow(path.toString())));
-    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, new Value(new byte[] {}));
+    Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path.toString())));
+    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.SkewedKeyValue.NAME);
     return delFlag;
   }
 

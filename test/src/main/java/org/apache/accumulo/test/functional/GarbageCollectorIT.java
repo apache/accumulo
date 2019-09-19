@@ -57,6 +57,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
+import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
@@ -213,7 +214,11 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       try (BatchWriter bw = c.createBatchWriter(MetadataTable.NAME)) {
         bw.addMutation(createDelMutation("", "", "", ""));
         bw.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
-        bw.addMutation(createDelMutation("/", "", "", ""));
+        // path is invalid but value is expected - only way the invalid entry will come through
+        // processing and
+        // show up to produce error in output to allow while loop to end
+        bw.addMutation(
+            createDelMutation("/", "", "", MetadataSchema.DeletesSection.SkewedKeyValue.STR_NAME));
       }
 
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
@@ -305,7 +310,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         final Text emptyText = new Text("");
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
-        Mutation delFlag = createDelMutation(String.format("/%020d/%s", i, longpath), "", "", "");
+        Mutation delFlag = ServerAmpleImpl.createDeleteMutation(getServerContext(),
+            MetadataTable.ID, String.format("/%020d/%s", i, longpath));
         bw.addMutation(delFlag);
       }
     }

@@ -270,6 +270,14 @@ public class MetadataSchema {
       return row.substring(encoded_prefix_length);
     }
 
+    /**
+     * Value to indicate that the row has been skewed/encoded.
+     */
+    public static class SkewedKeyValue {
+      public static final String STR_NAME = "skewed";
+      public static final Value NAME = new Value(STR_NAME);
+    }
+
   }
 
   /**

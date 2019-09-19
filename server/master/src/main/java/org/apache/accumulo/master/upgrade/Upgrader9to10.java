@@ -89,7 +89,7 @@ public class Upgrader9to10 implements Upgrader {
   public static final String ZROOT_TABLET_WALOGS = ZROOT_TABLET + "/walogs";
   public static final String ZROOT_TABLET_CURRENT_LOGS = ZROOT_TABLET + "/current_logs";
   public static final String ZROOT_TABLET_PATH = ZROOT_TABLET + "/dir";
-  public static final String UPGRADED = "upgrade9to10";
+  public static final String UPGRADED = MetadataSchema.DeletesSection.SkewedKeyValue.STR_NAME;
   public static final String OLD_DELETE_PREFIX = "~del";
   static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
 
