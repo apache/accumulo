@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.zip.CRC32;
@@ -34,6 +35,7 @@ import java.util.zip.Checksum;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -56,6 +58,7 @@ public class ContinuousInputFormat extends InputFormat<Key,Value> {
   private static final String PROP_FAM_MAX = "mrbulk.fam.max";
   private static final String PROP_QUAL_MAX = "mrbulk.qual.max";
   private static final String PROP_CHECKSUM = "mrbulk.checksum";
+  private static final String PROP_VIS_FILE = "mrbulk.vis.file";
 
   private static class RandomSplit extends InputSplit implements Writable {
     @Override
@@ -93,6 +96,8 @@ public class ContinuousInputFormat extends InputFormat<Key,Value> {
     conf.setLong(PROP_ROW_MAX, opts.max);
     conf.setInt(PROP_FAM_MAX, opts.maxColF);
     conf.setInt(PROP_QUAL_MAX, opts.maxColQ);
+    if (opts.visFile != null)
+      conf.set(PROP_VIS_FILE, opts.visFile);
     conf.setBoolean(PROP_CHECKSUM, opts.checksum);
   }
 
@@ -110,6 +115,7 @@ public class ContinuousInputFormat extends InputFormat<Key,Value> {
       long maxRow;
       int maxFam;
       int maxQual;
+      List<ColumnVisibility> visibilities;
       boolean checksum;
 
       Key prevKey;
@@ -126,6 +132,12 @@ public class ContinuousInputFormat extends InputFormat<Key,Value> {
         maxFam = job.getConfiguration().getInt(PROP_FAM_MAX, Short.MAX_VALUE);
         maxQual = job.getConfiguration().getInt(PROP_QUAL_MAX, Short.MAX_VALUE);
         checksum = job.getConfiguration().getBoolean(PROP_CHECKSUM, false);
+        String visFile = job.getConfiguration().get(PROP_VIS_FILE);
+        if (visFile == null) {
+          visibilities = Collections.singletonList(new ColumnVisibility());
+        } else {
+          visibilities = ContinuousIngest.readVisFromFile(visFile);
+        }
 
         random = new Random(new SecureRandom().nextLong());
 
@@ -138,15 +150,16 @@ public class ContinuousInputFormat extends InputFormat<Key,Value> {
 
         byte[] fam = genCol(random.nextInt(maxFam));
         byte[] qual = genCol(random.nextInt(maxQual));
+        byte[] cv = visibilities.get(random.nextInt(visibilities.size())).flatten();
 
         if (cksum != null) {
           cksum.update(row);
           cksum.update(fam);
           cksum.update(qual);
-          cksum.update(new byte[0]); // TODO col vis
+          cksum.update(cv);
         }
 
-        return new Key(row, fam, qual);
+        return new Key(row, fam, qual, cv);
       }
 
       private byte[] createValue(byte[] ingestInstanceId, byte[] prevRow, Checksum cksum) {

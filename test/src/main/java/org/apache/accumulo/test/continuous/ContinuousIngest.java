@@ -19,6 +19,7 @@ package org.apache.accumulo.test.continuous;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,19 +58,23 @@ public class ContinuousIngest {
       return;
     }
 
-    visibilities = new ArrayList<>();
+    visibilities = readVisFromFile(opts.visFile);
+  }
 
-    FileSystem fs = FileSystem.get(new Configuration());
-    BufferedReader in =
-        new BufferedReader(new InputStreamReader(fs.open(new Path(opts.visFile)), UTF_8));
+  public static List<ColumnVisibility> readVisFromFile(String visFile) {
+    List<ColumnVisibility> vis = new ArrayList<>();
 
-    String line;
-
-    while ((line = in.readLine()) != null) {
-      visibilities.add(new ColumnVisibility(line));
+    try (BufferedReader in = new BufferedReader(new InputStreamReader(
+        FileSystem.get(new Configuration()).open(new Path(visFile)), UTF_8))) {
+      String line;
+      while ((line = in.readLine()) != null) {
+        vis.add(new ColumnVisibility(line));
+      }
+    } catch (IOException e) {
+      System.out.println("ERROR reading visFile " + visFile + ": ");
+      e.printStackTrace();
     }
-
-    in.close();
+    return vis;
   }
 
   private static ColumnVisibility getVisibility(Random rand) {
