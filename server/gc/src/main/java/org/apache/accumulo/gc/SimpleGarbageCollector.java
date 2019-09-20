@@ -94,7 +94,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.Parameter;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -105,18 +104,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
-
-  /**
-   * Options for the garbage collector.
-   */
-  static class GCOpts extends ServerOpts {
-    @Parameter(names = {"-v", "--verbose"},
-        description = "extra information will get printed to stdout also")
-    boolean verbose = false;
-    @Parameter(names = {"-s", "--safemode"}, description = "safe mode will not delete files")
-    boolean safeMode = false;
-  }
-
   /**
    * A fraction representing how much of the JVM's available memory should be used for gathering
    * candidates.
@@ -125,21 +112,19 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
-  private GCOpts opts;
   private ZooLock lock;
 
   private GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
   public static void main(String[] args) throws Exception {
-    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new GCOpts(), args)) {
+    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ServerOpts(), args)) {
       gc.runServer();
     }
   }
 
-  SimpleGarbageCollector(GCOpts opts, String[] args) {
+  SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super("gc", opts, args);
-    this.opts = opts;
 
     final AccumuloConfiguration conf = getConfiguration();
 
@@ -148,8 +133,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
-    log.info("safemode: {}", opts.safeMode);
-    log.info("verbose: {}", opts.verbose);
+    log.info("safemode: {}", inSafeMode());
     log.info("memory threshold: {} of {} bytes", CANDIDATE_MEMORY_PERCENTAGE,
         Runtime.getRuntime().maxMemory());
     log.info("delete threads: {}", getNumDeleteThreads());
@@ -181,6 +165,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
    */
   int getNumDeleteThreads() {
     return getConfiguration().getCount(Property.GC_DELETE_THREADS);
+  }
+
+  /**
+   * Checks if safemode is set - files will not be deleted.
+   *
+   * @return number of delete threads
+   */
+  boolean inSafeMode() {
+    return getConfiguration().getBoolean(Property.GC_SAFEMODE);
   }
 
   private class GCEnv implements GarbageCollectionEnvironment {
@@ -263,13 +256,13 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     @Override
     public void delete(SortedMap<String,String> confirmedDeletes) throws TableNotFoundException {
       final VolumeManager fs = getContext().getVolumeManager();
+      var metadataLocation = level == DataLevel.ROOT
+          ? getContext().getZooKeeperRoot() + " for " + RootTable.NAME : level.metaTable();
 
-      if (opts.safeMode) {
-        if (opts.verbose) {
-          System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
-              + " data file candidates marked for deletion.%n"
-              + "          Examine the log files to identify them.%n");
-        }
+      if (inSafeMode()) {
+        System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
+            + " data file candidates marked for deletion in " + metadataLocation + ".\n"
+            + "          Examine the log files to identify them.\n");
         log.info("SAFEMODE: Listing all data file candidates for deletion");
         for (String s : confirmedDeletes.values()) {
           log.info("SAFEMODE: {}", s);
@@ -648,7 +641,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       processor = new Processor<>(rpcProxy);
     }
     int[] port = getConfiguration().getPort(Property.GC_PORT);
-    HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
+    HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
       ServerAddress server = TServerUtils.startTServer(getMetricsSystem(), getConfiguration(),

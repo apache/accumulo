@@ -523,6 +523,8 @@ public enum Property {
       "Do not use the Trash, even if it is configured."),
   GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION,
       "Percent of gc cycles to trace"),
+  GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
+      "Provides listing of files to be deleted but does not delete any files"),
   GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
       "When the gc runs it can make a lot of changes to the metadata, on completion, "
           + " to force the changes to be written to disk, the metadata and root tables can be flushed"
@@ -1156,6 +1158,17 @@ public enum Property {
    */
   public static boolean isValidPropertyKey(String key) {
     return validProperties.contains(key) || isKeyValidlyPrefixed(key);
+  }
+
+  /**
+   * Checks if the given property key is a valid property and is of type boolean.
+   *
+   * @param key
+   *          property key
+   * @return true if key is valid and is of type boolean, false otherwise
+   */
+  public static boolean isValidBooleanPropertyKey(String key) {
+    return validProperties.contains(key) && getPropertyByKey(key).getType() == PropertyType.BOOLEAN;
   }
 
   /**
