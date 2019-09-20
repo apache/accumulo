@@ -325,21 +325,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   public String doBulkFateOperation(List<ByteBuffer> args, String tableName)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    // It is possible a tablet merged before the tablet was locked so retry until we are
-    // either successful or another error happens
-    while (true) {
-      try {
-        return doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(),
-            tableName);
-      } catch (TableExistsException | NamespaceExistsException e) {
-        // should not happen
-        throw new AssertionError(e);
-      } catch (NamespaceNotFoundException ne) {
-        throw new TableNotFoundException(null, tableName, "Namespace not found", ne);
-      } catch (AccumuloException ae) {
-        // we want to retry when a concurrent merge is detected
-        BulkImport.checkExceptionForMerge(ae, tableName);
-      }
+    try {
+      return doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(),
+          tableName);
+    } catch (TableExistsException | NamespaceExistsException e) {
+      // should not happen
+      throw new AssertionError(e);
+    } catch (NamespaceNotFoundException ne) {
+      throw new TableNotFoundException(null, tableName, "Namespace not found", ne);
     }
   }
 
@@ -355,54 +348,59 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloSecurityException, TableExistsException, TableNotFoundException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
     Long opid = null;
-
-    try {
-      opid = beginFateOperation();
-      executeFateOperation(opid, op, args, opts, !wait);
-      if (!wait) {
-        opid = null;
-        return null;
-      }
-      return waitForFateOperation(opid);
-    } catch (ThriftSecurityException e) {
-      switch (e.getCode()) {
-        case TABLE_DOESNT_EXIST:
-          throw new TableNotFoundException(null, tableOrNamespaceName,
-              "Target table does not exist");
-        case NAMESPACE_DOESNT_EXIST:
-          throw new NamespaceNotFoundException(null, tableOrNamespaceName,
-              "Target namespace does not exist");
-        default:
-          String tableInfo = Tables.getPrintableTableInfoFromName(context, tableOrNamespaceName);
-          throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
-      }
-    } catch (ThriftTableOperationException e) {
-      switch (e.getType()) {
-        case EXISTS:
-          throw new TableExistsException(e);
-        case NOTFOUND:
-          throw new TableNotFoundException(e);
-        case NAMESPACE_EXISTS:
-          throw new NamespaceExistsException(e);
-        case NAMESPACE_NOTFOUND:
-          throw new NamespaceNotFoundException(e);
-        case OFFLINE:
-          throw new TableOfflineException(
-              Tables.getTableOfflineMsg(context, Tables.getTableId(context, tableOrNamespaceName)));
-        default:
-          throw new AccumuloException(e.description, e);
-      }
-    } catch (Exception e) {
-      throw new AccumuloException(e.getMessage(), e);
-    } finally {
-      Tables.clearCache(context);
-      // always finish table op, even when exception
-      if (opid != null)
-        try {
-          finishFateOperation(opid);
-        } catch (Exception e) {
-          log.warn("Exception thrown while finishing fate table operation", e);
+    // keep retrying bulk import if a concurrent merge happens. all other ops throw error or return
+    while (true) {
+      try {
+        opid = beginFateOperation();
+        executeFateOperation(opid, op, args, opts, !wait);
+        if (!wait) {
+          opid = null;
+          return null;
         }
+        return waitForFateOperation(opid);
+      } catch (ThriftSecurityException e) {
+        switch (e.getCode()) {
+          case TABLE_DOESNT_EXIST:
+            throw new TableNotFoundException(null, tableOrNamespaceName,
+                "Target table does not exist");
+          case NAMESPACE_DOESNT_EXIST:
+            throw new NamespaceNotFoundException(null, tableOrNamespaceName,
+                "Target namespace does not exist");
+          default:
+            String tableInfo = Tables.getPrintableTableInfoFromName(context, tableOrNamespaceName);
+            throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
+        }
+      } catch (ThriftTableOperationException e) {
+        switch (e.getType()) {
+          case EXISTS:
+            throw new TableExistsException(e);
+          case NOTFOUND:
+            throw new TableNotFoundException(e);
+          case NAMESPACE_EXISTS:
+            throw new NamespaceExistsException(e);
+          case NAMESPACE_NOTFOUND:
+            throw new NamespaceNotFoundException(e);
+          case OFFLINE:
+            throw new TableOfflineException(Tables.getTableOfflineMsg(context,
+                Tables.getTableId(context, tableOrNamespaceName)));
+          case BULK_CONCURRENT_MERGE:
+            log.info("Concurrent merge happened. Retrying Bulk Import to " + e.tableName);
+            break;
+          default:
+            throw new AccumuloException(e.description, e);
+        }
+      } catch (Exception e) {
+        throw new AccumuloException(e.getMessage(), e);
+      } finally {
+        Tables.clearCache(context);
+        // always finish table op, even when exception
+        if (opid != null)
+          try {
+            finishFateOperation(opid);
+          } catch (Exception e) {
+            log.warn("Exception thrown while finishing fate table operation", e);
+          }
+      }
     }
   }
 

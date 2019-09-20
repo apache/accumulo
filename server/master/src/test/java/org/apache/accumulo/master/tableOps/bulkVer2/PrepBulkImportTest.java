@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.master.tableOps.bulkVer2.PrepBulkImport.TabletIterFactory;
@@ -113,7 +112,6 @@ public class PrepBulkImportTest {
           + toRangeStrings(tabletRanges));
     } catch (Exception e) {
       assertTrue(e instanceof AcceptableThriftTableOperationException);
-      BulkImport.checkExceptionForMerge(new AccumuloException(e), "test_table");
     }
   }
 
