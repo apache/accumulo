@@ -125,7 +125,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super("gc", opts, args);
-    this.opts = opts;
 
     final AccumuloConfiguration conf = getConfiguration();
 
