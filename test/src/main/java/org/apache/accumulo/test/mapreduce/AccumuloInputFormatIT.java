@@ -477,7 +477,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     Connector connector = getConnector();
     connector.tableOperations().create(table);
-    connector.securityOperations().revokeTablePermission(connector.whoami(), table, TablePermission.READ);
+    connector.securityOperations().revokeTablePermission(connector.whoami(), table,
+        TablePermission.READ);
 
     AccumuloInputFormat.setZooKeeperInstance(job, cluster.getClientConfig());
     AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
@@ -495,8 +496,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   }
 
   /*
-    This tests the case where we do not have Table.READ permission, but we do have Namespace.READ.
-    See issue #1370.
+   * This tests the case where we do not have Table.READ permission, but we do have Namespace.READ.
+   * See issue #1370.
    */
   @Test
   public void testGetSplitsWithNamespaceReadPermission() throws Exception {
@@ -516,7 +517,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     Connector connector = getConnector();
     connector.namespaceOperations().create(namespace); // creating namespace implies Namespace.READ
     connector.tableOperations().create(table);
-    connector.securityOperations().revokeTablePermission(connector.whoami(), table, TablePermission.READ);
+    connector.securityOperations().revokeTablePermission(connector.whoami(), table,
+        TablePermission.READ);
 
     AccumuloInputFormat.setZooKeeperInstance(job, cluster.getClientConfig());
     AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
@@ -550,7 +552,6 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     assertEquals(fetchColumns, risplit.getFetchedColumns());
     assertEquals(level, risplit.getLogLevel());
   }
-
 
   @Test
   public void testPartialInputSplitDelegationToConfiguration() throws Exception {

@@ -779,17 +779,14 @@ public class InputConfigurator extends ConfiguratorBase {
     return getInstance(implementingClass, conf);
   }
 
-
   private static String extractNamespace(final String tableName) {
     final int delimiterPos = tableName.indexOf('.');
     if (delimiterPos < 1) {
       return ""; // default namespace
-    }
-    else {
+    } else {
       return tableName.substring(0, delimiterPos);
     }
   }
-
 
   /**
    * Validates that the user has permissions on the requested tables
@@ -813,10 +810,10 @@ public class InputConfigurator extends ConfiguratorBase {
       for (Map.Entry<String,InputTableConfig> tableConfig : inputTableConfigs.entrySet()) {
         final String tableName = tableConfig.getKey();
         final String namespace = extractNamespace(tableName);
-        final boolean hasTableRead =
-            conn.securityOperations().hasTablePermission(principal, tableName, TablePermission.READ);
-        final boolean hasNamespaceRead =
-            conn.securityOperations().hasNamespacePermission(principal, namespace, NamespacePermission.READ);
+        final boolean hasTableRead = conn.securityOperations().hasTablePermission(principal,
+            tableName, TablePermission.READ);
+        final boolean hasNamespaceRead = conn.securityOperations().hasNamespacePermission(principal,
+            namespace, NamespacePermission.READ);
         if (!hasTableRead && !hasNamespaceRead) {
           throw new IOException("Unable to access table");
         }
