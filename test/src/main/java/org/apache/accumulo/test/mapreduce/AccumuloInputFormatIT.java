@@ -535,22 +535,6 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     List<InputSplit> splits = aif.getSplits(job);
 
     assertEquals(1, splits.size());
-
-    InputSplit split = splits.get(0);
-
-    assertEquals(RangeInputSplit.class, split.getClass());
-
-    RangeInputSplit risplit = (RangeInputSplit) split;
-
-    assertEquals(getAdminPrincipal(), risplit.getPrincipal());
-    assertEquals(table, risplit.getTableName());
-    assertEquals(getAdminToken(), risplit.getToken());
-    assertEquals(auths, risplit.getAuths());
-    assertEquals(getConnector().getInstance().getInstanceName(), risplit.getInstanceName());
-    assertEquals(isolated, risplit.isIsolatedScan());
-    assertEquals(localIters, risplit.usesLocalIterators());
-    assertEquals(fetchColumns, risplit.getFetchedColumns());
-    assertEquals(level, risplit.getLogLevel());
   }
 
   @Test
