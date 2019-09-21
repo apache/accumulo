@@ -66,6 +66,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.DeprecationUtil;
@@ -778,6 +779,18 @@ public class InputConfigurator extends ConfiguratorBase {
     return getInstance(implementingClass, conf);
   }
 
+
+  private static String extractNamespace(final String tableName) {
+    final int delimiterPos = tableName.indexOf('.');
+    if (delimiterPos < 1) {
+      return ""; // default namespace
+    }
+    else {
+      return tableName.substring(0, delimiterPos);
+    }
+  }
+
+
   /**
    * Validates that the user has permissions on the requested tables
    *
@@ -796,10 +809,17 @@ public class InputConfigurator extends ConfiguratorBase {
       if (getInputTableConfigs(implementingClass, conf).size() == 0)
         throw new IOException("No table set.");
 
+      final String principal = getPrincipal(implementingClass, conf);
       for (Map.Entry<String,InputTableConfig> tableConfig : inputTableConfigs.entrySet()) {
-        if (!conn.securityOperations().hasTablePermission(getPrincipal(implementingClass, conf),
-            tableConfig.getKey(), TablePermission.READ))
+        final String tableName = tableConfig.getKey();
+        final String namespace = extractNamespace(tableName);
+        final boolean hasTableRead =
+            conn.securityOperations().hasTablePermission(principal, tableName, TablePermission.READ);
+        final boolean hasNamespaceRead =
+            conn.securityOperations().hasNamespacePermission(principal, namespace, NamespacePermission.READ);
+        if (!hasTableRead && !hasNamespaceRead) {
           throw new IOException("Unable to access table");
+        }
       }
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : inputTableConfigs.entrySet()) {
         InputTableConfig tableConfig = tableConfigEntry.getValue();
