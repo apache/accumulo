@@ -51,6 +51,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -916,6 +917,12 @@ abstract class TabletGroupWatcher extends Daemon {
       Master.log.info(String.format("Assigning %d tablets", assignments.size()));
       store.setFutureLocations(assignments);
     }
+
+    for (Assignment assignment : assignments) {
+      // TODO clean up/remove other logging
+      TabletLogger.assigned(assignment.tablet, assignment.server);
+    }
+
     assignments.addAll(assigned);
     for (Assignment a : assignments) {
       TServerConnection client = this.master.tserverSet.getConnection(a.server);

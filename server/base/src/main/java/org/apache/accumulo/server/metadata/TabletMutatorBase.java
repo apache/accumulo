@@ -198,6 +198,10 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
     return mutation;
   }
 
+  protected KeyExtent getExtent() {
+    return extent;
+  }
+
   public void setCloseAfterMutate(AutoCloseable closeable) {
     this.closeAfterMutate = closeable;
   }

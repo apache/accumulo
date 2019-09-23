@@ -74,6 +74,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -478,6 +479,9 @@ public class Tablet {
     }
 
     log.debug("TABLET_HIST {} opened", extent);
+
+    // TODO look for all TABLET_HIST messages... cleanup remove/existing logging
+    TabletLogger.loaded(extent, tabletServer.getTabletSession());
   }
 
   public ServerContext getContext() {
@@ -1398,6 +1402,9 @@ public class Tablet {
     getTabletResources().close();
 
     log.debug("TABLET_HIST {} closed", extent);
+
+    // TODO cleanup/remove existing logging.. is this best place to log this?
+    TabletLogger.unloaded(extent, tabletServer.getTabletSession());
 
     if (completeClose) {
       closeState = CloseState.COMPLETE;

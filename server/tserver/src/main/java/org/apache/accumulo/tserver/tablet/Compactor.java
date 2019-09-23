@@ -47,6 +47,7 @@ import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
@@ -252,6 +253,9 @@ public class Compactor implements Callable<CompactionStats> {
           extent, majCStats.getEntriesRead(), majCStats.getEntriesWritten(),
           (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0,
           mfwTmp.getLength(), mfwTmp.getLength() / ((t2 - t1) / 1000.0)));
+
+      TabletLogger.compacted(extent, filesToCompact.keySet(), outputFile,
+          majCStats.getEntriesRead(), majCStats.getEntriesWritten(), mfwTmp.getLength(), t2 - t1);
 
       majCStats.setFileSize(mfwTmp.getLength());
       return majCStats;
