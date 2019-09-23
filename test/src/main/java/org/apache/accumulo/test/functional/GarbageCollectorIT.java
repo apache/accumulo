@@ -302,7 +302,6 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         TablePermission.WRITE);
     try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
       for (int i = 0; i < 100000; ++i) {
-        final Text emptyText = new Text("");
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
         Mutation delFlag = createDelMutation(String.format("/%020d/%s", i, longpath), "", "", "");
