@@ -23,7 +23,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.logging.MetadataLogger;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
@@ -114,7 +114,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
       context.getZooCache().clear(zpath);
 
       // TODO remove other logging
-      TabletLogger.metadataUpdated(getExtent(), mutation);
+      MetadataLogger.tabletMutated(getExtent(), mutation);
 
       if (closeAfterMutate != null)
         closeAfterMutate.close();

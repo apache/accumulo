@@ -20,7 +20,7 @@ package org.apache.accumulo.server.metadata;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.logging.MetadataLogger;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.server.ServerContext;
 
@@ -39,7 +39,7 @@ class TabletMutatorImpl extends TabletMutatorBase implements Ample.TabletMutator
       Mutation mutation = getMutation();
       writer.addMutation(mutation);
 
-      TabletLogger.metadataUpdated(getExtent(), mutation);
+      MetadataLogger.tabletMutated(getExtent(), mutation);
 
       if (closeAfterMutate != null)
         closeAfterMutate.close();

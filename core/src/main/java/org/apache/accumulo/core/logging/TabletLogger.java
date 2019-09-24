@@ -16,21 +16,13 @@
  */
 package org.apache.accumulo.core.logging;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.Collection;
-import java.util.Map;
-import java.util.TreeMap;
 
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 // logs messages about a tablets internal state, like its location, set of files, metadata... operations that cut across multiple tablets should go elsewhere
 public class TabletLogger {
@@ -39,14 +31,6 @@ public class TabletLogger {
   private static final Logger fileLog = LoggerFactory.getLogger("accumulo.table.tablet.files");
   // TODO remove....
   private static final Logger scanLog = LoggerFactory.getLogger("accumulo.table.tablet.scan");
-  private static final Logger rootMetaLog =
-      LoggerFactory.getLogger("accumulo.table.tablet.metadata.root");
-  private static final Logger metaMetaLog =
-      LoggerFactory.getLogger("accumulo.table.tablet.metadata.meta");
-  private static final Logger userMetaLog =
-      LoggerFactory.getLogger("accumulo.table.tablet.metadata.user");
-
-  private static final Gson GSON = new GsonBuilder().create();
 
   public static void assigned(KeyExtent extent, Ample.TServer server) {
     locLog.debug("Assigned {} to {}", extent, server);
@@ -88,38 +72,4 @@ public class TabletLogger {
     }
   }
 
-  public static void metadataUpdated(KeyExtent extent, Mutation mutation) {
-    Logger mlog;
-
-    if (!extent.isMeta())
-      mlog = userMetaLog;
-    else if (extent.isRootTablet())
-      mlog = rootMetaLog;
-    else
-      mlog = metaMetaLog;
-
-    if (mlog.isTraceEnabled()) {
-      String json = toJson(mutation);
-      mlog.trace("Metadata updated for {} : {}", extent, json);
-    }
-  }
-
-  private static String toJson(Mutation mutation) {
-
-    Map<String,String> columnValues = new TreeMap<>();
-
-    mutation.getUpdates().forEach(cu -> {
-      String vis = "";
-      if (cu.getColumnVisibility().length > 0) {
-        vis = ":" + new String(cu.getColumnVisibility(), UTF_8);
-      }
-      String key = new String(cu.getColumnFamily(), UTF_8) + ":"
-          + new String(cu.getColumnQualifier(), UTF_8) + vis + " " + cu.getTimestamp();
-      String value = new String(cu.getValue());
-
-      columnValues.put(key, value);
-    });
-
-    return GSON.toJson(columnValues);
-  }
 }
