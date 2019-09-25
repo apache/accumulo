@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -50,7 +51,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
 
 public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
@@ -168,12 +168,14 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         throw new RuntimeException(e);
       }
       scanner.setRange(range);
-
-      return Iterators.transform(
-          Iterators.filter(scanner.iterator(),
-              entry -> entry.getValue().equals(DeletesSection.SkewedKeyValue.NAME)),
-          entry -> DeletesSection.decodeRow(entry.getKey().getRow().toString()));
-
+      return StreamSupport.stream(scanner.spliterator(), false)
+          .filter(entry -> entry.getValue().equals(DeletesSection.SkewedKeyValue.NAME))
+          .map(entry -> DeletesSection.decodeRow(entry.getKey().getRow().toString())).iterator();
+      /*
+       * return Iterators.transform( Iterators.filter(scanner.iterator(), entry ->
+       * entry.getValue().equals(DeletesSection.SkewedKeyValue.NAME)), entry ->
+       * DeletesSection.decodeRow(entry.getKey().getRow().toString()));
+       */
     } else {
       throw new IllegalArgumentException();
     }

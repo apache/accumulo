@@ -65,12 +65,16 @@ public interface Ample {
    * derived from the table id.
    */
   public enum DataLevel {
-    ROOT(null), METADATA(RootTable.NAME), USER(MetadataTable.NAME);
+    ROOT(null, null),
+    METADATA(RootTable.NAME, RootTable.ID),
+    USER(MetadataTable.NAME, MetadataTable.ID);
 
     private final String table;
+    private final TableId id;
 
-    private DataLevel(String table) {
+    private DataLevel(String table, TableId id) {
       this.table = table;
+      this.id = id;
     }
 
     /**
@@ -80,6 +84,15 @@ public interface Ample {
       if (table == null)
         throw new UnsupportedOperationException();
       return table;
+    }
+
+    /**
+     * @return The Id of the Accumulo table in which this data level stores its metadata.
+     */
+    public TableId tableId() {
+      if (id == null)
+        throw new UnsupportedOperationException();
+      return id;
     }
   }
 

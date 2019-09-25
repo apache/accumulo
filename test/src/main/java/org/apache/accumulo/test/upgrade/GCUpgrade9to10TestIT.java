@@ -54,10 +54,10 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class GCUpgradeTestIT extends ConfigurableMacBase {
+public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
-
   private static final String OLDDELPREFIX = "~del";
+  private static final Upgrader9to10 upgrader = new Upgrader9to10();
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -99,12 +99,18 @@ public class GCUpgradeTestIT extends ConfigurableMacBase {
 
   @Test
   public void gcUpgradeRootTableDeletesIT() throws Exception {
-    gcUpgradeDeletesTest(Ample.DataLevel.METADATA);
+    gcUpgradeDeletesTest(Ample.DataLevel.METADATA, 3);
   }
 
   @Test
   public void gcUpgradeMetadataTableDeletesIT() throws Exception {
-    gcUpgradeDeletesTest(Ample.DataLevel.USER);
+    gcUpgradeDeletesTest(Ample.DataLevel.USER, 3);
+  }
+
+  @Test
+  public void gcUpgradeNoDeletesIT() throws Exception {
+    gcUpgradeDeletesTest(Ample.DataLevel.METADATA, 0);
+
   }
 
   /**
@@ -115,18 +121,23 @@ public class GCUpgradeTestIT extends ConfigurableMacBase {
   @Test
   public void gcUpgradeOutofMemoryTest() throws Exception {
     killMacGc(); // we do not want anything deleted
+
+    int somebignumber = 100000;
     String longpathname = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
         + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"
         + "kkkkkkkkkkkkkkkkkklllllllllllllllllllllmmmmmmmmmmmmmmmmmnnnnnnnnnnnnnnnn";
+    longpathname += longpathname; // make it even longer
     Ample.DataLevel level = Ample.DataLevel.USER;
+
     log.info("Filling metadata table with lots of bogus delete flags");
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      addEntries(c, level.metaTable(), 150000, longpathname);
+      addEntries(c, level.metaTable(), somebignumber, longpathname);
+
       sleepUninterruptibly(1, TimeUnit.SECONDS);
-      Upgrader9to10.upgradeFileDeletes(getServerContext(), level);
+      upgrader.upgradeFileDeletes(getServerContext(), level);
+
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       Range range = MetadataSchema.DeletesSection.getRange();
-
       Scanner scanner;
       try {
         scanner = c.createScanner(level.metaTable(), Authorizations.EMPTY);
@@ -134,21 +145,21 @@ public class GCUpgradeTestIT extends ConfigurableMacBase {
         throw new RuntimeException(e);
       }
       scanner.setRange(range);
-      assertEquals(150000, Iterators.size(scanner.iterator()));
+      assertEquals(somebignumber, Iterators.size(scanner.iterator()));
     }
   }
 
-  private void gcUpgradeDeletesTest(Ample.DataLevel level) throws Exception {
+  private void gcUpgradeDeletesTest(Ample.DataLevel level, int count) throws Exception {
     killMacGc();// we do not want anything deleted
 
     log.info("Testing delete upgrades for {}", level.metaTable());
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
 
-      Map<String,String> expected = addEntries(c, level.metaTable(), 3, "somefile");
+      Map<String,String> expected = addEntries(c, level.metaTable(), count, "somefile");
       Map<String,String> actual = new HashMap<>();
 
       sleepUninterruptibly(1, TimeUnit.SECONDS);
-      Upgrader9to10.upgradeFileDeletes(getServerContext(), level);
+      upgrader.upgradeFileDeletes(getServerContext(), level);
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       Range range = MetadataSchema.DeletesSection.getRange();
 
@@ -167,7 +178,7 @@ public class GCUpgradeTestIT extends ConfigurableMacBase {
 
       // ENSURE IDEMPOTENCE - run upgrade again to ensure nothing is changed because there is
       // nothing to change
-      Upgrader9to10.upgradeFileDeletes(getServerContext(), level);
+      upgrader.upgradeFileDeletes(getServerContext(), level);
       try {
         scanner = c.createScanner(level.metaTable(), Authorizations.EMPTY);
       } catch (TableNotFoundException e) {
@@ -198,7 +209,8 @@ public class GCUpgradeTestIT extends ConfigurableMacBase {
         String longpath = String.format("hdfs://localhost:8020/%020d/%s", i, filename);
         Mutation delFlag = createOldDelMutation(longpath, "", "", "");
         bw.addMutation(delFlag);
-        expected.put(MetadataSchema.DeletesSection.encodeRow(longpath), Upgrader9to10.UPGRADED);
+        expected.put(MetadataSchema.DeletesSection.encodeRow(longpath),
+            Upgrader9to10.UPGRADED.toString());
       }
       return expected;
     }
