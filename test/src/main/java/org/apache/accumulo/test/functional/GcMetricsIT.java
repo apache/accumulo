@@ -63,6 +63,14 @@ public class GcMetricsIT extends AccumuloClusterHarness {
   @Test
   public void gcMetricsPublished() throws IOException {
 
+    boolean gcMetricsEnabled = cluster.getSiteConfiguration().getBoolean(Property.GC_ENABLE_METRICS2);
+    boolean fateMetricsEnabled = cluster.getSiteConfiguration().getBoolean(Property.MASTER_FATE_METRICS_ENABLED);
+
+    // test only valid when hadoop metrics 2 enabled for master and gc.
+    if(!gcMetricsEnabled && !fateMetricsEnabled){
+      return;
+    }
+
     HttpMetrics2Receiver masterMetrics =
         new HttpMetrics2Receiver(HttpMetrics2SinkProperties.ACC_MASTER_SINK_PREFIX);
 
