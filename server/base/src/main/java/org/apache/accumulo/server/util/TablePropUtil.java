@@ -64,6 +64,6 @@ public class TablePropUtil {
   }
 
   private static String getTablePath(String zkRoot, TableId tableId) {
-    return zkRoot + Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_CONF;
+    return zkRoot + Constants.TABLE_CONFIGS + Constants.ZTABLES + "/" + tableId.canonical();
   }
 }

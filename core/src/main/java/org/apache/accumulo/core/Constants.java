@@ -25,11 +25,9 @@ public class Constants {
   // Zookeeper locations
   public static final String ZROOT = "/accumulo";
   public static final String ZINSTANCES = "/instances";
-
   public static final String ZTABLES = "/tables";
   public static final byte[] ZTABLES_INITIAL_ID = {'0'};
   public static final String ZTABLE_NAME = "/name";
-  public static final String ZTABLE_CONF = "/conf";
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
   public static final String ZTABLE_COMPACT_ID = "/compact-id";
@@ -87,6 +85,8 @@ public class Constants {
   public static final String DEFAULT_TABLET_LOCATION = "/default_tablet";
 
   public static final String ZTABLE_LOCKS = "/table_locks";
+
+  public static final String TABLE_CONFIGS = "/table_configs";
 
   public static final String BULK_PREFIX = "b-";
   public static final String BULK_RENAME_FILE = "renames.json";

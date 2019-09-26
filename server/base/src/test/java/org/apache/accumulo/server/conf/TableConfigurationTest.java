@@ -84,8 +84,8 @@ public class TableConfigurationTest {
   @Test
   public void testGet_InZK() {
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/"
-        + p.getKey())).andReturn("sekrit".getBytes(UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.TABLE_CONFIGS + Constants.ZTABLES + "/" + TID
+        + "/" + p.getKey())).andReturn("sekrit".getBytes(UTF_8));
     replay(zc);
     assertEquals("sekrit", c.get(Property.INSTANCE_SECRET));
   }
@@ -93,8 +93,8 @@ public class TableConfigurationTest {
   @Test
   public void testGet_InParent() {
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/"
-        + p.getKey())).andReturn(null);
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.TABLE_CONFIGS + Constants.ZTABLES + "/" + TID
+        + "/" + p.getKey())).andReturn(null);
     replay(zc);
     expect(parent.get(p)).andReturn("sekrit");
     replay(parent);
@@ -110,14 +110,13 @@ public class TableConfigurationTest {
     List<String> children = new java.util.ArrayList<>();
     children.add("foo");
     children.add("ding");
-    expect(zc
-        .getChildren(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF))
+    expect(zc.getChildren(
+        ZooUtil.getRoot(iid) + Constants.TABLE_CONFIGS + Constants.ZTABLES + "/" + TID))
             .andReturn(children);
-    expect(zc.get(
-        ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + "foo"))
-            .andReturn("bar".getBytes(UTF_8));
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/"
-        + "ding")).andReturn("dong".getBytes(UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.TABLE_CONFIGS + Constants.ZTABLES + "/" + TID
+        + "/" + "foo")).andReturn("bar".getBytes(UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.TABLE_CONFIGS + Constants.ZTABLES + "/" + TID
+        + "/" + "ding")).andReturn("dong".getBytes(UTF_8));
     replay(zc);
     c.getProperties(props, all);
     assertEquals(2, props.size());
@@ -129,8 +128,8 @@ public class TableConfigurationTest {
   public void testInvalidateCache() {
     // need to do a get so the accessor is created
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/"
-        + p.getKey())).andReturn("sekrit".getBytes(UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.TABLE_CONFIGS + Constants.ZTABLES + "/" + TID
+        + "/" + p.getKey())).andReturn("sekrit".getBytes(UTF_8));
     zc.clear();
     replay(zc);
     c.get(Property.INSTANCE_SECRET);

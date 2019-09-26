@@ -86,7 +86,6 @@ public class TableManager {
     tableName = qualifiedTableName.getSecond();
     String zTablePath = Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId;
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_CONF, new byte[0], existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE,
         namespaceId.canonical().getBytes(UTF_8), existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(UTF_8),
@@ -229,18 +228,18 @@ public class TableManager {
     prepareNewTableState(zoo, instanceID, tableId, namespaceId, tableName, TableState.NEW,
         existsPolicy);
 
-    String srcTablePath = Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + srcTableId
-        + Constants.ZTABLE_CONF;
-    String newTablePath = Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + tableId
-        + Constants.ZTABLE_CONF;
+    String srcTablePath = Constants.ZROOT + "/" + instanceID + Constants.TABLE_CONFIGS
+        + Constants.ZTABLES + "/" + srcTableId;
+    String newTablePath = Constants.ZROOT + "/" + instanceID + Constants.TABLE_CONFIGS
+        + Constants.ZTABLES + "/" + tableId;
     zoo.recursiveCopyPersistent(srcTablePath, newTablePath, NodeExistsPolicy.OVERWRITE);
 
     for (Entry<String,String> entry : propertiesToSet.entrySet())
       TablePropUtil.setTableProperty(context, tableId, entry.getKey(), entry.getValue());
 
     for (String prop : propertiesToExclude)
-      zoo.recursiveDelete(Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + tableId
-          + Constants.ZTABLE_CONF + "/" + prop, NodeMissingPolicy.SKIP);
+      zoo.recursiveDelete(Constants.ZROOT + "/" + instanceID + Constants.TABLE_CONFIGS
+          + Constants.ZTABLES + "/" + tableId + "/" + prop, NodeMissingPolicy.SKIP);
 
     updateTableStateCache(tableId);
   }
@@ -251,6 +250,8 @@ public class TableManager {
       zoo.recursiveDelete(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE,
           NodeMissingPolicy.SKIP);
       zoo.recursiveDelete(zkRoot + Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
+      zoo.recursiveDelete(zkRoot + Constants.TABLE_CONFIGS + Constants.ZTABLES + "/" + tableId,
+          NodeMissingPolicy.SKIP);
     }
   }
 
@@ -309,7 +310,6 @@ public class TableManager {
         case NodeDeleted:
           if (zPath != null && tableId != null
               && (zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_STATE)
-                  || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_CONF)
                   || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_NAME)))
             tableStateCache.remove(tableId);
           break;
