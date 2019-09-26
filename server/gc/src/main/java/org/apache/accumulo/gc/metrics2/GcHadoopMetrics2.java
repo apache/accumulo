@@ -29,7 +29,7 @@ import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
 
-public class GcMetrics2 implements Metrics, MetricsSource {
+public class GcHadoopMetrics2 implements Metrics, MetricsSource {
 
   public static final String NAME = "AccGC" + ",sub=AccGcRunStats";
   public static final String DESCRIPTION = "Accumulo GC Metrics";
@@ -40,7 +40,7 @@ public class GcMetrics2 implements Metrics, MetricsSource {
   private final MetricsSystem metricsSystem;
   private final MetricsRegistry registry;
 
-  private static GcMetrics2 _instance;
+  private static GcHadoopMetrics2 _instance;
 
   private MutableGaugeLong gcStarted;
   private MutableGaugeLong gcFinished;
@@ -59,7 +59,7 @@ public class GcMetrics2 implements Metrics, MetricsSource {
   private MutableGaugeLong postOpDuration;
   private MutableGaugeLong runCycleCount;
 
-  private GcMetrics2(final SimpleGarbageCollector gc, final MetricsSystem metricsSystem) {
+  private GcHadoopMetrics2(final SimpleGarbageCollector gc, final MetricsSystem metricsSystem) {
     this.gc = gc;
     this.metricsSystem = metricsSystem;
 
@@ -89,10 +89,10 @@ public class GcMetrics2 implements Metrics, MetricsSource {
         registry.newGauge("AccGcRunCycleCount", "counter of completed gc collect cycles", 0L);
   }
 
-  public static synchronized GcMetrics2 init(SimpleGarbageCollector gc,
+  public static synchronized GcHadoopMetrics2 init(SimpleGarbageCollector gc,
       MetricsSystem metricsSystem) {
     if (_instance == null) {
-      _instance = new GcMetrics2(gc, metricsSystem);
+      _instance = new GcHadoopMetrics2(gc, metricsSystem);
     }
     return _instance;
   }
@@ -125,7 +125,7 @@ public class GcMetrics2 implements Metrics, MetricsSource {
     walDeleted.set(values.getLastWalCollect().deleted);
     walErrors.set(values.getLastWalCollect().errors);
 
-    postOpDuration.set(TimeUnit.NANOSECONDS.toMillis(values.getPostOpDuration()));
+    postOpDuration.set(TimeUnit.NANOSECONDS.toMillis(values.getPostOpDurationNanos()));
     runCycleCount.set(values.getRunCycleCount());
   }
 

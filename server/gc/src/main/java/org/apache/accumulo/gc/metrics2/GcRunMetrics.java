@@ -30,7 +30,7 @@ public class GcRunMetrics {
   private AtomicReference<GcCycleStats> lastCollect = new AtomicReference<>(new GcCycleStats());
   private AtomicReference<GcCycleStats> lastWalCollect = new AtomicReference<>(new GcCycleStats());
 
-  private AtomicLong postOpDuration = new AtomicLong(0);
+  private AtomicLong postOpDurationNanos = new AtomicLong(0);
   private AtomicLong runCycleCount = new AtomicLong(0);
 
   public GcRunMetrics() {}
@@ -79,18 +79,18 @@ public class GcRunMetrics {
    *
    * @return duration in nanoseconds.
    */
-  public long getPostOpDuration() {
-    return postOpDuration.get();
+  public long getPostOpDurationNanos() {
+    return postOpDurationNanos.get();
   }
 
   /**
    * Duration of post operation (compact, flush, none) in nanoseconds.
    *
-   * @param postOpDuration
+   * @param postOpDurationNanos
    *          the duration, in nanoseconds.
    */
-  public void setPostOpDuration(long postOpDuration) {
-    this.postOpDuration.set(postOpDuration);
+  public void setPostOpDurationNanos(long postOpDurationNanos) {
+    this.postOpDurationNanos.set(postOpDurationNanos);
   }
 
   /**
@@ -121,7 +121,7 @@ public class GcRunMetrics {
     final StringBuilder sb = new StringBuilder("GcMetricsValues{");
     sb.append("lastCollect=").append(lastCollect.get());
     sb.append(", lastWalCollect=").append(lastWalCollect.get());
-    sb.append(", postOpDuration=").append(postOpDuration.get());
+    sb.append(", postOpDuration=").append(postOpDurationNanos.get());
     sb.append('}');
     return sb.toString();
   }

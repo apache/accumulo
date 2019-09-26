@@ -82,7 +82,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
-import org.apache.accumulo.gc.metrics2.GcMetrics2;
+import org.apache.accumulo.gc.metrics2.GcHadoopMetrics2;
 import org.apache.accumulo.gc.metrics2.GcRunMetrics;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.Accumulo;
@@ -176,7 +176,6 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     }
   }
 
-
   /**
    * Creates a new garbage collector.
    *
@@ -191,15 +190,14 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
     final AccumuloConfiguration conf = getConfiguration();
 
-    GcMetrics2 gcMetrics2 = null;
-    MetricsSystemHelper.configure("acc_gc");
-    gcMetrics2 = GcMetrics2.init(this, MetricsSystemHelper.getInstance());
-    gcMetrics2.register();
-
-    // if (conf.getBoolean(Property.GC_ENABLE_METRICS2)) {
-    // MetricsSystemHelper.configure(SimpleGarbageCollector.class.getSimpleName());
-    // GcMetrics2.init(this, MetricsSystemHelper.getInstance());
-    // }
+    if (conf.getBoolean(Property.GC_ENABLE_METRICS2)) {
+      MetricsSystemHelper.configure("acc_gc");
+      GcHadoopMetrics2 gcHadoopMetrics2 =
+          GcHadoopMetrics2.init(this, MetricsSystemHelper.getInstance());
+      gcHadoopMetrics2.register();
+    } else {
+      MetricsSystemHelper.configure(SimpleGarbageCollector.class.getSimpleName());
+    }
 
     final long gcDelay = conf.getTimeInMillis(Property.GC_CYCLE_DELAY);
     final String useFullCompaction = conf.get(Property.GC_USE_FULL_COMPACTION);
@@ -687,7 +685,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
         final long actionComplete = System.nanoTime();
 
-        gcRunMetrics.setPostOpDuration(actionComplete - actionStart);
+        gcRunMetrics.setPostOpDurationNanos(actionComplete - actionStart);
 
         log.info("gc post action {} completed in {} seconds", action, String.format("%.2f",
             (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
