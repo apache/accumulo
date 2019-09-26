@@ -93,6 +93,11 @@ public class Upgrader9to10 implements Upgrader {
   public static final String ZROOT_TABLET_PATH = ZROOT_TABLET + "/dir";
   public static final Value UPGRADED = MetadataSchema.DeletesSection.SkewedKeyValue.NAME;
   public static final String OLD_DELETE_PREFIX = "~del";
+
+  /**
+   * This percentage was taken from the SimpleGarbageCollector and if nothing else is going on
+   * during upgrade then it could be larger.
+   */
   static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
 
   @Override
@@ -383,9 +388,10 @@ public class Upgrader9to10 implements Upgrader {
     try (BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig())) {
       log.info("looking for candidates in table {}", tableName);
       Iterator<String> oldCandidates = getOldCandidates(ctx, tableName);
+      int t = 0; // no waiting first time through
       while (oldCandidates.hasNext()) {
         // give it some time for memory to clean itself up if needed
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
+        sleepUninterruptibly(t, TimeUnit.SECONDS);
         List<String> deletes = readCandidatesThatFitInMemory(oldCandidates);
         log.info("found {} deletes to upgrade", deletes.size());
         for (String olddelete : deletes) {
@@ -401,7 +407,7 @@ public class Upgrader9to10 implements Upgrader {
           writer.addMutation(deleteOldDeleteMutation(olddelete));
         }
         writer.flush();
-
+        t = 3;
       }
     } catch (TableNotFoundException | MutationsRejectedException e) {
       throw new RuntimeException(e);

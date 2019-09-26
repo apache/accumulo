@@ -171,11 +171,6 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       return StreamSupport.stream(scanner.spliterator(), false)
           .filter(entry -> entry.getValue().equals(DeletesSection.SkewedKeyValue.NAME))
           .map(entry -> DeletesSection.decodeRow(entry.getKey().getRow().toString())).iterator();
-      /*
-       * return Iterators.transform( Iterators.filter(scanner.iterator(), entry ->
-       * entry.getValue().equals(DeletesSection.SkewedKeyValue.NAME)), entry ->
-       * DeletesSection.decodeRow(entry.getKey().getRow().toString()));
-       */
     } else {
       throw new IllegalArgumentException();
     }
