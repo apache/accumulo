@@ -71,6 +71,8 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.gc.metrics2.GcCycleMetrics;
+import org.apache.accumulo.gc.metrics2.GcMetricsFactory;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerConstants;
@@ -117,6 +119,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   private GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
+  private GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
+
   public static void main(String[] args) throws Exception {
     try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ServerOpts(), args)) {
       gc.runServer();
@@ -127,6 +131,14 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     super("gc", opts, args);
 
     final AccumuloConfiguration conf = getConfiguration();
+
+    boolean gcMetricsRegistered = new GcMetricsFactory(conf).register(this);
+
+    if (gcMetricsRegistered) {
+      log.info("gc metrics modules registered with metrics system");
+    } else {
+      log.info("Failed to register gc metrics module");
+    }
 
     final long gcDelay = conf.getTimeInMillis(Property.GC_CYCLE_DELAY);
     final String useFullCompaction = conf.get(Property.GC_USE_FULL_COMPACTION);
@@ -506,6 +518,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
             status.current.finished = System.currentTimeMillis();
             status.last = status.current;
+            gcCycleMetrics.setLastCollect(status.current);
             status.current = new GcCycleStats();
 
           } catch (Exception e) {
@@ -534,6 +547,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
                 new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, isUsingTrash());
             log.info("Beginning garbage collection of write-ahead logs");
             walogCollector.collect(status);
+            gcCycleMetrics.setLastWalCollect(status.lastLog);
           } catch (Exception e) {
             log.error("{}", e.getMessage(), e);
           }
@@ -563,6 +577,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
           final long actionComplete = System.nanoTime();
 
+          gcCycleMetrics.setPostOpDurationNanos(actionComplete - actionStart);
+
           log.info("gc post action {} completed in {} seconds", action, String.format("%.2f",
               (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
 
@@ -571,6 +587,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         }
       }
       try {
+        gcCycleMetrics.incrementRunCycleCount();
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for {} milliseconds", gcDelay);
         Thread.sleep(gcDelay);
@@ -695,5 +712,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   @Override
   public GCStatus getStatus(TInfo info, TCredentials credentials) {
     return status;
+  }
+
+  public GcCycleMetrics getGcCycleMetrics() {
+    return gcCycleMetrics;
   }
 }

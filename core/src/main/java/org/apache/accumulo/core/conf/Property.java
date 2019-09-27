@@ -260,7 +260,7 @@ public enum Property {
   MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation",
       "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log"),
-  MASTER_FATE_METRICS_ENABLED("master.fate.metrics.enabled", "false", PropertyType.BOOLEAN,
+  MASTER_FATE_METRICS_ENABLED("master.fate.metrics.enabled", "true", PropertyType.BOOLEAN,
       "Enable reporting of FATE metrics in JMX (and logging with Hadoop Metrics2"),
   MASTER_FATE_METRICS_MIN_UPDATE_INTERVAL("master.fate.metrics.min.update.interval", "60s",
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval"),
@@ -529,8 +529,9 @@ public enum Property {
       "When the gc runs it can make a lot of changes to the metadata, on completion, "
           + " to force the changes to be written to disk, the metadata and root tables can be flushed"
           + " and possibly compacted. Legal values are: compact - which both flushes and compacts the"
-          + " metadata; flush - which flushes only (compactions may be triggered if required); or none."
-          + " Since 2.0, the default is flush. Previously the default action was a full compaction."),
+          + " metadata; flush - which flushes only (compactions may be triggered if required); or none"),
+  GC_ENABLE_METRICS2("gc.enable.metrics2", "true", PropertyType.BOOLEAN,
+      "Enable detailed gc metrics reporting with hadoop metrics2."),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
