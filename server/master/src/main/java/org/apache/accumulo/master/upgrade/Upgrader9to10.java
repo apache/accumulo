@@ -20,6 +20,8 @@ package org.apache.accumulo.master.upgrade;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET_GC_CANDIDATES;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -27,19 +29,33 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -51,6 +67,7 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
+import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -74,6 +91,14 @@ public class Upgrader9to10 implements Upgrader {
   public static final String ZROOT_TABLET_WALOGS = ZROOT_TABLET + "/walogs";
   public static final String ZROOT_TABLET_CURRENT_LOGS = ZROOT_TABLET + "/current_logs";
   public static final String ZROOT_TABLET_PATH = ZROOT_TABLET + "/dir";
+  public static final Value UPGRADED = MetadataSchema.DeletesSection.SkewedKeyValue.NAME;
+  public static final String OLD_DELETE_PREFIX = "~del";
+
+  /**
+   * This percentage was taken from the SimpleGarbageCollector and if nothing else is going on
+   * during upgrade then it could be larger.
+   */
+  static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
 
   @Override
   public void upgradeZookeeper(ServerContext ctx) {
@@ -82,6 +107,8 @@ public class Upgrader9to10 implements Upgrader {
 
   @Override
   public void upgradeMetadata(ServerContext ctx) {
+    upgradeFileDeletes(ctx, Ample.DataLevel.METADATA);
+    upgradeFileDeletes(ctx, Ample.DataLevel.USER);
 
   }
 
@@ -350,6 +377,80 @@ public class Upgrader9to10 implements Upgrader {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
+  }
+
+  public void upgradeFileDeletes(ServerContext ctx, Ample.DataLevel level) {
+
+    String tableName = level.metaTable();
+    AccumuloClient c = ctx;
+
+    // find all deletes
+    try (BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig())) {
+      log.info("looking for candidates in table {}", tableName);
+      Iterator<String> oldCandidates = getOldCandidates(ctx, tableName);
+      int t = 0; // no waiting first time through
+      while (oldCandidates.hasNext()) {
+        // give it some time for memory to clean itself up if needed
+        sleepUninterruptibly(t, TimeUnit.SECONDS);
+        List<String> deletes = readCandidatesThatFitInMemory(oldCandidates);
+        log.info("found {} deletes to upgrade", deletes.size());
+        for (String olddelete : deletes) {
+          // create new formatted delete
+          log.trace("upgrading delete entry for {}", olddelete);
+          writer.addMutation(ServerAmpleImpl.createDeleteMutation(ctx, level.tableId(), olddelete));
+        }
+        writer.flush();
+        // if nothing thrown then we're good so mark all deleted
+        log.info("upgrade processing completed so delete old entries");
+        for (String olddelete : deletes) {
+          log.trace("deleting old entry for {}", olddelete);
+          writer.addMutation(deleteOldDeleteMutation(olddelete));
+        }
+        writer.flush();
+        t = 3;
+      }
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Iterator<String> getOldCandidates(ServerContext ctx, String tableName)
+      throws TableNotFoundException {
+    Range range = MetadataSchema.DeletesSection.getRange();
+    Scanner scanner = ctx.createScanner(tableName, Authorizations.EMPTY);
+    scanner.setRange(range);
+    return StreamSupport.stream(scanner.spliterator(), false)
+        .filter(entry -> !entry.getValue().equals(UPGRADED))
+        .map(entry -> entry.getKey().getRow().toString().substring(OLD_DELETE_PREFIX.length()))
+        .iterator();
+  }
+
+  private List<String> readCandidatesThatFitInMemory(Iterator<String> candidates) {
+    List<String> result = new ArrayList<>();
+    // Always read at least one. If memory doesn't clean up fast enough at least
+    // some progress is made.
+    while (candidates.hasNext()) {
+      result.add(candidates.next());
+      if (almostOutOfMemory(Runtime.getRuntime()))
+        break;
+    }
+    return result;
+  }
+
+  private Mutation deleteOldDeleteMutation(final String delete) {
+    Mutation m = new Mutation(OLD_DELETE_PREFIX + delete);
+    m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
+    return m;
+  }
+
+  private boolean almostOutOfMemory(Runtime runtime) {
+    if (runtime.totalMemory() - runtime.freeMemory()
+        > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory()) {
+      log.info("List of delete candidates has exceeded the memory"
+          + " threshold. Attempting to delete what has been gathered so far.");
+      return true;
+    } else
+      return false;
   }
 
 }
