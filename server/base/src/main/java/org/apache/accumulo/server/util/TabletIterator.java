@@ -110,7 +110,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
             Text defaultTabletRow = TabletsSection.getRow(lastExtent.getTableId(), null);
             if (range.contains(new Key(defaultTabletRow))) {
               throw new IllegalStateException(
-                  "Scan range incudled default tablet, but did not see default tablet.  Last tablet seen : "
+                  "Scan range included default tablet, but did not see default tablet.  Last tablet seen : "
                       + lastTablet);
             }
           }
