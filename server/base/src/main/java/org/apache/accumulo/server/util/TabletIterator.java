@@ -105,6 +105,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         if (lastTablet != null) {
           KeyExtent lastExtent = new KeyExtent(lastTablet, (Text) null);
 
+          // if lastTablet was not the default tablet
           if (lastExtent.getEndRow() != null) {
 
             Text defaultTabletRow = TabletsSection.getRow(lastExtent.getTableId(), null);
