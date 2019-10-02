@@ -348,59 +348,56 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloSecurityException, TableExistsException, TableNotFoundException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
     Long opid = null;
-    // keep retrying bulk import if a concurrent merge happens. all other ops throw error or return
-    while (true) {
-      try {
-        opid = beginFateOperation();
-        executeFateOperation(opid, op, args, opts, !wait);
-        if (!wait) {
-          opid = null;
-          return null;
-        }
-        return waitForFateOperation(opid);
-      } catch (ThriftSecurityException e) {
-        switch (e.getCode()) {
-          case TABLE_DOESNT_EXIST:
-            throw new TableNotFoundException(null, tableOrNamespaceName,
-                "Target table does not exist");
-          case NAMESPACE_DOESNT_EXIST:
-            throw new NamespaceNotFoundException(null, tableOrNamespaceName,
-                "Target namespace does not exist");
-          default:
-            String tableInfo = Tables.getPrintableTableInfoFromName(context, tableOrNamespaceName);
-            throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
-        }
-      } catch (ThriftTableOperationException e) {
-        switch (e.getType()) {
-          case EXISTS:
-            throw new TableExistsException(e);
-          case NOTFOUND:
-            throw new TableNotFoundException(e);
-          case NAMESPACE_EXISTS:
-            throw new NamespaceExistsException(e);
-          case NAMESPACE_NOTFOUND:
-            throw new NamespaceNotFoundException(e);
-          case OFFLINE:
-            throw new TableOfflineException(Tables.getTableOfflineMsg(context,
-                Tables.getTableId(context, tableOrNamespaceName)));
-          case BULK_CONCURRENT_MERGE:
-            log.info("Concurrent merge happened. Retrying Bulk Import to " + e.tableName);
-            break;
-          default:
-            throw new AccumuloException(e.description, e);
-        }
-      } catch (Exception e) {
-        throw new AccumuloException(e.getMessage(), e);
-      } finally {
-        Tables.clearCache(context);
-        // always finish table op, even when exception
-        if (opid != null)
-          try {
-            finishFateOperation(opid);
-          } catch (Exception e) {
-            log.warn("Exception thrown while finishing fate table operation", e);
-          }
+
+    try {
+      opid = beginFateOperation();
+      executeFateOperation(opid, op, args, opts, !wait);
+      if (!wait) {
+        opid = null;
+        return null;
       }
+      return waitForFateOperation(opid);
+    } catch (ThriftSecurityException e) {
+      switch (e.getCode()) {
+        case TABLE_DOESNT_EXIST:
+          throw new TableNotFoundException(null, tableOrNamespaceName,
+              "Target table does not exist");
+        case NAMESPACE_DOESNT_EXIST:
+          throw new NamespaceNotFoundException(null, tableOrNamespaceName,
+              "Target namespace does not exist");
+        default:
+          String tableInfo = Tables.getPrintableTableInfoFromName(context, tableOrNamespaceName);
+          throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
+      }
+    } catch (ThriftTableOperationException e) {
+      switch (e.getType()) {
+        case EXISTS:
+          throw new TableExistsException(e);
+        case NOTFOUND:
+          throw new TableNotFoundException(e);
+        case NAMESPACE_EXISTS:
+          throw new NamespaceExistsException(e);
+        case NAMESPACE_NOTFOUND:
+          throw new NamespaceNotFoundException(e);
+        case OFFLINE:
+          throw new TableOfflineException(
+              Tables.getTableOfflineMsg(context, Tables.getTableId(context, tableOrNamespaceName)));
+        case BULK_CONCURRENT_MERGE:
+          throw new AccumuloBulkMergeException(e);
+        default:
+          throw new AccumuloException(e.description, e);
+      }
+    } catch (Exception e) {
+      throw new AccumuloException(e.getMessage(), e);
+    } finally {
+      Tables.clearCache(context);
+      // always finish table op, even when exception
+      if (opid != null)
+        try {
+          finishFateOperation(opid);
+        } catch (Exception e) {
+          log.warn("Exception thrown while finishing fate table operation", e);
+        }
     }
   }
 

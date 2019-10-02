@@ -49,6 +49,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationArguments;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
+import org.apache.accumulo.core.clientImpl.AccumuloBulkMergeException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -125,21 +126,47 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Path srcPath = checkPath(fs, dir);
 
     SortedMap<KeyExtent,Bulk.Files> mappings;
-    if (plan == null) {
-      mappings = computeMappingFromFiles(fs, tableId, srcPath);
-    } else {
-      mappings = computeMappingFromPlan(fs, tableId, srcPath);
+    TableOperationsImpl tableOps = new TableOperationsImpl(context);
+    // retry if a merge occurs
+    boolean retry = true;
+    while (retry) {
+      if (plan == null) {
+        mappings = computeMappingFromFiles(fs, tableId, srcPath);
+      } else {
+        mappings = computeMappingFromPlan(fs, tableId, srcPath);
+      }
+
+      if (mappings.isEmpty())
+        throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
+
+      BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
+
+      List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
+          ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
+          ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
+      try {
+        tableOps.doBulkFateOperation(args, tableName);
+        retry = false;
+      } catch (AccumuloBulkMergeException ae) {
+        if (plan != null) {
+          checkPlanForSplits();
+        }
+        log.info(ae.getMessage() + ". Retrying bulk import to " + tableName);
+      }
     }
+  }
 
-    if (mappings.isEmpty())
-      throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
-
-    BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
-
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
-        ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
-        ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
-    new TableOperationsImpl(context).doBulkFateOperation(args, tableName);
+  /**
+   * Check if splits were specified in plan when a concurrent merge occurred. If so, throw error
+   * back to user since retrying won't help. If not, then retry.
+   */
+  private void checkPlanForSplits() throws AccumuloException {
+    for (Destination des : plan.getDestinations()) {
+      if (des.getRangeType().equals(RangeType.TABLE)) {
+        throw new AccumuloException(
+            "The splits provided in Load Plan do not exist in " + tableName);
+      }
+    }
   }
 
   /**
