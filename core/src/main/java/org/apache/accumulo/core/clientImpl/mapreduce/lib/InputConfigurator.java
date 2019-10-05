@@ -61,6 +61,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
@@ -706,6 +707,15 @@ public class InputConfigurator extends ConfiguratorBase {
     return queryConfigs.get(tableName);
   }
 
+  private static String extractNamespace(final String tableName) {
+    final int delimiterPos = tableName.indexOf('.');
+    if (delimiterPos < 1) {
+      return ""; // default namespace
+    } else {
+      return tableName.substring(0, delimiterPos);
+    }
+  }
+
   /**
    * Validates that the user has permissions on the requested tables
    *
@@ -732,9 +742,15 @@ public class InputConfigurator extends ConfiguratorBase {
       for (Map.Entry<String,
           org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfig : inputTableConfigs
               .entrySet()) {
-        if (!client.securityOperations().hasTablePermission(principal, tableConfig.getKey(),
-            TablePermission.READ))
+        final String tableName = tableConfig.getKey();
+        final String namespace = extractNamespace(tableName);
+        final boolean hasTableRead = client.securityOperations().hasTablePermission(principal,
+            tableName, TablePermission.READ);
+        final boolean hasNamespaceRead = client.securityOperations()
+            .hasNamespacePermission(principal, namespace, NamespacePermission.READ);
+        if (!hasTableRead && !hasNamespaceRead) {
           throw new IOException("Unable to access table");
+        }
       }
       for (Map.Entry<String,
           org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfigEntry : inputTableConfigs
