@@ -35,8 +35,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class allows testing of the publishing to the hadoop metrics2 system by processing a file
- * for metric records (written as a line.) The file should be configured using the hadoop metrics2
+ * This class allows testing of the publishing to the hadoop metrics system by processing a file for
+ * metric records (written as a line.) The file should be configured using the hadoop metrics
  * properties as a file based sink with the prefix that is provided on instantiation of the
  * instance.
  *
@@ -64,11 +64,11 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
   private final String metricsFilename;
 
   /**
-   * Create an instance that will tail a metrics2 file. The filename / path is determined by the
-   * hadoop-metrics2-accumulo.properties sink configuration for the metrics prefix that is provided.
+   * Create an instance that will tail a metrics file. The filename / path is determined by the
+   * hadoop-metrics-accumulo.properties sink configuration for the metrics prefix that is provided.
    *
    * @param metricsPrefix
-   *          the prefix in the metrics2 configuration.
+   *          the prefix in the metrics configuration.
    */
   public MetricsFileTailer(final String metricsPrefix) {
 
@@ -93,7 +93,7 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
   }
 
   /**
-   * Create an instance by specifying a file directly instead of using the metrics2 configuration -
+   * Create an instance by specifying a file directly instead of using the metrics configuration -
    * mainly for testing.
    *
    * @param metricsPrefix

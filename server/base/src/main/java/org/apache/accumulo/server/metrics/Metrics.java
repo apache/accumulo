@@ -29,6 +29,20 @@ import org.apache.hadoop.metrics2.source.JvmMetricsInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Accumulo will search for a file named hadoop-metrics-accumulo.properties on the Accumulo
+ * classpath to configute the hadoop metrics2 system. The hadoop metrics system publishes to jmx and
+ * can be configured, via a configuration file, to publish to other metric collection systems
+ * (files,...)
+ * <p>
+ * A note on naming: The naming for jmx vs the hadoop metrics systems are slightly different. Hadoop
+ * metrics records will start with CONTEXT.RECORD, for example, accgc.AccGcCycleMetrics. The context
+ * parameter value is also used by the configuration file for sink configuration.
+ * <p>
+ * In JMX, the hierarchy is: Hadoop..Accumulo..[jmxName]..[processName]..attributes..[name]
+ * <p>
+ * For jvm metrics, the hierarchy is Hadoop..Accumulo..JvmMetrics..attributes..[name]
+ */
 public abstract class Metrics implements MetricsSource {
 
   private static String processName = "Unknown";

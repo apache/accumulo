@@ -14,18 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.gc.metrics2;
+package org.apache.accumulo.gc.metrics;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Wrapper class for GcCycleStats so that underlying thrift code in GcCycleStats is not modified.
  * Provides Thread safe access to the gc cycle stats for metrics reporting.
  */
 public class GcCycleMetrics {
+
+  private static final Logger log = LoggerFactory.getLogger(GcCycleMetrics.class);
 
   private AtomicReference<GcCycleStats> lastCollect = new AtomicReference<>(new GcCycleStats());
   private AtomicReference<GcCycleStats> lastWalCollect = new AtomicReference<>(new GcCycleStats());
@@ -84,7 +88,7 @@ public class GcCycleMetrics {
   }
 
   /**
-   * Duration of post operation (compact, flush, none) in nanoseconds.
+   * Set the duration of post operation (compact, flush, none) in nanoseconds.
    *
    * @param postOpDurationNanos
    *          the duration, in nanoseconds.
@@ -94,24 +98,34 @@ public class GcCycleMetrics {
   }
 
   /**
-   * Duration of post operation (compact, flush, none) in nanoseconds.
+   * The number of gc cycles that have completed since initialization at process start.
    *
-   * @return duration in nanoseconds.
+   * @return current run cycle count.
    */
   public long getRunCycleCount() {
     return runCycleCount.get();
   }
 
   /**
-   * Duration of post operation (compact, flush, none) in nanoseconds.
+   * Set the counter for number of completed gc collection cycles p the provided value. The value is
+   * expected to be &gt;= 0. If a negative value is provided, the count is set to zero and a warning
+   * is logged rather than throwing an exception.
    *
    * @param runCycleCount
    *          the number of gc collect cycles completed.
    */
   public void setRunCycleCount(long runCycleCount) {
+
+    if (runCycleCount < 0) {
+      log.warn("Attempted to set run cycle count to {}.  Value must be => 0. Count set to 0",
+          runCycleCount);
+    }
     this.runCycleCount.set(runCycleCount);
   }
 
+  /**
+   * Increment the gc run cycle count by one.
+   */
   public void incrementRunCycleCount() {
     this.runCycleCount.incrementAndGet();
   }

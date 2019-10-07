@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.gc.metrics2.GcMetrics;
+import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.metrics.MetricsFileTailer;
 import org.junit.Before;
@@ -88,7 +88,7 @@ public class GcMetricsIT extends AccumuloClusterHarness {
 
       Map<String,Long> updateSeenMap = parseLine(nextUpdate.getLine());
 
-      log.trace("Line received:{}", nextUpdate.getLine());
+      log.debug("Line received:{}", nextUpdate.getLine());
       log.trace("Mapped values:{}", updateSeenMap);
 
       assertTrue(lookForExpectedKeys(updateSeenMap));
@@ -137,7 +137,7 @@ public class GcMetricsIT extends AccumuloClusterHarness {
   }
 
   /**
-   * The hadoop metrics2 file sink published records as a line with comma separated key=value pairs.
+   * The hadoop metrics file sink published records as a line with comma separated key=value pairs.
    * This method parses the line and extracts the key, value pair from metrics that start with AccGc
    * and returns them in a sort map.
    *

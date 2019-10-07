@@ -17,7 +17,7 @@
 package org.apache.accumulo.test.metrics;
 
 /**
- * common properties used with metrics2 configuration.
+ * common properties used with metrics configuration.
  */
 public class MetricsTestSinkProperties {
 

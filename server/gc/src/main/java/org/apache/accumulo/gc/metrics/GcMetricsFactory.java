@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.gc.metrics2;
+package org.apache.accumulo.gc.metrics;
 
 import static java.util.Objects.requireNonNull;
 
@@ -33,14 +33,14 @@ public class GcMetricsFactory {
 
   public GcMetricsFactory(AccumuloConfiguration conf) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
-    enableMetrics = conf.getBoolean(Property.GC_ENABLE_METRICS2);
+    enableMetrics = conf.getBoolean(Property.GC_METRICS_ENABLED);
   }
 
   public boolean register(SimpleGarbageCollector gc) {
 
     if (!enableMetrics) {
       log.info("Accumulo gc metrics are disabled.  To enable, set {} in configuration",
-          Property.GC_ENABLE_METRICS2);
+          Property.GC_METRICS_ENABLED);
       return false;
     }
 

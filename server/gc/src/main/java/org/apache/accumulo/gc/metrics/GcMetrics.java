@@ -14,21 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.gc.metrics2;
-
-import static org.apache.accumulo.gc.metrics2.GcMetrics.GC_METRIC_PREFIX;
+package org.apache.accumulo.gc.metrics;
 
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.gc.SimpleGarbageCollector;
+import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
 
 /**
- * Hadoop metrics2 implementation of Accumulo GC cycle metrics.
+ * Expected to be instantiated with GcMetricsFactory. This will configure both jmx and the hadoop
+ * metrics systems. The naming convention, in hadoop metrics2, the records will appear as
+ * CONTEXT.RECORD (accgc.AccGcCycleMetrics). The value for context is also used by the configuration
+ * file for sink configuration.
  */
-class GcHadoopMetrics2 {
+public class GcMetrics extends Metrics {
 
+  // use common prefix, different that just gc, to prevent confusion with jvm gc metrics.
+  public static final String GC_METRIC_PREFIX = "AccGc";
+
+  private static final String jmxName = "GarbageCollector";
+  private static final String description = "Accumulo garbage collection metrics";
+  private static final String record = "AccGcCycleMetrics";
+
+  private final SimpleGarbageCollector gc;
+
+  // metrics gauges / counters.
   private final MutableGaugeLong gcStarted;
   private final MutableGaugeLong gcFinished;
   private final MutableGaugeLong gcCandidates;
@@ -46,7 +59,11 @@ class GcHadoopMetrics2 {
   private final MutableGaugeLong postOpDuration;
   private final MutableGaugeLong runCycleCount;
 
-  GcHadoopMetrics2(final MetricsRegistry registry) {
+  GcMetrics(final SimpleGarbageCollector gc) {
+    super(jmxName + ",sub=" + gc.getClass().getSimpleName(), description, "accgc", record);
+    this.gc = gc;
+
+    MetricsRegistry registry = super.getRegistry();
 
     gcStarted = registry.newGauge(GC_METRIC_PREFIX + "Started",
         "Timestamp GC file collection cycle started", 0L);
@@ -79,9 +96,13 @@ class GcHadoopMetrics2 {
 
     runCycleCount = registry.newGauge(GC_METRIC_PREFIX + "RunCycleCount",
         "gauge incremented each gc cycle run, rest on process start", 0L);
+
   }
 
-  void prepare(final GcCycleMetrics values) {
+  @Override
+  protected void prepareMetrics() {
+
+    GcCycleMetrics values = gc.getGcCycleMetrics();
 
     GcCycleStats lastFileCollect = values.getLastCollect();
 
@@ -103,6 +124,5 @@ class GcHadoopMetrics2 {
 
     postOpDuration.set(TimeUnit.NANOSECONDS.toMillis(values.getPostOpDurationNanos()));
     runCycleCount.set(values.getRunCycleCount());
-
   }
 }
