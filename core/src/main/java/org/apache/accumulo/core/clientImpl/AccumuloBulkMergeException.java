@@ -23,10 +23,10 @@ import org.apache.accumulo.core.client.AccumuloException;
  */
 public class AccumuloBulkMergeException extends AccumuloException {
 
-  public static final String Msg = "Concurrent merge happened";
+  private static final String MSG = "Concurrent merge happened";
 
   public AccumuloBulkMergeException(final Throwable cause) {
-    super(Msg, cause);
+    super(MSG, cause);
   }
 
 }
