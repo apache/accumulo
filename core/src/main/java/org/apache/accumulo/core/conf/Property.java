@@ -530,7 +530,7 @@ public enum Property {
           + " to force the changes to be written to disk, the metadata and root tables can be flushed"
           + " and possibly compacted. Legal values are: compact - which both flushes and compacts the"
           + " metadata; flush - which flushes only (compactions may be triggered if required); or none"),
-  GC_METRICS_ENABLED("gc.enable.metrics", "true", PropertyType.BOOLEAN,
+  GC_METRICS_ENABLED("gc.metrics.enabled", "true", PropertyType.BOOLEAN,
       "Enable detailed gc metrics reporting with hadoop metrics."),
 
   // properties that are specific to the monitor server behavior
