@@ -19,7 +19,11 @@ package org.apache.accumulo.test.metrics;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.net.URL;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -39,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * metric records (written as a line.) The file should be configured using the hadoop metrics
  * properties as a file based sink with the prefix that is provided on instantiation of the
  * instance.
- *
+ * <p>
  * This class will simulate tail-ing a file and is intended to be run in a separate thread. When the
  * underlying file has data written, the vaule returned by getLastUpdate will change, and the last
  * line can be retrieved with getLast().
@@ -185,6 +189,49 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
   }
 
   /**
+   * The hadoop metrics file sink published records as a line with comma separated key=value pairs.
+   * This method parses the line and extracts the key, value pair from metrics that start with an
+   * optional prefix and returns them in a sort map. If the prefix is null or empty, all keys are
+   * accepted.
+   *
+   * @param prefix
+   *          optional filter - include metrics that start with provided value..
+   * @return a map of the metrics that start with AccGc
+   */
+  public Map<String,String> parseLine(final String prefix) {
+
+    String line = getLast();
+
+    if (line == null) {
+      return Collections.emptyMap();
+    }
+
+    Map<String,String> m = new TreeMap<>();
+
+    String[] csvTokens = line.split(",");
+
+    for (String token : csvTokens) {
+      token = token.trim();
+      if (filter(prefix, token)) {
+        String[] parts = token.split("=");
+        m.put(parts[0], parts[1]);
+      }
+    }
+    return m;
+  }
+
+  private boolean filter(final String prefix, final String candidate) {
+    if (candidate == null) {
+      return false;
+    }
+
+    if (prefix == null || prefix.isEmpty()) {
+      return true;
+    }
+    return candidate.startsWith(prefix);
+  }
+
+  /**
    * A loop that polls for changes and when the file changes, put the last line in a buffer that can
    * be retrieved by clients using getLast().
    */
@@ -252,4 +299,58 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
   public void close() {
     running.set(Boolean.FALSE);
   }
+
+  // utilities to block, waiting for update - call from process thread
+
+  public static class LineUpdate {
+    private final long lastUpdate;
+    private final String line;
+
+    public LineUpdate(long lastUpdate, String line) {
+      this.lastUpdate = lastUpdate;
+      this.line = line;
+    }
+
+    public long getLastUpdate() {
+      return lastUpdate;
+    }
+
+    public String getLine() {
+      return line;
+    }
+
+    @Override
+    public String toString() {
+      final StringBuilder sb = new StringBuilder("LineUpdate{");
+      sb.append("lastUpdate=").append(lastUpdate);
+      sb.append(", line='").append(line).append('\'');
+      sb.append('}');
+      return sb.toString();
+    }
+  }
+
+  public LineUpdate waitForUpdate(final long prevUpdate, final int maxAttempts, final long delay) {
+
+    for (int count = 0; count < maxAttempts; count++) {
+
+      String line = getLast();
+      long currUpdate = getLastUpdate();
+
+      if (line != null && (currUpdate != prevUpdate)) {
+        return new LineUpdate(getLastUpdate(), line);
+      }
+
+      try {
+        Thread.sleep(delay);
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(ex);
+      }
+    }
+    // not found - throw exception.
+    throw new IllegalStateException(
+        String.format("File source update not received after %d tries in %d sec", maxAttempts,
+            TimeUnit.MILLISECONDS.toSeconds(delay * maxAttempts)));
+  }
+
 }

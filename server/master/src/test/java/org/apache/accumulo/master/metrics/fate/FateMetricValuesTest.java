@@ -18,9 +18,16 @@ package org.apache.accumulo.master.metrics.fate;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Map;
+import java.util.TreeMap;
+
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FateMetricValuesTest {
+
+  private static final Logger log = LoggerFactory.getLogger(FateMetricValuesTest.class);
 
   @Test
   public void defaultValueTest() {
@@ -43,31 +50,21 @@ public class FateMetricValuesTest {
     assertEquals(1, v.getCurrentFateOps());
     assertEquals(2, v.getZkFateChildOpsTotal());
     assertEquals(3, v.getZkConnectionErrors());
+  }
 
-    FateMetricValues.Builder builder2 = builder.copy(v);
+  @Test
+  public void foo() {
+    Map<String,Long> m1 = new TreeMap<>();
+    m1.put("A", 1L);
+    m1.put("B", 2L);
 
-    FateMetricValues v2 = builder2.withCurrentFateOps(11).build();
+    Map<String,Long> m2 = new TreeMap<>(m1);
 
-    assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(2, v2.getZkFateChildOpsTotal());
-    assertEquals(3, v2.getZkConnectionErrors());
+    m1.put("A", 99L);
+    m1.compute("A", (k, v) -> (v == null) ? 1 : v + 1);
+    m1.compute("B", (k, v) -> (v == null) ? 1 : v + 1);
+    m1.compute("C", (k, v) -> (v == null) ? 1 : v + 1);
 
-    v2 = builder2.withZkFateChildOpsTotal(22).build();
-
-    assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(22, v2.getZkFateChildOpsTotal());
-    assertEquals(3, v2.getZkConnectionErrors());
-
-    v2 = builder2.withZkConnectionErrors(33).build();
-
-    assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(22, v2.getZkFateChildOpsTotal());
-    assertEquals(33, v2.getZkConnectionErrors());
-
-    v2 = builder2.incrZkConnectionErrors().build();
-
-    assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(22, v2.getZkFateChildOpsTotal());
-    assertEquals(34, v2.getZkConnectionErrors());
+    log.info("M1: {}, M2: {}", m1, m2);
   }
 }
