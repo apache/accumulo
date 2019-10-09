@@ -82,6 +82,8 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.gc.metrics.GcCycleMetrics;
+import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
@@ -149,6 +151,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   private GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
+  private GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
+
   public static void main(String[] args) throws UnknownHostException, IOException {
     final String app = "gc";
     Accumulo.setupLogging(app);
@@ -185,6 +189,20 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     this.fs = fs;
 
     final AccumuloConfiguration conf = getConfiguration();
+
+    GcMetrics gcMetrics = new GcMetrics(this, conf.getBoolean(Property.GC_METRICS_ENABLED));
+
+    try {
+      if (gcMetrics.isEnabled()) {
+        gcMetrics.register();
+        log.info("gc metrics: registered with metrics system");
+      } else {
+        log.info(
+            "gc metrics: disabled. Set GC_METRICS_ENABLED property to true for detailed gc metrics");
+      }
+    } catch (Exception ex) {
+      log.info("gc metrics: Failed to register gc metrics module", ex);
+    }
 
     final long gcDelay = conf.getTimeInMillis(Property.GC_CYCLE_DELAY);
     final String useFullCompaction = conf.get(Property.GC_USE_FULL_COMPACTION);
@@ -607,6 +625,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
         status.current.finished = System.currentTimeMillis();
         status.last = status.current;
+        gcCycleMetrics.setLastCollect(status.current);
         status.current = new GcCycleStats();
 
       } catch (Exception e) {
@@ -637,6 +656,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
             new GarbageCollectWriteAheadLogs(this, fs, liveTServerSet, isUsingTrash());
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
+        gcCycleMetrics.setLastWalCollect(status.lastLog);
       } catch (Exception e) {
         log.error("{}", e.getMessage(), e);
       } finally {
@@ -670,6 +690,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
         final long actionComplete = System.nanoTime();
 
+        gcCycleMetrics.setPostOpDurationNanos(actionComplete - actionStart);
+
         log.info("gc post action {} completed in {} seconds", action, String.format("%.2f",
             (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
 
@@ -679,6 +701,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
       Trace.off();
       try {
+        gcCycleMetrics.incrementRunCycleCount();
+        log.info("GC Cycle Metrics: {}", gcCycleMetrics);
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for " + gcDelay + " milliseconds");
         Thread.sleep(gcDelay);
@@ -866,5 +890,9 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   @Override
   public GCStatus getStatus(TInfo info, TCredentials credentials) {
     return status;
+  }
+
+  public GcCycleMetrics getGcCycleMetrics() {
+    return gcCycleMetrics;
   }
 }

@@ -102,7 +102,8 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
 
       currentTabletKeys = scanToPrevEndRow();
       if (currentTabletKeys.size() == 0) {
-        // Always expect the default tablet to exist for a table. The following checks for the case when
+        // Always expect the default tablet to exist for a table. The following checks for the case
+        // when
         // the default tablet was not seen when it should have been seen.
         if (lastTablet != null) {
           KeyExtent lastExtent = new KeyExtent(lastTablet, (Text) null);
