@@ -2360,7 +2360,7 @@ public class RFileTest {
     Key defaultDirKey =
         new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
             TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
+    mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_DIR_NAME.getBytes()));
 
     // default's time
     Key defaultTimeKey =

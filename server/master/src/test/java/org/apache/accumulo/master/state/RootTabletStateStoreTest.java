@@ -48,9 +48,8 @@ public class RootTabletStateStoreTest {
 
   private static class TestAmple implements Ample {
 
-    private String json =
-        new String(RootTabletMetadata.getInitialJson("/some/dir", "/some/dir/0000.rf"),
-            StandardCharsets.UTF_8);
+    private String json = new String(RootTabletMetadata.getInitialJson("dir", "/some/dir/0000.rf"),
+        StandardCharsets.UTF_8);
 
     @Override
     public TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {

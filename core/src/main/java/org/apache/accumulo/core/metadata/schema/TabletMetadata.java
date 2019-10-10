@@ -80,7 +80,7 @@ public class TabletMetadata {
   private EnumSet<ColumnType> fetchedCols;
   private KeyExtent extent;
   private Location last;
-  private String dir;
+  private String dirName;
   private MetadataTime time;
   private String cloned;
   private SortedMap<Key,Value> keyValues;
@@ -233,9 +233,9 @@ public class TabletMetadata {
     return scans;
   }
 
-  public String getDir() {
+  public String getDirName() {
     ensureFetched(ColumnType.DIR);
-    return dir;
+    return dirName;
   }
 
   public MetadataTime getTime() {
@@ -325,7 +325,9 @@ public class TabletMetadata {
         case ServerColumnFamily.STR_NAME:
           switch (qual) {
             case DIRECTORY_QUAL:
-              te.dir = val;
+              Preconditions.checkArgument(!val.contains("/"), "Saw invalid dir name {} {}", key,
+                  val);
+              te.dirName = val;
               break;
             case TIME_QUAL:
               te.time = MetadataTime.parse(val);

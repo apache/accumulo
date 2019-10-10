@@ -69,12 +69,9 @@ import org.apache.accumulo.master.Master.TabletGoalState;
 import org.apache.accumulo.master.state.MergeStats;
 import org.apache.accumulo.master.state.TableCounts;
 import org.apache.accumulo.master.state.TableStats;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
+import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
@@ -626,17 +623,9 @@ abstract class TabletGroupWatcher extends Daemon {
           throw new IllegalStateException(
               "Tablet " + key.getRow() + " is assigned during a merge!");
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          // ACCUMULO-2974 Need to include the TableID when converting a relative path to an
-          // absolute path.
-          // The value has the leading path separator already included so it doesn't need it
-          // included.
-          String path = entry.getValue().toString();
-          if (path.contains(":")) {
-            datafiles.add(new FileRef(path));
-          } else {
-            datafiles.add(new FileRef(path, this.master.fs.getFullPath(FileType.TABLE,
-                Path.SEPARATOR + extent.getTableId() + path)));
-          }
+          String path = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(extent.getTableId(),
+              entry.getValue().toString());
+          datafiles.add(new FileRef(path));
           if (datafiles.size() > 1000) {
             MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
             datafiles.clear();
@@ -666,16 +655,10 @@ abstract class TabletGroupWatcher extends Daemon {
         }
       } else {
         // Recreate the default tablet to hold the end of the table
-        Master.log.debug("Recreating the last tablet to point to {}", extent.getPrevEndRow());
-        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(extent.getTableId(),
-            extent.getEndRow(), master.getContext());
-
-        String tdir = master.getFileSystem().choose(chooserEnv,
-            ServerConstants.getBaseUris(master.getContext())) + Constants.HDFS_TABLES_DIR
-            + Path.SEPARATOR + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;
         MetadataTableUtil.addTablet(
-            new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir,
-            master.getContext(), metadataTime.getType(), this.master.masterLock);
+            new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()),
+            Constants.DEFAULT_TABLET_DIR_NAME, master.getContext(), metadataTime.getType(),
+            this.master.masterLock);
       }
     } catch (RuntimeException | TableNotFoundException ex) {
       throw new AccumuloException(ex);
@@ -727,8 +710,10 @@ abstract class TabletGroupWatcher extends Daemon {
           maxLogicalTime =
               TabletTime.maxMetadataTime(maxLogicalTime, MetadataTime.parse(value.toString()));
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          bw.addMutation(ServerAmpleImpl.createDeleteMutation(master.getContext(),
-              range.getTableId(), entry.getValue().toString()));
+          String uri =
+              GcVolumeUtil.getDeleteTabletOnAllVolumesUri(range.getTableId(), value.toString());
+          bw.addMutation(
+              ServerAmpleImpl.createDeleteMutation(master.getContext(), range.getTableId(), uri));
         }
       }
 

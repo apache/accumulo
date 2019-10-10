@@ -80,6 +80,7 @@ import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -251,8 +252,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       Stream<Reference> refStream = tabletStream.flatMap(tm -> {
         Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
             .map(f -> new Reference(tm.getTableId(), f, false));
-        if (tm.getDir() != null) {
-          refs = Stream.concat(refs, Stream.of(new Reference(tm.getTableId(), tm.getDir(), true)));
+        if (tm.getDirName() != null) {
+          refs =
+              Stream.concat(refs, Stream.of(new Reference(tm.getTableId(), tm.getDirName(), true)));
         }
         return refs;
       });
@@ -300,6 +302,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           lastDir = absPath;
         } else if (lastDir != null) {
           if (absPath.startsWith(lastDir)) {
+            // TODO this does not handle all volumes uri prefix.. may not be able to handle that
+            // case when file is in non-configured volume
             log.debug("Ignoring {} because {} exist", entry.getValue(), lastDir);
             processedDeletes.add(entry.getValue());
             cdIter.remove();
@@ -318,7 +322,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       for (final String delete : confirmedDeletes.values()) {
 
         Runnable deleteTask = () -> {
-          boolean removeFlag;
+          boolean removeFlag = false;
 
           try {
             Path fullPath;
@@ -338,41 +342,44 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               fullPath = fs.getFullPath(FileType.TABLE, delete);
             }
 
-            log.debug("Deleting {}", fullPath);
+            for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
+              log.debug("Deleting {}", pathToDel);
 
-            if (moveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
-              // delete succeeded, still want to delete
-              removeFlag = true;
-              synchronized (SimpleGarbageCollector.this) {
-                ++status.current.deleted;
-              }
-            } else if (fs.exists(fullPath)) {
-              // leave the entry in the metadata; we'll try again later
-              removeFlag = false;
-              synchronized (SimpleGarbageCollector.this) {
-                ++status.current.errors;
-              }
-              log.warn("File exists, but was not deleted for an unknown reason: {}", fullPath);
-            } else {
-              // this failure, we still want to remove the metadata entry
-              removeFlag = true;
-              synchronized (SimpleGarbageCollector.this) {
-                ++status.current.errors;
-              }
-              String[] parts = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
-              if (parts.length > 2) {
-                TableId tableId = TableId.of(parts[1]);
-                String tabletDir = parts[2];
-                getContext().getTableManager().updateTableStateCache(tableId);
-                TableState tableState = getContext().getTableManager().getTableState(tableId);
-                if (tableState != null && tableState != TableState.DELETING) {
-                  // clone directories don't always exist
-                  if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
-                    log.debug("File doesn't exist: {}", fullPath);
-                  }
+              if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
+                // delete succeeded, still want to delete
+                removeFlag = true;
+                synchronized (SimpleGarbageCollector.this) {
+                  ++status.current.deleted;
                 }
+              } else if (fs.exists(pathToDel)) {
+                // leave the entry in the metadata; we'll try again later
+                removeFlag = false;
+                synchronized (SimpleGarbageCollector.this) {
+                  ++status.current.errors;
+                }
+                log.warn("File exists, but was not deleted for an unknown reason: {}", pathToDel);
+                break;
               } else {
-                log.warn("Very strange path name: {}", delete);
+                // this failure, we still want to remove the metadata entry
+                removeFlag = true;
+                synchronized (SimpleGarbageCollector.this) {
+                  ++status.current.errors;
+                }
+                String[] parts = pathToDel.toString().split(Constants.ZTABLES)[1].split("/");
+                if (parts.length > 2) {
+                  TableId tableId = TableId.of(parts[1]);
+                  String tabletDir = parts[2];
+                  getContext().getTableManager().updateTableStateCache(tableId);
+                  TableState tableState = getContext().getTableManager().getTableState(tableId);
+                  if (tableState != null && tableState != TableState.DELETING) {
+                    // clone directories don't always exist
+                    if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
+                      log.debug("File doesn't exist: {}", pathToDel);
+                    }
+                  }
+                } else {
+                  log.warn("Very strange path name: {}", delete);
+                }
               }
             }
 
@@ -700,6 +707,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     if (delete == null) {
       return false;
     }
+
     int slashCount = 0;
     for (int i = 0; i < delete.length(); i++) {
       if (delete.charAt(i) == '/') {

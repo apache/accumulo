@@ -59,9 +59,10 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
-  public Ample.TabletMutator putDir(String dir) {
+  public Ample.TabletMutator putDirName(String dirName) {
+    Preconditions.checkArgument(!dirName.contains("/"), "Invalid dir name %s", dirName);
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dir));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dirName));
     return this;
   }
 

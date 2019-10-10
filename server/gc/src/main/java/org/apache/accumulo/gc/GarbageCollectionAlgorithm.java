@@ -187,12 +187,11 @@ public class GarbageCollectionAlgorithm {
 
       } else {
         String tableID = ref.id.toString();
-        String dir = ref.ref;
-        if (!dir.contains(":")) {
-          if (!dir.startsWith("/"))
-            throw new RuntimeException("Bad directory " + dir);
-          dir = "/" + tableID + dir;
-        }
+        String dirName = ref.ref;
+        if (dirName.contains("/"))
+          throw new RuntimeException("Bad directory name" + dirName);
+
+        String dir = "/" + tableID + "/" + dirName;
 
         dir = makeRelative(dir, 2);
 

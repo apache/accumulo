@@ -127,7 +127,7 @@ public class Upgrader9to10 implements Upgrader {
 
       tabletMutator.putPrevEndRow(RootTable.EXTENT.getPrevEndRow());
 
-      tabletMutator.putDir(dir);
+      tabletMutator.putDirName(dir);
 
       if (last != null)
         tabletMutator.putLocation(last, LocationType.LAST);

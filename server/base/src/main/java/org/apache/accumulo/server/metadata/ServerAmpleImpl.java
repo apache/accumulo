@@ -198,5 +198,4 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.SkewedKeyValue.NAME);
     return delFlag;
   }
-
 }

@@ -67,8 +67,6 @@ public class ListVolumesUsed {
 
     TabletMetadata rootMeta = context.getAmple().readTablet(RootTable.EXTENT);
 
-    volumes.add(getTableURI(rootMeta.getDir()));
-
     for (LogEntry logEntry : rootMeta.getLogs()) {
       getLogURIs(volumes, logEntry);
     }
@@ -88,7 +86,6 @@ public class ListVolumesUsed {
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
-    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
 
     TreeSet<String> volumes = new TreeSet<>();
 
@@ -100,9 +97,6 @@ public class ListVolumesUsed {
           .equals(MetadataSchema.TabletsSection.LogColumnFamily.NAME)) {
         LogEntry le = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
         getLogURIs(volumes, le);
-      } else if (MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
-          .hasColumns(entry.getKey())) {
-        volumes.add(getTableURI(entry.getValue().toString()));
       }
     }
 

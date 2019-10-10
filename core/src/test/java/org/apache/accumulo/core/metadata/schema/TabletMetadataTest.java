@@ -61,7 +61,7 @@ public class TabletMetadataTest {
     Mutation mutation = extent.getPrevRowUpdateMutation();
 
     COMPACT_COLUMN.put(mutation, new Value("5"));
-    DIRECTORY_COLUMN.put(mutation, new Value("/a/t/6/a/"));
+    DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
 
@@ -96,7 +96,7 @@ public class TabletMetadataTest {
 
     assertEquals("OK", tm.getCloned());
     assertEquals(5L, tm.getCompactId().getAsLong());
-    assertEquals("/a/t/6/a/", tm.getDir());
+    assertEquals("t-0001757", tm.getDirName());
     assertEquals(extent.getEndRow(), tm.getEndRow());
     assertEquals(extent, tm.getExtent());
     assertEquals(Set.of("df1", "df2"), Set.copyOf(tm.getFiles()));

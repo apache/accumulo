@@ -84,7 +84,7 @@ public class Constants {
   /**
    * Initial tablet directory name for the default tablet in all tables
    */
-  public static final String DEFAULT_TABLET_LOCATION = "/default_tablet";
+  public static final String DEFAULT_TABLET_DIR_NAME = "default_tablet";
 
   public static final String ZTABLE_LOCKS = "/table_locks";
 

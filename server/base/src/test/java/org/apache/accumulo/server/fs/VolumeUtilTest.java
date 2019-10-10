@@ -17,21 +17,14 @@
 package org.apache.accumulo.server.fs;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Rule;
 import org.junit.Test;
@@ -165,70 +158,6 @@ public class VolumeUtilTest {
   }
 
   @Test
-  public void testSame() throws Exception {
-    FileSystem fs = FileSystem.getLocal(new Configuration());
-
-    Path subdir1 = new Path(tempFolder.newFolder().toURI());
-    Path subdir2 = new Path(tempFolder.newFolder().toURI());
-    Path subdir3 = new Path(tempFolder.newFolder().toURI());
-
-    assertFalse(VolumeUtil.same(fs, subdir1, fs,
-        new Path(tempFolder.getRoot().toURI().toString(), "8854339269459287524098238497")));
-    assertFalse(VolumeUtil.same(fs,
-        new Path(tempFolder.getRoot().toURI().toString(), "8854339269459287524098238497"), fs,
-        subdir1));
-    assertTrue(VolumeUtil.same(fs, subdir1, fs, subdir1));
-
-    writeFile(fs, subdir1, "abc", "foo");
-    writeFile(fs, subdir2, "abc", "bar");
-    writeFile(fs, subdir3, "abc", "foo");
-
-    assertTrue(VolumeUtil.same(fs, subdir1, fs, subdir1));
-    assertFalse(VolumeUtil.same(fs, subdir1, fs, subdir2));
-    assertFalse(VolumeUtil.same(fs, subdir2, fs, subdir1));
-    assertTrue(VolumeUtil.same(fs, subdir1, fs, subdir3));
-    assertTrue(VolumeUtil.same(fs, subdir3, fs, subdir1));
-
-    writeFile(fs, subdir1, "def", "123456");
-    writeFile(fs, subdir2, "def", "123456");
-    writeFile(fs, subdir3, "def", "123456");
-
-    assertTrue(VolumeUtil.same(fs, subdir1, fs, subdir1));
-    assertFalse(VolumeUtil.same(fs, subdir1, fs, subdir2));
-    assertFalse(VolumeUtil.same(fs, subdir2, fs, subdir1));
-    assertTrue(VolumeUtil.same(fs, subdir1, fs, subdir3));
-    assertTrue(VolumeUtil.same(fs, subdir3, fs, subdir1));
-
-    writeFile(fs, subdir3, "ghi", "09876");
-
-    assertFalse(VolumeUtil.same(fs, subdir1, fs, subdir3));
-    assertFalse(VolumeUtil.same(fs, subdir3, fs, subdir1));
-
-    fs.mkdirs(new Path(subdir2, "dir1"));
-
-    try {
-      VolumeUtil.same(fs, subdir1, fs, subdir2);
-      fail();
-    } catch (IllegalArgumentException e) {}
-
-    try {
-      VolumeUtil.same(fs, subdir2, fs, subdir1);
-      fail();
-    } catch (IllegalArgumentException e) {}
-
-    try {
-      VolumeUtil.same(fs, subdir1, fs, new Path(subdir2, "def"));
-      fail();
-    } catch (IllegalArgumentException e) {}
-
-    try {
-      VolumeUtil.same(fs, new Path(subdir2, "def"), fs, subdir3);
-      fail();
-    } catch (IllegalArgumentException e) {}
-
-  }
-
-  @Test
   public void testRootTableReplacement() {
     List<Pair<Path,Path>> replacements = new ArrayList<>();
     replacements.add(new Pair<>(new Path("file:/foo/v1"), new Path("file:/foo/v8")));
@@ -238,11 +167,5 @@ public class VolumeUtilTest {
 
     assertEquals("file:/foo/v8/tables/+r/root_tablet",
         VolumeUtil.switchVolume("file:/foo/v1/tables/+r/root_tablet", ft, replacements));
-  }
-
-  private void writeFile(FileSystem fs, Path dir, String filename, String data) throws IOException {
-    try (FSDataOutputStream out = fs.create(new Path(dir, filename))) {
-      out.writeUTF(data);
-    }
   }
 }
