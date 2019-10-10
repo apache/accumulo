@@ -18,7 +18,7 @@ package org.apache.accumulo.core.clientImpl.bulk;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.groupingBy;
 
 import java.io.FileNotFoundException;
@@ -132,7 +132,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     SortedMap<KeyExtent,Bulk.Files> mappings;
     TableOperationsImpl tableOps = new TableOperationsImpl(context);
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-        .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
+        .incrementBy(100, MILLISECONDS).maxWait(2, MINUTES).backOffFactor(1.5)
         .logInterval(3, TimeUnit.MINUTES).createRetry();
 
     // retry if a merge occurs
