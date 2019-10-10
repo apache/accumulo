@@ -147,12 +147,9 @@ public class PrepBulkImport extends MasterRepo {
     }
 
     if (currRange != null || lmi.hasNext()) {
-      // a merge happened between the time the mapping was generated and the table lock was
-      // acquired
+      // merge happened after the mapping was generated and before the table lock was acquired
       throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
-          TableOperationExceptionType.OTHER, "Concurrent merge happened"); // TODO need to handle
-                                                                           // this on the client
-                                                                           // side
+          TableOperationExceptionType.BULK_CONCURRENT_MERGE, "Concurrent merge happened");
     }
   }
 

@@ -17,6 +17,8 @@
 package org.apache.accumulo.core.clientImpl.bulk;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.groupingBy;
 
 import java.io.FileNotFoundException;
@@ -41,6 +43,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -49,6 +52,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationArguments;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
+import org.apache.accumulo.core.clientImpl.AccumuloBulkMergeException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -72,6 +76,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.fate.util.Retry;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -125,21 +130,56 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Path srcPath = checkPath(fs, dir);
 
     SortedMap<KeyExtent,Bulk.Files> mappings;
-    if (plan == null) {
-      mappings = computeMappingFromFiles(fs, tableId, srcPath);
-    } else {
-      mappings = computeMappingFromPlan(fs, tableId, srcPath);
+    TableOperationsImpl tableOps = new TableOperationsImpl(context);
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
+        .incrementBy(100, MILLISECONDS).maxWait(2, MINUTES).backOffFactor(1.5)
+        .logInterval(3, TimeUnit.MINUTES).createRetry();
+
+    // retry if a merge occurs
+    boolean shouldRetry = true;
+    while (shouldRetry) {
+      if (plan == null) {
+        mappings = computeMappingFromFiles(fs, tableId, srcPath);
+      } else {
+        mappings = computeMappingFromPlan(fs, tableId, srcPath);
+      }
+
+      if (mappings.isEmpty())
+        throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
+
+      BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
+
+      List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
+          ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
+          ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
+      try {
+        tableOps.doBulkFateOperation(args, tableName);
+        shouldRetry = false;
+      } catch (AccumuloBulkMergeException ae) {
+        if (plan != null) {
+          checkPlanForSplits(ae);
+        }
+        try {
+          retry.waitForNextAttempt();
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+        log.info(ae.getMessage() + ". Retrying bulk import to " + tableName);
+      }
     }
+  }
 
-    if (mappings.isEmpty())
-      throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
-
-    BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
-
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
-        ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
-        ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
-    new TableOperationsImpl(context).doBulkFateOperation(args, tableName);
+  /**
+   * Check if splits were specified in plan when a concurrent merge occurred. If so, throw error
+   * back to user since retrying won't help. If not, then retry.
+   */
+  private void checkPlanForSplits(AccumuloBulkMergeException abme) throws AccumuloException {
+    for (Destination des : plan.getDestinations()) {
+      if (des.getRangeType().equals(RangeType.TABLE)) {
+        throw new AccumuloException("The splits provided in Load Plan do not exist in " + tableName,
+            abme);
+      }
+    }
   }
 
   /**

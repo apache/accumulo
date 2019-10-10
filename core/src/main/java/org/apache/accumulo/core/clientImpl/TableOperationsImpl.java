@@ -384,6 +384,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         case OFFLINE:
           throw new TableOfflineException(
               Tables.getTableOfflineMsg(context, Tables.getTableId(context, tableOrNamespaceName)));
+        case BULK_CONCURRENT_MERGE:
+          throw new AccumuloBulkMergeException(e);
         default:
           throw new AccumuloException(e.description, e);
       }
