@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -45,6 +46,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -250,6 +252,15 @@ public class TableManager {
       tableStateCache.remove(tableId);
       zoo.recursiveDelete(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE,
           NodeMissingPolicy.SKIP);
+      String tableConfigPath = zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF;
+      List<String> tableConfigs = zoo.getZooKeeper().getChildren(tableConfigPath, false);
+      for (String tableConfig : tableConfigs) {
+        log.trace("Deleting the table config " + tableConfigPath + "/" + tableConfig);
+        org.apache.zookeeper.data.Stat stat =
+            zoo.getZooKeeper().exists(tableConfigPath + "/" + tableConfig, false);
+        zoo.getZooKeeper().delete(tableConfigPath + "/" + tableConfig, stat.getVersion());
+      }
+
       zoo.recursiveDelete(zkRoot + Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
     }
   }
