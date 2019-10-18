@@ -94,13 +94,15 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
     }
 
     host = conf.get(TraceUtil.TRACE_HOST_PROPERTY, host);
-    if (host == null) {
+    log.info("host from config: {}", host);
+    if (host == null || "0.0.0.0".equals(host)) {
       try {
         host = InetAddress.getLocalHost().getCanonicalHostName().toString();
       } catch (UnknownHostException e) {
         host = "unknown";
       }
     }
+    log.info("starting span receiver with hostname {}", host);
     service = conf.get(TraceUtil.TRACE_SERVICE_PROPERTY, service);
     maxQueueSize = conf.getInt(QUEUE_SIZE, maxQueueSize);
     minSpanSize = conf.getInt(SPAN_MIN_MS, minSpanSize);
