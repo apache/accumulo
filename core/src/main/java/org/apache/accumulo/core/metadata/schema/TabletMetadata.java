@@ -325,8 +325,8 @@ public class TabletMetadata {
         case ServerColumnFamily.STR_NAME:
           switch (qual) {
             case DIRECTORY_QUAL:
-              Preconditions.checkArgument(!val.contains("/"), "Saw invalid dir name {} {}", key,
-                  val);
+              Preconditions.checkArgument(ServerColumnFamily.isValidDirCol(val),
+                  "Saw invalid dir name {} {}", key, val);
               te.dirName = val;
               break;
             case TIME_QUAL:

@@ -179,7 +179,7 @@ public class RootTabletMetadata {
    * Generate initial json for the root tablet metadata.
    */
   public static byte[] getInitialJson(String dirName, String file) {
-    Preconditions.checkArgument(!dirName.contains("/"), "Invalid dir name %s", dirName);
+    ServerColumnFamily.validateDirCol(dirName);
     Mutation mutation = RootTable.EXTENT.getPrevRowUpdateMutation();
     ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dirName.getBytes(UTF_8)));
 
