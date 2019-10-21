@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -34,9 +35,7 @@ public class GcVolumeUtil {
   private static final String ALL_VOLUMES_PREFIX = "accumulo://allVolumes/";
 
   public static String getDeleteTabletOnAllVolumesUri(TableId tableId, String dirName) {
-    if (dirName.contains(Path.SEPARATOR)) {
-      throw new IllegalArgumentException("invalid dir name " + dirName);
-    }
+    ServerColumnFamily.validateDirCol(dirName);
     return ALL_VOLUMES_PREFIX + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId
         + Path.SEPARATOR + dirName;
   }
