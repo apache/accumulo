@@ -435,8 +435,11 @@ public class Upgrader9to10 implements Upgrader {
     Path relPath = VolumeManager.FileType.TABLE.removeVolume(new Path(olddelete));
 
     if (relPath == null && olddelete.startsWith("/")) {
+      // An old style relative delete marker of the form /<table id>/<tablet dir>[/<file>]
       // TODO unit test this
       relPath = new Path("/" + VolumeManager.FileType.TABLE.getDirectory() + olddelete);
+      Preconditions.checkState(relPath.depth() == 3 || relPath.depth() == 4,
+          "Unrecongnized relative delete marker {}", olddelete);
     }
 
     if (relPath.depth() == 3 && !relPath.getName().startsWith(Constants.BULK_PREFIX)) {
