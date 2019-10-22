@@ -20,6 +20,7 @@ package org.apache.accumulo.master.upgrade;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET_GC_CANDIDATES;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
@@ -32,19 +33,23 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
@@ -65,6 +70,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
@@ -73,6 +79,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,15 +114,17 @@ public class Upgrader9to10 implements Upgrader {
 
   @Override
   public void upgradeMetadata(ServerContext ctx) {
+    upgradeDirColumns(ctx, Ample.DataLevel.METADATA);
     upgradeFileDeletes(ctx, Ample.DataLevel.METADATA);
-    upgradeFileDeletes(ctx, Ample.DataLevel.USER);
 
+    upgradeDirColumns(ctx, Ample.DataLevel.USER);
+    upgradeFileDeletes(ctx, Ample.DataLevel.USER);
   }
 
   private void upgradeRootTabletMetadata(ServerContext ctx) {
     String rootMetaSer = getFromZK(ctx, ZROOT_TABLET);
 
-    if (rootMetaSer.isEmpty()) {
+    if (rootMetaSer == null || rootMetaSer.isEmpty()) {
       String dir = getFromZK(ctx, ZROOT_TABLET_PATH);
       List<LogEntry> logs = getRootLogEntries(ctx);
 
@@ -127,7 +136,7 @@ public class Upgrader9to10 implements Upgrader {
 
       tabletMutator.putPrevEndRow(RootTable.EXTENT.getPrevEndRow());
 
-      tabletMutator.putDirName(dir);
+      tabletMutator.putDirName(upgradeDirColumn(dir));
 
       if (last != null)
         tabletMutator.putLocation(last, LocationType.LAST);
@@ -264,6 +273,8 @@ public class Upgrader9to10 implements Upgrader {
         return null;
 
       return new String(data, StandardCharsets.UTF_8);
+    } catch (NoNodeException e) {
+      return null;
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -281,6 +292,8 @@ public class Upgrader9to10 implements Upgrader {
   MetadataTime computeRootTabletTime(ServerContext context, Collection<String> goodPaths) {
 
     try {
+      context.setupCrypto();
+
       long rtime = Long.MIN_VALUE;
       for (String good : goodPaths) {
         Path path = new Path(good);
@@ -397,7 +410,11 @@ public class Upgrader9to10 implements Upgrader {
         for (String olddelete : deletes) {
           // create new formatted delete
           log.trace("upgrading delete entry for {}", olddelete);
-          writer.addMutation(ServerAmpleImpl.createDeleteMutation(ctx, level.tableId(), olddelete));
+
+          String updatedDel = switchToAllVolumes(olddelete);
+
+          writer
+              .addMutation(ServerAmpleImpl.createDeleteMutation(ctx, level.tableId(), updatedDel));
         }
         writer.flush();
         // if nothing thrown then we're good so mark all deleted
@@ -411,6 +428,22 @@ public class Upgrader9to10 implements Upgrader {
       }
     } catch (TableNotFoundException | MutationsRejectedException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  private String switchToAllVolumes(String olddelete) {
+    Path relPath = VolumeManager.FileType.TABLE.removeVolume(new Path(olddelete));
+
+    if (relPath == null && olddelete.startsWith("/")) {
+      // TODO unit test this
+      relPath = new Path("/" + VolumeManager.FileType.TABLE.getDirectory() + olddelete);
+    }
+
+    if (relPath.depth() == 3 && !relPath.getName().startsWith(Constants.BULK_PREFIX)) {
+      return GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of(relPath.getParent().getName()),
+          relPath.getName());
+    } else {
+      return olddelete;
     }
   }
 
@@ -453,4 +486,27 @@ public class Upgrader9to10 implements Upgrader {
       return false;
   }
 
+  public void upgradeDirColumns(ServerContext ctx, Ample.DataLevel level) {
+    String tableName = level.metaTable();
+    AccumuloClient c = ctx;
+
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
+        BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig())) {
+      DIRECTORY_COLUMN.fetch(scanner);
+
+      for (Entry<Key,Value> entry : scanner) {
+        Mutation m = new Mutation(entry.getKey().getRow());
+        DIRECTORY_COLUMN.put(m, new Value(upgradeDirColumn(entry.getValue().toString())));
+        writer.addMutation(m);
+      }
+    } catch (TableNotFoundException | AccumuloException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static String upgradeDirColumn(String dir) {
+    // TODO ensure this handles relative paths and is idempotent... unit test it
+    // deal with relative path for the directory Path locationPath; if
+    return new Path(dir).getName();
+  }
 }
