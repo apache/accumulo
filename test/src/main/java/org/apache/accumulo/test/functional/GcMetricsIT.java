@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.metrics.MetricsFileTailer;
@@ -63,6 +64,11 @@ public class GcMetricsIT extends AccumuloClusterHarness {
 
   @Test
   public void gcMetricsPublished() {
+
+    if (!getServerContext().getConfiguration().getBoolean(Property.GC_METRICS_ENABLED)) {
+      log.info("Skipping test - gc metrics are not enabled.");
+      return;
+    }
 
     log.trace("Client started, properties:{}", accumuloClient.properties());
 
