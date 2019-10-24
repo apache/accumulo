@@ -139,12 +139,25 @@ public class GcMetricsIT extends AccumuloClusterHarness {
     assertTrue(Long.parseLong(nextSeen.get("AccGcStarted"))
         >= Long.parseLong(firstSeen.get("AccGcStarted")));
 
-    // wal gc may not have started, if it has, the start should be >= to the
-    // gc finish time.
-    if (firstSeen.get("AccGcWalStarted") != null) {
-      Long v = Long.parseLong(firstSeen.get("AccGcWalStarted"));
-      if (v > 0) {
-        assertTrue(Long.parseLong(nextSeen.get("AccGcFinished")) >= v);
+    String s1 = firstSeen.get("AccGcWalStarted");
+    String s2 = nextSeen.get("AccGcWalStarted");
+
+    if (s1 != null && s2 != null) {
+      Long first = Long.parseLong(s1);
+      Long next = Long.parseLong(s2);
+      if (first > 0 && next > 0) {
+        assertTrue(first <= next);
+      }
+    }
+
+    s1 = firstSeen.get("AccGcWalFinished");
+    s2 = nextSeen.get("AccGcWalFinished");
+
+    if (s1 != null && s2 != null) {
+      Long first = Long.parseLong(s1);
+      Long next = Long.parseLong(s2);
+      if (first > 0 && next > 0) {
+        assertTrue(first <= next);
       }
     }
 

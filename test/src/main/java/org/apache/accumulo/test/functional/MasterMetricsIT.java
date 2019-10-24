@@ -94,42 +94,39 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
   /**
    * Validates that the expected metrics are published - this excludes the dynamic metrics derived
    * from operation types.
+   *
+   * @throws Exception
+   *           any exception is a test failure.
    */
   @Test
-  public void metricsPublished() {
+  public void metricsPublished() throws Exception {
 
     log.trace("Client started, properties:{}", accumuloClient.properties());
 
-    try {
+    MetricsFileTailer.LineUpdate firstUpdate =
+        metricsTail.waitForUpdate(-1, NUM_TAIL_ATTEMPTS, TAIL_DELAY);
 
-      MetricsFileTailer.LineUpdate firstUpdate =
-          metricsTail.waitForUpdate(-1, NUM_TAIL_ATTEMPTS, TAIL_DELAY);
+    Map<String,Long> firstSeenMap = parseLine(firstUpdate.getLine());
 
-      Map<String,Long> firstSeenMap = parseLine(firstUpdate.getLine());
+    log.info("L:{}", firstUpdate.getLine());
+    log.info("Expected: ({})", REQUIRED_METRIC_KEYS.size());
+    log.info("M({}):{}", firstSeenMap.size(), firstSeenMap);
 
-      log.info("L:{}", firstUpdate.getLine());
-      log.info("Expected: ({})", REQUIRED_METRIC_KEYS.size());
-      log.info("M({}):{}", firstSeenMap.size(), firstSeenMap);
+    assertTrue(lookForExpectedKeys(firstSeenMap));
+    sanity(firstSeenMap);
 
-      assertTrue(lookForExpectedKeys(firstSeenMap));
-      sanity(firstSeenMap);
+    MetricsFileTailer.LineUpdate nextUpdate =
+        metricsTail.waitForUpdate(firstUpdate.getLastUpdate(), NUM_TAIL_ATTEMPTS, TAIL_DELAY);
 
-      MetricsFileTailer.LineUpdate nextUpdate =
-          metricsTail.waitForUpdate(firstUpdate.getLastUpdate(), NUM_TAIL_ATTEMPTS, TAIL_DELAY);
+    Map<String,Long> updateSeenMap = parseLine(nextUpdate.getLine());
 
-      Map<String,Long> updateSeenMap = parseLine(nextUpdate.getLine());
+    log.debug("Line received:{}", nextUpdate.getLine());
+    log.trace("Mapped values:{}", updateSeenMap);
 
-      log.debug("Line received:{}", nextUpdate.getLine());
-      log.trace("Mapped values:{}", updateSeenMap);
+    assertTrue(lookForExpectedKeys(updateSeenMap));
+    sanity(updateSeenMap);
 
-      assertTrue(lookForExpectedKeys(updateSeenMap));
-      sanity(updateSeenMap);
-
-      validate(firstSeenMap, updateSeenMap);
-
-    } catch (Exception ex) {
-      log.debug("reads", ex);
-    }
+    validate(firstSeenMap, updateSeenMap);
   }
 
   /**

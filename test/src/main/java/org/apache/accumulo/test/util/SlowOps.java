@@ -171,9 +171,7 @@ public class SlowOps {
       List<IteratorSetting> compactIterators = new ArrayList<>();
       compactIterators.add(slow);
 
-      log.trace("Slow iterator {}", slow);
-
-      log.debug("Start compaction");
+      log.trace("Starting slow operation using iterator: {}", slow);
 
       int retry = 0;
       boolean completed = false;
@@ -181,17 +179,18 @@ public class SlowOps {
       while (!completed && retry++ < 5) {
 
         try {
-          accumuloClient.tableOperations().compact(tableName, new Text("0"), new Text("z"),
-              compactIterators, true, true);
+          log.info("Starting compaction.  Attempt {}", retry);
+          accumuloClient.tableOperations().compact(tableName, null, null, compactIterators, true,
+              true);
           completed = true;
         } catch (Throwable ex) {
           // test cancels compaction on complete, so ignore it as an exception.
           if (ex.getMessage().contains("Compaction canceled")) {
             return;
           }
-          log.debug("Exception waiting for compaction - will retry", ex);
+          log.info("Exception thrown while waiting for compaction - will retry", ex);
           try {
-            Thread.sleep(200);
+            Thread.sleep(10_000 * retry);
           } catch (InterruptedException iex) {
             Thread.currentThread().interrupt();
             return;
