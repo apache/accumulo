@@ -342,14 +342,6 @@ public class Tablet {
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
         fs, extent, tabletPaths, replicationEnabled);
 
-    // TODO may be needed in upgrade
-    /*
-     * // deal with relative path for the directory Path locationPath; if
-     * (tabletPaths.dir.contains(":")) { locationPath = new Path(tabletPaths.dir); } else {
-     * locationPath = tabletServer.getFileSystem().getFullPath(FileType.TABLE, extent.getTableId() +
-     * tabletPaths.dir); }
-     */
-
     this.dirName = data.getDirectoryName();
 
     for (Entry<Long,List<FileRef>> entry : data.getBulkImported().entrySet()) {

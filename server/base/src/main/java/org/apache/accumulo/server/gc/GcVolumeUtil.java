@@ -28,11 +28,9 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 
-// TODO is this the best place for this code? Code was put in server base because other code besides GC needed to access it...
-
 public class GcVolumeUtil {
-  // TODO normalize using url?
-  private static final String ALL_VOLUMES_PREFIX = "accumulo://allVolumes/";
+  // AGCAV : Accumulo Garbage Collector All Volumes
+  private static final String ALL_VOLUMES_PREFIX = "agcav:/";
 
   public static String getDeleteTabletOnAllVolumesUri(TableId tableId, String dirName) {
     ServerColumnFamily.validateDirCol(dirName);
@@ -41,7 +39,6 @@ public class GcVolumeUtil {
   }
 
   public static Collection<Path> expandAllVolumesUri(VolumeManager fs, Path path) {
-    // TODO better way to check than startsWith? use URI?
     if (path.toString().startsWith(ALL_VOLUMES_PREFIX)) {
       String relPath = path.toString().substring(ALL_VOLUMES_PREFIX.length());
 
@@ -57,5 +54,9 @@ public class GcVolumeUtil {
     } else {
       return Collections.singleton(path);
     }
+  }
+
+  public static boolean isAllVolumesUri(Path path) {
+    return path.toString().startsWith(ALL_VOLUMES_PREFIX);
   }
 }

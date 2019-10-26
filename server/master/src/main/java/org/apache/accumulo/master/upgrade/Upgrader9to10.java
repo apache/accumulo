@@ -83,6 +83,7 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 /**
@@ -431,14 +432,15 @@ public class Upgrader9to10 implements Upgrader {
     }
   }
 
-  private String switchToAllVolumes(String olddelete) {
+  @VisibleForTesting
+  static String switchToAllVolumes(String olddelete) {
     Path relPath = VolumeManager.FileType.TABLE.removeVolume(new Path(olddelete));
 
-    if (relPath == null && olddelete.startsWith("/")) {
+    if (relPath == null) {
       // An old style relative delete marker of the form /<table id>/<tablet dir>[/<file>]
-      // TODO unit test this
       relPath = new Path("/" + VolumeManager.FileType.TABLE.getDirectory() + olddelete);
-      Preconditions.checkState(relPath.depth() == 3 || relPath.depth() == 4,
+      Preconditions.checkState(
+          olddelete.startsWith("/") && relPath.depth() == 3 || relPath.depth() == 4,
           "Unrecongnized relative delete marker {}", olddelete);
     }
 
@@ -508,8 +510,6 @@ public class Upgrader9to10 implements Upgrader {
   }
 
   public static String upgradeDirColumn(String dir) {
-    // TODO ensure this handles relative paths and is idempotent... unit test it
-    // deal with relative path for the directory Path locationPath; if
     return new Path(dir).getName();
   }
 }
