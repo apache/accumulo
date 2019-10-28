@@ -20,7 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.AdminUtil;
@@ -54,8 +55,12 @@ public class FateMetrics extends MasterMetrics {
   private final Map<String,MutableGaugeLong> fateTypeCounts = new TreeMap<>();
   private final Map<String,MutableGaugeLong> fateOpCounts = new TreeMap<>();
 
-  private final AtomicReference<FateMetricValues> metricValues;
-
+  /*
+   * lock should be used to guard read and write access to metricValues and the lastUpdate
+   * timestamp.
+   */
+  private final Lock metricsValuesLock = new ReentrantLock();
+  private FateMetricValues metricValues;
   private volatile long lastUpdate = 0;
 
   private final IZooReaderWriter zooReaderWriter;
@@ -83,7 +88,12 @@ public class FateMetrics extends MasterMetrics {
 
     this.minimumRefreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
-    metricValues = new AtomicReference<>(updateFromZookeeper());
+    metricsValuesLock.lock();
+    try {
+      metricValues = updateFromZookeeper();
+    } finally {
+      metricsValuesLock.unlock();
+    }
 
     MetricsRegistry registry = super.getRegistry();
 
@@ -113,29 +123,38 @@ public class FateMetrics extends MasterMetrics {
   @Override
   protected void prepareMetrics() {
 
-    long now = System.currentTimeMillis();
+    metricsValuesLock.lock();
+    try {
 
-    if ((lastUpdate + minimumRefreshDelay) < now) {
-      metricValues.set(updateFromZookeeper());
+      long now = System.currentTimeMillis();
 
-      lastUpdate = now;
+      if ((lastUpdate + minimumRefreshDelay) < now) {
+        metricValues = updateFromZookeeper();
+        lastUpdate = now;
+      }
 
       recordValues();
+
+    } finally {
+      metricsValuesLock.unlock();
     }
   }
 
+  /**
+   * Update the metrics gauges from the measured values - this method assumes that concurrent access
+   * is control externally to this method with the metricsValueLock, and that the lock has been
+   * acquired before calling this method.
+   */
   private void recordValues() {
 
-    FateMetricValues measurement = metricValues.get();
-
     // update individual gauges that are reported.
-    currentFateOps.set(measurement.getCurrentFateOps());
-    zkChildFateOpsTotal.set(measurement.getZkFateChildOpsTotal());
-    zkConnectionErrorsTotal.set(measurement.getZkConnectionErrors());
+    currentFateOps.set(metricValues.getCurrentFateOps());
+    zkChildFateOpsTotal.set(metricValues.getZkFateChildOpsTotal());
+    zkConnectionErrorsTotal.set(metricValues.getZkConnectionErrors());
 
     // the number FATE Tx states (NEW< IN_PROGRESS...) are fixed - the underlying
     // getTxStateCounters call will return a current valid count for each possible state.
-    Map<String,Long> states = measurement.getTxStateCounters();
+    Map<String,Long> states = metricValues.getTxStateCounters();
 
     states.forEach((key, value) -> {
       MutableGaugeLong v = fateTypeCounts.get(key);
@@ -157,7 +176,7 @@ public class FateMetrics extends MasterMetrics {
     fateOpCounts.forEach((key, value) -> value.set(0));
 
     // update new counts, create new gauge if first time seen.
-    Map<String,Long> opTypes = measurement.getOpTypeCounters();
+    Map<String,Long> opTypes = metricValues.getOpTypeCounters();
 
     opTypes.forEach((key, value) -> {
       MutableGaugeLong g = fateOpCounts.get(key);
@@ -166,10 +185,8 @@ public class FateMetrics extends MasterMetrics {
       } else {
         g = super.getRegistry().newGauge(metricNameHelper(FATE_OP_TYPE_METRIC_PREFIX, key),
             "By transaction op type count for " + key, value);
+        fateOpCounts.put(key, g);
       }
-
-      fateOpCounts.put(key, g);
-
     });
   }
 
@@ -210,7 +227,7 @@ public class FateMetrics extends MasterMetrics {
         String stateName = tx.getStatus().name();
 
         // incr count for state
-        states.compute(stateName, (k, v) -> (v == null) ? 1 : v + 1);
+        states.merge(stateName, 1L, Long::sum);
 
         // incr count for op type for for in_progress transactions.
         if (ReadOnlyTStore.TStatus.IN_PROGRESS.equals(tx.getStatus())) {
