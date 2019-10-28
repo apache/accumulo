@@ -37,6 +37,13 @@
                           data = bigNumberForQuantity(data);
                         return data;
                       }
+                    },
+                    {
+                      "targets": "duration",
+                      "render": function (data, type, row) {
+                        if (type === 'display') data = timeDuration(data);
+                        return data;
+                      }
                     }
                   ],
                 "columns": [
