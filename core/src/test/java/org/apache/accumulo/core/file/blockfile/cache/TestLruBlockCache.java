@@ -244,9 +244,8 @@ public class TestLruBlockCache {
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
     LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false)
-        .minFactor(LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR)
-        .acceptableFactor(0.99f).singleFactor(0.25f).multiFactor(0.50f)
-        .memoryFactor(0.25f).buildMap().forEach(cc::set);
+        .minFactor(LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR).acceptableFactor(0.99f)
+        .singleFactor(0.25f).multiFactor(0.50f).memoryFactor(0.25f).buildMap().forEach(cc::set);
     manager.start(new BlockCacheConfiguration(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 

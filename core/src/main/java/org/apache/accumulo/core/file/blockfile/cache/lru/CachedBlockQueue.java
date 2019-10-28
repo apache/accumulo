@@ -25,20 +25,18 @@ import java.util.PriorityQueue;
 import com.google.common.base.Preconditions;
 
 /**
- * A memory-bound queue that will grow until an element brings total size &gt;=
- * maxSize. From then on, only entries that are sorted larger than the smallest
- * current entry will be inserted and the smallest entry is removed.
+ * A memory-bound queue that will grow until an element brings total size &gt;= maxSize. From then
+ * on, only entries that are sorted larger than the smallest current entry will be inserted and the
+ * smallest entry is removed.
  *
  * <p>
- * Use this when you want to find the largest elements (according to their
- * natural ordering, not their heap size) that consume as close to the specified
- * maxSize as possible. Default behavior is to grow just above rather than just
- * below specified max.
+ * Use this when you want to find the largest elements (according to their natural ordering, not
+ * their heap size) that consume as close to the specified maxSize as possible. Default behavior is
+ * to grow just above rather than just below specified max.
  * </p>
  *
  * <p>
- * Object used in this queue must implement {@link HeapSize} as well as
- * {@link Comparable}.
+ * Object used in this queue must implement {@link HeapSize} as well as {@link Comparable}.
  * </p>
  */
 public class CachedBlockQueue implements HeapSize {
@@ -51,8 +49,10 @@ public class CachedBlockQueue implements HeapSize {
   /**
    * Construct a CachedBlockQueue.
    *
-   * @param maxSize the target size of elements in the queue
-   * @param blockSize expected average size of blocks
+   * @param maxSize
+   *          the target size of elements in the queue
+   * @param blockSize
+   *          expected average size of blocks
    */
   public CachedBlockQueue(final long maxSize, final long blockSize) {
     Preconditions.checkArgument(maxSize > 0L);
@@ -68,12 +68,12 @@ public class CachedBlockQueue implements HeapSize {
   /**
    * Attempt to add the specified cached block to this queue.
    *
-   * If the block fits within the max heap size, the element will be added to
-   * the queue. Otherwise, if the block being added is sorted larger than the
-   * smallest element, the block is inserted and the smallest element is removed
-   * from the queue.
+   * If the block fits within the max heap size, the element will be added to the queue. Otherwise,
+   * if the block being added is sorted larger than the smallest element, the block is inserted and
+   * the smallest element is removed from the queue.
    *
-   * @param cb block to try to add to the queue
+   * @param cb
+   *          block to try to add to the queue
    * @return true if the CachedBlock was added to the queue
    */
   public boolean add(final CachedBlock cb) {
