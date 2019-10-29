@@ -14,9 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.clientImpl.lexicoder;
-
-import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
-import org.apache.accumulo.core.client.lexicoder.Lexicoder;
+package org.apache.accumulo.core.client.lexicoder;
 
 public abstract class AbstractLexicoder<T> extends AbstractEncoder<T> implements Lexicoder<T> {}

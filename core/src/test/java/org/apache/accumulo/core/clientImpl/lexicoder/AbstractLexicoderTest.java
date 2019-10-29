@@ -19,6 +19,7 @@ package org.apache.accumulo.core.clientImpl.lexicoder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.apache.accumulo.core.client.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.client.lexicoder.LexicoderTest;
 import org.apache.commons.lang3.ArrayUtils;
 
