@@ -74,7 +74,9 @@ public class GcMetricsIT extends AccumuloClusterHarness {
 
       long testStart = System.currentTimeMillis();
 
+      // ignore first line - if file exists it can be from another test / run
       LineUpdate firstUpdate = waitForUpdate(-1, gcTail);
+      firstUpdate = waitForUpdate(firstUpdate.getLastUpdate(), gcTail);
 
       Map<String,Long> firstSeenMap = parseLine(firstUpdate.getLine());
 
