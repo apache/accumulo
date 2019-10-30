@@ -60,7 +60,7 @@ public class MasterMetadataUtil {
 
   private static final Logger log = LoggerFactory.getLogger(MasterMetadataUtil.class);
 
-  public static void addNewTablet(ServerContext context, KeyExtent extent, String path,
+  public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
       TServerInstance location, Map<FileRef,DataFileValue> datafileSizes,
       Map<Long,? extends Collection<FileRef>> bulkLoadedFiles, MetadataTime time, long lastFlushID,
       long lastCompactID, ZooLock zooLock) {
@@ -68,7 +68,7 @@ public class MasterMetadataUtil {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.getPrevEndRow());
     tablet.putZooLock(zooLock);
-    tablet.putDir(path);
+    tablet.putDirName(dirName);
     tablet.putTime(time);
 
     if (lastFlushID > 0)

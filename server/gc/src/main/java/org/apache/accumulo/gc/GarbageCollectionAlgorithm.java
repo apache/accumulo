@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -187,12 +188,10 @@ public class GarbageCollectionAlgorithm {
 
       } else {
         String tableID = ref.id.toString();
-        String dir = ref.ref;
-        if (!dir.contains(":")) {
-          if (!dir.startsWith("/"))
-            throw new RuntimeException("Bad directory " + dir);
-          dir = "/" + tableID + dir;
-        }
+        String dirName = ref.ref;
+        ServerColumnFamily.validateDirCol(dirName);
+
+        String dir = "/" + tableID + "/" + dirName;
 
         dir = makeRelative(dir, 2);
 

@@ -135,7 +135,7 @@ import jline.console.ConsoleReader;
 public class Initialize implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Initialize.class);
   private static final String DEFAULT_ROOT_USER = "root";
-  private static final String TABLE_TABLETS_TABLET_DIR = "/table_info";
+  private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
 
   private static ConsoleReader reader = null;
   private static ZooReaderWriter zoo = null;
@@ -362,22 +362,25 @@ public class Initialize implements KeywordExecutable {
     // the actual disk locations of the root table and tablets
     String[] configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.INIT, null);
-    final String rootTabletDir = new Path(
-        fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR
-            + Path.SEPARATOR + RootTable.ID + RootTable.ROOT_TABLET_LOCATION).toString();
-
+    String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
     String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
-    String rootTabletFileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + ext;
+    String rootTabletFileUri = new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR
+        + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + Path.SEPARATOR
+        + rootTabletDirName + Path.SEPARATOR + "00000_00000." + ext).toString();
 
     try {
-      initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDir, rootTabletFileName);
+      initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDirName, rootTabletFileUri);
     } catch (Exception e) {
       log.error("FATAL: Failed to initialize zookeeper", e);
       return false;
     }
 
     try {
-      initFileSystem(siteConfig, hadoopConf, fs, uuid, rootTabletDir, rootTabletFileName);
+      initFileSystem(siteConfig, hadoopConf, fs, uuid,
+          new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR
+              + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + rootTabletDirName)
+                  .toString(),
+          rootTabletFileUri);
     } catch (Exception e) {
       log.error("FATAL Failed to initialize filesystem", e);
 
@@ -493,7 +496,7 @@ public class Initialize implements KeywordExecutable {
   }
 
   private void initFileSystem(SiteConfiguration siteConfig, Configuration hadoopConf,
-      VolumeManager fs, UUID uuid, String rootTabletDir, String rootTabletFileName)
+      VolumeManager fs, UUID uuid, String rootTabletDirUri, String rootTabletFileUri)
       throws IOException {
     initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf), false);
 
@@ -501,49 +504,53 @@ public class Initialize implements KeywordExecutable {
     initSystemTablesConfig(zoo, Constants.ZROOT + "/" + uuid, hadoopConf);
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.INIT, null);
-    String tableMetadataTabletDir =
+    String tableMetadataTabletDirName = TABLE_TABLETS_TABLET_DIR;
+    String tableMetadataTabletDirUri =
         fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
-            + TABLE_TABLETS_TABLET_DIR;
-    String replicationTableDefaultTabletDir =
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR
+            + tableMetadataTabletDirName;
+    String replicationTableDefaultTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
+    String replicationTableDefaultTabletDirUri =
         fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
-            + Constants.DEFAULT_TABLET_LOCATION;
-    String defaultMetadataTabletDir =
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID + Path.SEPARATOR
+            + replicationTableDefaultTabletDirName;
+    String defaultMetadataTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
+    String defaultMetadataTabletDirUri =
         fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
-            + Constants.DEFAULT_TABLET_LOCATION;
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR
+            + defaultMetadataTabletDirName;
 
     // create table and default tablets directories
-    createDirectories(fs, rootTabletDir, tableMetadataTabletDir, defaultMetadataTabletDir,
-        replicationTableDefaultTabletDir);
+    createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri,
+        replicationTableDefaultTabletDirUri);
 
     String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
 
     // populate the metadata tables tablet with info about the replication table's one initial
     // tablet
-    String metadataFileName = tableMetadataTabletDir + Path.SEPARATOR + "0_1." + ext;
+    String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
     Tablet replicationTablet =
-        new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDir, null, null);
+        new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDirName, null, null);
     createMetadataFile(fs, metadataFileName, siteConfig, replicationTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
     Text splitPoint = TabletsSection.getRange().getEndKey().getRow();
-    Tablet tablesTablet =
-        new Tablet(MetadataTable.ID, tableMetadataTabletDir, null, splitPoint, metadataFileName);
-    Tablet defaultTablet = new Tablet(MetadataTable.ID, defaultMetadataTabletDir, splitPoint, null);
-    createMetadataFile(fs, rootTabletFileName, siteConfig, tablesTablet, defaultTablet);
+    Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDirName, null, splitPoint,
+        metadataFileName);
+    Tablet defaultTablet =
+        new Tablet(MetadataTable.ID, defaultMetadataTabletDirName, splitPoint, null);
+    createMetadataFile(fs, rootTabletFileUri, siteConfig, tablesTablet, defaultTablet);
   }
 
   private static class Tablet {
     TableId tableId;
-    String dir;
+    String dirName;
     Text prevEndRow, endRow;
     String[] files;
 
-    Tablet(TableId tableId, String dir, Text prevEndRow, Text endRow, String... files) {
+    Tablet(TableId tableId, String dirName, Text prevEndRow, Text endRow, String... files) {
       this.tableId = tableId;
-      this.dir = dir;
+      this.dirName = dirName;
       this.prevEndRow = prevEndRow;
       this.endRow = endRow;
       this.files = files;
@@ -575,7 +582,7 @@ public class Initialize implements KeywordExecutable {
   private static void createEntriesForTablet(TreeMap<Key,Value> map, Tablet tablet) {
     Value EMPTY_SIZE = new DataFileValue(0, 0).encodeAsValue();
     Text extent = new Text(TabletsSection.getRow(tablet.tableId, tablet.endRow));
-    addEntry(map, extent, DIRECTORY_COLUMN, new Value(tablet.dir.getBytes(UTF_8)));
+    addEntry(map, extent, DIRECTORY_COLUMN, new Value(tablet.dirName.getBytes(UTF_8)));
     addEntry(map, extent, TIME_COLUMN, new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
     addEntry(map, extent, PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(tablet.prevEndRow));
     for (String file : tablet.files) {
@@ -607,7 +614,7 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static void initZooKeeper(Opts opts, String uuid, String instanceNamePath,
-      String rootTabletDir, String rootTabletFileName)
+      String rootTabletDirName, String rootTabletFileUri)
       throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
     zoo.putPersistentData(Constants.ZROOT, new byte[0], -1, NodeExistsPolicy.SKIP,
@@ -646,7 +653,7 @@ public class Initialize implements KeywordExecutable {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET,
-        RootTabletMetadata.getInitialJson(rootTabletDir, rootTabletFileName),
+        RootTabletMetadata.getInitialJson(rootTabletDirName, rootTabletFileUri),
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_GC_CANDIDATES,
         new RootGcCandidates().toJson().getBytes(UTF_8), NodeExistsPolicy.FAIL);

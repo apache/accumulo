@@ -141,7 +141,12 @@ public class Admin implements KeywordExecutable {
     boolean users = false;
   }
 
-  @Parameters(commandDescription = "redistribute tablet directories across the current volume list")
+  private static final String RV_DEPRECATION_MSG =
+      "Randomizing tablet directories is deprecated and now does nothing. Accumulo now always"
+          + " calls the volume chooser for each file created by a tablet, so its no longer "
+          + "necessary.";
+
+  @Parameters(commandDescription = RV_DEPRECATION_MSG)
   static class RandomizeVolumesCommand {
     @Parameter(names = {"-t"}, description = "table to update", required = true)
     String tableName = null;
@@ -247,7 +252,7 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
       } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        rc = RandomizeVolumes.randomize(context, randomizeVolumesOpts.tableName);
+        System.out.println(RV_DEPRECATION_MSG);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 

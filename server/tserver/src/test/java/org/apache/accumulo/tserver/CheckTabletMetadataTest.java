@@ -89,7 +89,7 @@ public class CheckTabletMetadataTest {
 
     put(tabletMeta, "1<", TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
         KeyExtent.encodePrevEndRow(null).get());
-    put(tabletMeta, "1<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t1".getBytes());
+    put(tabletMeta, "1<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "t1".getBytes());
     put(tabletMeta, "1<", TabletsSection.ServerColumnFamily.TIME_COLUMN, "M0".getBytes());
     put(tabletMeta, "1<", TabletsSection.FutureLocationColumnFamily.NAME, "4", "127.0.0.1:9997");
 

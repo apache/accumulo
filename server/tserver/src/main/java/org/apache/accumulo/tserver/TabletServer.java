@@ -2257,8 +2257,8 @@ public class TabletServer extends AbstractServer {
 
     // tell the master
     enqueueMasterMessage(new SplitReportMessage(tablet.getExtent(), newTablets[0].getExtent(),
-        new Text("/" + newTablets[0].getLocation().getName()), newTablets[1].getExtent(),
-        new Text("/" + newTablets[1].getLocation().getName())));
+        new Text("/" + newTablets[0].getDirName()), newTablets[1].getExtent(),
+        new Text("/" + newTablets[1].getDirName())));
 
     statsKeeper.updateTime(Operation.SPLIT, start, false);
     long t2 = System.currentTimeMillis();
@@ -2961,7 +2961,7 @@ public class TabletServer extends AbstractServer {
       return false;
     }
 
-    if (meta.getDir() == null) {
+    if (meta.getDirName() == null) {
       throw new AccumuloException(
           "Metadata entry does not have directory (" + meta.getExtent() + ")");
     }

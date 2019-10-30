@@ -31,6 +31,8 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Describes the table schema used for metadata tables
  */
@@ -110,6 +112,27 @@ public class MetadataSchema {
        */
       public static final String DIRECTORY_QUAL = "dir";
       public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text(DIRECTORY_QUAL));
+      /**
+       * Initial tablet directory name for the default tablet in all tables
+       */
+      public static final String DEFAULT_TABLET_DIR_NAME = "default_tablet";
+
+      /**
+       * @return true if dirName is a valid value for the {@link #DIRECTORY_COLUMN} in the metadata
+       *         table. Returns false otherwise.
+       */
+      public static boolean isValidDirCol(String dirName) {
+        return !dirName.contains("/");
+      }
+
+      /**
+       * @throws IllegalArgumentException
+       *           when {@link #isValidDirCol(String)} returns false.
+       */
+      public static void validateDirCol(String dirName) {
+        Preconditions.checkArgument(isValidDirCol(dirName), "Invalid dir name %s", dirName);
+      }
+
       /**
        * Holds the {@link TimeType}
        */

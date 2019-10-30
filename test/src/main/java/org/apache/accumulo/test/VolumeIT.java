@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -314,6 +315,7 @@ public class VolumeIT extends ConfigurableMacBase {
     String[] tableNames = getUniqueNames(2);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+
       String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
       FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
@@ -387,21 +389,13 @@ public class VolumeIT extends ConfigurableMacBase {
 
     TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
     try (Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(metaScanner);
       metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
       int[] counts = new int[paths.length];
 
       outer: for (Entry<Key,Value> entry : metaScanner) {
-        String cf = entry.getKey().getColumnFamily().toString();
-        String cq = entry.getKey().getColumnQualifier().toString();
-
-        String path;
-        if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString()))
-          path = cq;
-        else
-          path = entry.getValue().toString();
+        String path = entry.getKey().getColumnQualifier().toString();
 
         for (int i = 0; i < paths.length; i++) {
           if (path.startsWith(paths[i].toString())) {
@@ -448,7 +442,7 @@ public class VolumeIT extends ConfigurableMacBase {
         sum += count;
       }
 
-      assertEquals(200, sum);
+      assertEquals(100, sum);
     }
   }
 
@@ -476,11 +470,17 @@ public class VolumeIT extends ConfigurableMacBase {
 
       verifyVolumesUsed(client, tableNames[0], true, v2);
 
-      // check that root tablet is not on volume 1
-      String rootTabletDir =
-          ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT).getDir();
+      client.tableOperations().compact(RootTable.NAME, new CompactionConfig().setWait(true));
 
-      assertTrue(rootTabletDir.startsWith(v2.toString()));
+      // check that root tablet is not on volume 1
+      int count = 0;
+      for (String file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
+          .getFiles()) {
+        assertTrue(file.startsWith(v2.toString()));
+        count++;
+      }
+
+      assertTrue(count > 0);
 
       client.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<>(),
           new HashSet<>());
@@ -540,10 +540,17 @@ public class VolumeIT extends ConfigurableMacBase {
     verifyVolumesUsed(client, tableNames[0], true, v8, v9);
     verifyVolumesUsed(client, tableNames[1], true, v8, v9);
 
+    client.tableOperations().compact(RootTable.NAME, new CompactionConfig().setWait(true));
+
     // check that root tablet is not on volume 1 or 2
-    String rootTabletDir =
-        ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT).getDir();
-    assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
+    int count = 0;
+    for (String file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
+        .getFiles()) {
+      assertTrue(file.startsWith(v8.toString()) || file.startsWith(v9.toString()));
+      count++;
+    }
+
+    assertTrue(count > 0);
 
     client.tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<>(),
         new HashSet<>());

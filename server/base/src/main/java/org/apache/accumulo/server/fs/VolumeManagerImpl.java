@@ -504,5 +504,4 @@ public class VolumeManagerImpl implements VolumeManager {
   public Collection<Volume> getVolumes() {
     return volumesByName.values();
   }
-
 }
