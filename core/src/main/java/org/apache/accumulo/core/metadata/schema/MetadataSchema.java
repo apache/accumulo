@@ -112,6 +112,10 @@ public class MetadataSchema {
        */
       public static final String DIRECTORY_QUAL = "dir";
       public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text(DIRECTORY_QUAL));
+      /**
+       * Initial tablet directory name for the default tablet in all tables
+       */
+      public static final String DEFAULT_TABLET_DIR_NAME = "default_tablet";
 
       /**
        * @return true if dirName is a valid value for the {@link #DIRECTORY_COLUMN} in the metadata

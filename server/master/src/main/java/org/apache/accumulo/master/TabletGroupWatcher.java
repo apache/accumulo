@@ -34,7 +34,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -61,6 +60,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ch
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -657,7 +657,7 @@ abstract class TabletGroupWatcher extends Daemon {
         // Recreate the default tablet to hold the end of the table
         MetadataTableUtil.addTablet(
             new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()),
-            Constants.DEFAULT_TABLET_DIR_NAME, master.getContext(), metadataTime.getType(),
+            ServerColumnFamily.DEFAULT_TABLET_DIR_NAME, master.getContext(), metadataTime.getType(),
             this.master.masterLock);
       }
     } catch (RuntimeException | TableNotFoundException ex) {

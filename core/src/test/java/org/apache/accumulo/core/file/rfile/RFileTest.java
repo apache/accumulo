@@ -46,7 +46,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -78,6 +77,7 @@ import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
@@ -2360,7 +2360,7 @@ public class RFileTest {
     Key defaultDirKey =
         new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
             TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_DIR_NAME.getBytes()));
+    mfw.append(defaultDirKey, new Value(ServerColumnFamily.DEFAULT_TABLET_DIR_NAME.getBytes()));
 
     // default's time
     Key defaultTimeKey =

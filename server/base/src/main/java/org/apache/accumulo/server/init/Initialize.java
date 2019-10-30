@@ -509,12 +509,12 @@ public class Initialize implements KeywordExecutable {
         fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR
             + tableMetadataTabletDirName;
-    String replicationTableDefaultTabletDirName = Constants.DEFAULT_TABLET_DIR_NAME;
+    String replicationTableDefaultTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String replicationTableDefaultTabletDirUri =
         fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID + Path.SEPARATOR
             + replicationTableDefaultTabletDirName;
-    String defaultMetadataTabletDirName = Constants.DEFAULT_TABLET_DIR_NAME;
+    String defaultMetadataTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String defaultMetadataTabletDirUri =
         fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR

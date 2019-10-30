@@ -78,6 +78,7 @@ import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
@@ -2800,7 +2801,7 @@ public class Tablet {
 
   private static String createTabletDirectoryName(ServerContext context, Text endRow) {
     if (endRow == null) {
-      return Constants.DEFAULT_TABLET_DIR_NAME;
+      return ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     } else {
       UniqueNameAllocator namer = context.getUniqueNameAllocator();
       return Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
