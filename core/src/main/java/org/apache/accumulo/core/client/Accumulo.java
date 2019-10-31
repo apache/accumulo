@@ -59,7 +59,7 @@ public final class Accumulo {
    *    // use the client
    * }
    *
-   * // Create client using the instance name, zookeeper, and credentials  from java properties or properties file 
+   * // Create client using the instance name, zookeeper, and credentials from java properties or properties file
    * try (AccumuloClient client = Accumulo.newClient()
    *        .from(properties).build())
    * {
@@ -67,6 +67,9 @@ public final class Accumulo {
    * }
    * </code>
    * </pre>
+   *
+   * For a list of all client properties see the documentation on the Accumulo website:
+   * https://accumulo.apache.org/docs/2.x/configuration/client-properties
    *
    * @return a builder object for Accumulo clients
    */
@@ -84,6 +87,9 @@ public final class Accumulo {
    *              .as(user, password).build())
    * </code>
    * </pre>
+   *
+   * For a list of all client properties see the documentation on the Accumulo website:
+   * https://accumulo.apache.org/docs/2.x/configuration/client-properties
    *
    * @return a builder object for client Properties
    */
