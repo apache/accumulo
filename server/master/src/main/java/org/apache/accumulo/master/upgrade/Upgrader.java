@@ -31,5 +31,7 @@ import org.apache.accumulo.server.ServerContext;
 public interface Upgrader {
   void upgradeZookeeper(ServerContext ctx);
 
+  void upgradeRoot(ServerContext ctx);
+
   void upgradeMetadata(ServerContext ctx);
 }

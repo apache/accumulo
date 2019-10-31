@@ -114,10 +114,13 @@ public class Upgrader9to10 implements Upgrader {
   }
 
   @Override
-  public void upgradeMetadata(ServerContext ctx) {
+  public void upgradeRoot(ServerContext ctx) {
     upgradeDirColumns(ctx, Ample.DataLevel.METADATA);
     upgradeFileDeletes(ctx, Ample.DataLevel.METADATA);
+  }
 
+  @Override
+  public void upgradeMetadata(ServerContext ctx) {
     upgradeDirColumns(ctx, Ample.DataLevel.USER);
     upgradeFileDeletes(ctx, Ample.DataLevel.USER);
   }
