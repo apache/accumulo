@@ -51,11 +51,18 @@ public final class Accumulo {
    *
    * <pre>
    * <code>
+   * // Create client directly from connection information
    * try (AccumuloClient client = Accumulo.newClient()
    *        .to(instanceName, zookeepers)
    *        .as(user, password).build())
    * {
-   *   // use the client
+   *    // use the client
+   * }
+   * // Create client from java properties or properties file
+   * try (AccumuloClient client = Accumulo.newClient()
+   *        .from(properties).build())
+   * {
+   *    // connect as the user configured in properties
    * }
    * </code>
    * </pre>
