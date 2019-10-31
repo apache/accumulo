@@ -58,11 +58,12 @@ public final class Accumulo {
    * {
    *    // use the client
    * }
+   *
    * // Create client from java properties or properties file
    * try (AccumuloClient client = Accumulo.newClient()
    *        .from(properties).build())
    * {
-   *    // connect as the user configured in properties
+   *    // use the client
    * }
    * </code>
    * </pre>
