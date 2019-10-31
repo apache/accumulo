@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -208,4 +210,12 @@ public class PropertyTypeTest {
     valid(null, "", "hdfs://hostname", "file:///path/", "hdfs://example.com:port/path");
   }
 
+  @Test
+  public void testTypeSTORAGE_POLICY() {
+    valid(HdfsConstants.HOT_STORAGE_POLICY_NAME, HdfsConstants.COLD_STORAGE_POLICY_NAME,
+        HdfsConstants.WARM_STORAGE_POLICY_NAME, HdfsConstants.ALLSSD_STORAGE_POLICY_NAME,
+        HdfsConstants.ONESSD_STORAGE_POLICY_NAME, HdfsConstants.MEMORY_STORAGE_POLICY_NAME,
+        Constants.PROVIDED_STORAGE_POLICY_NAME);
+    invalid(null, "SPICY");
+  }
 }
