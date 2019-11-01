@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
-
 /**
  * A lexicoder for preserving the native Java sort order of Double values.
  *

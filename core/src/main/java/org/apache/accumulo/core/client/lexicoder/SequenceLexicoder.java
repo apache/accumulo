@@ -25,8 +25,6 @@ import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.unescape;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
-
 /**
  * A Lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each
  * encoded element sorts lexicographically.

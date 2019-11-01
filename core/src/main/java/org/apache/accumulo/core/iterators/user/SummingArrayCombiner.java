@@ -31,8 +31,8 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
+import org.apache.accumulo.core.client.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.client.lexicoder.Encoder;
-import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;

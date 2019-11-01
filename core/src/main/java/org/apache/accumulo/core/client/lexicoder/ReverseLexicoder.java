@@ -19,8 +19,6 @@ package org.apache.accumulo.core.client.lexicoder;
 import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.escape;
 import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.unescape;
 
-import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
-
 /**
  * A lexicoder that flips the sort order from another lexicoder. If this is applied to
  * {@link DateLexicoder}, the most recent date will be sorted first and the oldest date will be
