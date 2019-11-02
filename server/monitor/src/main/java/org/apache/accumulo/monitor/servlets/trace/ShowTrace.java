@@ -22,6 +22,7 @@ import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -45,9 +46,11 @@ public class ShowTrace extends Basic {
   private static final long serialVersionUID = 1L;
   private static final String checkboxIdSuffix = "_checkbox";
   private static final String pageLoadFunctionName = "pageload";
+  private static final Pattern TRACE_ID_PATTERN = Pattern.compile("\\p{XDigit}{16}");
 
   String getTraceId(HttpServletRequest req) {
-    return getStringParameter(req, "id", null);
+    final String stringValue = getStringParameter(req, "id", null);
+    return TRACE_ID_PATTERN.matcher(stringValue).matches() ? stringValue : null;
   }
 
   @Override

@@ -17,6 +17,7 @@
 package org.apache.accumulo.monitor.servlets;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.lang.StringEscapeUtils.escapeHtml;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -133,7 +134,7 @@ abstract public class BasicServlet extends HttpServlet {
 
     // BEGIN HEADER
     sb.append("<head>\n");
-    sb.append("<title>").append(getTitle(req)).append(" - Accumulo ").append(Constants.VERSION)
+    sb.append("<title>").append(escapeHtml(getTitle(req))).append(" - Accumulo ").append(Constants.VERSION)
         .append("</title>\n");
     if ((refresh > 0) && (req.getRequestURI().startsWith("/vis") == false)
         && (req.getRequestURI().startsWith("/shell") == false))

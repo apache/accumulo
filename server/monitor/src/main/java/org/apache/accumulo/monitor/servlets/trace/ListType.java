@@ -34,6 +34,8 @@ import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 
+import static org.apache.commons.lang.StringEscapeUtils.escapeHtml;
+
 public class ListType extends Basic {
 
   private static final long serialVersionUID = 1L;
@@ -61,7 +63,7 @@ public class ListType extends Basic {
     Range range = new Range(new Text("start:" + Long.toHexString(startTime)),
         new Text("start:" + Long.toHexString(endTime)));
     scanner.setRange(range);
-    final Table trace = new Table("trace", "Traces for " + getType(req));
+    final Table trace = new Table("trace", "Traces for " + escapeHtml(type));
     trace.addSortableColumn("Start", new ShowTraceLinkType(), "Start Time");
     trace.addSortableColumn("ms", new DurationType(), "Span time");
     trace.addUnsortableColumn("Source", new StringType<String>(), "Service and location");

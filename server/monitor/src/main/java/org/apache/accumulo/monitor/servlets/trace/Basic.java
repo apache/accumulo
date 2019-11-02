@@ -51,12 +51,13 @@ abstract class Basic extends BasicServlet {
 
   public static String getStringParameter(HttpServletRequest req, String name,
       String defaultValue) {
-    String result = req.getParameter(name).replaceAll("[^A-Za-z]", "");
+    final String result = req.getParameter(name);
     if (result == null) {
       return defaultValue;
     }
     return result;
   }
+
 
   public static int getIntParameter(HttpServletRequest req, String name, int defaultMinutes) {
     String valueString = req.getParameter(name);
