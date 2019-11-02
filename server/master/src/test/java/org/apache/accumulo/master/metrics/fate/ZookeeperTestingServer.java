@@ -19,6 +19,7 @@ package org.apache.accumulo.master.metrics.fate;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.curator.test.TestingServer;
@@ -34,7 +35,7 @@ public class ZookeeperTestingServer {
 
   private static final Logger log = LoggerFactory.getLogger(ZookeeperTestingServer.class);
 
-  private final TestingServer zkServer;
+  private TestingServer zkServer;
   private final ZooKeeper zoo;
 
   public ZookeeperTestingServer() {
@@ -45,9 +46,23 @@ public class ZookeeperTestingServer {
 
       CountDownLatch connectionLatch = new CountDownLatch(1);
 
-      zkServer = new TestingServer(19876, tmpDir.toFile());
+      // using a random port. The test server allows for auto port
+      // generation, but not with specifying the tmp dir path too.
+      // so, generate our own.
+      boolean started = false;
+      int retry = 0;
+      while (!started && retry++ < 3) {
 
-      zkServer.start();
+        try {
+
+          zkServer = new TestingServer(getPort(), tmpDir.toFile());
+          zkServer.start();
+
+          started = true;
+        } catch (Exception ex) {
+          log.trace("zookeeper test server start failed attempt {}", retry);
+        }
+      }
 
       log.info("c:{}", zkServer.getConnectString());
 
@@ -65,6 +80,19 @@ public class ZookeeperTestingServer {
       throw new IllegalStateException("Failed to start testing zookeeper", ex);
     }
 
+  }
+
+  /**
+   * Returns an random integer between 50_000 and 65_000 (typical ephemeral port range for linux is
+   * listed as 49,152 to 65,535
+   *
+   * @return a random port with the linux ephemeral port range.
+   */
+  private int getPort() {
+    final int minPort = 50_000;
+    final int maxPort = 65_000;
+    Random r = new Random();
+    return r.nextInt((maxPort - minPort) + 1) + minPort;
   }
 
   public ZooKeeper getZooKeeper() {
