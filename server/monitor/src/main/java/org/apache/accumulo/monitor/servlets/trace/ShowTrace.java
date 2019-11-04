@@ -50,6 +50,9 @@ public class ShowTrace extends Basic {
 
   String getTraceId(HttpServletRequest req) {
     final String stringValue = getStringParameter(req, "id", null);
+    if (stringValue == null) {
+      return null;
+    }
     return TRACE_ID_PATTERN.matcher(stringValue).matches() ? stringValue : null;
   }
 
