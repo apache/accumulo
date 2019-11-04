@@ -93,32 +93,17 @@ public class UpgradeCoordinator {
 
   private static Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
 
-  private ServerContext context;
   private int currentVersion;
   private Map<Integer,Upgrader> upgraders = Map.of(ServerConstants.SHORTEN_RFILE_KEYS,
       new Upgrader8to9(), ServerConstants.CRYPTO_CHANGES, new Upgrader9to10());
 
   private volatile UpgradeStatus status;
 
-  private EventCoordinator eventCoordinator;
-
-  public UpgradeCoordinator(ServerContext ctx, EventCoordinator eventCoordinator) {
-    int currentVersion = ServerUtil.getAccumuloPersistentVersion(ctx.getVolumeManager());
-
-    ServerUtil.ensureDataVersionCompatible(currentVersion);
-
-    this.currentVersion = currentVersion;
-    this.context = ctx;
-    this.eventCoordinator = eventCoordinator;
-
-    if (currentVersion < ServerConstants.DATA_VERSION) {
-      status = UpgradeStatus.INITIAL;
-    } else {
-      status = UpgradeStatus.COMPLETE;
-    }
+  public UpgradeCoordinator() {
+    status = UpgradeStatus.INITIAL;
   }
 
-  private void setStatus(UpgradeStatus status) {
+  private void setStatus(UpgradeStatus status, EventCoordinator eventCoordinator) {
     UpgradeStatus oldStatus = this.status;
     this.status = status;
     // calling this will wake up threads that may assign tablets. After the upgrade status changes
@@ -135,14 +120,22 @@ public class UpgradeCoordinator {
     System.exit(1);
   }
 
-  public synchronized void upgradeZookeeper() {
-    if (status == UpgradeStatus.COMPLETE)
-      return;
+  public synchronized void upgradeZookeeper(ServerContext context,
+      EventCoordinator eventCoordinator) {
 
     Preconditions.checkState(status == UpgradeStatus.INITIAL,
         "Not currently in a suitable state to do zookeeper upgrade %s", status);
 
     try {
+      int cv = ServerUtil.getAccumuloPersistentVersion(context.getVolumeManager());
+      ServerUtil.ensureDataVersionCompatible(cv);
+      this.currentVersion = cv;
+
+      if (cv == ServerConstants.DATA_VERSION) {
+        status = UpgradeStatus.COMPLETE;
+        return;
+      }
+
       if (currentVersion < ServerConstants.DATA_VERSION) {
         ServerUtil.abortIfFateTransactions(context);
 
@@ -152,14 +145,15 @@ public class UpgradeCoordinator {
         }
       }
 
-      setStatus(UpgradeStatus.UPGRADED_ZOOKEEPER);
+      setStatus(UpgradeStatus.UPGRADED_ZOOKEEPER, eventCoordinator);
     } catch (Exception e) {
       handleFailure(e);
     }
 
   }
 
-  public synchronized Future<Void> upgradeMetadata() {
+  public synchronized Future<Void> upgradeMetadata(ServerContext context,
+      EventCoordinator eventCoordinator) {
     if (status == UpgradeStatus.COMPLETE)
       return CompletableFuture.completedFuture(null);
 
@@ -174,7 +168,7 @@ public class UpgradeCoordinator {
             upgraders.get(v).upgradeRoot(context);
           }
 
-          setStatus(UpgradeStatus.UPGRADED_ROOT);
+          setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
           for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
             log.info("Upgrading Metadata from data version {}", v);
@@ -184,7 +178,7 @@ public class UpgradeCoordinator {
           log.info("Updating persistent data version.");
           ServerUtil.updateAccumuloVersion(context.getVolumeManager(), currentVersion);
           log.info("Upgrade complete");
-          setStatus(UpgradeStatus.COMPLETE);
+          setStatus(UpgradeStatus.COMPLETE, eventCoordinator);
         } catch (Exception e) {
           handleFailure(e);
         }

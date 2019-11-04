@@ -91,7 +91,6 @@ import org.apache.accumulo.master.replication.ReplicationDriver;
 import org.apache.accumulo.master.replication.WorkDriver;
 import org.apache.accumulo.master.state.TableCounts;
 import org.apache.accumulo.master.upgrade.UpgradeCoordinator;
-import org.apache.accumulo.master.upgrade.UpgradeCoordinator.UpgradeStatus;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
@@ -256,7 +255,7 @@ public class Master extends AbstractServer
     }
 
     if (oldState != newState && (newState == MasterState.HAVE_LOCK)) {
-      upgradeCoordinator.upgradeZookeeper();
+      upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
     }
 
     if (oldState != newState && (newState == MasterState.NORMAL)) {
@@ -265,17 +264,11 @@ public class Master extends AbstractServer
             + " initialized prior to the Master finishing upgrades. Please save"
             + " all logs and file a bug.");
       }
-      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata();
+      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
     }
   }
 
-  private volatile UpgradeCoordinator upgradeCoordinator;
-
-  private UpgradeStatus getUpgradeStatus() {
-    if (upgradeCoordinator == null)
-      return UpgradeStatus.INITIAL;
-    return upgradeCoordinator.getStatus();
-  }
+  private final UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
 
   private Future<Void> upgradeMetadataFuture;
 
@@ -425,8 +418,6 @@ public class Master extends AbstractServer
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
-
-    upgradeCoordinator = new UpgradeCoordinator(context, nextEvent);
   }
 
   public String getInstanceID() {
@@ -602,7 +593,7 @@ public class Master extends AbstractServer
     // Shutting down?
     TabletGoalState state = getSystemGoalState(tls);
     if (state == TabletGoalState.HOSTED) {
-      if (!getUpgradeStatus().isParentLevelUpgraded(extent)) {
+      if (!upgradeCoordinator.getStatus().isParentLevelUpgraded(extent)) {
         // The place where this tablet stores its metadata was not upgraded, so do not assign this
         // tablet yet.
         return TabletGoalState.UNASSIGNED;
