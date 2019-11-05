@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -103,4 +104,8 @@ class MultiIndexIterator extends HeapIterator implements FileSKVIterator {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public void setCacheProvider(CacheProvider cacheProvider) {
+    source.setCacheProvider(cacheProvider);
+  }
 }

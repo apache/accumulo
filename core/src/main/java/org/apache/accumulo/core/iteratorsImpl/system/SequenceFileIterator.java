@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -136,4 +137,7 @@ public class SequenceFileIterator implements FileSKVIterator {
   public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  public void setCacheProvider(CacheProvider cacheProvider) {}
 }

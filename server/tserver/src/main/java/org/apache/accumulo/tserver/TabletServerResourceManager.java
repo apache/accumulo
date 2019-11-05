@@ -53,12 +53,15 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
+import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.scan.ScanDirectives;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters;
 import org.apache.accumulo.core.spi.scan.ScanExecutor;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
@@ -425,8 +428,7 @@ public class TabletServerResourceManager {
     fileLenCache =
         CacheBuilder.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
-    fileManager = new FileManager(context, context.getVolumeManager(), maxOpenFiles, fileLenCache,
-        _dCache, _iCache);
+    fileManager = new FileManager(context, context.getVolumeManager(), maxOpenFiles, fileLenCache);
 
     memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT,
         MemoryManager.class, new LargestFirstMemoryManager());
@@ -768,11 +770,13 @@ public class TabletServerResourceManager {
       lastReportedCommitTime = System.currentTimeMillis();
     }
 
-    public synchronized ScanFileManager newScanFileManager() {
+    public synchronized ScanFileManager newScanFileManager(ScanDirectives scanDirectives) {
       if (closed) {
         throw new IllegalStateException("closed");
       }
-      return fileManager.newScanFileManager(extent);
+
+      return fileManager.newScanFileManager(extent,
+          new ScanCacheProvider(tableConf, scanDirectives, _iCache, _dCache));
     }
 
     // END methods that Tablets call to manage their set of open map files
@@ -924,17 +928,27 @@ public class TabletServerResourceManager {
     }
   }
 
+  @SuppressWarnings("deprecation")
+  private static abstract class DispatchParamsImpl
+      implements DispatchParameters, DispatchParmaters {
+
+  }
+
   public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession scanInfo,
       Runnable task) {
 
     task = ScanSession.wrap(scanInfo, task);
 
     if (tablet.isRootTablet()) {
+      // TODO make meta dispatch??
+      scanInfo.scanParams.setScanDirectives(ScanDirectives.builder().build());
       task.run();
     } else if (tablet.isMeta()) {
+      // TODO make meta dispatch??
+      scanInfo.scanParams.setScanDirectives(ScanDirectives.builder().build());
       scanExecutors.get("meta").execute(task);
     } else {
-      String scanExecutorName = dispatcher.dispatch(new DispatchParmaters() {
+      DispatchParameters params = new DispatchParamsImpl() {
         @Override
         public ScanInfo getScanInfo() {
           return scanInfo;
@@ -949,14 +963,18 @@ public class TabletServerResourceManager {
         public ServiceEnvironment getServiceEnv() {
           return new ServiceEnvironmentImpl(context);
         }
-      });
-      ExecutorService executor = scanExecutors.get(scanExecutorName);
+      };
+
+      ScanDirectives prefs = dispatcher.dispatch(params);
+      scanInfo.scanParams.setScanDirectives(prefs);
+
+      ExecutorService executor = scanExecutors.get(prefs.getExecutorName());
       if (executor == null) {
         log.warn(
             "For table id {}, {} dispatched to non-existant executor {} Using default executor.",
-            tablet.getTableId(), dispatcher.getClass().getName(), scanExecutorName);
+            tablet.getTableId(), dispatcher.getClass().getName(), prefs.getExecutorName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
-      } else if ("meta".equals(scanExecutorName)) {
+      } else if ("meta".equals(prefs.getExecutorName())) {
         log.warn("For table id {}, {} dispatched to meta executor. Using default executor.",
             tablet.getTableId(), dispatcher.getClass().getName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);

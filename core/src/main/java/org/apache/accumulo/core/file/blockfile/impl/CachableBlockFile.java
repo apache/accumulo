@@ -72,8 +72,7 @@ public class CachableBlockFile {
     IoeSupplier<InputStream> inputSupplier = null;
     IoeSupplier<Long> lengthSupplier = null;
     Cache<String,Long> fileLenCache = null;
-    BlockCache dCache = null;
-    BlockCache iCache = null;
+    volatile CacheProvider cacheProvider = CacheProvider.NULL_PROVIDER;
     RateLimiter readLimiter = null;
     Configuration hadoopConf = null;
     CryptoService cryptoService = null;
@@ -110,13 +109,8 @@ public class CachableBlockFile {
       return this;
     }
 
-    public CachableBuilder data(BlockCache dCache) {
-      this.dCache = dCache;
-      return this;
-    }
-
-    public CachableBuilder index(BlockCache iCache) {
-      this.iCache = iCache;
+    public CachableBuilder cacheProvider(CacheProvider cacheProvider) {
+      this.cacheProvider = cacheProvider;
       return this;
     }
 
@@ -138,8 +132,7 @@ public class CachableBlockFile {
     private final RateLimiter readLimiter;
     // private BCFile.Reader _bc;
     private final String cacheId;
-    private final BlockCache _dCache;
-    private final BlockCache _iCache;
+    private CacheProvider cacheProvider;
     private Cache<String,Long> fileLenCache = null;
     private volatile InputStream fin = null;
     private boolean closed = false;
@@ -208,6 +201,7 @@ public class CachableBlockFile {
     }
 
     private BCFile.Reader getBCFile() throws IOException {
+      BlockCache _iCache = cacheProvider.getIndexCache();
       if (_iCache != null) {
         CacheEntry mce = _iCache.getBlock(cacheId + ROOT_BLOCK_NAME, new BCFileLoader());
         if (mce != null) {
@@ -369,8 +363,7 @@ public class CachableBlockFile {
       this.inputSupplier = b.inputSupplier;
       this.lengthSupplier = b.lengthSupplier;
       this.fileLenCache = b.fileLenCache;
-      this._dCache = b.dCache;
-      this._iCache = b.iCache;
+      this.cacheProvider = b.cacheProvider;
       this.readLimiter = b.readLimiter;
       this.conf = b.hadoopConf;
       this.cryptoService = Objects.requireNonNull(b.cryptoService);
@@ -381,6 +374,7 @@ public class CachableBlockFile {
      * read the entire block and then call close on the BlockRead class.
      */
     public CachedBlockRead getMetaBlock(String blockName) throws IOException {
+      BlockCache _iCache = cacheProvider.getIndexCache();
       if (_iCache != null) {
         String _lookup = this.cacheId + "M" + blockName;
         try {
@@ -405,6 +399,7 @@ public class CachableBlockFile {
 
     public CachedBlockRead getMetaBlock(long offset, long compressedSize, long rawSize)
         throws IOException {
+      BlockCache _iCache = cacheProvider.getIndexCache();
       if (_iCache != null) {
         String _lookup = this.cacheId + "R" + offset;
         CacheEntry ce =
@@ -427,6 +422,7 @@ public class CachableBlockFile {
      */
 
     public CachedBlockRead getDataBlock(int blockIndex) throws IOException {
+      BlockCache _dCache = cacheProvider.getDataCache();
       if (_dCache != null) {
         String _lookup = this.cacheId + "O" + blockIndex;
         CacheEntry ce = _dCache.getBlock(_lookup, new OffsetBlockLoader(blockIndex, false));
@@ -441,6 +437,7 @@ public class CachableBlockFile {
 
     public CachedBlockRead getDataBlock(long offset, long compressedSize, long rawSize)
         throws IOException {
+      BlockCache _dCache = cacheProvider.getDataCache();
       if (_dCache != null) {
         String _lookup = this.cacheId + "R" + offset;
         CacheEntry ce =
@@ -472,6 +469,10 @@ public class CachableBlockFile {
           fin.close();
         }
       }
+    }
+
+    public void setCacheProvider(CacheProvider cacheProvider) {
+      this.cacheProvider = cacheProvider;
     }
 
   }

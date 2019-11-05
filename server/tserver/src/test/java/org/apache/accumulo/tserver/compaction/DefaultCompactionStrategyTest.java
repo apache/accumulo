@@ -47,6 +47,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -159,6 +160,9 @@ public class DefaultCompactionStrategyTest {
     public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
       return null;
     }
+
+    @Override
+    public void setCacheProvider(CacheProvider cacheProvider) {}
 
   }
 
