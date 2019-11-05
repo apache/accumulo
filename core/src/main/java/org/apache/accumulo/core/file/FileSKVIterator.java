@@ -20,7 +20,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 
 public interface FileSKVIterator extends InterruptibleIterator, AutoCloseable {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators.conf;
+package org.apache.accumulo.core.iteratorsImpl.conf;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -22,8 +22,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColFamHashKey;
-import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColHashKey;
+import org.apache.accumulo.core.iteratorsImpl.conf.ColumnUtil.ColFamHashKey;
+import org.apache.accumulo.core.iteratorsImpl.conf.ColumnUtil.ColHashKey;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.io.Text;

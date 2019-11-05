@@ -29,7 +29,8 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 
 /**
  * A simple iterator over a Java SortedMap
@@ -39,7 +40,7 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
  * columnFamilies passed into seek(). If you want a Map-backed Iterator that returns only sought
  * CFs, construct a new ColumnFamilySkippingIterator(new SortedMapIterator(map)).
  *
- * @see org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator
+ * @see ColumnFamilySkippingIterator
  */
 public class SortedMapIterator implements InterruptibleIterator {
   private Iterator<Entry<Key,Value>> iter;
