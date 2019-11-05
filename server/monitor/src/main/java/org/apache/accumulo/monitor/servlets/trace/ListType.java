@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.monitor.servlets.trace;
 
+import static org.apache.commons.lang.StringEscapeUtils.escapeHtml;
+
 import java.security.PrivilegedAction;
 import java.util.Map.Entry;
 
@@ -33,8 +35,6 @@ import org.apache.accumulo.tracer.TraceFormatter;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
-
-import static org.apache.commons.lang.StringEscapeUtils.escapeHtml;
 
 public class ListType extends Basic {
 

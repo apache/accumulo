@@ -58,7 +58,6 @@ abstract class Basic extends BasicServlet {
     return result;
   }
 
-
   public static int getIntParameter(HttpServletRequest req, String name, int defaultMinutes) {
     String valueString = req.getParameter(name);
     if (valueString == null)
