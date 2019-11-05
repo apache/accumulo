@@ -431,16 +431,22 @@ public class DfsLogger implements Comparable<DfsLogger> {
     metaReference = toString();
     LoggerOperation op = null;
     try {
+      Path logfilePath = new Path(logPath);
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
       if (replication == 0)
-        replication = fs.getDefaultReplication(new Path(logPath));
+        replication = fs.getDefaultReplication(logfilePath);
       long blockSize = getWalBlockSize(conf.getConfiguration());
       if (conf.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC))
-        logFile = fs.createSyncable(new Path(logPath), 0, replication, blockSize);
+        logFile = fs.createSyncable(logfilePath, 0, replication, blockSize);
       else
-        logFile = fs.create(new Path(logPath), true, 0, replication, blockSize);
+        logFile = fs.create(logfilePath, true, 0, replication, blockSize);
       sync = logFile.getClass().getMethod("hsync");
       flush = logFile.getClass().getMethod("hflush");
+
+      // check again that logfile can be sync'd
+      if (!fs.canSyncAndFlush(logfilePath)) {
+        log.warn("sync not supported for log file {}. Data loss may occur.", logPath);
+      }
 
       // Initialize the log file with a header and its encryption
       CryptoService cryptoService = context.getCryptoService();

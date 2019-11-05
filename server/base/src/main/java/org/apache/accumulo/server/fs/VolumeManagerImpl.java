@@ -52,6 +52,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.SafeModeAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -493,6 +494,28 @@ public class VolumeManagerImpl implements VolumeManager {
     }
 
     return choice;
+  }
+
+  @Override
+  public boolean canSyncAndFlush(Path path) {
+    // the assumption is all filesystems support sync/flush except
+    // for HDFS erasure coding. not checking hdfs config options
+    // since that's already checked in ensureSyncIsEnabled()
+    FileSystem fs = getVolumeByPath(path).getFileSystem();
+    if (fs instanceof DistributedFileSystem) {
+      DistributedFileSystem dfs = (DistributedFileSystem) fs;
+      try {
+        ErasureCodingPolicy currEC = dfs.getErasureCodingPolicy(path);
+        if (currEC != null && !currEC.isReplicationPolicy()) {
+          return false;
+        }
+      } catch (IOException e) {
+        // don't spam warnings...if dir doesn't exist or not EC
+        // we don't really care if the above failed
+        log.debug("exception getting EC policy for " + path, e);
+      }
+    }
+    return true;
   }
 
   @Override
