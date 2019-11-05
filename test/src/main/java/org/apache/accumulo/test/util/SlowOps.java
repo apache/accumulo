@@ -53,6 +53,9 @@ public class SlowOps {
 
   private static final Logger log = LoggerFactory.getLogger(SlowOps.class);
 
+  private static final String TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX =
+      "tserver.compaction.major.concurrent.max";
+
   private static final long SLOW_SCAN_SLEEP_MS = 250L;
   private static final int NUM_DATA_ROWS = 1000;
 
@@ -66,13 +69,49 @@ public class SlowOps {
 
   private Future<?> compactTask = null;
 
-  public SlowOps(final AccumuloClient accumuloClient, final String tableName, final long maxWait) {
+  private SlowOps(final AccumuloClient accumuloClient, final String tableName, final long maxWait) {
 
     this.accumuloClient = accumuloClient;
     this.tableName = tableName;
     this.maxWait = maxWait;
 
     createData();
+  }
+
+  public SlowOps(final AccumuloClient accumuloClient, final String tableName, final long maxWait,
+      final int numParallelExpected) {
+
+    this(accumuloClient, tableName, maxWait);
+
+    setExpectedCompactions(numParallelExpected);
+
+  }
+
+  public int setExpectedCompactions(final int numParallelExpected) {
+
+    final int target = numParallelExpected + 1;
+
+    Map<String,String> sysConfig;
+
+    try {
+
+      sysConfig = accumuloClient.instanceOperations().getSystemConfiguration();
+
+      int current = Integer.parseInt(sysConfig.get("tserver.compaction.major.concurrent.max"));
+
+      if (current < target) {
+        accumuloClient.instanceOperations().setProperty(TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX,
+            Integer.toString(target));
+
+        sysConfig = accumuloClient.instanceOperations().getSystemConfiguration();
+
+      }
+
+      return Integer.parseInt(sysConfig.get(TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX));
+
+    } catch (AccumuloException | AccumuloSecurityException | NumberFormatException ex) {
+      throw new IllegalStateException("Could not set parallel compaction limit to " + target, ex);
+    }
   }
 
   public String getTableName() {

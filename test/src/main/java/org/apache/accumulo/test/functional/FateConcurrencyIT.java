@@ -98,7 +98,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     maxWait = defaultTimeoutSeconds() <= 0 ? 60_000 : ((defaultTimeoutSeconds() * 1000) / 2);
 
-    slowOps = new SlowOps(accumuloClient, tableName, maxWait);
+    slowOps = new SlowOps(accumuloClient, tableName, maxWait, 1);
   }
 
   @After
@@ -496,7 +496,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     for (int i = 0; i < tableCount; i++) {
       String uniqueName = getUniqueNames(1)[0] + "_" + i;
-      SlowOps gen = new SlowOps(accumuloClient, uniqueName, maxWait);
+      SlowOps gen = new SlowOps(accumuloClient, uniqueName, maxWait, tableCount);
       tables.add(gen);
       gen.startCompactTask();
     }

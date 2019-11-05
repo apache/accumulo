@@ -143,7 +143,7 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
 
     for (int i = 0; i < tableCount; i++) {
       String uniqueName = getUniqueNames(1)[0] + "_" + i;
-      SlowOps gen = new SlowOps(accumuloClient, uniqueName, maxWait);
+      SlowOps gen = new SlowOps(accumuloClient, uniqueName, maxWait, tableCount);
       tables.add(gen);
       gen.startCompactTask();
     }
