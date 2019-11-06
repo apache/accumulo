@@ -181,7 +181,13 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
       }
     }
 
-    results = blockForRequiredTables();
+    // wait for one more metrics update after compactions cancelled.
+    MetricsFileTailer.LineUpdate update =
+        metricsTail.waitForUpdate(0L, NUM_TAIL_ATTEMPTS, TAIL_DELAY);
+
+    metricsTail.waitForUpdate(update.getLastUpdate(), NUM_TAIL_ATTEMPTS, TAIL_DELAY);
+
+    results = metricsTail.parseLine("");
 
     log.info("Received metrics {}", results);
 

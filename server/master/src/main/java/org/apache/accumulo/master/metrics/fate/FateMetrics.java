@@ -88,12 +88,8 @@ public class FateMetrics extends MasterMetrics {
 
     this.minimumRefreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
-    metricsValuesLock.lock();
-    try {
-      metricValues = updateFromZookeeper();
-    } finally {
-      metricsValuesLock.unlock();
-    }
+    // lock not necessary in constructor.
+    metricValues = updateFromZookeeper();
 
     MetricsRegistry registry = super.getRegistry();
 
@@ -131,10 +127,9 @@ public class FateMetrics extends MasterMetrics {
       if ((lastUpdate + minimumRefreshDelay) < now) {
         metricValues = updateFromZookeeper();
         lastUpdate = now;
+
+        recordValues();
       }
-
-      recordValues();
-
     } finally {
       metricsValuesLock.unlock();
     }
@@ -178,6 +173,8 @@ public class FateMetrics extends MasterMetrics {
     // update new counts, create new gauge if first time seen.
     Map<String,Long> opTypes = metricValues.getOpTypeCounters();
 
+    log.info("OP Counts Before: prev {}, updates {}", fateOpCounts, opTypes);
+
     opTypes.forEach((key, value) -> {
       MutableGaugeLong g = fateOpCounts.get(key);
       if (g != null) {
@@ -188,6 +185,9 @@ public class FateMetrics extends MasterMetrics {
         fateOpCounts.put(key, g);
       }
     });
+
+    log.info("OP Counts After: prev {}, updates {}", fateOpCounts, opTypes);
+
   }
 
   private String metricNameHelper(final String prefix, final String name) {
@@ -235,7 +235,7 @@ public class FateMetrics extends MasterMetrics {
           if (opType == null || opType.isEmpty()) {
             opType = "UNKNOWN";
           }
-          opTypeCounters.compute(opType, (k, v) -> (v == null) ? 1 : v + 1);
+          opTypeCounters.merge(opType, 1L, Long::sum);
         }
       }
 
