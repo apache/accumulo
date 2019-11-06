@@ -44,6 +44,20 @@ public interface VolumeChooser {
    */
   String choose(VolumeChooserEnvironment env, String[] options) throws VolumeChooserException;
 
+  /**
+   * Return all volumes from options that are appropriate for the given environment.
+   *
+   * @param env
+   *          the server environment provided by the calling framework
+   * @param options
+   *          the list of volumes to choose from
+   * @return array of valid options
+   * @throws VolumeChooserException
+   *           if there is an error choosing (this is a RuntimeException); this does not preclude
+   *           other RuntimeExceptions from occurring
+   */
+  String[] choosable(VolumeChooserEnvironment env, String[] options) throws VolumeChooserException;
+
   class VolumeChooserException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;

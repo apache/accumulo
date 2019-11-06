@@ -27,4 +27,10 @@ public class RandomVolumeChooser implements VolumeChooser {
       throws VolumeChooserException {
     return options[random.nextInt(options.length)];
   }
+
+  @Override
+  public String[] choosable(VolumeChooserEnvironment env, String[] options)
+      throws VolumeChooserException {
+    return options;
+  }
 }
