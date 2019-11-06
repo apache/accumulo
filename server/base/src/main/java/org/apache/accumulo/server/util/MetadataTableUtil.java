@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CLONED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -129,7 +128,7 @@ public class MetadataTableUtil {
 
   public static void putLockID(ServerContext context, ZooLock zooLock, Mutation m) {
     TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(m,
-        new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/").getBytes(UTF_8)));
+        new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
   }
 
   private static void update(ServerContext context, Mutation m, KeyExtent extent) {
@@ -238,7 +237,7 @@ public class MetadataTableUtil {
     Mutation m = extent.getPrevRowUpdateMutation(); //
 
     TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m,
-        new Value(Double.toString(splitRatio).getBytes(UTF_8)));
+        new Value(Double.toString(splitRatio)));
 
     TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
         KeyExtent.encodePrevEndRow(oldPrevEndRow));
@@ -588,7 +587,7 @@ public class MetadataTableUtil {
       } else {
         // write out marker that this tablet was successfully cloned
         Mutation m = new Mutation(cloneTablet.getExtent().getMetadataEntry());
-        m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK".getBytes(UTF_8)));
+        m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK"));
         bw.addMutation(m);
       }
     }

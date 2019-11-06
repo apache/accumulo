@@ -95,7 +95,7 @@ public class DeleterFormatterTest {
     replay(writer, exceptionWriter, shellState);
 
     data = new TreeMap<>();
-    data.put(new Key("r", "cf", "cq"), new Value("value".getBytes(UTF_8)));
+    data.put(new Key("r", "cf", "cq"), new Value("value"));
   }
 
   @Test
@@ -119,7 +119,7 @@ public class DeleterFormatterTest {
   @Test
   public void testNo() throws IOException {
     input.set("no\n");
-    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
+    data.put(new Key("z"), new Value("v2"));
     formatter = new DeleterFormatter(writer, data.entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, false);
 
@@ -134,7 +134,7 @@ public class DeleterFormatterTest {
   @Test
   public void testNoConfirmation() throws IOException {
     input.set("");
-    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
+    data.put(new Key("z"), new Value("v2"));
     formatter = new DeleterFormatter(writer, data.entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, false);
 
@@ -149,7 +149,7 @@ public class DeleterFormatterTest {
   @Test
   public void testYes() throws IOException {
     input.set("y\nyes\n");
-    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
+    data.put(new Key("z"), new Value("v2"));
     formatter = new DeleterFormatter(writer, data.entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, false);
 

@@ -48,8 +48,7 @@ public class LargeRowFilterTest {
 
   private void genRow(TreeMap<Key,Value> testData, int row, int startCQ, int stopCQ) {
     for (int cq = startCQ; cq < stopCQ; cq++) {
-      testData.put(new Key(genRow(row), "cf001", genCQ(cq), 5),
-          new Value(("v" + row + "_" + cq).getBytes()));
+      testData.put(new Key(genRow(row), "cf001", genCQ(cq), 5), new Value("v" + row + "_" + cq));
     }
   }
 

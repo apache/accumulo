@@ -270,8 +270,8 @@ public class VersioningIteratorTest {
     Text cv = new Text();
 
     TreeMap<Key,Value> tm = new TreeMap<>();
-    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE), new Value("00".getBytes()));
-    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE - 1), new Value("11".getBytes()));
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE), new Value("00"));
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE - 1), new Value("11"));
 
     VersioningIterator it = new VersioningIterator();
     IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
@@ -293,8 +293,8 @@ public class VersioningIteratorTest {
     Text cv = new Text();
 
     TreeMap<Key,Value> tm = new TreeMap<>();
-    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE), new Value("00".getBytes()));
-    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE - 1), new Value("11".getBytes()));
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE), new Value("00"));
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE - 1), new Value("11"));
 
     VersioningIterator it = new VersioningIterator();
     IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);

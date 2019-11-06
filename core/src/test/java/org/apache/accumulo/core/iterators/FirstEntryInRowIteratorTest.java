@@ -53,7 +53,7 @@ public class FirstEntryInRowIteratorTest {
   @Test
   public void test() throws IOException {
     TreeMap<Key,Value> sourceMap = new TreeMap<>();
-    Value emptyValue = new Value("".getBytes());
+    Value emptyValue = new Value("");
     IteratorSetting iteratorSetting = new IteratorSetting(1, FirstEntryInRowIterator.class);
     FirstEntryInRowIterator.setNumScansBeforeSeek(iteratorSetting, 10);
     assertTrue(

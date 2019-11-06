@@ -159,7 +159,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
       for (int i = 0; i < 100; i++) {
         Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i)));
         bw.addMutation(m);
       }
       bw.close();
@@ -187,7 +187,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
       for (int i = 0; i < 100; i++) {
         Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i)));
         bw.addMutation(m);
       }
       bw.close();

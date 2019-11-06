@@ -210,7 +210,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       for (int i = 0; i < 10000; i++) {
         String row = String.format("%09d", i);
         Mutation m = new Mutation(new Text(row));
-        m.put(new Text("cf1"), new Text("cq1"), ts, new Value(("" + i).getBytes()));
+        m.put(new Text("cf1"), new Text("cq1"), ts, new Value("" + i));
         bw.addMutation(m);
       }
     }

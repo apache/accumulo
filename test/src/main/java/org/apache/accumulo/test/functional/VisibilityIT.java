@@ -108,7 +108,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   private void mput(Mutation m, String cf, String cq, String cv, String val) {
     ColumnVisibility le = new ColumnVisibility(cv.getBytes(UTF_8));
-    m.put(new Text(cf), new Text(cq), le, new Value(val.getBytes(UTF_8)));
+    m.put(new Text(cf), new Text(cq), le, new Value(val));
   }
 
   private void mputDelete(Mutation m, String cf, String cq, String cv) {

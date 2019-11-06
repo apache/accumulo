@@ -132,7 +132,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     // add some data
     try (BatchWriter bw = accumuloClient.createBatchWriter(tableName)) {
       Mutation m = new Mutation("a");
-      m.put("b", "c", new Value("abcde".getBytes()));
+      m.put("b", "c", new Value("abcde"));
       bw.addMutation(m);
       bw.flush();
     }

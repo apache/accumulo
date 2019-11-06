@@ -214,7 +214,7 @@ public class MultiThreadedRFileTest {
   }
 
   static Value newValue(String val) {
-    return new Value(val.getBytes());
+    return new Value(val);
   }
 
   public AccumuloConfiguration conf = null;

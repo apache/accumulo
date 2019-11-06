@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
@@ -234,7 +232,7 @@ public class ScanRangeIT extends AccumuloClusterHarness {
           for (int k = 0; k < CQ_LIMIT; k++) {
             for (int t = 0; t < TS_LIMIT; t++) {
               m.put(createCF(j), createCQ(k), t,
-                  new Value(String.format("%06d_%03d_%03d_%03d", i, j, k, t).getBytes(UTF_8)));
+                  new Value(String.format("%06d_%03d_%03d_%03d", i, j, k, t)));
             }
           }
         }

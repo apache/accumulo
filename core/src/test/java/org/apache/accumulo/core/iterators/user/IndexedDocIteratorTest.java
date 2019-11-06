@@ -130,7 +130,7 @@ public class IndexedDocIteratorTest {
         }
         sb.append(" docID=").append(doc);
         Key k = new Key(row, docColf, new Text(String.format("%010d", docid).getBytes()));
-        map.put(k, new Value(sb.toString().getBytes()));
+        map.put(k, new Value(sb.toString()));
       }
     }
     return map;

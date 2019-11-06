@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.tabletserver.log;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -117,6 +115,6 @@ public class LogEntry {
   }
 
   public Value getValue() {
-    return new Value(filename.getBytes(UTF_8));
+    return new Value(filename);
   }
 }

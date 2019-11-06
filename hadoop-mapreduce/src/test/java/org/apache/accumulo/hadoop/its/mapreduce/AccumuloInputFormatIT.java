@@ -222,7 +222,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       String row = String.format("%09d", i);
 
       Mutation m = new Mutation(new Text(row));
-      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(("" + i).getBytes()));
+      m.put(new Text("cf1"), new Text("cq1"), ts, new Value("" + i));
       bw.addMutation(m);
     }
     bw.close();
@@ -335,7 +335,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     BatchWriter bw = client.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put(new Text(), new Text(), new Value(String.format("%09x", i)));
       bw.addMutation(m);
     }
     bw.close();
@@ -359,7 +359,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     BatchWriter bw = client.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put(new Text(), new Text(), new Value(String.format("%09x", i)));
       bw.addMutation(m);
     }
     bw.close();
@@ -390,7 +390,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     BatchWriter bw = client.createBatchWriter(TEST_TABLE_2, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put(new Text(), new Text(), new Value(String.format("%09x", i)));
       bw.addMutation(m);
     }
     bw.close();
@@ -443,7 +443,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put(new Text(), new Text(), new Value(String.format("%09x", i)));
       bw.addMutation(m);
     }
     bw.close();

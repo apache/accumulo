@@ -34,8 +34,8 @@ public class ServerMutationTest {
   @Test
   public void test() throws Exception {
     ServerMutation m = new ServerMutation(new Text("r1"));
-    m.put(new Text("cf1"), new Text("cq1"), new Value("v1".getBytes()));
-    m.put(new Text("cf2"), new Text("cq2"), 56, new Value("v2".getBytes()));
+    m.put(new Text("cf1"), new Text("cq1"), new Value("v1"));
+    m.put(new Text("cf2"), new Text("cq2"), 56, new Value("v2"));
     m.setSystemTimestamp(42);
 
     List<ColumnUpdate> updates = m.getUpdates();

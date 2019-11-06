@@ -158,7 +158,7 @@ public class FunctionalTestUtils {
   }
 
   static Mutation nm(String row, String cf, String cq, String value) {
-    return nm(row, cf, cq, new Value(value.getBytes()));
+    return nm(row, cf, cq, new Value(value));
   }
 
   public static SortedSet<Text> splits(String[] splits) {

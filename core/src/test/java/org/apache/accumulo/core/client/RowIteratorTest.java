@@ -40,7 +40,7 @@ public class RowIteratorTest {
     for (String s : args) {
       final String[] parts = s.split("[ \t]");
       final Key key = new Key(parts[0], parts[1], parts[2]);
-      final Value value = new Value(parts[3].getBytes());
+      final Value value = new Value(parts[3]);
       result.put(key, value);
     }
     return result.entrySet().iterator();

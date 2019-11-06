@@ -64,7 +64,7 @@ public class MutationTest {
   @Test
   public void test1() {
     Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("cf1"), new Text("cq1"), new Value("v1".getBytes()));
+    m.put(new Text("cf1"), new Text("cq1"), new Value("v1"));
 
     List<ColumnUpdate> updates = m.getUpdates();
 
@@ -82,8 +82,8 @@ public class MutationTest {
   @Test
   public void test2() throws IOException {
     Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("cf1"), new Text("cq1"), new Value("v1".getBytes()));
-    m.put(new Text("cf2"), new Text("cq2"), 56, new Value("v2".getBytes()));
+    m.put(new Text("cf1"), new Text("cq1"), new Value("v1"));
+    m.put(new Text("cf2"), new Text("cq2"), 56, new Value("v2"));
 
     List<ColumnUpdate> updates = m.getUpdates();
 
@@ -183,7 +183,7 @@ public class MutationTest {
   }
 
   private Value nv(String s) {
-    return new Value(s.getBytes());
+    return new Value(s);
   }
 
   @Test

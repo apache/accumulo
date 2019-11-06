@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -84,7 +83,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
       Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
-      m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(UTF_8)));
+      m.put(new Text("cf"), new Text("cq"), new Value("1"));
       bw.addMutation(m);
 
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
@@ -115,7 +114,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
           int row = i * NUM_TO_FLUSH + j;
 
           Mutation m = new Mutation(new Text(String.format("r_%10d", row)));
-          m.put(new Text("cf"), new Text("cq"), new Value(("" + row).getBytes()));
+          m.put(new Text("cf"), new Text("cq"), new Value("" + row));
           bw.addMutation(m);
         }
 
@@ -197,7 +196,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         for (int j = 0; j < NUM_TO_FLUSH; j++) {
           int row = i * NUM_TO_FLUSH + j;
           Mutation m = new Mutation(new Text(String.format("%10d", row)));
-          m.put(new Text("cf" + i), new Text("cq"), new Value(("" + row).getBytes()));
+          m.put(new Text("cf" + i), new Text("cq"), new Value("" + row));
           data.add(m);
         }
       }

@@ -67,9 +67,9 @@ public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
 
   private static TreeMap<Key,Value> createData() {
     TreeMap<Key,Value> data = new TreeMap<>();
-    data.put(new Key("1", "a", ""), new Value("1a".getBytes()));
-    data.put(new Key("2", "a", ""), new Value("2a".getBytes()));
-    data.put(new Key("3", "a", ""), new Value("3a".getBytes()));
+    data.put(new Key("1", "a", ""), new Value("1a"));
+    data.put(new Key("2", "a", ""), new Value("2a"));
+    data.put(new Key("3", "a", ""), new Value("3a"));
     return data;
   }
 

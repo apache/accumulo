@@ -33,12 +33,12 @@ public class AlphaNumKeyConstraintTest {
   @Test
   public void test() {
     Mutation goodMutation = new Mutation(new Text("Row1"));
-    goodMutation.put(new Text("Colf2"), new Text("ColQ3"), new Value("value".getBytes()));
+    goodMutation.put(new Text("Colf2"), new Text("ColQ3"), new Value("value"));
     assertNull(ankc.check(null, goodMutation));
 
     // Check that violations are in row, cf, cq order
     Mutation badMutation = new Mutation(new Text("Row#1"));
-    badMutation.put(new Text("Colf$2"), new Text("Colq%3"), new Value("value".getBytes()));
+    badMutation.put(new Text("Colf$2"), new Text("Colq%3"), new Value("value"));
     assertEquals(List.of(AlphaNumKeyConstraint.NON_ALPHA_NUM_ROW,
         AlphaNumKeyConstraint.NON_ALPHA_NUM_COLF, AlphaNumKeyConstraint.NON_ALPHA_NUM_COLQ),
         ankc.check(null, badMutation));

@@ -68,7 +68,7 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
       // create 3 flush files
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         Mutation m = new Mutation("a");
-        m.put("b", "c", new Value("v".getBytes()));
+        m.put("b", "c", new Value("v"));
         for (int i = 0; i < 3; i++) {
           bw.addMutation(m);
           bw.flush();

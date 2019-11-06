@@ -174,7 +174,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
       try (BatchWriter bw = c.createBatchWriter(table1)) {
         for (int i = 0; i < 100; i++) {
           Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-          m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+          m.put(new Text(), new Text(), new Value(String.format("%09x", i)));
           bw.addMutation(m);
         }
       }

@@ -18,8 +18,6 @@
 
 package org.apache.accumulo.core.file;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -485,9 +483,9 @@ public class BloomFilterLayer {
     for (Integer i : vals) {
       String fi = String.format("%010d", i);
       bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1")),
-          new Value(("v" + fi).getBytes(UTF_8)));
+          new Value("v" + fi));
       bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf2")),
-          new Value(("v" + fi).getBytes(UTF_8)));
+          new Value("v" + fi));
     }
 
     long t2 = System.currentTimeMillis();

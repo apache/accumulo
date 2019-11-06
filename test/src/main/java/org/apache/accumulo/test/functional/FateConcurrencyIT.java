@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -526,8 +525,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         // populate
         for (int i = 0; i < NUM_ROWS; i++) {
           Mutation m = new Mutation(new Text(String.format("%05d", i)));
-          m.put(new Text("col" + ((i % 3) + 1)), new Text("qual"),
-              new Value("junk".getBytes(UTF_8)));
+          m.put(new Text("col" + ((i % 3) + 1)), new Text("qual"), new Value("junk"));
           bw.addMutation(m);
         }
       }

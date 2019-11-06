@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Collection;
@@ -129,7 +128,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
       for (int i = 0; i < 10000; i++) {
         String row = String.format("%09d", i);
         Mutation m = new Mutation(new Text(row));
-        m.put(new Text("cf1"), new Text("cq1"), ts, new Value(Integer.toString(i).getBytes(UTF_8)));
+        m.put(new Text("cf1"), new Text("cq1"), ts, new Value(Integer.toString(i)));
         bw.addMutation(m);
       }
     }

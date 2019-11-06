@@ -17,7 +17,6 @@
 
 package org.apache.accumulo.test;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -622,7 +621,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       Value val = super.getTopValue();
       long l = Long.parseLong(val.toString());
       String newVal = (l + amount) + "";
-      return new Value(newVal.getBytes(UTF_8));
+      return new Value(newVal);
     }
 
     @Override
@@ -641,7 +640,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       Value val = super.getTopValue();
       long l = Long.parseLong(val.toString());
       String newVal = l * amount + "";
-      return new Value(newVal.getBytes(UTF_8));
+      return new Value(newVal);
     }
 
     @Override

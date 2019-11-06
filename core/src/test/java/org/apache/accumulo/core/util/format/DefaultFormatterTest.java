@@ -70,7 +70,7 @@ public class DefaultFormatterTest {
   public void testFormatEntry() {
     final long timestamp = 0;
     Map<Key,Value> map = new TreeMap<>();
-    map.put(new Key("a", "ab", "abc", timestamp), new Value("abcd".getBytes()));
+    map.put(new Key("a", "ab", "abc", timestamp), new Value("abcd"));
 
     FormatterConfig config;
     String answer;

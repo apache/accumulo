@@ -1418,7 +1418,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");
     Text cq = new Text("cq");
-    Value value = new Value("value".getBytes());
+    Value value = new Value("value");
     for (int i = 0; i < 100; i += 2) {
       Key key = new Key(new Text(String.format("%8d", i)), cf, cq, timestamp);
       evenWriter.append(key, value);

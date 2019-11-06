@@ -379,7 +379,7 @@ public class KerberosIT extends AccumuloITBase {
         assertTrue("No results from iterator", iter.hasNext());
         Entry<Key,Value> entry = iter.next();
         assertEquals(new Key("a", "b", "c", viz, ts), entry.getKey());
-        assertEquals(new Value("d".getBytes()), entry.getValue());
+        assertEquals(new Value("d"), entry.getValue());
         assertFalse("Had more results from iterator", iter.hasNext());
         return null;
       }

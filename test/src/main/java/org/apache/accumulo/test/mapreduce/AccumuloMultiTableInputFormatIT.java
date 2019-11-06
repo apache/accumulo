@@ -158,10 +158,10 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
       BatchWriter bw2 = c.createBatchWriter(table2, new BatchWriterConfig());
       for (int i = 0; i < 100; i++) {
         Mutation t1m = new Mutation(new Text(String.format("%s_%09x", table1, i + 1)));
-        t1m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table1, i).getBytes()));
+        t1m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table1, i)));
         bw.addMutation(t1m);
         Mutation t2m = new Mutation(new Text(String.format("%s_%09x", table2, i + 1)));
-        t2m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table2, i).getBytes()));
+        t2m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table2, i)));
         bw2.addMutation(t2m);
       }
       bw.close();

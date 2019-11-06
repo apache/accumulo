@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.EnumSet;
@@ -111,7 +110,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     BatchWriter bw = c.createBatchWriter(tableName);
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
+      m.put(new Text("cf1"), new Text("cq1"), new Value("foo"));
       bw.addMutation(m);
     }
     bw.flush();
@@ -127,7 +126,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
 
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
+      m.put(new Text("cf1"), new Text("cq1"), new Value("foo"));
       bw.addMutation(m);
     }
 

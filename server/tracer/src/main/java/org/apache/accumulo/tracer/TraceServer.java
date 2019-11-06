@@ -145,7 +145,7 @@ public class TraceServer implements Watcher, AutoCloseable {
       Mutation indexMutation = new Mutation(new Text("idx:" + s.svc + ":" + startString));
       long diff = s.stop - s.start;
       indexMutation.put(new Text(s.description), new Text(s.sender),
-          new Value((idString + ":" + Long.toHexString(diff)).getBytes(UTF_8)));
+          new Value(idString + ":" + Long.toHexString(diff)));
       ByteArrayTransport transport = new ByteArrayTransport();
       TCompactProtocol protocol = new TCompactProtocol(transport);
       s.write(protocol);

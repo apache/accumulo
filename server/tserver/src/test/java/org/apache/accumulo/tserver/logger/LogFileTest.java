@@ -89,17 +89,15 @@ public class LogFileTest {
     assertEquals(key.tabletId, 6);
     assertEquals(key.tablet, tablet);
     Mutation m = new ServerMutation(new Text("row"));
-    m.put(new Text("cf"), new Text("cq"), new Value("value".getBytes()));
+    m.put(new Text("cf"), new Text("cq"), new Value("value"));
     readWrite(MUTATION, 7, 8, null, null, new Mutation[] {m}, key, value);
     assertEquals(key.event, MUTATION);
     assertEquals(key.seq, 7);
     assertEquals(key.tabletId, 8);
     assertEquals(value.mutations, Arrays.asList(m));
     m = new ServerMutation(new Text("row"));
-    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis"), 12345,
-        new Value("value".getBytes()));
-    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"),
-        new Value("value".getBytes()));
+    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis"), 12345, new Value("value"));
+    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"), new Value("value"));
     m.putDelete(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"));
     readWrite(MUTATION, 8, 9, null, null, new Mutation[] {m}, key, value);
     assertEquals(key.event, MUTATION);
