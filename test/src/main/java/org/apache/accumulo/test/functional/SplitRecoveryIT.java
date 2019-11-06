@@ -147,9 +147,10 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
 
+      String dirName = "dir_" + i;
       String tdir =
-          ServerConstants.getTablesDirs(context)[0] + "/" + extent.getTableId() + "/dir_" + i;
-      MetadataTableUtil.addTablet(extent, tdir, context, TimeType.LOGICAL, zl);
+          ServerConstants.getTablesDirs(context)[0] + "/" + extent.getTableId() + "/" + dirName;
+      MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
       SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<>();
       mapFiles.put(new FileRef(tdir + "/" + RFile.EXTENSION + "_000_000"),
           new DataFileValue(1000017 + i, 10000 + i));
@@ -205,8 +206,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     if (steps >= 1) {
       Map<Long,List<FileRef>> bulkFiles = getBulkFilesLoaded(context, extent);
 
-      MasterMetadataUtil.addNewTablet(context, low, "/lowDir", instance, lowDatafileSizes,
-          bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
+      MasterMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes, bulkFiles,
+          new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
     }
     if (steps >= 2) {
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context, zl);

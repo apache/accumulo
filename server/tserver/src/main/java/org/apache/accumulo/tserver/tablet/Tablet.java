@@ -487,7 +487,8 @@ public class Tablet {
     try {
       Collection<Volume> volumes = getTabletServer().getFileSystem().getVolumes();
       for (Volume volume : volumes) {
-        String dirUri = volume.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + dirName;
+        String dirUri = volume.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + extent.getTableId() + Path.SEPARATOR + dirName;
 
         for (FileStatus tmp : getTabletServer().getFileSystem()
             .globStatus(new Path(dirUri, "*_tmp"))) {

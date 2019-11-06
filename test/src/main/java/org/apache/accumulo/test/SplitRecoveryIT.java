@@ -109,8 +109,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
               KeyExtent extent2 = new KeyExtent(tableId, new Text("b"), null);
               m = extent2.getPrevRowUpdateMutation();
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
-                  new Value("/t2".getBytes()));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("t2".getBytes()));
               TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value("M0".getBytes()));
 
               for (Entry<Key,Value> entry : scanner) {

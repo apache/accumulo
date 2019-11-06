@@ -51,7 +51,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -152,11 +151,10 @@ public class CloneTestIT extends AccumuloClusterHarness {
               MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
                   .getColumnQualifier(),
               cq);
-          Path tabletDir = new Path(entry.getValue().toString());
-          Path tableDir = tabletDir.getParent();
-          Path tablesDir = tableDir.getParent();
 
-          assertEquals(ServerConstants.TABLE_DIR, tablesDir.getName());
+          String dirName = entry.getValue().toString();
+
+          assertTrue("Bad dir name " + dirName, dirName.matches("[tc]-[0-9a-z]+"));
         } else {
           fail("Got unexpected key-value: " + entry);
           throw new RuntimeException();
