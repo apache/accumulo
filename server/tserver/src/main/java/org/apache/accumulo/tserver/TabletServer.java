@@ -162,6 +162,7 @@ import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory.RateProv
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
@@ -3017,11 +3018,7 @@ public class TabletServer extends AbstractServer {
     if (!fs.canSyncAndFlush(new Path(logPath))) {
       // sleep a few seconds in case this is at cluster start...give monitor
       // time to start so the warning will be more visible
-      try {
-        Thread.sleep(5000);
-      } catch (Exception ignored) {
-        // yes, really ignored
-      }
+      UtilWaitThread.sleep(5000);
       log.warn("WAL directory ({}) implementation does not support sync or flush."
           + " Data loss may occur.", logPath);
     }
