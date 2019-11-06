@@ -47,4 +47,8 @@ public class FairVolumeChooser implements VolumeChooser {
     return options[currentChoice];
   }
 
+  @Override
+  public String[] choosable(VolumeChooserEnvironment env, String[] options) {
+    return options;
+  }
 }

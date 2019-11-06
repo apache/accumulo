@@ -3013,14 +3013,21 @@ public class TabletServer extends AbstractServer {
   private void checkWalCanSync(ServerContext context) {
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.ChooserScope.LOGGER, context);
-    String logPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context)) + Path.SEPARATOR
-        + ServerConstants.WAL_DIR;
-    if (!fs.canSyncAndFlush(new Path(logPath))) {
-      // sleep a few seconds in case this is at cluster start...give monitor
-      // time to start so the warning will be more visible
-      UtilWaitThread.sleep(5000);
-      log.warn("WAL directory ({}) implementation does not support sync or flush."
-          + " Data loss may occur.", logPath);
+    String[] prefixes = fs.choosable(chooserEnv, ServerConstants.getBaseUris(context));
+
+    boolean warned = false;
+    for (String prefix : prefixes) {
+      String logPath = prefix + Path.SEPARATOR + ServerConstants.WAL_DIR;
+      if (!fs.canSyncAndFlush(new Path(logPath))) {
+        // sleep a few seconds in case this is at cluster start...give monitor
+        // time to start so the warning will be more visible
+        if (!warned) {
+          UtilWaitThread.sleep(5000);
+          warned = true;
+        }
+        log.warn("WAL directory ({}) implementation does not support sync or flush."
+            + " Data loss may occur.", logPath);
+      }
     }
   }
 

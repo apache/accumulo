@@ -57,6 +57,12 @@ public class PerTableVolumeChooser implements VolumeChooser {
     return getDelegateChooser(env).choose(env, options);
   }
 
+  @Override
+  public String[] choosable(VolumeChooserEnvironment env, String[] options)
+      throws VolumeChooserException {
+    return getDelegateChooser(env).choosable(env, options);
+  }
+
   // visible (not private) for testing
   VolumeChooser getDelegateChooser(VolumeChooserEnvironment env) {
     switch (env.getScope()) {
