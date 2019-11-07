@@ -29,10 +29,10 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.iterators.system.CountingIterator;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.CountingIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder.InputFormatOptions;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;

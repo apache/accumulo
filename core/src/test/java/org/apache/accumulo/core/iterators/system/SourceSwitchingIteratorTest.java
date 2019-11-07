@@ -41,7 +41,10 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
-import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -267,7 +270,7 @@ public class SourceSwitchingIteratorTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
 
-    SortedMapIterator smi = new SortedMapIterator(tm1);
+    InterruptibleMapIterator smi = new InterruptibleMapIterator(tm1, null);
     TestDataSource tds = new TestDataSource(smi);
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds, false);
 

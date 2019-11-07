@@ -166,6 +166,9 @@ public interface VolumeManager {
   // decide on which of the given locations to create a new file
   String choose(VolumeChooserEnvironment env, String[] options);
 
+  // are sync and flush supported for the given path
+  boolean canSyncAndFlush(Path path);
+
   /**
    * Fetch the default Volume
    */
