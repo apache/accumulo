@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  * Common methods for performing operations that are deliberately take some period of time so that
  * tests can interact while the operations are in progress.
  */
-public class SlowOps {
+class SlowOps {
 
   private static final Logger log = LoggerFactory.getLogger(SlowOps.class);
 
@@ -60,7 +60,7 @@ public class SlowOps {
   private static final long SLOW_SCAN_SLEEP_MS = 250L;
   private static final int NUM_DATA_ROWS = 1000;
 
-  private Connector connector;
+  private final Connector connector;
   private final String tableName;
   private final long maxWait;
 
@@ -88,7 +88,7 @@ public class SlowOps {
 
   }
 
-  public int setExpectedCompactions(final int numParallelExpected) {
+  public void setExpectedCompactions(final int numParallelExpected) {
 
     final int target = numParallelExpected + 1;
 
@@ -108,7 +108,7 @@ public class SlowOps {
 
       }
 
-      return Integer.parseInt(sysConfig.get(TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX));
+      Integer.parseInt(sysConfig.get(TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX));
 
     } catch (AccumuloException | AccumuloSecurityException | NumberFormatException ex) {
       throw new IllegalStateException("Could not set parallel compaction limit to " + target, ex);
