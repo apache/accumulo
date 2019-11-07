@@ -80,6 +80,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   private long maxWait;
 
+  private SlowOps slowOps;
+
   @Before
   public void setup() {
 
@@ -91,7 +93,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     maxWait = defaultTimeoutSeconds() <= 0 ? 60_000 : ((defaultTimeoutSeconds() * 1000) / 2);
 
-    // slowOps = new SlowOps(connector, tableName, maxWait, 1);
+    slowOps = new SlowOps(connector, tableName, maxWait, 1);
   }
 
   @AfterClass
@@ -148,7 +150,6 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     // launch a full table compaction with the slow iterator to ensure table lock is acquired and
     // held by the compaction
-    SlowOps slowOps = new SlowOps(connector, tableName, maxWait, 1);
     slowOps.startCompactTask();
 
     // try to set online while fate transaction is in progress - before ACCUMULO-4574 this would
@@ -230,7 +231,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       throw new IllegalStateException(
           String.format("Table %s does not exist, failing test", tableName));
     }
-    SlowOps slowOps = new SlowOps(connector, tableName, maxWait, 1);
+
     slowOps.startCompactTask();
 
     AdminUtil.FateStatus withLocks = null;
