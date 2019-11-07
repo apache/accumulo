@@ -45,7 +45,7 @@ public interface VolumeChooser {
   String choose(VolumeChooserEnvironment env, String[] options) throws VolumeChooserException;
 
   /**
-   * Return all volumes from options that are appropriate for the given environment.
+   * Return the subset of volume options that could possibly be chosen by this chooser.
    *
    * @param env
    *          the server environment provided by the calling framework
