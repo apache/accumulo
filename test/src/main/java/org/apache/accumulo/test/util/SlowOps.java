@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  * Common methods for performing operations that are deliberately take some period of time so that
  * tests can interact while the operations are in progress.
  */
-class SlowOps {
+public class SlowOps {
 
   private static final Logger log = LoggerFactory.getLogger(SlowOps.class);
 
