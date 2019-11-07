@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloException;
  */
 public class AccumuloBulkMergeException extends AccumuloException {
 
+  private static final long serialVersionUID = 1L;
   private static final String MSG = "Concurrent merge happened";
 
   public AccumuloBulkMergeException(final Throwable cause) {
