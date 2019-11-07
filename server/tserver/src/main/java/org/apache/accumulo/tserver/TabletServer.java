@@ -162,6 +162,7 @@ import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory.RateProv
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
@@ -171,6 +172,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.TabletLevel;
@@ -179,6 +181,8 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.SortedLogState;
@@ -371,6 +375,10 @@ public class TabletServer extends AbstractServer {
     final int numBusyTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSY_TABLETS_COUNT);
     final long logBusyTabletsDelay =
         aconf.getTimeInMillis(Property.TSERV_LOG_BUSY_TABLETS_INTERVAL);
+
+    // check early whether the WAL directory supports sync. issue warning if
+    // it doesn't
+    checkWalCanSync(context);
 
     // This thread will calculate and log out the busiest tablets based on ingest count and
     // query count every #{logBusiestTabletsDelay}
@@ -2999,6 +3007,20 @@ public class TabletServer extends AbstractServer {
     } catch (Exception ex) {
       log.warn("Unable to read session from tablet server lock" + ex);
       return null;
+    }
+  }
+
+  private void checkWalCanSync(ServerContext context) {
+    VolumeChooserEnvironment chooserEnv =
+        new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.ChooserScope.LOGGER, context);
+    String logPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context)) + Path.SEPARATOR
+        + ServerConstants.WAL_DIR;
+    if (!fs.canSyncAndFlush(new Path(logPath))) {
+      // sleep a few seconds in case this is at cluster start...give monitor
+      // time to start so the warning will be more visible
+      UtilWaitThread.sleep(5000);
+      log.warn("WAL directory ({}) implementation does not support sync or flush."
+          + " Data loss may occur.", logPath);
     }
   }
 
