@@ -55,8 +55,14 @@ public interface VolumeChooser {
    * @throws VolumeChooserException
    *           if there is an error choosing (this is a RuntimeException); this does not preclude
    *           other RuntimeExceptions from occurring
+   *
+   * @since 2.1.0
    */
-  String[] choosable(VolumeChooserEnvironment env, String[] options) throws VolumeChooserException;
+  default String[] choosable(VolumeChooserEnvironment env, String[] options)
+      throws VolumeChooserException {
+    throw new UnsupportedOperationException("This volume chooser does not support a new "
+        + "method added in 2.1.0.  Please let the author of the chooser know.");
+  }
 
   class VolumeChooserException extends RuntimeException {
 
