@@ -62,16 +62,16 @@ public class MetadataBulkLoadFilterTest {
 
   private static void put(TreeMap<Key,Value> tm, String row, ColumnFQ cfq, String val) {
     Key k = new Key(new Text(row), cfq.getColumnFamily(), cfq.getColumnQualifier());
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
   }
 
   private static void put(TreeMap<Key,Value> tm, String row, Text cf, String cq, String val) {
     Key k = new Key(new Text(row), cf, new Text(cq));
     if (val == null) {
       k.setDeleted(true);
-      tm.put(k, new Value("".getBytes()));
+      tm.put(k, new Value(""));
     } else
-      tm.put(k, new Value(val.getBytes()));
+      tm.put(k, new Value(val));
   }
 
   @Test

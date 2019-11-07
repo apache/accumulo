@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.util.format;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -54,9 +53,9 @@ public class ShardedTableDistributionFormatterTest {
 
   @Test
   public void testAggregate() {
-    data.put(new Key("t", "~tab", "loc"), new Value("srv1".getBytes(UTF_8)));
-    data.put(new Key("t;19700101", "~tab", "loc", 0), new Value("srv1".getBytes(UTF_8)));
-    data.put(new Key("t;19700101", "~tab", "loc", 1), new Value("srv2".getBytes(UTF_8)));
+    data.put(new Key("t", "~tab", "loc"), new Value("srv1"));
+    data.put(new Key("t;19700101", "~tab", "loc", 0), new Value("srv1"));
+    data.put(new Key("t;19700101", "~tab", "loc", 1), new Value("srv2"));
 
     formatter.initialize(data.entrySet(), new FormatterConfig());
 

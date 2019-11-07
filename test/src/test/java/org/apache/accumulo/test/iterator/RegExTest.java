@@ -53,7 +53,7 @@ public class RegExTest {
       String row = "r" + rc;
       for (Character cfc : chars) {
         for (Character cqc : chars) {
-          Value v = new Value(("v" + rc + cfc + cqc).getBytes());
+          Value v = new Value("v" + rc + cfc + cqc);
           data.put(new Key(row, "cf" + cfc, "cq" + cqc, "", 9), v);
         }
       }

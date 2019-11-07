@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Collection;
@@ -155,7 +154,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     Mutation m = new Mutation(new KeyExtent(tableIdToModify, null, null).getMetadataEntry());
     m.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME, new Text("1234567"),
-        new Value("fake:9005".getBytes(UTF_8)));
+        new Value("fake:9005"));
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);
     }
@@ -173,7 +172,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(),
           entry.getKey().getTimestamp());
       m.put(entry.getKey().getColumnFamily(), new Text("1234567"),
-          entry.getKey().getTimestamp() + 1, new Value("fake:9005".getBytes(UTF_8)));
+          entry.getKey().getTimestamp() + 1, new Value("fake:9005"));
       try (BatchWriter bw = client.createBatchWriter(table)) {
         bw.addMutation(m);
       }

@@ -67,7 +67,7 @@ public class SortedLogRecoveryTest {
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
   static final Text cf = new Text("cf");
   static final Text cq = new Text("cq");
-  static final Value value = new Value("value".getBytes());
+  static final Value value = new Value("value");
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -396,7 +396,7 @@ public class SortedLogRecoveryTest {
     Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
     Mutation m2 = new ServerMutation(new Text("row2"));
-    m2.put(cf, cq, new Value("123".getBytes()));
+    m2.put(cf, cq, new Value("123"));
     KeyValue[] entries =
         {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
             createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"),
@@ -423,7 +423,7 @@ public class SortedLogRecoveryTest {
     Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
     Mutation m2 = new ServerMutation(new Text("row2"));
-    m2.put(cf, cq, new Value("123".getBytes()));
+    m2.put(cf, cq, new Value("123"));
     KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
         createKeyValue(DEFINE_TABLET, 1, 1, extent), createKeyValue(COMPACTION_FINISH, 2, 1, null),
         createKeyValue(COMPACTION_START, 4, 1, "/t1/f1"),

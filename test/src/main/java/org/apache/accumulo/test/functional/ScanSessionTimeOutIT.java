@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Iterator;
@@ -103,7 +102,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
         for (int i = 0; i < 100000; i++) {
           Mutation m = new Mutation(new Text(String.format("%08d", i)));
           for (int j = 0; j < 3; j++)
-            m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
+            m.put(new Text("cf1"), new Text("cq" + j), new Value(i + "_" + j));
 
           bw.addMutation(m);
         }

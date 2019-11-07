@@ -48,7 +48,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
   private Mutation m(String row) {
     Mutation result = new Mutation(row);
-    result.put("cf", "cq", new Value("value".getBytes()));
+    result.put("cf", "cq", new Value("value"));
     return result;
   }
 
@@ -94,7 +94,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
         Mutation m = extent.getPrevRowUpdateMutation();
 
         TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m,
-            new Value(Double.toString(0.5).getBytes()));
+            new Value(Double.toString(0.5)));
         TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
             KeyExtent.encodePrevEndRow(null));
         try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
@@ -109,8 +109,8 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
               KeyExtent extent2 = new KeyExtent(tableId, new Text("b"), null);
               m = extent2.getPrevRowUpdateMutation();
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("t2".getBytes()));
-              TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value("M0".getBytes()));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("t2"));
+              TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value("M0"));
 
               for (Entry<Key,Value> entry : scanner) {
                 m.put(DataFileColumnFamily.NAME, entry.getKey().getColumnQualifier(),

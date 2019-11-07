@@ -79,7 +79,7 @@ public class BatchWriterIterator extends WrappingIterator {
   private static final String AUTHENTICATION_TOKEN_CLASS = "authenticationTokenClass";
   private static final String SUCCESS_STRING = "success";
 
-  public static final Value SUCCESS_VALUE = new Value(SUCCESS_STRING.getBytes());
+  public static final Value SUCCESS_VALUE = new Value(SUCCESS_STRING);
 
   private Map<String,String> originalOptions; // remembered for deepCopy
 
@@ -229,7 +229,7 @@ public class BatchWriterIterator extends WrappingIterator {
       log.error("Problem while BatchWriting to target table " + tableName, e);
       failure = e.getClass().getSimpleName() + ": " + e.getMessage();
     }
-    topValue = failure == null ? SUCCESS_VALUE : new Value(failure.getBytes());
+    topValue = failure == null ? SUCCESS_VALUE : new Value(failure);
   }
 
   @Override

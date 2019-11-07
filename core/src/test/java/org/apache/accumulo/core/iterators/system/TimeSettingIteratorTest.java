@@ -40,11 +40,11 @@ public class TimeSettingIteratorTest {
   public void test1() throws Exception {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
-    tm1.put(new Key("r0", "cf1", "cq1", 9L), new Value("v0".getBytes()));
-    tm1.put(new Key("r1", "cf1", "cq1", Long.MAX_VALUE), new Value("v1".getBytes()));
-    tm1.put(new Key("r1", "cf1", "cq1", 90L), new Value("v2".getBytes()));
-    tm1.put(new Key("r1", "cf1", "cq1", 0L), new Value("v3".getBytes()));
-    tm1.put(new Key("r2", "cf1", "cq1", 6L), new Value("v4".getBytes()));
+    tm1.put(new Key("r0", "cf1", "cq1", 9L), new Value("v0"));
+    tm1.put(new Key("r1", "cf1", "cq1", Long.MAX_VALUE), new Value("v1"));
+    tm1.put(new Key("r1", "cf1", "cq1", 90L), new Value("v2"));
+    tm1.put(new Key("r1", "cf1", "cq1", 0L), new Value("v3"));
+    tm1.put(new Key("r2", "cf1", "cq1", 6L), new Value("v4"));
 
     TimeSettingIterator tsi = new TimeSettingIterator(new SortedMapIterator(tm1), 50);
 
@@ -100,7 +100,7 @@ public class TimeSettingIteratorTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
     final Key k = new Key("r0", "cf1", "cq1", 9L);
 
-    tm1.put(k, new Value("v0".getBytes()));
+    tm1.put(k, new Value("v0"));
 
     TimeSettingIterator tsi = new TimeSettingIterator(new SortedMapIterator(tm1), 50);
 
@@ -126,10 +126,10 @@ public class TimeSettingIteratorTest {
     for (boolean inclusiveEndRange : new boolean[] {true, false}) {
       TreeMap<Key,Value> sources = new TreeMap<>();
       sources.put(new Key(row.getBytes(), colf.getBytes(), colq.getBytes(), cv.getBytes(),
-          Long.MIN_VALUE, true), new Value("00".getBytes()));
+          Long.MIN_VALUE, true), new Value("00"));
       sources.put(
           new Key(row.getBytes(), colf.getBytes(), colq.getBytes(), cv.getBytes(), Long.MIN_VALUE),
-          new Value("11".getBytes()));
+          new Value("11"));
 
       TimeSettingIterator it = new TimeSettingIterator(new SortedMapIterator(sources), 111L);
       IteratorSetting is = new IteratorSetting(1, TimeSettingIterator.class);
@@ -141,11 +141,11 @@ public class TimeSettingIteratorTest {
       it.seek(testRange, new HashSet<>(), false);
 
       assertTrue(it.hasTop());
-      assertEquals(it.getTopValue(), new Value("00".getBytes()));
+      assertEquals(it.getTopValue(), new Value("00"));
       assertEquals(111L, it.getTopKey().getTimestamp());
       it.next();
       assertTrue(it.hasTop());
-      assertEquals(it.getTopValue(), new Value("11".getBytes()));
+      assertEquals(it.getTopValue(), new Value("11"));
       assertEquals(111L, it.getTopKey().getTimestamp());
       it.next();
       assertFalse(it.hasTop());

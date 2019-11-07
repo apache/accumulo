@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.security.SecureRandom;
@@ -68,8 +67,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < numRows; i++) {
           Mutation m = new Mutation(new Text(String.format("%09x", i)));
-          m.put(new Text("cf1"), new Text("cq1"),
-              new Value(String.format("%016x", numRows - i).getBytes(UTF_8)));
+          m.put(new Text("cf1"), new Text("cq1"), new Value(String.format("%016x", numRows - i)));
           bw.addMutation(m);
         }
       }
@@ -92,7 +90,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
       for (int i = 0; i < 100; i++) {
         int r = random.nextInt(numRows);
         Text row = new Text(String.format("%09x", r));
-        expected.put(row, new Value(String.format("%016x", numRows - r).getBytes(UTF_8)));
+        expected.put(row, new Value(String.format("%016x", numRows - r)));
         ranges.add(new Range(row));
       }
 

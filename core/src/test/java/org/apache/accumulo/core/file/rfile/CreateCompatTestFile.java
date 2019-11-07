@@ -49,7 +49,7 @@ public class CreateCompatTestFile {
   }
 
   private static Value newValue(String val) {
-    return new Value(val.getBytes());
+    return new Value(val);
   }
 
   private static String formatStr(String prefix, int i) {

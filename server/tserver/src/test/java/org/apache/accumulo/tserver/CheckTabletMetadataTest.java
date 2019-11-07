@@ -54,7 +54,7 @@ public class CheckTabletMetadataTest {
   private static void put(TreeMap<Key,Value> tabletMeta, String row, Text cf, String cq,
       String val) {
     Key k = new Key(new Text(row), cf, new Text(cq));
-    tabletMeta.put(k, new Value(val.getBytes()));
+    tabletMeta.put(k, new Value(val));
   }
 
   private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi) {

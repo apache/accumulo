@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.hadoop.its.mapred;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -92,7 +91,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
         for (int i = 0; i < 3; i++) {
           Mutation m = new Mutation(new Text(String.format("%08d", i)));
           for (int j = 0; j < 3; j++) {
-            m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
+            m.put(new Text("cf1"), new Text("cq" + j), new Value(i + "_" + j));
           }
           writer.write(new Text(testName.getMethodName()), m);
         }
@@ -210,7 +209,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
       for (int i = 0; i < 100; i++) {
         Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i)));
         bw.addMutation(m);
       }
       bw.close();

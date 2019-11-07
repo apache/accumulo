@@ -54,36 +54,36 @@ public class WholeRowIteratorTest extends BaseJUnit4IteratorTest {
   private static TreeMap<Key,Value> createInputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
 
-    data.put(new Key("1", "", "a"), new Value("1a".getBytes()));
-    data.put(new Key("1", "", "b"), new Value("1b".getBytes()));
-    data.put(new Key("1", "a", "a"), new Value("1aa".getBytes()));
-    data.put(new Key("1", "a", "b"), new Value("1ab".getBytes()));
-    data.put(new Key("1", "b", "a"), new Value("1ba".getBytes()));
+    data.put(new Key("1", "", "a"), new Value("1a"));
+    data.put(new Key("1", "", "b"), new Value("1b"));
+    data.put(new Key("1", "a", "a"), new Value("1aa"));
+    data.put(new Key("1", "a", "b"), new Value("1ab"));
+    data.put(new Key("1", "b", "a"), new Value("1ba"));
 
-    data.put(new Key("2", "a", "a"), new Value("2aa".getBytes()));
-    data.put(new Key("2", "a", "b"), new Value("2ab".getBytes()));
-    data.put(new Key("2", "a", "c"), new Value("2ac".getBytes()));
-    data.put(new Key("2", "c", "c"), new Value("2cc".getBytes()));
+    data.put(new Key("2", "a", "a"), new Value("2aa"));
+    data.put(new Key("2", "a", "b"), new Value("2ab"));
+    data.put(new Key("2", "a", "c"), new Value("2ac"));
+    data.put(new Key("2", "c", "c"), new Value("2cc"));
 
-    data.put(new Key("3", "a", ""), new Value("3a".getBytes()));
+    data.put(new Key("3", "a", ""), new Value("3a"));
 
-    data.put(new Key("4", "a", "b"), new Value("4ab".getBytes()));
+    data.put(new Key("4", "a", "b"), new Value("4ab"));
 
-    data.put(new Key("5", "a", "a"), new Value("5aa".getBytes()));
-    data.put(new Key("5", "a", "b"), new Value("5ab".getBytes()));
-    data.put(new Key("5", "a", "c"), new Value("5ac".getBytes()));
-    data.put(new Key("5", "a", "d"), new Value("5ad".getBytes()));
+    data.put(new Key("5", "a", "a"), new Value("5aa"));
+    data.put(new Key("5", "a", "b"), new Value("5ab"));
+    data.put(new Key("5", "a", "c"), new Value("5ac"));
+    data.put(new Key("5", "a", "d"), new Value("5ad"));
 
-    data.put(new Key("6", "", "a"), new Value("6a".getBytes()));
-    data.put(new Key("6", "", "b"), new Value("6b".getBytes()));
-    data.put(new Key("6", "", "c"), new Value("6c".getBytes()));
-    data.put(new Key("6", "", "d"), new Value("6d".getBytes()));
-    data.put(new Key("6", "", "e"), new Value("6e".getBytes()));
-    data.put(new Key("6", "1", "a"), new Value("61a".getBytes()));
-    data.put(new Key("6", "1", "b"), new Value("61b".getBytes()));
-    data.put(new Key("6", "1", "c"), new Value("61c".getBytes()));
-    data.put(new Key("6", "1", "d"), new Value("61d".getBytes()));
-    data.put(new Key("6", "1", "e"), new Value("61e".getBytes()));
+    data.put(new Key("6", "", "a"), new Value("6a"));
+    data.put(new Key("6", "", "b"), new Value("6b"));
+    data.put(new Key("6", "", "c"), new Value("6c"));
+    data.put(new Key("6", "", "d"), new Value("6d"));
+    data.put(new Key("6", "", "e"), new Value("6e"));
+    data.put(new Key("6", "1", "a"), new Value("61a"));
+    data.put(new Key("6", "1", "b"), new Value("61b"));
+    data.put(new Key("6", "1", "c"), new Value("61c"));
+    data.put(new Key("6", "1", "d"), new Value("61d"));
+    data.put(new Key("6", "1", "e"), new Value("61e"));
 
     return data;
   }

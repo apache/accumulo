@@ -104,7 +104,7 @@ public class IterConfigUtilTest {
 
       int orig = Integer.parseInt(val.toString());
 
-      return new Value(((orig + amount) + "").getBytes());
+      return new Value((orig + amount) + "");
     }
 
     @Override
@@ -127,7 +127,7 @@ public class IterConfigUtilTest {
 
       int orig = Integer.parseInt(val.toString());
 
-      return new Value(((orig * orig) + "").getBytes());
+      return new Value((orig * orig) + "");
     }
   }
 

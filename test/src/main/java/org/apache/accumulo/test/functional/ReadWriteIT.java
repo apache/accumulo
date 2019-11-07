@@ -307,7 +307,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   public static Mutation m(String row, String cf, String cq, String value) {
     Mutation m = new Mutation(t(row));
-    m.put(t(cf), t(cq), new Value(value.getBytes()));
+    m.put(t(cf), t(cq), new Value(value));
     return m;
   }
 

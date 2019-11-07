@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -52,7 +50,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  */
 public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
 
-  public static final Value DELETE_ROW_VALUE = new Value("DEL_ROW".getBytes(UTF_8));
+  public static final Value DELETE_ROW_VALUE = new Value("DEL_ROW");
   private SortedKeyValueIterator<Key,Value> source;
   private boolean propogateDeletes;
   private ByteSequence currentRow;

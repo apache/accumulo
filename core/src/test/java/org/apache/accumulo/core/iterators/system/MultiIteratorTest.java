@@ -55,7 +55,7 @@ public class MultiIteratorTest {
       String val) {
     Key k = newKey(row, ts);
     k.setDeleted(deleted);
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
   }
 
   public static Text newRow(int row) {

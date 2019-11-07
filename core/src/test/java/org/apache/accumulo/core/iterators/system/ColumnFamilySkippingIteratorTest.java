@@ -53,11 +53,11 @@ public class ColumnFamilySkippingIteratorTest {
   }
 
   void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, String val) {
-    put(tm, row, cf, cq, time, new Value(val.getBytes()));
+    put(tm, row, cf, cq, time, new Value(val));
   }
 
   void put(TreeMap<Key,Value> tm, int row, int cf, int cq, long time, int val) {
-    tm.put(newKey(row, cf, cq, time), new Value((val + "").getBytes()));
+    tm.put(newKey(row, cf, cq, time), new Value(val + ""));
   }
 
   private void testAndCallnext(ColumnFamilySkippingIterator rdi, String row, String cf, String cq,

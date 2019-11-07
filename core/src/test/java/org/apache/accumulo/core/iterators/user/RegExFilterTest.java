@@ -42,7 +42,7 @@ public class RegExFilterTest {
 
   private Key newKeyValue(TreeMap<Key,Value> tm, String row, String cf, String cq, String val) {
     Key k = newKey(row, cf, cq);
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
     return k;
   }
 
@@ -225,7 +225,7 @@ public class RegExFilterTest {
     String multiByteRegex = new String(".*" + "\u6F68" + ".*");
 
     Key k4 = new Key("boo4".getBytes(), "hoo".getBytes(), "20080203".getBytes(), "".getBytes(), 1L);
-    Value inVal = new Value(multiByteText.getBytes(UTF_8));
+    Value inVal = new Value(multiByteText);
     tm.put(k4, inVal);
 
     is.clearOptions();

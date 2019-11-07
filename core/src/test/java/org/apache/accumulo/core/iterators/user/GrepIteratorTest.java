@@ -46,26 +46,26 @@ public class GrepIteratorTest {
   public void init() {
     input = new TreeMap<>();
     output = new TreeMap<>();
-    input.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz".getBytes()));
-    output.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz".getBytes()));
+    input.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz"));
+    output.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz"));
 
-    input.put(new Key("bdf", "ace", "xyz", 0), new Value("xyz".getBytes()));
-    input.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz".getBytes()));
-    output.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz".getBytes()));
-    input.put(new Key("bdf", "xyz", "xyz", 0), new Value("xyz".getBytes()));
+    input.put(new Key("bdf", "ace", "xyz", 0), new Value("xyz"));
+    input.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz"));
+    output.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz"));
+    input.put(new Key("bdf", "xyz", "xyz", 0), new Value("xyz"));
 
-    input.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz".getBytes()));
-    output.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz".getBytes()));
-    input.put(new Key("ceg", "xyz", "xyz", 0), new Value("xyz".getBytes()));
+    input.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz"));
+    output.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz"));
+    input.put(new Key("ceg", "xyz", "xyz", 0), new Value("xyz"));
 
-    input.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef".getBytes()));
-    output.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef".getBytes()));
-    input.put(new Key("dfh", "xyz", "xyz", 1), new Value("xyz".getBytes()));
+    input.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef"));
+    output.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef"));
+    input.put(new Key("dfh", "xyz", "xyz", 1), new Value("xyz"));
 
     Key k = new Key("dfh", "xyz", "xyz", 1);
     k.setDeleted(true);
-    input.put(k, new Value("xyz".getBytes()));
-    output.put(k, new Value("xyz".getBytes()));
+    input.put(k, new Value("xyz"));
+    output.put(k, new Value("xyz"));
   }
 
   public static void checkEntries(SortedKeyValueIterator<Key,Value> skvi, SortedMap<Key,Value> map)

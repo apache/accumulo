@@ -68,7 +68,7 @@ public class RowDeletingIteratorTest {
   }
 
   void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, String val) {
-    put(tm, row, cf, cq, time, new Value(val.getBytes()));
+    put(tm, row, cf, cq, time, new Value(val));
   }
 
   private void testAssertions(RowDeletingIterator rdi, String row, String cf, String cq, long time,

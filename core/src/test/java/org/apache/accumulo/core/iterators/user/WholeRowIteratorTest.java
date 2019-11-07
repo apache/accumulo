@@ -43,7 +43,7 @@ public class WholeRowIteratorTest {
   @Test(expected = IOException.class)
   public void testBadDecodeRow() throws IOException {
     Key k = new Key(new Text("r1"), new Text("cf1234567890"));
-    Value v = new Value("v1".getBytes());
+    Value v = new Value("v1");
     Value encoded = WholeRowIterator.encodeRow(List.of(k), List.of(v));
     encoded.set(Arrays.copyOfRange(encoded.get(), 0, 10)); // truncate to 10 bytes only
     WholeRowIterator.decodeRow(k, encoded);
@@ -55,27 +55,27 @@ public class WholeRowIteratorTest {
     SortedMap<Key,Value> map2 = new TreeMap<>();
     final Map<Text,Boolean> toInclude = new HashMap<>();
     map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 1L),
-        new Value("val1".getBytes()));
+        new Value("val1"));
     map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq2"), new Text("cv1"), 2L),
-        new Value("val2".getBytes()));
+        new Value("val2"));
     map.put(new Key(new Text("r2"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 3L),
-        new Value("val3".getBytes()));
+        new Value("val3"));
     map.put(new Key(new Text("r2"), new Text("cf2"), new Text("cq1"), new Text("cv1"), 4L),
-        new Value("val4".getBytes()));
+        new Value("val4"));
     map.put(new Key(new Text("r3"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 5L),
-        new Value("val4".getBytes()));
+        new Value("val4"));
     map.put(new Key(new Text("r3"), new Text("cf1"), new Text("cq1"), new Text("cv2"), 6L),
-        new Value("val4".getBytes()));
+        new Value("val4"));
     map.put(new Key(new Text("r4"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 7L),
-        new Value("".getBytes()));
+        new Value(""));
     map.put(new Key(new Text("r4"), new Text("cf1"), new Text("cq1"), new Text(""), 8L),
-        new Value("val1".getBytes()));
+        new Value("val1"));
     map.put(new Key(new Text("r4"), new Text("cf1"), new Text(""), new Text("cv1"), 9L),
-        new Value("val1".getBytes()));
+        new Value("val1"));
     map.put(new Key(new Text("r4"), new Text(""), new Text("cq1"), new Text("cv1"), 10L),
-        new Value("val1".getBytes()));
+        new Value("val1"));
     map.put(new Key(new Text(""), new Text("cf1"), new Text("cq1"), new Text("cv1"), 11L),
-        new Value("val1".getBytes()));
+        new Value("val1"));
     boolean b = true;
     int trueCount = 0;
     for (Key k : map.keySet()) {
@@ -129,8 +129,7 @@ public class WholeRowIteratorTest {
 
   private void pkv(SortedMap<Key,Value> map, String row, String cf, String cq, String cv, long ts,
       String val) {
-    map.put(new Key(new Text(row), new Text(cf), new Text(cq), new Text(cv), ts),
-        new Value(val.getBytes()));
+    map.put(new Key(new Text(row), new Text(cf), new Text(cq), new Text(cv), ts), new Value(val));
   }
 
   @Test
