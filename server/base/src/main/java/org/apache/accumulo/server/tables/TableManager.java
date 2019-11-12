@@ -258,7 +258,6 @@ public class TableManager {
         log.trace("Deleting the table config " + tableConfigPath + "/" + tableConfig);
         org.apache.zookeeper.data.Stat stat =
             zoo.getZooKeeper().exists(tableConfigPath + "/" + tableConfig, false);
-        zoo.getZooKeeper().delete(tableConfigPath + "/" + tableConfig, stat.getVersion());
       }
 
       zoo.recursiveDelete(zkRoot + Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
