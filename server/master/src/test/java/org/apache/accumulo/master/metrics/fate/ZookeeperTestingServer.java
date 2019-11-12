@@ -19,6 +19,7 @@ package org.apache.accumulo.master.metrics.fate;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.SecureRandom;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
@@ -37,6 +38,8 @@ public class ZookeeperTestingServer {
 
   private TestingServer zkServer;
   private final ZooKeeper zoo;
+
+  private static final Random rand = new SecureRandom();
 
   public ZookeeperTestingServer() {
 
@@ -91,8 +94,7 @@ public class ZookeeperTestingServer {
   private int getPort() {
     final int minPort = 50_000;
     final int maxPort = 65_000;
-    Random r = new Random();
-    return r.nextInt((maxPort - minPort) + 1) + minPort;
+    return rand.nextInt((maxPort - minPort) + 1) + minPort;
   }
 
   public ZooKeeper getZooKeeper() {
