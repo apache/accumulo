@@ -63,19 +63,19 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
         try {
           reader = new FileReader(f);
         } catch (FileNotFoundException e) {
-          log.warn("Could not read properties from specified file: {}", propertyFile, e);
+          throw new RuntimeException("Could not read properties from specified file: " + propertyFile, e);
         }
 
         if (reader != null) {
           try {
             fileProperties.load(reader);
           } catch (IOException e) {
-            log.warn("Could not load properties from specified file: {}", propertyFile, e);
+            throw new RuntimeException("Could not load properties from specified file: " + propertyFile, e);
           } finally {
             try {
               reader.close();
             } catch (IOException e) {
-              log.warn("Could not close reader", e);
+              throw new RuntimeException("Could not close reader", e);
             }
           }
 
@@ -83,10 +83,10 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
           clientConf = fileProperties.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
         }
       } else {
-        log.debug("Property file ({}) is not a readable file", propertyFile);
+        throw new RuntimeException("Property file (" + propertyFile + ") is not a readable file");
       }
     } else {
-      log.debug("No properties file found in {}", ACCUMULO_IT_PROPERTIES_FILE);
+      throw new RuntimeException("No properties file found in " + ACCUMULO_IT_PROPERTIES_FILE);
     }
 
     if (clusterTypeValue == null) {
