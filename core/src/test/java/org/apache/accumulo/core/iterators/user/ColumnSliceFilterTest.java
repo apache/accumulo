@@ -59,7 +59,7 @@ public class ColumnSliceFilterTest {
   private static Key newKeyValue(SortedMap<Key,Value> tm, String row, String cf, String cq,
       String val) {
     Key k = newKey(row, cf, cq);
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
     return k;
   }
 

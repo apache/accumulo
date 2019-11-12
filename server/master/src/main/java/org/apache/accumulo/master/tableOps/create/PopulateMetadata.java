@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
@@ -62,8 +63,8 @@ class PopulateMetadata extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     KeyExtent extent = new KeyExtent(tableInfo.getTableId(), null, null);
-    MetadataTableUtil.addTablet(extent, tableInfo.defaultTabletDir, environment.getContext(),
-        tableInfo.getTimeType(), environment.getMasterLock());
+    MetadataTableUtil.addTablet(extent, ServerColumnFamily.DEFAULT_TABLET_DIR_NAME,
+        environment.getContext(), tableInfo.getTimeType(), environment.getMasterLock());
 
     if (tableInfo.getInitialSplitSize() > 0) {
       SortedSet<Text> splits =
@@ -86,8 +87,8 @@ class PopulateMetadata extends MasterRepo {
     Value dirValue;
     for (Text split : Iterables.concat(splits, Collections.singleton(null))) {
       Mutation mut = new KeyExtent(tableId, split, prevSplit).getPrevRowUpdateMutation();
-      dirValue =
-          (split == null) ? new Value(tableInfo.defaultTabletDir) : new Value(data.get(split));
+      dirValue = (split == null) ? new Value(ServerColumnFamily.DEFAULT_TABLET_DIR_NAME)
+          : new Value(data.get(split));
       MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, dirValue);
       MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut,
           new Value(new MetadataTime(0, timeType).encode()));

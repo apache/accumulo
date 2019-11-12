@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.test.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +29,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -59,7 +58,7 @@ public class SlowOps {
   private static final long SLOW_SCAN_SLEEP_MS = 250L;
   private static final int NUM_DATA_ROWS = 1000;
 
-  private final AccumuloClient accumuloClient;
+  private final AccumuloClient client;
   private final String tableName;
   private final long maxWait;
 
@@ -69,25 +68,25 @@ public class SlowOps {
 
   private Future<?> compactTask = null;
 
-  private SlowOps(final AccumuloClient accumuloClient, final String tableName, final long maxWait) {
+  private SlowOps(final AccumuloClient client, final String tableName, final long maxWait) {
 
-    this.accumuloClient = accumuloClient;
+    this.client = client;
     this.tableName = tableName;
     this.maxWait = maxWait;
 
     createData();
   }
 
-  public SlowOps(final AccumuloClient accumuloClient, final String tableName, final long maxWait,
+  public SlowOps(final AccumuloClient client, final String tableName, final long maxWait,
       final int numParallelExpected) {
 
-    this(accumuloClient, tableName, maxWait);
+    this(client, tableName, maxWait);
 
     setExpectedCompactions(numParallelExpected);
 
   }
 
-  public int setExpectedCompactions(final int numParallelExpected) {
+  public void setExpectedCompactions(final int numParallelExpected) {
 
     final int target = numParallelExpected + 1;
 
@@ -95,19 +94,19 @@ public class SlowOps {
 
     try {
 
-      sysConfig = accumuloClient.instanceOperations().getSystemConfiguration();
+      sysConfig = client.instanceOperations().getSystemConfiguration();
 
       int current = Integer.parseInt(sysConfig.get("tserver.compaction.major.concurrent.max"));
 
       if (current < target) {
-        accumuloClient.instanceOperations().setProperty(TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX,
+        client.instanceOperations().setProperty(TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX,
             Integer.toString(target));
 
-        sysConfig = accumuloClient.instanceOperations().getSystemConfiguration();
+        sysConfig = client.instanceOperations().getSystemConfiguration();
 
       }
 
-      return Integer.parseInt(sysConfig.get(TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX));
+      Integer.parseInt(sysConfig.get(TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX));
 
     } catch (AccumuloException | AccumuloSecurityException | NumberFormatException ex) {
       throw new IllegalStateException("Could not set parallel compaction limit to " + target, ex);
@@ -123,17 +122,16 @@ public class SlowOps {
     try {
 
       // create table.
-      accumuloClient.tableOperations().create(tableName);
+      client.tableOperations().create(tableName);
 
       log.info("Created table id: {}, name \'{}\'",
-          accumuloClient.tableOperations().tableIdMap().get(tableName), tableName);
+          client.tableOperations().tableIdMap().get(tableName), tableName);
 
-      try (BatchWriter bw = accumuloClient.createBatchWriter(tableName)) {
+      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
         // populate
         for (int i = 0; i < NUM_DATA_ROWS; i++) {
           Mutation m = new Mutation(new Text(String.format("%05d", i)));
-          m.put(new Text("col" + ((i % 3) + 1)), new Text("qual"),
-              new Value("junk".getBytes(UTF_8)));
+          m.put(new Text("col" + ((i % 3) + 1)), new Text("qual"), new Value("junk"));
           bw.addMutation(m);
         }
       }
@@ -162,7 +160,7 @@ public class SlowOps {
   }
 
   private int scanCount() {
-    try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
       int count = 0;
 
@@ -219,8 +217,7 @@ public class SlowOps {
 
         try {
           log.info("Starting compaction.  Attempt {}", retry);
-          accumuloClient.tableOperations().compact(tableName, null, null, compactIterators, true,
-              true);
+          client.tableOperations().compact(tableName, null, null, compactIterators, true, true);
           completed = true;
         } catch (Throwable ex) {
           // test cancels compaction on complete, so ignore it as an exception.
@@ -270,7 +267,7 @@ public class SlowOps {
 
     long startWait = System.currentTimeMillis();
 
-    List<String> tservers = accumuloClient.instanceOperations().getTabletServers();
+    List<String> tservers = client.instanceOperations().getTabletServers();
 
     /*
      * wait for compaction to start on table - The compaction will acquire a fate transaction lock
@@ -283,8 +280,7 @@ public class SlowOps {
         List<ActiveCompaction> activeCompactions = new ArrayList<>();
 
         for (String tserver : tservers) {
-          List<ActiveCompaction> ac =
-              accumuloClient.instanceOperations().getActiveCompactions(tserver);
+          List<ActiveCompaction> ac = client.instanceOperations().getActiveCompactions(tserver);
           activeCompactions.addAll(ac);
           // runningCompactions += ac.size();
           log.trace("tserver {}, running compactions {}", tservers, ac.size());

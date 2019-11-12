@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -54,7 +55,7 @@ public class MultiIteratorTest {
       String val) {
     Key k = newKey(row, ts);
     k.setDeleted(deleted);
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
   }
 
   public static Text newRow(int row) {

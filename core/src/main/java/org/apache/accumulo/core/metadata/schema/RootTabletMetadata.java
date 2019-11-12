@@ -178,9 +178,10 @@ public class RootTabletMetadata {
   /**
    * Generate initial json for the root tablet metadata.
    */
-  public static byte[] getInitialJson(String dir, String file) {
+  public static byte[] getInitialJson(String dirName, String file) {
+    ServerColumnFamily.validateDirCol(dirName);
     Mutation mutation = RootTable.EXTENT.getPrevRowUpdateMutation();
-    ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dir.getBytes(UTF_8)));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dirName));
 
     mutation.put(DataFileColumnFamily.STR_NAME, file, new DataFileValue(0, 0).encodeAsValue());
 

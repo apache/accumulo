@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
@@ -477,7 +476,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
         .withTableConfiguration(aconf).build()) {
       writer.startDefaultLocalityGroup();
       for (int i = s; i <= e; i++) {
-        writer.append(new Key(new Text(row(i))), new Value(Integer.toString(i).getBytes(UTF_8)));
+        writer.append(new Key(new Text(row(i))), new Value(Integer.toString(i)));
       }
     }
 

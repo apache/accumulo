@@ -104,7 +104,7 @@ public class TestBinaryRows {
           if (delete) {
             m.putDelete(CF, CQ);
           } else {
-            m.put(CF, CQ, new Value(value.getBytes(UTF_8)));
+            m.put(CF, CQ, new Value(value));
           }
           bw.addMutation(m);
         }

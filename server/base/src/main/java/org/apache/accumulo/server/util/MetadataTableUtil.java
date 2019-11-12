@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CLONED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -84,14 +83,11 @@ import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,7 +128,7 @@ public class MetadataTableUtil {
 
   public static void putLockID(ServerContext context, ZooLock zooLock, Mutation m) {
     TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(m,
-        new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/").getBytes(UTF_8)));
+        new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
   }
 
   private static void update(ServerContext context, Mutation m, KeyExtent extent) {
@@ -195,7 +191,7 @@ public class MetadataTableUtil {
   public static void updateTabletDir(KeyExtent extent, String newDir, ServerContext context,
       ZooLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putDir(newDir);
+    tablet.putDirName(newDir);
     tablet.putZooLock(zooLock);
     tablet.mutate();
   }
@@ -204,7 +200,7 @@ public class MetadataTableUtil {
       TimeType timeType, ZooLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.getPrevEndRow());
-    tablet.putDir(path);
+    tablet.putDirName(path);
     tablet.putTime(new MetadataTime(0, timeType));
     tablet.putZooLock(zooLock);
     tablet.mutate();
@@ -213,8 +209,7 @@ public class MetadataTableUtil {
 
   public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove,
       List<LogEntry> logsToAdd, List<FileRef> filesToRemove,
-      SortedMap<FileRef,DataFileValue> filesToAdd, String newDir, ZooLock zooLock,
-      ServerContext context) {
+      SortedMap<FileRef,DataFileValue> filesToAdd, ZooLock zooLock, ServerContext context) {
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
     logsToRemove.forEach(tabletMutator::deleteWal);
@@ -222,9 +217,6 @@ public class MetadataTableUtil {
 
     filesToRemove.forEach(tabletMutator::deleteFile);
     filesToAdd.forEach(tabletMutator::putFile);
-
-    if (newDir != null)
-      tabletMutator.putDir(newDir);
 
     tabletMutator.putZooLock(zooLock);
 
@@ -245,7 +237,7 @@ public class MetadataTableUtil {
     Mutation m = extent.getPrevRowUpdateMutation(); //
 
     TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m,
-        new Value(Double.toString(splitRatio).getBytes(UTF_8)));
+        new Value(Double.toString(splitRatio)));
 
     TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
         KeyExtent.encodePrevEndRow(oldPrevEndRow));
@@ -379,8 +371,9 @@ public class MetadataTableUtil {
           }
 
           if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            bw.addMutation(
-                ServerAmpleImpl.createDeleteMutation(context, tableId, cell.getValue().toString()));
+            String uri =
+                GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, cell.getValue().toString());
+            bw.addMutation(ServerAmpleImpl.createDeleteMutation(context, tableId, uri));
           }
         }
 
@@ -594,7 +587,7 @@ public class MetadataTableUtil {
       } else {
         // write out marker that this tablet was successfully cloned
         Mutation m = new Mutation(cloneTablet.getExtent().getMetadataEntry());
-        m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK".getBytes(UTF_8)));
+        m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK"));
         bw.addMutation(m);
       }
     }
@@ -603,8 +596,8 @@ public class MetadataTableUtil {
     return rewrites;
   }
 
-  public static void cloneTable(ServerContext context, TableId srcTableId, TableId tableId,
-      VolumeManager volumeManager) throws Exception {
+  public static void cloneTable(ServerContext context, TableId srcTableId, TableId tableId)
+      throws Exception {
 
     try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
 
@@ -651,12 +644,9 @@ public class MetadataTableUtil {
         Key k = entry.getKey();
         Mutation m = new Mutation(k.getRow());
         m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
-        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(tableId,
-            new KeyExtent(k.getRow(), (Text) null).getEndRow(), context);
-        String dir = volumeManager.choose(chooserEnv, ServerConstants.getBaseUris(context))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + new String(
-                FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES));
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dir.getBytes(UTF_8)));
+        byte[] dirName =
+            FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES);
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dirName));
 
         bw.addMutation(m);
       }

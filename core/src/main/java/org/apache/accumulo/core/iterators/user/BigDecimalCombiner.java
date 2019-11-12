@@ -23,7 +23,7 @@ import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
+import org.apache.accumulo.core.client.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;

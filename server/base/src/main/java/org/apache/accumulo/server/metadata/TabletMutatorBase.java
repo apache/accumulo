@@ -26,6 +26,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -59,9 +60,10 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
-  public Ample.TabletMutator putDir(String dir) {
+  public Ample.TabletMutator putDirName(String dirName) {
+    ServerColumnFamily.validateDirCol(dirName);
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dir));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dirName));
     return this;
   }
 

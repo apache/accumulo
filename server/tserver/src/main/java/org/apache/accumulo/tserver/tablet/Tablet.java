@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -62,7 +63,6 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -73,11 +73,12 @@ import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
-import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
@@ -91,6 +92,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -98,7 +100,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -170,8 +171,7 @@ public class Tablet {
   private final TabletResourceManager tabletResources;
   private final DatafileManager datafileManager;
   private final TableConfiguration tableConfiguration;
-  private final String tabletDirectory;
-  private final Path location; // absolute path of this tablets dir
+  private final String dirName;
 
   private final TabletMemory tabletMemory;
 
@@ -180,7 +180,7 @@ public class Tablet {
   private long persistedTime;
 
   private TServerInstance lastLocation = null;
-  private volatile boolean tableDirChecked = false;
+  private volatile Set<Path> checkedTabletDirs = new ConcurrentSkipListSet<>();
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
 
@@ -274,32 +274,38 @@ public class Tablet {
     public boolean closed = false;
   }
 
-  FileRef getNextMapFilename(String prefix) throws IOException {
-    String extension = FileOperations.getNewFileExtension(tableConfiguration);
-    checkTabletDir();
-    return new FileRef(
-        location + "/" + prefix + context.getUniqueNameAllocator().getNextName() + "." + extension);
+  private String chooseTabletDir() throws IOException {
+    VolumeChooserEnvironment chooserEnv =
+        new VolumeChooserEnvironmentImpl(extent.getTableId(), extent.getEndRow(), context);
+    String dirUri =
+        tabletServer.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris(context))
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.getTableId() + Path.SEPARATOR
+            + dirName;
+    checkTabletDir(new Path(dirUri));
+    return dirUri;
   }
 
-  private void checkTabletDir() throws IOException {
-    if (!tableDirChecked) {
+  FileRef getNextMapFilename(String prefix) throws IOException {
+    String extension = FileOperations.getNewFileExtension(tableConfiguration);
+    return new FileRef(chooseTabletDir() + "/" + prefix
+        + context.getUniqueNameAllocator().getNextName() + "." + extension);
+  }
+
+  private void checkTabletDir(Path path) throws IOException {
+    if (!checkedTabletDirs.contains(path)) {
       FileStatus[] files = null;
       try {
-        files = getTabletServer().getFileSystem().listStatus(location);
+        files = getTabletServer().getFileSystem().listStatus(path);
       } catch (FileNotFoundException ex) {
         // ignored
       }
 
       if (files == null) {
-        if (location.getName().startsWith(Constants.CLONE_PREFIX)) {
-          log.debug("Tablet {} had no dir, creating {}", extent, location); // its a clone dir...
-        } else {
-          log.warn("Tablet {} had no dir, creating {}", extent, location);
-        }
+        log.debug("Tablet {} had no dir, creating {}", extent, path);
 
-        getTabletServer().getFileSystem().mkdirs(location);
+        getTabletServer().getFileSystem().mkdirs(path);
       }
-      tableDirChecked = true;
+      checkedTabletDirs.add(path);
     }
   }
 
@@ -333,20 +339,12 @@ public class Tablet {
     boolean replicationEnabled =
         ReplicationConfigurationUtil.isEnabled(extent, this.tableConfiguration);
     TabletFiles tabletPaths =
-        new TabletFiles(data.getDirectory(), data.getLogEntries(), data.getDataFiles());
+        new TabletFiles(data.getDirectoryName(), data.getLogEntries(), data.getDataFiles());
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
         fs, extent, tabletPaths, replicationEnabled);
 
-    // deal with relative path for the directory
-    Path locationPath;
-    if (tabletPaths.dir.contains(":")) {
-      locationPath = new Path(tabletPaths.dir);
-    } else {
-      locationPath = tabletServer.getFileSystem().getFullPath(FileType.TABLE,
-          extent.getTableId() + tabletPaths.dir);
-    }
-    this.location = locationPath;
-    this.tabletDirectory = tabletPaths.dir;
+    this.dirName = data.getDirectoryName();
+
     for (Entry<Long,List<FileRef>> entry : data.getBulkImported().entrySet()) {
       this.bulkImported.put(entry.getKey(), new ArrayList<>(entry.getValue()));
     }
@@ -487,17 +485,23 @@ public class Tablet {
   private void removeOldTemporaryFiles() {
     // remove any temporary files created by a previous tablet server
     try {
-      for (FileStatus tmp : getTabletServer().getFileSystem()
-          .globStatus(new Path(location, "*_tmp"))) {
-        try {
-          log.debug("Removing old temp file {}", tmp.getPath());
-          getTabletServer().getFileSystem().delete(tmp.getPath());
-        } catch (IOException ex) {
-          log.error("Unable to remove old temp file " + tmp.getPath() + ": " + ex);
+      Collection<Volume> volumes = getTabletServer().getFileSystem().getVolumes();
+      for (Volume volume : volumes) {
+        String dirUri = volume.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + extent.getTableId() + Path.SEPARATOR + dirName;
+
+        for (FileStatus tmp : getTabletServer().getFileSystem()
+            .globStatus(new Path(dirUri, "*_tmp"))) {
+          try {
+            log.debug("Removing old temp file {}", tmp.getPath());
+            getTabletServer().getFileSystem().delete(tmp.getPath());
+          } catch (IOException ex) {
+            log.error("Unable to remove old temp file " + tmp.getPath() + ": " + ex);
+          }
         }
       }
     } catch (IOException ex) {
-      log.error("Error scanning for old temp files in {}", location);
+      log.error("Error scanning for old temp files", ex);
     }
   }
 
@@ -1453,15 +1457,6 @@ public class Tablet {
     // TODO check lastFlushID and lostCompactID - ACCUMULO-1290
   }
 
-  /**
-   * Returns a Path object representing the tablet's location on the DFS.
-   *
-   * @return location
-   */
-  public Path getLocation() {
-    return location;
-  }
-
   public synchronized void initiateMajorCompaction(MajorCompactionReason reason) {
 
     if (isClosing() || isClosed() || !needsMajorCompaction(reason) || isMajorCompactionRunning()
@@ -1532,7 +1527,7 @@ public class Tablet {
 
     try {
       // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(context, tabletDirectory, extent.getPrevEndRow(),
+      keys = FileUtil.findMidPoint(context, chooseTabletDir(), extent.getPrevEndRow(),
           extent.getEndRow(), FileUtil.toPathStrings(files), .25);
     } catch (IOException e) {
       log.error("Failed to find midpoint {}", e.getMessage());
@@ -2210,7 +2205,7 @@ public class Tablet {
       } else {
         Text tsp = new Text(sp);
         splitPoint = new SplitRowSpec(
-            FileUtil.estimatePercentageLTE(context, tabletDirectory, extent.getPrevEndRow(),
+            FileUtil.estimatePercentageLTE(context, chooseTabletDir(), extent.getPrevEndRow(),
                 extent.getEndRow(), FileUtil.toPathStrings(getDatafileManager().getFiles()), tsp),
             tsp);
       }
@@ -2230,8 +2225,7 @@ public class Tablet {
       KeyExtent low = new KeyExtent(extent.getTableId(), midRow, extent.getPrevEndRow());
       KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
 
-      String lowDirectory = createTabletDirectory(context, getTabletServer().getFileSystem(),
-          extent.getTableId(), midRow);
+      String lowDirectoryName = createTabletDirectoryName(context, midRow);
 
       // write new tablet information to MetadataTable
       SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
@@ -2249,7 +2243,7 @@ public class Tablet {
 
       MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio,
           getTabletServer().getContext(), getTabletServer().getLock());
-      MasterMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectory,
+      MasterMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
           getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time, lastFlushID,
           lastCompactID, getTabletServer().getLock());
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove,
@@ -2257,9 +2251,9 @@ public class Tablet {
 
       log.debug("TABLET_HIST {} split {} {}", extent, low, high);
 
-      newTablets.put(high, new TabletData(tabletDirectory, highDatafileSizes, time, lastFlushID,
+      newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID,
           lastCompactID, lastLocation, bulkImported));
-      newTablets.put(low, new TabletData(lowDirectory, lowDatafileSizes, time, lastFlushID,
+      newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time, lastFlushID,
           lastCompactID, lastLocation, bulkImported));
 
       long t2 = System.currentTimeMillis();
@@ -2806,49 +2800,12 @@ public class Tablet {
     return scannedCount;
   }
 
-  private static String createTabletDirectory(ServerContext context, VolumeManager fs,
-      TableId tableId, Text endRow) {
-    String lowDirectory;
-
-    UniqueNameAllocator namer = context.getUniqueNameAllocator();
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(tableId, endRow, context);
-    String volume = fs.choose(chooserEnv, ServerConstants.getBaseUris(context))
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR;
-
-    while (true) {
-      try {
-        if (endRow == null) {
-          lowDirectory = Constants.DEFAULT_TABLET_LOCATION;
-          Path lowDirectoryPath = new Path(volume + "/" + tableId + "/" + lowDirectory);
-          if (fs.exists(lowDirectoryPath) || fs.mkdirs(lowDirectoryPath)) {
-            FileSystem pathFs = fs.getVolumeByPath(lowDirectoryPath).getFileSystem();
-            return lowDirectoryPath.makeQualified(pathFs.getUri(), pathFs.getWorkingDirectory())
-                .toString();
-          }
-          log.warn("Failed to create {} for unknown reason", lowDirectoryPath);
-        } else {
-          lowDirectory = "/" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
-          Path lowDirectoryPath = new Path(volume + "/" + tableId + "/" + lowDirectory);
-          if (fs.exists(lowDirectoryPath)) {
-            throw new IllegalStateException("Attempting to create tablet dir for tableID " + tableId
-                + " and dir exists when it should not: " + lowDirectoryPath);
-          }
-          if (fs.mkdirs(lowDirectoryPath)) {
-            FileSystem lowDirectoryFs = fs.getVolumeByPath(lowDirectoryPath).getFileSystem();
-            return lowDirectoryPath
-                .makeQualified(lowDirectoryFs.getUri(), lowDirectoryFs.getWorkingDirectory())
-                .toString();
-          }
-        }
-      } catch (IOException e) {
-        log.warn("{}", e.getMessage(), e);
-      }
-
-      log.warn("Failed to create dir for tablet in table {} in volume {} will retry ...", tableId,
-          volume);
-      sleepUninterruptibly(3, TimeUnit.SECONDS);
-
+  private static String createTabletDirectoryName(ServerContext context, Text endRow) {
+    if (endRow == null) {
+      return ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
+    } else {
+      UniqueNameAllocator namer = context.getUniqueNameAllocator();
+      return Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
     }
   }
 
@@ -2860,4 +2817,7 @@ public class Tablet {
     bulkImported.keySet().removeAll(tids);
   }
 
+  public String getDirName() {
+    return dirName;
+  }
 }

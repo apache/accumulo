@@ -52,7 +52,7 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBu
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.NamingThreadFactory;
@@ -214,7 +214,7 @@ public class MultiThreadedRFileTest {
   }
 
   static Value newValue(String val) {
-    return new Value(val.getBytes());
+    return new Value(val);
   }
 
   public AccumuloConfiguration conf = null;

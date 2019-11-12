@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
@@ -45,6 +46,7 @@ import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
+import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -145,7 +147,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
         throw new RuntimeException(e);
       }
       scanner.setRange(range);
-      assertEquals(somebignumber, Iterators.size(scanner.iterator()));
+      assertEquals(somebignumber + somebignumber / 10, Iterators.size(scanner.iterator()));
     }
   }
 
@@ -189,6 +191,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
       scanner.iterator().forEachRemaining(entry -> {
         actual.put(entry.getKey().getRow().toString(), entry.getValue().toString());
       });
+
       assertEquals(expected, actual);
     }
   }
@@ -206,12 +209,30 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
     Map<String,String> expected = new TreeMap<>();
     try (BatchWriter bw = client.createBatchWriter(table)) {
       for (int i = 0; i < count; ++i) {
-        String longpath = String.format("hdfs://localhost:8020/%020d/%s", i, filename);
+        String longpath =
+            String.format("hdfs://localhost:8020/accumulo/tables/5a/t-%08x/%s", i, filename);
         Mutation delFlag = createOldDelMutation(longpath, "", "", "");
         bw.addMutation(delFlag);
         expected.put(MetadataSchema.DeletesSection.encodeRow(longpath),
             Upgrader9to10.UPGRADED.toString());
       }
+
+      // create directory delete entries
+
+      TableId tableId = TableId.of("5a");
+
+      for (int i = 0; i < count; i += 10) {
+        String dirName = String.format("t-%08x", i);
+        String longpath =
+            String.format("hdfs://localhost:8020/accumulo/tables/%s/%s", tableId, dirName);
+        Mutation delFlag = createOldDelMutation(longpath, "", "", "");
+        bw.addMutation(delFlag);
+        expected.put(
+            MetadataSchema.DeletesSection
+                .encodeRow(GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, dirName)),
+            Upgrader9to10.UPGRADED.toString());
+      }
+
       return expected;
     }
   }

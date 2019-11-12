@@ -183,7 +183,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
         Mutation m = new Mutation(extent.getMetadataEntry());
         m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME,
-            new Text("localhost:12345/" + walUri), new Value((walUri + "|1").getBytes(UTF_8)));
+            new Text("localhost:12345/" + walUri), new Value(walUri + "|1"));
         bw.addMutation(m);
 
         // Add a replication entry for our fake WAL

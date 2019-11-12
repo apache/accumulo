@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 
@@ -87,7 +86,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       BatchWriter bw = c.createBatchWriter(tableName);
       Mutation m = new Mutation(new Text("foo"));
-      m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(UTF_8)));
+      m.put(new Text("bar"), new Text("1910"), new Value("5"));
       bw.addMutation(m);
       bw.flush();
 

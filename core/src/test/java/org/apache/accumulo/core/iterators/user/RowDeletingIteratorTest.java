@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -68,7 +68,7 @@ public class RowDeletingIteratorTest {
   }
 
   void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, String val) {
-    put(tm, row, cf, cq, time, new Value(val.getBytes()));
+    put(tm, row, cf, cq, time, new Value(val));
   }
 
   private void testAssertions(RowDeletingIterator rdi, String row, String cf, String cq, long time,

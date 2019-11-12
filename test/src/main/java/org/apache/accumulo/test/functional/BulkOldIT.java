@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -113,8 +111,7 @@ public class BulkOldIT extends AccumuloClusterHarness {
             .withTableConfiguration(aconf).build();
     writer1.startDefaultLocalityGroup();
     for (int i = start; i <= end; i++) {
-      writer1.append(new Key(new Text(String.format("%04d", i))),
-          new Value(Integer.toString(i).getBytes(UTF_8)));
+      writer1.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i)));
     }
     writer1.close();
   }

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -371,11 +370,11 @@ public class ScanIdIT extends AccumuloClusterHarness {
         Text rowId = new Text(String.format("%d", ((random.nextInt(10) * 100) + i)));
 
         Mutation m = new Mutation(rowId);
-        m.put(new Text("fam1"), new Text("count"), new Value(Integer.toString(i).getBytes(UTF_8)));
+        m.put(new Text("fam1"), new Text("count"), new Value(Integer.toString(i)));
         m.put(new Text("fam1"), new Text("positive"), vis,
-            new Value(Integer.toString(NUM_DATA_ROWS - i).getBytes(UTF_8)));
+            new Value(Integer.toString(NUM_DATA_ROWS - i)));
         m.put(new Text("fam1"), new Text("negative"), vis,
-            new Value(Integer.toString(i - NUM_DATA_ROWS).getBytes(UTF_8)));
+            new Value(Integer.toString(i - NUM_DATA_ROWS)));
 
         log.trace("Added row {}", rowId);
 

@@ -36,7 +36,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -74,7 +73,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   private static final int NUM_ROWS = 1000;
   private static final long SLOW_SCAN_SLEEP_MS = 250L;
 
-  private AccumuloClient accumuloClient;
+  private AccumuloClient client;
   private ClientContext context;
 
   private static final ExecutorService pool = Executors.newCachedThreadPool();
@@ -83,14 +82,15 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   private String secret;
 
-  private SlowOps slowOps;
-
   private long maxWait;
+
+  private SlowOps slowOps;
 
   @Before
   public void setup() {
-    accumuloClient = Accumulo.newClient().from(getClientProps()).build();
-    context = (ClientContext) accumuloClient;
+
+    client = Accumulo.newClient().from(getClientProps()).build();
+    context = (ClientContext) client;
 
     tableName = getUniqueNames(1)[0];
 
@@ -98,12 +98,12 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     maxWait = defaultTimeoutSeconds() <= 0 ? 60_000 : ((defaultTimeoutSeconds() * 1000) / 2);
 
-    slowOps = new SlowOps(accumuloClient, tableName, maxWait, 1);
+    slowOps = new SlowOps(client, tableName, maxWait, 1);
   }
 
   @After
   public void closeClient() {
-    accumuloClient.close();
+    client.close();
   }
 
   @AfterClass
@@ -144,7 +144,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     // verify that offline then online functions as expected.
 
-    accumuloClient.tableOperations().offline(tableName, true);
+    client.tableOperations().offline(tableName, true);
     assertEquals("verify table is offline", TableState.OFFLINE, getTableState(tableName));
 
     onlineOp = new OnLineCallable(tableName);
@@ -160,7 +160,6 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     // launch a full table compaction with the slow iterator to ensure table lock is acquired and
     // held by the compaction
-
     slowOps.startCompactTask();
 
     // try to set online while fate transaction is in progress - before ACCUMULO-4574 this would
@@ -180,7 +179,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     assertTrue("Find FATE operation for table", findFate(tableName));
 
     // test complete, cancel compaction and move on.
-    accumuloClient.tableOperations().cancelCompaction(tableName);
+    client.tableOperations().cancelCompaction(tableName);
 
     log.debug("Success: Timing results for online commands.");
     log.debug("Time for unblocked online {} ms",
@@ -255,10 +254,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       try {
 
-        String instanceId = accumuloClient.instanceOperations().getInstanceID();
-        ClientInfo info = ClientInfo.from(accumuloClient.properties());
-        IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(info.getZooKeepers(),
-            info.getZooKeepersSessionTimeOut(), secret);
+        String instanceId = context.getInstanceID();
+        IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
+            context.getZooKeepers(), context.getZooKeepersSessionTimeOut(), secret);
         ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
 
         withLocks = admin.getStatus(zs, zk,
@@ -278,7 +276,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         maxRetries--;
         try {
           Thread.sleep(1000);
-        } catch (InterruptedException iex) {
+        } catch (InterruptedException intr_ex) {
           Thread.currentThread().interrupt();
           return;
         }
@@ -312,7 +310,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     try {
 
       // test complete, cancel compaction and move on.
-      accumuloClient.tableOperations().cancelCompaction(tableName);
+      client.tableOperations().cancelCompaction(tableName);
 
       // block if compaction still running
       boolean cancelled = slowOps.blockWhileCompactionRunning();
@@ -348,20 +346,17 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       log.trace("tid: {}", tableId);
 
-      ClientInfo info = ClientInfo.from(accumuloClient.properties());
-      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(info.getZooKeepers(),
-          info.getZooKeepersSessionTimeOut(), secret);
-      ZooStore<String> zs = new ZooStore<>(
-          ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceID()) + Constants.ZFATE,
-          zk);
+      String instanceId = context.getInstanceID();
+      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(context.getZooKeepers(),
+          context.getZooKeepersSessionTimeOut(), secret);
+      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
       AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk,
-          ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceID())
-              + Constants.ZTABLE_LOCKS + "/" + tableId,
-          null, null);
+          ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());
 
       for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
+
         if (isCompaction(tx))
           return true;
       }
@@ -470,7 +465,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       log.trace("Setting {} online", tableName);
 
-      accumuloClient.tableOperations().online(tableName, true);
+      client.tableOperations().online(tableName, true);
       // stop timing
       status.setComplete();
 
@@ -496,7 +491,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     for (int i = 0; i < tableCount; i++) {
       String uniqueName = getUniqueNames(1)[0] + "_" + i;
-      SlowOps gen = new SlowOps(accumuloClient, uniqueName, maxWait, tableCount);
+      SlowOps gen = new SlowOps(client, uniqueName, maxWait, tableCount);
       tables.add(gen);
       gen.startCompactTask();
     }
@@ -515,7 +510,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     for (SlowOps t : tables) {
       try {
-        accumuloClient.tableOperations().cancelCompaction(t.getTableName());
+        client.tableOperations().cancelCompaction(t.getTableName());
         // block if compaction still running
         boolean cancelled = t.blockWhileCompactionRunning();
         if (!cancelled) {

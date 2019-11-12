@@ -51,7 +51,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -124,7 +124,7 @@ public class InMemoryMapTest {
   public void mutate(InMemoryMap imm, String row, String column, long ts, String value) {
     Mutation m = new Mutation(new Text(row));
     String[] sa = column.split(":");
-    m.put(new Text(sa[0]), new Text(sa[1]), ts, new Value(value.getBytes()));
+    m.put(new Text(sa[0]), new Text(sa[1]), ts, new Value(value));
 
     imm.mutate(Collections.singletonList(m), 1);
   }
@@ -138,7 +138,7 @@ public class InMemoryMapTest {
       int ts, String val) throws IOException {
     assertTrue(dc.hasTop());
     assertEquals(newKey(row, column, ts), dc.getTopKey());
-    assertEquals(new Value(val.getBytes()), dc.getTopValue());
+    assertEquals(new Value(val), dc.getTopValue());
     dc.next();
 
   }
@@ -147,7 +147,7 @@ public class InMemoryMapTest {
       int ts, String val) {
     assertTrue(dc.hasTop());
     assertEquals(newKey(row, column, ts), dc.getTopKey());
-    assertEquals(new Value(val.getBytes()), dc.getTopValue());
+    assertEquals(new Value(val), dc.getTopValue());
 
   }
 
@@ -488,8 +488,8 @@ public class InMemoryMapTest {
     InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
 
     Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("foo"), new Text("cq"), 3, new Value("v1".getBytes()));
-    m.put(new Text("foo"), new Text("cq"), 3, new Value("v2".getBytes()));
+    m.put(new Text("foo"), new Text("cq"), 3, new Value("v1"));
+    m.put(new Text("foo"), new Text("cq"), 3, new Value("v2"));
     imm.mutate(Collections.singletonList(m), 2);
 
     MemoryIterator skvi1 = imm.skvIterator(null);
@@ -708,9 +708,9 @@ public class InMemoryMapTest {
     mutate(imm, row, cols, ts, val);
     Key k1 = newKey(row, cols, ts);
     if (sampler.accept(k1)) {
-      expectedSample.put(k1, new Value(val.getBytes()));
+      expectedSample.put(k1, new Value(val));
     }
-    expectedAll.put(k1, new Value(val.getBytes()));
+    expectedAll.put(k1, new Value(val));
   }
 
   @Test(expected = SampleNotPresentException.class)

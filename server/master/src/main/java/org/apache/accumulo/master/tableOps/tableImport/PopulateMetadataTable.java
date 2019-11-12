@@ -45,9 +45,6 @@ import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
-import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
@@ -107,8 +104,6 @@ class PopulateMetadataTable extends MasterRepo {
       // hdfs://localhost:8020/path/to/accumulo/tables/...
       final String bulkDir = tableInfo.importDir;
 
-      final String[] volumes = ServerConstants.getBaseUris(master.getContext());
-
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_METADATA_FILE)) {
@@ -152,12 +147,8 @@ class PopulateMetadataTable extends MasterRepo {
                   FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
                   UTF_8);
 
-              // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-              String absolutePath = getClonedTabletDir(master, endRow, volumes, tabletDir);
-
               m = new Mutation(metadataRow);
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
-                  new Value(absolutePath.getBytes(UTF_8)));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
               currentRow = metadataRow;
             }
 
@@ -170,12 +161,8 @@ class PopulateMetadataTable extends MasterRepo {
                   FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
                   UTF_8);
 
-              // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-              String absolutePath = getClonedTabletDir(master, endRow, volumes, tabletDir);
-
               m = new Mutation(metadataRow);
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
-                  new Value(absolutePath.getBytes(UTF_8)));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
             }
 
             m.put(key.getColumnFamily(), cq, val);
@@ -210,23 +197,6 @@ class PopulateMetadataTable extends MasterRepo {
         mbw.close();
       }
     }
-  }
-
-  /**
-   * Given options for tables (across multiple volumes), construct an absolute path using the unique
-   * name within the chosen volume
-   *
-   * @return An absolute, unique path for the imported table
-   */
-  protected String getClonedTabletDir(Master master, Text endRow, String[] volumes,
-      String tabletDir) {
-    // We can try to spread out the tablet dirs across all volumes
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(tableInfo.tableId, endRow, master.getContext());
-    String volume = master.getFileSystem().choose(chooserEnv, volumes);
-
-    // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-    return volume + "/" + ServerConstants.TABLE_DIR + "/" + tableInfo.tableId + "/" + tabletDir;
   }
 
   @Override

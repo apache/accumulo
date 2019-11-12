@@ -46,7 +46,7 @@ public class TabletData {
   private TServerInstance lastLocation = null;
   private Map<Long,List<FileRef>> bulkImported = new HashMap<>();
   private long splitTime = 0;
-  private String directory = null;
+  private String directoryName = null;
 
   // Read tablet data from metadata tables
   public TabletData(KeyExtent extent, VolumeManager fs, TabletMetadata meta) {
@@ -54,7 +54,7 @@ public class TabletData {
     this.time = meta.getTime();
     this.compactID = meta.getCompactId().orElse(-1);
     this.flushID = meta.getFlushId().orElse(-1);
-    this.directory = meta.getDir();
+    this.directoryName = meta.getDirName();
     this.logEntries.addAll(meta.getLogs());
     meta.getScans().forEach(path -> scanFiles.add(new FileRef(fs, path, meta.getTableId())));
 
@@ -72,10 +72,10 @@ public class TabletData {
   }
 
   // Data pulled from an existing tablet to make a split
-  public TabletData(String tabletDirectory, SortedMap<FileRef,DataFileValue> highDatafileSizes,
+  public TabletData(String dirName, SortedMap<FileRef,DataFileValue> highDatafileSizes,
       MetadataTime time, long lastFlushID, long lastCompactID, TServerInstance lastLocation,
       Map<Long,List<FileRef>> bulkIngestedFiles) {
-    this.directory = tabletDirectory;
+    this.directoryName = dirName;
     this.dataFiles = highDatafileSizes;
     this.time = time;
     this.flushID = lastFlushID;
@@ -117,8 +117,8 @@ public class TabletData {
     return bulkImported;
   }
 
-  public String getDirectory() {
-    return directory;
+  public String getDirectoryName() {
+    return directoryName;
   }
 
   public long getSplitTime() {

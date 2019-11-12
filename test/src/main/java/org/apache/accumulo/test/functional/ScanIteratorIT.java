@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -113,10 +112,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 1000; i++) {
           Mutation m = new Mutation(new Text(String.format("%06d", i)));
-          m.put(new Text("cf1"), new Text("cq1"),
-              new Value(Integer.toString(1000 - i).getBytes(UTF_8)));
-          m.put(new Text("cf1"), new Text("cq2"),
-              new Value(Integer.toString(i - 1000).getBytes(UTF_8)));
+          m.put(new Text("cf1"), new Text("cq1"), new Value(Integer.toString(1000 - i)));
+          m.put(new Text("cf1"), new Text("cq2"), new Value(Integer.toString(i - 1000)));
           bw.addMutation(m);
         }
       }
@@ -242,7 +239,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
       throws TableNotFoundException, MutationsRejectedException {
     try (BatchWriter batchWriter = userC.createBatchWriter(tableName)) {
       Mutation m = new Mutation("1");
-      m.put(new Text("2"), new Text("3"), new Value("".getBytes()));
+      m.put(new Text("2"), new Text("3"), new Value(""));
       batchWriter.addMutation(m);
       batchWriter.flush();
     }

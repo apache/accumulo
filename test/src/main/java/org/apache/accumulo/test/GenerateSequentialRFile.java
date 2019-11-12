@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -70,8 +68,7 @@ public class GenerateSequentialRFile implements Runnable {
         final Text row = new Text(String.format("%03d", x));
         for (int y = 0; y < opts.valuesPerRow; y++) {
           final String suffix = String.format("%05d", y);
-          writer.append(new Key(new Text(row + ":" + suffix), CF, CQ),
-              new Value(suffix.getBytes(UTF_8)));
+          writer.append(new Key(new Text(row + ":" + suffix), CF, CQ), new Value(suffix));
         }
       }
 

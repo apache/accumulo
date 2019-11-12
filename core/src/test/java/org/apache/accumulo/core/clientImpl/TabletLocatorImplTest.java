@@ -226,7 +226,7 @@ public class TabletLocatorImplTest {
       String[] cvp = element.split("=");
       String[] cols = cvp[0].split(":");
 
-      mut.put(new Text(cols[0]), new Text(cols[1]), new Value(cvp[1].getBytes()));
+      mut.put(new Text(cols[0]), new Text(cols[1]), new Value(cvp[1]));
     }
 
     return mut;
@@ -579,7 +579,7 @@ public class TabletLocatorImplTest {
       if (instance == null)
         instance = "";
       Key lk = new Key(mr, TabletsSection.CurrentLocationColumnFamily.NAME, new Text(instance));
-      tabletData.put(lk, new Value(location.getBytes()));
+      tabletData.put(lk, new Value(location));
     }
 
     Key pk = new Key(mr, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),

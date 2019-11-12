@@ -42,7 +42,7 @@ public class BatchWriterIT extends AccumuloClusterHarness {
       config.setMaxMemory(0);
       try (BatchWriter writer = c.createBatchWriter(table, config)) {
         Mutation m = new Mutation("row");
-        m.put("cf", "cq", new Value("value".getBytes()));
+        m.put("cf", "cq", new Value("value"));
         writer.addMutation(m);
       }
     }

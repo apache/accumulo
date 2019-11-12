@@ -51,7 +51,7 @@ public class LogEntryTest {
     assertEquals(entry.timestamp, copy2.timestamp);
     assertEquals("foo", entry.getUniqueID());
     assertEquals("localhost:1234/default/foo", entry.getName());
-    assertEquals(new Value("default/foo".getBytes()), entry.getValue());
+    assertEquals(new Value("default/foo"), entry.getValue());
   }
 
 }

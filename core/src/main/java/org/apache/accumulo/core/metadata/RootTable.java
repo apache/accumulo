@@ -30,12 +30,12 @@ public class RootTable {
   /**
    * DFS location relative to the Accumulo directory
    */
-  public static final String ROOT_TABLET_LOCATION = "/root_tablet";
+  public static final String ROOT_TABLET_DIR_NAME = "root_tablet";
 
   /**
    * ZK path relative to the zookeeper node where the root tablet metadata is stored.
    */
-  public static final String ZROOT_TABLET = ROOT_TABLET_LOCATION;
+  public static final String ZROOT_TABLET = "/" + ROOT_TABLET_DIR_NAME;
 
   /**
    * ZK path relative to the zookeeper node where the root tablet gc candidates are stored.

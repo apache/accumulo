@@ -519,8 +519,8 @@ public class RFileMetricsTest {
 
     for (int row = 0; row < 1100; row++) {
       String rs = String.format("%06x", row);
-      trf.writer.append(new Key(rs, fam1, "q4", "A", 42L), new Value("v".getBytes()));
-      trf.writer.append(new Key(rs, fam2, "q4", "A|B", 42L), new Value("v".getBytes()));
+      trf.writer.append(new Key(rs, fam1, "q4", "A", 42L), new Value("v"));
+      trf.writer.append(new Key(rs, fam2, "q4", "A|B", 42L), new Value("v"));
     }
 
     trf.writer.startDefaultLocalityGroup();
@@ -532,7 +532,7 @@ public class RFileMetricsTest {
       String rs = String.format("%06x", row);
       for (int v = 0; v < 5; v++) {
         String fs = String.format("%06x", fam++);
-        trf.writer.append(new Key(rs, fs, "q4", vis[v], 42L), new Value("v".getBytes()));
+        trf.writer.append(new Key(rs, fs, "q4", vis[v], 42L), new Value("v"));
       }
     }
 

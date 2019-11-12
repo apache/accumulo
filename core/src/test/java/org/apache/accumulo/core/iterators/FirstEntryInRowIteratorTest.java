@@ -27,7 +27,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.system.CountingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.CountingIterator;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.junit.Test;
 
@@ -53,7 +53,7 @@ public class FirstEntryInRowIteratorTest {
   @Test
   public void test() throws IOException {
     TreeMap<Key,Value> sourceMap = new TreeMap<>();
-    Value emptyValue = new Value("".getBytes());
+    Value emptyValue = new Value("");
     IteratorSetting iteratorSetting = new IteratorSetting(1, FirstEntryInRowIterator.class);
     FirstEntryInRowIterator.setNumScansBeforeSeek(iteratorSetting, 10);
     assertTrue(

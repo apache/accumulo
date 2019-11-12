@@ -99,7 +99,7 @@ public class SummingCombinerTest extends BaseJUnit4IteratorTest {
       } else {
         if (0 != lastKey.compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
           // Different key, store the running sum.
-          data.put(lastKey, new Value(Long.toString(sum).getBytes(UTF_8)));
+          data.put(lastKey, new Value(Long.toString(sum)));
           // Reset lastKey and the sum
           lastKey = entry.getKey();
           sum = 0;
@@ -109,7 +109,7 @@ public class SummingCombinerTest extends BaseJUnit4IteratorTest {
       }
     }
 
-    data.put(lastKey, new Value(Long.toString(sum).getBytes(UTF_8)));
+    data.put(lastKey, new Value(Long.toString(sum)));
 
     return data;
   }

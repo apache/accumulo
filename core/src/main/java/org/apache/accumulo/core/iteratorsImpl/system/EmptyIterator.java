@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo.core.iterators.system;
+package org.apache.accumulo.core.iteratorsImpl.system;
 
 import java.io.IOException;
 import java.util.Collection;

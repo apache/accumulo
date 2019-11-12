@@ -50,7 +50,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
 import org.apache.accumulo.core.iterators.ValueFormatException;
-import org.apache.accumulo.core.iterators.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
@@ -592,8 +592,8 @@ public class CombinerTest {
   @Test
   public void valueIteratorTest() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
-    tm.put(new Key("r", "f", "q", 1), new Value("1".getBytes()));
-    tm.put(new Key("r", "f", "q", 2), new Value("2".getBytes()));
+    tm.put(new Key("r", "f", "q", 1), new Value("1"));
+    tm.put(new Key("r", "f", "q", 2), new Value("2"));
     SortedMapIterator smi = new SortedMapIterator(tm);
     smi.seek(new Range(), EMPTY_COL_FAMS, false);
     ValueIterator iter = new ValueIterator(smi);
@@ -605,12 +605,12 @@ public class CombinerTest {
   @Test
   public void sumAllColumns() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
-    tm.put(new Key("r", "count", "a", 1), new Value("1".getBytes()));
-    tm.put(new Key("r", "count", "a", 2), new Value("1".getBytes()));
-    tm.put(new Key("r", "count", "b", 3), new Value("1".getBytes()));
-    tm.put(new Key("r", "count", "b", 4), new Value("1".getBytes()));
-    tm.put(new Key("r", "count", "b", 5), new Value("1".getBytes()));
-    tm.put(new Key("r", "count", "c", 6), new Value("1".getBytes()));
+    tm.put(new Key("r", "count", "a", 1), new Value("1"));
+    tm.put(new Key("r", "count", "a", 2), new Value("1"));
+    tm.put(new Key("r", "count", "b", 3), new Value("1"));
+    tm.put(new Key("r", "count", "b", 4), new Value("1"));
+    tm.put(new Key("r", "count", "b", 5), new Value("1"));
+    tm.put(new Key("r", "count", "c", 6), new Value("1"));
     SortedMapIterator smi = new SortedMapIterator(tm);
     Combiner iter = new SummingCombiner();
     IteratorSetting s = new IteratorSetting(10, "s", SummingCombiner.class);

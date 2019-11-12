@@ -33,7 +33,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.DeletingIterator.Behavior;
+import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator.Behavior;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -45,9 +46,9 @@ public class DeletingIteratorTest {
   public void test1() {
     Text colf = new Text("a");
     Text colq = new Text("b");
-    Value dvOld = new Value("old".getBytes());
-    Value dvDel = new Value("old".getBytes());
-    Value dvNew = new Value("new".getBytes());
+    Value dvOld = new Value("old");
+    Value dvDel = new Value("old");
+    Value dvNew = new Value("new");
 
     TreeMap<Key,Value> tm = new TreeMap<>();
     Key k;
@@ -266,6 +267,6 @@ public class DeletingIteratorTest {
       String val) {
     Key k = newKey(row, ts);
     k.setDeleted(deleted);
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
   }
 }

@@ -14,14 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators.system;
+package org.apache.accumulo.core.client.lexicoder;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-
-public interface InterruptibleIterator extends SortedKeyValueIterator<Key,Value> {
-  void setInterruptFlag(AtomicBoolean flag);
-}
+public abstract class AbstractLexicoder<T> extends AbstractEncoder<T> implements Lexicoder<T> {}

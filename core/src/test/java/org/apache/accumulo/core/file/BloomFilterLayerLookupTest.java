@@ -93,8 +93,8 @@ public class BloomFilterLayerLookupTest {
     bmfw.startDefaultLocalityGroup();
     for (Integer i : vals) {
       String fi = String.format("%010d", i);
-      bmfw.append(new Key(new Text("r" + fi), new Text("cf1")), new Value(("v" + fi).getBytes()));
-      bmfw.append(new Key(new Text("r" + fi), new Text("cf2")), new Value(("v" + fi).getBytes()));
+      bmfw.append(new Key(new Text("r" + fi), new Text("cf1")), new Value("v" + fi));
+      bmfw.append(new Key(new Text("r" + fi), new Text("cf2")), new Value("v" + fi));
     }
     long t2 = System.currentTimeMillis();
 

@@ -166,8 +166,8 @@ public class SampleIT extends AccumuloClusterHarness {
 
       expected.keySet().removeIf(k -> k.getRow().toString().equals(someRow));
 
-      expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42".getBytes()));
-      expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise".getBytes()));
+      expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42"));
+      expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise"));
 
       Mutation m = new Mutation(someRow);
 
@@ -193,8 +193,8 @@ public class SampleIT extends AccumuloClusterHarness {
 
       expected.clear();
 
-      expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42".getBytes()));
-      expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise".getBytes()));
+      expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42"));
+      expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise"));
 
       check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
     }
@@ -229,12 +229,12 @@ public class SampleIT extends AccumuloClusterHarness {
 
       Key k1 = new Key(row, "cf1", "cq1", 7);
       if (sampler.accept(k1)) {
-        expected.put(k1, new Value(("" + i).getBytes()));
+        expected.put(k1, new Value("" + i));
       }
 
       Key k2 = new Key(row, "cf1", "cq2", 7);
       if (sampler.accept(k2)) {
-        expected.put(k2, new Value(("" + (100000000 - i)).getBytes()));
+        expected.put(k2, new Value("" + (100000000 - i)));
       }
     }
   }
@@ -258,7 +258,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
       Key k1 = new Key(row, "cf1", "cq1", 7);
       if (sampler.accept(k1)) {
-        expected.put(k1, new Value(("" + i).getBytes()));
+        expected.put(k1, new Value("" + i));
         count++;
         if (count == 5) {
           someRow = row;
@@ -267,7 +267,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
       Key k2 = new Key(row, "cf1", "cq2", 7);
       if (sampler.accept(k2)) {
-        expected.put(k2, new Value(("" + (100000000 - i)).getBytes()));
+        expected.put(k2, new Value("" + (100000000 - i)));
       }
     }
 

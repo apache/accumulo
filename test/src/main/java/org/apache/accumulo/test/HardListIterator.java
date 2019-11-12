@@ -44,11 +44,11 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   static {
     SortedMap<Key,Value> t = new TreeMap<>();
     t.put(new Key(new Text("a1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
-        new Value("1".getBytes()));
+        new Value("1"));
     t.put(new Key(new Text("c1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
-        new Value("1".getBytes()));
+        new Value("1"));
     t.put(new Key(new Text("m1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
-        new Value("1".getBytes()));
+        new Value("1"));
     allEntriesToInject = Collections.unmodifiableSortedMap(t); // for safety
   }
 

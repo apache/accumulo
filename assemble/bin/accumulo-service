@@ -124,16 +124,17 @@ function main() {
     source "${conf}/accumulo-env.sh"
   fi
   ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
+  ACCUMULO_PID_DIR="${ACCUMULO_PID_DIR:-${basedir}/run}"
 
   mkdir -p "$ACCUMULO_LOG_DIR" 2>/dev/null
-  mkdir -p "${basedir}/run" 2>/dev/null
+  mkdir -p "$ACCUMULO_PID_DIR" 2>/dev/null
 
   host="$(hostname)"
   if [[ -z "$host" ]]; then
     host=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
   fi 
   service="$1"
-  pid_file="${basedir}/run/accumulo-${service}.pid"
+  pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}.pid"
   case "$service" in
     gc|master|monitor|tserver|tracer)
       if [[ -z $2 ]]; then

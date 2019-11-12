@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -74,7 +73,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
       try (BatchWriter bw = client.createBatchWriter(tableName)) {
         for (int i = 1; i < 257; i++) {
           Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
-          m.put(cf, cq, new Value(Integer.toString(i).getBytes(UTF_8)));
+          m.put(cf, cq, new Value(Integer.toString(i)));
           bw.addMutation(m);
         }
       }

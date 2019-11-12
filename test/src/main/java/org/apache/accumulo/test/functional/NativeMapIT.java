@@ -65,7 +65,7 @@ public class NativeMapIT {
   }
 
   private Value newValue(int v) {
-    return new Value(String.format("r%09d", v).getBytes(UTF_8));
+    return new Value(String.format("r%09d", v));
   }
 
   public static File nativeMapLocation() {

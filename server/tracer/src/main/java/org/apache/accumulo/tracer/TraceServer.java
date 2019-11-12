@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
@@ -144,7 +145,7 @@ public class TraceServer implements Watcher, AutoCloseable {
       Mutation indexMutation = new Mutation(new Text("idx:" + s.svc + ":" + startString));
       long diff = s.stop - s.start;
       indexMutation.put(new Text(s.description), new Text(s.sender),
-          new Value((idString + ":" + Long.toHexString(diff)).getBytes(UTF_8)));
+          new Value(idString + ":" + Long.toHexString(diff)));
       ByteArrayTransport transport = new ByteArrayTransport();
       TCompactProtocol protocol = new TCompactProtocol(transport);
       s.write(protocol);
@@ -222,8 +223,14 @@ public class TraceServer implements Watcher, AutoCloseable {
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
-    registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort(),
-        conf.get(Property.TRACE_ZK_PATH));
+    // if sock is bound to the wildcard address, the local address will be 0.0.0.0.
+    // check for this, and try using InetAddress.getLocalHost instead.
+    // the problem is registering 0.0.0.0 in zookeeper doesn't work for non-local
+    // services (like remote tablet servers)
+    String hostAddr = sock.getInetAddress().getHostAddress();
+    if ("0.0.0.0".equals(hostAddr))
+      hostAddr = InetAddress.getLocalHost().getHostAddress();
+    registerInZooKeeper(hostAddr + ":" + sock.getLocalPort(), conf.get(Property.TRACE_ZK_PATH));
     writer = new AtomicReference<>(this.accumuloClient.createBatchWriter(tableName,
         new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS)));
   }

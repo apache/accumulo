@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,7 +46,7 @@ import org.apache.hadoop.io.Text;
  */
 public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
 
-  public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW".getBytes(UTF_8));
+  public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW");
 
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[] {});
 

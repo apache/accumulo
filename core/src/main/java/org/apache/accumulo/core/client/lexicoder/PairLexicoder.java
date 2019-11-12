@@ -21,7 +21,6 @@ import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.escape;
 import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.split;
 import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.unescape;
 
-import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.util.ComparablePair;
 
 /**

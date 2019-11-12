@@ -37,6 +37,13 @@
                           data = bigNumberForQuantity(data);
                         return data;
                       }
+                    },
+                    {
+                      "targets": "duration",
+                      "render": function (data, type, row) {
+                        if (type === 'display') data = timeDuration(data);
+                        return data;
+                      }
                     }
                   ],
                 "columns": [
@@ -90,7 +97,7 @@
               <th title="The rate of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="big-num">Ingest</th>
               <th title="The rate of Key/Value pairs read on the server side. Not all key values read may be returned to client because of filtering." class="big-num">Read</th>
               <th title="The rate of Key/Value pairs returned to clients during queries. This is not the number of scans." class="big-num">Returned</th>
-              <th title="The amount of time that ingest operations are suspended while waiting for data to be written to disk." class="big-num">Hold&nbsp;Time</th>
+              <th title="The amount of time that ingest operations are suspended while waiting for data to be written to disk." class="duration">Hold&nbsp;Time</th>
               <th title="Running scans. The number queued waiting are in parentheses.">Scans</th>
               <th title="Minor Compactions. The number of tablets waiting for compaction are in parentheses.">MinC</th>
               <th title="Major Compactions. The number of tablets waiting for compaction are in parentheses.">MajC</th>

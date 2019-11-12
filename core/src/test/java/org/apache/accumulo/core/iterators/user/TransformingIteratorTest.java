@@ -46,8 +46,8 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
-import org.apache.accumulo.core.iterators.system.VisibilityFilter;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
@@ -293,7 +293,7 @@ public class TransformingIteratorTest {
 
     data.clear();
 
-    Value ev = new Value("".getBytes());
+    Value ev = new Value("");
 
     data.put(new Key("shard001", "foo", "doc02", vis1, 78), ev);
     data.put(new Key("shard001", "dog", "doc02", vis3, 78), ev);
@@ -359,7 +359,7 @@ public class TransformingIteratorTest {
             String cv = "badvis";
             long ts = 100 * cfID + 10 * cqID + cvID;
             String val = "val" + ts;
-            expected.put(new Key(row, cf, cq, cv, ts), new Value(val.getBytes()));
+            expected.put(new Key(row, cf, cq, cv, ts), new Value(val));
           }
         }
       }
@@ -495,7 +495,7 @@ public class TransformingIteratorTest {
       }
     }
 
-    expected.put(new Key(row, cf, cq, cv, ts), new Value(val.getBytes()));
+    expected.put(new Key(row, cf, cq, cv, ts), new Value(val));
   }
 
   private static Text transform(Text val) {
@@ -520,7 +520,7 @@ public class TransformingIteratorTest {
           String val = "val" + ts;
 
           Key k = new Key(row, cf, cq, cv, ts);
-          Value v = new Value(val.getBytes());
+          Value v = new Value(val);
           data.put(k, v);
         }
       }

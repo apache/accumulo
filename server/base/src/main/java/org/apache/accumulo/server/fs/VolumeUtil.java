@@ -16,17 +16,14 @@
  */
 package org.apache.accumulo.server.fs;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -39,10 +36,6 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,21 +46,6 @@ import org.slf4j.LoggerFactory;
 public class VolumeUtil {
 
   private static final Logger log = LoggerFactory.getLogger(VolumeUtil.class);
-
-  private static boolean isActiveVolume(ServerContext context, Path dir) {
-
-    // consider relative path as active and take no action
-    if (!dir.toString().contains(":"))
-      return true;
-
-    for (String tableDir : ServerConstants.getTablesDirs(context)) {
-      // use Path to normalize tableDir
-      if (dir.toString().startsWith(new Path(tableDir).toString()))
-        return true;
-    }
-
-    return false;
-  }
 
   public static String removeTrailingSlash(String path) {
     while (path.endsWith("/"))
@@ -138,7 +116,7 @@ public class VolumeUtil {
   }
 
   public static class TabletFiles {
-    public String dir;
+    public String dirName;
     public List<LogEntry> logEntries;
     public SortedMap<FileRef,DataFileValue> datafiles;
 
@@ -147,24 +125,12 @@ public class VolumeUtil {
       datafiles = new TreeMap<>();
     }
 
-    public TabletFiles(String dir, List<LogEntry> logEntries,
+    public TabletFiles(String dirName, List<LogEntry> logEntries,
         SortedMap<FileRef,DataFileValue> datafiles) {
-      this.dir = dir;
+      this.dirName = dirName;
       this.logEntries = logEntries;
       this.datafiles = datafiles;
     }
-  }
-
-  public static String switchRootTableVolume(ServerContext context, String location)
-      throws IOException {
-    String newLocation = switchVolume(location, FileType.TABLE,
-        ServerConstants.getVolumeReplacements(context.getConfiguration(), context.getHadoopConf()));
-    if (newLocation != null) {
-      context.getAmple().mutateTablet(RootTable.EXTENT).putDir(newLocation).mutate();
-      log.info("Volume replaced: {} -> {}", location, newLocation);
-      return new Path(newLocation).toString();
-    }
-    return location;
   }
 
   /**
@@ -214,17 +180,9 @@ public class VolumeUtil {
       }
     }
 
-    String tabletDir = tabletFiles.dir;
-    String switchedDir = switchVolume(tabletDir, FileType.TABLE, replacements);
-
-    if (switchedDir != null) {
-      log.debug("Replacing volume {} : {} -> {}", extent, tabletDir, switchedDir);
-      tabletDir = switchedDir;
-    }
-
-    if (logsToRemove.size() + filesToRemove.size() > 0 || switchedDir != null) {
+    if (logsToRemove.size() + filesToRemove.size() > 0) {
       MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove,
-          filesToAdd, switchedDir, zooLock, context);
+          filesToAdd, zooLock, context);
       if (replicate) {
         Status status = StatusUtil.fileClosed();
         log.debug("Tablet directory switched, need to record old log files {} {}", logsToRemove,
@@ -236,91 +194,8 @@ public class VolumeUtil {
       }
     }
 
-    ret.dir = decommisionedTabletDir(context, zooLock, vm, extent, tabletDir);
-    if (extent.isRootTablet()) {
-      SortedMap<FileRef,DataFileValue> copy = ret.datafiles;
-      ret.datafiles = new TreeMap<>();
-      for (Entry<FileRef,DataFileValue> entry : copy.entrySet()) {
-        ret.datafiles.put(
-            new FileRef(new Path(ret.dir, entry.getKey().path().getName()).toString()),
-            entry.getValue());
-      }
-    }
-
     // method this should return the exact strings that are in the metadata table
+    ret.dirName = tabletFiles.dirName;
     return ret;
-  }
-
-  private static String decommisionedTabletDir(ServerContext context, ZooLock zooLock,
-      VolumeManager vm, KeyExtent extent, String metaDir) throws IOException {
-    Path dir = new Path(metaDir);
-    if (isActiveVolume(context, dir))
-      return metaDir;
-
-    if (!dir.getParent().getParent().getName().equals(ServerConstants.TABLE_DIR)) {
-      throw new IllegalArgumentException("Unexpected table dir " + dir);
-    }
-
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(extent.getTableId(), extent.getEndRow(), context);
-
-    Path newDir = new Path(vm.choose(chooserEnv, ServerConstants.getBaseUris(context))
-        + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName()
-        + Path.SEPARATOR + dir.getName());
-
-    log.info("Updating directory for {} from {} to {}", extent, dir, newDir);
-
-    MetadataTableUtil.updateTabletDir(extent, newDir.toString(), context, zooLock);
-    return newDir.toString();
-
-  }
-
-  static boolean same(FileSystem fs1, Path dir, FileSystem fs2, Path newDir)
-      throws FileNotFoundException, IOException {
-    // its possible that a user changes config in such a way that two uris point to the same thing.
-    // Like hdfs://foo/a/b and hdfs://1.2.3.4/a/b both reference
-    // the same thing because DNS resolves foo to 1.2.3.4. This method does not analyze uris to
-    // determine if equivalent, instead it inspects the contents of
-    // what the uris point to.
-
-    // this code is called infrequently and does not need to be optimized.
-
-    if (fs1.exists(dir) && fs2.exists(newDir)) {
-
-      if (!fs1.getFileStatus(dir).isDirectory())
-        throw new IllegalArgumentException("expected " + dir + " to be a directory");
-
-      if (!fs2.getFileStatus(newDir).isDirectory())
-        throw new IllegalArgumentException("expected " + newDir + " to be a directory");
-
-      HashSet<String> names1 = getFileNames(fs1.listStatus(dir));
-      HashSet<String> names2 = getFileNames(fs2.listStatus(newDir));
-
-      if (names1.equals(names2)) {
-        for (String name : names1)
-          if (!hash(fs1, dir, name).equals(hash(fs2, newDir, name)))
-            return false;
-        return true;
-      }
-
-    }
-    return false;
-  }
-
-  private static HashSet<String> getFileNames(FileStatus[] filesStatuses) {
-    HashSet<String> names = new HashSet<>();
-    for (FileStatus fileStatus : filesStatuses)
-      if (fileStatus.isDirectory())
-        throw new IllegalArgumentException("expected " + fileStatus.getPath() + " to be a file");
-      else
-        names.add(fileStatus.getPath().getName());
-    return names;
-  }
-
-  private static String hash(FileSystem fs, Path dir, String name) throws IOException {
-    try (FSDataInputStream in = fs.open(new Path(dir, name))) {
-      return DigestUtils.sha512Hex(in);
-    }
-
   }
 }

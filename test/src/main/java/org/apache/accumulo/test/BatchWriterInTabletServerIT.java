@@ -95,7 +95,7 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
     // Write an entry to t1
     c.tableOperations().create(t1);
     Key k = new Key(new Text("row"), new Text("cf"), new Text("cq"));
-    Value v = new Value("1".getBytes());
+    Value v = new Value("1");
     BatchWriterConfig config = new BatchWriterConfig();
     config.setMaxMemory(0);
     try (BatchWriter writer = c.createBatchWriter(t1, config)) {

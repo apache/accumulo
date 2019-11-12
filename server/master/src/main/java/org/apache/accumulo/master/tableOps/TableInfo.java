@@ -44,7 +44,6 @@ public class TableInfo implements Serializable {
   private String splitDirsFile;
 
   public Map<String,String> props;
-  public String defaultTabletDir = null;
 
   public String getTableName() {
     return tableName;

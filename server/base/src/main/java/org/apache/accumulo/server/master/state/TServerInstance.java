@@ -141,7 +141,7 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
   }
 
   private Value asMutationValue() {
-    return new Value(getLocation().toString().getBytes(UTF_8));
+    return new Value(getLocation().toString());
   }
 
   @Override

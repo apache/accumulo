@@ -206,7 +206,7 @@ public class ValueTest {
   @Test
   public void testText() {
     Value v1 = new Value(new Text("abc"));
-    Value v2 = new Value("abc".getBytes(UTF_8));
+    Value v2 = new Value("abc");
     assertEquals(v2, v1);
   }
 

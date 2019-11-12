@@ -193,7 +193,7 @@ public interface Ample {
 
     public TabletMutator putZooLock(ZooLock zooLock);
 
-    public TabletMutator putDir(String dir);
+    public TabletMutator putDirName(String dirName);
 
     public TabletMutator putWal(LogEntry logEntry);
 

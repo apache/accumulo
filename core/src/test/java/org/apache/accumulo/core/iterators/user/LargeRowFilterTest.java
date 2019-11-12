@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.junit.Test;
 
@@ -48,8 +48,7 @@ public class LargeRowFilterTest {
 
   private void genRow(TreeMap<Key,Value> testData, int row, int startCQ, int stopCQ) {
     for (int cq = startCQ; cq < stopCQ; cq++) {
-      testData.put(new Key(genRow(row), "cf001", genCQ(cq), 5),
-          new Value(("v" + row + "_" + cq).getBytes()));
+      testData.put(new Key(genRow(row), "cf001", genCQ(cq), 5), new Value("v" + row + "_" + cq));
     }
   }
 

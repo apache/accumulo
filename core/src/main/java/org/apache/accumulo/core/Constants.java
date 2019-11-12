@@ -81,11 +81,6 @@ public class Constants {
    */
   public static final String ZDELEGATION_TOKEN_KEYS = "/delegation_token_keys";
 
-  /**
-   * Initial tablet directory name for the default tablet in all tables
-   */
-  public static final String DEFAULT_TABLET_LOCATION = "/default_tablet";
-
   public static final String ZTABLE_LOCKS = "/table_locks";
 
   public static final String BULK_PREFIX = "b-";

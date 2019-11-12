@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonMap;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
@@ -169,7 +168,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
         r.nextBytes(rowData);
         TestIngest.toPrintableChars(rowData);
         Mutation mut = new Mutation(new Text(rowData));
-        mut.put(new Text(""), new Text(""), new Value(Integer.toString(i).getBytes(UTF_8)));
+        mut.put(new Text(""), new Text(""), new Value(Integer.toString(i)));
         bw.addMutation(mut);
       }
     }
@@ -218,7 +217,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
           if (!entry.getKey().getRow().equals(new Text(rowData))) {
             throw new Exception("verification failed, unexpected row i =" + i);
           }
-          if (!entry.getValue().equals(new Value(Integer.toString(i).getBytes(UTF_8)))) {
+          if (!entry.getValue().equals(new Value(Integer.toString(i)))) {
             throw new Exception(
                 "verification failed, unexpected value i =" + i + " value = " + entry.getValue());
           }

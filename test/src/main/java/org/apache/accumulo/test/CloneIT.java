@@ -53,9 +53,8 @@ public class CloneIT extends AccumuloClusterHarness {
       KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
       Mutation mut = ke.getPrevRowUpdateMutation();
 
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-          new Value("/default_tablet".getBytes()));
+      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
+      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName)) {
         bw1.addMutation(mut);
@@ -81,9 +80,8 @@ public class CloneIT extends AccumuloClusterHarness {
       KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
       Mutation mut = ke.getPrevRowUpdateMutation();
 
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-          new Value("/default_tablet".getBytes()));
+      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
+      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
       mut.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf",
           new DataFileValue(1, 200).encodeAsString());
 
@@ -237,8 +235,8 @@ public class CloneIT extends AccumuloClusterHarness {
         prevRow == null ? null : new Text(prevRow));
     Mutation mut = ke.getPrevRowUpdateMutation();
 
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes()));
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir));
     mut.put(DataFileColumnFamily.NAME.toString(), file,
         new DataFileValue(10, 200).encodeAsString());
 

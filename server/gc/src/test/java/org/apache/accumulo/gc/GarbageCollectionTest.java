@@ -275,10 +275,10 @@ public class GarbageCollectionTest {
     gce.candidates.add("/c/t-0");
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/d/t-0");
 
-    gce.addDirReference("4", null, "/t-0");
-    gce.addDirReference("5", null, "/t-0");
-    gce.addDirReference("6", null, "hdfs://foo.com:6000/accumulo/tables/6/t-0");
-    gce.addDirReference("7", null, "hdfs://foo.com:6000/accumulo/tables/7/t-0");
+    gce.addDirReference("4", null, "t-0");
+    gce.addDirReference("5", null, "t-0");
+    gce.addDirReference("6", null, "t-0");
+    gce.addDirReference("7", null, "t-0");
 
     gce.addFileReference("8", "m", "/t-0/F00.rf");
     gce.addFileReference("9", "m", "/t-0/F00.rf");
@@ -339,10 +339,10 @@ public class GarbageCollectionTest {
     gce.candidates.add("/c/t-0");
     gce.candidates.add("hdfs://foo:6000/user/foo/tables/d/t-0");
 
-    gce.addDirReference("4", null, "/t-0");
-    gce.addDirReference("5", null, "/t-0");
-    gce.addDirReference("6", null, "hdfs://foo.com:6000/user/foo/tables/6/t-0");
-    gce.addDirReference("7", null, "hdfs://foo.com:6000/user/foo/tables/7/t-0");
+    gce.addDirReference("4", null, "t-0");
+    gce.addDirReference("5", null, "t-0");
+    gce.addDirReference("6", null, "t-0");
+    gce.addDirReference("7", null, "t-0");
 
     gce.addFileReference("8", "m", "/t-0/F00.rf");
     gce.addFileReference("9", "m", "/t-0/F00.rf");
@@ -464,7 +464,7 @@ public class GarbageCollectionTest {
 
     TestGCE gce = new TestGCE();
     gce.candidates.add("/1636/default_tablet");
-    gce.addDirReference("1636", null, "/default_tablet");
+    gce.addDirReference("1636", null, "default_tablet");
     gca.collect(gce);
     assertRemoved(gce);
 
@@ -481,7 +481,7 @@ public class GarbageCollectionTest {
     // have an indirect file reference
     gce = new TestGCE();
     gce.addFileReference("1636", null, "../9/default_tablet/someFile");
-    gce.addDirReference("1636", null, "/default_tablet");
+    gce.addDirReference("1636", null, "default_tablet");
     gce.candidates.add("/9/default_tablet/someFile");
     gca.collect(gce);
     assertRemoved(gce);
@@ -520,7 +520,7 @@ public class GarbageCollectionTest {
     gce.candidates.add("/6/t-0");
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/7/t-0/");
 
-    gce.addDirReference("7", null, "hdfs://foo.com:6000/accumulo/tables/7/t-0");
+    gce.addDirReference("7", null, "t-0");
 
     gca.collect(gce);
 

@@ -51,14 +51,25 @@ public final class Accumulo {
    *
    * <pre>
    * <code>
+   * // Create client directly from connection information
    * try (AccumuloClient client = Accumulo.newClient()
    *        .to(instanceName, zookeepers)
    *        .as(user, password).build())
    * {
-   *   // use the client
+   *    // use the client
+   * }
+   *
+   * // Create client using the instance name, zookeeper, and credentials from java properties or properties file
+   * try (AccumuloClient client = Accumulo.newClient()
+   *        .from(properties).build())
+   * {
+   *    // use the client
    * }
    * </code>
    * </pre>
+   *
+   * For a list of all client properties see the documentation on the Accumulo website:
+   * https://accumulo.apache.org/docs/2.x/configuration/client-properties
    *
    * @return a builder object for Accumulo clients
    */
@@ -76,6 +87,9 @@ public final class Accumulo {
    *              .as(user, password).build())
    * </code>
    * </pre>
+   *
+   * For a list of all client properties see the documentation on the Accumulo website:
+   * https://accumulo.apache.org/docs/2.x/configuration/client-properties
    *
    * @return a builder object for client Properties
    */

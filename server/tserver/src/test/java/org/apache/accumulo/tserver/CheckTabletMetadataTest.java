@@ -54,7 +54,7 @@ public class CheckTabletMetadataTest {
   private static void put(TreeMap<Key,Value> tabletMeta, String row, Text cf, String cq,
       String val) {
     Key k = new Key(new Text(row), cf, new Text(cq));
-    tabletMeta.put(k, new Value(val.getBytes()));
+    tabletMeta.put(k, new Value(val));
   }
 
   private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi) {
@@ -89,7 +89,7 @@ public class CheckTabletMetadataTest {
 
     put(tabletMeta, "1<", TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
         KeyExtent.encodePrevEndRow(null).get());
-    put(tabletMeta, "1<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t1".getBytes());
+    put(tabletMeta, "1<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "t1".getBytes());
     put(tabletMeta, "1<", TabletsSection.ServerColumnFamily.TIME_COLUMN, "M0".getBytes());
     put(tabletMeta, "1<", TabletsSection.FutureLocationColumnFamily.NAME, "4", "127.0.0.1:9997");
 
