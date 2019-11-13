@@ -26,7 +26,7 @@ import org.apache.accumulo.core.iterators.PluginEnvironment;
  * Accumulo.
  *
  * <P>
- * Having this allows only adding method to the SPI which are not desired in PluginEnvironment which
+ * Having this allows adding methods to the SPI which are not desired in PluginEnvironment which
  * is public API.
  *
  * @since 2.0.0

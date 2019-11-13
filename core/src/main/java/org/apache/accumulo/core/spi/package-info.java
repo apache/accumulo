@@ -18,17 +18,17 @@
 package org.apache.accumulo.core.spi;
 
 /**
- * This package provides a place for plugin interfaces intended for Accumulo user to implement. The
+ * This package provides a place for plugin interfaces intended for Accumulo users to implement. The
  * types under this package should adhere to the following rules.
  *
  * <p>
  * <UL>
- * <LI>Incompatible changes should not be made in a bug fix release.</LI>
- * <LI>Incompatible changes can be made in a minor or major version. These changes should only be
+ * <LI>No changes should be made in a bug fix release.</LI>
+ * <LI>Any changes can be made in a minor or major version. Incompatible changes should only be
  * made if there is a benefit to users that outweighs the negative impact to users. If possible use
  * deprecation instead of making incompatible changes.</LI>
  * <LI>All types used within this package should be declared in Accumulo's public API or under this
- * package. This rules makes it possible to achieve the other rules. Accumulo's build uses Apilyzer
+ * package. This rule makes it possible to achieve the other rules. Accumulo's build uses Apilyzer
  * to check this rule.</LI>
  * <LI>Types under this package are intended for Accumulo users. If a type is only intended to be
  * used internally by Accumulo, it should not be placed here.</LI>
