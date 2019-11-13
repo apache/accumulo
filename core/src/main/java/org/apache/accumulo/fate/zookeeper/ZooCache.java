@@ -170,7 +170,13 @@ public class ZooCache {
       switch (event.getType()) {
         case NodeDataChanged:
           if (event.getPath().endsWith(Constants.ZTABLE_CONFIG_VERSION)) {
-            processTableConfigurationItem(event);
+            try {
+              processTableConfigurationItem(event);
+            } catch (KeeperException | InterruptedException e) {
+              log.error(
+                  "ZCacheWatcher::processTableConfigurationItem failed to process a table configuration change");
+              updateAllTableConfigurations();
+            }
             break;
           }
         case NodeChildrenChanged:
@@ -227,44 +233,37 @@ public class ZooCache {
      * @param event
      *          Contains the Zpath of the table_config_version znode.
      */
-    private synchronized void processTableConfigurationItem(WatchedEvent event) {
+    private synchronized void processTableConfigurationItem(WatchedEvent event)
+        throws KeeperException, InterruptedException {
 
       if (event.getPath() == null || event.getPath().isEmpty())
         return;
 
-      try {
-        Stat versionStat = getZooKeeper().exists(event.getPath(), watcher);
-        if (versionStat == null) {
-          return;
+      Stat versionStat = new Stat();
+
+      byte[] configToRefresh = getZooKeeper().getData(event.getPath(), watcher, versionStat);
+
+      if (configToRefresh == null) {
+        throw new IllegalStateException("The table-config-version znode should have data in it.");
+      }
+
+      if ((versionStat != null) && (versionStat.getVersion() - lastTableConfigVersion == 1)) {
+        lastTableConfigVersion = versionStat.getVersion();
+        refreshTableConfig(configToRefresh);
+        if (log.isTraceEnabled()) {
+          log.trace(
+              "Successfully refreshed table single table config: " + new String(configToRefresh));
+        }
+      } else {
+
+        if (log.isTraceEnabled()) {
+          log.trace("We have to update all table configs.");
         }
 
-        byte[] configToRefresh = getZooKeeper().getData(event.getPath(), true, versionStat);
-
-        if (configToRefresh == null) {
-          return;
-        }
-
-        if ((versionStat != null) && (versionStat.getVersion() - lastTableConfigVersion == 1)) {
+        if (versionStat != null) {
           lastTableConfigVersion = versionStat.getVersion();
-          refreshTableConfig(configToRefresh);
-          if (log.isTraceEnabled()) {
-            log.trace(
-                "Successfully refreshed table single table config: " + new String(configToRefresh));
-          }
-        } else {
-
-          if (log.isTraceEnabled()) {
-            log.trace("We have to update all table configs.");
-          }
-
-          if (versionStat != null) {
-            lastTableConfigVersion = versionStat.getVersion();
-            updateAllTableConfigurations();
-          }
+          updateAllTableConfigurations();
         }
-
-      } catch (Exception e) {
-        log.error("Error getting data from TABLE_CONFIGS zoonode " + e.getMessage());
       }
 
       return;
