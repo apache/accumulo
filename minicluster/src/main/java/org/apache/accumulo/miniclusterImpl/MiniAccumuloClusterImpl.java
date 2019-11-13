@@ -217,8 +217,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
     // @formatter:off
     argList.addAll(Arrays.asList(
-        "-XX:+UseConcMarkSweepGC",
-        "-XX:CMSInitiatingOccupancyFraction=75",
         "-Dapple.awt.UIElement=true",
         "-Djava.net.preferIPv4Stack=true",
         "-XX:+PerfDisableSharedMem",
