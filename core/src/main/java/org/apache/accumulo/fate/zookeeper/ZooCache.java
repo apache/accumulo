@@ -57,17 +57,12 @@ public class ZooCache {
   private final HashMap<String,byte[]> cache;
   private final HashMap<String,ZcStat> statCache;
   private final HashMap<String,List<String>> childrenCache;
+  private final HashMap<String,Boolean> znodeExists = new HashMap<>();
 
   private final ZooReader zReader;
   private final SecureRandom secureRandom = new SecureRandom();
 
   private volatile boolean closed = false;
-
-  public static final String[] extraConfigs = {"table.split.endrow.size.max",
-      "table.groups.enabled", "table.split.threshold", "table.classpath.context",
-      "table.compaction.minor.logs.threshold", "table.balancer", "table.replication",
-      "table.majc.compaction.strategy", "tserver.memory.maps.native.enabled", "tserver.dir.memdump",
-      "tserver.walog.max.referenced"};
 
   public static class ZcStat {
     private long ephemeralOwner;
@@ -464,22 +459,25 @@ public class ZooCache {
 
     boolean watched = true;
 
-    for (String possiblyWatchedConfig : extraConfigs) {
+    if (znodeExists.containsKey(zPath))
+      return watched;
+
+    if (zPath.contains("tserver.") || zPath.contains("table.")) {
       Stat stat;
-      if (zPath.endsWith(possiblyWatchedConfig)) {
-        try {
-          stat = zooKeeper.exists(zPath, false);
-        } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
-          throw new ConcurrentModificationException();
-        }
-        if (stat != null) {
-          watched = true;
-        } else {
-          watched = false;
-        }
-        break;
+      try {
+        stat = zooKeeper.exists(zPath, false);
+      } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
+        throw new ConcurrentModificationException();
+      }
+
+      if (stat != null) {
+        watched = true;
+        znodeExists.put(zPath, true);
+      } else {
+        watched = false;
       }
     }
+
     return watched;
   }
 
@@ -516,6 +514,7 @@ public class ZooCache {
       cache.remove(zPath);
       childrenCache.remove(zPath);
       statCache.remove(zPath);
+      znodeExists.remove(zPath);
 
       immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, childrenCache);
     } finally {
