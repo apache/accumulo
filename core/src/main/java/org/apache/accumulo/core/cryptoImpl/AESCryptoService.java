@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.cryptoImpl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -23,7 +25,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -133,7 +134,7 @@ public class AESCryptoService implements CryptoService {
   }
 
   private static boolean checkNoCrypto(byte[] params) {
-    byte[] noCryptoBytes = NO_CRYPTO_VERSION.getBytes(Charset.forName("UTF-8"));
+    byte[] noCryptoBytes = NO_CRYPTO_VERSION.getBytes(UTF_8);
     return Arrays.equals(params, noCryptoBytes);
   }
 

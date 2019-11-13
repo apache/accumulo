@@ -26,7 +26,6 @@ import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -273,7 +272,7 @@ public class Upgrader9to10 implements Upgrader {
       if (data == null)
         return null;
 
-      return new String(data, StandardCharsets.UTF_8);
+      return new String(data, UTF_8);
     } catch (NoNodeException e) {
       return null;
     } catch (KeeperException | InterruptedException e) {

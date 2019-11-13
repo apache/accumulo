@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
-import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
 
@@ -323,9 +324,8 @@ public class KeyBuilder {
     }
 
     private byte[] encodeCharSequence(CharSequence chars) {
-      CharsetEncoder encoder =
-          Charset.forName("UTF-8").newEncoder().onMalformedInput(CodingErrorAction.REPORT)
-              .onUnmappableCharacter(CodingErrorAction.REPORT);
+      CharsetEncoder encoder = UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPORT)
+          .onUnmappableCharacter(CodingErrorAction.REPORT);
       try {
         return encoder.encode(CharBuffer.wrap(chars)).array();
       } catch (CharacterCodingException ex) {

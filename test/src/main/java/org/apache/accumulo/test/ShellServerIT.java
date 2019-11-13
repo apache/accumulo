@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.newBufferedReader;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
@@ -34,7 +35,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
@@ -2768,7 +2768,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     if (sort)
       sortedSplits = new TreeSet<>(randomSplits);
 
-    try (BufferedWriter writer = Files.newBufferedWriter(splitsPath, Charset.forName("UTF-8"))) {
+    try (BufferedWriter writer = Files.newBufferedWriter(splitsPath, UTF_8)) {
       int cnt = 0;
       Collection<Text> splits;
       if (sort)
