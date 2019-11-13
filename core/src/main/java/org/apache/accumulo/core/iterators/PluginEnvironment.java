@@ -36,7 +36,7 @@ public interface PluginEnvironment {
   /**
    * @since 2.1.0
    */
-  public interface Config extends Iterable<Entry<String,String>> {
+  public interface Configuration extends Iterable<Entry<String,String>> {
 
     /**
      * @return The value for a single property or null if not present. Sensitive properties are
@@ -109,7 +109,7 @@ public interface PluginEnvironment {
    *         in zookeeper, which falls back to site configuration, which falls back to the default
    *         configuration.
    */
-  Config getConfiguration();
+  Configuration getConfiguration();
 
   /**
    * @return a view of a table's configuration. When requesting properties that start with
@@ -118,7 +118,7 @@ public interface PluginEnvironment {
    *         {@link #getConfiguration()}.
    *
    */
-  Config getConfiguration(TableId tableId);
+  Configuration getConfiguration(TableId tableId);
 
   /**
    * Many Accumulo plugins are given table IDs as this is what Accumulo uses internally to identify
