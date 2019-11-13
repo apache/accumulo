@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 public class VisibilityFilter extends Filter implements OptionDescriber {
 
   protected VisibilityEvaluator ve;
-  protected LRUMap<ByteSequence,Boolean> cache;
+  protected Map<ByteSequence,Boolean> cache;
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
