@@ -65,9 +65,6 @@ export CLASSPATH
 
 ## JVM options set for all processes. Extra options can be passed in by setting ACCUMULO_JAVA_OPTS to an array of options.
 JAVA_OPTS=("${ACCUMULO_JAVA_OPTS[@]}"
-  '-XX:+UseConcMarkSweepGC'
-  '-XX:CMSInitiatingOccupancyFraction=75'
-  '-XX:+CMSClassUnloadingEnabled'
   '-XX:OnOutOfMemoryError=kill -9 %p'
   '-XX:-OmitStackTraceInFastThrow'
   '-Djava.net.preferIPv4Stack=true'
