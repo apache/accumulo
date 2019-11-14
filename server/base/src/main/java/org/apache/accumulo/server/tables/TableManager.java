@@ -250,6 +250,10 @@ public class TableManager {
       tableStateCache.remove(tableId);
       zoo.recursiveDelete(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE,
           NodeMissingPolicy.SKIP);
+      String tableConfigPath = zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF;
+      // The line below removes all the watches on the table configuration items from the Zookeeper
+      // server
+      zoo.getZooKeeper().getChildren(tableConfigPath, false);
       zoo.recursiveDelete(zkRoot + Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
     }
   }
