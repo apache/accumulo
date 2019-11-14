@@ -1170,6 +1170,10 @@
                   <property name="format" value="import org[.]junit[.]Assert;" />
                   <property name="message" value="Use static imports for Assert.* methods for consistency" />
                 </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="import java[.]nio[.]charset[.]StandardCharsets;" />
+                  <property name="message" value="Use static imports for StandardCharsets.* constants for consistency" />
+                </module>
                 <module name="OuterTypeFilename" />
                 <module name="AvoidStarImport" />
                 <module name="NoLineWrap" />
