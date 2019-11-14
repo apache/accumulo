@@ -472,7 +472,9 @@ public class ZooCache {
 
       if (stat != null) {
         watched = true;
-        znodeExists.put(zPath, true);
+        synchronized (znodeExists) {
+          znodeExists.put(zPath, true);
+        }
       } else {
         watched = false;
       }
