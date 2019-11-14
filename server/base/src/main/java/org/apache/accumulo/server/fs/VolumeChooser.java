@@ -44,6 +44,26 @@ public interface VolumeChooser {
    */
   String choose(VolumeChooserEnvironment env, String[] options) throws VolumeChooserException;
 
+  /**
+   * Return the subset of volume options that could possibly be chosen by this chooser.
+   *
+   * @param env
+   *          the server environment provided by the calling framework
+   * @param options
+   *          the list of volumes to choose from
+   * @return array of valid options
+   * @throws VolumeChooserException
+   *           if there is an error choosing (this is a RuntimeException); this does not preclude
+   *           other RuntimeExceptions from occurring
+   *
+   * @since 2.1.0
+   */
+  default String[] choosable(VolumeChooserEnvironment env, String[] options)
+      throws VolumeChooserException {
+    throw new UnsupportedOperationException("This volume chooser does not support a new "
+        + "method added in 2.1.0.  Please let the author of the chooser know.");
+  }
+
   class VolumeChooserException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;

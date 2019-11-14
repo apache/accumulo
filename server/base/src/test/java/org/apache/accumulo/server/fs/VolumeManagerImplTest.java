@@ -121,6 +121,11 @@ public class VolumeManagerImplTest {
     public String choose(VolumeChooserEnvironment env, String[] options) {
       return "file://totally-not-given/";
     }
+
+    @Override
+    public String[] choosable(VolumeChooserEnvironment env, String[] options) {
+      return new String[] {"file://totally-not-given"};
+    }
   }
 
   @SuppressWarnings("deprecation")

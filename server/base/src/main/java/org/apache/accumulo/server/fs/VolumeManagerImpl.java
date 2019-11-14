@@ -497,6 +497,21 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
+  public String[] choosable(VolumeChooserEnvironment env, String[] options) {
+    final String[] choices = chooser.choosable(env, options);
+
+    for (String choice : choices) {
+      if (!(ArrayUtils.contains(options, choice))) {
+        String msg = "The configured volume chooser, '" + chooser.getClass()
+            + "', or one of its delegates returned a volume not in the set of options provided";
+        throw new VolumeChooserException(msg);
+      }
+    }
+
+    return choices;
+  }
+
+  @Override
   public boolean canSyncAndFlush(Path path) {
     // the assumption is all filesystems support sync/flush except
     // for HDFS erasure coding. not checking hdfs config options

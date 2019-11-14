@@ -54,6 +54,12 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     return choice;
   }
 
+  @Override
+  public String[] choosable(VolumeChooserEnvironment env, String[] options)
+      throws VolumeChooserException {
+    return getPreferredVolumes(env, options);
+  }
+
   // visible (not private) for testing
   String[] getPreferredVolumes(VolumeChooserEnvironment env, String[] options) {
     switch (env.getScope()) {
