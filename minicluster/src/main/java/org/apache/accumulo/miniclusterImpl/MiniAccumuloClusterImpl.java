@@ -28,7 +28,6 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -192,7 +191,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     public String readStdOut() {
       try (InputStream in = new FileInputStream(stdOut)) {
-        return IOUtils.toString(in, StandardCharsets.UTF_8);
+        return IOUtils.toString(in, UTF_8);
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }

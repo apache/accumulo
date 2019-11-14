@@ -16,9 +16,8 @@
  */
 package org.apache.accumulo.tserver;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
-
-import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.data.Value;
 import org.junit.Test;
@@ -27,7 +26,7 @@ public class MemValueTest {
 
   @Test
   public void testDecodeDoesntModifyInputValue() {
-    Value v = new Value("2.0".getBytes(Charset.forName("UTF-8")));
+    Value v = new Value("2.0".getBytes(UTF_8));
     Value encodedValue = MemValue.encode(v, 3);
     MemValue m1 = MemValue.decode(encodedValue);
     MemValue m2 = MemValue.decode(encodedValue);

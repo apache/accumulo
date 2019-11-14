@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -92,7 +93,7 @@ public class ConvertConfig implements KeywordExecutable {
     Configuration xmlConfig = new Configuration(false);
     xmlConfig.addResource(xmlFile.toURI().toURL());
 
-    try (BufferedWriter w = Files.newBufferedWriter(propsPath, Charset.forName("UTF-8"))) {
+    try (BufferedWriter w = Files.newBufferedWriter(propsPath, UTF_8)) {
       StreamSupport.stream(xmlConfig.spliterator(), false).sorted(Map.Entry.comparingByKey())
           .forEach(e -> writeLine(w, e.toString()));
     }

@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.core.cryptoImpl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
@@ -32,6 +33,6 @@ public class NoFileEncrypter implements FileEncrypter {
 
   @Override
   public byte[] getDecryptionParameters() {
-    return NoCryptoService.VERSION.getBytes(Charset.forName("UTF-8"));
+    return NoCryptoService.VERSION.getBytes(UTF_8);
   }
 }

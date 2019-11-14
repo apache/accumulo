@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.master.state;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
@@ -48,8 +48,8 @@ public class RootTabletStateStoreTest {
 
   private static class TestAmple implements Ample {
 
-    private String json = new String(RootTabletMetadata.getInitialJson("dir", "/some/dir/0000.rf"),
-        StandardCharsets.UTF_8);
+    private String json =
+        new String(RootTabletMetadata.getInitialJson("dir", "/some/dir/0000.rf"), UTF_8);
 
     @Override
     public TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {

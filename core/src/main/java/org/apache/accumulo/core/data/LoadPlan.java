@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.core.data;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
@@ -49,7 +50,7 @@ public class LoadPlan {
   }
 
   private static byte[] copy(CharSequence data) {
-    return data == null ? null : data.toString().getBytes(StandardCharsets.UTF_8);
+    return data == null ? null : data.toString().getBytes(UTF_8);
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
@@ -108,16 +109,16 @@ public class LoadPlan {
 
       if (rangeType == RangeType.FILE) {
         if (UnsignedBytes.lexicographicalComparator().compare(startRow, endRow) > 0) {
-          String srs = new String(startRow, StandardCharsets.UTF_8);
-          String ers = new String(endRow, StandardCharsets.UTF_8);
+          String srs = new String(startRow, UTF_8);
+          String ers = new String(endRow, UTF_8);
           throw new IllegalArgumentException(
               "Start row is greater than end row : " + srs + " " + ers);
         }
       } else if (rangeType == RangeType.TABLE) {
         if (startRow != null && endRow != null
             && UnsignedBytes.lexicographicalComparator().compare(startRow, endRow) >= 0) {
-          String srs = new String(startRow, StandardCharsets.UTF_8);
-          String ers = new String(endRow, StandardCharsets.UTF_8);
+          String srs = new String(startRow, UTF_8);
+          String ers = new String(endRow, UTF_8);
           throw new IllegalArgumentException(
               "Start row is greater than or equal to end row : " + srs + " " + ers);
         }
