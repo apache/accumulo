@@ -255,7 +255,7 @@ public class Master extends AbstractServer
     }
 
     if (oldState != newState && (newState == MasterState.HAVE_LOCK)) {
-      upgradeCoordinator.upgradeZookeeper();
+      upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
     }
 
     if (oldState != newState && (newState == MasterState.NORMAL)) {
@@ -264,11 +264,12 @@ public class Master extends AbstractServer
             + " initialized prior to the Master finishing upgrades. Please save"
             + " all logs and file a bug.");
       }
-      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata();
+      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
     }
   }
 
-  private UpgradeCoordinator upgradeCoordinator;
+  private final UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
+
   private Future<Void> upgradeMetadataFuture;
 
   private final ServerConfigurationFactory serverConfig;
@@ -417,8 +418,6 @@ public class Master extends AbstractServer
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
-
-    upgradeCoordinator = new UpgradeCoordinator(context);
   }
 
   public String getInstanceID() {
@@ -594,6 +593,12 @@ public class Master extends AbstractServer
     // Shutting down?
     TabletGoalState state = getSystemGoalState(tls);
     if (state == TabletGoalState.HOSTED) {
+      if (!upgradeCoordinator.getStatus().isParentLevelUpgraded(extent)) {
+        // The place where this tablet stores its metadata was not upgraded, so do not assign this
+        // tablet yet.
+        return TabletGoalState.UNASSIGNED;
+      }
+
       if (tls.current != null && serversToShutdown.contains(tls.current)) {
         return TabletGoalState.SUSPENDED;
       }

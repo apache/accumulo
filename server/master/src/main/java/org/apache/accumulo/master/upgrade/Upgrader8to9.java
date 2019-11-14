@@ -31,7 +31,13 @@ public class Upgrader8to9 implements Upgrader {
   }
 
   @Override
+  public void upgradeRoot(ServerContext ctx) {
+    // There is no action that needs to be taken for metadata
+  }
+
+  @Override
   public void upgradeMetadata(ServerContext ctx) {
     // There is no action that needs to be taken for metadata
   }
+
 }
