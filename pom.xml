@@ -232,6 +232,11 @@
         <version>3.7.1</version>
       </dependency>
       <dependency>
+        <groupId>com.sun.xml.bind</groupId>
+        <artifactId>jaxb-core</artifactId>
+        <version>2.3.0.1</version>
+      </dependency>
+      <dependency>
         <groupId>commons-beanutils</groupId>
         <artifactId>commons-beanutils</artifactId>
         <version>1.9.3</version>
@@ -1047,6 +1052,7 @@
                 <!-- auto-service isn't detected as use since the annotation has retention of source -->
                 <unusedDeclaredDependency>com.google.auto.service:auto-service:jar:*</unusedDeclaredDependency>
                 <!-- unused/declared implementation jars or parent jars that bring in children -->
+                <unusedDeclaredDependency>com.sun.xml.bind</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-client:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-client-runtime:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-minicluster:jar:*</unusedDeclaredDependency>
