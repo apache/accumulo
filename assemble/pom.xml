@@ -459,6 +459,22 @@
     </dependency>
   </dependencies>
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>com.mycila</groupId>
+          <artifactId>license-maven-plugin</artifactId>
+          <configuration>
+            <mapping>
+              <accumulo-cluster>SCRIPT_STYLE</accumulo-cluster>
+              <accumulo-service>SCRIPT_STYLE</accumulo-service>
+              <accumulo-util>SCRIPT_STYLE</accumulo-util>
+              <accumulo>SCRIPT_STYLE</accumulo>
+            </mapping>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>

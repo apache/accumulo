@@ -202,13 +202,12 @@
     <pluginManagement>
       <plugins>
         <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
+          <groupId>com.mycila</groupId>
+          <artifactId>license-maven-plugin</artifactId>
           <configuration>
-            <excludes>
-              <exclude>compat/japi-compliance/exclude_classes.txt</exclude>
-              <exclude>system/bench/lib/*splits</exclude>
-            </excludes>
+            <mapping>
+              <shellit>SCRIPT_STYLE</shellit>
+            </mapping>
           </configuration>
         </plugin>
         <plugin>
