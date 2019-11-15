@@ -42,6 +42,7 @@
         <include>com.google.guava:failureaccess</include>
         <include>com.google.guava:guava</include>
         <include>com.google.protobuf:protobuf-java</include>
+        <include>com.sun.xml.bind</include>
         <include>commons-beanutils:commons-beanutils</include>
         <include>commons-cli:commons-cli</include>
         <include>commons-codec:commons-codec</include>
