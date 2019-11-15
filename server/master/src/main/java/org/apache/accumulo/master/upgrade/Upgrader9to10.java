@@ -103,6 +103,13 @@ public class Upgrader9to10 implements Upgrader {
   @Override
   public void upgradeZookeeper(ServerContext ctx) {
     upgradeRootTabletMetadata(ctx);
+    try {
+      ctx.getZooReaderWriter().putPersistentData(
+          ctx.getZooKeeperRoot() + Constants.ZTABLE_CONFIG_VERSION, new byte[0],
+          NodeExistsPolicy.FAIL);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

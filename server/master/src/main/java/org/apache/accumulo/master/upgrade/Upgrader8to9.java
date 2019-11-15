@@ -17,8 +17,11 @@
 
 package org.apache.accumulo.master.upgrade;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * See {@link ServerConstants#CRYPTO_CHANGES}
@@ -28,6 +31,13 @@ public class Upgrader8to9 implements Upgrader {
   @Override
   public void upgradeZookeeper(ServerContext ctx) {
     // There is no action that needs to be taken for zookeeper
+    try {
+      ctx.getZooReaderWriter().putPersistentData(
+          ctx.getZooKeeperRoot() + Constants.ZTABLE_CONFIG_VERSION, new byte[0],
+          ZooUtil.NodeExistsPolicy.FAIL);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
