@@ -58,7 +58,7 @@ endif
 all : $(NATIVE_LIB)
 
 $(NATIVE_LIB) : $(SRCS) $(HDRS)
-	$(CXX) $(CXXFLAGS) -o $@ $(SRCS) 
+	$(CXX) $(CXXFLAGS) -o $@ $(SRCS)
 
 test : $(NATIVE_LIB) testJavaHome runTests
 
