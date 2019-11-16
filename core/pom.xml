@@ -141,9 +141,9 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/test/resources/shelltest.txt</exclude>
-              <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/*.rf</exclude>
+              <exclude>src/main/java/org/apache/accumulo/core/bloomfilter/*.java</exclude>
               <exclude>src/test/resources/*.jceks</exclude>
+              <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/*.rf</exclude>
             </excludes>
           </configuration>
         </plugin>
