@@ -130,7 +130,6 @@ import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretM
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tables.TableObserver;
-import org.apache.accumulo.server.util.DefaultMap;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
@@ -184,7 +183,7 @@ public class Master extends AbstractServer
   private final List<TabletGroupWatcher> watchers = new ArrayList<>();
   final SecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers =
-      Collections.synchronizedMap(new DefaultMap<>(new AtomicInteger()));
+      Collections.synchronizedMap(new HashMap<TServerInstance,AtomicInteger>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final SortedMap<KeyExtent,TServerInstance> migrations =
       Collections.synchronizedSortedMap(new TreeMap<>());
@@ -942,7 +941,8 @@ public class Master extends AbstractServer
         } catch (Exception ex) {
           log.error("unable to get tablet server status {} {}", server, ex.toString());
           log.debug("unable to get tablet server status {}", server, ex);
-          if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
+          if (badServers.computeIfAbsent(server, k -> new AtomicInteger(0)).incrementAndGet()
+              > MAX_BAD_STATUS_COUNT) {
             log.warn("attempting to stop {}", server);
             try {
               TServerConnection connection2 = tserverSet.getConnection(server);
@@ -1622,12 +1622,13 @@ public class Master extends AbstractServer
     final MasterMonitorInfo result = new MasterMonitorInfo();
 
     result.tServerInfo = new ArrayList<>();
-    result.tableMap = new DefaultMap<>(new TableInfo());
+    result.tableMap = new HashMap<String,TableInfo>();
     for (Entry<TServerInstance,TabletServerStatus> serverEntry : tserverStatus.entrySet()) {
       final TabletServerStatus status = serverEntry.getValue();
       result.tServerInfo.add(status);
       for (Entry<String,TableInfo> entry : status.tableMap.entrySet()) {
-        TableInfoUtil.add(result.tableMap.get(entry.getKey()), entry.getValue());
+        TableInfoUtil.add(result.tableMap.computeIfAbsent(entry.getKey(), k -> new TableInfo()),
+            entry.getValue());
       }
     }
     result.badTServers = new HashMap<>();
