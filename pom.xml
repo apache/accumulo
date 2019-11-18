@@ -939,6 +939,7 @@
               <manifestEntries>
                 <Sealed>true</Sealed>
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
+                <Automatic-Module-Name>org.apache.accumulo</Automatic-Module-Name>
               </manifestEntries>
             </archive>
           </configuration>
