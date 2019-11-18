@@ -176,6 +176,8 @@ public class ZooCache {
               log.error(
                   "ZCacheWatcher::processTableConfigurationItem failed to process a table configuration change");
               updateAllTableConfigurations();
+              tableConfigWatcherSet = false;
+              setWatcherForTableConfigVersion(event);
             }
             break;
           }
