@@ -51,7 +51,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -60,14 +59,12 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
@@ -137,6 +134,7 @@ import org.apache.accumulo.tserver.constraints.ConstraintChecker;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionCanceledException;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionEnv;
 import org.apache.commons.codec.DecoderException;
@@ -508,8 +506,7 @@ public class Tablet {
   }
 
   private LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges,
-      HashSet<Column> columnSet, List<KVEntry> results, long maxResultsSize, long batchTimeOut)
-      throws IOException {
+      List<KVEntry> results, ScanParameters scanParams, long maxResultsSize) throws IOException {
 
     LookupResult lookupResult = new LookupResult();
 
@@ -517,9 +514,11 @@ public class Tablet {
     boolean tabletClosed = false;
 
     Set<ByteSequence> cfset = null;
-    if (columnSet.size() > 0) {
-      cfset = LocalityGroupUtil.families(columnSet);
+    if (scanParams.getColumnSet().size() > 0) {
+      cfset = LocalityGroupUtil.families(scanParams.getColumnSet());
     }
+
+    long batchTimeOut = scanParams.getBatchTimeOut();
 
     long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
     long startNanos = System.nanoTime();
@@ -657,8 +656,10 @@ public class Tablet {
   public void checkConditions(ConditionChecker checker, Authorizations authorizations,
       AtomicBoolean iFlag) throws IOException {
 
-    ScanDataSource dataSource =
-        new ScanDataSource(this, authorizations, this.defaultSecurityLabel.derive(), iFlag);
+    ScanParameters scanParams = new ScanParameters(-1, authorizations, Collections.emptySet(), null,
+        null, false, null, -1, null);
+
+    ScanDataSource dataSource = new ScanDataSource(this, scanParams, false, iFlag);
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
@@ -673,11 +674,8 @@ public class Tablet {
     }
   }
 
-  public LookupResult lookup(List<Range> ranges, HashSet<Column> columns,
-      Authorizations authorizations, List<KVEntry> results, long maxResultSize,
-      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag,
-      SamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext)
-      throws IOException {
+  public LookupResult lookup(List<Range> ranges, List<KVEntry> results, ScanParameters scanParams,
+      long maxResultSize, AtomicBoolean interruptFlag) throws IOException {
 
     if (ranges.size() == 0) {
       return new LookupResult();
@@ -695,15 +693,13 @@ public class Tablet {
       tabletRange.clip(range);
     }
 
-    ScanDataSource dataSource =
-        new ScanDataSource(this, authorizations, this.defaultSecurityLabel.derive(), columns,
-            ssiList, ssio, interruptFlag, samplerConfig, batchTimeOut, classLoaderContext);
+    ScanDataSource dataSource = new ScanDataSource(this, scanParams, true, interruptFlag);
 
     LookupResult result = null;
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
-      result = lookup(iter, ranges, columns, results, maxResultSize, batchTimeOut);
+      result = lookup(iter, ranges, results, scanParams, maxResultSize);
       return result;
     } catch (IOException ioe) {
       dataSource.close(true);
@@ -722,10 +718,12 @@ public class Tablet {
     }
   }
 
-  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, int num, Set<Column> columns,
-      long batchTimeOut, boolean isolated) throws IOException {
+  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams)
+      throws IOException {
 
     // log.info("In nextBatch..");
+
+    long batchTimeOut = scanParams.getBatchTimeOut();
 
     long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
     long startNanos = System.nanoTime();
@@ -748,14 +746,14 @@ public class Tablet {
     YieldCallback<Key> yield = new YieldCallback<>();
 
     // we cannot yield if we are in isolation mode
-    if (!isolated) {
+    if (!scanParams.isIsolated()) {
       iter.enableYielding(yield);
     }
 
-    if (columns.size() == 0) {
+    if (scanParams.getColumnSet().size() == 0) {
       iter.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
     } else {
-      iter.seek(range, LocalityGroupUtil.families(columns), true);
+      iter.seek(range, LocalityGroupUtil.families(scanParams.getColumnSet()), true);
     }
 
     while (iter.hasTop()) {
@@ -773,7 +771,7 @@ public class Tablet {
 
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
 
-      if (resultSize >= maxResultsSize || results.size() >= num || timesUp) {
+      if (resultSize >= maxResultsSize || results.size() >= scanParams.getMaxEntries() || timesUp) {
         continueKey = new Key(key);
         skipContinueKey = true;
         break;
@@ -809,18 +807,13 @@ public class Tablet {
     return new Batch(skipContinueKey, results, continueKey, resultBytes);
   }
 
-  public Scanner createScanner(Range range, int num, Set<Column> columns,
-      Authorizations authorizations, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      boolean isolated, AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig,
-      long batchTimeOut, String classLoaderContext) {
+  public Scanner createScanner(Range range, ScanParameters scanParams,
+      AtomicBoolean interruptFlag) {
     // do a test to see if this range falls within the tablet, if it does not
     // then clip will throw an exception
     extent.toDataRange().clip(range);
 
-    ScanOptions opts =
-        new ScanOptions(num, authorizations, this.defaultSecurityLabel.derive(), columns, ssiList,
-            ssio, interruptFlag, isolated, samplerConfig, batchTimeOut, classLoaderContext);
-    return new Scanner(this, range, opts);
+    return new Scanner(this, range, scanParams, interruptFlag);
   }
 
   DataFileValue minorCompact(InMemoryMap memTable, FileRef tmpDatafile, FileRef newDatafile,
@@ -2751,6 +2744,10 @@ public class Tablet {
 
   public long getAndUpdateTime() {
     return tabletTime.getAndUpdateTime();
+  }
+
+  public byte[] getDefaultSecurityLabels() {
+    return defaultSecurityLabel.derive();
   }
 
   public void flushComplete(long flushId) {

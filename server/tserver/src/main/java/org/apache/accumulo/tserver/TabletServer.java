@@ -241,6 +241,7 @@ import org.apache.accumulo.tserver.replication.ReplicationServicerHandler;
 import org.apache.accumulo.tserver.replication.ReplicationWorker;
 import org.apache.accumulo.tserver.scan.LookupTask;
 import org.apache.accumulo.tserver.scan.NextBatchTask;
+import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.session.ConditionalSession;
 import org.apache.accumulo.tserver.session.MultiScanSession;
@@ -659,13 +660,14 @@ public class TabletServer extends AbstractServer {
         columnSet.add(new Column(tcolumn));
       }
 
-      final SingleScanSession scanSession = new SingleScanSession(credentials, extent, columnSet,
-          ssiList, ssio, new Authorizations(authorizations), readaheadThreshold, batchTimeOut,
-          contextArg, executionHints);
-      scanSession.scanner = tablet.createScanner(new Range(range), batchSize, scanSession.columnSet,
-          scanSession.auths, ssiList, ssio, isolated, scanSession.interruptFlag,
-          SamplerConfigurationImpl.fromThrift(tSamplerConfig), scanSession.batchTimeOut,
-          scanSession.context);
+      ScanParameters scanParams = new ScanParameters(batchSize, new Authorizations(authorizations),
+          columnSet, ssiList, ssio, isolated, SamplerConfigurationImpl.fromThrift(tSamplerConfig),
+          batchTimeOut, contextArg);
+
+      final SingleScanSession scanSession = new SingleScanSession(credentials, extent, scanParams,
+          readaheadThreshold, executionHints);
+      scanSession.scanner =
+          tablet.createScanner(new Range(range), scanParams, scanSession.interruptFlag);
 
       long sid = sessionManager.createSession(scanSession, true);
 
@@ -838,18 +840,26 @@ public class TabletServer extends AbstractServer {
         writeTracker.waitForWrites(TabletType.type(batch.keySet()));
       }
 
-      final MultiScanSession mss = new MultiScanSession(credentials, threadPoolExtent, batch,
-          ssiList, ssio, new Authorizations(authorizations),
-          SamplerConfigurationImpl.fromThrift(tSamplerConfig), batchTimeOut, contextArg,
-          executionHints);
+      Set<Column> columnSet;
+      if (tcolumns.isEmpty()) {
+        columnSet = Collections.emptySet();
+      } else {
+        columnSet = new HashSet<Column>();
+        for (TColumn tcolumn : tcolumns) {
+          columnSet.add(new Column(tcolumn));
+        }
+      }
+
+      ScanParameters scanParams =
+          new ScanParameters(-1, new Authorizations(authorizations), columnSet, ssiList, ssio,
+              false, SamplerConfigurationImpl.fromThrift(tSamplerConfig), batchTimeOut, contextArg);
+
+      final MultiScanSession mss =
+          new MultiScanSession(credentials, threadPoolExtent, batch, scanParams, executionHints);
 
       mss.numTablets = batch.size();
       for (List<Range> ranges : batch.values()) {
         mss.numRanges += ranges.size();
-      }
-
-      for (TColumn tcolumn : tcolumns) {
-        mss.columnSet.add(new Column(tcolumn));
       }
 
       long sid = sessionManager.createSession(mss, true);
