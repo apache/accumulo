@@ -62,6 +62,10 @@ public class ZooUtil {
 
   private static final Logger log = LoggerFactory.getLogger(ZooUtil.class);
 
+  private static String zkRoot = "";
+
+  private static StringBuilder clonedTableConfigs = new StringBuilder();
+
   public enum NodeExistsPolicy {
     SKIP, OVERWRITE, FAIL
   }
@@ -402,6 +406,7 @@ public class ZooUtil {
       String destination, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
     Stat stat = null;
     Matcher tableConfigMatcher;
+    boolean done = false;
 
     if (!exists(info, source))
       throw KeeperException.create(Code.NONODE, source);
@@ -429,9 +434,11 @@ public class ZooUtil {
       // The clone table operation doesn't use TablePropUtil.setTableProperty but we still need to
       // update the table-config-version znode.
       tableConfigMatcher = ZooCache.TABLE_SETTING_CONFIG_PATTERN.matcher(destination);
-      if (tableConfigMatcher.matches())
-        putPersistentData(info, tableConfigMatcher.group(1) + Constants.ZTABLE_CONFIG_VERSION,
-            destination.getBytes(), policy);
+      if (tableConfigMatcher.matches()) {
+        zkRoot = tableConfigMatcher.group(1);
+        clonedTableConfigs.append(destination);
+        clonedTableConfigs.append("|");
+      }
 
       if (stat.getNumChildren() > 0) {
         List<String> children;
@@ -454,8 +461,19 @@ public class ZooUtil {
         for (String child : children) {
           recursiveCopyPersistent(info, source + "/" + child, destination + "/" + child, policy);
         }
+
+        done = true;
       }
+
     }
+
+    if (done && !clonedTableConfigs.toString().isEmpty()) {
+      // update all the tableconfigs at once
+      putPersistentData(info, zkRoot + Constants.ZTABLE_CONFIG_VERSION,
+          clonedTableConfigs.toString().getBytes(), policy);
+      clonedTableConfigs.delete(0, clonedTableConfigs.length());
+    }
+
   }
 
   public static boolean putPrivatePersistentData(ZooKeeperConnectionInfo info, String zPath,
