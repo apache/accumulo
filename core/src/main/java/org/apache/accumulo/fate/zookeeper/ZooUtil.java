@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -400,6 +401,8 @@ public class ZooUtil {
   public static void recursiveCopyPersistent(ZooKeeperConnectionInfo info, String source,
       String destination, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
     Stat stat = null;
+    Matcher tableConfigMatcher;
+
     if (!exists(info, source))
       throw KeeperException.create(Code.NONODE, source);
     if (exists(info, destination)) {
@@ -420,7 +423,16 @@ public class ZooUtil {
     if (stat.getEphemeralOwner() == 0) {
       if (data == null)
         throw KeeperException.create(Code.NONODE, source);
+
       putPersistentData(info, destination, data, policy);
+
+      // The clone table operation doesn't use TablePropUtil.setTableProperty but we still need to
+      // update the table-config-version znode.
+      tableConfigMatcher = ZooCache.TABLE_SETTING_CONFIG_PATTERN.matcher(destination);
+      if (tableConfigMatcher.matches())
+        putPersistentData(info, tableConfigMatcher.group(1) + Constants.ZTABLE_CONFIG_VERSION,
+            destination.getBytes(), policy);
+
       if (stat.getNumChildren() > 0) {
         List<String> children;
         final Retry retry = RETRY_FACTORY.createRetry();

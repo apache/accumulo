@@ -165,7 +165,7 @@ public class ZooCache {
       if (log.isTraceEnabled()) {
         log.trace("{}", event);
       }
-      setWatcherForTableConfigVersion(event);
+      setWatcherForTableConfigVersion(event.getPath());
 
       switch (event.getType()) {
         case NodeDataChanged:
@@ -177,7 +177,7 @@ public class ZooCache {
                   "ZCacheWatcher::processTableConfigurationItem failed to process a table configuration change");
               updateAllTableConfigurations();
               tableConfigWatcherSet = false;
-              setWatcherForTableConfigVersion(event);
+              setWatcherForTableConfigVersion(event.getPath());
             }
             break;
           }
@@ -315,18 +315,18 @@ public class ZooCache {
      * worked when we watched all table configurations and we are just emulating it now using only
      * one watched node for all the configuration items - the "table-config-version node".
      *
-     * @param event
+     * @param zPath
      *          Contains a Zpath which the will be used to extract the accumulo instance id which
      *          will be used to create the Zpath to the table_config_version znode so a initial
      *          watcher can be put on it.
      */
-    private synchronized void setWatcherForTableConfigVersion(WatchedEvent event) {
+    private synchronized void setWatcherForTableConfigVersion(String zPath) {
 
-      if (event.getPath() == null || event.getPath().isEmpty())
+      if (zPath == null || zPath.isEmpty())
         return;
 
       if (!tableConfigWatcherSet) {
-        Matcher znodeMatcher = ZNODE_PATTERN.matcher(event.getPath());
+        Matcher znodeMatcher = ZNODE_PATTERN.matcher(zPath);
         if (znodeMatcher.matches()) {
           String pathPrefix = znodeMatcher.group(1);
           try {

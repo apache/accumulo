@@ -96,7 +96,7 @@ public class TablePropUtil {
    *           If the putPersistant data call this exception may be thrown
    */
 
-  private static void updateTableConfigTrackingZnode(String zPath, ZooReaderWriter zoo)
+  public static void updateTableConfigTrackingZnode(String zPath, ZooReaderWriter zoo)
       throws KeeperException, InterruptedException {
 
     String pathPrefix;
