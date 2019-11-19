@@ -133,7 +133,7 @@ public class SlowOps {
         // populate
         for (int i = 0; i < NUM_DATA_ROWS; i++) {
           Mutation m = new Mutation(new Text(String.format("%05d", i)));
-          m.put(new Text("col" + ((i % 3) + 1)), new Text("qual"), new Value("junk"));
+          m.put("col" + ((i % 3) + 1), "qual", "junk");
           bw.addMutation(m);
         }
       }

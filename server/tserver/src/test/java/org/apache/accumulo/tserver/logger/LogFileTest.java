@@ -91,7 +91,7 @@ public class LogFileTest {
     assertEquals(key.tabletId, 6);
     assertEquals(key.tablet, tablet);
     Mutation m = new ServerMutation(new Text("row"));
-    m.put(new Text("cf"), new Text("cq"), new Value("value"));
+    m.put("cf", "cq", "value");
     readWrite(MUTATION, 7, 8, null, null, new Mutation[] {m}, key, value);
     assertEquals(key.event, MUTATION);
     assertEquals(key.seq, 7);

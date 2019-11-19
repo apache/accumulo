@@ -69,7 +69,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < numRows; i++) {
           Mutation m = new Mutation(new Text(String.format("%09x", i)));
-          m.put(new Text("cf1"), new Text("cq1"), new Value(String.format("%016x", numRows - i)));
+          m.put("cf1", "cq1", String.format("%016x", numRows - i));
           bw.addMutation(m);
         }
       }

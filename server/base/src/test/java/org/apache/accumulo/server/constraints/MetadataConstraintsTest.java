@@ -89,7 +89,7 @@ public class MetadataConstraintsTest {
     assertEquals(Short.valueOf((short) 4), violations.get(0));
 
     m = new Mutation(new Text("0;foo"));
-    m.put(new Text("bad_column_name"), new Text(""), new Value("e"));
+    m.put("bad_column_name", "", "e");
 
     violations = mc.check(createEnv(), m);
 

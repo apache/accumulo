@@ -70,7 +70,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
       for (int i = 0; i < 10; i++) {
         byte[] row = {(byte) (START_ROW + i)};
         Mutation m = new Mutation(new Text(row));
-        m.put(new Text(), new Text(), new Value());
+        m.put("", "", "");
         writer.addMutation(m);
       }
       writer.flush();
@@ -125,7 +125,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
       for (int i = 0; i < 10; i++) {
         byte[] row = {(byte) (START_ROW + i)};
         Mutation m = new Mutation(new Text(row));
-        m.put(new Text(), new Text(), new Value());
+        m.put("", "", "");
         writer.addMutation(m);
       }
       writer.flush();

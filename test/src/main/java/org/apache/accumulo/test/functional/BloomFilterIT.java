@@ -99,7 +99,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         // test inserting an empty key
         try (BatchWriter bw = c.createBatchWriter(tables[3])) {
           Mutation m = new Mutation(new Text(""));
-          m.put(new Text(""), new Text(""), new Value("foo1"));
+          m.put("", "", "foo1");
           bw.addMutation(m);
         }
         c.tableOperations().flush(tables[3], null, null, true);
@@ -246,15 +246,15 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         switch (depth) {
           case 1:
             m = new Mutation(new Text(key));
-            m.put(new Text("cf"), new Text("cq"), new Value("" + i));
+            m.put("cf", "cq", "" + i);
             break;
           case 2:
             m = new Mutation(new Text("row"));
-            m.put(new Text(key), new Text("cq"), new Value("" + i));
+            m.put(key, "cq", "" + i);
             break;
           case 3:
             m = new Mutation(new Text("row"));
-            m.put(new Text("cf"), new Text(key), new Value("" + i));
+            m.put("cf", key, "" + i);
             break;
         }
         bw.addMutation(m);

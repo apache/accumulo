@@ -144,7 +144,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
     try (BatchWriter bw = client.createBatchWriter(table)) {
       for (int i = 0; i < 100; i++) {
         Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i)));
+        m.put("", "", String.format("%09x", i));
         bw.addMutation(m);
       }
     }

@@ -24,7 +24,6 @@ import static org.junit.Assert.assertNull;
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -35,12 +34,12 @@ public class AlphaNumKeyConstraintTest {
   @Test
   public void test() {
     Mutation goodMutation = new Mutation(new Text("Row1"));
-    goodMutation.put(new Text("Colf2"), new Text("ColQ3"), new Value("value"));
+    goodMutation.put("Colf2", "ColQ3", "value");
     assertNull(ankc.check(null, goodMutation));
 
     // Check that violations are in row, cf, cq order
     Mutation badMutation = new Mutation(new Text("Row#1"));
-    badMutation.put(new Text("Colf$2"), new Text("Colq%3"), new Value("value"));
+    badMutation.put("Colf$2", "Colq%3", "value");
     assertEquals(List.of(AlphaNumKeyConstraint.NON_ALPHA_NUM_ROW,
         AlphaNumKeyConstraint.NON_ALPHA_NUM_COLF, AlphaNumKeyConstraint.NON_ALPHA_NUM_COLQ),
         ankc.check(null, badMutation));

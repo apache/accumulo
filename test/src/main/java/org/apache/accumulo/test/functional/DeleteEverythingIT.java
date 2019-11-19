@@ -32,7 +32,6 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -88,7 +87,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       BatchWriter bw = c.createBatchWriter(tableName);
       Mutation m = new Mutation(new Text("foo"));
-      m.put(new Text("bar"), new Text("1910"), new Value("5"));
+      m.put("bar", "1910", "5");
       bw.addMutation(m);
       bw.flush();
 
