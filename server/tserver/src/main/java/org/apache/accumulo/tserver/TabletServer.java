@@ -280,6 +280,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
+import com.google.common.collect.Collections2;
 
 public class TabletServer extends AbstractServer {
 
@@ -840,15 +841,8 @@ public class TabletServer extends AbstractServer {
         writeTracker.waitForWrites(TabletType.type(batch.keySet()));
       }
 
-      Set<Column> columnSet;
-      if (tcolumns.isEmpty()) {
-        columnSet = Collections.emptySet();
-      } else {
-        columnSet = new HashSet<Column>();
-        for (TColumn tcolumn : tcolumns) {
-          columnSet.add(new Column(tcolumn));
-        }
-      }
+      Set<Column> columnSet = tcolumns.isEmpty() ? Collections.emptySet()
+          : new HashSet<Column>(Collections2.transform(tcolumns, Column::new));
 
       ScanParameters scanParams =
           new ScanParameters(-1, new Authorizations(authorizations), columnSet, ssiList, ssio,
