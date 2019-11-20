@@ -61,9 +61,9 @@ public class SimpleScanDispatcher implements ScanDispatcher {
 
   private final Set<String> VALID_OPTS = Set.of("executor", "multi_executor", "single_executor");
 
-  private ScanDirectives singlePrefs;
-  private ScanDirectives multiPrefs;
-  private Map<String,Map<ScanInfo.Type,ScanDirectives>> hintScanTypePrefs;
+  private ScanDirectives singleDirectives;
+  private ScanDirectives multiDirectives;
+  private Map<String,Map<ScanInfo.Type,ScanDirectives>> hintDirectives;
 
   private static Pattern CACHE_PATTERN = Pattern.compile("cacheUsage[.](\\w+)([.](index|data))?");
 
@@ -106,17 +106,17 @@ public class SimpleScanDispatcher implements ScanDispatcher {
       }
     });
 
-    // This method pre-computes all possible scan preferences objects that could ever be needed.
-    // This is done to make the dispatch method more efficient. If the number of config options
-    // grows, this approach may have to abandoned. For now its tractable.
+    // This method pre-computes all possible scan directives objects that could ever be needed.
+    // This is done to make the dispatch method more efficient. If the number of config permutations
+    // grows, this approach may have to be abandoned. For now its tractable.
 
-    ScanDirectives basePrefs = Optional.ofNullable(options.get("executor"))
+    ScanDirectives baseDirectives = Optional.ofNullable(options.get("executor"))
         .map(name -> ScanDirectives.builder().setExecutorName(name).build())
         .orElse(DefaultScanDirectives.DEFAULT_SCAN_DIRECTIVES);
-    singlePrefs = Optional.ofNullable(options.get("single_executor"))
-        .map(name -> ScanDirectives.builder().setExecutorName(name).build()).orElse(basePrefs);
-    multiPrefs = Optional.ofNullable(options.get("multi_executor"))
-        .map(name -> ScanDirectives.builder().setExecutorName(name).build()).orElse(basePrefs);
+    singleDirectives = Optional.ofNullable(options.get("single_executor"))
+        .map(name -> ScanDirectives.builder().setExecutorName(name).build()).orElse(baseDirectives);
+    multiDirectives = Optional.ofNullable(options.get("multi_executor"))
+        .map(name -> ScanDirectives.builder().setExecutorName(name).build()).orElse(baseDirectives);
 
     var stpb = ImmutableMap.<String,Map<ScanInfo.Type,ScanDirectives>>builder();
 
@@ -124,40 +124,42 @@ public class SimpleScanDispatcher implements ScanDispatcher {
       EnumMap<ScanInfo.Type,ScanDirectives> precomupted = new EnumMap<>(ScanInfo.Type.class);
 
       precomupted.put(ScanInfo.Type.SINGLE, ScanDirectives.builder()
-          .setExecutorName(scanExecutors.getOrDefault(hintScanType, singlePrefs.getExecutorName()))
+          .setExecutorName(
+              scanExecutors.getOrDefault(hintScanType, singleDirectives.getExecutorName()))
           .setIndexCacheUsage(indexCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE))
           .setDataCacheUsage(dataCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE)).build());
 
       precomupted.put(ScanInfo.Type.MULTI, ScanDirectives.builder()
-          .setExecutorName(scanExecutors.getOrDefault(hintScanType, multiPrefs.getExecutorName()))
+          .setExecutorName(
+              scanExecutors.getOrDefault(hintScanType, multiDirectives.getExecutorName()))
           .setIndexCacheUsage(indexCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE))
           .setDataCacheUsage(dataCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE)).build());
 
       stpb.put(hintScanType, precomupted);
     }
 
-    hintScanTypePrefs = stpb.build();
+    hintDirectives = stpb.build();
   }
 
   @Override
   public ScanDirectives dispatch(DispatchParameters params) {
     ScanInfo scanInfo = params.getScanInfo();
 
-    if (!hintScanTypePrefs.isEmpty()) {
+    if (!hintDirectives.isEmpty()) {
       String hintScanType = scanInfo.getExecutionHints().get("scan_type");
       if (hintScanType != null) {
-        var precomputedPrefs = hintScanTypePrefs.get(hintScanType);
-        if (precomputedPrefs != null) {
-          return precomputedPrefs.get(scanInfo.getScanType());
+        var precomputedDirectives = hintDirectives.get(hintScanType);
+        if (precomputedDirectives != null) {
+          return precomputedDirectives.get(scanInfo.getScanType());
         }
       }
     }
 
     switch (scanInfo.getScanType()) {
       case MULTI:
-        return multiPrefs;
+        return multiDirectives;
       case SINGLE:
-        return singlePrefs;
+        return singleDirectives;
       default:
         throw new IllegalArgumentException("Unexpected scan type " + scanInfo.getScanType());
     }
