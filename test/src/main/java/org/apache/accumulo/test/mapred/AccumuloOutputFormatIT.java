@@ -102,7 +102,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
         for (int i = 0; i < 3; i++) {
           Mutation m = new Mutation(new Text(String.format("%08d", i)));
           for (int j = 0; j < 3; j++) {
-            m.put(new Text("cf1"), new Text("cq" + j), new Value(i + "_" + j));
+            m.put("cf1", "cq" + j, i + "_" + j);
           }
           writer.write(new Text(testName.getMethodName()), m);
         }
@@ -228,7 +228,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       try (BatchWriter bw = c.createBatchWriter(table1)) {
         for (int i = 0; i < 100; i++) {
           Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-          m.put(new Text(), new Text(), new Value(String.format("%09x", i)));
+          m.put("", "", String.format("%09x", i));
           bw.addMutation(m);
         }
       }

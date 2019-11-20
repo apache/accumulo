@@ -615,7 +615,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
       // put in some initial data
       try (BatchWriter writer = c.createBatchWriter(tableName)) {
         Mutation m = new Mutation(new Text("row"));
-        m.put(new Text("cf"), new Text("cq"), new Value("val"));
+        m.put("cf", "cq", "val");
         writer.addMutation(m);
       }
 
@@ -651,7 +651,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         try {
           try (BatchWriter bw = test_user_client.createBatchWriter(tableName)) {
             m = new Mutation(new Text("row"));
-            m.put(new Text("a"), new Text("b"), new Value("c"));
+            m.put("a", "b", "c");
             bw.addMutation(m);
           } catch (MutationsRejectedException e1) {
             if (e1.getSecurityErrorCodes().size() > 0)
@@ -730,7 +730,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
       case WRITE:
         try (BatchWriter bw = test_user_client.createBatchWriter(tableName)) {
           Mutation m = new Mutation(new Text("row"));
-          m.put(new Text("a"), new Text("b"), new Value("c"));
+          m.put("a", "b", "c");
           bw.addMutation(m);
         }
         break;

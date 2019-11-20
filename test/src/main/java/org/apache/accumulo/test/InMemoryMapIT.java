@@ -51,7 +51,6 @@ import org.apache.accumulo.test.functional.NativeMapIT;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MemKey;
 import org.apache.accumulo.tserver.NativeMap;
-import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -114,7 +113,7 @@ public class InMemoryMapIT {
   @Test
   public void testOneMutationOneKey() {
     Mutation m = new Mutation("a");
-    m.put(new Text("1cf"), new Text("1cq"), new Value("vala"));
+    m.put("1cf", "1cq", "vala");
 
     assertEquivalentMutate(m);
   }
@@ -123,7 +122,7 @@ public class InMemoryMapIT {
   public void testOneMutationManyKeys() {
     Mutation m = new Mutation("a");
     for (int i = 1; i < 6; i++) {
-      m.put(new Text("2cf" + i), new Text("2cq" + i), new Value(Integer.toString(i)));
+      m.put("2cf" + i, "2cq" + i, Integer.toString(i));
     }
 
     assertEquivalentMutate(m);
@@ -134,7 +133,7 @@ public class InMemoryMapIT {
     Mutation m = new Mutation("a");
     for (int i = 1; i <= 5; i++) {
       // same keys
-      m.put(new Text("3cf"), new Text("3cq"), new Value(Integer.toString(i)));
+      m.put("3cf", "3cq", Integer.toString(i));
     }
 
     assertEquivalentMutate(m);
@@ -143,9 +142,9 @@ public class InMemoryMapIT {
   @Test
   public void testMultipleMutationsOneKey() {
     Mutation m1 = new Mutation("a");
-    m1.put(new Text("4cf"), new Text("4cq"), new Value("vala"));
+    m1.put("4cf", "4cq", "vala");
     Mutation m2 = new Mutation("b");
-    m2.put(new Text("4cf"), new Text("4cq"), new Value("vala"));
+    m2.put("4cf", "4cq", "vala");
 
     assertEquivalentMutate(Arrays.asList(m1, m2));
   }
@@ -153,9 +152,9 @@ public class InMemoryMapIT {
   @Test
   public void testMultipleMutationsSameOneKey() {
     Mutation m1 = new Mutation("a");
-    m1.put(new Text("5cf"), new Text("5cq"), new Value("vala"));
+    m1.put("5cf", "5cq", "vala");
     Mutation m2 = new Mutation("a");
-    m2.put(new Text("5cf"), new Text("5cq"), new Value("vala"));
+    m2.put("5cf", "5cq", "vala");
 
     assertEquivalentMutate(Arrays.asList(m1, m2));
   }
@@ -164,11 +163,11 @@ public class InMemoryMapIT {
   public void testMutlipleMutationsMultipleKeys() {
     Mutation m1 = new Mutation("a");
     for (int i = 1; i < 6; i++) {
-      m1.put(new Text("6cf" + i), new Text("6cq" + i), new Value(Integer.toString(i)));
+      m1.put("6cf" + i, "6cq" + i, Integer.toString(i));
     }
     Mutation m2 = new Mutation("b");
     for (int i = 1; i < 3; i++) {
-      m2.put(new Text("6cf" + i), new Text("6cq" + i), new Value(Integer.toString(i)));
+      m2.put("6cf" + i, "6cq" + i, Integer.toString(i));
     }
 
     assertEquivalentMutate(Arrays.asList(m1, m2));
@@ -178,11 +177,11 @@ public class InMemoryMapIT {
   public void testMultipleMutationsMultipleSameKeys() {
     Mutation m1 = new Mutation("a");
     for (int i = 1; i < 3; i++) {
-      m1.put(new Text("7cf"), new Text("7cq"), new Value(Integer.toString(i)));
+      m1.put("7cf", "7cq", Integer.toString(i));
     }
     Mutation m2 = new Mutation("a");
     for (int i = 1; i < 4; i++) {
-      m2.put(new Text("7cf"), new Text("7cq"), new Value(Integer.toString(i)));
+      m2.put("7cf", "7cq", Integer.toString(i));
     }
 
     assertEquivalentMutate(Arrays.asList(m1, m2));
@@ -192,24 +191,24 @@ public class InMemoryMapIT {
   public void testMultipleMutationsMultipleKeysSomeSame() {
     Mutation m1 = new Mutation("a");
     for (int i = 1; i < 2; i++) {
-      m1.put(new Text("8cf"), new Text("8cq"), new Value(Integer.toString(i)));
+      m1.put("8cf", "8cq", Integer.toString(i));
     }
     for (int i = 1; i < 3; i++) {
-      m1.put(new Text("8cf" + i), new Text("8cq" + i), new Value(Integer.toString(i)));
+      m1.put("8cf" + i, "8cq" + i, Integer.toString(i));
     }
     for (int i = 1; i < 2; i++) {
-      m1.put(new Text("8cf" + i), new Text("8cq" + i), new Value(Integer.toString(i)));
+      m1.put("8cf" + i, "8cq" + i, Integer.toString(i));
     }
     Mutation m2 = new Mutation("a");
     for (int i = 1; i < 3; i++) {
-      m2.put(new Text("8cf"), new Text("8cq"), new Value(Integer.toString(i)));
+      m2.put("8cf", "8cq", Integer.toString(i));
     }
     for (int i = 1; i < 4; i++) {
-      m2.put(new Text("8cf" + i), new Text("8cq" + i), new Value(Integer.toString(i)));
+      m2.put("8cf" + i, "8cq" + i, Integer.toString(i));
     }
     Mutation m3 = new Mutation("b");
     for (int i = 1; i < 3; i++) {
-      m3.put(new Text("8cf" + i), new Text("8cq" + i), new Value(Integer.toString(i)));
+      m3.put("8cf" + i, "8cq" + i, Integer.toString(i));
     }
 
     assertEquivalentMutate(Arrays.asList(m1, m2, m3));

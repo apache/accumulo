@@ -228,7 +228,7 @@ public class TabletLocatorImplTest {
       String[] cvp = element.split("=");
       String[] cols = cvp[0].split(":");
 
-      mut.put(new Text(cols[0]), new Text(cols[1]), new Value(cvp[1]));
+      mut.put(cols[0], cols[1], cvp[1]);
     }
 
     return mut;

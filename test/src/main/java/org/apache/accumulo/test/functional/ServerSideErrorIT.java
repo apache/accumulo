@@ -59,7 +59,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         Mutation m = new Mutation(new Text("r1"));
-        m.put(new Text("acf"), new Text("foo"), new Value(new byte[] {'1'}));
+        m.put("acf", "foo", new Value(new byte[] {'1'}));
         bw.addMutation(m);
       }
 

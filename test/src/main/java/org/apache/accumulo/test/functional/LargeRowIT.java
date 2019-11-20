@@ -170,7 +170,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
         r.nextBytes(rowData);
         TestIngest.toPrintableChars(rowData);
         Mutation mut = new Mutation(new Text(rowData));
-        mut.put(new Text(""), new Text(""), new Value(Integer.toString(i)));
+        mut.put("", "", Integer.toString(i));
         bw.addMutation(mut);
       }
     }

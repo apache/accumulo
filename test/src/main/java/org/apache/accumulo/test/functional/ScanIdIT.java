@@ -372,7 +372,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
         Text rowId = new Text(String.format("%d", ((random.nextInt(10) * 100) + i)));
 
         Mutation m = new Mutation(rowId);
-        m.put(new Text("fam1"), new Text("count"), new Value(Integer.toString(i)));
+        m.put("fam1", "count", Integer.toString(i));
         m.put(new Text("fam1"), new Text("positive"), vis,
             new Value(Integer.toString(NUM_DATA_ROWS - i)));
         m.put(new Text("fam1"), new Text("negative"), vis,

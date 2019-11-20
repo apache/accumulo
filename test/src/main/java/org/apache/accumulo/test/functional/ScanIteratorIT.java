@@ -114,8 +114,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 1000; i++) {
           Mutation m = new Mutation(new Text(String.format("%06d", i)));
-          m.put(new Text("cf1"), new Text("cq1"), new Value(Integer.toString(1000 - i)));
-          m.put(new Text("cf1"), new Text("cq2"), new Value(Integer.toString(i - 1000)));
+          m.put("cf1", "cq1", Integer.toString(1000 - i));
+          m.put("cf1", "cq2", Integer.toString(i - 1000));
           bw.addMutation(m);
         }
       }
@@ -241,7 +241,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
       throws TableNotFoundException, MutationsRejectedException {
     try (BatchWriter batchWriter = userC.createBatchWriter(tableName)) {
       Mutation m = new Mutation("1");
-      m.put(new Text("2"), new Text("3"), new Value(""));
+      m.put("2", "3", "");
       batchWriter.addMutation(m);
       batchWriter.flush();
     }

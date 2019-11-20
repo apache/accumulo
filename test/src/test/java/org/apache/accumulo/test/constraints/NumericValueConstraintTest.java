@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -35,13 +34,13 @@ public class NumericValueConstraintTest {
   @Test
   public void testCheck() {
     Mutation goodMutation = new Mutation(new Text("r"));
-    goodMutation.put(new Text("cf"), new Text("cq"), new Value("1234"));
+    goodMutation.put("cf", "cq", "1234");
     assertNull(nvc.check(null, goodMutation));
 
     // Check that multiple bad mutations result in one violation only
     Mutation badMutation = new Mutation(new Text("r"));
-    badMutation.put(new Text("cf"), new Text("cq"), new Value("foo1234"));
-    badMutation.put(new Text("cf2"), new Text("cq2"), new Value("foo1234"));
+    badMutation.put("cf", "cq", "foo1234");
+    badMutation.put("cf2", "cq2", "foo1234");
     assertEquals(NumericValueConstraint.NON_NUMERIC_VALUE,
         Iterables.getOnlyElement(nvc.check(null, badMutation)).shortValue());
   }

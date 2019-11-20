@@ -64,7 +64,7 @@ public class BadLocalityGroupMincIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         Mutation m = new Mutation(new Text("r1"));
-        m.put(new Text("acf"), new Text(tableName), new Value("1"));
+        m.put("acf", tableName, "1");
         bw.addMutation(m);
       }
 

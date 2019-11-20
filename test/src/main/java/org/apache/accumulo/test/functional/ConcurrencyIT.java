@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -112,7 +111,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     BatchWriter bw = c.createBatchWriter(tableName);
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value("foo"));
+      m.put("cf1", "cq1", "foo");
       bw.addMutation(m);
     }
     bw.flush();
@@ -128,7 +127,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
 
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value("foo"));
+      m.put("cf1", "cq1", "foo");
       bw.addMutation(m);
     }
 
