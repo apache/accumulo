@@ -115,9 +115,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           if (isCancelled())
             interruptFlag.set(true);
 
-          lookupResult = tablet.lookup(entry.getValue(), session.columnSet, session.auths, results,
-              maxResultsSize - bytesAdded, session.ssiList, session.ssio, interruptFlag,
-              session.samplerConfig, session.batchTimeOut, session.context);
+          lookupResult = tablet.lookup(entry.getValue(), results, session.scanParams,
+              maxResultsSize - bytesAdded, interruptFlag);
 
           // if the tablet was closed it it possible that the
           // interrupt flag was set.... do not want it set for

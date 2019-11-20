@@ -18,17 +18,13 @@
  */
 package org.apache.accumulo.tserver.session;
 
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Scanner;
@@ -41,18 +37,12 @@ public class SingleScanSession extends ScanSession {
   public volatile ScanTask<ScanBatch> nextBatchTask;
   public Scanner scanner;
   public final long readaheadThreshold;
-  public final long batchTimeOut;
-  public final String context;
 
-  public SingleScanSession(TCredentials credentials, KeyExtent extent, HashSet<Column> columnSet,
-      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, Authorizations authorizations,
-      long readaheadThreshold, long batchTimeOut, String context,
-      Map<String,String> executionHints) {
-    super(credentials, columnSet, ssiList, ssio, authorizations, executionHints);
+  public SingleScanSession(TCredentials credentials, KeyExtent extent, ScanParameters scanParams,
+      long readaheadThreshold, Map<String,String> executionHints) {
+    super(credentials, scanParams, executionHints);
     this.extent = extent;
     this.readaheadThreshold = readaheadThreshold;
-    this.batchTimeOut = batchTimeOut;
-    this.context = context;
   }
 
   @Override
