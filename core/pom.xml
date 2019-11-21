@@ -29,6 +29,9 @@
   <artifactId>accumulo-core</artifactId>
   <name>Apache Accumulo Core</name>
   <description>Apache Accumulo core libraries.</description>
+  <properties>
+    <accumulo.module.name>org.apache.accumulo.core</accumulo.module.name>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

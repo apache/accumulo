@@ -30,6 +30,9 @@
   <artifactId>accumulo-server-base</artifactId>
   <name>Apache Accumulo Server Base</name>
   <description>A common base library for Apache Accumulo servers.</description>
+  <properties>
+    <accumulo.module.name>org.apache.accumulo.server.base</accumulo.module.name>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

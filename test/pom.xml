@@ -30,6 +30,7 @@
   <name>Apache Accumulo Testing</name>
   <description>Tests for Apache Accumulo.</description>
   <properties>
+    <accumulo.module.name>org.apache.accumulo</accumulo.module.name>
     <timeout.factor>1</timeout.factor>
   </properties>
   <dependencies>

@@ -112,6 +112,7 @@
     <url>https://travis-ci.org/apache/accumulo</url>
   </ciManagement>
   <properties>
+    <accumulo.module.name>org.apache.accumulo</accumulo.module.name>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
@@ -939,7 +940,7 @@
               <manifestEntries>
                 <Sealed>true</Sealed>
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
-                <Automatic-Module-Name>org.apache.accumulo</Automatic-Module-Name>
+                <Automatic-Module-Name>${accumulo.module.name}</Automatic-Module-Name>
               </manifestEntries>
             </archive>
           </configuration>
