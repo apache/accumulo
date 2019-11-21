@@ -158,6 +158,20 @@ public class ZooCache {
       switch (event.getType()) {
         case NodeDataChanged:
         case NodeChildrenChanged:
+          if (event.getPath().endsWith("conf")
+              && event.getType().equals(Event.EventType.NodeChildrenChanged)) {
+            try {
+              clear(event.getPath());
+              getZooKeeper().exists(event.getPath(), watcher);
+              if (log.isTraceEnabled()) {
+                log.trace("NodeChildrenChanged: resetting watcher for " + event.getPath());
+                if (externalWatcher != null)
+                  log.trace("external watcher with process this zpath also " + event.getPath());
+              }
+            } catch (KeeperException | InterruptedException e) {
+              log.error("could not reset watcher on parent node: " + event.getPath());
+            }
+          }
         case NodeCreated:
         case NodeDeleted:
           remove(event.getPath());
