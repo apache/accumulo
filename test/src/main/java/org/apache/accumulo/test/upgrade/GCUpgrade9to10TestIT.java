@@ -20,8 +20,13 @@ package org.apache.accumulo.test.upgrade;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -32,7 +37,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -44,19 +48,17 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.master.upgrade.Upgrader9to10;
-import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.junit.Test;
-
-import com.google.common.collect.Iterators;
 
 public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
@@ -72,14 +74,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.INSTANCE_SECRET, OUR_SECRET);
-    cfg.setDefaultMemory(64, MemoryUnit.MEGABYTE);
-    cfg.setMemory(ServerType.MASTER, 16, MemoryUnit.MEGABYTE);
-    cfg.setMemory(ServerType.ZOOKEEPER, 32, MemoryUnit.MEGABYTE);
-    cfg.setProperty(Property.GC_CYCLE_START, "1");
-    cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
-    cfg.setProperty(Property.GC_PORT, "0");
-    cfg.setProperty(Property.TSERV_MAXMEM, "5K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
+    cfg.setProperty(Property.GC_CYCLE_START, "1000"); // gc will be killed before it is run
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -118,38 +113,70 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
   }
 
   /**
-   * This is really hard to make happen - the minicluster can only use so little memory to start up.
-   * The {@link org.apache.accumulo.master.upgrade.Upgrader9to10} CANDIDATE_MEMORY_PERCENTAGE can be
-   * adjusted.
+   * Ensure that the size of the candidates exceeds the {@link Upgrader9to10}'s CANDIDATE_BATCH_SIZE
+   * and will clean up candidates in multiple batches, without running out of memory.
    */
   @Test
   public void gcUpgradeOutofMemoryTest() throws Exception {
     killMacGc(); // we do not want anything deleted
 
-    int somebignumber = 100000;
-    String longpathname = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
-        + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"
-        + "kkkkkkkkkkkkkkkkkklllllllllllllllllllllmmmmmmmmmmmmmmmmmnnnnnnnnnnnnnnnn";
-    longpathname += longpathname; // make it even longer
+    int numberOfEntries = 100_000;
+    String longpathname = StringUtils.repeat("abcde", 100);
+    assertEquals(500, longpathname.length());
+
+    // dynamically get the batch size from the other class
+    Field CANDIDATE_BATCH_SIZE_field = Upgrader9to10.class.getDeclaredField("CANDIDATE_BATCH_SIZE");
+    CANDIDATE_BATCH_SIZE_field.setAccessible(true);
+    long CANDIDATE_BATCH_SIZE = CANDIDATE_BATCH_SIZE_field.getLong(null);
+    // sanity check to ensure that any batch size assumptions are still valid in this test
+    assertEquals(4_000_000, CANDIDATE_BATCH_SIZE);
+
+    // ensure test quality by making sure we have enough candidates to
+    // exceed the batch size at least ten times
+    long numBatches = numberOfEntries * longpathname.length() / CANDIDATE_BATCH_SIZE;
+    assertTrue("Expected numBatches between 10 and 15, but was " + numBatches,
+        numBatches > 10 && numBatches < 15);
+
     Ample.DataLevel level = Ample.DataLevel.USER;
 
     log.info("Filling metadata table with lots of bogus delete flags");
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      addEntries(c, level.metaTable(), somebignumber, longpathname);
+      Map<String,String> expected = addEntries(c, level.metaTable(), numberOfEntries, longpathname);
+      assertEquals(numberOfEntries + numberOfEntries / 10, expected.size());
+
+      Range range = MetadataSchema.DeletesSection.getRange();
 
       sleepUninterruptibly(1, TimeUnit.SECONDS);
+      try (Scanner scanner = c.createScanner(level.metaTable(), Authorizations.EMPTY)) {
+        Map<String,String> actualOldStyle = new HashMap<>();
+        scanner.setRange(range);
+        scanner.forEach(entry -> {
+          String strKey = entry.getKey().getRow().toString();
+          assertFalse(expected.containsKey(strKey));
+          String strValue = entry.getValue().toString();
+          actualOldStyle.put(strKey, strValue);
+        });
+        assertEquals(expected.size(), actualOldStyle.size());
+        assertNotEquals(expected, actualOldStyle);
+      }
+
       upgrader.upgradeFileDeletes(getServerContext(), level);
 
       sleepUninterruptibly(1, TimeUnit.SECONDS);
-      Range range = MetadataSchema.DeletesSection.getRange();
-      Scanner scanner;
-      try {
-        scanner = c.createScanner(level.metaTable(), Authorizations.EMPTY);
-      } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
+      try (Scanner scanner = c.createScanner(level.metaTable(), Authorizations.EMPTY)) {
+        Map<String,String> actualNewStyle = new HashMap<>();
+        scanner.setRange(range);
+        scanner.forEach(entry -> {
+          String strKey = entry.getKey().getRow().toString();
+          String expectedValue = expected.get(strKey);
+          assertNotNull(expectedValue);
+          String strValue = entry.getValue().toString();
+          assertEquals(expectedValue, strValue);
+          actualNewStyle.put(strKey, strValue);
+        });
+        assertEquals(expected.size(), actualNewStyle.size());
+        assertEquals(expected, actualNewStyle);
       }
-      scanner.setRange(range);
-      assertEquals(somebignumber + somebignumber / 10, Iterators.size(scanner.iterator()));
     }
   }
 
@@ -160,41 +187,32 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
 
       Map<String,String> expected = addEntries(c, level.metaTable(), count, "somefile");
-      Map<String,String> actual = new HashMap<>();
 
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       upgrader.upgradeFileDeletes(getServerContext(), level);
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       Range range = MetadataSchema.DeletesSection.getRange();
 
-      Scanner scanner;
-      try {
-        scanner = c.createScanner(level.metaTable(), Authorizations.EMPTY);
-      } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
+      try (Scanner scanner = c.createScanner(level.metaTable(), Authorizations.EMPTY)) {
+        Map<String,String> actual = new HashMap<>();
+        scanner.setRange(range);
+        scanner.forEach(entry -> {
+          actual.put(entry.getKey().getRow().toString(), entry.getValue().toString());
+        });
+        assertEquals(expected, actual);
       }
-      scanner.setRange(range);
-      scanner.iterator().forEachRemaining(entry -> {
-        actual.put(entry.getKey().getRow().toString(), entry.getValue().toString());
-      });
-
-      assertEquals(expected, actual);
 
       // ENSURE IDEMPOTENCE - run upgrade again to ensure nothing is changed because there is
       // nothing to change
       upgrader.upgradeFileDeletes(getServerContext(), level);
-      try {
-        scanner = c.createScanner(level.metaTable(), Authorizations.EMPTY);
-      } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
+      try (Scanner scanner = c.createScanner(level.metaTable(), Authorizations.EMPTY)) {
+        Map<String,String> actual = new HashMap<>();
+        scanner.setRange(range);
+        scanner.forEach(entry -> {
+          actual.put(entry.getKey().getRow().toString(), entry.getValue().toString());
+        });
+        assertEquals(expected, actual);
       }
-      scanner.setRange(range);
-      actual.clear();
-      scanner.iterator().forEachRemaining(entry -> {
-        actual.put(entry.getKey().getRow().toString(), entry.getValue().toString());
-      });
-
-      assertEquals(expected, actual);
     }
   }
 
