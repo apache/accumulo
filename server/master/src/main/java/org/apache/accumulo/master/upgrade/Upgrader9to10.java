@@ -100,7 +100,8 @@ public class Upgrader9to10 implements Upgrader {
   public static final Value UPGRADED = MetadataSchema.DeletesSection.SkewedKeyValue.NAME;
   public static final String OLD_DELETE_PREFIX = "~del";
 
-  private static final long CANDIDATE_BATCH_SIZE = 4_000_000;
+  // effectively an 8MB batch size, since this number is the number of Chars
+  public static final long CANDIDATE_BATCH_SIZE = 4_000_000;
 
   @Override
   public void upgradeZookeeper(ServerContext ctx) {

@@ -20,13 +20,11 @@ package org.apache.accumulo.test.upgrade;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -124,16 +122,12 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
     String longpathname = StringUtils.repeat("abcde", 100);
     assertEquals(500, longpathname.length());
 
-    // dynamically get the batch size from the other class
-    Field CANDIDATE_BATCH_SIZE_field = Upgrader9to10.class.getDeclaredField("CANDIDATE_BATCH_SIZE");
-    CANDIDATE_BATCH_SIZE_field.setAccessible(true);
-    long CANDIDATE_BATCH_SIZE = CANDIDATE_BATCH_SIZE_field.getLong(null);
     // sanity check to ensure that any batch size assumptions are still valid in this test
-    assertEquals(4_000_000, CANDIDATE_BATCH_SIZE);
+    assertEquals(4_000_000, Upgrader9to10.CANDIDATE_BATCH_SIZE);
 
     // ensure test quality by making sure we have enough candidates to
     // exceed the batch size at least ten times
-    long numBatches = numberOfEntries * longpathname.length() / CANDIDATE_BATCH_SIZE;
+    long numBatches = numberOfEntries * longpathname.length() / Upgrader9to10.CANDIDATE_BATCH_SIZE;
     assertTrue("Expected numBatches between 10 and 15, but was " + numBatches,
         numBatches > 10 && numBatches < 15);
 
@@ -152,12 +146,11 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
         scanner.setRange(range);
         scanner.forEach(entry -> {
           String strKey = entry.getKey().getRow().toString();
-          assertFalse(expected.containsKey(strKey));
           String strValue = entry.getValue().toString();
           actualOldStyle.put(strKey, strValue);
         });
         assertEquals(expected.size(), actualOldStyle.size());
-        assertNotEquals(expected, actualOldStyle);
+        assertTrue(Collections.disjoint(expected.keySet(), actualOldStyle.keySet()));
       }
 
       upgrader.upgradeFileDeletes(getServerContext(), level);
