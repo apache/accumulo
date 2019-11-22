@@ -20,7 +20,6 @@ package org.apache.accumulo.master;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
@@ -46,8 +45,7 @@ public class MasterTime extends TimerTask {
   private final Timer timer;
 
   /**
-   * Difference between time stored in ZooKeeper and System.nanoTime() when we last read from
-   * ZooKeeper.
+   * Difference between time stored in ZooKeeper and when we last read from ZooKeeper.
    */
   private final AtomicLong skewAmount;
 
@@ -59,7 +57,7 @@ public class MasterTime extends TimerTask {
     try {
       zk.putPersistentData(zPath, "0".getBytes(UTF_8), NodeExistsPolicy.SKIP);
       skewAmount = new AtomicLong(
-          Long.parseLong(new String(zk.getData(zPath, null), UTF_8)) - System.nanoTime());
+          Long.parseLong(new String(zk.getData(zPath, null), UTF_8)) - System.currentTimeMillis());
     } catch (Exception ex) {
       throw new IOException("Error updating master time", ex);
     }
@@ -74,7 +72,7 @@ public class MasterTime extends TimerTask {
    * @return Approximate total duration this cluster has had a Master, in milliseconds.
    */
   public long getTime() {
-    return MILLISECONDS.convert(System.nanoTime() + skewAmount.get(), NANOSECONDS);
+    return System.currentTimeMillis() + skewAmount.get();
   }
 
   /** Shut down the time keeping. */
@@ -92,7 +90,7 @@ public class MasterTime extends TimerTask {
       case STOP:
         try {
           long zkTime = Long.parseLong(new String(zk.getData(zPath, null), UTF_8));
-          skewAmount.set(zkTime - System.nanoTime());
+          skewAmount.set(zkTime - System.currentTimeMillis());
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
             log.debug("Failed to retrieve master tick time", ex);
@@ -107,7 +105,7 @@ public class MasterTime extends TimerTask {
       case UNLOAD_ROOT_TABLET:
         try {
           zk.putPersistentData(zPath,
-              Long.toString(System.nanoTime() + skewAmount.get()).getBytes(UTF_8),
+              Long.toString(System.currentTimeMillis() + skewAmount.get()).getBytes(UTF_8),
               NodeExistsPolicy.OVERWRITE);
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
