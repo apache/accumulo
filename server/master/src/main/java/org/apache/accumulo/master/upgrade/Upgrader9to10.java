@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET_GC_CANDIDATES;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
 import java.io.IOException;
@@ -34,7 +33,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
@@ -102,11 +100,8 @@ public class Upgrader9to10 implements Upgrader {
   public static final Value UPGRADED = MetadataSchema.DeletesSection.SkewedKeyValue.NAME;
   public static final String OLD_DELETE_PREFIX = "~del";
 
-  /**
-   * This percentage was taken from the SimpleGarbageCollector and if nothing else is going on
-   * during upgrade then it could be larger.
-   */
-  static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
+  // effectively an 8MB batch size, since this number is the number of Chars
+  public static final long CANDIDATE_BATCH_SIZE = 4_000_000;
 
   @Override
   public void upgradeZookeeper(ServerContext ctx) {
@@ -405,11 +400,8 @@ public class Upgrader9to10 implements Upgrader {
     try (BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig())) {
       log.info("looking for candidates in table {}", tableName);
       Iterator<String> oldCandidates = getOldCandidates(ctx, tableName);
-      int t = 0; // no waiting first time through
       while (oldCandidates.hasNext()) {
-        // give it some time for memory to clean itself up if needed
-        sleepUninterruptibly(t, TimeUnit.SECONDS);
-        List<String> deletes = readCandidatesThatFitInMemory(oldCandidates);
+        List<String> deletes = readCandidatesInBatch(oldCandidates);
         log.info("found {} deletes to upgrade", deletes.size());
         for (String olddelete : deletes) {
           // create new formatted delete
@@ -428,7 +420,6 @@ public class Upgrader9to10 implements Upgrader {
           writer.addMutation(deleteOldDeleteMutation(olddelete));
         }
         writer.flush();
-        t = 3;
       }
     } catch (TableNotFoundException | MutationsRejectedException e) {
       throw new RuntimeException(e);
@@ -466,14 +457,18 @@ public class Upgrader9to10 implements Upgrader {
         .iterator();
   }
 
-  private List<String> readCandidatesThatFitInMemory(Iterator<String> candidates) {
+  private List<String> readCandidatesInBatch(Iterator<String> candidates) {
+    long candidateLength = 0;
     List<String> result = new ArrayList<>();
-    // Always read at least one. If memory doesn't clean up fast enough at least
-    // some progress is made.
     while (candidates.hasNext()) {
-      result.add(candidates.next());
-      if (almostOutOfMemory(Runtime.getRuntime()))
+      String candidate = candidates.next();
+      candidateLength += candidate.length();
+      result.add(candidate);
+      if (candidateLength > CANDIDATE_BATCH_SIZE) {
+        log.trace("List of delete candidates has exceeded the batch size"
+            + " threshold. Attempting to delete what has been gathered so far.");
         break;
+      }
     }
     return result;
   }
@@ -482,16 +477,6 @@ public class Upgrader9to10 implements Upgrader {
     Mutation m = new Mutation(OLD_DELETE_PREFIX + delete);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
     return m;
-  }
-
-  private boolean almostOutOfMemory(Runtime runtime) {
-    if (runtime.totalMemory() - runtime.freeMemory()
-        > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory()) {
-      log.info("List of delete candidates has exceeded the memory"
-          + " threshold. Attempting to delete what has been gathered so far.");
-      return true;
-    } else
-      return false;
   }
 
   public void upgradeDirColumns(ServerContext ctx, Ample.DataLevel level) {
