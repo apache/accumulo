@@ -156,10 +156,8 @@ public class ZooCache {
       }
 
       switch (event.getType()) {
-        case NodeDataChanged:
         case NodeChildrenChanged:
-          if (event.getPath().endsWith("conf")
-              && event.getType().equals(Event.EventType.NodeChildrenChanged)) {
+          if (event.getPath().endsWith("conf")) {
             try {
               clear(event.getPath());
               getZooKeeper().exists(event.getPath(), watcher);
@@ -172,6 +170,7 @@ public class ZooCache {
               log.error("could not reset watcher on parent node: " + event.getPath());
             }
           }
+        case NodeDataChanged:
         case NodeCreated:
         case NodeDeleted:
           remove(event.getPath());
