@@ -424,9 +424,14 @@ public class ZooCache {
 
           byte[] data = null;
 
+          //watched will be false if it is a table config that is not
+          //actually a node inside Zookeeper
           boolean watched = isWatched(zooKeeper, zPath);
 
-          Stat stat = zooKeeper.exists(zPath, watched ? watcher : null);
+          if (!watched)
+            return data;
+
+          Stat stat = zooKeeper.exists(zPath, watcher);
 
           if (stat == null) {
             if (log.isTraceEnabled()) {
@@ -434,7 +439,7 @@ public class ZooCache {
             }
           } else {
             try {
-              data = zooKeeper.getData(zPath, watched ? watcher : null, stat);
+              data = zooKeeper.getData(zPath, watcher, stat);
               zstat = new ZcStat(stat);
             } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
               throw new ConcurrentModificationException();
@@ -444,10 +449,10 @@ public class ZooCache {
                   (data == null ? null : new String(data, UTF_8)));
             }
           }
-          if (watched) {
-            put(zPath, data, zstat);
-            copyStats(status, zstat);
-          }
+
+          put(zPath, data, zstat);
+          copyStats(status, zstat);
+
           return data;
         } finally {
           cacheWriteLock.unlock();
