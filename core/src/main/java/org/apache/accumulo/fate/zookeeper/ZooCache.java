@@ -28,7 +28,10 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
@@ -46,6 +49,13 @@ import com.google.common.base.Preconditions;
  */
 public class ZooCache {
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
+
+  public final static Pattern TABLE_CONFIG_DIR_PATTERN = Pattern.compile(
+      "(/accumulo/[0-9a-z-]+)(" + Constants.ZTABLES + ")(/.*)(" + Constants.ZTABLE_CONF + ")");
+
+  public final static Pattern TABLE_SETTING_CONFIG_PATTERN =
+      Pattern.compile("(/accumulo/[0-9a-z-]+)(" + Constants.ZTABLES + ")(/.*)("
+          + Constants.ZTABLE_CONF + ")/(table.*|tserver.*)");
 
   private final ZCacheWatcher watcher = new ZCacheWatcher();
   private final Watcher externalWatcher;
@@ -158,16 +168,17 @@ public class ZooCache {
       switch (event.getType()) {
         case NodeChildrenChanged:
           if (event.getPath().endsWith("conf")) {
-            try {
-              clear(event.getPath());
-              getZooKeeper().exists(event.getPath(), watcher);
-              if (log.isTraceEnabled()) {
-                log.trace("NodeChildrenChanged: resetting watcher for " + event.getPath());
-                if (externalWatcher != null)
-                  log.trace("external watcher with process this zpath also " + event.getPath());
+            Matcher confDirMatcher = TABLE_CONFIG_DIR_PATTERN.matcher(event.getPath());
+            if (confDirMatcher.matches()) {
+              try {
+                clear(event.getPath());
+                getZooKeeper().exists(event.getPath(), watcher);
+                 if (log.isTraceEnabled()) {
+                    log.trace("NodeChildrenChanged: resetting watcher for " + event.getPath());
+                 }
+              } catch (KeeperException | InterruptedException e) {
+                log.error("could not reset watcher on parent node: " + event.getPath());
               }
-            } catch (KeeperException | InterruptedException e) {
-              log.error("could not reset watcher on parent node: " + event.getPath());
             }
           }
         case NodeDataChanged:
@@ -424,8 +435,8 @@ public class ZooCache {
 
           byte[] data = null;
 
-          //watched will be false if it is a table config that is not
-          //actually a node inside Zookeeper
+          // watched will be false if it is a table config that is not
+          // actually a node inside Zookeeper
           boolean watched = isWatched(zooKeeper, zPath);
 
           if (!watched)
@@ -480,7 +491,9 @@ public class ZooCache {
     if (znodeExists.containsKey(zPath))
       return watched;
 
-    if (zPath.contains("tserver.") || zPath.contains("table.")) {
+    Matcher configMatcher = TABLE_SETTING_CONFIG_PATTERN.matcher(zPath);
+
+    if (configMatcher.matches()) {
       Stat stat;
       try {
         stat = zooKeeper.exists(zPath, false);
