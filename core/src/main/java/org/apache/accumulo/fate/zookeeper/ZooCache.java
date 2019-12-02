@@ -22,6 +22,7 @@ import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
@@ -67,7 +68,7 @@ public class ZooCache {
   private final HashMap<String,byte[]> cache;
   private final HashMap<String,ZcStat> statCache;
   private final HashMap<String,List<String>> childrenCache;
-  private final HashMap<String,Boolean> znodeExists = new HashMap<>();
+  private final HashSet<String> znodeExists = new HashSet<>();
 
   private final ZooReader zReader;
   private final SecureRandom secureRandom = new SecureRandom();
@@ -173,9 +174,9 @@ public class ZooCache {
               try {
                 clear(event.getPath());
                 getZooKeeper().exists(event.getPath(), watcher);
-                 if (log.isTraceEnabled()) {
-                    log.trace("NodeChildrenChanged: resetting watcher for " + event.getPath());
-                 }
+                if (log.isTraceEnabled()) {
+                  log.trace("NodeChildrenChanged: resetting watcher for " + event.getPath());
+                }
               } catch (KeeperException | InterruptedException e) {
                 log.error("could not reset watcher on parent node: " + event.getPath());
               }
@@ -488,7 +489,7 @@ public class ZooCache {
 
     boolean watched = true;
 
-    if (znodeExists.containsKey(zPath))
+    if (znodeExists.contains(zPath))
       return watched;
 
     Matcher configMatcher = TABLE_SETTING_CONFIG_PATTERN.matcher(zPath);
@@ -504,7 +505,7 @@ public class ZooCache {
       if (stat != null) {
         watched = true;
         synchronized (znodeExists) {
-          znodeExists.put(zPath, true);
+          znodeExists.add(zPath);
         }
       } else {
         watched = false;
