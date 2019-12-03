@@ -508,6 +508,10 @@ public enum Property {
   TSERV_SUMMARY_RETRIEVAL_THREADS("tserver.summary.retrieval.threads", "10", PropertyType.COUNT,
       "The number of threads on each tablet server available to retrieve"
           + " summary data, that is not currently in cache, from RFiles."),
+  TSERV_LASTLOCATION_UPDATE_TIME("tserver.lastlocation.update.time", "1000000", PropertyType.COUNT,
+          "The time in between tservers update last location of tablets."),
+  TSERV_LASTLOCATION_UPDATE_DELAY("tserver.lastlocation.update.delay", "30s", PropertyType.TIMEDURATION,
+          "Time a tablet server will sleep between checking which tablets need an update for Last Location."),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,

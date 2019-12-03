@@ -332,6 +332,7 @@ public class TabletServer extends AbstractServer {
   private final BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<>();
 
   private Thread majorCompactorThread;
+  private Thread lastLocationUpdateThread;
 
   private HostAndPort clientAddress;
 
@@ -2217,6 +2218,40 @@ public class TabletServer extends AbstractServer {
       }
     }
   }
+  private class LastLocationUpdate implements Runnable {
+
+    @Override
+    public void run() {
+      while (true) {
+        try {
+          //a pause in the action. this was taken from major compactor above. Might not be needed here. Need Input
+          sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_LASTLOCATION_UPDATE_DELAY),
+                  TimeUnit.MILLISECONDS);
+
+          Iterator<Entry<KeyExtent,Tablet>> iter = getOnlineTablets().entrySet().iterator();
+
+          // bail early now if we're shutting down
+          while (iter.hasNext()) {
+
+            Entry<KeyExtent,Tablet> entry = iter.next();
+
+            Tablet tablet = entry.getValue();
+
+            synchronized (tablet) {
+              //Decide if we need to update lastLocation
+              if (tablet.needsLastUpdate()) {
+                log.debug("Tablet {} Last Location being updated", tablet);
+                tablet.updateLastLocation();
+              }
+            }
+          }
+        } catch (Throwable t) {
+          log.error("Unexpected exception in {}", Thread.currentThread().getName(), t);
+          sleepUninterruptibly(1, TimeUnit.SECONDS);
+        }
+      }
+    }
+  }
 
   private void splitTablet(Tablet tablet) {
     try {
@@ -3051,6 +3086,10 @@ public class TabletServer extends AbstractServer {
         new Daemon(new LoggingRunnable(log, new MajorCompactor(getConfiguration())));
     majorCompactorThread.setName("Split/MajC initiator");
     majorCompactorThread.start();
+    lastLocationUpdateThread =
+            new Daemon(new LastLocationUpdate());
+    lastLocationUpdateThread.setName("Update LastLoc initiator");
+    lastLocationUpdateThread.start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
     try {
