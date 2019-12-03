@@ -499,7 +499,7 @@ public class ZooCache {
       try {
         stat = zooKeeper.exists(zPath, false);
       } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
-        throw new ConcurrentModificationException();
+        throw e1;
       }
 
       if (stat != null) {
