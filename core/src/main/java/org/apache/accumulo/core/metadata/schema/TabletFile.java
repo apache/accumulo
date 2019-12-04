@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
- * Object representing a tablet file entry in the metadata table. Keeps a string of exact entry of
- * the column qualifier of the
+ * Object representing a tablet file entry in the metadata table. Keeps a string of the exact entry
+ * of what is in the metadata table for the column qualifier of the
  * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily}
  * Validates the full URI form: "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
  */
@@ -54,7 +53,7 @@ public class TabletFile implements Comparable<TabletFile> {
     this.tableId = TableId.of(tableIdPath.getName());
     // TODO validate tableId
 
-    Path volumePath = TabletFileUtil.getVolumeFromFullPath(metadataPath, Constants.HDFS_TABLES_DIR);
+    Path volumePath = TabletFileUtil.getVolumeFromFullPath(metadataPath, "tables");
     TabletFileUtil.validateVolume(volumePath);
     this.volume = volumePath.toString();
   }
@@ -89,7 +88,23 @@ public class TabletFile implements Comparable<TabletFile> {
 
   @Override
   public int compareTo(TabletFile o) {
-    return metadataEntry.compareTo(o.getMetadataEntry());
+    if (metadataEntry.equals(o.metadataEntry)) {
+      return 0;
+    } else {
+      return metadataEntry.compareTo(o.getMetadataEntry());
+    }
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof TabletFile)
+      return metadataEntry.equals(((TabletFile) obj).getMetadataEntry());
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return metadataEntry.hashCode();
   }
 
   @Override
