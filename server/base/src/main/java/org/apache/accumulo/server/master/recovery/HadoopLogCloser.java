@@ -30,6 +30,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.hadoop.fs.azure.NativeAzureFileSystem;
+import org.apache.hadoop.fs.azure.SelfRenewingLease;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +68,24 @@ public class HadoopLogCloser implements LogCloser {
         log.warn("Error recovering lease on " + source, ex);
         ns.append(source).close();
         log.info("Recovered lease on {} using append", source);
+      }
+    } else if (ns instanceof NativeAzureFileSystem) {
+      NativeAzureFileSystem afs = (NativeAzureFileSystem) ns;
+      SelfRenewingLease lease = null;
+      try {
+        lease = afs.acquireLease(source);
+        log.info("Acquired lease on {}", source);
+      } catch (Exception ex) {
+        log.error("Error acquiring lease on " + source, ex);
+        throw ex;
+      } finally {
+        try {
+          if (lease != null) {
+            lease.free();
+          }
+        } catch (Exception ex) {
+          log.warn("Error freeing lease on " + source, ex);
+        }
       }
     } else if (ns instanceof LocalFileSystem || ns instanceof RawLocalFileSystem) {
       // ignore
