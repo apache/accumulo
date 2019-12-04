@@ -172,13 +172,14 @@ public class ZooCache {
             Matcher confDirMatcher = TABLE_CONFIG_DIR_PATTERN.matcher(event.getPath());
             if (confDirMatcher.matches()) {
               try {
+                // If a table config parameter without a watch on it is deleted
+                // this is how it gets cleared from ZooCache
                 clear(event.getPath());
                 getZooKeeper().exists(event.getPath(), watcher);
-                if (log.isTraceEnabled()) {
-                  log.trace("NodeChildrenChanged: resetting watcher for " + event.getPath());
-                }
+                log.info("NodeChildrenChanged: resetting watcher for " + event.getPath());
+
               } catch (KeeperException | InterruptedException e) {
-                log.error("could not reset watcher on parent node: " + event.getPath());
+                log.error("Could not reset watcher on parent node: " + event.getPath());
               }
             }
           }
