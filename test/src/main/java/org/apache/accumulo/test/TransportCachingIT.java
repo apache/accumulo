@@ -37,7 +37,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -77,7 +76,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       while (servers.isEmpty()) {
         for (String tserver : children) {
           String path = zkRoot + Constants.ZTSERVERS + "/" + tserver;
-          byte[] data = ZooUtil.getLockData(zc, path);
+          byte[] data = zc.getLockData(path);
           if (data != null) {
             String strData = new String(data, UTF_8);
             if (!strData.equals("master"))

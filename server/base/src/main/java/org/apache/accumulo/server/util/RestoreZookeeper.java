@@ -30,7 +30,6 @@ import javax.xml.parsers.SAXParserFactory;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.zookeeper.KeeperException;
@@ -44,11 +43,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class RestoreZookeeper {
 
   private static class Restore extends DefaultHandler {
-    IZooReaderWriter zk = null;
+    ZooReaderWriter zk = null;
     Stack<String> cwd = new Stack<>();
     boolean overwrite = false;
 
-    Restore(IZooReaderWriter zk, boolean overwrite) {
+    Restore(ZooReaderWriter zk, boolean overwrite) {
       this.zk = zk;
       this.overwrite = overwrite;
     }

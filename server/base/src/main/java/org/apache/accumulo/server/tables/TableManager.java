@@ -34,10 +34,9 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -66,7 +65,7 @@ public class TableManager {
   private final ZooReaderWriter zoo;
   private ZooCache zooStateCache;
 
-  public static void prepareNewNamespaceState(IZooReaderWriter zoo, String instanceId,
+  public static void prepareNewNamespaceState(ZooReaderWriter zoo, String instanceId,
       NamespaceId namespaceId, String namespace, NodeExistsPolicy existsPolicy)
       throws KeeperException, InterruptedException {
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
@@ -78,7 +77,7 @@ public class TableManager {
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF, new byte[0], existsPolicy);
   }
 
-  public static void prepareNewTableState(IZooReaderWriter zoo, String instanceId, TableId tableId,
+  public static void prepareNewTableState(ZooReaderWriter zoo, String instanceId, TableId tableId,
       NamespaceId namespaceId, String tableName, TableState state, NodeExistsPolicy existsPolicy)
       throws KeeperException, InterruptedException {
     // state gets created last

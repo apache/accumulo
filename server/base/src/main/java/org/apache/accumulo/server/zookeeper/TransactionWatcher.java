@@ -26,9 +26,8 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.accumulo.fate.zookeeper.IZooReader;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
@@ -75,7 +74,7 @@ public class TransactionWatcher {
 
     public static void start(ServerContext context, String type, long tid)
         throws KeeperException, InterruptedException {
-      IZooReaderWriter writer = context.getZooReaderWriter();
+      ZooReaderWriter writer = context.getZooReaderWriter();
       writer.putPersistentData(context.getZooKeeperRoot() + "/" + type, new byte[] {},
           NodeExistsPolicy.OVERWRITE);
       writer.putPersistentData(context.getZooKeeperRoot() + "/" + type + "/" + tid, new byte[] {},
@@ -86,14 +85,14 @@ public class TransactionWatcher {
 
     public static void stop(ServerContext context, String type, long tid)
         throws KeeperException, InterruptedException {
-      IZooReaderWriter writer = context.getZooReaderWriter();
+      ZooReaderWriter writer = context.getZooReaderWriter();
       writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid,
           NodeMissingPolicy.SKIP);
     }
 
     public static void cleanup(ServerContext context, String type, long tid)
         throws KeeperException, InterruptedException {
-      IZooReaderWriter writer = context.getZooReaderWriter();
+      ZooReaderWriter writer = context.getZooReaderWriter();
       writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid,
           NodeMissingPolicy.SKIP);
       writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid + "-running",
@@ -102,7 +101,7 @@ public class TransactionWatcher {
 
     public static Set<Long> allTransactionsAlive(ServerContext context, String type)
         throws KeeperException, InterruptedException {
-      final IZooReader reader = context.getZooReaderWriter();
+      final ZooReader reader = context.getZooReaderWriter();
       final Set<Long> result = new HashSet<>();
       final String parent = context.getZooKeeperRoot() + "/" + type;
       reader.sync(parent);

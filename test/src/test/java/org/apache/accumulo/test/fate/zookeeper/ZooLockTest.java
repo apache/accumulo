@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -124,13 +125,11 @@ public class ZooLockTest {
   public void testDeleteParent() throws Exception {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
 
-    ZooLock zl =
-        new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "secret", parent);
 
     assertFalse(zl.isLocked());
 
-    ZooReaderWriter zk =
-        ZooReaderWriter.getInstance(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes());
+    ZooReaderWriter zk = new ZooReaderWriter(accumulo.getZooKeepers(), 30000, "secret");
 
     // intentionally created parent after lock
     zk.mkdirs(parent);
@@ -141,7 +140,7 @@ public class ZooLockTest {
 
     TestALW lw = new TestALW();
 
-    zl.lockAsync(lw, "test1".getBytes());
+    zl.lockAsync(lw, "test1".getBytes(UTF_8));
 
     lw.waitForChanges(1);
 
@@ -157,14 +156,13 @@ public class ZooLockTest {
   public void testNoParent() throws Exception {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
 
-    ZooLock zl =
-        new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "secret", parent);
 
     assertFalse(zl.isLocked());
 
     TestALW lw = new TestALW();
 
-    zl.lockAsync(lw, "test1".getBytes());
+    zl.lockAsync(lw, "test1".getBytes(UTF_8));
 
     lw.waitForChanges(1);
 
@@ -178,18 +176,16 @@ public class ZooLockTest {
   public void testDeleteLock() throws Exception {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
 
-    ZooReaderWriter zk =
-        ZooReaderWriter.getInstance(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes());
+    ZooReaderWriter zk = new ZooReaderWriter(accumulo.getZooKeepers(), 30000, "secret");
     zk.mkdirs(parent);
 
-    ZooLock zl =
-        new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "secret", parent);
 
     assertFalse(zl.isLocked());
 
     TestALW lw = new TestALW();
 
-    zl.lockAsync(lw, "test1".getBytes());
+    zl.lockAsync(lw, "test1".getBytes(UTF_8));
 
     lw.waitForChanges(1);
 
@@ -211,18 +207,16 @@ public class ZooLockTest {
   public void testDeleteWaiting() throws Exception {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
 
-    ZooReaderWriter zk =
-        ZooReaderWriter.getInstance(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes());
+    ZooReaderWriter zk = new ZooReaderWriter(accumulo.getZooKeepers(), 30000, "secret");
     zk.mkdirs(parent);
 
-    ZooLock zl =
-        new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "secret", parent);
 
     assertFalse(zl.isLocked());
 
     TestALW lw = new TestALW();
 
-    zl.lockAsync(lw, "test1".getBytes());
+    zl.lockAsync(lw, "test1".getBytes(UTF_8));
 
     lw.waitForChanges(1);
 
@@ -231,22 +225,20 @@ public class ZooLockTest {
     assertNull(lw.exception);
     assertNull(lw.reason);
 
-    ZooLock zl2 =
-        new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl2 = new ZooLock(accumulo.getZooKeepers(), 30000, "secret", parent);
 
     TestALW lw2 = new TestALW();
 
-    zl2.lockAsync(lw2, "test2".getBytes());
+    zl2.lockAsync(lw2, "test2".getBytes(UTF_8));
 
     assertFalse(lw2.locked);
     assertFalse(zl2.isLocked());
 
-    ZooLock zl3 =
-        new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl3 = new ZooLock(accumulo.getZooKeepers(), 30000, "secret", parent);
 
     TestALW lw3 = new TestALW();
 
-    zl3.lockAsync(lw3, "test3".getBytes());
+    zl3.lockAsync(lw3, "test3".getBytes(UTF_8));
 
     List<String> children = zk.getChildren(parent);
     Collections.sort(children);
@@ -283,7 +275,7 @@ public class ZooLockTest {
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 30000, watcher);
-    zk.addAuthInfo("digest", "secret".getBytes());
+    zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
 
     while (!watcher.isConnected()) {
       Thread.sleep(200);
@@ -291,17 +283,16 @@ public class ZooLockTest {
 
     zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-    ZooLock zl =
-        new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "secret", parent);
 
     assertFalse(zl.isLocked());
 
     // would not expect data to be set on this node, but it should not cause problems.....
-    zk.setData(parent, "foo".getBytes(), -1);
+    zk.setData(parent, "foo".getBytes(UTF_8), -1);
 
     TestALW lw = new TestALW();
 
-    zl.lockAsync(lw, "test1".getBytes());
+    zl.lockAsync(lw, "test1".getBytes(UTF_8));
 
     lw.waitForChanges(1);
 
@@ -311,7 +302,7 @@ public class ZooLockTest {
     assertNull(lw.reason);
 
     // would not expect data to be set on this node either
-    zk.setData(zl.getLockPath(), "bar".getBytes(), -1);
+    zk.setData(zl.getLockPath(), "bar".getBytes(UTF_8), -1);
 
     zk.delete(zl.getLockPath(), -1);
 
@@ -326,11 +317,11 @@ public class ZooLockTest {
   public void testTryLock() throws Exception {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
 
-    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "secret", parent);
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, watcher);
-    zk.addAuthInfo("digest", "secret".getBytes());
+    zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
 
     while (!watcher.isConnected()) {
       Thread.sleep(200);
@@ -345,7 +336,7 @@ public class ZooLockTest {
 
     TestALW lw = new TestALW();
 
-    boolean ret = zl.tryLock(lw, "test1".getBytes());
+    boolean ret = zl.tryLock(lw, "test1".getBytes(UTF_8));
 
     assertTrue(ret);
 
@@ -364,7 +355,7 @@ public class ZooLockTest {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
     ConnectedWatcher watcher = new ConnectedWatcher();
     ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, watcher);
-    zk.addAuthInfo("digest", "secret".getBytes());
+    zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
 
     while (!watcher.isConnected()) {
       Thread.sleep(200);
@@ -372,14 +363,14 @@ public class ZooLockTest {
 
     zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "secret", parent);
 
     TestALW lw = new TestALW();
 
-    zl.lockAsync(lw, "test1".getBytes());
+    zl.lockAsync(lw, "test1".getBytes(UTF_8));
     assertEquals("test1", new String(zk.getData(zl.getLockPath(), null, null)));
 
-    zl.replaceLockData("test2".getBytes());
+    zl.replaceLockData("test2".getBytes(UTF_8));
     assertEquals("test2", new String(zk.getData(zl.getLockPath(), null, null)));
   }
 

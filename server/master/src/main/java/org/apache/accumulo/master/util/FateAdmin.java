@@ -29,7 +29,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerContext;
 
@@ -83,7 +83,7 @@ public class FateAdmin {
       final String zkRoot = context.getZooKeeperRoot();
       String path = zkRoot + Constants.ZFATE;
       String masterPath = zkRoot + Constants.ZMASTER_LOCK;
-      IZooReaderWriter zk = context.getZooReaderWriter();
+      ZooReaderWriter zk = context.getZooReaderWriter();
       ZooStore<Master> zs = new ZooStore<>(path, zk);
 
       if (jc.getParsedCommand().equals("fail")) {

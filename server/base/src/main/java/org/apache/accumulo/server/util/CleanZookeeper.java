@@ -23,7 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
@@ -55,7 +55,7 @@ public class CleanZookeeper {
     try (var context = new ServerContext(SiteConfiguration.auto())) {
 
       String root = Constants.ZROOT;
-      IZooReaderWriter zk = context.getZooReaderWriter();
+      ZooReaderWriter zk = context.getZooReaderWriter();
       if (opts.auth != null) {
         zk.getZooKeeper().addAuthInfo("digest", ("accumulo:" + opts.auth).getBytes(UTF_8));
       }

@@ -37,7 +37,6 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -95,7 +94,7 @@ public class ServerInfo implements ClientInfo {
       throw new IllegalStateException(e);
     }
     Path instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(volumeManager);
-    instanceID = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, config, hadoopConf);
+    instanceID = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, config, hadoopConf);
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);

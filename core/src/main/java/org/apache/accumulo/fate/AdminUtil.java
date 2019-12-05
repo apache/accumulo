@@ -31,9 +31,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.fate.zookeeper.IZooReader;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -195,7 +195,7 @@ public class AdminUtil<T> {
   /**
    * Returns a list of the FATE transactions, optionally filtered by transaction id and status. This
    * method does not process lock information, if lock information is desired, use
-   * {@link #getStatus(ReadOnlyTStore, IZooReader, String, Set, EnumSet)}
+   * {@link #getStatus(ReadOnlyTStore, ZooReader, String, Set, EnumSet)}
    *
    * @param zs
    *          read-only zoostore
@@ -234,7 +234,7 @@ public class AdminUtil<T> {
    * @throws InterruptedException
    *           if process is interrupted.
    */
-  public FateStatus getStatus(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath,
+  public FateStatus getStatus(ReadOnlyTStore<T> zs, ZooReader zk, String lockPath,
       Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
 
@@ -263,7 +263,7 @@ public class AdminUtil<T> {
    * @throws InterruptedException
    *           if thread interrupt detected while processing.
    */
-  private void findLocks(IZooReader zk, final String lockPath,
+  private void findLocks(ZooReader zk, final String lockPath,
       final Map<Long,List<String>> heldLocks, final Map<Long,List<String>> waitingLocks)
       throws KeeperException, InterruptedException {
 
@@ -391,12 +391,12 @@ public class AdminUtil<T> {
 
   }
 
-  public void print(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath)
+  public void print(ReadOnlyTStore<T> zs, ZooReader zk, String lockPath)
       throws KeeperException, InterruptedException {
     print(zs, zk, lockPath, new Formatter(System.out), null, null);
   }
 
-  public void print(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath, Formatter fmt,
+  public void print(ReadOnlyTStore<T> zs, ZooReader zk, String lockPath, Formatter fmt,
       Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
 
@@ -420,7 +420,7 @@ public class AdminUtil<T> {
     }
   }
 
-  public boolean prepDelete(TStore<T> zs, IZooReaderWriter zk, String path, String txidStr) {
+  public boolean prepDelete(TStore<T> zs, ZooReaderWriter zk, String path, String txidStr) {
     if (!checkGlobalLock(zk, path)) {
       return false;
     }
@@ -455,7 +455,7 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public boolean prepFail(TStore<T> zs, IZooReaderWriter zk, String path, String txidStr) {
+  public boolean prepFail(TStore<T> zs, ZooReaderWriter zk, String path, String txidStr) {
     if (!checkGlobalLock(zk, path)) {
       return false;
     }
@@ -497,7 +497,7 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public void deleteLocks(IZooReaderWriter zk, String path, String txidStr)
+  public void deleteLocks(ZooReaderWriter zk, String path, String txidStr)
       throws KeeperException, InterruptedException {
     // delete any locks assoc w/ fate operation
     List<String> lockedIds = zk.getChildren(path);
@@ -517,7 +517,7 @@ public class AdminUtil<T> {
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "TODO - should probably avoid System.exit here; "
           + "this code is used by the fate admin shell command")
-  public boolean checkGlobalLock(IZooReaderWriter zk, String path) {
+  public boolean checkGlobalLock(ZooReaderWriter zk, String path) {
     try {
       if (ZooLock.getLockData(zk.getZooKeeper(), path) != null) {
         System.err.println("ERROR: Master lock is held, not running");

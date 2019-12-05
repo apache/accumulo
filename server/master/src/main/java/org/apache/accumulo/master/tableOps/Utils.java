@@ -41,8 +41,8 @@ import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooQueueLock;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.master.Master;
@@ -70,7 +70,7 @@ public class Utils {
   public static <T extends AbstractId<T>> T getNextId(String name, ServerContext context,
       Function<String,T> newIdFunction) throws AcceptableThriftTableOperationException {
     try {
-      IZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooReaderWriter zoo = context.getZooReaderWriter();
       final String ntp = context.getZooKeeperRoot() + Constants.ZTABLES;
       byte[] nid = zoo.mutate(ntp, ZERO_BYTE, ZooUtil.PUBLIC, currentValue -> {
         BigInteger nextId = new BigInteger(new String(currentValue, UTF_8), Character.MAX_RADIX);
@@ -92,7 +92,7 @@ public class Utils {
       boolean tableMustExist, TableOperation op) throws Exception {
     if (getLock(env.getContext(), tableId, tid, writeLock).tryLock()) {
       if (tableMustExist) {
-        IZooReaderWriter zk = env.getContext().getZooReaderWriter();
+        ZooReaderWriter zk = env.getContext().getZooReaderWriter();
         if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId))
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
@@ -121,7 +121,7 @@ public class Utils {
       boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
     if (getLock(env.getContext(), namespaceId, id, writeLock).tryLock()) {
       if (mustExist) {
-        IZooReaderWriter zk = env.getContext().getZooReaderWriter();
+        ZooReaderWriter zk = env.getContext().getZooReaderWriter();
         if (!zk.exists(
             env.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId))
           throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
@@ -139,7 +139,7 @@ public class Utils {
     String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
 
-    IZooReaderWriter zk = env.getContext().getZooReaderWriter();
+    ZooReaderWriter zk = env.getContext().getZooReaderWriter();
 
     if (ZooReservation.attempt(zk, resvPath, String.format("%016x", tid), "")) {
       return 0;

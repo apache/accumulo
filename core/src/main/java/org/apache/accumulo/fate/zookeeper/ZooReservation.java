@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 public class ZooReservation {
 
-  public static boolean attempt(IZooReaderWriter zk, String path, String reservationID,
+  public static boolean attempt(ZooReaderWriter zk, String path, String reservationID,
       String debugInfo) throws KeeperException, InterruptedException {
     if (reservationID.contains(":"))
       throw new IllegalArgumentException();
@@ -57,7 +57,7 @@ public class ZooReservation {
 
   }
 
-  public static void release(IZooReaderWriter zk, String path, String reservationID)
+  public static void release(ZooReaderWriter zk, String path, String reservationID)
       throws KeeperException, InterruptedException {
     byte[] zooData;
 

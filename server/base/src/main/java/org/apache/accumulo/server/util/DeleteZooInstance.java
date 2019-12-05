@@ -26,7 +26,6 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
@@ -40,7 +39,7 @@ public class DeleteZooInstance {
     String instance;
   }
 
-  static void deleteRetry(IZooReaderWriter zk, String path) throws Exception {
+  static void deleteRetry(ZooReaderWriter zk, String path) throws Exception {
     for (int i = 0; i < 10; i++) {
       try {
         zk.recursiveDelete(path, NodeMissingPolicy.SKIP);

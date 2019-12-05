@@ -25,8 +25,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
@@ -53,7 +53,7 @@ public class RenameNamespace extends MasterRepo {
   @Override
   public Repo<Master> call(long id, Master master) throws Exception {
 
-    IZooReaderWriter zoo = master.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
 
     Utils.getTableNameLock().lock();
     try {
