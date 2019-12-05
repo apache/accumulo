@@ -41,7 +41,7 @@ public class TabletFile implements Comparable<TabletFile> {
 
   public TabletFile(String metadataEntry) {
     this.metadataPath = new Path(metadataEntry);
-    this.metadataEntry = metadataEntry;
+    this.metadataEntry = Objects.requireNonNull(metadataEntry);
     this.fileName = metadataPath.getName();
     // TODO validate filename
 
