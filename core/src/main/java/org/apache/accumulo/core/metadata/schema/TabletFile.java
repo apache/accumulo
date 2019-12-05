@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import java.util.Objects;
+
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -29,19 +31,19 @@ import org.apache.hadoop.io.Text;
  * Validates the full URI form: "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
  */
 public class TabletFile implements Comparable<TabletFile> {
-  private String volume; // hdfs://1.2.3.4/accumulo
+  private final String volume; // hdfs://1.2.3.4/accumulo
   // /tables/
-  private TableId tableId; // 2a
-  private String tabletDir; // t-0003
-  private String fileName; // C0004.rf
+  private final TableId tableId; // 2a
+  private final String tabletDir; // t-0003
+  private final String fileName; // C0004.rf
 
   // exact string that is stored the metadata table
-  private String metadataEntry;
-  private Path metadataPath;
+  private final String metadataEntry;
+  private final Path metadataPath;
 
   public TabletFile(String metadataEntry) {
-    this.metadataPath = new Path(metadataEntry);
     this.metadataEntry = Objects.requireNonNull(metadataEntry);
+    this.metadataPath = new Path(metadataEntry);
     this.fileName = metadataPath.getName();
     // TODO validate filename
 
