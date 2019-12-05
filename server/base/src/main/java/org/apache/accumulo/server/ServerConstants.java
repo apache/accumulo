@@ -31,7 +31,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -112,7 +112,7 @@ public class ServerConstants {
       String currentIid;
       int currentVersion;
       try {
-        currentIid = ZooUtil.getInstanceIDFromHdfs(path, conf, hadoopConf);
+        currentIid = VolumeManager.getInstanceIDFromHdfs(path, conf, hadoopConf);
         Path vpath = new Path(baseDir, VERSION_DIR);
         currentVersion =
             ServerUtil.getAccumuloPersistentVersion(vpath.getFileSystem(hadoopConf), vpath);

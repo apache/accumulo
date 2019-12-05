@@ -53,7 +53,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
@@ -356,7 +356,7 @@ public class TraceServer implements Watcher, AutoCloseable {
   }
 
   private void registerInZooKeeper(String name, String root) throws Exception {
-    IZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooReaderWriter();
     zoo.putPersistentData(root, new byte[0], NodeExistsPolicy.SKIP);
     log.info("Registering tracer {} at {}", name, root);
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes(UTF_8));

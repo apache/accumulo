@@ -33,8 +33,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
@@ -97,7 +97,7 @@ public class CompactRange extends MasterRepo {
     String zTablePath = Constants.ZROOT + "/" + env.getInstanceID() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_COMPACT_ID;
 
-    IZooReaderWriter zoo = env.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = env.getContext().getZooReaderWriter();
     byte[] cid;
     try {
       cid = zoo.mutate(zTablePath, null, null, new Mutator() {
@@ -150,7 +150,7 @@ public class CompactRange extends MasterRepo {
     String zTablePath = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
         + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
 
-    IZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
 
     zoo.mutate(zTablePath, null, null, new Mutator() {
       @Override

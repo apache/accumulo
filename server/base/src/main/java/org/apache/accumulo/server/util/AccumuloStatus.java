@@ -21,7 +21,7 @@ package org.apache.accumulo.server.util;
 import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.fate.zookeeper.IZooReader;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.zookeeper.KeeperException;
 
 public class AccumuloStatus {
@@ -33,7 +33,7 @@ public class AccumuloStatus {
    * @throws IOException
    *           if there are issues connecting to ZooKeeper to determine service status
    */
-  public static boolean isAccumuloOffline(IZooReader reader, String rootPath) throws IOException {
+  public static boolean isAccumuloOffline(ZooReader reader, String rootPath) throws IOException {
     try {
       for (String child : reader.getChildren(rootPath + Constants.ZTSERVERS)) {
         if (!reader.getChildren(rootPath + Constants.ZTSERVERS + "/" + child).isEmpty())

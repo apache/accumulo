@@ -23,7 +23,7 @@ import java.util.List;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -96,7 +96,7 @@ class FateMetricValues {
 
     try {
 
-      IZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooReaderWriter zoo = context.getZooReaderWriter();
       ZooStore<String> zs = new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zoo);
 
       List<AdminUtil.TransactionStatus> currFates = admin.getTransactionStatus(zs, null, null);

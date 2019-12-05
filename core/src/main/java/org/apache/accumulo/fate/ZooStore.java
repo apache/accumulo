@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
@@ -57,7 +57,7 @@ public class ZooStore<T> implements TStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
   private String path;
-  private IZooReaderWriter zk;
+  private ZooReaderWriter zk;
   private String lastReserved = "";
   private Set<Long> reserved;
   private Map<Long,Long> defered;
@@ -100,7 +100,7 @@ public class ZooStore<T> implements TStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  public ZooStore(String path, IZooReaderWriter zk) throws KeeperException, InterruptedException {
+  public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
 
     this.path = path;
     this.zk = zk;

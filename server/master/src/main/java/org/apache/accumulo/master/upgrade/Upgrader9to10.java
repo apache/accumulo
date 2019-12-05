@@ -61,7 +61,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -238,7 +238,7 @@ public class Upgrader9to10 implements Upgrader {
     try {
       ArrayList<LogEntry> result = new ArrayList<>();
 
-      IZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooReaderWriter zoo = context.getZooReaderWriter();
       String root = context.getZooKeeperRoot() + ZROOT_TABLET_WALOGS;
       // there's a little race between getting the children and fetching
       // the data. The log can be removed in between.

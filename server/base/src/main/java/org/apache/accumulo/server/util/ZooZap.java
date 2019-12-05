@@ -25,11 +25,10 @@ import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -78,7 +77,7 @@ public class ZooZap {
 
     String volDir = VolumeConfiguration.getVolumeUris(siteConf, hadoopConf)[0];
     Path instanceDir = new Path(volDir, "instance_id");
-    String iid = ZooUtil.getInstanceIDFromHdfs(instanceDir, siteConf, hadoopConf);
+    String iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, siteConf, hadoopConf);
     ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
     if (opts.zapMaster) {
@@ -125,7 +124,7 @@ public class ZooZap {
 
   }
 
-  private static void zapDirectory(IZooReaderWriter zoo, String path, Opts opts)
+  private static void zapDirectory(ZooReaderWriter zoo, String path, Opts opts)
       throws KeeperException, InterruptedException {
     List<String> children = zoo.getChildren(path);
     for (String child : children) {

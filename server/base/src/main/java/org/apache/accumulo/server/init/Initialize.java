@@ -84,7 +84,6 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerConstants;
@@ -619,9 +618,8 @@ public class Initialize implements KeywordExecutable {
       String rootTabletDirName, String rootTabletFileUri)
       throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
-    zoo.putPersistentData(Constants.ZROOT, new byte[0], -1, NodeExistsPolicy.SKIP,
-        Ids.OPEN_ACL_UNSAFE);
-    zoo.putPersistentData(Constants.ZROOT + Constants.ZINSTANCES, new byte[0], -1,
+    zoo.putPersistentData(Constants.ZROOT, new byte[0], NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
+    zoo.putPersistentData(Constants.ZROOT + Constants.ZINSTANCES, new byte[0],
         NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
 
     // setup instance name
@@ -895,7 +893,8 @@ public class Initialize implements KeywordExecutable {
     Path iidPath = new Path(aBasePath, ServerConstants.INSTANCE_ID_DIR);
     Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
 
-    UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, siteConfig, hadoopConf));
+    UUID uuid =
+        UUID.fromString(VolumeManager.getInstanceIDFromHdfs(iidPath, siteConfig, hadoopConf));
     for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements(siteConfig,
         hadoopConf)) {
       if (aBasePath.equals(replacementVolume.getFirst())) {

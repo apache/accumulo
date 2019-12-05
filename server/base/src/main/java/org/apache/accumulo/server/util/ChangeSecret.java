@@ -28,7 +28,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -129,7 +128,7 @@ public class ChangeSecret {
       final String newInstanceId, String oldPass, String newPass) throws Exception {
     final ZooReaderWriter orig = new ZooReaderWriter(context.getZooKeepers(),
         context.getZooKeepersSessionTimeOut(), oldPass);
-    final IZooReaderWriter new_ = new ZooReaderWriter(context.getZooKeepers(),
+    final ZooReaderWriter new_ = new ZooReaderWriter(context.getZooKeepers(),
         context.getZooKeepersSessionTimeOut(), newPass);
 
     String root = context.getZooKeeperRoot();
@@ -207,7 +206,7 @@ public class ChangeSecret {
   }
 
   private static void deleteInstance(ServerContext context, String oldPass) throws Exception {
-    IZooReaderWriter orig = new ZooReaderWriter(context.getZooKeepers(),
+    ZooReaderWriter orig = new ZooReaderWriter(context.getZooKeepers(),
         context.getZooKeepersSessionTimeOut(), oldPass);
     orig.recursiveDelete("/accumulo/" + context.getInstanceID(), NodeMissingPolicy.SKIP);
   }

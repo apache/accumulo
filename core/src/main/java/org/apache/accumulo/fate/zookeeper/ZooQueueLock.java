@@ -34,11 +34,11 @@ public class ZooQueueLock implements QueueLock {
 
   private static final String PREFIX = "lock-";
 
-  private IZooReaderWriter zoo;
+  private ZooReaderWriter zoo;
   private String path;
   private boolean ephemeral;
 
-  public ZooQueueLock(IZooReaderWriter zrw, String path, boolean ephemeral) {
+  public ZooQueueLock(ZooReaderWriter zrw, String path, boolean ephemeral) {
     this.zoo = zrw;
     this.path = path;
     this.ephemeral = ephemeral;
