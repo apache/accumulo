@@ -68,11 +68,6 @@ public class PerTableVolumeChooser implements VolumeChooser {
   // visible (not private) for testing
   VolumeChooser getDelegateChooser(VolumeChooserEnvironment env) {
     switch (env.getScope()) {
-      case INIT:
-        // TODO should be possible to read from SiteConfiguration during init
-        log.warn("Not possible to determine delegate chooser at '{}' scope. Using {}.",
-            ChooserScope.INIT, RandomVolumeChooser.class.getName());
-        return randomChooser;
       case TABLE:
         return getVolumeChooserForTable(env);
       default:

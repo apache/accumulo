@@ -44,6 +44,11 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
     this.conf = new ConfigurationImpl(srvCtx.getConfiguration());
   }
 
+  public ServiceEnvironmentImpl(ServerContext ctx, AccumuloConfiguration acfg) {
+    this.srvCtx = ctx;
+    this.conf = new ConfigurationImpl(acfg);
+  }
+
   private static class ConfigurationImpl implements Configuration {
 
     private final AccumuloConfiguration acfg;
