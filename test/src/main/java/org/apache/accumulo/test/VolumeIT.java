@@ -60,6 +60,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -476,9 +477,9 @@ public class VolumeIT extends ConfigurableMacBase {
 
       // check that root tablet is not on volume 1
       int count = 0;
-      for (String file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
+      for (TabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
           .getFiles()) {
-        assertTrue(file.startsWith(v2.toString()));
+        assertTrue(file.getMetadataEntry().startsWith(v2.toString()));
         count++;
       }
 
@@ -546,9 +547,10 @@ public class VolumeIT extends ConfigurableMacBase {
 
     // check that root tablet is not on volume 1 or 2
     int count = 0;
-    for (String file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
+    for (TabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
         .getFiles()) {
-      assertTrue(file.startsWith(v8.toString()) || file.startsWith(v9.toString()));
+      assertTrue(file.getMetadataEntry().startsWith(v8.toString())
+          || file.getMetadataEntry().startsWith(v9.toString()));
       count++;
     }
 

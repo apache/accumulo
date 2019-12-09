@@ -60,6 +60,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
+import org.apache.accumulo.core.metadata.schema.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -175,10 +176,10 @@ public class Gatherer {
     Map<String,List<TabletMetadata>> files = new HashMap<>();
 
     for (TabletMetadata tm : tmi) {
-      for (String file : tm.getFiles()) {
-        if (fileSelector.test(file)) {
+      for (TabletFile file : tm.getFiles()) {
+        if (fileSelector.test(file.getMetadataEntry())) {
           // TODO push this filtering to server side and possibly use batch scanner
-          files.computeIfAbsent(file, s -> new ArrayList<>()).add(tm);
+          files.computeIfAbsent(file.getMetadataEntry(), s -> new ArrayList<>()).add(tm);
         }
       }
     }

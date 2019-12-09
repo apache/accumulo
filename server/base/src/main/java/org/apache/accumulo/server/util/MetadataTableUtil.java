@@ -75,6 +75,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cl
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
+import org.apache.accumulo.core.metadata.schema.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
@@ -422,7 +423,8 @@ public class MetadataTableUtil {
     result.addAll(tablet.getLogs());
 
     tablet.getFilesMap().forEach((k, v) -> {
-      sizes.put(new FileRef(k, fs.getFullPath(tablet.getTableId(), k)), v);
+      sizes.put(new FileRef(k.getMetadataEntry(),
+          fs.getFullPath(tablet.getTableId(), k.getMetadataEntry())), v);
     });
 
     return new Pair<>(result, sizes);
@@ -436,9 +438,11 @@ public class MetadataTableUtil {
     tablet.mutate();
   }
 
-  private static void getFiles(Set<String> files, Collection<String> tabletFiles,
+  private static void getFiles(Set<String> files, Collection<TabletFile> tabletFiles,
       TableId srcTableId) {
-    for (String file : tabletFiles) {
+    for (TabletFile tfile : tabletFiles) {
+      String file = tfile.getMetadataEntry();
+      // TODO why are we creating relative paths??
       if (srcTableId != null && !file.startsWith("../") && !file.contains(":")) {
         file = "../" + srcTableId + file;
       }

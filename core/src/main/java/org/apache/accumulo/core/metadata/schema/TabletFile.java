@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
@@ -28,40 +29,38 @@ import org.apache.hadoop.io.Text;
  * Object representing a tablet file entry in the metadata table. Keeps a string of the exact entry
  * of what is in the metadata table for the column qualifier of the
  * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily}
- * Validates the full URI form: "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
+ *
+ * Tablet files are stored 1 of 3 possible ways in the metadata table:
+ *
+ * <pre>
+ * 1 - absolute path = "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
+ * 2 - relative path = "../2a/t-0003/C0004.rf"
+ * 3 - second type of relative path = "/t-0003/C0004.rf"
+ * </pre>
  */
 public class TabletFile implements Comparable<TabletFile> {
-  private final String volume; // hdfs://1.2.3.4/accumulo
-  // /tables/
+  // volume may not be stored in the metadata so have the volume manager set it
+  private String volume; // hdfs://1.2.3.4/accumulo
   private final TableId tableId; // 2a
   private final String tabletDir; // t-0003
   private final String fileName; // C0004.rf
-
-  // exact string that is stored the metadata table
   private final String metadataEntry;
-  private final Path metadataPath;
+  private final String suffix; // 2a/t-0003/C0004.rf
 
-  public TabletFile(String metadataEntry) {
+  public TabletFile(String metadataEntry, TableId tableId, String tabletDir, String fileName) {
     this.metadataEntry = Objects.requireNonNull(metadataEntry);
-    this.metadataPath = new Path(metadataEntry);
-    this.fileName = metadataPath.getName();
-    // TODO validate filename
-
-    Path tabletDirPath = metadataPath.getParent();
-    this.tabletDir = tabletDirPath.getName();
-    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tabletDir);
-
-    Path tableIdPath = tabletDirPath.getParent();
-    this.tableId = TableId.of(tableIdPath.getName());
-    // TODO validate tableId
-
-    Path volumePath = TabletFileUtil.getVolumeFromFullPath(metadataPath, "tables");
-    TabletFileUtil.validateVolume(volumePath);
-    this.volume = volumePath.toString();
+    this.tableId = Objects.requireNonNull(tableId);
+    this.tabletDir = Objects.requireNonNull(tabletDir);
+    this.fileName = Objects.requireNonNull(fileName);
+    this.suffix = tableId.canonical() + "/" + tabletDir + "/" + fileName;
   }
 
-  public String getVolume() {
-    return volume;
+  public void setVolume(String volume) {
+    this.volume = volume;
+  }
+
+  public Optional<String> getVolume() {
+    return Optional.of(volume);
   }
 
   public TableId getTableId() {
@@ -76,8 +75,19 @@ public class TabletFile implements Comparable<TabletFile> {
     return fileName;
   }
 
+  /**
+   * Exact string that is stored the metadata table
+   */
   public String getMetadataEntry() {
     return metadataEntry;
+  }
+
+  /**
+   * Suffix made from: "tableId.canonical() + "/" + tabletDir + "/" + fileName" This is used for
+   * comparison and sorting.
+   */
+  public String getSuffix() {
+    return suffix;
   }
 
   public Text meta() {
@@ -85,32 +95,27 @@ public class TabletFile implements Comparable<TabletFile> {
   }
 
   public Path path() {
-    return metadataPath;
+    return new Path(metadataEntry);
   }
 
   @Override
   public int compareTo(TabletFile o) {
-    if (metadataEntry.equals(o.metadataEntry)) {
+    if (suffix.equals(o.suffix)) {
       return 0;
     } else {
-      return metadataEntry.compareTo(o.getMetadataEntry());
+      return suffix.compareTo(o.getSuffix());
     }
   }
 
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof TabletFile)
-      return metadataEntry.equals(((TabletFile) obj).getMetadataEntry());
+      return suffix.equals(((TabletFile) obj).getSuffix());
     return false;
   }
 
   @Override
   public int hashCode() {
-    return metadataEntry.hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return metadataEntry;
+    return suffix.hashCode();
   }
 }

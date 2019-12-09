@@ -18,9 +18,68 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import java.util.Objects;
+
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.fs.Path;
 
 public class TabletFileUtil {
+
+  /**
+   * Create a TabletFile, handling different types of entries from the metadata table.
+   */
+  public static TabletFile newTabletFile(String metadataEntry, Key key) {
+    Objects.requireNonNull(metadataEntry);
+    String errorMsg = " is missing from tablet file metadata entry: " + metadataEntry;
+
+    Path metaPath;
+    boolean isAbsolutePath = false;
+    if (metadataEntry.contains(":"))
+      isAbsolutePath = true;
+
+    if (isAbsolutePath) {
+      metaPath = new Path(metadataEntry);
+    } else {
+      metaPath = resolveRelativePath(metadataEntry, key);
+    }
+
+    // use Path object to step backwards from the filename through all the parts
+    String fileName = metaPath.getName();
+    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(fileName);
+
+    Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), "Tablet dir" + errorMsg);
+    String tabletDir = tabletDirPath.getName();
+    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tabletDir);
+
+    Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), "Table ID" + errorMsg);
+    TableId tableId = TableId.of(tableIdPath.getName());
+    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
+
+    TabletFile tabletFile = new TabletFile(metadataEntry, tableId, tabletDir, fileName);
+
+    Path volumePath = TabletFileUtil.getVolumeFromFullPath(metaPath, "tables");
+    if (volumePath != null) {
+      tabletFile.setVolume(volumePath.toString());
+    }
+    return tabletFile;
+  }
+
+  /**
+   * Resolve one of the two relative paths: "../2a/t-0003/C0004.rf" or "/t-0003/C0004.rf"
+   */
+  private static Path resolveRelativePath(String metadataEntry, Key key) {
+    // handle old-style relative paths
+    if (metadataEntry.startsWith("..")) {
+      // resolve style "../2a/t-0003/C0004.rf"
+      return new Path(metadataEntry.substring(2));
+    } else {
+      // resolve style "/t-0003/C0004.rf"
+      TableId tableId = KeyExtent.tableIdOfMetadataRow(key.getRow());
+      return new Path(tableId.canonical() + metadataEntry);
+    }
+  }
 
   public static Path getVolumeFromFullPath(Path path, String dir) {
     String pathString = path.toString();

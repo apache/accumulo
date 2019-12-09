@@ -75,8 +75,8 @@ public class TabletMetadata {
   private boolean sawOldPrevEndRow = false;
   private Text endRow;
   private Location location;
-  private Map<String,DataFileValue> files;
-  private List<String> scans;
+  private Map<TabletFile,DataFileValue> files;
+  private List<TabletFile> scans;
   private Map<String,Long> loadedFiles;
   private EnumSet<ColumnType> fetchedCols;
   private KeyExtent extent;
@@ -214,12 +214,12 @@ public class TabletMetadata {
     return last;
   }
 
-  public Collection<String> getFiles() {
+  public Collection<TabletFile> getFiles() {
     ensureFetched(ColumnType.FILES);
     return files.keySet();
   }
 
-  public Map<String,DataFileValue> getFilesMap() {
+  public Map<TabletFile,DataFileValue> getFilesMap() {
     ensureFetched(ColumnType.FILES);
     return files;
   }
@@ -229,7 +229,7 @@ public class TabletMetadata {
     return logs;
   }
 
-  public List<String> getScans() {
+  public List<TabletFile> getScans() {
     ensureFetched(ColumnType.SCANS);
     return scans;
   }
@@ -280,8 +280,8 @@ public class TabletMetadata {
       kvBuilder = ImmutableSortedMap.naturalOrder();
     }
 
-    var filesBuilder = ImmutableMap.<String,DataFileValue>builder();
-    var scansBuilder = ImmutableList.<String>builder();
+    var filesBuilder = ImmutableMap.<TabletFile,DataFileValue>builder();
+    var scansBuilder = ImmutableList.<TabletFile>builder();
     var logsBuilder = ImmutableList.<LogEntry>builder();
     final var loadedFilesBuilder = ImmutableMap.<String,Long>builder();
     ByteSequence row = null;
@@ -342,7 +342,7 @@ public class TabletMetadata {
           }
           break;
         case DataFileColumnFamily.STR_NAME:
-          filesBuilder.put(qual, new DataFileValue(val));
+          filesBuilder.put(TabletFileUtil.newTabletFile(qual, key), new DataFileValue(val));
           break;
         case BulkFileColumnFamily.STR_NAME:
           loadedFilesBuilder.put(qual, BulkFileColumnFamily.getBulkLoadTid(val));
@@ -357,7 +357,7 @@ public class TabletMetadata {
           te.last = new Location(val, qual, LocationType.LAST);
           break;
         case ScanFileColumnFamily.STR_NAME:
-          scansBuilder.add(qual);
+          scansBuilder.add(TabletFileUtil.newTabletFile(qual, key));
           break;
         case ClonedColumnFamily.STR_NAME:
           te.cloned = val;
