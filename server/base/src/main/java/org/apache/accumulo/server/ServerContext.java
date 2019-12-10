@@ -68,6 +68,10 @@ public class ServerContext extends ClientContext {
     this(new ServerInfo(siteConfig, instanceName, zooKeepers, zooKeepersSessionTimeOut));
   }
 
+  public ServerContext(SiteConfiguration siteConfig, String instanceName, String instanceID) {
+    this(new ServerInfo(siteConfig, instanceName, instanceID));
+  }
+
   public ServerContext(SiteConfiguration siteConfig, Properties clientProps) {
     this(siteConfig, ClientInfo.from(clientProps));
   }

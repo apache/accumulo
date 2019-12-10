@@ -101,6 +101,22 @@ public class ServerInfo implements ClientInfo {
     instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, UUID.fromString(instanceID));
   }
 
+  ServerInfo(SiteConfiguration config, String instanceName, String instanceID) {
+    SingletonManager.setMode(Mode.SERVER);
+    siteConfig = config;
+    hadoopConf = new Configuration();
+    try {
+      volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+    this.instanceID = instanceID;
+    zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
+    zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
+    this.instanceName = instanceName;
+  }
+
   public SiteConfiguration getSiteConfiguration() {
     return siteConfig;
   }

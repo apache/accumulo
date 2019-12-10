@@ -67,12 +67,10 @@ public class PerTableVolumeChooser implements VolumeChooser {
 
   // visible (not private) for testing
   VolumeChooser getDelegateChooser(VolumeChooserEnvironment env) {
-    switch (env.getScope()) {
-      case TABLE:
-        return getVolumeChooserForTable(env);
-      default:
-        return getVolumeChooserForScope(env);
+    if (env.getScope() == ChooserScope.TABLE) {
+      return getVolumeChooserForTable(env);
     }
+    return getVolumeChooserForScope(env);
   }
 
   private VolumeChooser getVolumeChooserForTable(VolumeChooserEnvironment env) {

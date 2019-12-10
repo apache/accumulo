@@ -53,7 +53,14 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
     this.scope = ChooserScope.TABLE;
     this.tableId = Objects.requireNonNull(tableId);
     this.endRow = endRow;
+  }
 
+  public VolumeChooserEnvironmentImpl(ChooserScope scope, TableId tableId, Text endRow,
+      ServerContext context) {
+    this.context = context;
+    this.scope = Objects.requireNonNull(scope);
+    this.tableId = Objects.requireNonNull(tableId);
+    this.endRow = endRow;
   }
 
   /**
@@ -64,19 +71,19 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
    */
   @Override
   public Text getEndRow() {
-    if (scope != ChooserScope.TABLE)
+    if (scope != ChooserScope.TABLE && scope != ChooserScope.INIT)
       throw new IllegalStateException("Can only request end row for tables, not for " + scope);
     return endRow;
   }
 
   @Override
   public boolean hasTableId() {
-    return scope == ChooserScope.TABLE;
+    return scope == ChooserScope.TABLE || scope == ChooserScope.INIT;
   }
 
   @Override
   public TableId getTableId() {
-    if (scope != ChooserScope.TABLE)
+    if (scope != ChooserScope.TABLE && scope != ChooserScope.INIT)
       throw new IllegalStateException("Can only request table id for tables, not for " + scope);
     return tableId;
   }
