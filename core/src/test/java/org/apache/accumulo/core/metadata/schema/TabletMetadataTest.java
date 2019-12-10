@@ -72,9 +72,13 @@ public class TabletMetadataTest {
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
     DataFileValue dfv1 = new DataFileValue(555, 23);
-    mutation.at().family(DataFileColumnFamily.NAME).qualifier("df1").put(dfv1.encode());
+    TabletFile tf1 = TabletFileUtil.newTabletFile("hdfs://nn1/acc/tables/1/t-0001/df1.rf", null);
+    TabletFile tf2 = TabletFileUtil.newTabletFile("hdfs://nn1/acc/tables/1/t-0001/df2.rf", null);
+    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf1.getMetadataEntry())
+        .put(dfv1.encode());
     DataFileValue dfv2 = new DataFileValue(234, 13);
-    mutation.at().family(DataFileColumnFamily.NAME).qualifier("df2").put(dfv2.encode());
+    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf2.getMetadataEntry())
+        .put(dfv2.encode());
 
     mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
 
@@ -87,8 +91,10 @@ public class TabletMetadataTest {
     mutation.at().family(le2.getColumnFamily()).qualifier(le2.getColumnQualifier())
         .timestamp(le2.timestamp).put(le2.getValue());
 
-    mutation.at().family(ScanFileColumnFamily.NAME).qualifier("sf1").put("");
-    mutation.at().family(ScanFileColumnFamily.NAME).qualifier("sf2").put("");
+    TabletFile sf1 = TabletFileUtil.newTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf1.rf", null);
+    TabletFile sf2 = TabletFileUtil.newTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf2.rf", null);
+    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf1.getMetadataEntry()).put("");
+    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf2.getMetadataEntry()).put("");
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
@@ -100,8 +106,8 @@ public class TabletMetadataTest {
     assertEquals("t-0001757", tm.getDirName());
     assertEquals(extent.getEndRow(), tm.getEndRow());
     assertEquals(extent, tm.getExtent());
-    assertEquals(Set.of("df1", "df2"), Set.copyOf(tm.getFiles()));
-    assertEquals(Map.of("df1", dfv1, "df2", dfv2), tm.getFilesMap());
+    assertEquals(Set.of(tf1, tf2), Set.copyOf(tm.getFiles()));
+    assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
     assertEquals(6L, tm.getFlushId().getAsLong());
     assertEquals(rowMap, tm.getKeyValues());
     assertEquals(Map.of("bf1", 56L, "bf2", 59L), tm.getLoaded());
@@ -118,7 +124,7 @@ public class TabletMetadataTest {
     assertEquals(extent.getTableId(), tm.getTableId());
     assertTrue(tm.sawPrevEndRow());
     assertEquals("M123456789", tm.getTime().encode());
-    assertEquals(Set.of("sf1", "sf2"), Set.copyOf(tm.getScans()));
+    assertEquals(Set.of(sf1, sf2), Set.copyOf(tm.getScans()));
   }
 
   @Test
