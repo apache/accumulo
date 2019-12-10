@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.fs;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -141,8 +140,7 @@ public class VolumeUtil {
    * for use it chooses a new tablet directory.
    */
   public static TabletFiles updateTabletVolumes(ServerContext context, ZooLock zooLock,
-      VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
-      throws IOException {
+      KeyExtent extent, TabletFiles tabletFiles, boolean replicate) {
     List<Pair<Path,Path>> replacements =
         ServerConstants.getVolumeReplacements(context.getConfiguration(), context.getHadoopConf());
     log.trace("Using volume replacements: {}", replacements);

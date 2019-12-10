@@ -335,13 +335,12 @@ public class Tablet {
     this.tableConfiguration = tblConf;
 
     // translate any volume changes
-    VolumeManager fs = tabletServer.getFileSystem();
     boolean replicationEnabled =
         ReplicationConfigurationUtil.isEnabled(extent, this.tableConfiguration);
     TabletFiles tabletPaths =
         new TabletFiles(data.getDirectoryName(), data.getLogEntries(), data.getDataFiles());
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
-        fs, extent, tabletPaths, replicationEnabled);
+        extent, tabletPaths, replicationEnabled);
 
     this.dirName = data.getDirectoryName();
 
@@ -357,10 +356,9 @@ public class Tablet {
     if (extent.isMeta()) {
       defaultSecurityLabel = () -> EMPTY_BYTES;
     } else {
-      defaultSecurityLabel = tableConfiguration.newDeriver(conf -> {
-        return new ColumnVisibility(conf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY))
-            .getExpression();
-      });
+      defaultSecurityLabel = tableConfiguration.newDeriver(
+          conf -> new ColumnVisibility(conf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY))
+              .getExpression());
     }
 
     tabletMemory = new TabletMemory(this);
@@ -379,7 +377,6 @@ public class Tablet {
 
         tabletServer.recover(this.getTabletServer().getFileSystem(), extent, logEntries, absPaths,
             m -> {
-              // LogReader.printMutation(m);
               Collection<ColumnUpdate> muts = m.getUpdates();
               for (ColumnUpdate columnUpdate : muts) {
                 if (!columnUpdate.hasTimestamp()) {
@@ -401,28 +398,10 @@ public class Tablet {
           log.debug("No replayed mutations applied, removing unused entries for {}", extent);
           MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent,
               logEntries, tabletServer.getLock());
-
-          // No replication update to be made because the fact that this tablet didn't use any
-          // mutations
-          // from the WAL implies nothing about use of this WAL by other tablets. Do nothing.
-
           logEntries.clear();
         } else if (ReplicationConfigurationUtil.isEnabled(extent,
             tabletServer.getTableConfiguration(extent))) {
-          // The logs are about to be re-used by this tablet, we need to record that they have data
-          // for this extent,
-          // but that they may get more data. logEntries is not cleared which will cause the
-          // elements
-          // in logEntries to be added to the currentLogs for this Tablet below.
-          //
-          // This update serves the same purpose as an update during a MinC. We know that the WAL
-          // was defined
-          // (written when the WAL was opened) but this lets us know there are mutations written to
-          // this WAL
-          // that could potentially be replicated. Because the Tablet is using this WAL, we can be
-          // sure that
-          // the WAL isn't closed (WRT replication Status) and thus we're safe to update its
-          // progress.
+          // record that logs may have data for this extent
           Status status = StatusUtil.openWithUnknownLength();
           for (LogEntry logEntry : logEntries) {
             log.debug("Writing updated status to metadata table for {} {}", logEntry.filename,
@@ -947,8 +926,6 @@ public class Tablet {
 
   public boolean initiateMinorCompaction(MinorCompactionReason mincReason) {
     if (isClosed()) {
-      // don't bother trying to get flush id if closed... could be closed after this check but that
-      // is ok... just trying to cut down on unneeded log messages....
       return false;
     }
 
