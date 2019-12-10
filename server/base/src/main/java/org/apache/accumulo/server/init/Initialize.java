@@ -91,6 +91,8 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
@@ -361,9 +363,8 @@ public class Initialize implements KeywordExecutable {
     // the actual disk locations of the root table and tablets
     String[] configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
     String instanceName = instanceNamePath.substring(getInstanceNamePrefix().length());
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.ChooserScope.INIT, RootTable.ID,
-            null, new ServerContext(siteConfig, instanceName, uuid.toString()));
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.INIT,
+        RootTable.ID, null, new ServerContext(siteConfig, instanceName, uuid.toString()));
     String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
     String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
     String rootTabletFileUri = new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR
@@ -507,23 +508,22 @@ public class Initialize implements KeywordExecutable {
 
     Text splitPoint = TabletsSection.getRange().getEndKey().getRow();
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(
-        VolumeChooserEnvironment.ChooserScope.INIT, MetadataTable.ID, splitPoint,
-        new ServerContext(siteConfig, instanceName, uuid.toString()));
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.INIT,
+        MetadataTable.ID, splitPoint, new ServerContext(siteConfig, instanceName, uuid.toString()));
     String tableMetadataTabletDirName = TABLE_TABLETS_TABLET_DIR;
     String tableMetadataTabletDirUri =
         fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR
             + tableMetadataTabletDirName;
-    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.ChooserScope.INIT,
-        ReplicationTable.ID, null, new ServerContext(siteConfig, instanceName, uuid.toString()));
+    chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.INIT, ReplicationTable.ID, null,
+        new ServerContext(siteConfig, instanceName, uuid.toString()));
     String replicationTableDefaultTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String replicationTableDefaultTabletDirUri =
         fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID + Path.SEPARATOR
             + replicationTableDefaultTabletDirName;
-    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.ChooserScope.INIT,
-        MetadataTable.ID, null, new ServerContext(siteConfig, instanceName, uuid.toString()));
+    chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.INIT, MetadataTable.ID, null,
+        new ServerContext(siteConfig, instanceName, uuid.toString()));
     String defaultMetadataTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String defaultMetadataTabletDirUri =
         fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
