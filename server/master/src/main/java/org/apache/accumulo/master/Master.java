@@ -165,6 +165,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
@@ -221,6 +222,7 @@ public class Master extends AccumuloServerContext
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus =
       Collections.unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
+  private RateLimiter shutdownServerRateLimiter = null;
 
   @Override
   public synchronized MasterState getMasterState() {
@@ -1170,6 +1172,7 @@ public class Master extends AccumuloServerContext
         threads == 0 ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
+    final RateLimiter rateLimiter = getRateLimiter(shutdownServerRateLimiter);
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {
@@ -1202,7 +1205,9 @@ public class Master extends AccumuloServerContext
               try {
                 TServerConnection connection = tserverSet.getConnection(server);
                 if (connection != null) {
-                  connection.halt(masterLock);
+                  if (rateLimiter.tryAcquire()) {
+                    connection.halt(masterLock);
+                  }
                 }
               } catch (TTransportException e) {
                 // ignore: it's probably down
@@ -1235,6 +1240,20 @@ public class Master extends AccumuloServerContext
         info.size(), currentServers.size(), (System.currentTimeMillis() - start) / 1000.));
 
     return info;
+  }
+
+  private RateLimiter getRateLimiter(RateLimiter current) {
+    Double newLimit = getConfiguration().getCount(Property.MASTER_STATUS_SHUTDOW_RATE_LIMIT) / 60D;
+
+    if (current == null) {
+      current = RateLimiter.create(newLimit);
+    } else {
+      Double currentLimit = current.getRate();
+      if (!currentLimit.equals(newLimit)) {
+        current = RateLimiter.create(newLimit);
+      }
+    }
+    return current;
   }
 
   public void run() throws IOException, InterruptedException, KeeperException {
