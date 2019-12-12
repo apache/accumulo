@@ -186,6 +186,7 @@ public class Master extends AccumuloServerContext
   final private static int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = ONE_SECOND;
   final static int MAX_TSERVER_WORK_CHUNK = 5000;
   final private static int MAX_BAD_STATUS_COUNT = 3;
+  final private static double MAX_SHUTDOWNS_PER_SEC = 10D / 60D;
 
   final VolumeManager fs;
   final private String hostname;
@@ -222,7 +223,6 @@ public class Master extends AccumuloServerContext
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus =
       Collections.unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
-  private RateLimiter shutdownServerRateLimiter = null;
 
   @Override
   public synchronized MasterState getMasterState() {
@@ -1172,7 +1172,7 @@ public class Master extends AccumuloServerContext
         threads == 0 ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
-    shutdownServerRateLimiter = getRateLimiter(shutdownServerRateLimiter);
+    final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {
@@ -1200,23 +1200,25 @@ public class Master extends AccumuloServerContext
           } catch (Exception ex) {
             log.error("unable to get tablet server status " + server + " " + ex.toString());
             log.debug("unable to get tablet server status " + server, ex);
+            // Attempt to shutdown server only if able to acquire. If unable, this tablet server
+            // will be removed from the badServers set below and status will be reattempted again
+            // MAX_BAD_STATUS_COUNT times
             if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
-              log.warn("attempting to stop " + server);
-              try {
-                TServerConnection connection = tserverSet.getConnection(server);
-                if (connection != null) {
-                  // Attempt to shutdown server only if able to acquire. If unable, this table
-                  // server
-                  // will be removed from the badServers set below and status will be reattempted
-                  // again MAX_BAD_STATUS_COUNT times
-                  if (shutdownServerRateLimiter.tryAcquire()) {
+              if (shutdownServerRateLimiter.tryAcquire()) {
+                log.warn("attempting to stop " + server);
+                try {
+                  TServerConnection connection = tserverSet.getConnection(server);
+                  if (connection != null) {
                     connection.halt(masterLock);
                   }
+                } catch (TTransportException e) {
+                  // ignore: it's probably down
+                } catch (Exception e) {
+                  log.info("error talking to troublesome tablet server ", e);
                 }
-              } catch (TTransportException e) {
-                // ignore: it's probably down
-              } catch (Exception e) {
-                log.info("error talking to troublesome tablet server ", e);
+              } else {
+                log.warn("Unable to shutdown {} as over the shutdown limit of {} per minute",
+                    server, MAX_SHUTDOWNS_PER_SEC * 60);
               }
               badServers.remove(server);
             }
@@ -1244,20 +1246,6 @@ public class Master extends AccumuloServerContext
         info.size(), currentServers.size(), (System.currentTimeMillis() - start) / 1000.));
 
     return info;
-  }
-
-  private RateLimiter getRateLimiter(RateLimiter current) {
-    Double newLimit = getConfiguration().getCount(Property.MASTER_STATUS_SHUTDOW_RATE_LIMIT) / 60D;
-
-    if (current == null) {
-      current = RateLimiter.create(newLimit);
-    } else {
-      Double currentLimit = current.getRate();
-      if (!currentLimit.equals(newLimit)) {
-        current = RateLimiter.create(newLimit);
-      }
-    }
-    return current;
   }
 
   public void run() throws IOException, InterruptedException, KeeperException {

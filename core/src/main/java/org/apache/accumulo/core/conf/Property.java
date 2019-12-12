@@ -347,8 +347,6 @@ public enum Property {
   MASTER_STATUS_THREAD_POOL_SIZE("master.status.threadpool.size", "0", PropertyType.COUNT,
       "The number of threads to use when fetching the tablet server status for balancing.  Zero "
           + "indicates an unlimited number of threads will be used."),
-  MASTER_STATUS_SHUTDOW_RATE_LIMIT("master.status.shutdown.rate.limit", "10", PropertyType.COUNT,
-      "The maximum number of tservers to shutdown per minute due to failure to get status."),
   MASTER_METADATA_SUSPENDABLE("master.metadata.suspendable", "false", PropertyType.BOOLEAN,
       "Allow tablets for the " + MetadataTable.NAME
           + " table to be suspended via table.suspend.duration."),
