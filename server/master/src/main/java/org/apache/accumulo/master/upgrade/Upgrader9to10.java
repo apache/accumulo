@@ -44,11 +44,13 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -73,9 +75,11 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
@@ -112,12 +116,14 @@ public class Upgrader9to10 implements Upgrader {
   public void upgradeRoot(ServerContext ctx) {
     upgradeDirColumns(ctx, Ample.DataLevel.METADATA);
     upgradeFileDeletes(ctx, Ample.DataLevel.METADATA);
+    upgradeRelativePaths(ctx, Ample.DataLevel.METADATA);
   }
 
   @Override
   public void upgradeMetadata(ServerContext ctx) {
     upgradeDirColumns(ctx, Ample.DataLevel.USER);
     upgradeFileDeletes(ctx, Ample.DataLevel.USER);
+    upgradeRelativePaths(ctx, Ample.DataLevel.USER);
   }
 
   private void upgradeRootTabletMetadata(ServerContext ctx) {
@@ -499,5 +505,128 @@ public class Upgrader9to10 implements Upgrader {
 
   public static String upgradeDirColumn(String dir) {
     return new Path(dir).getName();
+  }
+
+  /**
+   * Remove all file entries containing relative paths and replace them with absolute URI paths.
+   */
+  public static void upgradeRelativePaths(ServerContext ctx, Ample.DataLevel level) {
+    String tableName = level.metaTable();
+    AccumuloClient c = ctx;
+    Configuration hadoopConf = ctx.getHadoopConf();
+    String volumeProp = ctx.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
+
+    // first pass check for relative paths - if any, check existence of the file path
+    // constructed from the upgrade property + relative path
+    if (!checkForRelativePaths(c, hadoopConf, tableName, volumeProp)) {
+      log.info("No relative paths found in {} during upgrade.", tableName);
+      return;
+    } else {
+      log.info("Relative Tablet File paths exist in {}, replacing with absolute using {}",
+          tableName, volumeProp);
+    }
+
+    // second pass, create atomic mutations to replace the relative path
+    replaceRelativePaths(c, hadoopConf, tableName, volumeProp);
+  }
+
+  /**
+   * Replace relative paths but only if the constructed absolute path exists on FileSystem
+   */
+  public static void replaceRelativePaths(AccumuloClient c, Configuration hadoopConf,
+      String tableName, String volumeProp) {
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
+        BatchWriter writer = c.createBatchWriter(tableName)) {
+      FileSystem fs = FileSystem.get(hadoopConf);
+
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      for (Entry<Key,Value> entry : scanner) {
+        Key key = entry.getKey();
+        Text filePath = key.getColumnQualifier();
+        if (!filePath.toString().contains(":")) {
+          // found relative paths so get the property used to build the absolute paths
+          if (volumeProp == null || volumeProp.isBlank()) {
+            throw new IllegalArgumentException(
+                "Missing required property " + Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE.getKey());
+          }
+          String metaEntry = key.getColumnQualifier().toString();
+          Path relPath = resolveRelativePath(metaEntry, key);
+          Path absPath = new Path(volumeProp, relPath);
+          if (fs.exists(absPath)) {
+            log.debug("Changing Tablet File path from {} to {}", metaEntry, absPath);
+            Mutation m = new Mutation(key.getRow());
+            // add the new path
+            m.at().family(key.getColumnFamily()).qualifier(absPath.toString())
+                .visibility(key.getColumnVisibility()).timestamp(key.getTimestamp())
+                .put(entry.getValue());
+            // delete the old path
+            m.at().family(key.getColumnFamily()).qualifier(key.getColumnQualifierData().toArray())
+                .visibility(key.getColumnVisibility()).timestamp(key.getTimestamp()).delete();
+            writer.addMutation(m);
+          } else {
+            throw new IllegalArgumentException(
+                "Relative Tablet file " + relPath + " not found at " + absPath);
+          }
+        }
+      }
+    } catch (MutationsRejectedException | TableNotFoundException e) {
+      throw new RuntimeException(e);
+    } catch (IOException ioe) {
+      throw new UncheckedIOException(ioe);
+    }
+  }
+
+  /**
+   * Check if table has any relative paths, return false if none are found. When a relative path is
+   * found, check existence of the file path constructed from the upgrade property + relative path
+   */
+  public static boolean checkForRelativePaths(AccumuloClient client, Configuration hadoopConf,
+      String tableName, String upgradeProperty) {
+    boolean hasRelatives = false;
+
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+      FileSystem fs = FileSystem.get(hadoopConf);
+      log.info("Looking for relative paths in {}", tableName);
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      for (Entry<Key,Value> entry : scanner) {
+        Key key = entry.getKey();
+        Text filePath = key.getColumnQualifier();
+        if (!filePath.toString().contains(":")) {
+          // found relative paths so verify the property used to build the absolute paths
+          hasRelatives = true;
+          if (upgradeProperty == null || upgradeProperty.isBlank()) {
+            throw new IllegalArgumentException(
+                "Missing required property " + Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE.getKey());
+          }
+          Path relPath = resolveRelativePath(key.getColumnQualifier().toString(), key);
+          Path absPath = new Path(upgradeProperty, relPath);
+          if (!fs.exists(absPath)) {
+            throw new IllegalArgumentException("Tablet file " + relPath + " not found at " + absPath
+                + " using volume: " + upgradeProperty);
+          }
+        }
+      }
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+
+    return hasRelatives;
+  }
+
+  /**
+   * Resolve old-style relative paths, returning Path of everything except volume and base
+   */
+  private static Path resolveRelativePath(String metadataEntry, Key key) {
+    String prefix = "tables" + "/";
+    if (metadataEntry.startsWith("..")) {
+      // resolve style "../2a/t-0003/C0004.rf"
+      return new Path(prefix + metadataEntry.substring(2));
+    } else {
+      // resolve style "/t-0003/C0004.rf"
+      TableId tableId = KeyExtent.tableIdOfMetadataRow(key.getRow());
+      return new Path(prefix + tableId.canonical() + metadataEntry);
+    }
   }
 }
