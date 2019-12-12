@@ -1205,6 +1205,10 @@ public class Master extends AccumuloServerContext
               try {
                 TServerConnection connection = tserverSet.getConnection(server);
                 if (connection != null) {
+                  // Attempt to shutdown server only if able to acquire. If unable, this table
+                  // server
+                  // will be removed from the badServers set below and status will be reattempted
+                  // again MAX_BAD_STATUS_COUNT times
                   if (shutdownServerRateLimiter.tryAcquire()) {
                     connection.halt(masterLock);
                   }
