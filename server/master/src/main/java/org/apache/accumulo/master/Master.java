@@ -1172,7 +1172,7 @@ public class Master extends AccumuloServerContext
         threads == 0 ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
-    final RateLimiter rateLimiter = getRateLimiter(shutdownServerRateLimiter);
+    shutdownServerRateLimiter = getRateLimiter(shutdownServerRateLimiter);
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {
@@ -1205,7 +1205,7 @@ public class Master extends AccumuloServerContext
               try {
                 TServerConnection connection = tserverSet.getConnection(server);
                 if (connection != null) {
-                  if (rateLimiter.tryAcquire()) {
+                  if (shutdownServerRateLimiter.tryAcquire()) {
                     connection.halt(masterLock);
                   }
                 }
