@@ -111,10 +111,8 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
       // only if the custom property is not set to we fall back to the default scoped preferred
       // volumes
       if (preferredVolumes == null || preferredVolumes.isEmpty()) {
-        String msg = "Property " + property + " or " + DEFAULT_SCOPED_PREFERRED_VOLUMES
-            + " must be a subset of " + Arrays.toString(options) + " to use the "
-            + getClass().getSimpleName();
-        throw new VolumeChooserException(msg);
+        // if the scope volume not specified we fall back to default volume
+        return options;
       }
 
       property = DEFAULT_SCOPED_PREFERRED_VOLUMES;

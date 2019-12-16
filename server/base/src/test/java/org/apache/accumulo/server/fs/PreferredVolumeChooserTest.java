@@ -183,9 +183,9 @@ public class PreferredVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    choose(ChooserScope.LOGGER);
-    fail("should not reach");
+    String[] volumes = choose(ChooserScope.LOGGER);
+    Arrays.sort(volumes);
+    assertArrayEquals(new String[] {"1", "2", "3"}, volumes);
   }
 
   @Test

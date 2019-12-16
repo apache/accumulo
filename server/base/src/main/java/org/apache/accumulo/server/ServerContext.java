@@ -87,6 +87,11 @@ public class ServerContext extends ClientContext {
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
   }
 
+  @Override
+  public String getInstanceID() {
+    return info.getInstanceID();
+  }
+
   /**
    * Should only be called by the Tablet server
    */

@@ -172,16 +172,17 @@ public class PerTableVolumeChooserTest {
   }
 
   @Test
-  public void testLoggerScopeWithNoConfig() {
+  public void testLoggerScopeWithNoConfig() throws Exception {
     expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.LOGGER))).andReturn(null)
         .once();
     expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn(null)
         .once();
+    expect(serviceEnv.instantiate(RandomVolumeChooser.class.getName(), VolumeChooser.class))
+        .andReturn(new RandomVolumeChooser());
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    getDelegate(ChooserScope.LOGGER);
-    fail("should not reach");
+    VolumeChooser delegate = getDelegate(ChooserScope.LOGGER);
+    assertSame(RandomVolumeChooser.class, delegate.getClass());
   }
 
   @Test
