@@ -178,6 +178,7 @@ public class Master extends AccumuloServerContext
 
   final static int ONE_SECOND = 1000;
   final static long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
+  final static long TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE = 20 * ONE_SECOND;
   final private static long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   final static long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   final private static long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
@@ -1242,7 +1243,7 @@ public class Master extends AccumuloServerContext
 
     getMasterLock(zroot + Constants.ZMASTER_LOCK);
 
-    recoveryManager = new RecoveryManager(this);
+    recoveryManager = new RecoveryManager(this, TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE);
 
     TableManager.getInstance().addObserver(this);
 
