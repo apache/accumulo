@@ -126,7 +126,7 @@ public enum Property {
           + "example replace commas with %2C."),
   INSTANCE_VOLUMES_UPGRADE_RELATIVE("instance.volumes.upgrade.relative", "", PropertyType.STRING,
       "The volume dfs uri containing relative tablet file paths. Relative paths may exist in the metadata from "
-          + "versions prior to 1.7. This property is only required if a relative path is detected "
+          + "versions prior to 1.6. This property is only required if a relative path is detected "
           + "during the upgrade process and will only be used once."),
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
