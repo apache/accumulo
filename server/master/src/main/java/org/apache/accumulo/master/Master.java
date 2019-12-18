@@ -178,7 +178,8 @@ public class Master extends AccumuloServerContext
 
   final static int ONE_SECOND = 1000;
   final static long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
-  final static long TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE = 20 * ONE_SECOND;
+  // made this less than TIME_TO_WAIT_BETWEEN_SCANS, so that the cache is cleared between cycles
+  final static long TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE = (3 * TIME_TO_WAIT_BETWEEN_SCANS) / 4;
   final private static long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   final static long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   final private static long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
