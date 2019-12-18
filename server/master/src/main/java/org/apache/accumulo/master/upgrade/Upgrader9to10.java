@@ -589,15 +589,15 @@ public class Upgrader9to10 implements Upgrader {
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
-        Text filePath = key.getColumnQualifier();
-        if (!filePath.toString().contains(":")) {
+        String metaEntry = key.getColumnQualifier().toString();
+        if (!metaEntry.contains(":")) {
           // found relative paths so verify the property used to build the absolute paths
           hasRelatives = true;
           if (upgradeProperty == null || upgradeProperty.isBlank()) {
             throw new IllegalArgumentException(
                 "Missing required property " + Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE.getKey());
           }
-          Path relPath = resolveRelativePath(key.getColumnQualifier().toString(), key);
+          Path relPath = resolveRelativePath(metaEntry, key);
           Path absPath = new Path(upgradeProperty, relPath);
           if (!fs.exists(absPath)) {
             throw new IllegalArgumentException("Tablet file " + relPath + " not found at " + absPath
