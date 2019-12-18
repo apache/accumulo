@@ -514,12 +514,12 @@ public class Upgrader9to10 implements Upgrader {
   public static void upgradeRelativePaths(ServerContext ctx, Ample.DataLevel level) {
     String tableName = level.metaTable();
     AccumuloClient c = ctx;
-    Configuration hadoopConf = ctx.getHadoopConf();
+    VolumeManager fs = ctx.getVolumeManager();
     String upgradeProp = ctx.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
 
     // first pass check for relative paths - if any, check existence of the file path
     // constructed from the upgrade property + relative path
-    if (!checkForRelativePaths(c, hadoopConf, tableName, upgradeProp)) {
+    if (!checkForRelativePaths(c, fs, tableName, upgradeProp)) {
       log.info("No relative paths found in {} during upgrade.", tableName);
       return;
     } else {
@@ -528,17 +528,16 @@ public class Upgrader9to10 implements Upgrader {
     }
 
     // second pass, create atomic mutations to replace the relative path
-    replaceRelativePaths(c, hadoopConf, tableName, upgradeProp);
+    replaceRelativePaths(c, fs, tableName, upgradeProp);
   }
 
   /**
    * Replace relative paths but only if the constructed absolute path exists on FileSystem
    */
-  public static void replaceRelativePaths(AccumuloClient c, Configuration hadoopConf,
+  public static void replaceRelativePaths(AccumuloClient c, VolumeManager fs,
       String tableName, String upgradeProperty) {
     try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
         BatchWriter writer = c.createBatchWriter(tableName)) {
-      FileSystem fs = FileSystem.get(hadoopConf);
 
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
@@ -579,12 +578,11 @@ public class Upgrader9to10 implements Upgrader {
    * Check if table has any relative paths, return false if none are found. When a relative path is
    * found, check existence of the file path constructed from the upgrade property + relative path
    */
-  public static boolean checkForRelativePaths(AccumuloClient client, Configuration hadoopConf,
+  public static boolean checkForRelativePaths(AccumuloClient client, VolumeManager fs,
       String tableName, String upgradeProperty) {
     boolean hasRelatives = false;
 
     try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      FileSystem fs = FileSystem.get(hadoopConf);
       log.info("Looking for relative paths in {}", tableName);
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
