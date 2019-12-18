@@ -110,8 +110,10 @@ public class PerTableVolumeChooser implements VolumeChooser {
       clazz = env.getServiceEnv().getConfiguration().getCustom(DEFAULT_SCOPED_VOLUME_CHOOSER);
 
       if (clazz == null || clazz.isEmpty()) {
-        // fall back to Random chooser
-        clazz = RandomVolumeChooser.class.getName();
+        String msg =
+            "Property " + property + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER + " must be a valid "
+                + VolumeChooser.class.getSimpleName() + " to use the " + getClass().getSimpleName();
+        throw new VolumeChooserException(msg);
       }
 
       property = DEFAULT_SCOPED_VOLUME_CHOOSER;
