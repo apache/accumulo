@@ -67,6 +67,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -514,27 +515,27 @@ public class Upgrader9to10 implements Upgrader {
     String tableName = level.metaTable();
     AccumuloClient c = ctx;
     Configuration hadoopConf = ctx.getHadoopConf();
-    String volumeProp = ctx.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
+    String upgradeProp = ctx.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
 
     // first pass check for relative paths - if any, check existence of the file path
     // constructed from the upgrade property + relative path
-    if (!checkForRelativePaths(c, hadoopConf, tableName, volumeProp)) {
+    if (!checkForRelativePaths(c, hadoopConf, tableName, upgradeProp)) {
       log.info("No relative paths found in {} during upgrade.", tableName);
       return;
     } else {
       log.info("Relative Tablet File paths exist in {}, replacing with absolute using {}",
-          tableName, volumeProp);
+          tableName, upgradeProp);
     }
 
     // second pass, create atomic mutations to replace the relative path
-    replaceRelativePaths(c, hadoopConf, tableName, volumeProp);
+    replaceRelativePaths(c, hadoopConf, tableName, upgradeProp);
   }
 
   /**
    * Replace relative paths but only if the constructed absolute path exists on FileSystem
    */
   public static void replaceRelativePaths(AccumuloClient c, Configuration hadoopConf,
-      String tableName, String volumeProp) {
+      String tableName, String upgradeProperty) {
     try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
         BatchWriter writer = c.createBatchWriter(tableName)) {
       FileSystem fs = FileSystem.get(hadoopConf);
@@ -542,26 +543,24 @@ public class Upgrader9to10 implements Upgrader {
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
-        Text filePath = key.getColumnQualifier();
-        if (!filePath.toString().contains(":")) {
+        String metaEntry = key.getColumnQualifier().toString();
+        if (!metaEntry.contains(":")) {
           // found relative paths so get the property used to build the absolute paths
-          if (volumeProp == null || volumeProp.isBlank()) {
+          if (upgradeProperty == null || upgradeProperty.isBlank()) {
             throw new IllegalArgumentException(
                 "Missing required property " + Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE.getKey());
           }
-          String metaEntry = key.getColumnQualifier().toString();
           Path relPath = resolveRelativePath(metaEntry, key);
-          Path absPath = new Path(volumeProp, relPath);
+          Path absPath = new Path(upgradeProperty, relPath);
           if (fs.exists(absPath)) {
             log.debug("Changing Tablet File path from {} to {}", metaEntry, absPath);
             Mutation m = new Mutation(key.getRow());
             // add the new path
             m.at().family(key.getColumnFamily()).qualifier(absPath.toString())
-                .visibility(key.getColumnVisibility()).timestamp(key.getTimestamp())
-                .put(entry.getValue());
+                .visibility(key.getColumnVisibility()).put(entry.getValue());
             // delete the old path
             m.at().family(key.getColumnFamily()).qualifier(key.getColumnQualifierData().toArray())
-                .visibility(key.getColumnVisibility()).timestamp(key.getTimestamp()).delete();
+                .visibility(key.getColumnVisibility()).delete();
             writer.addMutation(m);
           } else {
             throw new IllegalArgumentException(
@@ -570,7 +569,7 @@ public class Upgrader9to10 implements Upgrader {
         }
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } catch (IOException ioe) {
       throw new UncheckedIOException(ioe);
     }
@@ -607,7 +606,7 @@ public class Upgrader9to10 implements Upgrader {
         }
       }
     } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
@@ -619,8 +618,8 @@ public class Upgrader9to10 implements Upgrader {
    * Resolve old-style relative paths, returning Path of everything except volume and base
    */
   private static Path resolveRelativePath(String metadataEntry, Key key) {
-    String prefix = "tables" + "/";
-    if (metadataEntry.startsWith("..")) {
+    String prefix = ServerConstants.TABLE_DIR + "/";
+    if (metadataEntry.startsWith("../")) {
       // resolve style "../2a/t-0003/C0004.rf"
       return new Path(prefix + metadataEntry.substring(2));
     } else {
