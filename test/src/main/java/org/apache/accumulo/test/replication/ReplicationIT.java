@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonMap;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
@@ -153,15 +152,14 @@ public class ReplicationIT extends ConfigurableMacBase {
   private Multimap<String,TableId> getLogs(AccumuloClient client, ServerContext context)
       throws Exception {
     // Map of server to tableId
-    Multimap<TServerInstance,String> serverToTableID = HashMultimap.create();
+    Multimap<TServerInstance,TableId> serverToTableID = HashMultimap.create();
     try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
-        TServerInstance key =
-            new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier());
-        byte[] tableId = KeyExtent.tableOfMetadataRow(entry.getKey().getRow());
-        serverToTableID.put(key, new String(tableId, UTF_8));
+        var tServer = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier());
+        TableId tableId = KeyExtent.tableOfMetadataRow(entry.getKey().getRow());
+        serverToTableID.put(tServer, tableId);
       }
       // Map of logs to tableId
       Multimap<String,TableId> logs = HashMultimap.create();
@@ -169,8 +167,8 @@ public class ReplicationIT extends ConfigurableMacBase {
       for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
         for (UUID id : entry.getValue()) {
           Pair<WalState,Path> state = wals.state(entry.getKey(), id);
-          for (String tableId : serverToTableID.get(entry.getKey())) {
-            logs.put(state.getSecond().toString(), TableId.of(tableId));
+          for (TableId tableId : serverToTableID.get(entry.getKey())) {
+            logs.put(state.getSecond().toString(), tableId);
           }
         }
       }

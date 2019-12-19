@@ -392,8 +392,8 @@ public class VolumeManagerImpl implements VolumeManager {
   public Path getFullPath(Key key) {
     // TODO sanity check col fam
     String relPath = key.getColumnQualifierData().toString();
-    byte[] tableId = KeyExtent.tableOfMetadataRow(key.getRow());
-    return getFullPath(TableId.of(new String(tableId)), relPath);
+    TableId tableId = KeyExtent.tableOfMetadataRow(key.getRow());
+    return getFullPath(tableId, relPath);
   }
 
   @Override
