@@ -76,11 +76,9 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
@@ -519,12 +517,12 @@ public class Upgrader9to10 implements Upgrader {
 
     // first pass check for relative paths - if any, check existence of the file path
     // constructed from the upgrade property + relative path
-    if (!checkForRelativePaths(c, fs, tableName, upgradeProp)) {
-      log.info("No relative paths found in {} during upgrade.", tableName);
-      return;
-    } else {
+    if (checkForRelativePaths(c, fs, tableName, upgradeProp)) {
       log.info("Relative Tablet File paths exist in {}, replacing with absolute using {}",
           tableName, upgradeProp);
+    } else {
+      log.info("No relative paths found in {} during upgrade.", tableName);
+      return;
     }
 
     // second pass, create atomic mutations to replace the relative path
@@ -534,8 +532,8 @@ public class Upgrader9to10 implements Upgrader {
   /**
    * Replace relative paths but only if the constructed absolute path exists on FileSystem
    */
-  public static void replaceRelativePaths(AccumuloClient c, VolumeManager fs,
-      String tableName, String upgradeProperty) {
+  public static void replaceRelativePaths(AccumuloClient c, VolumeManager fs, String tableName,
+      String upgradeProperty) {
     try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
         BatchWriter writer = c.createBatchWriter(tableName)) {
 
@@ -619,7 +617,7 @@ public class Upgrader9to10 implements Upgrader {
     String prefix = ServerConstants.TABLE_DIR + "/";
     if (metadataEntry.startsWith("../")) {
       // resolve style "../2a/t-0003/C0004.rf"
-      return new Path(prefix + metadataEntry.substring(2));
+      return new Path(prefix + metadataEntry.substring(3));
     } else {
       // resolve style "/t-0003/C0004.rf"
       TableId tableId = KeyExtent.tableIdOfMetadataRow(key.getRow());

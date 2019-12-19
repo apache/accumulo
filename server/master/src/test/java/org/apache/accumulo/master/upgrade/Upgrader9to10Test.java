@@ -26,6 +26,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -97,7 +99,8 @@ public class Upgrader9to10Test {
   String volumeUpgrade = "file:///accumulo";
 
   // mock objects for testing relative path replacement
-  private void setupMocks(AccumuloClient c, VolumeManager fs, SortedMap<Key, Value> map, List<Mutation> results) throws Exception {
+  private void setupMocks(AccumuloClient c, VolumeManager fs, SortedMap<Key,Value> map,
+      List<Mutation> results) throws Exception {
     Scanner scanner = createMock(Scanner.class);
     // buffer all the mutations that are created so we can verify they are correct
     BatchWriter writer = new BatchWriter() {
@@ -114,7 +117,7 @@ public class Upgrader9to10Test {
       }
 
       @Override
-      public void flush() throws MutationsRejectedException { }
+      public void flush() throws MutationsRejectedException {}
 
       @Override
       // simulate the close by adding all to results and preventing anymore adds
@@ -143,16 +146,21 @@ public class Upgrader9to10Test {
     AccumuloClient c = createMock(AccumuloClient.class);
     expect(fs.exists(anyObject())).andReturn(true).anyTimes();
 
-    SortedMap<Key, Value> map = new TreeMap<>();
-    map.put(new Key("1<", "file", "hdfs://localhost:8020/accumulo/tables/1/default_tablet/A000001c.rf"), new Value());
-    map.put(new Key("1<", "file", "hdfs://localhost:8020/accumulo/tables/1/default_tablet/F000001m.rf"), new Value());
-    map.put(new Key("1<", "file", "file://nn1:8020/accumulo/tables/1/t-0005/F000004x.rf"), new Value());
-    map.put(new Key("1<", "file", "file://volume23:8000/accumulo/tables/1/t-1234/F0000054.rf"), new Value());
+    SortedMap<Key,Value> map = new TreeMap<>();
+    map.put(new Key("1<", "file", "hdfs://nn1:8020/accumulo/tables/1/default_tablet/A000001c.rf"),
+        new Value());
+    map.put(new Key("1<", "file", "hdfs://nn1:8020/accumulo/tables/1/default_tablet/F000001m.rf"),
+        new Value());
+    map.put(new Key("1<", "file", "file://nn1:8020/accumulo/tables/1/t-0005/F000004x.rf"),
+        new Value());
+    map.put(new Key("1<", "file", "file://volume23:8000/accumulo/tables/1/t-1234/F0000054.rf"),
+        new Value());
 
     List<Mutation> results = new ArrayList<>();
 
     setupMocks(c, fs, map, results);
-    assertEquals("Invalid Relative path check", Upgrader9to10.checkForRelativePaths(c, fs, tableName, volumeUpgrade), false);
+    assertEquals("Invalid Relative path check",
+        Upgrader9to10.checkForRelativePaths(c, fs, tableName, volumeUpgrade), false);
     assertTrue(results.isEmpty());
   }
 
@@ -160,14 +168,38 @@ public class Upgrader9to10Test {
   public void filesDontExistAfterReplacingRelatives() throws Exception {
     AccumuloClient c = createMock(AccumuloClient.class);
     VolumeManager fs = createMock(VolumeManager.class);
-    expect(fs.exists(anyObject())).andReturn(true).anyTimes();
-    //TODO
+    SortedMap<Key,Value> map = new TreeMap<>();
+    map.put(new Key("1b;row_0000000050", "file", "../1b/default_tablet/A000001c.rf"),
+        new Value("1"));
+    map.put(new Key("1b;row_0000000050", "file", "../1b/default_tablet/F000001m.rf"),
+        new Value("2"));
 
+    expect(fs.exists(anyObject(Path.class))).andReturn(false).anyTimes();
+
+    setupMocks(c, fs, map, new ArrayList<>());
+    try {
+      Upgrader9to10.checkForRelativePaths(c, fs, tableName, volumeUpgrade);
+      fail("Expected IllegalArgumentException to be thrown");
+    } catch (IllegalArgumentException e) {}
   }
 
   @Test
   public void missingUpgradeRelativeProperty() throws Exception {
-    //TODO
+    AccumuloClient c = createMock(AccumuloClient.class);
+    VolumeManager fs = createMock(VolumeManager.class);
+    SortedMap<Key,Value> map = new TreeMap<>();
+    map.put(new Key("1b;row_0000000050", "file", "../1b/default_tablet/A000001c.rf"),
+        new Value("1"));
+    map.put(new Key("1b;row_0000000050", "file", "../1b/default_tablet/F000001m.rf"),
+        new Value("2"));
+
+    expect(fs.exists(anyObject(Path.class))).andReturn(false).anyTimes();
+
+    setupMocks(c, fs, map, new ArrayList<>());
+    try {
+      Upgrader9to10.checkForRelativePaths(c, fs, tableName, "");
+      fail("Expected IllegalArgumentException to be thrown");
+    } catch (IllegalArgumentException e) {}
   }
 
   @Test
@@ -176,31 +208,41 @@ public class Upgrader9to10Test {
     VolumeManager fs = createMock(VolumeManager.class);
     expect(fs.exists(anyObject())).andReturn(true).anyTimes();
 
-    SortedMap<Key, Value> data = new TreeMap<>();
-    data.put(new Key("1b;row_0000000050", "file", "../1b/default_tablet/A000001c.rf"), new Value("1"));
-    data.put(new Key("1b;row_0000000050", "file", "../1b/default_tablet/F000001m.rf"), new Value("2"));
-    data.put(new Key("1b;row_0000000050", "file", "../1b/t-000008t/F000004x.rf"), new Value("3"));
-    data.put(new Key("1b;row_0000000050", "file", "/t-000008t/F0000054.rf"), new Value("4"));
-    data.put(new Key("1b<", "file", "../1b/default_tablet/A000001c.rf"), new Value("1"));
-    data.put(new Key("1b<", "file", "../1b/default_tablet/F000001m.rf"), new Value("2"));
-    data.put(new Key("1b<", "file", "../1b/t-000008t/F000004x.rf"), new Value("3"));
-    data.put(new Key("1b<", "file", "/t-000008t/F0000054.rf"), new Value("4"));
-    data.put(new Key("1b<", "file", "hdfs://localhost:8020/accumulo/tables/1b/t-000008t/A0000098.rf"), new Value("5"));
-    data.put(new Key("1b<", "file", "hdfs://localhost:8020/accumulo/tables/1b/t-000008t/F0000098.rf"), new Value("5"));
+    SortedMap<Key,Value> map = new TreeMap<>();
+    map.put(new Key("1b;row_000050", "file", "../1b/default_tablet/A000001c.rf"), new Value("1"));
+    map.put(new Key("1b;row_000050", "file", "../1b/default_tablet/F000001m.rf"), new Value("2"));
+    map.put(new Key("1b;row_000050", "file", "../1b/t-000008t/F000004x.rf"), new Value("3"));
+    map.put(new Key("1b;row_000050", "file", "/t-000008t/F0000054.rf"), new Value("4"));
+    map.put(new Key("1b<", "file", "../1b/default_tablet/A000001c.rf"), new Value("1"));
+    map.put(new Key("1b<", "file", "../1b/default_tablet/F000001m.rf"), new Value("2"));
+    map.put(new Key("1b<", "file", "../1b/t-000008t/F000004x.rf"), new Value("3"));
+    map.put(new Key("1b<", "file", "/t-000008t/F0000054.rf"), new Value("4"));
+    map.put(new Key("1b<", "file", "hdfs://nn1:8020/accumulo/tables/1b/t-000008t/A0000098.rf"),
+        new Value("5"));
+    map.put(new Key("1b<", "file", "hdfs://nn1:8020/accumulo/tables/1b/t-000008t/F0000098.rf"),
+        new Value("5"));
 
     List<Mutation> expected = new ArrayList<>();
-    expected.add(replaceMut("1b;row_0000000050", "file:/accumulo/tables/1b/default_tablet/A000001c.rf", "1", "../1b/default_tablet/A000001c.rf"));
-    expected.add(replaceMut("1b;row_0000000050", "file:/accumulo/tables/1b/default_tablet/F000001m.rf", "2", "../1b/default_tablet/F000001m.rf"));
-    expected.add(replaceMut("1b;row_0000000050", "file:/accumulo/tables/1b/t-000008t/F000004x.rf","3", "../1b/t-000008t/F000004x.rf"));
-    expected.add(replaceMut("1b;row_0000000050", "file:/accumulo/tables/1b/t-000008t/F0000054.rf", "4", "/t-000008t/F0000054.rf"));
-    expected.add(replaceMut("1b<", "file:/accumulo/tables/1b/default_tablet/A000001c.rf", "1", "../1b/default_tablet/A000001c.rf"));
-    expected.add(replaceMut("1b<", "file:/accumulo/tables/1b/default_tablet/F000001m.rf", "2", "../1b/default_tablet/F000001m.rf"));
-    expected.add(replaceMut("1b<", "file:/accumulo/tables/1b/t-000008t/F000004x.rf","3", "../1b/t-000008t/F000004x.rf"));
-    expected.add(replaceMut("1b<", "file:/accumulo/tables/1b/t-000008t/F0000054.rf", "4", "/t-000008t/F0000054.rf"));
+    expected.add(replaceMut("1b;row_000050", "file:/accumulo/tables/1b/default_tablet/A000001c.rf",
+        "1", "../1b/default_tablet/A000001c.rf"));
+    expected.add(replaceMut("1b;row_000050", "file:/accumulo/tables/1b/default_tablet/F000001m.rf",
+        "2", "../1b/default_tablet/F000001m.rf"));
+    expected.add(replaceMut("1b;row_000050", "file:/accumulo/tables/1b/t-000008t/F000004x.rf", "3",
+        "../1b/t-000008t/F000004x.rf"));
+    expected.add(replaceMut("1b;row_000050", "file:/accumulo/tables/1b/t-000008t/F0000054.rf", "4",
+        "/t-000008t/F0000054.rf"));
+    expected.add(replaceMut("1b<", "file:/accumulo/tables/1b/default_tablet/A000001c.rf", "1",
+        "../1b/default_tablet/A000001c.rf"));
+    expected.add(replaceMut("1b<", "file:/accumulo/tables/1b/default_tablet/F000001m.rf", "2",
+        "../1b/default_tablet/F000001m.rf"));
+    expected.add(replaceMut("1b<", "file:/accumulo/tables/1b/t-000008t/F000004x.rf", "3",
+        "../1b/t-000008t/F000004x.rf"));
+    expected.add(replaceMut("1b<", "file:/accumulo/tables/1b/t-000008t/F0000054.rf", "4",
+        "/t-000008t/F0000054.rf"));
 
     List<Mutation> results = new ArrayList<>();
 
-    setupMocks(c, fs, data, results);
+    setupMocks(c, fs, map, results);
     Upgrader9to10.replaceRelativePaths(c, fs, tableName, volumeUpgrade);
     verifyPathsReplaced(expected, results);
   }
