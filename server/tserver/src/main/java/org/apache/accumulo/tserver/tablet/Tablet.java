@@ -2757,7 +2757,7 @@ public class Tablet {
     
     Tablet t = tabletServer.getOnlineTablet(extent);
     //will keep looking for a better way to check if a tablet is old and needs to be updated or not. In the mean time, this works and is adjustable.
-    long currentTime = tabletTime.getAndUpdateTime();
+    long currentTime = System.currentTimeMillis();
     long oldTime = t.tabletTime.getMetadataTime(persistedTime).getTime();
 
     //Takes the most up to date time subtracted by the time listed by the tablet to calculate how old the tablet is.
