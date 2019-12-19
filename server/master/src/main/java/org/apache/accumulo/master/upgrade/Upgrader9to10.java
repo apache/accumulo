@@ -113,16 +113,16 @@ public class Upgrader9to10 implements Upgrader {
 
   @Override
   public void upgradeRoot(ServerContext ctx) {
+    upgradeRelativePaths(ctx, Ample.DataLevel.METADATA);
     upgradeDirColumns(ctx, Ample.DataLevel.METADATA);
     upgradeFileDeletes(ctx, Ample.DataLevel.METADATA);
-    upgradeRelativePaths(ctx, Ample.DataLevel.METADATA);
   }
 
   @Override
   public void upgradeMetadata(ServerContext ctx) {
+    upgradeRelativePaths(ctx, Ample.DataLevel.USER);
     upgradeDirColumns(ctx, Ample.DataLevel.USER);
     upgradeFileDeletes(ctx, Ample.DataLevel.USER);
-    upgradeRelativePaths(ctx, Ample.DataLevel.USER);
   }
 
   private void upgradeRootTabletMetadata(ServerContext ctx) {
@@ -549,6 +549,7 @@ public class Upgrader9to10 implements Upgrader {
           }
           Path relPath = resolveRelativePath(metaEntry, key);
           Path absPath = new Path(upgradeProperty, relPath);
+          // Path absPath = new Path(Paths.get(upgradeProperty).normalize().toString(), relPath);
           if (fs.exists(absPath)) {
             log.debug("Changing Tablet File path from {} to {}", metaEntry, absPath);
             Mutation m = new Mutation(key.getRow());
@@ -595,6 +596,7 @@ public class Upgrader9to10 implements Upgrader {
           }
           Path relPath = resolveRelativePath(metaEntry, key);
           Path absPath = new Path(upgradeProperty, relPath);
+          // Path absPath = new Path(Paths.get(upgradeProperty).normalize().toString(), relPath);
           if (!fs.exists(absPath)) {
             throw new IllegalArgumentException("Tablet file " + relPath + " not found at " + absPath
                 + " using volume: " + upgradeProperty);

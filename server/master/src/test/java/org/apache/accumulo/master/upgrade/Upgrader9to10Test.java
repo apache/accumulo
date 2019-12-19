@@ -169,10 +169,8 @@ public class Upgrader9to10Test {
     AccumuloClient c = createMock(AccumuloClient.class);
     VolumeManager fs = createMock(VolumeManager.class);
     SortedMap<Key,Value> map = new TreeMap<>();
-    map.put(new Key("1b;row_0000000050", "file", "../1b/default_tablet/A000001c.rf"),
-        new Value("1"));
-    map.put(new Key("1b;row_0000000050", "file", "../1b/default_tablet/F000001m.rf"),
-        new Value("2"));
+    map.put(new Key("1b;row_000050", "file", "../1b/default_tablet/A000001c.rf"), new Value("1"));
+    map.put(new Key("1b;row_000050", "file", "../1b/default_tablet/F000001m.rf"), new Value("2"));
 
     expect(fs.exists(anyObject(Path.class))).andReturn(false).anyTimes();
 
@@ -188,10 +186,8 @@ public class Upgrader9to10Test {
     AccumuloClient c = createMock(AccumuloClient.class);
     VolumeManager fs = createMock(VolumeManager.class);
     SortedMap<Key,Value> map = new TreeMap<>();
-    map.put(new Key("1b;row_0000000050", "file", "../1b/default_tablet/A000001c.rf"),
-        new Value("1"));
-    map.put(new Key("1b;row_0000000050", "file", "../1b/default_tablet/F000001m.rf"),
-        new Value("2"));
+    map.put(new Key("1b;row_000050", "file", "../1b/default_tablet/A000001c.rf"), new Value("1"));
+    map.put(new Key("1b;row_000050", "file", "../1b/default_tablet/F000001m.rf"), new Value("2"));
 
     expect(fs.exists(anyObject(Path.class))).andReturn(false).anyTimes();
 
@@ -244,6 +240,30 @@ public class Upgrader9to10Test {
 
     setupMocks(c, fs, map, results);
     Upgrader9to10.replaceRelativePaths(c, fs, tableName, volumeUpgrade);
+    verifyPathsReplaced(expected, results);
+  }
+
+  @Test
+  public void normalizeVolume() throws Exception {
+    String uglyVolume = "hdfs://nn.somewhere.com:86753/accumulo/blah/.././/bad/bad2/../.././/////";
+
+    AccumuloClient c = createMock(AccumuloClient.class);
+    VolumeManager fs = createMock(VolumeManager.class);
+    expect(fs.exists(anyObject())).andReturn(true).anyTimes();
+    SortedMap<Key,Value> map = new TreeMap<>();
+    map.put(new Key("1b<", "file", "../1b/t-000008t/F000004x.rf"), new Value("1"));
+    map.put(new Key("1b<", "file", "/t-000008t/F0000054.rf"), new Value("2"));
+    List<Mutation> results = new ArrayList<>();
+    List<Mutation> expected = new ArrayList<>();
+    expected.add(
+        replaceMut("1b<", "hdfs://nn.somewhere.com:86753/accumulo/tables/1b/t-000008t/F000004x.rf",
+            "1", "../1b/t-000008t/F000004x.rf"));
+    expected.add(
+        replaceMut("1b<", "hdfs://nn.somewhere.com:86753/accumulo/tables/1b/t-000008t/F0000054.rf",
+            "2", "/t-000008t/F0000054.rf"));
+
+    setupMocks(c, fs, map, results);
+    Upgrader9to10.replaceRelativePaths(c, fs, tableName, uglyVolume);
     verifyPathsReplaced(expected, results);
   }
 
