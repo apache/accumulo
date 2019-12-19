@@ -622,7 +622,7 @@ public class Upgrader9to10 implements Upgrader {
       return new Path(prefix + metadataEntry.substring(3));
     } else {
       // resolve style "/t-0003/C0004.rf"
-      TableId tableId = KeyExtent.tableIdOfMetadataRow(key.getRow());
+      TableId tableId = KeyExtent.tableOfMetadataRow(key.getRow());
       return new Path(prefix + tableId.canonical() + metadataEntry);
     }
   }
