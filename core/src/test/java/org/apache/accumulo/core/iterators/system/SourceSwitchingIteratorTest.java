@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -44,8 +45,6 @@ import org.apache.accumulo.core.iterators.YieldingKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
-
-import com.google.common.base.Optional;
 
 public class SourceSwitchingIteratorTest {
 
@@ -344,7 +343,7 @@ public class SourceSwitchingIteratorTest {
 
   public class YieldingIterator extends WrappingIterator
       implements YieldingKeyValueIterator<Key,Value> {
-    private Optional<YieldCallback<Key>> yield = Optional.absent();
+    private Optional<YieldCallback<Key>> yield = Optional.empty();
 
     public YieldingIterator(SortedKeyValueIterator<Key,Value> source) {
       setSource(source);

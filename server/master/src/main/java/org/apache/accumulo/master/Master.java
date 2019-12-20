@@ -159,6 +159,7 @@ import org.apache.zookeeper.KeeperException.NoAuthException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -276,6 +277,7 @@ public class Master extends AccumuloServerContext
     }
   }
 
+  @SuppressModernizer
   private void moveRootTabletToRootTable(IZooReaderWriter zoo) throws Exception {
     String dirZPath = ZooUtil.getRoot(getInstance()) + RootTable.ZROOT_TABLET_PATH;
 

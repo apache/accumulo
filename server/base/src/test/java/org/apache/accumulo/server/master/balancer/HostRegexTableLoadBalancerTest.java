@@ -45,6 +45,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.thrift.TException;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.junit.Test;
 
 import com.google.common.base.Predicate;
@@ -279,6 +280,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
           }
 
           @Override
+          @SuppressModernizer
           public void getProperties(Map<String,String> props, Predicate<String> filter) {
             for (Entry<String,String> e : tableProperties.entrySet()) {
               if (filter.apply(e.getKey())) {

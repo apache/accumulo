@@ -36,6 +36,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,6 +122,7 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   @Override
+  @SuppressModernizer
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     getPropCacheAccessor().getProperties(props, getPath(), filter, parent, null);
   }

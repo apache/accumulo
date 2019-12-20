@@ -104,7 +104,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -254,12 +253,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     boolean foundLocalityGroupDef2 = false;
     boolean foundFormatter = false;
     Joiner j = Joiner.on(",");
-    Function<Text,String> textToString = new Function<Text,String>() {
-      @Override
-      public String apply(Text text) {
-        return text.toString();
-      }
-    };
+
     for (Entry<String,String> p : tops.getProperties(ReplicationTable.NAME)) {
       String key = p.getKey();
       String val = p.getValue();
@@ -277,12 +271,12 @@ public class ReplicationIT extends ConfigurableMacBase {
         if (key
             .equals(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.STATUS_LG_NAME)
             && val.equals(
-                j.join(Iterables.transform(ReplicationTable.STATUS_LG_COLFAMS, textToString)))) {
+                j.join(Iterables.transform(ReplicationTable.STATUS_LG_COLFAMS, Text::toString)))) {
           foundLocalityGroupDef1 = true;
         } else if (key
             .equals(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.WORK_LG_NAME)
             && val.equals(
-                j.join(Iterables.transform(ReplicationTable.WORK_LG_COLFAMS, textToString)))) {
+                j.join(Iterables.transform(ReplicationTable.WORK_LG_COLFAMS, Text::toString)))) {
           foundLocalityGroupDef2 = true;
         }
       }

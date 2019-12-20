@@ -27,6 +27,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -110,6 +111,7 @@ public class VolumeManagerImplTest {
   private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
 
   @Test
+  @SuppressModernizer
   public void chooseFromOptions() throws Exception {
     List<String> volumes = Arrays.asList("file://one/", "file://two/", "file://three/");
     ConfigurationCopy conf = new ConfigurationCopy();

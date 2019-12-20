@@ -42,6 +42,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -121,6 +122,7 @@ public class NamespaceConfigurationTest {
   }
 
   @Test
+  @SuppressModernizer
   public void testGetProperties() {
     Predicate<String> all = Predicates.alwaysTrue();
     Map<String,String> props = new java.util.HashMap<>();

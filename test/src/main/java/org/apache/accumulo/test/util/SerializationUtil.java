@@ -28,7 +28,7 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.Objects;
 
-import org.apache.commons.codec.binary.Base64;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,16 +76,6 @@ public class SerializationUtil {
   public static void deserializeWritableBase64(Writable writable, String str) {
     byte[] b = Base64.decodeBase64(str);
     deserializeWritable(writable, b);
-  }
-
-  public static String serializeBase64(Serializable obj) {
-    byte[] b = serialize(obj);
-    return org.apache.accumulo.core.util.Base64.encodeBase64String(b);
-  }
-
-  public static Object deserializeBase64(String str) {
-    byte[] b = Base64.decodeBase64(str);
-    return deserialize(b);
   }
 
   // Interop with Hadoop Writable

@@ -64,7 +64,7 @@ public final class Base64 {
    * Transparently handles either the standard alphabet or the URL Safe one.
    */
   public static byte[] decodeBase64(byte[] base64) {
-    return org.apache.commons.codec.binary.Base64.decodeBase64(base64);
+    return java.util.Base64.getDecoder().decode(base64);
   }
 
   /**
@@ -73,6 +73,6 @@ public final class Base64 {
    * Transparently handles either the standard alphabet or the URL Safe one.
    */
   public static byte[] decodeBase64(String base64String) {
-    return org.apache.commons.codec.binary.Base64.decodeBase64(base64String);
+    return java.util.Base64.getDecoder().decode(base64String);
   }
 }

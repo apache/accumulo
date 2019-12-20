@@ -93,6 +93,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -887,6 +888,7 @@ public class MetadataTableUtil {
     return rewrites;
   }
 
+  @SuppressModernizer
   public static void cloneTable(ClientContext context, String srcTableId, String tableId,
       VolumeManager volumeManager) throws Exception {
 
@@ -1042,6 +1044,7 @@ public class MetadataTableUtil {
   /**
    * During an upgrade from 1.6 to 1.7, we need to add the replication table
    */
+  @SuppressModernizer
   public static void createReplicationTable(ClientContext context) throws IOException {
     String dir = VolumeManagerImpl.get().choose(Optional.of(ReplicationTable.ID),
         ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR

@@ -35,11 +35,11 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -80,6 +80,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   /**
    * A filter that accepts properties whose keys are an exact match.
    */
+  @SuppressModernizer
   public static class MatchFilter implements Predicate<String> {
 
     private String match;
@@ -103,6 +104,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   /**
    * A filter that accepts properties whose keys begin with a prefix.
    */
+  @SuppressModernizer
   public static class PrefixFilter implements Predicate<String> {
 
     private String prefix;
@@ -161,6 +163,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * @param filter
    *          filter for accepting properties from this configuration
    */
+  @SuppressModernizer
   public abstract void getProperties(Map<String,String> props, Predicate<String> filter);
 
   /**
@@ -171,9 +174,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   @Override
   public Iterator<Entry<String,String>> iterator() {
-    Predicate<String> all = Predicates.alwaysTrue();
     TreeMap<String,String> entries = new TreeMap<>();
-    getProperties(entries, all);
+    getProperties(entries, x -> true);
     return entries.entrySet().iterator();
   }
 

@@ -31,6 +31,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.RandomAccess;
 
 import org.apache.accumulo.core.data.Key;
@@ -41,8 +42,6 @@ import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.blockfile.impl.SeekableByteArrayInputStream;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.hadoop.io.WritableComparable;
-
-import com.google.common.base.Preconditions;
 
 public class MultiLevelIndex {
 
@@ -146,8 +145,8 @@ public class MultiLevelIndex {
     protected int indexSize;
 
     SerializedIndexBase(int[] offsets, byte[] data) {
-      Preconditions.checkNotNull(offsets, "offsets argument was null");
-      Preconditions.checkNotNull(data, "data argument was null");
+      Objects.requireNonNull(offsets, "offsets argument was null");
+      Objects.requireNonNull(data, "data argument was null");
       this.offsets = offsets;
       this.data = data;
       sbais = new SeekableByteArrayInputStream(data);
@@ -156,7 +155,7 @@ public class MultiLevelIndex {
 
     SerializedIndexBase(byte[] data, int offsetsOffset, int numOffsets, int indexOffset,
         int indexSize) {
-      Preconditions.checkNotNull(data, "data argument was null");
+      Objects.requireNonNull(data, "data argument was null");
       sbais = new SeekableByteArrayInputStream(data, indexOffset + indexSize);
       dis = new DataInputStream(sbais);
       this.offsetsOffset = offsetsOffset;

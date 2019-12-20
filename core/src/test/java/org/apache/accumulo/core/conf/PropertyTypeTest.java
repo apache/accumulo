@@ -20,18 +20,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 
 public class PropertyTypeTest {
 
@@ -69,35 +68,18 @@ public class PropertyTypeTest {
   public void testFullCoverage() {
     // This test checks the remainder of the methods in this class to ensure each property type has
     // a corresponding test
-    Iterable<String> types = Iterables.transform(Arrays.asList(PropertyType.values()),
-        new Function<PropertyType,String>() {
-          @Override
-          public String apply(final PropertyType input) {
-            return input.name();
-          }
-        });
-    Iterable<String> typesTested = Iterables.transform(Iterables.filter(Iterables
-        .transform(Arrays.asList(this.getClass().getMethods()), new Function<Method,String>() {
-          @Override
-          public String apply(final Method input) {
-            return input.getName();
-          }
-        }), new Predicate<String>() {
-          @Override
-          public boolean apply(final String input) {
-            return input.startsWith("testType");
-          }
-        }), new Function<String,String>() {
-          @Override
-          public String apply(final String input) {
-            return input.substring(8);
-          }
-        });
-    for (String t : types) {
+    Stream<String> types = Arrays.stream(PropertyType.values()).map(Enum<PropertyType>::name);
+
+    List<String> typesTested = Arrays.stream(this.getClass().getMethods()).map(m -> m.getName())
+        .filter(m -> m.startsWith("testType")).map(m -> m.substring(8))
+        .collect(Collectors.toList());
+
+    types = types.map(t -> {
       assertTrue(PropertyType.class.getSimpleName() + "." + t + " does not have a test.",
-          Iterables.contains(typesTested, t));
-    }
-    assertEquals(Iterables.size(types), Iterables.size(typesTested));
+          typesTested.contains(t));
+      return t;
+    });
+    assertEquals(types.count(), typesTested.size());
   }
 
   private void valid(final String... args) {

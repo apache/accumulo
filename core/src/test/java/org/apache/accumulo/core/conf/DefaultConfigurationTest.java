@@ -23,9 +23,6 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-
 public class DefaultConfigurationTest {
   private DefaultConfiguration c;
 
@@ -41,9 +38,8 @@ public class DefaultConfigurationTest {
 
   @Test
   public void testGetProperties() {
-    Predicate<String> all = Predicates.alwaysTrue();
     Map<String,String> p = new java.util.HashMap<>();
-    c.getProperties(p, all);
+    c.getProperties(p, all -> true);
     assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(),
         p.get(Property.MASTER_CLIENTPORT.getKey()));
   }

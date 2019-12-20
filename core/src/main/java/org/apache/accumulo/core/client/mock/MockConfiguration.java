@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 
 import com.google.common.base.Predicate;
 
@@ -28,6 +29,7 @@ import com.google.common.base.Predicate;
  * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
  */
 @Deprecated
+@SuppressModernizer
 class MockConfiguration extends AccumuloConfiguration {
   Map<String,String> map;
 
