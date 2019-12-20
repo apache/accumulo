@@ -2733,14 +2733,16 @@ public class Tablet {
   /**
    * Handles updating a tablets last Location
    */
-  public void updateLastLocation(){
-    //unsure if this sync block is needed here. Need input.
-    synchronized (timeLock){
-    persistedTime = tabletTime.getAndUpdateTime();
+  public void updateLastLocation(long updateTime) {
+    // unsure if this sync block is needed here. Need input.
+    synchronized (timeLock) {
+      if (updateTime > persistedTime) {
+        persistedTime = updateTime;
+      }
 
-      MasterMetadataUtil.updateLastLocation(getTabletServer().getContext(), extent, tabletTime.getMetadataTime(persistedTime),
-                tabletServer.getClientAddressString(), tabletServer.getLock(),
-                lastLocation);
+      MasterMetadataUtil.updateLastLocation(getTabletServer().getContext(), extent,
+          tabletTime.getMetadataTime(persistedTime), tabletServer.getClientAddressString(),
+          tabletServer.getLock(), lastLocation);
 
       lastLocation = null;
     }
@@ -2754,15 +2756,19 @@ public class Tablet {
     if (isClosing() || isClosed()) {
       return false;
     }
-    
+
     Tablet t = tabletServer.getOnlineTablet(extent);
-    //will keep looking for a better way to check if a tablet is old and needs to be updated or not. In the mean time, this works and is adjustable.
+    // will keep looking for a better way to check if a tablet is old and needs to be updated or
+    // not. In the mean time, this works and is adjustable.
     long currentTime = System.currentTimeMillis();
     long oldTime = t.tabletTime.getMetadataTime(persistedTime).getTime();
 
-    //Takes the most up to date time subtracted by the time listed by the tablet to calculate how old the tablet is.
-    //If it is older than the specified amount then the last location needs to be updated for that tablet.
-    if (currentTime - oldTime >= tabletServer.getConfiguration().getCount(Property.TSERV_LASTLOCATION_UPDATE_TIME) && oldTime != 0) {
+    // Takes the most up to date time subtracted by the time listed by the tablet to calculate how
+    // old the tablet is.
+    // If it is older than the specified amount then the last location needs to be updated for that
+    // tablet.
+    if (currentTime - oldTime >= tabletServer.getConfiguration().getCount(Property.TSERV_LASTLOCATION_UPDATE_TIME)
+        && oldTime != 0) {
       needsUpdate = true;
     }
     return needsUpdate;

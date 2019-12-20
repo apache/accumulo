@@ -258,9 +258,10 @@ public class MasterMetadataUtil {
    * Last Location update function updates the tablets last location to its current
    */
   public static void updateLastLocation(ServerContext context, KeyExtent extent, MetadataTime time,
-                                        String address, ZooLock zooLock, TServerInstance lastLocation) {
+      String address, ZooLock zooLock, TServerInstance lastLocation) {
+    
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    //unsure if this time needs to be updated or not. Need input.
+    // unsure if this time needs to be updated or not. Need input.
     tablet.putTime(time);
 
     TServerInstance self = getTServerInstance(address, zooLock);

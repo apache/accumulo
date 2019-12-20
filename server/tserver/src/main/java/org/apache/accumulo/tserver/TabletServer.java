@@ -2218,15 +2218,17 @@ public class TabletServer extends AbstractServer {
       }
     }
   }
+
   private class LastLocationUpdate implements Runnable {
 
     @Override
     public void run() {
       while (true) {
         try {
-          //a pause in the action. this was taken from major compactor above. Might not be needed here. Need Input
+          // a pause in the action. this was taken from major compactor above. Might not be needed
+          // here. Need Input
           sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_LASTLOCATION_UPDATE_DELAY),
-                  TimeUnit.MILLISECONDS);
+              TimeUnit.MILLISECONDS);
 
           Iterator<Entry<KeyExtent,Tablet>> iter = getOnlineTablets().entrySet().iterator();
 
@@ -2236,13 +2238,10 @@ public class TabletServer extends AbstractServer {
             Entry<KeyExtent,Tablet> entry = iter.next();
 
             Tablet tablet = entry.getValue();
-
-            synchronized (tablet) {
-              //Decide if we need to update lastLocation
-              if (tablet.needsLastUpdate()) {
-                log.debug("Tablet {} Last Location being updated", tablet);
-                tablet.updateLastLocation();
-              }
+            // Decide if we need to update lastLocation
+            if (tablet.needsLastUpdate()) {
+              log.debug("Tablet {} Last Location being updated", tablet);
+              tablet.updateLastLocation(tablet.getAndUpdateTime());
             }
           }
         } catch (Throwable t) {
@@ -3086,8 +3085,7 @@ public class TabletServer extends AbstractServer {
         new Daemon(new LoggingRunnable(log, new MajorCompactor(getConfiguration())));
     majorCompactorThread.setName("Split/MajC initiator");
     majorCompactorThread.start();
-    lastLocationUpdateThread =
-            new Daemon(new LastLocationUpdate());
+    lastLocationUpdateThread = new Daemon(new LastLocationUpdate());
     lastLocationUpdateThread.setName("Update LastLoc initiator");
     lastLocationUpdateThread.start();
 
