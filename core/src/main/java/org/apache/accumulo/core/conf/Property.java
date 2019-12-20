@@ -124,6 +124,10 @@ public enum Property {
           + "currently in use, run 'accumulo admin volumes -l'. To use a comma or "
           + "other reserved characters in a URI use standard URI hex encoding. For "
           + "example replace commas with %2C."),
+  INSTANCE_VOLUMES_UPGRADE_RELATIVE("instance.volumes.upgrade.relative", "", PropertyType.STRING,
+      "The volume dfs uri containing relative tablet file paths. Relative paths may exist in the metadata from "
+          + "versions prior to 1.6. This property is only required if a relative path is detected "
+          + "during the upgrade process and will only be used once."),
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user "
