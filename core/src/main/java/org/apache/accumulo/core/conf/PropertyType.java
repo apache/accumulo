@@ -68,6 +68,7 @@ public enum PropertyType {
           + " 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
           + "Examples of invalid host lists are '', ':1000', and 'localhost:80000'"),
 
+  @SuppressWarnings("unchecked")
   PORT("port", or(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}")),
       "An positive integer in the range 1024-65535 (not already in use or"
           + " specified elsewhere in the configuration),\n"
@@ -159,9 +160,10 @@ public enum PropertyType {
     return predicate.test(value);
   }
 
-  @SafeVarargs
-  private static Predicate<String> or(final Predicate<String>... others) {
-    return (x) -> Arrays.stream(others).anyMatch(y -> y.test(x));
+  // not using varargs to avoid Java compiler warning
+  private static Predicate<String> or(final Predicate<String> first, Predicate<String> second,
+      Predicate<String> third) {
+    return (x) -> first.test(x) || second.test(x) || third.test(x);
   }
 
   private static Predicate<String> in(final boolean caseSensitive, final String... allowedSet) {

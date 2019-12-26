@@ -30,6 +30,7 @@ import com.google.common.base.Predicate;
  */
 @Deprecated
 @SuppressModernizer
+@SuppressWarnings("overloads")
 class MockConfiguration extends AccumuloConfiguration {
   Map<String,String> map;
 
