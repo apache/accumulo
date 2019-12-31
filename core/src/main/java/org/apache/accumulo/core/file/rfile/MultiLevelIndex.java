@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
@@ -31,7 +33,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.RandomAccess;
 
 import org.apache.accumulo.core.data.Key;
@@ -145,8 +146,8 @@ public class MultiLevelIndex {
     protected int indexSize;
 
     SerializedIndexBase(int[] offsets, byte[] data) {
-      Objects.requireNonNull(offsets, "offsets argument was null");
-      Objects.requireNonNull(data, "data argument was null");
+      requireNonNull(offsets, "offsets argument was null");
+      requireNonNull(data, "data argument was null");
       this.offsets = offsets;
       this.data = data;
       sbais = new SeekableByteArrayInputStream(data);
@@ -155,7 +156,7 @@ public class MultiLevelIndex {
 
     SerializedIndexBase(byte[] data, int offsetsOffset, int numOffsets, int indexOffset,
         int indexSize) {
-      Objects.requireNonNull(data, "data argument was null");
+      requireNonNull(data, "data argument was null");
       sbais = new SeekableByteArrayInputStream(data, indexOffset + indexSize);
       dis = new DataInputStream(sbais);
       this.offsetsOffset = offsetsOffset;

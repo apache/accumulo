@@ -17,9 +17,10 @@
 
 package org.apache.accumulo.core.file.blockfile.impl;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Objects;
 
 /**
  * This class is like byte array input stream with two differences. It supports seeking and avoids
@@ -114,14 +115,14 @@ public class SeekableByteArrayInputStream extends InputStream {
   public void close() throws IOException {}
 
   public SeekableByteArrayInputStream(byte[] buf) {
-    Objects.requireNonNull(buf, "bug argument was null");
+    requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
     this.cur = 0;
     this.max = buf.length;
   }
 
   public SeekableByteArrayInputStream(byte[] buf, int maxOffset) {
-    Objects.requireNonNull(buf, "bug argument was null");
+    requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
     this.cur = 0;
     this.max = maxOffset;

@@ -106,6 +106,7 @@
     <dependency>
       <groupId>org.gaul</groupId>
       <artifactId>modernizer-maven-annotations</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
