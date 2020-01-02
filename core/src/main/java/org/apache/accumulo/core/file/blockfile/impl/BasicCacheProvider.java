@@ -16,29 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.file;
+package org.apache.accumulo.core.file.blockfile.impl;
 
-import java.io.DataInputStream;
-import java.io.IOException;
+import org.apache.accumulo.core.spi.cache.BlockCache;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
-import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
-import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+public class BasicCacheProvider implements CacheProvider {
 
-public interface FileSKVIterator extends InterruptibleIterator, AutoCloseable {
-  Key getFirstKey() throws IOException;
+  private final BlockCache indexCache;
+  private final BlockCache dataCache;
 
-  Key getLastKey() throws IOException;
-
-  DataInputStream getMetaStore(String name) throws IOException, NoSuchMetaStoreException;
-
-  FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig);
-
-  void closeDeepCopies() throws IOException;
-
-  void setCacheProvider(CacheProvider cacheProvider);
+  public BasicCacheProvider(BlockCache indexCache, BlockCache dataCache) {
+    this.indexCache = indexCache;
+    this.dataCache = dataCache;
+  }
 
   @Override
-  void close() throws IOException;
+  public BlockCache getDataCache() {
+    return dataCache;
+  }
+
+  @Override
+  public BlockCache getIndexCache() {
+    return indexCache;
+  }
+
 }

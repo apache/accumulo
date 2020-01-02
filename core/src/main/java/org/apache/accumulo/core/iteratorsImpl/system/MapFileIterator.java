@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.NoSuchMetaStoreException;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.map.MapFileUtil;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -164,4 +165,7 @@ public class MapFileIterator implements FileSKVIterator {
   public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
     return null;
   }
+
+  @Override
+  public void setCacheProvider(CacheProvider cacheProvider) {}
 }

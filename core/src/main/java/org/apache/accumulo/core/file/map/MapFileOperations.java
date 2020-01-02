@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MapFileIterator;
@@ -137,6 +138,9 @@ public class MapFileOperations extends FileOperations {
     public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
       return ((FileSKVIterator) reader).getSample(sampleConfig);
     }
+
+    @Override
+    public void setCacheProvider(CacheProvider cacheProvider) {}
   }
 
   @Override

@@ -50,8 +50,8 @@ public class RFileOperations extends FileOperations {
     CachableBuilder cb =
         new CachableBuilder().fsPath(options.getFileSystem(), new Path(options.getFilename()))
             .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
-            .data(options.getDataCache()).index(options.getIndexCache())
-            .readLimiter(options.getRateLimiter()).cryptoService(options.getCryptoService());
+            .cacheProvider(options.cacheProvider).readLimiter(options.getRateLimiter())
+            .cryptoService(options.getCryptoService());
     return new RFile.Reader(cb);
   }
 
