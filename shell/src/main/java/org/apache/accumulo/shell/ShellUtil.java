@@ -31,9 +31,8 @@ public class ShellUtil {
 
   /**
    * Scans the given file line-by-line (ignoring empty lines) and returns a list containing those
-   * lines. If decode is set to true, every line is decoded using
-   * {@link Base64#decodeBase64(byte[])} from the UTF-8 bytes of that line before inserting in the
-   * list.
+   * lines. If decode is set to true, every line is decoded using Base64.getDecoder().decode(byte[])
+   * from the UTF-8 bytes of that line before inserting in the list.
    *
    * @param filename
    *          Path to the file that needs to be scanned
