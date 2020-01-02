@@ -19,6 +19,7 @@ package org.apache.accumulo.server.security.handler;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -32,7 +33,6 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -110,7 +110,7 @@ public class KerberosAuthenticator implements Authenticator {
 
         // Create the root user in ZK using base64 encoded name (since the name is included in the
         // znode)
-        createUserNodeInZk(Base64.encodeBase64String(principalData));
+        createUserNodeInZk(Base64.getEncoder().encodeToString(principalData));
       }
     } catch (KeeperException | InterruptedException e) {
       log.error("Failed to initialize security", e);
@@ -150,7 +150,7 @@ public class KerberosAuthenticator implements Authenticator {
     Set<String> base64Users = zkAuthenticator.listUsers();
     Set<String> readableUsers = new HashSet<>();
     for (String base64User : base64Users) {
-      readableUsers.add(new String(Base64.decodeBase64(base64User), UTF_8));
+      readableUsers.add(new String(Base64.getDecoder().decode(base64User), UTF_8));
     }
     return readableUsers;
   }
@@ -164,7 +164,7 @@ public class KerberosAuthenticator implements Authenticator {
     }
 
     try {
-      createUserNodeInZk(Base64.encodeBase64String(principal.getBytes(UTF_8)));
+      createUserNodeInZk(Base64.getEncoder().encodeToString(principal.getBytes(UTF_8)));
     } catch (KeeperException e) {
       if (e.code().equals(KeeperException.Code.NODEEXISTS)) {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_EXISTS, e);
@@ -179,7 +179,7 @@ public class KerberosAuthenticator implements Authenticator {
 
   @Override
   public synchronized void dropUser(String user) throws AccumuloSecurityException {
-    final String encodedUser = Base64.encodeBase64String(user.getBytes(UTF_8));
+    final String encodedUser = Base64.getEncoder().encodeToString(user.getBytes(UTF_8));
     try {
       zkAuthenticator.dropUser(encodedUser);
     } catch (AccumuloSecurityException e) {
@@ -195,7 +195,7 @@ public class KerberosAuthenticator implements Authenticator {
 
   @Override
   public synchronized boolean userExists(String user) throws AccumuloSecurityException {
-    user = Base64.encodeBase64String(user.getBytes(UTF_8));
+    user = Base64.getEncoder().encodeToString(user.getBytes(UTF_8));
     return zkAuthenticator.userExists(user);
   }
 

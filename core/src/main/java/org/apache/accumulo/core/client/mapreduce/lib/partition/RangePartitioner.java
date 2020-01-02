@@ -25,11 +25,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Scanner;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.mapreduce.lib.impl.DistributedCacheHelper;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -95,7 +95,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
                 new InputStreamReader(new FileInputStream(path.toString()), UTF_8)));
             try {
               while (in.hasNextLine())
-                cutPoints.add(new Text(Base64.decodeBase64(in.nextLine().getBytes(UTF_8))));
+                cutPoints.add(new Text(Base64.getDecoder().decode(in.nextLine().getBytes(UTF_8))));
             } finally {
               in.close();
             }

@@ -19,6 +19,7 @@ package org.apache.accumulo.test.continuous;
 
 import java.io.BufferedOutputStream;
 import java.io.PrintStream;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -28,7 +29,6 @@ import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.client.mapreduce.lib.partition.KeyRangePartitioner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -111,7 +111,7 @@ public class BulkIngest extends Configured implements Tool {
       Collection<Text> splits =
           clientOpts.getConnector().tableOperations().listSplits(tableName, opts.reducers - 1);
       for (Text split : splits) {
-        out.println(Base64.encodeBase64String(split.copyBytes()));
+        out.println(Base64.getEncoder().encodeToString(split.copyBytes()));
       }
       job.setNumReduceTasks(splits.size() + 1);
     }

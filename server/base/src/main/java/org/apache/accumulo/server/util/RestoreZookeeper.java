@@ -20,13 +20,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.Base64;
 import java.util.Stack;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -86,7 +86,7 @@ public class RestoreZookeeper {
     private void create(String path, String value, String encoding) {
       byte[] data = value.getBytes(UTF_8);
       if ("base64".equals(encoding))
-        data = Base64.decodeBase64(data);
+        data = Base64.getDecoder().decode(data);
       try {
         try {
           zk.putPersistentData(path, data,

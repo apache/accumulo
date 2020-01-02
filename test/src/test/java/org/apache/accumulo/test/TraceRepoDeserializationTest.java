@@ -21,8 +21,8 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayInputStream;
 import java.io.InvalidClassException;
 import java.io.ObjectInputStream;
+import java.util.Base64;
 
-import org.apache.accumulo.core.util.Base64;
 import org.junit.Test;
 
 public class TraceRepoDeserializationTest {
@@ -46,7 +46,7 @@ public class TraceRepoDeserializationTest {
 
   @Test(expected = InvalidClassException.class)
   public void test() throws Exception {
-    byte bytes[] = Base64.decodeBase64(oldValue);
+    byte bytes[] = Base64.getDecoder().decode(oldValue);
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
     ObjectInputStream ois = new ObjectInputStream(bais);
     ois.readObject();

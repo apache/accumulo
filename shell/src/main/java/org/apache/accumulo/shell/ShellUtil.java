@@ -21,10 +21,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Scanner;
 
-import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.io.Text;
 
 public class ShellUtil {
@@ -51,7 +51,8 @@ public class ShellUtil {
       while (file.hasNextLine()) {
         line = file.nextLine();
         if (!line.isEmpty()) {
-          result.add(decode ? new Text(Base64.decodeBase64(line.getBytes(UTF_8))) : new Text(line));
+          result.add(
+              decode ? new Text(Base64.getDecoder().decode(line.getBytes(UTF_8))) : new Text(line));
         }
       }
     } finally {

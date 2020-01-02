@@ -163,12 +163,7 @@ public class TabletIteratorTest {
     Predicate<Entry<Key,Value>> getScanPredicate() {
       final Range range = getRange();
 
-      return input -> {
-        if (range != null && !range.contains(input.getKey()))
-          return false;
-
-        return true;
-      };
+      return input -> range == null || range.contains(input.getKey());
     }
   }
 

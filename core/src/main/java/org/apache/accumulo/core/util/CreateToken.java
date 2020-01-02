@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Base64;
 
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
@@ -115,7 +116,7 @@ public class CreateToken implements KeywordExecutable {
         token.init(props);
       }
       String tokenBase64 =
-          Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token));
+          Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(token));
 
       String tokenFile = opts.tokenFile;
       if (tokenFile == null) {
