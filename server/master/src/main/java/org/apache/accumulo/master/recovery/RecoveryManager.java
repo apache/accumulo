@@ -73,7 +73,7 @@ public class RecoveryManager {
     this.master = master;
     existenceCache =
         CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
-            .maximumWeight(10000000).weigher(new Weigher<Path,Boolean>() {
+            .maximumWeight(10_000_000).weigher(new Weigher<Path,Boolean>() {
               @Override
               public int weigh(Path path, Boolean exist) {
                 return path.toString().length();
