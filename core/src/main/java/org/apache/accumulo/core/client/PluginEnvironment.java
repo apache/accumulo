@@ -15,13 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.core.client;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 
 /**

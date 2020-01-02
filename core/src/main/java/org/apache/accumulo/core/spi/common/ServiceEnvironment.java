@@ -17,8 +17,8 @@
 
 package org.apache.accumulo.core.spi.common;
 
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.iterators.PluginEnvironment;
 
 /**
  * This interface exposes Accumulo system level information to plugins in a stable manner. The
