@@ -183,6 +183,7 @@ public class RecoveryManager {
         String filename = master.getFileSystem().getFullPath(FileType.WAL, walog).toString();
         String dest =
             RecoveryPath.getRecoveryPath(master.getFileSystem(), new Path(filename)).toString();
+        log.debug("Recovering " + filename + " to " + dest);
 
         boolean sortQueued;
         synchronized (this) {
