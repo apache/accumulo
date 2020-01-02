@@ -72,8 +72,8 @@ public class TabletMetadataTest {
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
     DataFileValue dfv1 = new DataFileValue(555, 23);
-    TabletFile tf1 = TabletFileUtil.newTabletFile("hdfs://nn1/acc/tables/1/t-0001/df1.rf", null);
-    TabletFile tf2 = TabletFileUtil.newTabletFile("hdfs://nn1/acc/tables/1/t-0001/df2.rf", null);
+    TabletFile tf1 = new TabletFile("hdfs://nn1/acc/tables/1/t-0001/df1.rf");
+    TabletFile tf2 = new TabletFile("hdfs://nn1/acc/tables/1/t-0001/df2.rf");
     mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf1.getMetadataEntry())
         .put(dfv1.encode());
     DataFileValue dfv2 = new DataFileValue(234, 13);
@@ -91,8 +91,8 @@ public class TabletMetadataTest {
     mutation.at().family(le2.getColumnFamily()).qualifier(le2.getColumnQualifier())
         .timestamp(le2.timestamp).put(le2.getValue());
 
-    TabletFile sf1 = TabletFileUtil.newTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf1.rf", null);
-    TabletFile sf2 = TabletFileUtil.newTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf2.rf", null);
+    TabletFile sf1 = new TabletFile("hdfs://nn1/acc/tables/1/t-0001/sf1.rf");
+    TabletFile sf2 = new TabletFile("hdfs://nn1/acc/tables/1/t-0001/sf2.rf");
     mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf1.getMetadataEntry()).put("");
     mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf2.getMetadataEntry()).put("");
 

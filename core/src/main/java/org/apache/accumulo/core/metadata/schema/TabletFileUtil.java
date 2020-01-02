@@ -18,43 +18,9 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import java.util.Objects;
-
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
 
 public class TabletFileUtil {
-
-  /**
-   * Create a TabletFile, handling different types of entries from the metadata table.
-   */
-  public static TabletFile newTabletFile(String metadataEntry, Key key) {
-    Objects.requireNonNull(metadataEntry);
-    String errorMsg = " is missing from tablet file metadata entry: " + metadataEntry;
-
-    Path metaPath = new Path(metadataEntry);
-
-    // use Path object to step backwards from the filename through all the parts
-    String fileName = metaPath.getName();
-    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(fileName);
-
-    Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), "Tablet dir" + errorMsg);
-    String tabletDir = tabletDirPath.getName();
-    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tabletDir);
-
-    Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), "Table ID" + errorMsg);
-    TableId tableId = TableId.of(tableIdPath.getName());
-    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
-
-    TabletFile tabletFile = new TabletFile(metadataEntry, tableId, tabletDir, fileName);
-
-    Path volumePath = TabletFileUtil.getVolumeFromFullPath(metaPath, "tables");
-    if (volumePath != null) {
-      tabletFile.setVolume(volumePath.toString());
-    }
-    return tabletFile;
-  }
 
   public static Path getVolumeFromFullPath(Path path, String dir) {
     String pathString = path.toString();
@@ -86,14 +52,5 @@ public class TabletFileUtil {
     if (path.contains(":"))
       throw new IllegalArgumentException(path + " is absolute, but does not contain " + dir);
     return -1;
-  }
-
-  // TODO validate volume
-  public static void validateVolume(Path path) {
-    if (path != null) {
-      if (path.toString().contains(":"))
-        return;
-    }
-    throw new IllegalArgumentException("Invalid Volume in path: " + path);
   }
 }

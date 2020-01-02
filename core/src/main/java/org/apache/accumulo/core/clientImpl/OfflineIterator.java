@@ -311,7 +311,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     for (TabletFile file : absFiles) {
       FileSystem fs =
           VolumeConfiguration.getVolume(file.getMetadataEntry(), conf, config).getFileSystem();
-      // TODO check if file.getMetadataEntry() is the correct path for FileSKVIterator
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file.getMetadataEntry(), fs, conf, CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(acuTableConf).build();

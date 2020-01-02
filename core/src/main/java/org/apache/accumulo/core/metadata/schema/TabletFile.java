@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
@@ -30,37 +29,45 @@ import org.apache.hadoop.io.Text;
  * of what is in the metadata table for the column qualifier of the
  * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily}
  *
- * Tablet files are stored 1 of 3 possible ways in the metadata table:
- *
- * <pre>
- * 1 - absolute path = "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
- * 2 - relative path = "../2a/t-0003/C0004.rf"
- * 3 - second type of relative path = "/t-0003/C0004.rf"
- * </pre>
+ * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
+ * in Upgrader9to10.upgradeRelativePaths()
  */
 public class TabletFile implements Comparable<TabletFile> {
-  // volume may not be stored in the metadata so have the volume manager set it
-  private String volume; // hdfs://1.2.3.4/accumulo
+  // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
+  private final String volume; // hdfs://1.2.3.4/accumulo
   private final TableId tableId; // 2a
   private final String tabletDir; // t-0003
   private final String fileName; // C0004.rf
   private final String metadataEntry;
   private final String suffix; // 2a/t-0003/C0004.rf
 
-  public TabletFile(String metadataEntry, TableId tableId, String tabletDir, String fileName) {
+  public TabletFile(String metadataEntry) {
     this.metadataEntry = Objects.requireNonNull(metadataEntry);
-    this.tableId = Objects.requireNonNull(tableId);
-    this.tabletDir = Objects.requireNonNull(tabletDir);
-    this.fileName = Objects.requireNonNull(fileName);
+    String errorMsg = " is missing from tablet file metadata entry: " + metadataEntry;
+
+    Path metaPath = new Path(metadataEntry);
+
+    // use Path object to step backwards from the filename through all the parts
+    this.fileName = metaPath.getName();
+    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(fileName);
+
+    Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), "Tablet dir" + errorMsg);
+    this.tabletDir = tabletDirPath.getName();
+    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tabletDir);
+
+    Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), "Table ID" + errorMsg);
+    this.tableId = TableId.of(tableIdPath.getName());
+    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
+
+    Path volumePath = Objects.requireNonNull(
+        TabletFileUtil.getVolumeFromFullPath(metaPath, "tables"), "Volume " + errorMsg);
+    this.volume = volumePath.toString();
+
     this.suffix = tableId.canonical() + "/" + tabletDir + "/" + fileName;
   }
 
-  public void setVolume(String volume) {
-    this.volume = volume;
-  }
-
-  public Optional<String> getVolume() {
-    return Optional.of(volume);
+  public String getVolume() {
+    return volume;
   }
 
   public TableId getTableId() {

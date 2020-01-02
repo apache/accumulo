@@ -342,7 +342,7 @@ public class TabletMetadata {
           }
           break;
         case DataFileColumnFamily.STR_NAME:
-          filesBuilder.put(TabletFileUtil.newTabletFile(qual, key), new DataFileValue(val));
+          filesBuilder.put(new TabletFile(qual), new DataFileValue(val));
           break;
         case BulkFileColumnFamily.STR_NAME:
           loadedFilesBuilder.put(qual, BulkFileColumnFamily.getBulkLoadTid(val));
@@ -357,7 +357,7 @@ public class TabletMetadata {
           te.last = new Location(val, qual, LocationType.LAST);
           break;
         case ScanFileColumnFamily.STR_NAME:
-          scansBuilder.add(TabletFileUtil.newTabletFile(qual, key));
+          scansBuilder.add(new TabletFile(qual));
           break;
         case ClonedColumnFamily.STR_NAME:
           te.cloned = val;

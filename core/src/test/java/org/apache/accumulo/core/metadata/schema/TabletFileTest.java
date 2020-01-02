@@ -21,7 +21,6 @@ package org.apache.accumulo.core.metadata.schema;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.accumulo.core.data.Key;
@@ -33,15 +32,13 @@ public class TabletFileTest {
 
   private void test(String metadataEntry, Key key, TableId tableId, String tabletDir,
       String fileName) {
-    TabletFile parsedTabletFile = TabletFileUtil.newTabletFile(metadataEntry, key);
-    TabletFile tabletFile = new TabletFile(metadataEntry, tableId, tabletDir, fileName);
+    TabletFile tabletFile = new TabletFile(metadataEntry);
 
     assertEquals(metadataEntry, tabletFile.getMetadataEntry());
     assertEquals(tableId, tabletFile.getTableId());
     assertEquals(tabletDir, tabletFile.getTabletDir());
     assertEquals(fileName, tabletFile.getFileName());
-    assertTrue("Parsed tabletFile not equal to constructed one",
-        tabletFile.equals(parsedTabletFile));
+
   }
 
   @Test
@@ -82,10 +79,9 @@ public class TabletFileTest {
     String filename = "C0004.rf";
     String metadataEntry = volume + "/tables/" + id + "/" + dir + "/" + filename;
 
-    TabletFile tabletFile = TabletFileUtil.newTabletFile(metadataEntry, null);
+    TabletFile tabletFile = new TabletFile(metadataEntry);
 
-    assertTrue(tabletFile.getVolume().isPresent());
-    assertEquals(volume, tabletFile.getVolume().get());
+    assertEquals(volume, tabletFile.getVolume());
     assertEquals(id, tabletFile.getTableId().canonical());
     assertEquals(dir, tabletFile.getTabletDir());
     assertEquals(filename, tabletFile.getFileName());
