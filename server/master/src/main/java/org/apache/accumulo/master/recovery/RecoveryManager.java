@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -56,7 +55,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.Weigher;
 
 public class RecoveryManager {
 
@@ -74,12 +72,7 @@ public class RecoveryManager {
     this.master = master;
     existenceCache =
         CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
-            .maximumWeight(10_000_000).weigher(new Weigher<Path,Boolean>() {
-              @Override
-              public int weigh(Path path, Boolean exist) {
-                return path.toString().length();
-              }
-            }).build();
+            .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
     executor = Executors.newScheduledThreadPool(4, new NamingThreadFactory("Walog sort starter "));
     zooCache = new ZooCache(master.getContext().getZooReaderWriter(), null);
@@ -150,12 +143,7 @@ public class RecoveryManager {
 
   private boolean exists(final Path path) throws IOException {
     try {
-      return existenceCache.get(path, new Callable<Boolean>() {
-        @Override
-        public Boolean call() throws Exception {
-          return master.getFileSystem().exists(path);
-        }
-      });
+      return existenceCache.get(path, () -> master.getFileSystem().exists(path));
     } catch (ExecutionException e) {
       throw new IOException(e);
     }
