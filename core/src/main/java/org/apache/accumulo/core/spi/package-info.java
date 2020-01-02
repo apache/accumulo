@@ -14,14 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.accumulo.core.spi;
-
 /**
  * This package provides a place for plugin interfaces intended for Accumulo users to implement. The
  * types under this package should adhere to the following rules.
  *
- * <p>
  * <ul>
  * <li>No changes should be made in a bug fix release.
  * <li>Any changes can be made in a minor or major version. Incompatible changes should only be made
@@ -60,3 +56,4 @@ package org.apache.accumulo.core.spi;
  * guarantees about plugin stability. This package was created to solve that problem. Hopefully
  * existing plugins (like the balancer) can be migrated to this package.
  */
+package org.apache.accumulo.core.spi;
