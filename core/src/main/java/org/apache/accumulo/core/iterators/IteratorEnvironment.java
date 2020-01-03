@@ -169,7 +169,7 @@ public interface IteratorEnvironment {
    * obtain a table configuration, use the following methods:
    *
    * <pre>
-   * iterEnv.getServiceEnv().getConfiguration(env.getTableId())
+   * iterEnv.getPluginEnv().getConfiguration(env.getTableId())
    * </pre>
    *
    * @since 2.1.0
