@@ -18,19 +18,15 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.KeyBuilder;
 import org.apache.accumulo.core.data.TableId;
 import org.junit.Test;
 
 public class TabletFileTest {
 
-  private void test(String metadataEntry, Key key, TableId tableId, String tabletDir,
+  private void test(String metadataEntry, TableId tableId, String tabletDir,
       String fileName) {
     TabletFile tabletFile = new TabletFile(metadataEntry);
 
@@ -43,29 +39,22 @@ public class TabletFileTest {
 
   @Test
   public void testValidPaths() {
-    KeyBuilder.ColumnQualifierStep rowFamily =
-        Key.builder().row("2a<").family(DataFileColumnFamily.STR_NAME);
-    test("../2a/t-0003/C0004.rf", rowFamily.qualifier("../2a/t-0003/C0004.rf").build(),
-        TableId.of("2a"), "t-0003", "C0004.rf");
-    test("/t-0003/C0004.rf", rowFamily.qualifier("/t-0003/C0004.rf").build(), TableId.of("2a"),
-        "t-0003", "C0004.rf");
-    test("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf", rowFamily
-        .qualifier("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf").build(),
+    test("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf",
         TableId.of("2a"), "default_tablet", "F0000070.rf");
+    test("hdfs://nn1:9000/accumulo/tables/5a/t-0005/C0009.rf",
+            TableId.of("5a"), "t-0005", "C0009.rf");
   }
 
   @Test
   public void testBadPaths() {
     try {
-      test("C0004.rf", Key.builder().row("2a<").family(DataFileColumnFamily.STR_NAME)
-          .qualifier("C0004.rf").build(), TableId.of("2a"), "t-0003", "C0004.rf");
+      test("C0004.rf", TableId.of("2a"), "t-0003", "C0004.rf");
       fail("Failed to throw error on bad path");
     } catch (NullPointerException e) {}
 
     // 2a< srv:dir
     try {
-      test("dir", Key.builder().row("2a<").family(ServerColumnFamily.STR_NAME)
-          .qualifier(ServerColumnFamily.DIRECTORY_QUAL).build(), TableId.of("2a"), "", "");
+      test("dir", TableId.of("2a"), "", "");
       fail("Failed to throw error on bad path");
     } catch (NullPointerException e) {}
   }

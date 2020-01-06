@@ -60,7 +60,7 @@ public class TabletFile implements Comparable<TabletFile> {
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
 
     Path volumePath = Objects.requireNonNull(
-        TabletFileUtil.getVolumeFromFullPath(metaPath, "tables"), "Volume " + errorMsg);
+        TabletFileUtil.getVolumeFromFullPath(metaPath, "tables"), "Volume" + errorMsg);
     this.volume = volumePath.toString();
 
     this.suffix = tableId.canonical() + "/" + tabletDir + "/" + fileName;
