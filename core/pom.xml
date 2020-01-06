@@ -239,9 +239,9 @@
               <excludes />
               <allows>
                 <allow>org[.]apache[.]hadoop[.]io[.]Text</allow>
-                <allow>org[.]apache[.]accumulo[.]core[.]client(?!.*[.](impl|thrift)[.].*)[.].*</allow>
-                <allow>org[.]apache[.]accumulo[.]core[.]data(?!.*[.](impl|thrift)[.].*)[.].*</allow>
-                <allow>org[.]apache[.]accumulo[.]core[.]security(?!.*[.](crypto)[.].*)[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]client[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]data[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]security[.].*</allow>
               </allows>
             </configuration>
           </execution>
