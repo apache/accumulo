@@ -326,18 +326,6 @@ public class ThriftTransportPool {
       // times of all connections, even when there are more than the working set size.
       connections.unreserved.push(connection);
     }
-
-    List<CachedConnection> removeExpiredConnections(final long killTime) {
-      ArrayList<CachedConnection> expired = new ArrayList<>();
-      for (Entry<ThriftTransportKey,CachedConnections> entry : connections.entrySet()) {
-        CachedConnections connections = entry.getValue();
-        executeWithinLock(entry.getKey(), (key) -> {
-          connections.removeExpiredConnections(expired, killTime);
-          connections.checkReservedForStuckIO();
-        });
-      }
-      return expired;
-    }
   }
 
   private final ConnectionPool connectionPool = new ConnectionPool();
@@ -861,10 +849,18 @@ public class ThriftTransportPool {
   }
 
   void closeExpiredConnections() {
-    List<CachedConnection> expiredConnections;
-
+    ArrayList<CachedConnection> expiredConnections = new ArrayList<>();
     ConnectionPool pool = getConnectionPool();
-    expiredConnections = pool.removeExpiredConnections(killTime);
+
+    for (Entry<ThriftTransportKey,CachedConnections> entry : pool.connections.entrySet()) {
+      Iterator<CachedConnection> iter = entry.getValue().unreserved.iterator();
+      while (iter.hasNext()) {
+        pool.executeWithinLock(entry.getKey(), (key) -> {
+          entry.getValue().removeExpiredConnections(expiredConnections, killTime);
+          entry.getValue().checkReservedForStuckIO();
+        });
+      }
+    }
 
     synchronized (errorCount) {
       Iterator<Entry<ThriftTransportKey,Long>> iter = errorTime.entrySet().iterator();
