@@ -203,17 +203,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public TableRangeOptions forTable(TableId tableId) {
-      if (tableId.equals(RootTable.ID)) {
-        this.level = DataLevel.ROOT;
-      } else if (tableId.equals(MetadataTable.ID)) {
-        this.level = DataLevel.METADATA;
-      } else {
-        this.level = DataLevel.USER;
-      }
-
+      this.level = DataLevel.of(tableId);
       this.tableId = tableId;
       this.range = TabletsSection.getRange(tableId);
-
       return this;
     }
 

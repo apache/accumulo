@@ -23,7 +23,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
@@ -33,7 +35,7 @@ import org.apache.hadoop.fs.Path;
  * ZooTabletStateStore: information about the root tablet is stored in ZooKeeper MetaDataStateStore:
  * information about the other tablets are stored in the metadata table
  */
-public abstract class TabletStateStore implements Iterable<TabletLocationState> {
+public interface TabletStateStore extends Iterable<TabletLocationState> {
 
   /**
    * Identifying name for this tablet state store.
@@ -102,13 +104,32 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
         .setLocations(Collections.singletonList(assignment));
   }
 
-  protected static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {
-    if (extent.isRootTablet()) {
-      return new ZooTabletStateStore(context.getAmple());
-    } else if (extent.isMeta()) {
-      return new RootTabletStateStore(context);
-    } else {
-      return new MetaDataStateStore(context);
+  static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {
+    return getStoreForLevel(DataLevel.of(extent.getTableId()), context);
+  }
+
+  public static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context) {
+    return getStoreForLevel(level, context, null);
+  }
+
+  public static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context,
+      CurrentState state) {
+
+    TabletStateStore tss;
+    switch (level) {
+      case ROOT:
+        tss = new ZooTabletStateStore(context.getAmple());
+        break;
+      case METADATA:
+        tss = new RootTabletStateStore(context, state);
+        break;
+      case USER:
+        tss = new MetaDataStateStore(context, state);
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown level " + level);
     }
+
+    return new LoggingTabletStateStore(tss);
   }
 }
