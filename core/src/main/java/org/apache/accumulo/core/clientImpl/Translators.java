@@ -25,6 +25,7 @@ import org.apache.accumulo.core.clientImpl.Translator.RangeTranslator;
 import org.apache.accumulo.core.clientImpl.Translator.TCVSTranslator;
 import org.apache.accumulo.core.clientImpl.Translator.TKeyExtentTranslator;
 import org.apache.accumulo.core.clientImpl.Translator.TRangeTranslator;
+import org.apache.accumulo.core.clientImpl.Translator.TabletFileTranslator;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 
@@ -36,4 +37,5 @@ public class Translators {
   public static final ColumnTranslator CT = new ColumnTranslator();
   public static final Translator<Range,TRange> RT = new RangeTranslator();
   public static final CVSTranslator CVST = new CVSTranslator();
+  public static final TabletFileTranslator TFT = new TabletFileTranslator();
 }

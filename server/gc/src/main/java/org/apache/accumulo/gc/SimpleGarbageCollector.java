@@ -257,7 +257,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
       Stream<Reference> refStream = tabletStream.flatMap(tm -> {
         Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
-            .map(f -> new Reference(tm.getTableId(), f, false));
+            .map(f -> new Reference(tm.getTableId(), f.getMetadataEntry(), false));
         if (tm.getDirName() != null) {
           refs =
               Stream.concat(refs, Stream.of(new Reference(tm.getTableId(), tm.getDirName(), true)));

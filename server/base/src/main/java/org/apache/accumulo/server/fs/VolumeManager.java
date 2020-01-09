@@ -26,6 +26,7 @@ import java.util.Collection;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.TabletFileUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.ServerConstants;
@@ -62,37 +63,12 @@ public interface VolumeManager {
       return dir;
     }
 
-    private static int endOfVolumeIndex(String path, String dir) {
-      // Strip off the suffix that starts with the FileType (e.g. tables, wal, etc)
-      int dirIndex = path.indexOf('/' + dir);
-      if (dirIndex != -1) {
-        return dirIndex;
-      }
-
-      if (path.contains(":"))
-        throw new IllegalArgumentException(path + " is absolute, but does not contain " + dir);
-      return -1;
-
-    }
-
     public Path getVolume(Path path) {
-      String pathString = path.toString();
-
-      int eopi = endOfVolumeIndex(pathString, dir);
-      if (eopi != -1)
-        return new Path(pathString.substring(0, eopi + 1));
-
-      return null;
+      return TabletFileUtil.getVolumeFromFullPath(path, dir);
     }
 
     public Path removeVolume(Path path) {
-      String pathString = path.toString();
-
-      int eopi = endOfVolumeIndex(pathString, dir);
-      if (eopi != -1)
-        return new Path(pathString.substring(eopi + 1));
-
-      return null;
+      return TabletFileUtil.removeVolumeFromFullPath(path, dir);
     }
   }
 
