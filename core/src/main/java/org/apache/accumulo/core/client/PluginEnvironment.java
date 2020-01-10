@@ -50,7 +50,7 @@ public interface PluginEnvironment {
      * the prefix. For example, assume the following properties were set :
      *
      * <pre>
-     *  {@code
+     * {@code
      *   general.custom.prop1=123
      *   general.custom.prop2=abc
      * }
