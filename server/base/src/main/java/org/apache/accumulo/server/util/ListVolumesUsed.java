@@ -26,10 +26,8 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
@@ -63,22 +61,6 @@ public class ListVolumesUsed {
     volumes.add(getLogURI(logEntry.filename));
   }
 
-  private static void listZookeeper(ServerContext context) throws Exception {
-    System.out.println("Listing volumes referenced in zookeeper");
-    TreeSet<String> volumes = new TreeSet<>();
-
-    TabletMetadata rootMeta = context.getAmple().readTablet(RootTable.EXTENT);
-
-    for (LogEntry logEntry : rootMeta.getLogs()) {
-      getLogURIs(volumes, logEntry);
-    }
-
-    for (String volume : volumes) {
-      System.out.println("\tVolume : " + volume);
-    }
-
-  }
-
   private static void listTable(Ample.DataLevel level, ServerContext context) throws Exception {
 
     System.out.println("Listing volumes referenced in " + level + " tablets section");
@@ -107,7 +89,7 @@ public class ListVolumesUsed {
     }
 
     System.out.println("Listing volumes referenced in " + level
-        + " deletes section (volume replacement occurrs at deletion time)");
+        + " deletes section (volume replacement occurs at deletion time)");
     volumes.clear();
 
     Iterator<String> delPaths = context.getAmple().getGcCandidates(level, "");
@@ -131,7 +113,11 @@ public class ListVolumesUsed {
   }
 
   public static void listVolumes(ServerContext context) throws Exception {
-    listZookeeper(context);
+    try {
+      listTable(Ample.DataLevel.ROOT, context);
+    } catch (UnsupportedOperationException ex) {
+      // print nothing if no table name exists
+    }
     System.out.println();
     listTable(Ample.DataLevel.METADATA, context);
     System.out.println();
