@@ -75,7 +75,7 @@ public interface PluginEnvironment {
      * prefix. For example, assume the following properties were set :
      *
      * <pre>
-     *  {@code
+     * {@code
      *   table.custom.tp1=ch1
      *   table.custom.tp2=bh2
      * }
