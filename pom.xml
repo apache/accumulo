@@ -554,6 +554,13 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.gaul</groupId>
+      <artifactId>modernizer-maven-annotations</artifactId>
+      <optional>true</optional>
+    </dependency>
+  </dependencies>
   <build>
     <pluginManagement>
       <plugins>
