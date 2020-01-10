@@ -116,7 +116,7 @@ public class ListVolumesUsed {
     try {
       listTable(Ample.DataLevel.ROOT, context);
     } catch (UnsupportedOperationException ex) {
-      // print nothing if no table name exists
+      System.out.println("\tNo volumes present");
     }
     System.out.println();
     listTable(Ample.DataLevel.METADATA, context);
