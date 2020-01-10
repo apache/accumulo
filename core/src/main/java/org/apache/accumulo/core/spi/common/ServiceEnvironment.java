@@ -25,7 +25,7 @@ import org.apache.accumulo.core.data.TableId;
  * purpose of this interface is to insulate plugins from internal refactorings and changes to
  * Accumulo.
  *
- * <P>
+ * <p>
  * Having this allows adding methods to the SPI which are not desired in PluginEnvironment which is
  * public API.
  *
