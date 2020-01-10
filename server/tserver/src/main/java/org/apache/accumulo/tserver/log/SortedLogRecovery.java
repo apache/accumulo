@@ -294,7 +294,7 @@ public class SortedLogRecovery {
   }
 
   Collection<String> asNames(List<Path> recoveryLogs) {
-    return Collections2.transform(recoveryLogs, input -> input.getName());
+    return Collections2.transform(recoveryLogs, input::getName);
   }
 
   public void recover(KeyExtent extent, List<Path> recoveryLogs, Set<String> tabletFiles,
