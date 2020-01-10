@@ -66,7 +66,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * @deprecated since 1.7.0; use {@link Predicate} instead.
    */
   @Deprecated
-  public interface PropertyFilter {
+  @SuppressModernizer
+  public interface PropertyFilter extends Predicate<String> {
     /**
      * Determines whether to accept a property based on its key.
      *
@@ -75,6 +76,11 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
      * @return true to accept property (pass filter)
      */
     boolean accept(String key);
+
+    @Override
+    default boolean apply(String s) {
+      return accept(s);
+    }
   }
 
   /**

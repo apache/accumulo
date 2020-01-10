@@ -177,7 +177,8 @@ public class TabletIteratorTest {
       @Override
       public Iterator<Entry<Key,Value>> answer() throws Throwable {
         Iterator<Entry<Key,Value>> iter = data.entrySet().iterator();
-        iter = Iterators.filter(iter, state::getScanPredicate);
+        final Predicate<Entry<Key,Value>> scanPredicate = state.getScanPredicate();
+        iter = Iterators.filter(iter, scanPredicate::test);
         return iter;
       }
     }).anyTimes();
