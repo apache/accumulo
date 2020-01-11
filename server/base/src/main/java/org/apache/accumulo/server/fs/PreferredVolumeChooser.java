@@ -64,17 +64,10 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
 
   // visible (not private) for testing
   String[] getPreferredVolumes(VolumeChooserEnvironment env, String[] options) {
-    switch (env.getScope()) {
-      case INIT:
-        // TODO should be possible to read from SiteConfiguration during init
-        log.warn("Not possible to determine preferred volumes at '{}' scope. Using all volumes.",
-            ChooserScope.INIT);
-        return options;
-      case TABLE:
-        return getPreferredVolumesForTable(env, options);
-      default:
-        return getPreferredVolumesForScope(env, options);
+    if (env.getScope() == ChooserScope.TABLE) {
+      return getPreferredVolumesForTable(env, options);
     }
+    return getPreferredVolumesForScope(env, options);
   }
 
   private String[] getPreferredVolumesForTable(VolumeChooserEnvironment env, String[] options) {

@@ -96,13 +96,6 @@ public class PerTableVolumeChooserTest {
   }
 
   @Test
-  public void testInitScopeSelectsRandomChooser() {
-    replay(serviceEnv, tableConf, systemConf);
-    VolumeChooser delegate = getDelegate(ChooserScope.INIT);
-    assertSame(RandomVolumeChooser.class, delegate.getClass());
-  }
-
-  @Test
   public void testTableScopeUsingTableProperty() throws Exception {
     expect(tableConf.getTableCustom(TABLE_CUSTOM_SUFFIX)).andReturn(MockChooser1.class.getName());
     expect(serviceEnv.instantiate(TableId.of("testTable"), MockChooser1.class.getName(),
@@ -204,6 +197,31 @@ public class PerTableVolumeChooserTest {
     thrown.expect(VolumeChooserException.class);
     getDelegate(ChooserScope.LOGGER);
     fail("should not reach");
+  }
+
+  @Test
+  public void testInitScopeUsingInitProperty() throws Exception {
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.INIT)))
+        .andReturn(MockChooser1.class.getName()).once();
+    expect(serviceEnv.instantiate(MockChooser1.class.getName(), VolumeChooser.class))
+        .andReturn(new MockChooser1());
+    replay(serviceEnv, tableConf, systemConf);
+
+    VolumeChooser delegate = getDelegate(ChooserScope.INIT);
+    assertSame(MockChooser1.class, delegate.getClass());
+  }
+
+  @Test
+  public void testInitScopeUsingDefaultProperty() throws Exception {
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.INIT))).andReturn(null).once();
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT)))
+        .andReturn(MockChooser2.class.getName()).once();
+    expect(serviceEnv.instantiate(MockChooser2.class.getName(), VolumeChooser.class))
+        .andReturn(new MockChooser2());
+    replay(serviceEnv, tableConf, systemConf);
+
+    VolumeChooser delegate = getDelegate(ChooserScope.INIT);
+    assertSame(MockChooser2.class, delegate.getClass());
   }
 
 }

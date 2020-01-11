@@ -124,6 +124,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     siteConfig.put(getPerTableProp(ChooserScope.LOGGER), PreferredVolumeChooser.class.getName());
     siteConfig.put(getPreferredProp(ChooserScope.LOGGER), v2.toString());
+    siteConfig.put(getPerTableProp(ChooserScope.INIT), PreferredVolumeChooser.class.getName());
+    siteConfig.put(getPreferredProp(ChooserScope.INIT), systemPreferredVolumes);
     cfg.setSiteConfig(siteConfig);
 
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in
