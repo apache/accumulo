@@ -19,16 +19,12 @@
 package org.apache.accumulo.server.util;
 
 import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
@@ -65,22 +61,12 @@ public class ListVolumesUsed {
 
     System.out.println("Listing volumes referenced in " + level + " tablets section");
 
-    Scanner scanner = context.createScanner(level.metaTable(), Authorizations.EMPTY);
-
-    scanner.setRange(MetadataSchema.TabletsSection.getRange());
-    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
-
     TreeSet<String> volumes = new TreeSet<>();
-
-    for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily()
-          .equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
-        volumes.add(getTableURI(entry.getKey().getColumnQualifier().toString()));
-      } else if (entry.getKey().getColumnFamily()
-          .equals(MetadataSchema.TabletsSection.LogColumnFamily.NAME)) {
-        LogEntry le = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
-        getLogURIs(volumes, le);
+    try (TabletsMetadata tablets = TabletsMetadata.builder().forLevel(level)
+        .fetch(TabletMetadata.ColumnType.FILES, TabletMetadata.ColumnType.LOGS).build(context)) {
+      for (TabletMetadata tabletMetadata : tablets) {
+        tabletMetadata.getFiles().forEach(file -> volumes.add(getTableURI(file)));
+        tabletMetadata.getLogs().forEach(le -> getLogURIs(volumes, le));
       }
     }
 
@@ -113,11 +99,7 @@ public class ListVolumesUsed {
   }
 
   public static void listVolumes(ServerContext context) throws Exception {
-    try {
-      listTable(Ample.DataLevel.ROOT, context);
-    } catch (UnsupportedOperationException ex) {
-      System.out.println("\tNo volumes present");
-    }
+    listTable(Ample.DataLevel.ROOT, context);
     System.out.println();
     listTable(Ample.DataLevel.METADATA, context);
     System.out.println();

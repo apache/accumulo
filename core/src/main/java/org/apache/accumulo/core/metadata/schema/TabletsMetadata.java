@@ -195,6 +195,13 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
+    public Options forLevel(DataLevel level) {
+      this.level = level;
+      this.range = TabletsSection.getRange();
+      return this;
+    }
+
+    @Override
     public TableRangeOptions forTable(TableId tableId) {
       if (tableId.equals(RootTable.ID)) {
         this.level = DataLevel.ROOT;
@@ -265,6 +272,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   }
 
   public interface TableOptions {
+
+    /**
+     * Read all of the tablet metadata for this level.
+     */
+    Options forLevel(DataLevel level);
 
     /**
      * Get the tablet metadata for this extents end row. This should only ever return a single
