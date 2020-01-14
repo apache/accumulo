@@ -100,7 +100,7 @@ public class CloneTableCommand extends Command {
         new Option("nf", "noFlush", false, "do not flush table data in memory before cloning.");
     o.addOption(noFlushOption);
     keepOfflineOption =
-        new Option("k", "keepOffline", false, "do not bring the table online after cloning.");
+        new Option("o", "offline", false, "do not bring the table online after cloning.");
     return o;
   }
 
