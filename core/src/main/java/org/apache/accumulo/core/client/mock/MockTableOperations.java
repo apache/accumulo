@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
@@ -471,6 +472,13 @@ class MockTableOperations extends TableOperationsHelper {
   public void clone(String srcTableName, String newTableName, boolean flush,
       Map<String,String> propertiesToSet, Set<String> propertiesToExclude) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, TableExistsException {
+    throw new NotImplementedException();
+  }
+
+  @Override
+  public void clone(String srcTableName, String newTableName, CloneConfiguration config)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      TableExistsException {
     throw new NotImplementedException();
   }
 
