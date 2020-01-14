@@ -484,6 +484,33 @@ public interface TableOperations {
       AccumuloSecurityException, TableNotFoundException, TableExistsException;
 
   /**
+   * Clone a table from an existing table. The cloned table will have the same data as the source
+   * table it was created from. After cloning, the two tables can mutate independently. Initially
+   * the cloned table should not use any extra space, however as the source table and cloned table
+   * major compact extra space will be used by the clone.
+   *
+   * Initially the cloned table is only readable and writable by the user who created it.
+   *
+   * @param srcTableName
+   *          the table to clone
+   * @param newTableName
+   *          the name of the clone
+   * @param flush
+   *          determines if memory is flushed in the source table before cloning.
+   * @param propertiesToSet
+   *          the sources tables properties are copied, this allows overriding of those properties
+   * @param propertiesToExclude
+   *          do not copy these properties from the source table, just revert to system defaults
+   * @param keepOffline
+   *          do not bring the table online after cloning
+   */
+
+  void clone(String srcTableName, String newTableName, boolean flush,
+      Map<String,String> propertiesToSet, Set<String> propertiesToExclude, boolean keepOffline)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      TableExistsException;
+
+  /**
    * Rename a table
    *
    * @param oldTableName

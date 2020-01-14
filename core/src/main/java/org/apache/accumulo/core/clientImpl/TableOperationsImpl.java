@@ -738,6 +738,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
+    clone(srcTableName, newTableName, flush, propertiesToSet, propertiesToExclude, false);
+  }
+
+  @Override
+  public void clone(String srcTableName, String newTableName, boolean flush,
+      Map<String,String> propertiesToSet, Set<String> propertiesToExclude, boolean keepOffline)
+      throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
+      TableExistsException {
 
     checkArgument(srcTableName != null, "srcTableName is null");
     checkArgument(newTableName != null, "newTableName is null");
@@ -754,7 +762,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       propertiesToSet = Collections.emptyMap();
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.canonical().getBytes(UTF_8)),
-        ByteBuffer.wrap(newTableName.getBytes(UTF_8)));
+        ByteBuffer.wrap(newTableName.getBytes(UTF_8)),
+        ByteBuffer.wrap(Boolean.toString(keepOffline).getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
     for (Entry<String,String> entry : propertiesToSet.entrySet()) {
       if (entry.getKey().startsWith(CLONE_EXCLUDE_PREFIX))

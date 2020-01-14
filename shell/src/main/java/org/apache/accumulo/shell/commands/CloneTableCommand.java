@@ -39,6 +39,7 @@ public class CloneTableCommand extends Command {
   private Option setPropsOption;
   private Option excludePropsOption;
   private Option noFlushOption;
+  private Option keepOfflineOption;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -48,6 +49,7 @@ public class CloneTableCommand extends Command {
     Map<String,String> props = ShellUtil.parseMapOpt(cl, setPropsOption);
     final HashSet<String> exclude = new HashSet<>();
     boolean flush = true;
+    boolean keepOffline = false;
 
     if (cl.hasOption(excludePropsOption.getOpt())) {
       String[] keys = cl.getOptionValue(excludePropsOption.getOpt()).split(",");
@@ -60,8 +62,12 @@ public class CloneTableCommand extends Command {
       flush = false;
     }
 
+    if (cl.hasOption(keepOfflineOption.getOpt())) {
+      keepOffline = true;
+    }
+
     shellState.getAccumuloClient().tableOperations().clone(cl.getArgs()[0], cl.getArgs()[1], flush,
-        props, exclude);
+        props, exclude, keepOffline);
     return 0;
   }
 
@@ -93,6 +99,8 @@ public class CloneTableCommand extends Command {
     noFlushOption =
         new Option("nf", "noFlush", false, "do not flush table data in memory before cloning.");
     o.addOption(noFlushOption);
+    keepOfflineOption =
+        new Option("k", "keepOffline", false, "do not bring the table online after cloning.");
     return o;
   }
 

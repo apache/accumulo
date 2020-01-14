@@ -47,7 +47,11 @@ class FinishCloneTable extends MasterRepo {
     // may never create files.. therefore there is no need to consume namenode space w/ directories
     // that are not used... tablet will create directories as needed
 
-    environment.getTableManager().transitionTableState(cloneInfo.tableId, TableState.ONLINE);
+    if (!cloneInfo.keepOffline) {
+      environment.getTableManager().transitionTableState(cloneInfo.tableId, TableState.ONLINE);
+    } else {
+      environment.getTableManager().transitionTableState(cloneInfo.tableId, TableState.OFFLINE);
+    }
 
     Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false);
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))

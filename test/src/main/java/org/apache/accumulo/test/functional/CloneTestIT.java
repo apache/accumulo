@@ -42,11 +42,15 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -57,6 +61,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TException;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -102,6 +107,13 @@ public class CloneTestIT extends AccumuloClusterHarness {
       c.tableOperations().delete(table1);
       c.tableOperations().delete(table2);
     }
+  }
+
+  private void checkTableState(String table, AccumuloClient client, TableState expected)
+      throws TException, TableNotFoundException {
+    TableId tableId = Tables.getTableId((ClientContext) client, table);
+    TableState tableState = Tables.getTableState((ClientContext) client, tableId);
+    assertEquals(expected, tableState);
   }
 
   private void checkData(String table2, AccumuloClient c) throws TableNotFoundException {
@@ -240,6 +252,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
       writeDataAndClone(c, table1, table2);
 
+      checkTableState(table2, c, TableState.ONLINE);
+
       // delete source table, should not affect clone
       c.tableOperations().delete(table1);
 
@@ -250,6 +264,33 @@ public class CloneTestIT extends AccumuloClusterHarness {
       checkData(table2, c);
 
       c.tableOperations().delete(table2);
+    }
+  }
+
+  @Test
+  public void testOfflineClone() throws Exception {
+    String[] tableNames = getUniqueNames(3);
+    String table1 = tableNames[0];
+    String table2 = tableNames[1];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table1);
+
+      BatchWriter bw = writeData(table1, client);
+
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
+
+      Set<String> exclude = new HashSet<>();
+      exclude.add(Property.TABLE_FILE_MAX.getKey());
+
+      client.tableOperations().clone(table1, table2, true, props, exclude, true);
+
+      checkTableState(table2, client, TableState.OFFLINE);
+
+      // delete tables
+      client.tableOperations().delete(table1);
+      client.tableOperations().delete(table2);
     }
   }
 

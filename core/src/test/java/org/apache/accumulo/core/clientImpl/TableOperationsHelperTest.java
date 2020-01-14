@@ -116,6 +116,10 @@ public class TableOperationsHelperTest {
         Map<String,String> propertiesToSet, Set<String> propertiesToExclude) {}
 
     @Override
+    public void clone(String srcTableName, String newTableName, boolean flush,
+        Map<String,String> propertiesToSet, Set<String> propertiesToExclude, boolean keepOffline) {}
+
+    @Override
     public void rename(String oldTableName, String newTableName) {}
 
     @Override
