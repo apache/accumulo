@@ -26,7 +26,7 @@ import org.junit.Test;
 
 public class TabletFileTest {
 
-  private void test(String metadataEntry, String volume, String tableId, String tabletDir,
+  private TabletFile test(String metadataEntry, String volume, String tableId, String tabletDir,
       String fileName) {
     TabletFile tabletFile = new TabletFile(metadataEntry);
 
@@ -35,6 +35,7 @@ public class TabletFileTest {
     assertEquals(TableId.of(tableId), tabletFile.getTableId());
     assertEquals(tabletDir, tabletFile.getTabletDir());
     assertEquals(fileName, tabletFile.getFileName());
+    return tabletFile;
   }
 
   @Test
@@ -68,18 +69,22 @@ public class TabletFileTest {
     try {
       test("hdfs://localhost:8020/accumulo/2a/default_tablet/F0000070.rf",
           " hdfs://localhost:8020/accumulo", "2a", "default_tablet", " F0000070.rf");
+      fail("Failed to throw error on bad path");
     } catch (IllegalArgumentException e) {}
     try {
       test("/accumulo/tables/2a/default_tablet/F0000070.rf", "", "2a", "default_tablet",
           "F0000070.rf");
+      fail("Failed to throw error on bad path");
     } catch (IllegalArgumentException e) {}
     try {
       test("hdfs://localhost:8020/accumulo/tables/2a/F0000070.rf", "hdfs://localhost:8020/accumulo",
           "2a", "", "F0000070.rf");
+      fail("Failed to throw error on bad path");
     } catch (IllegalArgumentException e) {}
     try {
       test("hdfs://localhost:8020/accumulo/tables/F0000070.rf", "hdfs://localhost:8020/accumulo",
           null, "", "F0000070.rf");
+      fail("Failed to throw error on bad path");
     } catch (IllegalArgumentException e) {}
   }
 
@@ -98,7 +103,12 @@ public class TabletFileTest {
   public void testNormalizePath() {
     String uglyVolume = "hdfs://nn.somewhere.com:86753/accumulo/blah/.././/bad/bad2/../.././/////";
     String metadataEntry = uglyVolume + "/tables/" + id + "/" + dir + "/" + filename;
-    test(metadataEntry, "hdfs://nn.somewhere.com:86753/accumulo", id, dir, filename);
+    TabletFile uglyFile =
+        test(metadataEntry, "hdfs://nn.somewhere.com:86753/accumulo", id, dir, filename);
+    TabletFile niceFile = new TabletFile(
+        "hdfs://nn.somewhere.com:86753/accumulo/tables/" + id + "/" + dir + "/" + filename);
+    assertEquals(niceFile, uglyFile);
+    assertEquals(niceFile.hashCode(), uglyFile.hashCode());
   }
 
 }

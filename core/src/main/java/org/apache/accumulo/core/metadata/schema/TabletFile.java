@@ -47,7 +47,7 @@ public class TabletFile implements Comparable<TabletFile> {
 
   public TabletFile(String metadataEntry) {
     this.metadataEntry = Objects.requireNonNull(metadataEntry);
-    String errorMsg = " is missing/invalid from tablet file metadata entry: " + metadataEntry;
+    String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metadataEntry;
 
     this.metaPath = new Path(metadataEntry);
 
@@ -55,21 +55,20 @@ public class TabletFile implements Comparable<TabletFile> {
     this.fileName = metaPath.getName();
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(fileName);
 
-    Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), "Tablet dir" + errorMsg);
+    Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), errorMsg);
     this.tabletDir = tabletDirPath.getName();
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tabletDir);
 
-    Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), "Table ID" + errorMsg);
+    Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), errorMsg);
     this.tableId = TableId.of(tableIdPath.getName());
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
 
-    Path tablePath = Objects.requireNonNull(tableIdPath.getParent(), "Table" + errorMsg);
+    Path tablePath = Objects.requireNonNull(tableIdPath.getParent(), errorMsg);
     String tpString = "/" + tablePath.getName();
-    Preconditions.checkArgument(tpString.equals(Constants.HDFS_TABLES_DIR),
-        "Tables dir" + errorMsg);
+    Preconditions.checkArgument(tpString.equals(Constants.HDFS_TABLES_DIR), errorMsg);
 
-    Path volumePath = Objects.requireNonNull(tablePath.getParent(), "Volume" + errorMsg);
-    Preconditions.checkArgument(volumePath.toUri().getScheme() != null, "Volume" + errorMsg);
+    Path volumePath = Objects.requireNonNull(tablePath.getParent(), errorMsg);
+    Preconditions.checkArgument(volumePath.toUri().getScheme() != null, errorMsg);
     this.volume = volumePath.toString();
 
     this.normalizedPath = volume + Constants.HDFS_TABLES_DIR + "/" + tableId.canonical() + "/"
