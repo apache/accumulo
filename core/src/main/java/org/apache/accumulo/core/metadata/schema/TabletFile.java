@@ -25,11 +25,13 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Object representing a tablet file entry in the metadata table. Keeps a string of the exact entry
  * of what is in the metadata table for the column qualifier of the
  * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily}
- *
+ * <p>
  * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
  * in Upgrader9to10.upgradeRelativePaths()
  */
@@ -40,13 +42,14 @@ public class TabletFile implements Comparable<TabletFile> {
   private final String tabletDir; // t-0003
   private final String fileName; // C0004.rf
   private final String metadataEntry;
-  private final String normalizedPath; // 2a/t-0003/C0004.rf
+  private final Path metaPath;
+  private final String normalizedPath;
 
   public TabletFile(String metadataEntry) {
     this.metadataEntry = Objects.requireNonNull(metadataEntry);
-    String errorMsg = " is missing from tablet file metadata entry: " + metadataEntry;
+    String errorMsg = " is missing/invalid from tablet file metadata entry: " + metadataEntry;
 
-    Path metaPath = new Path(metadataEntry);
+    this.metaPath = new Path(metadataEntry);
 
     // use Path object to step backwards from the filename through all the parts
     this.fileName = metaPath.getName();
@@ -60,8 +63,13 @@ public class TabletFile implements Comparable<TabletFile> {
     this.tableId = TableId.of(tableIdPath.getName());
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
 
-    Path volumePath = Objects.requireNonNull(
-        TabletFileUtil.getVolumeFromFullPath(metaPath, "tables"), "Volume" + errorMsg);
+    Path tablePath = Objects.requireNonNull(tableIdPath.getParent(), "Table" + errorMsg);
+    String tpString = "/" + tablePath.getName();
+    Preconditions.checkArgument(tpString.equals(Constants.HDFS_TABLES_DIR),
+        "Tables dir" + errorMsg);
+
+    Path volumePath = Objects.requireNonNull(tablePath.getParent(), "Volume" + errorMsg);
+    Preconditions.checkArgument(volumePath.toUri().getScheme() != null, "Volume" + errorMsg);
     this.volume = volumePath.toString();
 
     this.normalizedPath = volume + Constants.HDFS_TABLES_DIR + "/" + tableId.canonical() + "/"
@@ -100,7 +108,7 @@ public class TabletFile implements Comparable<TabletFile> {
   }
 
   public Path path() {
-    return new Path(metadataEntry);
+    return metaPath;
   }
 
   @Override
