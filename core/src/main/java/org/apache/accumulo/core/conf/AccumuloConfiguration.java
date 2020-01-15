@@ -61,7 +61,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   private Lock prefixCacheUpdateLock = new ReentrantLock();
 
   /**
-   * A filter for properties, based on key.
+   * A filter for properties, based on key. WARNING: Do not remove this filter; it is required for
+   * MockConfiguration
    *
    * @deprecated since 1.7.0; use {@link Predicate} instead.
    */
