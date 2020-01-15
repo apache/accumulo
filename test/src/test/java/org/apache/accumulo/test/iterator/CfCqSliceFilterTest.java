@@ -35,7 +35,6 @@ import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
@@ -92,19 +91,13 @@ public class CfCqSliceFilterTest extends BaseJUnit4IteratorTest {
   private static TreeMap<Key,Value> createOutputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
 
-    Iterable<Entry<Key,Value>> filtered =
-        Iterables.filter(INPUT_DATA.entrySet(), new Predicate<Entry<Key,Value>>() {
-
-          @Override
-          public boolean apply(Entry<Key,Value> entry) {
-            assertNotNull(entry);
-            String cf = entry.getKey().getColumnFamily().toString();
-            String cq = entry.getKey().getColumnQualifier().toString();
-            return MIN_CF.compareTo(cf) <= 0 && MAX_CF.compareTo(cf) >= 0
-                && MIN_CQ.compareTo(cq) <= 0 && MAX_CQ.compareTo(cq) >= 0;
-          }
-
-        });
+    Iterable<Entry<Key,Value>> filtered = Iterables.filter(INPUT_DATA.entrySet(), entry -> {
+      assertNotNull(entry);
+      String cf = entry.getKey().getColumnFamily().toString();
+      String cq = entry.getKey().getColumnQualifier().toString();
+      return MIN_CF.compareTo(cf) <= 0 && MAX_CF.compareTo(cf) >= 0 && MIN_CQ.compareTo(cq) <= 0
+          && MAX_CQ.compareTo(cq) >= 0;
+    });
 
     for (Entry<Key,Value> entry : filtered) {
       data.put(entry.getKey(), entry.getValue());

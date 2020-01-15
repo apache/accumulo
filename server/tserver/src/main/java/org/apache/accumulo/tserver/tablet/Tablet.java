@@ -151,6 +151,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
@@ -2934,6 +2935,7 @@ public class Tablet implements TabletCommitter {
     return scannedCount;
   }
 
+  @SuppressModernizer
   private static String createTabletDirectory(VolumeManager fs, String tableId, Text endRow) {
     String lowDirectory;
 

@@ -22,6 +22,7 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.easymock.EasyMock;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.junit.Test;
 
 import com.google.common.base.Optional;
@@ -29,6 +30,7 @@ import com.google.common.base.Optional;
 /**
  *
  */
+@SuppressModernizer
 public class ImportTableTest {
 
   @Test

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -39,7 +40,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
@@ -49,7 +49,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 
 public class TabletIteratorTest {
@@ -164,15 +163,7 @@ public class TabletIteratorTest {
     Predicate<Entry<Key,Value>> getScanPredicate() {
       final Range range = getRange();
 
-      return new Predicate<Entry<Key,Value>>() {
-        @Override
-        public boolean apply(Entry<Key,Value> input) {
-          if (range != null && !range.contains(input.getKey()))
-            return false;
-
-          return true;
-        }
-      };
+      return input -> range == null || range.contains(input.getKey());
     }
   }
 
@@ -186,7 +177,8 @@ public class TabletIteratorTest {
       @Override
       public Iterator<Entry<Key,Value>> answer() throws Throwable {
         Iterator<Entry<Key,Value>> iter = data.entrySet().iterator();
-        iter = Iterators.filter(iter, state.getScanPredicate());
+        final Predicate<Entry<Key,Value>> scanPredicate = state.getScanPredicate();
+        iter = Iterators.filter(iter, scanPredicate::test);
         return iter;
       }
     }).anyTimes();
@@ -213,7 +205,7 @@ public class TabletIteratorTest {
         prevEndRow == null ? null : new Text(prevEndRow));
 
     Mutation m = ke.getPrevRowUpdateMutation();
-    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/d1"));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/d1"));
 
     for (ColumnUpdate cu : m.getUpdates()) {
       Key k = new Key(m.getRow(), cu.getColumnFamily(), cu.getColumnQualifier(),

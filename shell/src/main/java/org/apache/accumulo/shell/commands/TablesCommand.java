@@ -19,7 +19,6 @@ package org.apache.accumulo.shell.commands;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -33,8 +32,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.MapUtils;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 
@@ -55,30 +52,22 @@ public class TablesCommand extends Command {
     Map<String,String> tables = shellState.getConnector().tableOperations().tableIdMap();
 
     // filter only specified namespace
-    tables = Maps.filterKeys(tables, new Predicate<String>() {
-      @Override
-      public boolean apply(String tableName) {
-        return namespace == null || Tables.qualify(tableName).getFirst().equals(namespace);
-      }
-    });
+    tables = Maps.filterKeys(tables,
+        tableName -> namespace == null || Tables.qualify(tableName).getFirst().equals(namespace));
 
     final boolean sortByTableId = cl.hasOption(sortByTableIdOption.getOpt());
     tables = new TreeMap<>((sortByTableId ? MapUtils.invertMap(tables) : tables));
 
-    Iterator<String> it = Iterators.transform(tables.entrySet().iterator(),
-        new Function<Entry<String,String>,String>() {
-          @Override
-          public String apply(Map.Entry<String,String> entry) {
-            String tableName = String.valueOf(sortByTableId ? entry.getValue() : entry.getKey());
-            String tableId = String.valueOf(sortByTableId ? entry.getKey() : entry.getValue());
-            if (namespace != null)
-              tableName = Tables.qualify(tableName).getSecond();
-            if (cl.hasOption(tableIdOption.getOpt()))
-              return String.format(NAME_AND_ID_FORMAT, tableName, tableId);
-            else
-              return tableName;
-          }
-        });
+    Iterator<String> it = Iterators.transform(tables.entrySet().iterator(), entry -> {
+      String tableName = String.valueOf(sortByTableId ? entry.getValue() : entry.getKey());
+      String tableId = String.valueOf(sortByTableId ? entry.getKey() : entry.getValue());
+      if (namespace != null)
+        tableName = Tables.qualify(tableName).getSecond();
+      if (cl.hasOption(tableIdOption.getOpt()))
+        return String.format(NAME_AND_ID_FORMAT, tableName, tableId);
+      else
+        return tableName;
+    });
 
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));
     return 0;

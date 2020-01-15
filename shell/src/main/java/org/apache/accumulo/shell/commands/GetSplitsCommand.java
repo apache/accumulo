@@ -19,6 +19,7 @@ package org.apache.accumulo.shell.commands;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.shell.Shell;
@@ -109,7 +109,7 @@ public class GetSplitsCommand extends Command {
       return null;
     }
     final int length = text.getLength();
-    return encode ? Base64.encodeBase64String(TextUtil.getBytes(text))
+    return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text))
         : DefaultFormatter.appendText(new StringBuilder(), text, length).toString();
   }
 
@@ -123,7 +123,7 @@ public class GetSplitsCommand extends Command {
     if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
       digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
     }
-    return Base64.encodeBase64String(digester.digest());
+    return Base64.getEncoder().encodeToString(digester.digest());
   }
 
   @Override

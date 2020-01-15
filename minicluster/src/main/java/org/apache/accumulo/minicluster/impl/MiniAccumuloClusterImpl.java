@@ -109,7 +109,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -458,13 +457,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     File clientConfFile = config.getClientConfFile();
     // Write only the properties that correspond to ClientConfiguration properties
-    writeConfigProperties(clientConfFile,
-        Maps.filterEntries(config.getSiteConfig(), new Predicate<Entry<String,String>>() {
-          @Override
-          public boolean apply(Entry<String,String> v) {
-            return ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null;
-          }
-        }));
+    writeConfigProperties(clientConfFile, Maps.filterEntries(config.getSiteConfig(),
+        v -> ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null));
 
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
     writeConfig(siteFile, config.getSiteConfig().entrySet());

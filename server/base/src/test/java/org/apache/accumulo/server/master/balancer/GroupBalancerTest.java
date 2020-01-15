@@ -38,11 +38,13 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.junit.Test;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 
+@SuppressModernizer
 public class GroupBalancerTest {
 
   private static Function<KeyExtent,String> partitioner = new Function<KeyExtent,String>() {

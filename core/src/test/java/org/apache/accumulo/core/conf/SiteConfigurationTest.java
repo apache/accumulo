@@ -29,9 +29,6 @@ import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-
 public class SiteConfigurationTest {
   private static boolean isCredentialProviderAvailable;
 
@@ -72,8 +69,7 @@ public class SiteConfigurationTest {
     EasyMock.replay(siteCfg);
 
     Map<String,String> props = new HashMap<>();
-    Predicate<String> all = Predicates.alwaysTrue();
-    siteCfg.getProperties(props, all);
+    siteCfg.getProperties(props, all -> true);
 
     assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
     assertEquals(null, props.get("ignored.property"));

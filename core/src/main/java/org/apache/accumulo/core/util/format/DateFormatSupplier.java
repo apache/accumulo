@@ -20,6 +20,8 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
+
 import com.google.common.base.Supplier;
 
 /**
@@ -35,6 +37,7 @@ import com.google.common.base.Supplier;
  * In general, the state of a retrieved DateFormat should not be changed, unless it makes sense to
  * only perform a state change within that Thread.
  */
+@SuppressModernizer
 public abstract class DateFormatSupplier extends ThreadLocal<DateFormat>
     implements Supplier<DateFormat> {
   private TimeZone timeZone;

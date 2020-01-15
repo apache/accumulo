@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,6 +140,7 @@ public class ZooCachePropertyAccessor {
    * @param parentFilter
    *          separate filter for parent properties (optional)
    */
+  @SuppressModernizer
   void getProperties(Map<String,String> props, String path, Predicate<String> filter,
       AccumuloConfiguration parent, Predicate<String> parentFilter) {
     parent.getProperties(props, parentFilter != null ? parentFilter : filter);

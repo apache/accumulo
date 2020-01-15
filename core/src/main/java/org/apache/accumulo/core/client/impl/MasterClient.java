@@ -174,7 +174,7 @@ public class MasterClient {
     }
   }
 
-  public static void execute(ClientContext context, ClientExec<MasterClientService.Client> exec)
+  public static void executeVoid(ClientContext context, ClientExec<MasterClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
       executeGeneric(context, exec);

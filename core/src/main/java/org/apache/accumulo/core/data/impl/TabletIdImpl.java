@@ -20,9 +20,11 @@ package org.apache.accumulo.core.data.impl;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.hadoop.io.Text;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 
 import com.google.common.base.Function;
 
+@SuppressModernizer
 public class TabletIdImpl implements TabletId {
 
   private KeyExtent ke;

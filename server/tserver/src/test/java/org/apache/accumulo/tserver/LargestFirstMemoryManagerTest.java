@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -36,8 +37,6 @@ import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.base.Function;
 
 public class LargestFirstMemoryManagerTest {
 
@@ -197,14 +196,9 @@ public class LargestFirstMemoryManagerTest {
   @Test
   public void testDeletedTable() throws Exception {
     final String deletedTableId = "1";
-    Function<String,Boolean> existenceCheck = new Function<String,Boolean>() {
-      @Override
-      public Boolean apply(String tableId) {
-        return !deletedTableId.equals(tableId);
-      }
-    };
+
     LargestFirstMemoryManagerWithExistenceCheck mgr =
-        new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
+        new LargestFirstMemoryManagerWithExistenceCheck(tableId -> !deletedTableId.equals(tableId));
     ServerConfiguration config = new ServerConfiguration() {
       ServerConfigurationFactory delegate = new ServerConfigurationFactory(inst);
 
