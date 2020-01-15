@@ -30,7 +30,6 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -75,6 +74,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cl
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
+import org.apache.accumulo.core.metadata.schema.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
@@ -422,7 +422,8 @@ public class MetadataTableUtil {
     result.addAll(tablet.getLogs());
 
     tablet.getFilesMap().forEach((k, v) -> {
-      sizes.put(new FileRef(k, fs.getFullPath(tablet.getTableId(), k)), v);
+      sizes.put(new FileRef(k.getMetadataEntry(),
+          fs.getFullPath(tablet.getTableId(), k.getMetadataEntry())), v);
     });
 
     return new Pair<>(result, sizes);
@@ -434,16 +435,6 @@ public class MetadataTableUtil {
     entries.forEach(tablet::deleteWal);
     tablet.putZooLock(zooLock);
     tablet.mutate();
-  }
-
-  private static void getFiles(Set<String> files, Collection<String> tabletFiles,
-      TableId srcTableId) {
-    for (String file : tabletFiles) {
-      if (srcTableId != null && !file.startsWith("../") && !file.contains(":")) {
-        file = "../" + srcTableId + file;
-      }
-      files.add(file);
-    }
   }
 
   private static Mutation createCloneMutation(TableId srcTableId, TableId tableId,
@@ -534,12 +525,12 @@ public class MetadataTableUtil {
     while (cloneIter.hasNext()) {
       TabletMetadata cloneTablet = cloneIter.next();
       Text cloneEndRow = cloneTablet.getEndRow();
-      HashSet<String> cloneFiles = new HashSet<>();
+      HashSet<TabletFile> cloneFiles = new HashSet<>();
 
       boolean cloneSuccessful = cloneTablet.getCloned() != null;
 
       if (!cloneSuccessful)
-        getFiles(cloneFiles, cloneTablet.getFiles(), null);
+        cloneFiles.addAll(cloneTablet.getFiles());
 
       List<TabletMetadata> srcTablets = new ArrayList<>();
       TabletMetadata srcTablet = srcIter.next();
@@ -551,9 +542,9 @@ public class MetadataTableUtil {
         throw new TabletDeletedException(
             "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
 
-      HashSet<String> srcFiles = new HashSet<>();
+      HashSet<TabletFile> srcFiles = new HashSet<>();
       if (!cloneSuccessful)
-        getFiles(srcFiles, srcTablet.getFiles(), srcTableId);
+        srcFiles.addAll(srcTablet.getFiles());
 
       while (cmp > 0) {
         srcTablet = srcIter.next();
@@ -565,7 +556,7 @@ public class MetadataTableUtil {
               "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
 
         if (!cloneSuccessful)
-          getFiles(srcFiles, srcTablet.getFiles(), srcTableId);
+          srcFiles.addAll(srcTablet.getFiles());
       }
 
       if (cloneSuccessful)
