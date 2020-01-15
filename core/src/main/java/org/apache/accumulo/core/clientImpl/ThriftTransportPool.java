@@ -41,7 +41,6 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.Once;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -50,6 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -346,8 +346,10 @@ public class ThriftTransportPool {
   private Map<ThriftTransportKey,Long> errorTime = new HashMap<>();
   private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<>();
 
-  private Once checkStarter = new Once(() -> {
-    new Daemon(new Closer(instance), "Thrift Connection Pool Checker").start();
+  private Supplier<Daemon> checkThreadFactory = Suppliers.memoize(() -> {
+    var thread = new Daemon(new Closer(), "Thrift Connection Pool Checker");
+    thread.start();
+    return thread;
   });
 
   private static final Logger log = LoggerFactory.getLogger(ThriftTransportPool.class);
@@ -384,16 +386,11 @@ public class ThriftTransportPool {
     private static final long serialVersionUID = 1L;
   }
 
-  private static class Closer implements Runnable {
-    final ThriftTransportPool pool;
-
-    public Closer(ThriftTransportPool pool) {
-      this.pool = pool;
-    }
+  private class Closer implements Runnable {
 
     private void closeConnections() throws InterruptedException {
       while (true) {
-        pool.closeExpiredConnections();
+        closeExpiredConnections();
         Thread.sleep(500);
       }
     }
@@ -857,7 +854,7 @@ public class ThriftTransportPool {
   }
 
   public void startCheckerThread() {
-    checkStarter.run();
+    checkThreadFactory.get();
   }
 
   void closeExpiredConnections() {
@@ -884,6 +881,11 @@ public class ThriftTransportPool {
 
   private void shutdown() {
     connectionPool.shutdown();
+    try {
+      checkThreadFactory.get().join();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private ConnectionPool getConnectionPool() {
