@@ -154,6 +154,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.util.concurrent.RateLimiter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -178,6 +179,7 @@ public class Master extends AbstractServer
   private static final int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = ONE_SECOND;
   static final int MAX_TSERVER_WORK_CHUNK = 5000;
   private static final int MAX_BAD_STATUS_COUNT = 3;
+  private static final double MAX_SHUTDOWNS_PER_SEC = 10D / 60D;
 
   final VolumeManager fs;
   private final Object balancedNotifier = new Object();
@@ -910,6 +912,7 @@ public class Master extends AbstractServer
         threads == 0 ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
+    final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {
@@ -943,18 +946,26 @@ public class Master extends AbstractServer
         } catch (Exception ex) {
           log.error("unable to get tablet server status {} {}", server, ex.toString());
           log.debug("unable to get tablet server status {}", server, ex);
+          // Attempt to shutdown server only if able to acquire. If unable, this tablet server
+          // will be removed from the badServers set below and status will be reattempted again
+          // MAX_BAD_STATUS_COUNT times
           if (badServers.computeIfAbsent(server, k -> new AtomicInteger(0)).incrementAndGet()
               > MAX_BAD_STATUS_COUNT) {
-            log.warn("attempting to stop {}", server);
-            try {
-              TServerConnection connection2 = tserverSet.getConnection(server);
-              if (connection2 != null) {
-                connection2.halt(masterLock);
+            if (shutdownServerRateLimiter.tryAcquire()) {
+              log.warn("attempting to stop {}", server);
+              try {
+                TServerConnection connection2 = tserverSet.getConnection(server);
+                if (connection2 != null) {
+                  connection2.halt(masterLock);
+                }
+              } catch (TTransportException e1) {
+                // ignore: it's probably down
+              } catch (Exception e2) {
+                log.info("error talking to troublesome tablet server", e2);
               }
-            } catch (TTransportException e1) {
-              // ignore: it's probably down
-            } catch (Exception e2) {
-              log.info("error talking to troublesome tablet server", e2);
+            } else {
+              log.warn("Unable to shutdown {} as over the shutdown limit of {} per minute", server,
+                  MAX_SHUTDOWNS_PER_SEC * 60);
             }
             badServers.remove(server);
           }
@@ -1061,6 +1072,7 @@ public class Master extends AbstractServer
     }
 
     watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(context, this), null) {
+
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
