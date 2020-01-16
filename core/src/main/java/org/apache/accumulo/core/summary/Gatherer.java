@@ -169,7 +169,7 @@ public class Gatherer {
    *         associated with a file represent the tablets that use the file.
    */
   private Map<String,Map<TabletFile,List<TRowRange>>>
-      getFilesGroupedByLocation(Predicate<String> fileSelector) {
+      getFilesGroupedByLocation(Predicate<TabletFile> fileSelector) {
 
     Iterable<TabletMetadata> tmi = TabletsMetadata.builder().forTable(tableId)
         .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build(ctx);
@@ -179,7 +179,7 @@ public class Gatherer {
 
     for (TabletMetadata tm : tmi) {
       for (TabletFile file : tm.getFiles()) {
-        if (fileSelector.test(file.getMetadataEntry())) {
+        if (fileSelector.test(file)) {
           // TODO push this filtering to server side and possibly use batch scanner
           files.computeIfAbsent(file, s -> new ArrayList<>()).add(tm);
         }
@@ -368,9 +368,9 @@ public class Gatherer {
 
     private synchronized void initiateProcessing(ProcessedFiles previousWork) {
       try {
-        Predicate<String> fileSelector =
-            file -> Math.abs(Hashing.murmur3_32().hashString(file, UTF_8).asInt()) % modulus
-                == remainder;
+        Predicate<TabletFile> fileSelector = file -> Math
+            .abs(Hashing.murmur3_32().hashString(file.getNormalizedPath(), UTF_8).asInt()) % modulus
+            == remainder;
         if (previousWork != null) {
           fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }
