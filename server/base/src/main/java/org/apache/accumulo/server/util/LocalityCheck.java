@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -69,8 +70,7 @@ public class LocalityCheck {
             addBlocks(fs, host, files, totalBlocks, localBlocks);
             files.clear();
           } else if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-
-            files.add(fs.getFullPath(key).toString());
+            files.add(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
           }
         }
         System.out.println(" Server         %local  total blocks");

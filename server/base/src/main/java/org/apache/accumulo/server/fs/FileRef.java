@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.fs;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
@@ -34,14 +32,6 @@ public class FileRef implements Ample.FileMeta, Comparable<FileRef> {
   private String metaReference; // something like ../2/d-00000/A00001.rf
   private Path fullReference; // something like hdfs://nn:9001/accumulo/tables/2/d-00000/A00001.rf
   private Path suffix;
-
-  public FileRef(VolumeManager fs, Key key) {
-    this(key.getColumnQualifier().toString(), fs.getFullPath(key));
-  }
-
-  public FileRef(VolumeManager fs, String metaReference, TableId tableId) {
-    this(metaReference, fs.getFullPath(tableId, metaReference));
-  }
 
   public FileRef(String metaReference, Path fullReference) {
     this.metaReference = metaReference;

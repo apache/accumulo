@@ -319,9 +319,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               // of deleting something that should not be deleted. Must not change value of delete
               // variable because thats whats stored in metadata table.
               log.debug("Volume replaced {} -> {}", delete, switchedDelete);
-              fullPath = fs.getFullPath(FileType.TABLE, switchedDelete);
+              fullPath = new Path(switchedDelete);
             } else {
-              fullPath = fs.getFullPath(FileType.TABLE, delete);
+              fullPath = new Path(delete);
             }
 
             for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
@@ -715,7 +715,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     while (cdIter.hasNext()) {
       Entry<String,String> entry = cdIter.next();
       String relPath = entry.getKey();
-      Path absPath = fs.getFullPath(FileType.TABLE, entry.getValue());
+      Path absPath = new Path(entry.getValue());
 
       if (isDir(relPath)) {
         lastDirRel = relPath;

@@ -41,6 +41,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -149,7 +150,8 @@ public class MasterMetadataUtil {
 
           for (Entry<Key,Value> entry : scanner3) {
             if (entry.getKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-              origDatafileSizes.put(new FileRef(context.getVolumeManager(), entry.getKey()),
+              String tabletFilePath = entry.getKey().getColumnQualifierData().toString();
+              origDatafileSizes.put(new FileRef(TabletFileUtil.validate(tabletFilePath)),
                   new DataFileValue(entry.getValue().get()));
             }
           }
