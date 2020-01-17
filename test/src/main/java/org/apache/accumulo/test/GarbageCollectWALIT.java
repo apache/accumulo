@@ -51,7 +51,7 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test(timeout = 3 * 60 * 1000)
   public void test() throws Exception {
     // not yet, please
     String tableName = getUniqueNames(1)[0];
