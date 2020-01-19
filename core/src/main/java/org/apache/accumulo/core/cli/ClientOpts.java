@@ -402,7 +402,10 @@ public class ClientOpts extends Help {
       return cachedClientConfig = clientConfig.withInstance(UUID.fromString(instanceIDFromFile))
           .withZkHosts(zookeepers);
     }
-    return cachedClientConfig = clientConfig.withInstance(instance).withZkHosts(zookeepers);
-  }
 
+    if (instance != null && zookeepers != null)
+      return cachedClientConfig = clientConfig.withInstance(instance).withZkHosts(zookeepers);
+    else
+      return clientConfig;
+  }
 }
