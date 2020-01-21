@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
@@ -32,7 +33,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyRepo;
@@ -84,7 +84,7 @@ public class FateCommand extends Command {
 
     ByteArrayContainer(byte[] ba) {
       asUtf8 = new String(ba, StandardCharsets.UTF_8);
-      asBase64 = Base64.encodeBase64URLSafeString(ba);
+      asBase64 = Base64.getUrlEncoder().encodeToString(ba);
     }
   }
 

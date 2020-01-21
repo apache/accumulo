@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -101,6 +102,24 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
 
       currentTabletKeys = scanToPrevEndRow();
       if (currentTabletKeys.size() == 0) {
+        // Always expect the default tablet to exist for a table. The following checks for the case
+        // when
+        // the default tablet was not seen when it should have been seen.
+        if (lastTablet != null) {
+          KeyExtent lastExtent = new KeyExtent(lastTablet, (Text) null);
+
+          // if lastTablet was not the default tablet
+          if (lastExtent.getEndRow() != null) {
+
+            Text defaultTabletRow = TabletsSection.getRow(lastExtent.getTableId(), null);
+            if (range.contains(new Key(defaultTabletRow))) {
+              throw new IllegalStateException(
+                  "Scan range included default tablet, but did not see default tablet.  Last tablet seen : "
+                      + lastTablet);
+            }
+          }
+        }
+
         break;
       }
 
@@ -137,10 +156,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         }
       }
 
-      boolean perEqual = (per == null && lastEndRow == null)
-          || (per != null && lastEndRow != null && per.equals(lastEndRow));
-
-      if (!perEqual) {
+      if (!Objects.equals(per, lastEndRow)) {
 
         log.info("Metadata inconsistency : " + per + " != " + lastEndRow + " metadataKey = "
             + prevEndRowKey);

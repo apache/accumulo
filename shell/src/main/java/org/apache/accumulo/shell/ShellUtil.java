@@ -21,19 +21,18 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Scanner;
 
-import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.io.Text;
 
 public class ShellUtil {
 
   /**
    * Scans the given file line-by-line (ignoring empty lines) and returns a list containing those
-   * lines. If decode is set to true, every line is decoded using
-   * {@link Base64#decodeBase64(byte[])} from the UTF-8 bytes of that line before inserting in the
-   * list.
+   * lines. If decode is set to true, every line is decoded using Base64.getDecoder().decode(byte[])
+   * from the UTF-8 bytes of that line before inserting in the list.
    *
    * @param filename
    *          Path to the file that needs to be scanned
@@ -51,7 +50,8 @@ public class ShellUtil {
       while (file.hasNextLine()) {
         line = file.nextLine();
         if (!line.isEmpty()) {
-          result.add(decode ? new Text(Base64.decodeBase64(line.getBytes(UTF_8))) : new Text(line));
+          result.add(
+              decode ? new Text(Base64.getDecoder().decode(line.getBytes(UTF_8))) : new Text(line));
         }
       }
     } finally {

@@ -27,4 +27,9 @@
     <Method name="equals" params="java.lang.Object" returns="boolean" />
     <Bug code="EQ" pattern="EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS" />
   </Match>
+  <Match>
+    <!-- Must ignore these everywhere, because of a javac byte code generation bug -->
+    <!-- https://github.com/spotbugs/spotbugs/issues/756 -->
+    <Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE" />
+  </Match>
 </FindBugsFilter>

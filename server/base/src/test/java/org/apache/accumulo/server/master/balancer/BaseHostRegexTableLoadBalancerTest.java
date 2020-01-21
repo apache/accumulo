@@ -333,7 +333,8 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   @Override
   protected TableOperations getTableOperations() {
-    return new TableOperationsImpl(EasyMock.createMock(ClientContext.class)) {
+    ClientContext clientContext = EasyMock.createMock(ClientContext.class);
+    return new TableOperationsImpl(clientContext) {
       @Override
       public Map<String,String> tableIdMap() {
         HashMap<String,String> tables = new HashMap<>();

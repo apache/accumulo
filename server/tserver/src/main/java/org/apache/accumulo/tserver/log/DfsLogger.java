@@ -64,6 +64,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSOutputStream;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -449,6 +450,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
    * @param address
    *          The address of the host using this WAL
    */
+  @SuppressModernizer
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();
     log.debug("Address is " + address);

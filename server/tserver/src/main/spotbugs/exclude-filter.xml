@@ -27,4 +27,9 @@
     <Method name="&lt;init&gt;" params="org.apache.accumulo.tserver.TabletServer,org.apache.accumulo.server.fs.VolumeManager" returns="void" />
     <Bug code="DM" pattern="DM_GC" />
   </Match>
+  <Match>
+    <!-- Must ignore these everywhere, because of a javac byte code generation bug -->
+    <!-- https://github.com/spotbugs/spotbugs/issues/756 -->
+    <Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE" />
+  </Match>
 </FindBugsFilter>

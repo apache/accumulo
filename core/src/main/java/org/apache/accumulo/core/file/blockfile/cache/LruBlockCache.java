@@ -18,6 +18,7 @@
 package org.apache.accumulo.core.file.blockfile.cache;
 
 import java.lang.ref.WeakReference;
+import java.util.EnumSet;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.util.NamingThreadFactory;
@@ -143,6 +145,13 @@ public class LruBlockCache implements BlockCache, HeapSize {
   /** Overhead of the structure itself */
   private long overhead;
 
+  /** Locks used when loading data not in the cache. */
+  private final Lock[] loadLocks;
+
+  public enum Options {
+    ENABLE_EVICTION, ENABLE_LOCKS
+  }
+
   /**
    * Default constructor. Specify maximum size and expected average block size (approximation is
    * fine).
@@ -156,17 +165,16 @@ public class LruBlockCache implements BlockCache, HeapSize {
    *          approximate size of each block, in bytes
    */
   public LruBlockCache(long maxSize, long blockSize) {
-    this(maxSize, blockSize, true);
+    this(maxSize, blockSize, EnumSet.allOf(Options.class));
   }
 
   /**
    * Constructor used for testing. Allows disabling of the eviction thread.
    */
-  public LruBlockCache(long maxSize, long blockSize, boolean evictionThread) {
-    this(maxSize, blockSize, evictionThread, (int) Math.ceil(1.2 * maxSize / blockSize),
-        DEFAULT_LOAD_FACTOR, DEFAULT_CONCURRENCY_LEVEL, DEFAULT_MIN_FACTOR,
-        DEFAULT_ACCEPTABLE_FACTOR, DEFAULT_SINGLE_FACTOR, DEFAULT_MULTI_FACTOR,
-        DEFAULT_MEMORY_FACTOR);
+  public LruBlockCache(long maxSize, long blockSize, EnumSet<Options> opts) {
+    this(maxSize, blockSize, opts, (int) Math.ceil(1.2 * maxSize / blockSize), DEFAULT_LOAD_FACTOR,
+        DEFAULT_CONCURRENCY_LEVEL, DEFAULT_MIN_FACTOR, DEFAULT_ACCEPTABLE_FACTOR,
+        DEFAULT_SINGLE_FACTOR, DEFAULT_MULTI_FACTOR, DEFAULT_MEMORY_FACTOR);
   }
 
   /**
@@ -176,8 +184,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
    *          maximum size of this cache, in bytes
    * @param blockSize
    *          expected average size of blocks, in bytes
-   * @param evictionThread
-   *          whether to run evictions in a bg thread or not
+   * @param opts
+   *          boolean options
    * @param mapInitialSize
    *          initial size of backing ConcurrentHashMap
    * @param mapLoadFactor
@@ -195,7 +203,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * @param memoryFactor
    *          percentage of total size for in-memory blocks
    */
-  public LruBlockCache(long maxSize, long blockSize, boolean evictionThread, int mapInitialSize,
+  public LruBlockCache(long maxSize, long blockSize, EnumSet<Options> opts, int mapInitialSize,
       float mapLoadFactor, int mapConcurrencyLevel, float minFactor, float acceptableFactor,
       float singleFactor, float multiFactor, float memoryFactor) {
     if (singleFactor + multiFactor + memoryFactor != 1) {
@@ -222,7 +230,19 @@ public class LruBlockCache implements BlockCache, HeapSize {
     this.overhead = calculateOverhead(maxSize, blockSize, mapConcurrencyLevel);
     this.size = new AtomicLong(this.overhead);
 
-    if (evictionThread) {
+    if (opts.contains(Options.ENABLE_LOCKS)) {
+      // The size of the array is intentionally a prime number. Using a prime improves the chance of
+      // getting a more even spread for the later modulus. The size was also chosen to allow a lot
+      // of concurrency.
+      loadLocks = new Lock[5003];
+      for (int i = 0; i < loadLocks.length; i++) {
+        loadLocks[i] = new ReentrantLock(false);
+      }
+    } else {
+      loadLocks = null;
+    }
+
+    if (opts.contains(Options.ENABLE_EVICTION)) {
       this.evictionThread = new EvictionThread(this);
       this.evictionThread.start();
       while (!this.evictionThread.running()) {
@@ -320,6 +340,16 @@ public class LruBlockCache implements BlockCache, HeapSize {
       return null;
     }
     stats.hit();
+    cb.access(count.incrementAndGet());
+    return cb;
+  }
+
+  @Override
+  public CachedBlock getBlockNoStats(String blockName) {
+    CachedBlock cb = map.get(blockName);
+    if (cb == null) {
+      return null;
+    }
     cb.access(count.incrementAndGet());
     return cb;
   }
@@ -727,5 +757,15 @@ public class LruBlockCache implements BlockCache, HeapSize {
 
   public void shutdown() {
     this.scheduleThreadPool.shutdown();
+  }
+
+  @Override
+  public Lock getLoadLock(String blockName) {
+    if (loadLocks == null)
+      return null;
+
+    // Would rather use Guava Striped, but its @Beta
+    int index = Math.abs(blockName.hashCode() % loadLocks.length);
+    return loadLocks[index];
   }
 }

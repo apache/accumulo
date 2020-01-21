@@ -45,7 +45,7 @@ import org.powermock.reflect.Whitebox;
     "org.apache.log4j.LogManager"})
 @PowerMockIgnore({"org.apache.log4j.*", "org.apache.hadoop.log.metrics",
     "org.apache.commons.logging.*", "org.xml.*", "javax.xml.*", "org.w3c.dom.*",
-    "org.apache.hadoop.*"})
+    "org.apache.hadoop.*", "com.sun.org.apache.xerces.*"})
 public class AccumuloVFSClassLoaderTest {
 
   private TemporaryFolder folder1 =

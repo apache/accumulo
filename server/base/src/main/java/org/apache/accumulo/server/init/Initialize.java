@@ -108,6 +108,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -349,6 +350,7 @@ public class Initialize implements KeywordExecutable {
     return initialize(opts, instanceNamePath, fs, rootUser);
   }
 
+  @SuppressModernizer
   private boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs,
       String rootUser) {
 
@@ -460,6 +462,7 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
+  @SuppressModernizer
   private void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, String rootTabletDir)
       throws IOException {
     initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), false);

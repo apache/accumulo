@@ -19,6 +19,7 @@ package org.apache.accumulo.core.iterators.user;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -32,7 +33,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
@@ -412,7 +412,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   protected static String encodeColumns(Text[] columns) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < columns.length; i++) {
-      sb.append(Base64.encodeBase64String(TextUtil.getBytes(columns[i])));
+      sb.append(Base64.getEncoder().encodeToString(TextUtil.getBytes(columns[i])));
       sb.append('\n');
     }
     return sb.toString();
@@ -429,14 +429,14 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       else
         bytes[i] = 0;
     }
-    return Base64.encodeBase64String(bytes);
+    return Base64.getEncoder().encodeToString(bytes);
   }
 
   protected static Text[] decodeColumns(String columns) {
     String[] columnStrings = columns.split("\n");
     Text[] columnTexts = new Text[columnStrings.length];
     for (int i = 0; i < columnStrings.length; i++) {
-      columnTexts[i] = new Text(Base64.decodeBase64(columnStrings[i].getBytes(UTF_8)));
+      columnTexts[i] = new Text(Base64.getDecoder().decode(columnStrings[i].getBytes(UTF_8)));
     }
     return columnTexts;
   }
@@ -449,7 +449,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     if (flags == null)
       return null;
 
-    byte[] bytes = Base64.decodeBase64(flags.getBytes(UTF_8));
+    byte[] bytes = Base64.getDecoder().decode(flags.getBytes(UTF_8));
     boolean[] bFlags = new boolean[bytes.length];
     for (int i = 0; i < bytes.length; i++) {
       if (bytes[i] == 1)

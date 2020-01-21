@@ -55,6 +55,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -461,6 +462,79 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     assertEquals(localIters, risplit.usesLocalIterators());
     assertEquals(fetchColumns, risplit.getFetchedColumns());
     assertEquals(level, risplit.getLogLevel());
+  }
+
+  @Test(expected = IOException.class)
+  public void testGetSplitsNoReadPermission() throws Exception {
+    Job job = Job.getInstance();
+
+    String table = getUniqueNames(1)[0];
+    Authorizations auths = new Authorizations("foo");
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    boolean isolated = true, localIters = true;
+    Level level = Level.WARN;
+
+    Connector connector = getConnector();
+    connector.tableOperations().create(table);
+    connector.securityOperations().revokeTablePermission(connector.whoami(), table,
+        TablePermission.READ);
+
+    AccumuloInputFormat.setZooKeeperInstance(job, cluster.getClientConfig());
+    AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
+
+    AccumuloInputFormat.setInputTableName(job, table);
+    AccumuloInputFormat.setScanAuthorizations(job, auths);
+    AccumuloInputFormat.setScanIsolation(job, isolated);
+    AccumuloInputFormat.setLocalIterators(job, localIters);
+    AccumuloInputFormat.fetchColumns(job, fetchColumns);
+    AccumuloInputFormat.setLogLevel(job, level);
+
+    AccumuloInputFormat aif = new AccumuloInputFormat();
+
+    aif.getSplits(job);
+  }
+
+  /*
+   * This tests the case where we do not have Table.READ permission, but we do have Namespace.READ.
+   * See issue #1370.
+   */
+  @Test
+  public void testGetSplitsWithNamespaceReadPermission() throws Exception {
+    Job job = Job.getInstance();
+
+    final String[] namespaceAndTable = getUniqueNames(2);
+    final String namespace = namespaceAndTable[0];
+    final String tableSimpleName = namespaceAndTable[1];
+    final String table = namespace + "." + tableSimpleName;
+    Authorizations auths = new Authorizations("foo");
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    final boolean isolated = true;
+    final boolean localIters = true;
+    Level level = Level.WARN;
+
+    Connector connector = getConnector();
+    connector.namespaceOperations().create(namespace); // creating namespace implies Namespace.READ
+    connector.tableOperations().create(table);
+    connector.securityOperations().revokeTablePermission(connector.whoami(), table,
+        TablePermission.READ);
+
+    AccumuloInputFormat.setZooKeeperInstance(job, cluster.getClientConfig());
+    AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
+
+    AccumuloInputFormat.setInputTableName(job, table);
+    AccumuloInputFormat.setScanAuthorizations(job, auths);
+    AccumuloInputFormat.setScanIsolation(job, isolated);
+    AccumuloInputFormat.setLocalIterators(job, localIters);
+    AccumuloInputFormat.fetchColumns(job, fetchColumns);
+    AccumuloInputFormat.setLogLevel(job, level);
+
+    AccumuloInputFormat aif = new AccumuloInputFormat();
+
+    List<InputSplit> splits = aif.getSplits(job);
+
+    assertEquals(1, splits.size());
   }
 
   @Test

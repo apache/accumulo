@@ -42,8 +42,9 @@ public class LiveTServerSetTest {
         new TServerInstance(HostAndPort.fromParts("localhost", 1234), "5555"), mockConn);
     servers.put("server1", server1);
 
-    LiveTServerSet tservers = new LiveTServerSet(EasyMock.createMock(ClientContext.class),
-        EasyMock.createMock(Listener.class));
+    ClientContext clientContext = EasyMock.createMock(ClientContext.class);
+    Listener listener = EasyMock.createMock(Listener.class);
+    LiveTServerSet tservers = new LiveTServerSet(clientContext, listener);
 
     assertEquals(server1.instance, tservers.find(servers, "localhost:1234"));
     assertNull(tservers.find(servers, "localhost:4321"));

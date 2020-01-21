@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,6 +140,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   @Override
+  @SuppressModernizer
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     parent.getProperties(props, filter);
 

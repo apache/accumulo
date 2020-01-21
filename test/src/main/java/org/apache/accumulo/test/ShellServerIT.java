@@ -800,8 +800,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void classpath() throws Exception {
     // classpath
-    ts.exec("classpath", true, "Level 2: Java Classloader (loads everything"
-        + " defined by java classpath) URL classpath items are", true);
+    ts.exec("classpath", true,
+        "Level 2: Java Classloader (loads everything defined by java classpath)", true);
   }
 
   @Test
@@ -1896,6 +1896,47 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // re-scan the table. Should not see data.
     ts.exec("scan -t " + table, true, "", true);
     ts.exec("deletetable -f " + table);
+  }
+
+  /**
+   * Validate importdirectory command accepts adding -t tablename option or the accepts original
+   * format that uses the current working table. Currently this test does not validate the actual
+   * import - only the command syntax.
+   *
+   * @throws Exception
+   *           any exception is a test failure.
+   */
+  @Test
+  public void importDirectoryCmdFmt() throws Exception {
+    final String table = name.getMethodName();
+
+    File importDir = new File(rootPath, "import_" + table);
+    assertTrue(importDir.mkdir());
+    File errorsDir = new File(rootPath, "errors_" + table);
+    assertTrue(errorsDir.mkdir());
+
+    // expect fail - table does not exist.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), false,
+        "TableNotFoundException");
+
+    ts.exec(String.format("table %s", table), false, "TableNotFoundException");
+
+    ts.exec("createtable " + table, true);
+
+    // validate -t option is used.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
+
+    // validate original cmd format.
+    ts.exec(String.format("table %s", table), true);
+    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), true);
+
+    // expect fail - invalid command,
+    ts.exec("importdirectory false", false, "Expected 3 arguments. There was 1.");
+
+    // expect fail - original cmd without a table.
+    ts.exec("notable", true);
+    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), false,
+        "java.lang.IllegalStateException: Not in a table context.");
   }
 
   private static final String FAKE_CONTEXT = "FAKE";

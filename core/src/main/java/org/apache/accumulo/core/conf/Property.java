@@ -497,6 +497,11 @@ public enum Property {
       "The time between adjustments of the server thread pool."),
   TSERV_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.MEMORY,
       "The maximum size of a message that can be sent to a tablet server."),
+  TSERV_LOG_BUSY_TABLETS_COUNT("tserver.log.busy.tablets.count", "0", PropertyType.COUNT,
+      "Number of busiest tablets to log. Logged at interval controlled by "
+          + "tserver.log.busy.tablets.interval. If <= 0, logging of busy tablets is disabled"),
+  TSERV_LOG_BUSY_TABLETS_INTERVAL("tserver.log.busy.tablets.interval", "1h",
+      PropertyType.TIMEDURATION, "Time interval between logging out busy tablets information."),
   TSERV_HOLD_TIME_SUICIDE("tserver.hold.time.max", "5m", PropertyType.TIMEDURATION,
       "The maximum time for a tablet server to be in the \"memory full\" state."
           + " If the tablet server cannot write out memory in this much time, it will"
@@ -563,6 +568,11 @@ public enum Property {
       "Archive any files/directories instead of moving to the HDFS trash or deleting."),
   GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION,
       "Percent of gc cycles to trace"),
+  GC_USE_FULL_COMPACTION("gc.post.metadata.action", "compact", PropertyType.GC_POST_ACTION,
+      "When the gc runs it can make a lot of changes to the metadata, on completion, "
+          + " to force the changes to be written to disk, the metadata and root tables can be flushed"
+          + " and possibly compacted. Legal values are: compact - which both flushes and compacts the"
+          + " metadata; flush - which flushes only (compactions may be triggered if required); or none"),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,

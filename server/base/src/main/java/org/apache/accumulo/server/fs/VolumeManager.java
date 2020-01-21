@@ -28,6 +28,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 
 import com.google.common.base.Optional;
 
@@ -168,6 +169,7 @@ public interface VolumeManager {
   ContentSummary getContentSummary(Path dir) throws IOException;
 
   // decide on which of the given locations to create a new file
+  @SuppressModernizer
   String choose(Optional<String> tableId, String[] options);
 
   /**

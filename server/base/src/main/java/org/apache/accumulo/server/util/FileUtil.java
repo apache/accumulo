@@ -54,6 +54,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +83,7 @@ public class FileUtil {
 
   private static final Logger log = LoggerFactory.getLogger(FileUtil.class);
 
+  @SuppressModernizer
   private static Path createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs)
       throws IOException {
     String accumuloDir = fs.choose(Optional.<String>absent(), ServerConstants.getBaseUris());

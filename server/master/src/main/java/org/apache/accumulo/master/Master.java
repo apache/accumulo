@@ -160,12 +160,14 @@ import org.apache.zookeeper.KeeperException.NoAuthException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
@@ -179,6 +181,8 @@ public class Master extends AccumuloServerContext
 
   final static int ONE_SECOND = 1000;
   final static long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
+  // made this less than TIME_TO_WAIT_BETWEEN_SCANS, so that the cache is cleared between cycles
+  final static long TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE = (3 * TIME_TO_WAIT_BETWEEN_SCANS) / 4;
   final private static long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   final static long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   final private static long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
@@ -186,6 +190,7 @@ public class Master extends AccumuloServerContext
   final private static int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = ONE_SECOND;
   final static int MAX_TSERVER_WORK_CHUNK = 5000;
   final private static int MAX_BAD_STATUS_COUNT = 3;
+  final private static double MAX_SHUTDOWNS_PER_SEC = 10D / 60D;
 
   final VolumeManager fs;
   final private String hostname;
@@ -277,6 +282,7 @@ public class Master extends AccumuloServerContext
     }
   }
 
+  @SuppressModernizer
   private void moveRootTabletToRootTable(IZooReaderWriter zoo) throws Exception {
     String dirZPath = ZooUtil.getRoot(getInstance()) + RootTable.ZROOT_TABLET_PATH;
 
@@ -875,8 +881,11 @@ public class Master extends AccumuloServerContext
       }
       // Handle merge transitions
       if (mergeInfo.getExtent() != null) {
-        log.debug("mergeInfo overlaps: " + extent + " " + mergeInfo.overlaps(extent));
-        if (mergeInfo.overlaps(extent)) {
+
+        final boolean overlaps = mergeInfo.overlaps(extent);
+
+        if (overlaps) {
+          log.debug("mergeInfo overlaps: {} true", extent);
           switch (mergeInfo.getState()) {
             case NONE:
             case COMPLETE:
@@ -898,6 +907,8 @@ public class Master extends AccumuloServerContext
             case MERGING:
               return TabletGoalState.UNASSIGNED;
           }
+        } else {
+          log.trace("mergeInfo overlaps: {} false", extent);
         }
       }
 
@@ -1168,6 +1179,7 @@ public class Master extends AccumuloServerContext
         threads == 0 ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
+    final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {
@@ -1195,17 +1207,25 @@ public class Master extends AccumuloServerContext
           } catch (Exception ex) {
             log.error("unable to get tablet server status " + server + " " + ex.toString());
             log.debug("unable to get tablet server status " + server, ex);
+            // Attempt to shutdown server only if able to acquire. If unable, this tablet server
+            // will be removed from the badServers set below and status will be reattempted again
+            // MAX_BAD_STATUS_COUNT times
             if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
-              log.warn("attempting to stop " + server);
-              try {
-                TServerConnection connection = tserverSet.getConnection(server);
-                if (connection != null) {
-                  connection.halt(masterLock);
+              if (shutdownServerRateLimiter.tryAcquire()) {
+                log.warn("attempting to stop " + server);
+                try {
+                  TServerConnection connection = tserverSet.getConnection(server);
+                  if (connection != null) {
+                    connection.halt(masterLock);
+                  }
+                } catch (TTransportException e) {
+                  // ignore: it's probably down
+                } catch (Exception e) {
+                  log.info("error talking to troublesome tablet server ", e);
                 }
-              } catch (TTransportException e) {
-                // ignore: it's probably down
-              } catch (Exception e) {
-                log.info("error talking to troublesome tablet server ", e);
+              } else {
+                log.warn("Unable to shutdown {} as over the shutdown limit of {} per minute",
+                    server, MAX_SHUTDOWNS_PER_SEC * 60);
               }
               badServers.remove(server);
             }
@@ -1240,7 +1260,7 @@ public class Master extends AccumuloServerContext
 
     getMasterLock(zroot + Constants.ZMASTER_LOCK);
 
-    recoveryManager = new RecoveryManager(this);
+    recoveryManager = new RecoveryManager(this, TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE);
 
     TableManager.getInstance().addObserver(this);
 

@@ -151,6 +151,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
@@ -255,6 +256,11 @@ public class Tablet implements TabletCommitter {
 
   private final ConfigurationObserver configObserver;
 
+  // Files that are currently in the process of bulk importing. Access to this is protected by the
+  // tablet lock.
+  private final Set<FileRef> bulkImporting = new HashSet<>();
+
+  // Files that were successfully bulk imported.
   private final Cache<Long,List<FileRef>> bulkImported = CacheBuilder.newBuilder().build();
 
   private final int logId;
@@ -576,7 +582,9 @@ public class Tablet implements TabletCommitter {
     if (columnSet.size() > 0)
       cfset = LocalityGroupUtil.families(columnSet);
 
-    long returnTime = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
+    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
+    long startNanos = System.nanoTime();
+
     if (batchTimeOut <= 0 || batchTimeOut == Long.MAX_VALUE) {
       batchTimeOut = 0;
     }
@@ -589,7 +597,7 @@ public class Tablet implements TabletCommitter {
 
     for (Range range : ranges) {
 
-      boolean timesUp = batchTimeOut > 0 && System.nanoTime() > returnTime;
+      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
 
       if (exceededMemoryUsage || tabletClosed || timesUp || yielded) {
         lookupResult.unfinishedRanges.add(range);
@@ -619,7 +627,7 @@ public class Tablet implements TabletCommitter {
 
           exceededMemoryUsage = lookupResult.bytesAdded > maxResultsSize;
 
-          timesUp = batchTimeOut > 0 && System.nanoTime() > returnTime;
+          timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
 
           if (exceededMemoryUsage || timesUp) {
             addUnfinishedRange(lookupResult, range, key, false);
@@ -778,7 +786,9 @@ public class Tablet implements TabletCommitter {
 
     // log.info("In nextBatch..");
 
-    long stopTime = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
+    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
+    long startNanos = System.nanoTime();
+
     if (batchTimeOut == Long.MAX_VALUE || batchTimeOut <= 0) {
       batchTimeOut = 0;
     }
@@ -821,7 +831,7 @@ public class Tablet implements TabletCommitter {
       resultSize += kvEntry.estimateMemoryUsed();
       resultBytes += kvEntry.numBytes();
 
-      boolean timesUp = batchTimeOut > 0 && System.nanoTime() >= stopTime;
+      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
 
       if (resultSize >= maxResultsSize || results.size() >= num || timesUp) {
         continueKey = new Key(key);
@@ -2390,6 +2400,10 @@ public class Tablet implements TabletCommitter {
     return this.queryCount;
   }
 
+  public long totalIngest() {
+    return this.ingestCount;
+  }
+
   // synchronized?
   public void updateRates(long now) {
     queryRate.update(now, queryCount);
@@ -2437,6 +2451,16 @@ public class Tablet implements TabletCommitter {
           }
         }
       }
+
+      Iterator<FileRef> fiter = fileMap.keySet().iterator();
+      while (fiter.hasNext()) {
+        FileRef file = fiter.next();
+        if (bulkImporting.contains(file)) {
+          log.info("Ignoring import of bulk file currently importing: " + file);
+          fiter.remove();
+        }
+      }
+
       if (fileMap.isEmpty()) {
         return;
       }
@@ -2446,6 +2470,9 @@ public class Tablet implements TabletCommitter {
             + "increment a negative number of writes in progress " + writesInProgress + "on tablet "
             + extent);
       }
+
+      // prevent other threads from processing this file while its added to the metadata table.
+      bulkImporting.addAll(fileMap.keySet());
 
       writesInProgress++;
     }
@@ -2470,6 +2497,11 @@ public class Tablet implements TabletCommitter {
         writesInProgress--;
         if (writesInProgress == 0)
           this.notifyAll();
+
+        if (!bulkImporting.removeAll(fileMap.keySet())) {
+          throw new AssertionError(
+              "Likely bug in code, always expect to remove something.  Please open an Accumulo issue.");
+        }
 
         try {
           bulkImported.get(tid, new Callable<List<FileRef>>() {
@@ -2903,6 +2935,7 @@ public class Tablet implements TabletCommitter {
     return scannedCount;
   }
 
+  @SuppressModernizer
   private static String createTabletDirectory(VolumeManager fs, String tableId, Text endRow) {
     String lowDirectory;
 
