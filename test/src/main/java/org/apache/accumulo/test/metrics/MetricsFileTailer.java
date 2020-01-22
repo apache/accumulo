@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * instance.
  *
  * This class will simulate tail-ing a file and is intended to be run in a separate thread. When the
- * underlying file has data written, the vaule returned by getLastUpdate will change, and the last
+ * underlying file has data written, the value returned by getLastUpdate will change, and the last
  * line can be retrieved with getLast().
  */
 public class MetricsFileTailer implements Runnable, AutoCloseable {
@@ -49,14 +49,14 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
   private final String metricsPrefix;
 
-  private Lock lock = new ReentrantLock();
-  private AtomicBoolean running = new AtomicBoolean(Boolean.TRUE);
+  private final Lock lock = new ReentrantLock();
+  private final AtomicBoolean running = new AtomicBoolean(Boolean.TRUE);
 
-  private AtomicLong lastUpdate = new AtomicLong(0);
-  private long startTime = System.nanoTime();
+  private final AtomicLong lastUpdate = new AtomicLong(0);
+  private final long startTime = System.nanoTime();
 
   private int lineCounter = 0;
-  private String[] lineBuffer = new String[BUFFER_SIZE];
+  private final String[] lineBuffer = new String[BUFFER_SIZE];
 
   private final String metricsFilename;
 
@@ -75,6 +75,8 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
     // dump received configuration keys received.
     if (log.isTraceEnabled()) {
+      // required for commons configuration - version 1.6
+      @SuppressWarnings("unchecked")
       Iterator<String> keys = sub.getKeys();
       while (keys.hasNext()) {
         log.trace("configuration key:{}", keys.next());
@@ -141,10 +143,12 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
       if (log.isTraceEnabled()) {
         log.trace("Config {}", config);
+        // required for commons configuration - version 1.6
+        @SuppressWarnings("unchecked")
         Iterator<String> iterator = sub.getKeys();
         while (iterator.hasNext()) {
           String key = iterator.next();
-          log.trace("'{}\'=\'{}\'", key, sub.getProperty(key));
+          log.trace("'{}'='{}'", key, sub.getProperty(key));
         }
       }
 
@@ -152,7 +156,7 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
     } catch (ConfigurationException ex) {
       throw new IllegalStateException(
-          String.format("Could not find configuration file \'%s\' on classpath",
+          String.format("Could not find configuration file '%s' on classpath",
               MetricsTestSinkProperties.METRICS_PROP_FILENAME));
     }
   }
