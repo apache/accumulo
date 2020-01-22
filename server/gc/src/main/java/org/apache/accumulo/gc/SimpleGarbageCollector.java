@@ -309,7 +309,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
           try {
             Path fullPath;
-            TabletFileUtil.validate(delete);
             String switchedDelete = VolumeUtil.switchVolume(delete, FileType.TABLE, replacements);
             if (switchedDelete != null) {
               // actually replacing the volumes in the metadata table would be tricky because the
@@ -321,9 +320,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               // of deleting something that should not be deleted. Must not change value of delete
               // variable because thats whats stored in metadata table.
               log.debug("Volume replaced {} -> {}", delete, switchedDelete);
-              fullPath = new Path(switchedDelete);
+              fullPath = new Path(TabletFileUtil.validate(switchedDelete));
             } else {
-              fullPath = new Path(delete);
+              fullPath = new Path(TabletFileUtil.validate(delete));
             }
 
             for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
