@@ -26,15 +26,15 @@ import org.apache.hadoop.fs.Path;
 public class TabletFileUtil {
 
   /**
-   * Validate if string is a valid path. Return same string or throw exception if not valid. This
-   * was added to facilitate more use of TabletFile over String but this puts the validation in one
-   * location in the case where TabletFile can't be used.
+   * Validate if string is a valid path. Return normalized string or throw exception if not valid.
+   * This was added to facilitate more use of TabletFile over String but this puts the validation in
+   * one location in the case where TabletFile can't be used.
    */
   public static String validate(String path) {
     Path p = new Path(path);
     if (p.toUri().getScheme() == null) {
       throw new IllegalArgumentException("Invalid path provided, no scheme in " + path);
     }
-    return path;
+    return p.toString();
   }
 }

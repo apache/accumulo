@@ -102,12 +102,12 @@ public class TabletFile implements Comparable<TabletFile> {
     return normalizedPath;
   }
 
-  public Text meta() {
-    return new Text(metadataEntry);
+  public Path getPath() {
+    return new Path(normalizedPath);
   }
 
-  public Path path() {
-    return metaPath;
+  public Text meta() {
+    return new Text(metadataEntry);
   }
 
   @Override

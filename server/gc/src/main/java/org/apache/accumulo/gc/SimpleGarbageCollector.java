@@ -55,6 +55,7 @@ import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -308,6 +309,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
           try {
             Path fullPath;
+            TabletFileUtil.validate(delete);
             String switchedDelete = VolumeUtil.switchVolume(delete, FileType.TABLE, replacements);
             if (switchedDelete != null) {
               // actually replacing the volumes in the metadata table would be tricky because the

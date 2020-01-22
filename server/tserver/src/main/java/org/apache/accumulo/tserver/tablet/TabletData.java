@@ -58,14 +58,13 @@ public class TabletData {
     this.flushID = meta.getFlushId().orElse(-1);
     this.directoryName = meta.getDirName();
     this.logEntries.addAll(meta.getLogs());
-    meta.getScans()
-        .forEach(tabletFile -> scanFiles.add(new FileRef(tabletFile.getMetadataEntry())));
+    meta.getScans().forEach(tabletFile -> scanFiles.add(new FileRef(tabletFile)));
 
     if (meta.getLast() != null)
       this.lastLocation = new TServerInstance(meta.getLast());
 
     meta.getFilesMap().forEach((tabletFile, dfv) -> {
-      dataFiles.put(new FileRef(tabletFile.getMetadataEntry()), dfv);
+      dataFiles.put(new FileRef(tabletFile), dfv);
     });
 
     meta.getLoaded().forEach((path, txid) -> {

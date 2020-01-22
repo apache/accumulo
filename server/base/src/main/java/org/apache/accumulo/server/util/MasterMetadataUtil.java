@@ -150,8 +150,9 @@ public class MasterMetadataUtil {
 
           for (Entry<Key,Value> entry : scanner3) {
             if (entry.getKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-              String tabletFilePath = entry.getKey().getColumnQualifierData().toString();
-              origDatafileSizes.put(new FileRef(TabletFileUtil.validate(tabletFilePath)),
+              String tabletFilePath =
+                  TabletFileUtil.validate(entry.getKey().getColumnQualifierData().toString());
+              origDatafileSizes.put(new FileRef(tabletFilePath),
                   new DataFileValue(entry.getValue().get()));
             }
           }
