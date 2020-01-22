@@ -26,6 +26,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,7 +69,6 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
@@ -235,7 +235,7 @@ public class InputConfigurator extends ConfiguratorBase {
       for (Range r : ranges) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         r.write(new DataOutputStream(baos));
-        rangeStrings.add(Base64.encodeBase64String(baos.toByteArray()));
+        rangeStrings.add(Base64.getEncoder().encodeToString(baos.toByteArray()));
       }
       conf.setStrings(enumToConfKey(implementingClass, ScanOpts.RANGES),
           rangeStrings.toArray(new String[0]));
@@ -265,7 +265,7 @@ public class InputConfigurator extends ConfiguratorBase {
     List<Range> ranges = new ArrayList<>();
     for (String rangeString : encodedRanges) {
       ByteArrayInputStream bais =
-          new ByteArrayInputStream(Base64.decodeBase64(rangeString.getBytes(UTF_8)));
+          new ByteArrayInputStream(Base64.getDecoder().decode(rangeString.getBytes(UTF_8)));
       Range range = new Range();
       range.readFields(new DataInputStream(bais));
       ranges.add(range);
@@ -299,7 +299,7 @@ public class InputConfigurator extends ConfiguratorBase {
       while (tokens.hasMoreTokens()) {
         String itstring = tokens.nextToken();
         ByteArrayInputStream bais =
-            new ByteArrayInputStream(Base64.decodeBase64(itstring.getBytes(UTF_8)));
+            new ByteArrayInputStream(Base64.getDecoder().decode(itstring.getBytes(UTF_8)));
         list.add(new IteratorSetting(new DataInputStream(bais)));
         bais.close();
       }
@@ -342,9 +342,9 @@ public class InputConfigurator extends ConfiguratorBase {
       if (column.getFirst() == null)
         throw new IllegalArgumentException("Column family can not be null");
 
-      String col = Base64.encodeBase64String(TextUtil.getBytes(column.getFirst()));
+      String col = Base64.getEncoder().encodeToString(TextUtil.getBytes(column.getFirst()));
       if (column.getSecond() != null)
-        col += ":" + Base64.encodeBase64String(TextUtil.getBytes(column.getSecond()));
+        col += ":" + Base64.getEncoder().encodeToString(TextUtil.getBytes(column.getSecond()));
       columnStrings.add(col);
     }
 
@@ -385,10 +385,10 @@ public class InputConfigurator extends ConfiguratorBase {
 
     for (String col : serialized) {
       int idx = col.indexOf(":");
-      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(UTF_8))
-          : Base64.decodeBase64(col.substring(0, idx).getBytes(UTF_8)));
-      Text cq =
-          idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(UTF_8)));
+      Text cf = new Text(idx < 0 ? Base64.getDecoder().decode(col.getBytes(UTF_8))
+          : Base64.getDecoder().decode(col.substring(0, idx).getBytes(UTF_8)));
+      Text cq = idx < 0 ? null
+          : new Text(Base64.getDecoder().decode(col.substring(idx + 1).getBytes(UTF_8)));
       columns.add(new Pair<>(cf, cq));
     }
     return columns;
@@ -413,7 +413,7 @@ public class InputConfigurator extends ConfiguratorBase {
     String newIter;
     try {
       cfg.write(new DataOutputStream(baos));
-      newIter = Base64.encodeBase64String(baos.toByteArray());
+      newIter = Base64.getEncoder().encodeToString(baos.toByteArray());
       baos.close();
     } catch (IOException e) {
       throw new IllegalArgumentException("unable to serialize IteratorSetting");
@@ -657,7 +657,7 @@ public class InputConfigurator extends ConfiguratorBase {
     }
 
     String confKey = enumToConfKey(implementingClass, ScanOpts.TABLE_CONFIGS);
-    conf.set(confKey, Base64.encodeBase64String(baos.toByteArray()));
+    conf.set(confKey, Base64.getEncoder().encodeToString(baos.toByteArray()));
   }
 
   /**
@@ -699,7 +699,7 @@ public class InputConfigurator extends ConfiguratorBase {
     MapWritable mapWritable = new MapWritable();
     if (configString != null) {
       try {
-        byte[] bytes = Base64.decodeBase64(configString.getBytes(UTF_8));
+        byte[] bytes = Base64.getDecoder().decode(configString.getBytes(UTF_8));
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         mapWritable.readFields(new DataInputStream(bais));
         bais.close();
@@ -1061,11 +1061,11 @@ public class InputConfigurator extends ConfiguratorBase {
       throw new RuntimeException(e);
     }
 
-    return Base64.encodeBase64String(baos.toByteArray());
+    return Base64.getEncoder().encodeToString(baos.toByteArray());
   }
 
   private static <T extends Writable> T fromBase64(T writable, String enc) {
-    ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(enc));
+    ByteArrayInputStream bais = new ByteArrayInputStream(Base64.getDecoder().decode(enc));
     DataInputStream dis = new DataInputStream(bais);
     try {
       writable.readFields(dis);

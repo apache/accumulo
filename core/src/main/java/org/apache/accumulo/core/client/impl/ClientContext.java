@@ -39,6 +39,7 @@ import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.commons.configuration.Configuration;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +56,7 @@ import com.google.common.base.Suppliers;
  * to this object for later retrieval, rather than as a separate parameter. Any state in this object
  * should be available at the time of its construction.
  */
+@SuppressModernizer
 public class ClientContext {
 
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
@@ -269,6 +271,7 @@ public class ClientContext {
       }
 
       @Override
+      @SuppressModernizer
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         defaults.getProperties(props, filter);
 

@@ -52,6 +52,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.IStringConverter;
@@ -375,6 +376,7 @@ public class ClientOpts extends Help {
         }
 
         @Override
+        @SuppressModernizer
         public void getProperties(Map<String,String> props, Predicate<String> filter) {
           for (Entry<String,String> prop : DefaultConfiguration.getInstance())
             if (filter.apply(prop.getKey()))
@@ -402,7 +404,10 @@ public class ClientOpts extends Help {
       return cachedClientConfig =
           clientConfig.withInstance(UUID.fromString(instanceIDFromFile)).withZkHosts(zookeepers);
     }
-    return cachedClientConfig = clientConfig.withInstance(instance).withZkHosts(zookeepers);
-  }
 
+    if (instance != null && zookeepers != null)
+      return cachedClientConfig = clientConfig.withInstance(instance).withZkHosts(zookeepers);
+    else
+      return clientConfig;
+  }
 }

@@ -44,24 +44,6 @@ class MockConfiguration extends AccumuloConfiguration {
     return map.get(property.getKey());
   }
 
-  /**
-   * Don't use this method. It has been deprecated. Its parameters are not public API and subject to
-   * change.
-   *
-   * @deprecated since 1.7.0; use {@link #getProperties(Map, Predicate)} instead.
-   */
-  @Deprecated
-  public void getProperties(Map<String,String> props, final PropertyFilter filter) {
-    // convert PropertyFilter to Predicate
-    getProperties(props, new Predicate<String>() {
-
-      @Override
-      public boolean apply(String input) {
-        return filter.accept(input);
-      }
-    });
-  }
-
   @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     for (Entry<String,String> entry : map.entrySet()) {

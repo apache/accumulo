@@ -65,6 +65,7 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -160,6 +161,7 @@ public class CertUtils {
           }
 
           @Override
+          @SuppressModernizer
           public void getProperties(Map<String,String> props, Predicate<String> filter) {
             for (Entry<String,String> entry : this)
               if (filter.apply(entry.getKey()))

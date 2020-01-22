@@ -32,9 +32,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-
 public class ClientContextTest {
 
   private static boolean isCredentialProviderAvailable = false;
@@ -105,8 +102,7 @@ public class ClientContextTest {
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Map<String,String> props = new HashMap<>();
-    Predicate<String> all = Predicates.alwaysTrue();
-    accClientConf.getProperties(props, all);
+    accClientConf.getProperties(props, all -> true);
 
     // Only sensitive properties are added
     assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),

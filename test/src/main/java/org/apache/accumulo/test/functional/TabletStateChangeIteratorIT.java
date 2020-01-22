@@ -64,7 +64,6 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 
 /**
@@ -272,12 +271,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     public Set<String> onlineTables() {
       HashSet<String> onlineTables =
           new HashSet<>(getConnector().tableOperations().tableIdMap().values());
-      return Sets.filter(onlineTables, new Predicate<String>() {
-        @Override
-        public boolean apply(String tableId) {
-          return Tables.getTableState(getConnector().getInstance(), tableId) == TableState.ONLINE;
-        }
-      });
+      return Sets.filter(onlineTables,
+          tableId -> Tables.getTableState(getConnector().getInstance(), tableId)
+              == TableState.ONLINE);
     }
 
     @Override

@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,7 +39,6 @@ import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -93,7 +93,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     try {
       Set<KeyExtent> result = new HashSet<>();
       DataInputBuffer buffer = new DataInputBuffer();
-      byte[] data = Base64.decodeBase64(migrations.getBytes(UTF_8));
+      byte[] data = Base64.getDecoder().decode(migrations.getBytes(UTF_8));
       buffer.reset(data, data.length);
       while (buffer.available() > 0) {
         KeyExtent extent = new KeyExtent();
@@ -139,7 +139,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     try {
       Map<String,MergeInfo> result = new HashMap<>();
       DataInputBuffer buffer = new DataInputBuffer();
-      byte[] data = Base64.decodeBase64(merges.getBytes(UTF_8));
+      byte[] data = Base64.getDecoder().decode(merges.getBytes(UTF_8));
       buffer.reset(data, data.length);
       while (buffer.available() > 0) {
         MergeInfo mergeInfo = new MergeInfo();
@@ -243,7 +243,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    String encoded = Base64.encodeBase64String(Arrays.copyOf(buffer.getData(), buffer.getLength()));
+    String encoded =
+        Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MERGES_OPTION, encoded);
   }
 
@@ -256,7 +257,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    String encoded = Base64.encodeBase64String(Arrays.copyOf(buffer.getData(), buffer.getLength()));
+    String encoded =
+        Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MIGRATIONS_OPTION, encoded);
   }
 

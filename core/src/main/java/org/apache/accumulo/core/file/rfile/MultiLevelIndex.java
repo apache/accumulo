@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
@@ -41,8 +43,6 @@ import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.blockfile.impl.SeekableByteArrayInputStream;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.hadoop.io.WritableComparable;
-
-import com.google.common.base.Preconditions;
 
 public class MultiLevelIndex {
 
@@ -146,8 +146,8 @@ public class MultiLevelIndex {
     protected int indexSize;
 
     SerializedIndexBase(int[] offsets, byte[] data) {
-      Preconditions.checkNotNull(offsets, "offsets argument was null");
-      Preconditions.checkNotNull(data, "data argument was null");
+      requireNonNull(offsets, "offsets argument was null");
+      requireNonNull(data, "data argument was null");
       this.offsets = offsets;
       this.data = data;
       sbais = new SeekableByteArrayInputStream(data);
@@ -156,7 +156,7 @@ public class MultiLevelIndex {
 
     SerializedIndexBase(byte[] data, int offsetsOffset, int numOffsets, int indexOffset,
         int indexSize) {
-      Preconditions.checkNotNull(data, "data argument was null");
+      requireNonNull(data, "data argument was null");
       sbais = new SeekableByteArrayInputStream(data, indexOffset + indexSize);
       dis = new DataInputStream(sbais);
       this.offsetsOffset = offsetsOffset;

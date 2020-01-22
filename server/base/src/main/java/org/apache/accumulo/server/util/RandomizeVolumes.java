@@ -45,6 +45,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.hadoop.fs.Path;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +74,7 @@ public class RandomizeVolumes {
     }
   }
 
+  @SuppressModernizer
   public static int randomize(Connector c, String tableName)
       throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
     final VolumeManager vm = VolumeManagerImpl.get();

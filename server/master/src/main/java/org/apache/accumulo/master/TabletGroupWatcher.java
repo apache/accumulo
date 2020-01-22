@@ -92,6 +92,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSortedSet;
@@ -584,6 +585,7 @@ abstract class TabletGroupWatcher extends Daemon {
     }
   }
 
+  @SuppressModernizer
   private void deleteTablets(MergeInfo info) throws AccumuloException {
     KeyExtent extent = info.getExtent();
     String targetSystemTable = extent.isMeta() ? RootTable.NAME : MetadataTable.NAME;

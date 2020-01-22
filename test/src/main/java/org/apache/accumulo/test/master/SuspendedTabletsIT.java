@@ -139,7 +139,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
         for (int i = 0; i < count; ++i) {
           final String tserverName = tserversList.get(i).toString();
-          MasterClient.execute(ctx, new ClientExec<MasterClientService.Client>() {
+          MasterClient.executeVoid(ctx, new ClientExec<MasterClientService.Client>() {
             @Override
             public void execute(MasterClientService.Client client) throws Exception {
               log.info("Sending shutdown command to {} via MasterClientService", tserverName);

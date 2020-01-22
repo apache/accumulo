@@ -21,12 +21,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
+
 import com.google.common.base.Predicate;
 
 /**
  * An {@link AccumuloConfiguration} which holds a flat copy of properties defined in another
  * configuration
  */
+@SuppressModernizer
 public class ConfigurationCopy extends AccumuloConfiguration {
   private long updateCount = 0;
   final Map<String,String> copy = Collections.synchronizedMap(new HashMap<String,String>());

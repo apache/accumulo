@@ -24,7 +24,6 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
@@ -117,7 +116,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
-import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -317,13 +315,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
       scanner.setRange(MetadataSchema.BlipSection.getRange());
 
-      return Iterators.transform(scanner.iterator(), new Function<Entry<Key,Value>,String>() {
-        @Override
-        public String apply(Entry<Key,Value> entry) {
-          return entry.getKey().getRow().toString()
-              .substring(MetadataSchema.BlipSection.getRowPrefix().length());
-        }
-      });
+      return Iterators.transform(scanner.iterator(), entry -> entry.getKey().getRow().toString()
+          .substring(MetadataSchema.BlipSection.getRowPrefix().length()));
     }
 
     @Override
@@ -337,13 +330,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       TabletIterator tabletIterator =
           new TabletIterator(scanner, MetadataSchema.TabletsSection.getRange(), false, true);
 
-      return Iterators.concat(Iterators.transform(tabletIterator,
-          new Function<Map<Key,Value>,Iterator<Entry<Key,Value>>>() {
-            @Override
-            public Iterator<Entry<Key,Value>> apply(Map<Key,Value> input) {
-              return input.entrySet().iterator();
-            }
-          }));
+      return Iterators
+          .concat(Iterators.transform(tabletIterator, input -> input.entrySet().iterator()));
     }
 
     @Override
@@ -538,23 +526,17 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       try {
         Scanner s = ReplicationTable.getScanner(conn);
         StatusSection.limit(s);
-        return Iterators.transform(s.iterator(),
-            new Function<Entry<Key,Value>,Entry<String,Status>>() {
-
-              @Override
-              public Entry<String,Status> apply(Entry<Key,Value> input) {
-                String file = input.getKey().getRow().toString();
-                Status stat;
-                try {
-                  stat = Status.parseFrom(input.getValue().get());
-                } catch (InvalidProtocolBufferException e) {
-                  log.warn("Could not deserialize protobuf for: " + input.getKey());
-                  stat = null;
-                }
-                return Maps.immutableEntry(file, stat);
-              }
-
-            });
+        return Iterators.transform(s.iterator(), input -> {
+          String file = input.getKey().getRow().toString();
+          Status stat;
+          try {
+            stat = Status.parseFrom(input.getValue().get());
+          } catch (InvalidProtocolBufferException e) {
+            log.warn("Could not deserialize protobuf for: " + input.getKey());
+            stat = null;
+          }
+          return Maps.immutableEntry(file, stat);
+        });
       } catch (ReplicationTableOfflineException e) {
         // No elements that we need to preclude
         return Collections.emptyIterator();

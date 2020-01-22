@@ -20,6 +20,7 @@ import java.lang.management.ManagementFactory;
 import java.security.MessageDigest;
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.tabletserver.thrift.ActionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.Duration;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
@@ -175,7 +175,7 @@ public class TServersServlet extends BasicServlet {
       if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
         digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
       }
-      String obscuredExtent = Base64.encodeBase64String(digester.digest());
+      String obscuredExtent = Base64.getEncoder().encodeToString(digester.digest());
       String displayExtent = String.format("<code>[%s]</code>", obscuredExtent);
 
       TableRow row = perTabletResults.prepareRow();

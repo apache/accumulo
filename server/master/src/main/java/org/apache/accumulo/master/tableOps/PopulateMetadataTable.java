@@ -49,6 +49,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -220,6 +221,7 @@ class PopulateMetadataTable extends MasterRepo {
    *
    * @return An absolute, unique path for the imported table
    */
+  @SuppressModernizer
   protected String getClonedTabletDir(Master master, String[] volumes, String tabletDir) {
     // We can try to spread out the tablet dirs across all volumes
     String volume = master.getFileSystem().choose(Optional.of(tableInfo.tableId), volumes);

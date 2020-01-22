@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -32,8 +33,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iterators.YieldingKeyValueIterator;
-
-import com.google.common.base.Optional;
 
 /**
  * A SortedKeyValueIterator which presents a view over some section of data, regardless of whether
@@ -60,7 +59,7 @@ public class SourceSwitchingIterator
   private DataSource source;
   private SortedKeyValueIterator<Key,Value> iter;
 
-  private Optional<YieldCallback<Key>> yield = Optional.absent();
+  private Optional<YieldCallback<Key>> yield = Optional.empty();
 
   private Key key;
   private Value val;
