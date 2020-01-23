@@ -17,5 +17,5 @@
 package org.apache.accumulo.core.logging;
 
 public class Logging {
-  public static final String PREFIX = "org.apache.accumulo.logs.";
+  public static final String PREFIX = "org.apache.accumulo.";
 }
