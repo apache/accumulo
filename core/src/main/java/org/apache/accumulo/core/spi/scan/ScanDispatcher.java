@@ -31,6 +31,7 @@ import com.google.common.base.Preconditions;
  * {@code table.scan.dispatcher.opts.} properties.
  *
  * @since 2.0.0
+ * @see org.apache.accumulo.core.spi
  */
 public interface ScanDispatcher {
 
