@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile;
 
@@ -68,6 +70,7 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguratio
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
@@ -308,7 +311,7 @@ public class RFileTest {
       LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
       CachableBuilder cb = new CachableBuilder().cacheId("source-1").input(in).length(fileLength)
-          .conf(conf).data(dataCache).index(indexCache).cryptoService(
+          .conf(conf).cacheProvider(new BasicCacheProvider(indexCache, dataCache)).cryptoService(
               CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
       reader = new RFile.Reader(cb);
       if (cfsi)
@@ -1746,7 +1749,8 @@ public class RFileTest {
     manager.start(new BlockCacheConfiguration(aconf));
     CachableBuilder cb = new CachableBuilder().input(in2).length(data.length).conf(hadoopConf)
         .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA))
-        .index(manager.getBlockCache(CacheType.INDEX)).data(manager.getBlockCache(CacheType.DATA));
+        .cacheProvider(new BasicCacheProvider(manager.getBlockCache(CacheType.INDEX),
+            manager.getBlockCache(CacheType.DATA)));
     Reader reader = new RFile.Reader(cb);
     checkIndex(reader);
 

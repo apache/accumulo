@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver;
 
@@ -239,6 +241,7 @@ import org.apache.accumulo.tserver.replication.ReplicationServicerHandler;
 import org.apache.accumulo.tserver.replication.ReplicationWorker;
 import org.apache.accumulo.tserver.scan.LookupTask;
 import org.apache.accumulo.tserver.scan.NextBatchTask;
+import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.session.ConditionalSession;
 import org.apache.accumulo.tserver.session.MultiScanSession;
@@ -277,6 +280,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
+import com.google.common.collect.Collections2;
 
 public class TabletServer extends AbstractServer {
 
@@ -657,13 +661,14 @@ public class TabletServer extends AbstractServer {
         columnSet.add(new Column(tcolumn));
       }
 
-      final SingleScanSession scanSession = new SingleScanSession(credentials, extent, columnSet,
-          ssiList, ssio, new Authorizations(authorizations), readaheadThreshold, batchTimeOut,
-          contextArg, executionHints);
-      scanSession.scanner = tablet.createScanner(new Range(range), batchSize, scanSession.columnSet,
-          scanSession.auths, ssiList, ssio, isolated, scanSession.interruptFlag,
-          SamplerConfigurationImpl.fromThrift(tSamplerConfig), scanSession.batchTimeOut,
-          scanSession.context);
+      ScanParameters scanParams = new ScanParameters(batchSize, new Authorizations(authorizations),
+          columnSet, ssiList, ssio, isolated, SamplerConfigurationImpl.fromThrift(tSamplerConfig),
+          batchTimeOut, contextArg);
+
+      final SingleScanSession scanSession = new SingleScanSession(credentials, extent, scanParams,
+          readaheadThreshold, executionHints);
+      scanSession.scanner =
+          tablet.createScanner(new Range(range), scanParams, scanSession.interruptFlag);
 
       long sid = sessionManager.createSession(scanSession, true);
 
@@ -836,18 +841,19 @@ public class TabletServer extends AbstractServer {
         writeTracker.waitForWrites(TabletType.type(batch.keySet()));
       }
 
-      final MultiScanSession mss = new MultiScanSession(credentials, threadPoolExtent, batch,
-          ssiList, ssio, new Authorizations(authorizations),
-          SamplerConfigurationImpl.fromThrift(tSamplerConfig), batchTimeOut, contextArg,
-          executionHints);
+      Set<Column> columnSet = tcolumns.isEmpty() ? Collections.emptySet()
+          : new HashSet<Column>(Collections2.transform(tcolumns, Column::new));
+
+      ScanParameters scanParams =
+          new ScanParameters(-1, new Authorizations(authorizations), columnSet, ssiList, ssio,
+              false, SamplerConfigurationImpl.fromThrift(tSamplerConfig), batchTimeOut, contextArg);
+
+      final MultiScanSession mss =
+          new MultiScanSession(credentials, threadPoolExtent, batch, scanParams, executionHints);
 
       mss.numTablets = batch.size();
       for (List<Range> ranges : batch.values()) {
         mss.numRanges += ranges.size();
-      }
-
-      for (TColumn tcolumn : tcolumns) {
-        mss.columnSet.add(new Column(tcolumn));
       }
 
       long sid = sessionManager.createSession(mss, true);
@@ -3013,14 +3019,29 @@ public class TabletServer extends AbstractServer {
   private void checkWalCanSync(ServerContext context) {
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.ChooserScope.LOGGER, context);
-    String logPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context)) + Path.SEPARATOR
-        + ServerConstants.WAL_DIR;
-    if (!fs.canSyncAndFlush(new Path(logPath))) {
-      // sleep a few seconds in case this is at cluster start...give monitor
-      // time to start so the warning will be more visible
-      UtilWaitThread.sleep(5000);
-      log.warn("WAL directory ({}) implementation does not support sync or flush."
-          + " Data loss may occur.", logPath);
+    String[] prefixes;
+    var options = ServerConstants.getBaseUris(context);
+    try {
+      prefixes = fs.choosable(chooserEnv, options);
+    } catch (Exception e) {
+      log.warn("Unable to determine if WAL directories ({}) support sync or flush. "
+          + "Data loss may occur.", Arrays.asList(options), e);
+      return;
+    }
+
+    boolean warned = false;
+    for (String prefix : prefixes) {
+      String logPath = prefix + Path.SEPARATOR + ServerConstants.WAL_DIR;
+      if (!fs.canSyncAndFlush(new Path(logPath))) {
+        // sleep a few seconds in case this is at cluster start...give monitor
+        // time to start so the warning will be more visible
+        if (!warned) {
+          UtilWaitThread.sleep(5000);
+          warned = true;
+        }
+        log.warn("WAL directory ({}) implementation does not support sync or flush."
+            + " Data loss may occur.", logPath);
+      }
     }
   }
 

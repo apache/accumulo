@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.fate.zookeeper;
 
@@ -24,7 +26,7 @@ import java.util.List;
 
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.BadVersionException;
@@ -122,8 +124,7 @@ public class ZooReaderWriterTest {
     final byte[] mutatedBytes = {1};
     Mutator mutator = currentValue -> mutatedBytes;
 
-    Method getDataMethod =
-        ZooReaderWriter.class.getMethod("getData", String.class, boolean.class, Stat.class);
+    Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, Stat.class);
     zrw = EasyMock.createMockBuilder(ZooReaderWriter.class)
         .addMockedMethods("getRetryFactory", "getZooKeeper").addMockedMethod(getDataMethod)
         .createMock();
@@ -134,7 +135,7 @@ public class ZooReaderWriterTest {
 
     zk.create(path, value, acls, CreateMode.PERSISTENT);
     EasyMock.expectLastCall().andThrow(new NodeExistsException()).once();
-    EasyMock.expect(zrw.getData(path, false, stat)).andReturn(new byte[] {3}).times(2);
+    EasyMock.expect(zrw.getData(path, stat)).andReturn(new byte[] {3}).times(2);
     // BadVersionException should retry
     EasyMock.expect(zk.setData(path, mutatedBytes, 0)).andThrow(new BadVersionException());
     // Let 2nd setData succeed
@@ -155,8 +156,7 @@ public class ZooReaderWriterTest {
     final byte[] mutatedBytes = {1};
     Mutator mutator = currentValue -> mutatedBytes;
 
-    Method getDataMethod =
-        ZooReaderWriter.class.getMethod("getData", String.class, boolean.class, Stat.class);
+    Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, Stat.class);
     zrw = EasyMock.createMockBuilder(ZooReaderWriter.class)
         .addMockedMethods("getRetryFactory", "getZooKeeper").addMockedMethod(getDataMethod)
         .createMock();
@@ -167,7 +167,7 @@ public class ZooReaderWriterTest {
 
     zk.create(path, value, acls, CreateMode.PERSISTENT);
     EasyMock.expectLastCall().andThrow(new NodeExistsException()).once();
-    EasyMock.expect(zrw.getData(path, false, stat)).andReturn(new byte[] {3}).times(2);
+    EasyMock.expect(zrw.getData(path, stat)).andReturn(new byte[] {3}).times(2);
     // BadVersionException should retry
     EasyMock.expect(zk.setData(path, mutatedBytes, 0)).andThrow(new ConnectionLossException());
 

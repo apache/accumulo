@@ -1,34 +1,44 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.fs;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.Collection;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A wrapper around multiple hadoop FileSystem objects, which are assumed to be different volumes.
@@ -166,6 +176,9 @@ public interface VolumeManager {
   // decide on which of the given locations to create a new file
   String choose(VolumeChooserEnvironment env, String[] options);
 
+  // return all valid locations to create a new file
+  String[] choosable(VolumeChooserEnvironment env, String[] options);
+
   // are sync and flush supported for the given path
   boolean canSyncAndFlush(Path path);
 
@@ -178,5 +191,44 @@ public interface VolumeManager {
    * Fetch the configured Volumes, excluding the default Volume
    */
   Collection<Volume> getVolumes();
+
+  Logger log = LoggerFactory.getLogger(VolumeManager.class);
+
+  static String getInstanceIDFromHdfs(Path instanceDirectory, AccumuloConfiguration conf,
+      Configuration hadoopConf) {
+    try {
+      FileSystem fs = VolumeConfiguration.getVolume(instanceDirectory.toString(), hadoopConf, conf)
+          .getFileSystem();
+      FileStatus[] files = null;
+      try {
+        files = fs.listStatus(instanceDirectory);
+      } catch (FileNotFoundException ex) {
+        // ignored
+      }
+      log.debug("Trying to read instance id from {}", instanceDirectory);
+      if (files == null || files.length == 0) {
+        log.error("unable obtain instance id at {}", instanceDirectory);
+        throw new RuntimeException(
+            "Accumulo not initialized, there is no instance id at " + instanceDirectory);
+      } else if (files.length != 1) {
+        log.error("multiple potential instances in {}", instanceDirectory);
+        throw new RuntimeException(
+            "Accumulo found multiple possible instance ids in " + instanceDirectory);
+      } else {
+        return files[0].getPath().getName();
+      }
+    } catch (IOException e) {
+      log.error("Problem reading instance id out of hdfs at " + instanceDirectory, e);
+      throw new RuntimeException(
+          "Can't tell if Accumulo is initialized; can't read instance id at " + instanceDirectory,
+          e);
+    } catch (IllegalArgumentException exception) {
+      /* HDFS throws this when there's a UnknownHostException due to DNS troubles. */
+      if (exception.getCause() instanceof UnknownHostException) {
+        log.error("Problem reading instance id out of hdfs at " + instanceDirectory, exception);
+      }
+      throw exception;
+    }
+  }
 
 }

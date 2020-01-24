@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.tablet;
 
@@ -49,7 +51,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -58,14 +59,12 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
@@ -85,6 +84,7 @@ import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.spi.scan.ScanDirectives;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -135,6 +135,7 @@ import org.apache.accumulo.tserver.constraints.ConstraintChecker;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionCanceledException;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionEnv;
 import org.apache.commons.codec.DecoderException;
@@ -335,13 +336,12 @@ public class Tablet {
     this.tableConfiguration = tblConf;
 
     // translate any volume changes
-    VolumeManager fs = tabletServer.getFileSystem();
     boolean replicationEnabled =
         ReplicationConfigurationUtil.isEnabled(extent, this.tableConfiguration);
     TabletFiles tabletPaths =
         new TabletFiles(data.getDirectoryName(), data.getLogEntries(), data.getDataFiles());
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
-        fs, extent, tabletPaths, replicationEnabled);
+        extent, tabletPaths, replicationEnabled);
 
     this.dirName = data.getDirectoryName();
 
@@ -357,10 +357,9 @@ public class Tablet {
     if (extent.isMeta()) {
       defaultSecurityLabel = () -> EMPTY_BYTES;
     } else {
-      defaultSecurityLabel = tableConfiguration.newDeriver(conf -> {
-        return new ColumnVisibility(conf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY))
-            .getExpression();
-      });
+      defaultSecurityLabel = tableConfiguration.newDeriver(
+          conf -> new ColumnVisibility(conf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY))
+              .getExpression());
     }
 
     tabletMemory = new TabletMemory(this);
@@ -379,7 +378,6 @@ public class Tablet {
 
         tabletServer.recover(this.getTabletServer().getFileSystem(), extent, logEntries, absPaths,
             m -> {
-              // LogReader.printMutation(m);
               Collection<ColumnUpdate> muts = m.getUpdates();
               for (ColumnUpdate columnUpdate : muts) {
                 if (!columnUpdate.hasTimestamp()) {
@@ -401,28 +399,10 @@ public class Tablet {
           log.debug("No replayed mutations applied, removing unused entries for {}", extent);
           MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent,
               logEntries, tabletServer.getLock());
-
-          // No replication update to be made because the fact that this tablet didn't use any
-          // mutations
-          // from the WAL implies nothing about use of this WAL by other tablets. Do nothing.
-
           logEntries.clear();
         } else if (ReplicationConfigurationUtil.isEnabled(extent,
             tabletServer.getTableConfiguration(extent))) {
-          // The logs are about to be re-used by this tablet, we need to record that they have data
-          // for this extent,
-          // but that they may get more data. logEntries is not cleared which will cause the
-          // elements
-          // in logEntries to be added to the currentLogs for this Tablet below.
-          //
-          // This update serves the same purpose as an update during a MinC. We know that the WAL
-          // was defined
-          // (written when the WAL was opened) but this lets us know there are mutations written to
-          // this WAL
-          // that could potentially be replicated. Because the Tablet is using this WAL, we can be
-          // sure that
-          // the WAL isn't closed (WRT replication Status) and thus we're safe to update its
-          // progress.
+          // record that logs may have data for this extent
           Status status = StatusUtil.openWithUnknownLength();
           for (LogEntry logEntry : logEntries) {
             log.debug("Writing updated status to metadata table for {} {}", logEntry.filename,
@@ -506,8 +486,7 @@ public class Tablet {
   }
 
   private LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges,
-      HashSet<Column> columnSet, List<KVEntry> results, long maxResultsSize, long batchTimeOut)
-      throws IOException {
+      List<KVEntry> results, ScanParameters scanParams, long maxResultsSize) throws IOException {
 
     LookupResult lookupResult = new LookupResult();
 
@@ -515,9 +494,11 @@ public class Tablet {
     boolean tabletClosed = false;
 
     Set<ByteSequence> cfset = null;
-    if (columnSet.size() > 0) {
-      cfset = LocalityGroupUtil.families(columnSet);
+    if (scanParams.getColumnSet().size() > 0) {
+      cfset = LocalityGroupUtil.families(scanParams.getColumnSet());
     }
+
+    long batchTimeOut = scanParams.getBatchTimeOut();
 
     long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
     long startNanos = System.nanoTime();
@@ -655,8 +636,11 @@ public class Tablet {
   public void checkConditions(ConditionChecker checker, Authorizations authorizations,
       AtomicBoolean iFlag) throws IOException {
 
-    ScanDataSource dataSource =
-        new ScanDataSource(this, authorizations, this.defaultSecurityLabel.derive(), iFlag);
+    ScanParameters scanParams = new ScanParameters(-1, authorizations, Collections.emptySet(), null,
+        null, false, null, -1, null);
+    scanParams.setScanDirectives(ScanDirectives.builder().build());
+
+    ScanDataSource dataSource = new ScanDataSource(this, scanParams, false, iFlag);
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
@@ -671,11 +655,8 @@ public class Tablet {
     }
   }
 
-  public LookupResult lookup(List<Range> ranges, HashSet<Column> columns,
-      Authorizations authorizations, List<KVEntry> results, long maxResultSize,
-      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag,
-      SamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext)
-      throws IOException {
+  public LookupResult lookup(List<Range> ranges, List<KVEntry> results, ScanParameters scanParams,
+      long maxResultSize, AtomicBoolean interruptFlag) throws IOException {
 
     if (ranges.size() == 0) {
       return new LookupResult();
@@ -693,15 +674,13 @@ public class Tablet {
       tabletRange.clip(range);
     }
 
-    ScanDataSource dataSource =
-        new ScanDataSource(this, authorizations, this.defaultSecurityLabel.derive(), columns,
-            ssiList, ssio, interruptFlag, samplerConfig, batchTimeOut, classLoaderContext);
+    ScanDataSource dataSource = new ScanDataSource(this, scanParams, true, interruptFlag);
 
     LookupResult result = null;
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
-      result = lookup(iter, ranges, columns, results, maxResultSize, batchTimeOut);
+      result = lookup(iter, ranges, results, scanParams, maxResultSize);
       return result;
     } catch (IOException ioe) {
       dataSource.close(true);
@@ -720,10 +699,12 @@ public class Tablet {
     }
   }
 
-  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, int num, Set<Column> columns,
-      long batchTimeOut, boolean isolated) throws IOException {
+  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams)
+      throws IOException {
 
     // log.info("In nextBatch..");
+
+    long batchTimeOut = scanParams.getBatchTimeOut();
 
     long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
     long startNanos = System.nanoTime();
@@ -746,14 +727,14 @@ public class Tablet {
     YieldCallback<Key> yield = new YieldCallback<>();
 
     // we cannot yield if we are in isolation mode
-    if (!isolated) {
+    if (!scanParams.isIsolated()) {
       iter.enableYielding(yield);
     }
 
-    if (columns.size() == 0) {
+    if (scanParams.getColumnSet().size() == 0) {
       iter.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
     } else {
-      iter.seek(range, LocalityGroupUtil.families(columns), true);
+      iter.seek(range, LocalityGroupUtil.families(scanParams.getColumnSet()), true);
     }
 
     while (iter.hasTop()) {
@@ -771,7 +752,7 @@ public class Tablet {
 
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
 
-      if (resultSize >= maxResultsSize || results.size() >= num || timesUp) {
+      if (resultSize >= maxResultsSize || results.size() >= scanParams.getMaxEntries() || timesUp) {
         continueKey = new Key(key);
         skipContinueKey = true;
         break;
@@ -807,18 +788,13 @@ public class Tablet {
     return new Batch(skipContinueKey, results, continueKey, resultBytes);
   }
 
-  public Scanner createScanner(Range range, int num, Set<Column> columns,
-      Authorizations authorizations, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      boolean isolated, AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig,
-      long batchTimeOut, String classLoaderContext) {
+  public Scanner createScanner(Range range, ScanParameters scanParams,
+      AtomicBoolean interruptFlag) {
     // do a test to see if this range falls within the tablet, if it does not
     // then clip will throw an exception
     extent.toDataRange().clip(range);
 
-    ScanOptions opts =
-        new ScanOptions(num, authorizations, this.defaultSecurityLabel.derive(), columns, ssiList,
-            ssio, interruptFlag, isolated, samplerConfig, batchTimeOut, classLoaderContext);
-    return new Scanner(this, range, opts);
+    return new Scanner(this, range, scanParams, interruptFlag);
   }
 
   DataFileValue minorCompact(InMemoryMap memTable, FileRef tmpDatafile, FileRef newDatafile,
@@ -952,8 +928,6 @@ public class Tablet {
 
   public boolean initiateMinorCompaction(MinorCompactionReason mincReason) {
     if (isClosed()) {
-      // don't bother trying to get flush id if closed... could be closed after this check but that
-      // is ok... just trying to cut down on unneeded log messages....
       return false;
     }
 
@@ -2749,6 +2723,10 @@ public class Tablet {
 
   public long getAndUpdateTime() {
     return tabletTime.getAndUpdateTime();
+  }
+
+  public byte[] getDefaultSecurityLabels() {
+    return defaultSecurityLabel.derive();
   }
 
   public void flushComplete(long flushId) {

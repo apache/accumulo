@@ -1,32 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.master.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET_GC_CANDIDATES;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -34,7 +33,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
@@ -46,11 +44,13 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -63,10 +63,11 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -102,11 +103,8 @@ public class Upgrader9to10 implements Upgrader {
   public static final Value UPGRADED = MetadataSchema.DeletesSection.SkewedKeyValue.NAME;
   public static final String OLD_DELETE_PREFIX = "~del";
 
-  /**
-   * This percentage was taken from the SimpleGarbageCollector and if nothing else is going on
-   * during upgrade then it could be larger.
-   */
-  static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
+  // effectively an 8MB batch size, since this number is the number of Chars
+  public static final long CANDIDATE_BATCH_SIZE = 4_000_000;
 
   @Override
   public void upgradeZookeeper(ServerContext ctx) {
@@ -114,10 +112,15 @@ public class Upgrader9to10 implements Upgrader {
   }
 
   @Override
-  public void upgradeMetadata(ServerContext ctx) {
+  public void upgradeRoot(ServerContext ctx) {
+    upgradeRelativePaths(ctx, Ample.DataLevel.METADATA);
     upgradeDirColumns(ctx, Ample.DataLevel.METADATA);
     upgradeFileDeletes(ctx, Ample.DataLevel.METADATA);
+  }
 
+  @Override
+  public void upgradeMetadata(ServerContext ctx) {
+    upgradeRelativePaths(ctx, Ample.DataLevel.USER);
     upgradeDirColumns(ctx, Ample.DataLevel.USER);
     upgradeFileDeletes(ctx, Ample.DataLevel.USER);
   }
@@ -240,7 +243,7 @@ public class Upgrader9to10 implements Upgrader {
     try {
       ArrayList<LogEntry> result = new ArrayList<>();
 
-      IZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooReaderWriter zoo = context.getZooReaderWriter();
       String root = context.getZooKeeperRoot() + ZROOT_TABLET_WALOGS;
       // there's a little race between getting the children and fetching
       // the data. The log can be removed in between.
@@ -273,7 +276,7 @@ public class Upgrader9to10 implements Upgrader {
       if (data == null)
         return null;
 
-      return new String(data, StandardCharsets.UTF_8);
+      return new String(data, UTF_8);
     } catch (NoNodeException e) {
       return null;
     } catch (KeeperException | InterruptedException e) {
@@ -402,11 +405,8 @@ public class Upgrader9to10 implements Upgrader {
     try (BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig())) {
       log.info("looking for candidates in table {}", tableName);
       Iterator<String> oldCandidates = getOldCandidates(ctx, tableName);
-      int t = 0; // no waiting first time through
       while (oldCandidates.hasNext()) {
-        // give it some time for memory to clean itself up if needed
-        sleepUninterruptibly(t, TimeUnit.SECONDS);
-        List<String> deletes = readCandidatesThatFitInMemory(oldCandidates);
+        List<String> deletes = readCandidatesInBatch(oldCandidates);
         log.info("found {} deletes to upgrade", deletes.size());
         for (String olddelete : deletes) {
           // create new formatted delete
@@ -425,7 +425,6 @@ public class Upgrader9to10 implements Upgrader {
           writer.addMutation(deleteOldDeleteMutation(olddelete));
         }
         writer.flush();
-        t = 3;
       }
     } catch (TableNotFoundException | MutationsRejectedException e) {
       throw new RuntimeException(e);
@@ -463,14 +462,18 @@ public class Upgrader9to10 implements Upgrader {
         .iterator();
   }
 
-  private List<String> readCandidatesThatFitInMemory(Iterator<String> candidates) {
+  private List<String> readCandidatesInBatch(Iterator<String> candidates) {
+    long candidateLength = 0;
     List<String> result = new ArrayList<>();
-    // Always read at least one. If memory doesn't clean up fast enough at least
-    // some progress is made.
     while (candidates.hasNext()) {
-      result.add(candidates.next());
-      if (almostOutOfMemory(Runtime.getRuntime()))
+      String candidate = candidates.next();
+      candidateLength += candidate.length();
+      result.add(candidate);
+      if (candidateLength > CANDIDATE_BATCH_SIZE) {
+        log.trace("List of delete candidates has exceeded the batch size"
+            + " threshold. Attempting to delete what has been gathered so far.");
         break;
+      }
     }
     return result;
   }
@@ -479,16 +482,6 @@ public class Upgrader9to10 implements Upgrader {
     Mutation m = new Mutation(OLD_DELETE_PREFIX + delete);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
     return m;
-  }
-
-  private boolean almostOutOfMemory(Runtime runtime) {
-    if (runtime.totalMemory() - runtime.freeMemory()
-        > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory()) {
-      log.info("List of delete candidates has exceeded the memory"
-          + " threshold. Attempting to delete what has been gathered so far.");
-      return true;
-    } else
-      return false;
   }
 
   public void upgradeDirColumns(ServerContext ctx, Ample.DataLevel level) {
@@ -511,5 +504,126 @@ public class Upgrader9to10 implements Upgrader {
 
   public static String upgradeDirColumn(String dir) {
     return new Path(dir).getName();
+  }
+
+  /**
+   * Remove all file entries containing relative paths and replace them with absolute URI paths.
+   */
+  public static void upgradeRelativePaths(ServerContext ctx, Ample.DataLevel level) {
+    String tableName = level.metaTable();
+    AccumuloClient c = ctx;
+    VolumeManager fs = ctx.getVolumeManager();
+    String upgradeProp = ctx.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
+
+    // first pass check for relative paths - if any, check existence of the file path
+    // constructed from the upgrade property + relative path
+    if (checkForRelativePaths(c, fs, tableName, upgradeProp)) {
+      log.info("Relative Tablet File paths exist in {}, replacing with absolute using {}",
+          tableName, upgradeProp);
+    } else {
+      log.info("No relative paths found in {} during upgrade.", tableName);
+      return;
+    }
+
+    // second pass, create atomic mutations to replace the relative path
+    replaceRelativePaths(c, fs, tableName, upgradeProp);
+  }
+
+  /**
+   * Replace relative paths but only if the constructed absolute path exists on FileSystem
+   */
+  public static void replaceRelativePaths(AccumuloClient c, VolumeManager fs, String tableName,
+      String upgradeProperty) {
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
+        BatchWriter writer = c.createBatchWriter(tableName)) {
+
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      for (Entry<Key,Value> entry : scanner) {
+        Key key = entry.getKey();
+        String metaEntry = key.getColumnQualifier().toString();
+        if (!metaEntry.contains(":")) {
+          // found relative paths so get the property used to build the absolute paths
+          if (upgradeProperty == null || upgradeProperty.isBlank()) {
+            throw new IllegalArgumentException(
+                "Missing required property " + Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE.getKey());
+          }
+          Path relPath = resolveRelativePath(metaEntry, key);
+          Path absPath = new Path(upgradeProperty, relPath);
+          // Path absPath = new Path(Paths.get(upgradeProperty).normalize().toString(), relPath);
+          if (fs.exists(absPath)) {
+            log.debug("Changing Tablet File path from {} to {}", metaEntry, absPath);
+            Mutation m = new Mutation(key.getRow());
+            // add the new path
+            m.at().family(key.getColumnFamily()).qualifier(absPath.toString())
+                .visibility(key.getColumnVisibility()).put(entry.getValue());
+            // delete the old path
+            m.at().family(key.getColumnFamily()).qualifier(key.getColumnQualifierData().toArray())
+                .visibility(key.getColumnVisibility()).delete();
+            writer.addMutation(m);
+          } else {
+            throw new IllegalArgumentException(
+                "Relative Tablet file " + relPath + " not found at " + absPath);
+          }
+        }
+      }
+    } catch (MutationsRejectedException | TableNotFoundException e) {
+      throw new IllegalStateException(e);
+    } catch (IOException ioe) {
+      throw new UncheckedIOException(ioe);
+    }
+  }
+
+  /**
+   * Check if table has any relative paths, return false if none are found. When a relative path is
+   * found, check existence of the file path constructed from the upgrade property + relative path
+   */
+  public static boolean checkForRelativePaths(AccumuloClient client, VolumeManager fs,
+      String tableName, String upgradeProperty) {
+    boolean hasRelatives = false;
+
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+      log.info("Looking for relative paths in {}", tableName);
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      for (Entry<Key,Value> entry : scanner) {
+        Key key = entry.getKey();
+        String metaEntry = key.getColumnQualifier().toString();
+        if (!metaEntry.contains(":")) {
+          // found relative paths so verify the property used to build the absolute paths
+          hasRelatives = true;
+          if (upgradeProperty == null || upgradeProperty.isBlank()) {
+            throw new IllegalArgumentException(
+                "Missing required property " + Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE.getKey());
+          }
+          Path relPath = resolveRelativePath(metaEntry, key);
+          Path absPath = new Path(upgradeProperty, relPath);
+          // Path absPath = new Path(Paths.get(upgradeProperty).normalize().toString(), relPath);
+          if (!fs.exists(absPath)) {
+            throw new IllegalArgumentException("Tablet file " + relPath + " not found at " + absPath
+                + " using volume: " + upgradeProperty);
+          }
+        }
+      }
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+
+    return hasRelatives;
+  }
+
+  /**
+   * Resolve old-style relative paths, returning Path of everything except volume and base
+   */
+  private static Path resolveRelativePath(String metadataEntry, Key key) {
+    String prefix = ServerConstants.TABLE_DIR + "/";
+    if (metadataEntry.startsWith("../")) {
+      // resolve style "../2a/t-0003/C0004.rf"
+      return new Path(prefix + metadataEntry.substring(3));
+    } else {
+      // resolve style "/t-0003/C0004.rf"
+      TableId tableId = KeyExtent.tableOfMetadataRow(key.getRow());
+      return new Path(prefix + tableId.canonical() + metadataEntry);
+    }
   }
 }

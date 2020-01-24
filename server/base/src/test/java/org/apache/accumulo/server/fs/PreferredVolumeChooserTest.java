@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.fs;
 
@@ -22,7 +24,6 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
@@ -92,13 +93,6 @@ public class PreferredVolumeChooserTest {
       }
     };
     return chooser.getPreferredVolumes(env, ALL_OPTIONS);
-  }
-
-  @Test
-  public void testInitScopeSelectsRandomlyFromAll() {
-    replay(serviceEnv, tableConf, systemConf);
-    String[] volumes = choose(ChooserScope.INIT);
-    assertSame(ALL_OPTIONS, volumes);
   }
 
   @Test
@@ -216,6 +210,29 @@ public class PreferredVolumeChooserTest {
     thrown.expect(VolumeChooserException.class);
     choose(ChooserScope.LOGGER);
     fail("should not reach");
+  }
+
+  @Test
+  public void testInitScopeUsingInitProperty() {
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.INIT))).andReturn("2,1")
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
+
+    String[] volumes = choose(ChooserScope.INIT);
+    Arrays.sort(volumes);
+    assertArrayEquals(new String[] {"1", "2"}, volumes);
+  }
+
+  @Test
+  public void testInitScopeUsingDefaultProperty() {
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.INIT))).andReturn(null).once();
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn("3,2")
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
+
+    String[] volumes = choose(ChooserScope.INIT);
+    Arrays.sort(volumes);
+    assertArrayEquals(new String[] {"2", "3"}, volumes);
   }
 
 }

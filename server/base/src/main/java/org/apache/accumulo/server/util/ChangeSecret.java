@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -26,7 +28,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -127,7 +128,7 @@ public class ChangeSecret {
       final String newInstanceId, String oldPass, String newPass) throws Exception {
     final ZooReaderWriter orig = new ZooReaderWriter(context.getZooKeepers(),
         context.getZooKeepersSessionTimeOut(), oldPass);
-    final IZooReaderWriter new_ = new ZooReaderWriter(context.getZooKeepers(),
+    final ZooReaderWriter new_ = new ZooReaderWriter(context.getZooKeepers(),
         context.getZooKeepersSessionTimeOut(), newPass);
 
     String root = context.getZooKeeperRoot();
@@ -205,7 +206,7 @@ public class ChangeSecret {
   }
 
   private static void deleteInstance(ServerContext context, String oldPass) throws Exception {
-    IZooReaderWriter orig = new ZooReaderWriter(context.getZooKeepers(),
+    ZooReaderWriter orig = new ZooReaderWriter(context.getZooKeepers(),
         context.getZooKeepersSessionTimeOut(), oldPass);
     orig.recursiveDelete("/accumulo/" + context.getInstanceID(), NodeMissingPolicy.SKIP);
   }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
@@ -112,8 +114,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 1000; i++) {
           Mutation m = new Mutation(new Text(String.format("%06d", i)));
-          m.put(new Text("cf1"), new Text("cq1"), new Value(Integer.toString(1000 - i)));
-          m.put(new Text("cf1"), new Text("cq2"), new Value(Integer.toString(i - 1000)));
+          m.put("cf1", "cq1", Integer.toString(1000 - i));
+          m.put("cf1", "cq2", Integer.toString(i - 1000));
           bw.addMutation(m);
         }
       }
@@ -239,7 +241,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
       throws TableNotFoundException, MutationsRejectedException {
     try (BatchWriter batchWriter = userC.createBatchWriter(tableName)) {
       Mutation m = new Mutation("1");
-      m.put(new Text("2"), new Text("3"), new Value(""));
+      m.put("2", "3", "");
       batchWriter.addMutation(m);
       batchWriter.flush();
     }

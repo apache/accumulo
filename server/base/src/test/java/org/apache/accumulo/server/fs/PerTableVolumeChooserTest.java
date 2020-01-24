@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.fs;
 
@@ -91,13 +93,6 @@ public class PerTableVolumeChooserTest {
       }
     };
     return chooser.getDelegateChooser(env);
-  }
-
-  @Test
-  public void testInitScopeSelectsRandomChooser() {
-    replay(serviceEnv, tableConf, systemConf);
-    VolumeChooser delegate = getDelegate(ChooserScope.INIT);
-    assertSame(RandomVolumeChooser.class, delegate.getClass());
   }
 
   @Test
@@ -202,6 +197,31 @@ public class PerTableVolumeChooserTest {
     thrown.expect(VolumeChooserException.class);
     getDelegate(ChooserScope.LOGGER);
     fail("should not reach");
+  }
+
+  @Test
+  public void testInitScopeUsingInitProperty() throws Exception {
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.INIT)))
+        .andReturn(MockChooser1.class.getName()).once();
+    expect(serviceEnv.instantiate(MockChooser1.class.getName(), VolumeChooser.class))
+        .andReturn(new MockChooser1());
+    replay(serviceEnv, tableConf, systemConf);
+
+    VolumeChooser delegate = getDelegate(ChooserScope.INIT);
+    assertSame(MockChooser1.class, delegate.getClass());
+  }
+
+  @Test
+  public void testInitScopeUsingDefaultProperty() throws Exception {
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.INIT))).andReturn(null).once();
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT)))
+        .andReturn(MockChooser2.class.getName()).once();
+    expect(serviceEnv.instantiate(MockChooser2.class.getName(), VolumeChooser.class))
+        .andReturn(new MockChooser2());
+    replay(serviceEnv, tableConf, systemConf);
+
+    VolumeChooser delegate = getDelegate(ChooserScope.INIT);
+    assertSame(MockChooser2.class, delegate.getClass());
   }
 
 }

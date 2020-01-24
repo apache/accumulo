@@ -1,25 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -27,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -363,7 +369,34 @@ public class ClientContext implements AccumuloClient {
    */
   public List<String> getMasterLocations() {
     ensureOpen();
-    return ZooUtil.getMasterLocations(zooCache, getInstanceID());
+    return getMasterLocations(zooCache, getInstanceID());
+  }
+
+  // available only for sharing code with old ZooKeeperInstance
+  public static List<String> getMasterLocations(ZooCache zooCache, String instanceId) {
+    String masterLocPath = ZooUtil.getRoot(instanceId) + Constants.ZMASTER_LOCK;
+
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Looking up master location in zookeeper.", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
+
+    byte[] loc = zooCache.getLockData(masterLocPath);
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(),
+          (loc == null ? "null" : new String(loc, UTF_8)),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
+
+    if (loc == null) {
+      return Collections.emptyList();
+    }
+
+    return Collections.singletonList(new String(loc, UTF_8));
   }
 
   /**
@@ -375,10 +408,34 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     final String instanceName = info.getInstanceName();
     if (instanceId == null) {
-      instanceId = ZooUtil.getInstanceID(zooCache, instanceName);
+      instanceId = getInstanceID(zooCache, instanceName);
     }
-    ZooUtil.verifyInstanceId(zooCache, instanceId, instanceName);
+    verifyInstanceId(zooCache, instanceId, instanceName);
     return instanceId;
+  }
+
+  // available only for sharing code with old ZooKeeperInstance
+  public static String getInstanceID(ZooCache zooCache, String instanceName) {
+    requireNonNull(zooCache, "zooCache cannot be null");
+    requireNonNull(instanceName, "instanceName cannot be null");
+    String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+    byte[] data = zooCache.get(instanceNamePath);
+    if (data == null) {
+      throw new RuntimeException("Instance name " + instanceName + " does not exist in zookeeper. "
+          + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+    }
+    return new String(data, UTF_8);
+  }
+
+  // available only for sharing code with old ZooKeeperInstance
+  public static void verifyInstanceId(ZooCache zooCache, String instanceId, String instanceName) {
+    requireNonNull(zooCache, "zooCache cannot be null");
+    requireNonNull(instanceId, "instanceId cannot be null");
+    if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
+      throw new RuntimeException("Instance id " + instanceId
+          + (instanceName == null ? "" : " pointed to by the name " + instanceName)
+          + " does not exist in zookeeper");
+    }
   }
 
   public String getZooKeeperRoot() {

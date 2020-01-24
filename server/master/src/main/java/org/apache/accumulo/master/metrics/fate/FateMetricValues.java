@@ -1,26 +1,38 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.metrics.fate;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.List;
 
 import org.apache.accumulo.fate.ReadOnlyTStore;
+
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,6 +93,46 @@ class FateMetricValues {
    */
   Map<String,Long> getOpTypeCounters() {
     return opTypeCounters;
+  }
+
+  /**
+   * The FATE transaction stores the transaction type as a debug string in the transaction zknode.
+   * This method returns a map of counters of the current occurrences of each operation type that is
+   * IN_PROGRESS.
+   *
+   * @return a map of operation type counters.
+   */
+  private static FateMetricValues updateFromZookeeper(final ServerContext context,
+      final FateMetricValues.Builder builder) {
+
+    AdminUtil<String> admin = new AdminUtil<>(false);
+
+    try {
+
+      ZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooStore<String> zs = new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zoo);
+
+      List<AdminUtil.TransactionStatus> currFates = admin.getTransactionStatus(zs, null, null);
+      builder.withCurrentFateOps(currFates.size());
+
+      Stat node = zoo.getZooKeeper().exists(context.getZooKeeperRoot() + Constants.ZFATE, false);
+      builder.withZkFateChildOpsTotal(node.getCversion());
+
+      if (log.isTraceEnabled()) {
+        log.trace(
+            "ZkNodeStat: {czxid: {}, mzxid: {}, pzxid: {}, ctime: {}, mtime: {}, "
+                + "version: {}, cversion: {}, num children: {}",
+            node.getCzxid(), node.getMzxid(), node.getPzxid(), node.getCtime(), node.getMtime(),
+            node.getVersion(), node.getCversion(), node.getNumChildren());
+      }
+    } catch (KeeperException ex) {
+      log.debug("Error connecting to ZooKeeper", ex);
+      builder.incrZkConnectionErrors();
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+    }
+
+    return builder.build();
   }
 
   @Override

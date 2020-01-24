@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master;
 
@@ -128,7 +130,6 @@ import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretM
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tables.TableObserver;
-import org.apache.accumulo.server.util.DefaultMap;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
@@ -153,6 +154,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.util.concurrent.RateLimiter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -168,6 +170,8 @@ public class Master extends AbstractServer
 
   static final int ONE_SECOND = 1000;
   static final long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
+  // made this less than TIME_TO_WAIT_BETWEEN_SCANS, so that the cache is cleared between cycles
+  static final long TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE = (3 * TIME_TO_WAIT_BETWEEN_SCANS) / 4;
   private static final long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   static final long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   private static final long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
@@ -175,6 +179,7 @@ public class Master extends AbstractServer
   private static final int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = ONE_SECOND;
   static final int MAX_TSERVER_WORK_CHUNK = 5000;
   private static final int MAX_BAD_STATUS_COUNT = 3;
+  private static final double MAX_SHUTDOWNS_PER_SEC = 10D / 60D;
 
   final VolumeManager fs;
   private final Object balancedNotifier = new Object();
@@ -182,7 +187,7 @@ public class Master extends AbstractServer
   private final List<TabletGroupWatcher> watchers = new ArrayList<>();
   final SecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers =
-      Collections.synchronizedMap(new DefaultMap<>(new AtomicInteger()));
+      Collections.synchronizedMap(new HashMap<TServerInstance,AtomicInteger>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final SortedMap<KeyExtent,TServerInstance> migrations =
       Collections.synchronizedSortedMap(new TreeMap<>());
@@ -255,7 +260,7 @@ public class Master extends AbstractServer
     }
 
     if (oldState != newState && (newState == MasterState.HAVE_LOCK)) {
-      upgradeCoordinator.upgradeZookeeper();
+      upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
     }
 
     if (oldState != newState && (newState == MasterState.NORMAL)) {
@@ -264,11 +269,12 @@ public class Master extends AbstractServer
             + " initialized prior to the Master finishing upgrades. Please save"
             + " all logs and file a bug.");
       }
-      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata();
+      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
     }
   }
 
-  private UpgradeCoordinator upgradeCoordinator;
+  private final UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
+
   private Future<Void> upgradeMetadataFuture;
 
   private final ServerConfigurationFactory serverConfig;
@@ -417,8 +423,6 @@ public class Master extends AbstractServer
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
-
-    upgradeCoordinator = new UpgradeCoordinator(context);
   }
 
   public String getInstanceID() {
@@ -594,6 +598,12 @@ public class Master extends AbstractServer
     // Shutting down?
     TabletGoalState state = getSystemGoalState(tls);
     if (state == TabletGoalState.HOSTED) {
+      if (!upgradeCoordinator.getStatus().isParentLevelUpgraded(extent)) {
+        // The place where this tablet stores its metadata was not upgraded, so do not assign this
+        // tablet yet.
+        return TabletGoalState.UNASSIGNED;
+      }
+
       if (tls.current != null && serversToShutdown.contains(tls.current)) {
         return TabletGoalState.SUSPENDED;
       }
@@ -902,6 +912,7 @@ public class Master extends AbstractServer
         threads == 0 ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
+    final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {
@@ -935,17 +946,26 @@ public class Master extends AbstractServer
         } catch (Exception ex) {
           log.error("unable to get tablet server status {} {}", server, ex.toString());
           log.debug("unable to get tablet server status {}", server, ex);
-          if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
-            log.warn("attempting to stop {}", server);
-            try {
-              TServerConnection connection2 = tserverSet.getConnection(server);
-              if (connection2 != null) {
-                connection2.halt(masterLock);
+          // Attempt to shutdown server only if able to acquire. If unable, this tablet server
+          // will be removed from the badServers set below and status will be reattempted again
+          // MAX_BAD_STATUS_COUNT times
+          if (badServers.computeIfAbsent(server, k -> new AtomicInteger(0)).incrementAndGet()
+              > MAX_BAD_STATUS_COUNT) {
+            if (shutdownServerRateLimiter.tryAcquire()) {
+              log.warn("attempting to stop {}", server);
+              try {
+                TServerConnection connection2 = tserverSet.getConnection(server);
+                if (connection2 != null) {
+                  connection2.halt(masterLock);
+                }
+              } catch (TTransportException e1) {
+                // ignore: it's probably down
+              } catch (Exception e2) {
+                log.info("error talking to troublesome tablet server", e2);
               }
-            } catch (TTransportException e1) {
-              // ignore: it's probably down
-            } catch (Exception e2) {
-              log.info("error talking to troublesome tablet server", e2);
+            } else {
+              log.warn("Unable to shutdown {} as over the shutdown limit of {} per minute", server,
+                  MAX_SHUTDOWNS_PER_SEC * 60);
             }
             badServers.remove(server);
           }
@@ -1014,7 +1034,7 @@ public class Master extends AbstractServer
       throw new IllegalStateException("Exception getting master lock", e);
     }
 
-    recoveryManager = new RecoveryManager(this);
+    recoveryManager = new RecoveryManager(this, TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE);
 
     context.getTableManager().addObserver(this);
 
@@ -1052,6 +1072,7 @@ public class Master extends AbstractServer
     }
 
     watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(context, this), null) {
+
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1615,12 +1636,13 @@ public class Master extends AbstractServer
     final MasterMonitorInfo result = new MasterMonitorInfo();
 
     result.tServerInfo = new ArrayList<>();
-    result.tableMap = new DefaultMap<>(new TableInfo());
+    result.tableMap = new HashMap<String,TableInfo>();
     for (Entry<TServerInstance,TabletServerStatus> serverEntry : tserverStatus.entrySet()) {
       final TabletServerStatus status = serverEntry.getValue();
       result.tServerInfo.add(status);
       for (Entry<String,TableInfo> entry : status.tableMap.entrySet()) {
-        TableInfoUtil.add(result.tableMap.get(entry.getKey()), entry.getValue());
+        TableInfoUtil.add(result.tableMap.computeIfAbsent(entry.getKey(), k -> new TableInfo()),
+            entry.getValue());
       }
     }
     result.badTServers = new HashMap<>();

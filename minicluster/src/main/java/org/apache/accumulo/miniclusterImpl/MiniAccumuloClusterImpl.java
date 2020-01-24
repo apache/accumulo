@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.miniclusterImpl;
 
@@ -28,7 +30,6 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,7 +72,7 @@ import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -83,7 +84,6 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.commons.io.IOUtils;
@@ -192,7 +192,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     public String readStdOut() {
       try (InputStream in = new FileInputStream(stdOut)) {
-        return IOUtils.toString(in, StandardCharsets.UTF_8);
+        return IOUtils.toString(in, UTF_8);
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
@@ -217,8 +217,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
     // @formatter:off
     argList.addAll(Arrays.asList(
-        "-XX:+UseConcMarkSweepGC",
-        "-XX:CMSInitiatingOccupancyFraction=75",
         "-Dapple.awt.UIElement=true",
         "-Djava.net.preferIPv4Stack=true",
         "-XX:+PerfDisableSharedMem",
@@ -463,10 +461,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
       Path instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(fs);
 
-      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
-      IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(
-          cc.get(Property.INSTANCE_ZK_HOST), (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
-          cc.get(Property.INSTANCE_SECRET));
+      String instanceIdFromFile =
+          VolumeManager.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
+      ZooReaderWriter zrw = new ZooReaderWriter(cc.get(Property.INSTANCE_ZK_HOST),
+          (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET));
 
       String rootPath = ZooUtil.getRoot(instanceIdFromFile);
 
