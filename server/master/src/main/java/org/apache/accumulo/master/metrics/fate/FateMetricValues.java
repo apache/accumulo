@@ -19,15 +19,13 @@
 package org.apache.accumulo.master.metrics.fate;
 
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.List;
-
-import org.apache.accumulo.fate.ReadOnlyTStore;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;

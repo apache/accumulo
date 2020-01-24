@@ -29,7 +29,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.master.metrics.MasterMetrics;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
@@ -65,7 +65,7 @@ public class FateMetrics extends MasterMetrics {
   private FateMetricValues metricValues;
   private volatile long lastUpdate = 0;
 
-  private final IZooReaderWriter zooReaderWriter;
+  private final ZooReaderWriter zooReaderWriter;
   private final ReadOnlyTStore<FateMetrics> zooStore;
   private final String fateRootPath;
 
