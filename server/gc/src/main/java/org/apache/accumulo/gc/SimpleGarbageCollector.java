@@ -55,6 +55,7 @@ import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -319,9 +320,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               // of deleting something that should not be deleted. Must not change value of delete
               // variable because thats whats stored in metadata table.
               log.debug("Volume replaced {} -> {}", delete, switchedDelete);
-              fullPath = fs.getFullPath(FileType.TABLE, switchedDelete);
+              fullPath = new Path(TabletFileUtil.validate(switchedDelete));
             } else {
-              fullPath = fs.getFullPath(FileType.TABLE, delete);
+              fullPath = new Path(TabletFileUtil.validate(delete));
             }
 
             for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
@@ -715,7 +716,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     while (cdIter.hasNext()) {
       Entry<String,String> entry = cdIter.next();
       String relPath = entry.getKey();
-      Path absPath = fs.getFullPath(FileType.TABLE, entry.getValue());
+      Path absPath = new Path(entry.getValue());
 
       if (isDir(relPath)) {
         lastDirRel = relPath;

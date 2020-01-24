@@ -34,10 +34,6 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -389,14 +385,6 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public Path getFullPath(Key key) {
-    // TODO sanity check col fam
-    String relPath = key.getColumnQualifierData().toString();
-    TableId tableId = KeyExtent.tableOfMetadataRow(key.getRow());
-    return getFullPath(tableId, relPath);
-  }
-
-  @Override
   public Path matchingFileSystem(Path source, String[] options) {
     try {
       if (ViewFSUtils.isViewFS(source, hadoopConf)) {
@@ -417,66 +405,6 @@ public class VolumeManagerImpl implements VolumeManager {
       }
     }
     return null;
-  }
-
-  @Override
-  public Path getFullPath(TableId tableId, String path) {
-    if (path.contains(":"))
-      return new Path(path);
-
-    if (path.startsWith("../"))
-      path = path.substring(2);
-    else if (path.startsWith("/"))
-      path = "/" + tableId.canonical() + path;
-    else
-      throw new IllegalArgumentException("Unexpected path prefix " + path);
-
-    return getFullPath(FileType.TABLE, path);
-  }
-
-  private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
-
-  @Override
-  public Path getFullPath(FileType fileType, String path) {
-    int colon = path.indexOf(':');
-    if (colon > -1) {
-      // Check if this is really an absolute path or if this is a 1.4 style relative path for a WAL
-      if (fileType == FileType.WAL && path.charAt(colon + 1) != '/') {
-        path = path.substring(path.indexOf('/'));
-      } else {
-        return new Path(path);
-      }
-    }
-
-    if (path.startsWith("/"))
-      path = path.substring(1);
-
-    // ACCUMULO-2974 To ensure that a proper absolute path is created, the caller needs to include
-    // the table ID
-    // in the relative path. Fail when this doesn't appear to happen.
-    if (fileType == FileType.TABLE) {
-      // Trailing slash doesn't create an additional element
-      String[] pathComponents = path.split(Path.SEPARATOR);
-
-      // Is an rfile
-      if (path.endsWith(RFILE_SUFFIX)) {
-        if (pathComponents.length < 3) {
-          throw new IllegalArgumentException("Fewer components in file path than expected");
-        }
-      } else {
-        // is a directory
-        if (pathComponents.length < 2) {
-          throw new IllegalArgumentException("Fewer components in directory path than expected");
-        }
-      }
-    }
-
-    // normalize the path
-    Path fullPath = new Path(defaultVolume.getBasePath(), fileType.getDirectory());
-    fullPath = new Path(fullPath, path);
-
-    FileSystem fs = getVolumeByPath(fullPath).getFileSystem();
-    return fs.makeQualified(fullPath);
   }
 
   @Override
