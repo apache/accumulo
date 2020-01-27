@@ -350,6 +350,18 @@ public enum Property {
   MASTER_METADATA_SUSPENDABLE("master.metadata.suspendable", "false", PropertyType.BOOLEAN,
       "Allow tablets for the " + MetadataTable.NAME
           + " table to be suspended via table.suspend.duration."),
+  MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT("master.startup.tserver.avail.min.count", "0",
+      PropertyType.COUNT,
+      "Minimum number of tservers that need to be registered before master will "
+          + "start tablet assignment - checked at master initialization, when master gets lock. "
+          + " When set to 0 or less, no blocking occurs. Default is 0 (disabled) to keep original "
+          + " behaviour. Added with version 1.10"),
+  MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT("master.startup.tserver.avail.max.wait", "0",
+      PropertyType.TIMEDURATION,
+      "Maximum time master will wait for tserver available threshold "
+          + "to be reached before continuing. When set to 0 or less, will block "
+          + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
+          + "threshold is set greater than 0. Added with version 1.10"),
 
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
