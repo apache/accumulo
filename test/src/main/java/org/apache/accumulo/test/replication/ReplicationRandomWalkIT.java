@@ -40,7 +40,12 @@ public class ReplicationRandomWalkIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
   }
 
-  @Test(timeout = 5 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
+
+  @Test
   public void runReplicationRandomWalkStep() throws Exception {
     Replication r = new Replication();
 

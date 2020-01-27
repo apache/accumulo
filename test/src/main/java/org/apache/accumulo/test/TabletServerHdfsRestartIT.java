@@ -42,7 +42,12 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     final Connector conn = this.getConnector();
     // Yes, there's a tabletserver

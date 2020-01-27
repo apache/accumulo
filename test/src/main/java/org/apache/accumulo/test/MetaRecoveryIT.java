@@ -54,7 +54,12 @@ public class MetaRecoveryIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1048576");
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     String[] tables = getUniqueNames(10);
     Connector c = getConnector();

@@ -41,7 +41,6 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
@@ -52,6 +51,11 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "2");
     cfg.setProperty(Property.TABLE_BLOCKCACHE_ENABLED, "false");
+  }
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
   }
 
   private static Thread slowScan(final Connector c, final String tableName,
@@ -79,7 +83,6 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
     return thread;
   }
 
-  @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     final String tableName = getUniqueNames(1)[0];
     final Connector c = getConnector();

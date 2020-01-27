@@ -59,6 +59,11 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     cfg.useMiniDFS(true);
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 20 * 60;
+  }
+
   private long ingest() throws Exception {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
@@ -122,7 +127,7 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     assertTrue(percent < 125.);
   }
 
-  @Test(timeout = 20 * 60 * 1000)
+  @Test
   public void testWalPerformance() throws Exception {
     testWalPerformanceOnce();
   }
