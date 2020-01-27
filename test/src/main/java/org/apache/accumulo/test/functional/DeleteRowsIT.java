@@ -46,7 +46,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 10 * 60;
+    return 5 * 60;
   }
 
   private static final Logger log = LoggerFactory.getLogger(DeleteRowsIT.class);
