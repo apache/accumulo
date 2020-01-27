@@ -48,12 +48,17 @@ public class ManySplitIT extends ConfigurableMacBase {
 
   final int SPLITS = 10_000;
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
   @BeforeClass
   static public void checkMR() {
     assumeFalse(IntegrationTestMapReduce.isMapReduce());
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     assumeFalse(IntegrationTestMapReduce.isMapReduce());
 

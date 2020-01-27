@@ -49,11 +49,16 @@ public class TotalQueuedIT extends ConfigurableMacBase {
     cfg.useMiniDFS();
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
   int SMALL_QUEUE_SIZE = 100000;
   int LARGE_QUEUE_SIZE = SMALL_QUEUE_SIZE * 10;
   static final long N = 1000000;
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     Random random = new Random();
     Connector c = getConnector();
