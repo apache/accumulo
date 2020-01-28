@@ -57,6 +57,11 @@ public class DurabilityIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
   @BeforeClass
   public static void checkMR() {
     assumeFalse(IntegrationTestMapReduce.isMapReduce());
@@ -88,7 +93,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     c.tableOperations().create(tableName);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testSync() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -100,7 +105,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testFlush() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -112,7 +117,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testLog() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -125,7 +130,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testNone() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -138,7 +143,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testIncreaseDurability() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -163,7 +168,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     return result;
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testMetaDurability() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];

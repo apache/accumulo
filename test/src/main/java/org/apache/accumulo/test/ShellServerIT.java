@@ -1383,7 +1383,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  // @Test(timeout = 45000)
+  @Test
   public void history() throws Exception {
     final String table = name.getMethodName();
 

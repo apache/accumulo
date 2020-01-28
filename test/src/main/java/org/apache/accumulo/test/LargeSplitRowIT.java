@@ -62,8 +62,13 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     cfg.setSiteConfig(siteConfig);
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
   // User added split
-  @Test(timeout = 60 * 1000)
+  @Test
   public void userAddedSplit() throws Exception {
 
     log.info("User added split");
