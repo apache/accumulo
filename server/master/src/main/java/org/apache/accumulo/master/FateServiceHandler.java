@@ -252,9 +252,14 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_CLONE: {
         TableOperation tableOp = TableOperation.CLONE;
-        validateArgumentCount(arguments, tableOp, 2);
+        validateArgumentCount(arguments, tableOp, 3);
         TableId srcTableId = validateTableIdArgument(arguments.get(0), tableOp, CAN_CLONE);
         String tableName = validateTableNameArgument(arguments.get(1), tableOp, NOT_SYSTEM);
+        boolean keepOffline = false;
+        if (arguments.get(2) != null) {
+          keepOffline = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(2)));
+        }
+
         NamespaceId namespaceId;
         try {
           namespaceId =
@@ -297,7 +302,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         master.fate.seedTransaction(opid, new TraceRepo<>(new CloneTable(c.getPrincipal(),
-            namespaceId, srcTableId, tableName, propertiesToSet, propertiesToExclude)),
+            namespaceId, srcTableId, tableName, propertiesToSet, propertiesToExclude, keepOffline)),
             autoCleanup);
 
         break;
