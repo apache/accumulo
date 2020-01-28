@@ -59,6 +59,11 @@ public class DurabilityIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
   @BeforeClass
   static public void checkMR() {
     assumeFalse(IntegrationTestMapReduce.isMapReduce());
@@ -93,7 +98,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     tableOps.create(tableName);
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void testWriteSpeed() throws Exception {
     TableOperations tableOps = getConnector().tableOperations();
     String tableNames[] = init();
@@ -117,7 +122,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     assertTrue("no durability should be faster than log", t2 > t3);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testSync() throws Exception {
     String tableNames[] = init();
     // sync table should lose nothing
@@ -127,7 +132,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     cleanup(tableNames);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testFlush() throws Exception {
     String tableNames[] = init();
     // flush table won't lose anything since we're not losing power/dfs
@@ -137,7 +142,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     cleanup(tableNames);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testLog() throws Exception {
     String tableNames[] = init();
     // we're probably going to lose something the the log setting
@@ -148,7 +153,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     cleanup(tableNames);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testNone() throws Exception {
     String tableNames[] = init();
     // probably won't get any data back without logging
@@ -159,7 +164,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     cleanup(tableNames);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testIncreaseDurability() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
@@ -183,7 +188,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     return result;
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testMetaDurability() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];

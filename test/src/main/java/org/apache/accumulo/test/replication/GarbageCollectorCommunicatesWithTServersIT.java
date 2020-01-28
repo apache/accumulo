@@ -268,7 +268,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
         fileToStatusAfterMinc);
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void testUnreferencedWalInTserverIsClosed() throws Exception {
     final String[] names = getUniqueNames(2);
     // `table` will be replicated, `otherTable` is only used to roll the WAL on the tserver

@@ -55,12 +55,17 @@ public class BalanceFasterIT extends ConfigurableMacBase {
     cfg.setNumTservers(3);
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 90;
+  }
+
   @BeforeClass
   static public void checkMR() {
     assumeFalse(IntegrationTestMapReduce.isMapReduce());
   }
 
-  @Test(timeout = 90 * 1000)
+  @Test
   public void test() throws Exception {
     // create a table, add a bunch of splits
     String tableName = getUniqueNames(1)[0];
