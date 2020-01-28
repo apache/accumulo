@@ -29,7 +29,7 @@ public class CloneTable extends MasterRepo {
   private CloneInfo cloneInfo;
 
   public CloneTable(String user, String namespaceId, String srcTableId, String tableName,
-      Map<String,String> propertiesToSet, Set<String> propertiesToExclude) {
+      Map<String,String> propertiesToSet, Set<String> propertiesToExclude, boolean keepOffline) {
     cloneInfo = new CloneInfo();
     cloneInfo.user = user;
     cloneInfo.srcTableId = srcTableId;
@@ -37,6 +37,7 @@ public class CloneTable extends MasterRepo {
     cloneInfo.propertiesToExclude = propertiesToExclude;
     cloneInfo.propertiesToSet = propertiesToSet;
     cloneInfo.srcNamespaceId = namespaceId;
+    cloneInfo.keepOffline = keepOffline;
   }
 
   @Override

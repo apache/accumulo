@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.Locations;
@@ -150,6 +151,11 @@ public class TableOperationsHelperTest {
     @Override
     public void clone(String srcTableName, String newTableName, boolean flush,
         Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
+        throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+        TableExistsException {}
+
+    @Override
+    public void clone(String srcTableName, String newTableName, CloneConfiguration config)
         throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
         TableExistsException {}
 
