@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.conf.Property.TSERV_MAX_WRITETHREADS;
+
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -38,94 +39,98 @@ import org.slf4j.LoggerFactory;
 
 public class WriteThreadsIT extends AccumuloClusterHarness {
 
-    ThreadPoolExecutor tpe;
-    private static final Logger log = LoggerFactory.getLogger(TabletServerBatchWriter.class);
+  ThreadPoolExecutor tpe;
+  private static final Logger log = LoggerFactory.getLogger(TabletServerBatchWriter.class);
 
-    @Override
-    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-        // this function runs before test()
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    // this function runs before test()
 
-        // default value is 0. when set to 0, there is no limit
-        // this test typically produces 50 - 75 threads
-        cfg.setProperty(TSERV_MAX_WRITETHREADS.getKey(), "65"); // sets the thread limit on the SERVER SIDE
+    // default value is 0. when set to 0, there is no limit
+    // this test typically produces 50 - 75 threads
+    cfg.setProperty(TSERV_MAX_WRITETHREADS.getKey(), "65"); // sets the thread limit on the SERVER
+                                                            // SIDE
+  }
+
+  @Test
+  public void test() throws Exception {
+    write();
+  }
+
+  public void write() throws Exception {
+    // each thread create a batch writer, add a mutation, and then flush.
+    int threads = 50;
+    int max = 50;
+
+    // Reads and writes from Accumulo
+    BatchWriterConfig config = new BatchWriterConfig();
+    config.setMaxWriteThreads(max); // this is the max write threads on the CLIENT SIDE
+
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getClientProps()).batchWriterConfig(config).build()) {
+
+      tpe = new ThreadPoolExecutor(threads, max, 0, TimeUnit.SECONDS,
+          new ArrayBlockingQueue<>(threads));
+
+      for (int i = 1; i < threads; i++) {
+
+        log.info("iteration: " + i);
+        String tableName = "table" + i;
+        client.tableOperations().create(tableName);
+
+        Runnable r = () -> {
+          try (BatchWriter writer = client.createBatchWriter(tableName)) {
+            client.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
+
+            log.info("START OF RUNNABLE");
+
+            // Data is written to a mutation object
+            Mutation mutation = new Mutation("row");
+            Mutation mutation1 = new Mutation("row1");
+            Mutation mutation2 = new Mutation("row2");
+
+            mutation.at().family("myColFam").qualifier("myColQual").visibility("public")
+                .put("myValue1");
+            mutation.at().family("myColFam").qualifier("myColQual").visibility("public")
+                .put("myValue2");
+
+            mutation1.at().family("myColFam").qualifier("myColQual").visibility("public")
+                .put("myValue1");
+            mutation1.at().family("myColFam").qualifier("myColQual").visibility("public")
+                .put("myValue2");
+
+            mutation2.at().family("myColFam").qualifier("myColQual").visibility("public")
+                .put("myValue1");
+            mutation2.at().family("myColFam").qualifier("myColQual").visibility("public")
+                .put("myValue2");
+
+            log.info("AFTER MUTATIONS PUT TO TABLE");
+
+            // Queues the mutation to write (adds to batch)
+            writer.addMutation(mutation);
+            writer.addMutation(mutation1);
+            writer.addMutation(mutation2);
+
+            log.info("AFTER ADD");
+
+            // Sends buffered mutation to Accumulo immediately (write executed)
+            writer.flush();
+
+            log.info("AFTER FLUSH");
+            log.info("END OF RUNNABLE");
+
+          } catch (Exception e) {
+            log.error("ERROR WRITING MUTATION");
+          }
+        };
+        // Runnable above is executed
+        tpe.execute(r);
+      }
+
+      tpe.shutdown();
+      tpe.awaitTermination(90, TimeUnit.SECONDS);
+
     }
-
-    @Test
-    public void test() throws Exception {
-        write();
-    }
-
-    public void write() throws Exception {
-        // each thread create a batch writer, add a mutation, and then flush.
-        int threads = 50;
-        int max = 50;
-
-
-        // Reads and writes from Accumulo
-        BatchWriterConfig config = new BatchWriterConfig();
-        config.setMaxWriteThreads(max); // this is the max write threads on the CLIENT SIDE
-
-
-        try (AccumuloClient client =
-                     Accumulo.newClient().from(getClientProps()).batchWriterConfig(config).build()) {
-
-            tpe = new ThreadPoolExecutor(threads, max, 0, TimeUnit.SECONDS,
-                    new ArrayBlockingQueue<>(threads));
-
-            for (int i = 1; i < threads; i++) {
-
-                log.info("iteration: " + i);
-                String tableName = "table" + i;
-                client.tableOperations().create(tableName);
-
-                Runnable r = () -> {
-                    try (BatchWriter writer = client.createBatchWriter(tableName)) {
-                        client.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
-
-                        log.info("START OF RUNNABLE");
-
-                        // Data is written to a mutation object
-                        Mutation mutation = new Mutation("row");
-                        Mutation mutation1 = new Mutation("row1");
-                        Mutation mutation2 = new Mutation("row2");
-
-                        mutation.at().family("myColFam").qualifier("myColQual").visibility("public").put("myValue1");
-                        mutation.at().family("myColFam").qualifier("myColQual").visibility("public").put("myValue2");
-
-                        mutation1.at().family("myColFam").qualifier("myColQual").visibility("public").put("myValue1");
-                        mutation1.at().family("myColFam").qualifier("myColQual").visibility("public").put("myValue2");
-
-                        mutation2.at().family("myColFam").qualifier("myColQual").visibility("public").put("myValue1");
-                        mutation2.at().family("myColFam").qualifier("myColQual").visibility("public").put("myValue2");
-
-                        log.info("AFTER MUTATIONS PUT TO TABLE");
-
-                        // Queues the mutation to write (adds to batch)
-                        writer.addMutation(mutation);
-                        writer.addMutation(mutation1);
-                        writer.addMutation(mutation2);
-
-                        log.info("AFTER ADD");
-
-                        // Sends buffered mutation to Accumulo immediately (write executed)
-                        writer.flush();
-
-                        log.info("AFTER FLUSH");
-                        log.info("END OF RUNNABLE");
-
-                    } catch (Exception e) {
-                        log.error("ERROR WRITING MUTATION");
-                    }
-                };
-                // Runnable above is executed
-                tpe.execute(r);
-            }
-
-            tpe.shutdown();
-            tpe.awaitTermination(90, TimeUnit.SECONDS);
-
-        }
-    }
-
+  }
 
 }

@@ -42,7 +42,7 @@ public class TabletServerUpdateMetrics extends TServerMetrics {
     constraintViolationsCounter =
         registry.newCounter("constraintViolations", "Table Constraint Violations", 0L);
     maxThreadLimitExceededCounter =
-            registry.newCounter("maxThreadLimitExceeded", "Max write threads limit exceeded", 0L);
+        registry.newCounter("maxThreadLimitExceeded", "Max write threads limit exceeded", 0L);
 
     commitPrepStat =
         registry.newStat("commitPrep", "preparing to commit mutations", "Ops", "Time", true);
