@@ -264,6 +264,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.metrics2.MetricsSystem;
+import org.apache.hadoop.yarn.webapp.hamlet2.Hamlet;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 import org.apache.thrift.TException;
@@ -948,6 +949,10 @@ public class TabletServer extends AbstractServer {
     }
 
     private void setUpdateTablet(UpdateSession us, KeyExtent keyExtent) {
+
+      int activeThreadCount = Thread.activeCount();
+      int maxWriteThreads = getServerConfig().getConfiguration().getCount(Property.TSERV_MAX_WRITETHREADS);
+
       long t1 = System.currentTimeMillis();
       if (us.currentTablet != null && us.currentTablet.getExtent().equals(keyExtent)) {
         return;
@@ -970,8 +975,17 @@ public class TabletServer extends AbstractServer {
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = getOnlineTablet(keyExtent);
-          if (us.currentTablet != null) {
-            us.queuedMutations.put(us.currentTablet, new ArrayList<>());
+          if (us.currentTablet != null){
+            if (maxWriteThreads == 0 || activeThreadCount <= maxWriteThreads
+                    || (TabletType.type(keyExtent) == TabletType.METADATA
+                    || TabletType.type(keyExtent) == TabletType.ROOT)){
+              us.queuedMutations.put(us.currentTablet, new ArrayList<>());
+              log.info("Active Thread Count: {}  Tablet Type: {}", activeThreadCount, TabletType.type(keyExtent).toString());
+            } else {
+              us.failures.put(keyExtent, 0L);
+              log.error("THREAD LIMIT EXCEEDED. Active : {} Max: {} Tablet Type: {}", activeThreadCount, maxWriteThreads, TabletType.type(keyExtent).toString());
+              updateMetrics.addMaxThreadLimitExceeded(0);
+            }
           } else {
             // not serving tablet, so report all mutations as
             // failures
@@ -1018,7 +1032,7 @@ public class TabletServer extends AbstractServer {
       boolean reserved = true;
       try {
         KeyExtent keyExtent = new KeyExtent(tkeyExtent);
-        setUpdateTablet(us, keyExtent);
+          setUpdateTablet(us, keyExtent);
 
         if (us.currentTablet != null) {
           long additionalMutationSize = 0;
@@ -1150,6 +1164,7 @@ public class TabletServer extends AbstractServer {
         }
 
         try (TraceScope commit = Trace.startSpan("commit")) {
+
           long t1 = System.currentTimeMillis();
           sendables.forEach((commitSession, mutations) -> {
             commitSession.commit(mutations);
@@ -1172,9 +1187,11 @@ public class TabletServer extends AbstractServer {
           updateAvgCommitTime(t2 - t1, sendables.size());
         }
       } finally {
+        KeyExtent keyExtent = us.currentTablet.getExtent();
+
         us.queuedMutations.clear();
         if (us.currentTablet != null) {
-          us.queuedMutations.put(us.currentTablet, new ArrayList<>());
+            us.queuedMutations.put(us.currentTablet, new ArrayList<>());
         }
         updateTotalQueuedMutationSize(-us.queuedMutationSize);
         us.queuedMutationSize = 0;
