@@ -55,7 +55,12 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
     cfg.setNumTservers(4);
   }
 
-  @Test(timeout = 120000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void testBalancing() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tablename = getUniqueNames(1)[0];

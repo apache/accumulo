@@ -73,7 +73,12 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
+  @Test
   public void testSerializedRecovery() throws Exception {
     // make a table with many splits
     String tableName = getUniqueNames(1)[0];
