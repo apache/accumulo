@@ -275,12 +275,10 @@ public class CloneTestIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       AccumuloCluster cluster = getCluster();
       Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
-      MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
-      String rootPath = mac.getConfig().getDir().getAbsolutePath();
 
       c.tableOperations().create(table1);
 
-      BatchWriter bw = writeData(table1, c);
+      writeData(table1, c);
 
       Map<String,String> props = new HashMap<>();
       props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
