@@ -119,8 +119,19 @@ public class ZooSession {
     boolean tryAgain = true;
     long sleepTime = 100;
     ZooKeeper zooKeeper = null;
-
-    long startTime = System.currentTimeMillis();
+    /*
+     * Originally, startTime = System.currentTimeMillis(). Changed to System.nanoTime() to more
+     * accurately compute durations because it is not based on system clock variations. The
+     * ZooKeeper method signature expects an int value for 'timeout' and performs several
+     * calculations that can result in Numeric Expression Overflow errors if large, nanosecond
+     * values are used. For ths reason, System.nanoTime() is is converted to MS units prior to being
+     * used in calculations. Although, the resolution of 'startTime' is still in the MS range, the
+     * value from which it is calculated is nanoTime. Also, the MS units are preserved in the
+     * original method code, without the need for conversion. TimeUnit.convert is not used because
+     * "conversions from fine to coarser granularities truncate, so lose precision" (Oracle Java 7
+     * API)
+     */
+    long startTime = System.nanoTime() / 1000000;
 
     while (tryAgain) {
       try {
@@ -155,14 +166,14 @@ public class ZooSession {
           }
       }
 
-      if (System.currentTimeMillis() - startTime > 2L * timeout) {
+      if ((System.nanoTime() / 1000000) - startTime > 2L * timeout) {
         throw new RuntimeException("Failed to connect to zookeeper (" + host
             + ") within 2x zookeeper timeout period " + timeout);
       }
 
       if (tryAgain) {
-        if (startTime + 2L * timeout < System.currentTimeMillis() + sleepTime + connectTimeWait)
-          sleepTime = startTime + 2L * timeout - System.currentTimeMillis() - connectTimeWait;
+        if (startTime + 2L * timeout < (System.nanoTime() / 1000000) + sleepTime + connectTimeWait)
+          sleepTime = startTime + 2L * timeout - (System.nanoTime() / 1000000) - connectTimeWait;
         if (sleepTime < 0) {
           connectTimeWait -= sleepTime;
           sleepTime = 0;
