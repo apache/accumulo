@@ -312,7 +312,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
         Mutation delFlag =
-            ServerAmpleImpl.createDeleteMutation(String.format("/%020d/%s", i, longpath));
+            ServerAmpleImpl.createDeleteMutation(String.format("file:/%020d/%s", i, longpath));
         bw.addMutation(delFlag);
       }
     }
