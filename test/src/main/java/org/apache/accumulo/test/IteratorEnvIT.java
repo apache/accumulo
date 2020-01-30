@@ -149,6 +149,9 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     if (!"value1".equals(env.getConfig().get("table.custom.iterator.env.test")) && !"value1".equals(
         env.getServiceEnv().getConfiguration(env.getTableId()).getTableCustom("iterator.env.test")))
       throw new RuntimeException("Test failed - Expected table property not found.");
+    if (!"value1".equals(env.getConfig().get("table.custom.iterator.env.test")) && !"value1".equals(
+        env.getPluginEnv().getConfiguration(env.getTableId()).getTableCustom("iterator.env.test")))
+      throw new RuntimeException("Test failed - Expected table property not found.");
     if (!scope.equals(env.getIteratorScope()))
       throw new RuntimeException("Test failed - Error getting iterator scope");
     if (env.isSamplingEnabled())

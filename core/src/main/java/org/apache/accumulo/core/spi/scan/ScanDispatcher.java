@@ -41,7 +41,7 @@ public interface ScanDispatcher {
    *
    * @since 2.0.0
    */
-  public static interface InitParameters {
+  public interface InitParameters {
     /**
      *
      * @return The configured options. For example if the table properties
@@ -59,7 +59,7 @@ public interface ScanDispatcher {
   /**
    * This method is called once after a ScanDispatcher is instantiated.
    */
-  public default void init(InitParameters params) {
+  default void init(InitParameters params) {
     Preconditions.checkArgument(params.getOptions().isEmpty(), "No options expected");
   }
 
@@ -73,19 +73,7 @@ public interface ScanDispatcher {
    *             {@link ScanDispatcher#dispatch(DispatchParameters)}
    */
   @Deprecated
-  public static interface DispatchParmaters {
-    /**
-     * @return information about the scan to be dispatched.
-     */
-    ScanInfo getScanInfo();
-
-    /**
-     * @return the currently configured scan executors
-     */
-    Map<String,ScanExecutor> getScanExecutors();
-
-    ServiceEnvironment getServiceEnv();
-  }
+  public interface DispatchParmaters extends DispatchParameters {}
 
   /**
    * @return Should return one of the executors named params.getScanExecutors().keySet()
@@ -107,7 +95,7 @@ public interface ScanDispatcher {
    *
    * @since 2.1.0
    */
-  public static interface DispatchParameters {
+  public interface DispatchParameters {
     /**
      * @return information about the scan to be dispatched.
      */

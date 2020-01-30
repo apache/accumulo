@@ -273,8 +273,6 @@ public class MetadataTableUtil {
   public static void addDeleteEntries(KeyExtent extent, Set<FileRef> datafilesToDelete,
       ServerContext context) {
 
-    TableId tableId = extent.getTableId();
-
     // TODO could use batch writer,would need to handle failure and retry like update does -
     // ACCUMULO-1294
     for (FileRef pathToRemove : datafilesToDelete) {

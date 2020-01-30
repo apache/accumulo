@@ -219,6 +219,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     return context;
   }
 
+  @Deprecated
   @Override
   public ServiceEnvironment getServiceEnv() {
     return serviceEnvironment;

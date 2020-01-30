@@ -62,7 +62,6 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDirectives;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
-import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters;
 import org.apache.accumulo.core.spi.scan.ScanExecutor;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
@@ -929,8 +928,8 @@ public class TabletServerResourceManager {
   }
 
   @SuppressWarnings("deprecation")
-  private static abstract class DispatchParamsImpl
-      implements DispatchParameters, DispatchParmaters {
+  private static abstract class DispatchParamsImpl implements DispatchParameters,
+      org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters {
 
   }
 
