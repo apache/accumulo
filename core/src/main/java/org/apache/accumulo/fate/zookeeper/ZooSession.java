@@ -25,6 +25,7 @@ import java.net.UnknownHostException;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
@@ -131,7 +132,7 @@ public class ZooSession {
      * "conversions from fine to coarser granularities truncate, so lose precision" (Oracle Java 7
      * API)
      */
-    long startTime = System.nanoTime() / 1000000;
+    long startTime = System.nanoTime();
 
     while (tryAgain) {
       try {
@@ -165,15 +166,22 @@ public class ZooSession {
             log.warn("interrupted", e);
           }
       }
-
-      if ((System.nanoTime() / 1000000) - startTime > 2L * timeout) {
+      //test comment ignore
+      if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) > 2L * timeout) {
         throw new RuntimeException("Failed to connect to zookeeper (" + host
             + ") within 2x zookeeper timeout period " + timeout);
       }
 
       if (tryAgain) {
-        if (startTime + 2L * timeout < (System.nanoTime() / 1000000) + sleepTime + connectTimeWait)
-          sleepTime = startTime + 2L * timeout - (System.nanoTime() / 1000000) - connectTimeWait;
+        if (TimeUnit.NANOSECONDS.toMillis(startTime + 2L * TimeUnit.MILLISECONDS.toNanos(timeout))
+            < TimeUnit.NANOSECONDS
+                .toMillis(System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(sleepTime)
+                    + TimeUnit.MILLISECONDS.toNanos(connectTimeWait))) {
+
+          sleepTime =
+              TimeUnit.NANOSECONDS.toMillis(startTime + 2L * TimeUnit.MILLISECONDS.toNanos(timeout)
+                  - System.nanoTime() - TimeUnit.MILLISECONDS.toNanos(connectTimeWait));
+        }
         if (sleepTime < 0) {
           connectTimeWait -= sleepTime;
           sleepTime = 0;
