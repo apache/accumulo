@@ -439,7 +439,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
                 synchronized (SimpleGarbageCollector.this) {
                   ++status.current.errors;
                 }
-                String parts[] = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
+                String[] parts = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
                 if (parts.length > 2) {
                   String tableId = parts[1];
                   String tabletDir = parts[2];
@@ -474,7 +474,9 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       deleteThreadPool.shutdown();
 
       try {
-        while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {}
+        while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
+          // empty
+        }
       } catch (InterruptedException e1) {
         log.error("{}", e1.getMessage(), e1);
       }
@@ -493,7 +495,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       // if dir exist and is empty, then empty list is returned...
       // hadoop 2.0 will throw an exception if the file does not exist
       for (String dir : ServerConstants.getTablesDirs()) {
-        FileStatus[] tabletDirs = null;
+        FileStatus[] tabletDirs;
         try {
           tabletDirs = fs.listStatus(new Path(dir + "/" + tableID));
         } catch (FileNotFoundException ex) {
@@ -667,7 +669,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
             connector.tableOperations().flush(RootTable.NAME, null, null, true);
             break;
           default:
-            log.trace("\'none - no action\' or invalid value provided: {}", action);
+            log.trace("'none - no gc post action' or invalid value provided: {}", action);
         }
 
         final long actionComplete = System.nanoTime();
@@ -814,7 +816,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    int port[] = getConfiguration().getPort(Property.GC_PORT);
+    int[] port = getConfiguration().getPort(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
     long maxMessageSize = getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {

@@ -57,12 +57,6 @@ public class GcMetricsIT extends AccumuloClusterHarness {
 
     if (!cluster.getSiteConfiguration().getBoolean(Property.GC_METRICS_ENABLED)) {
       log.info("gc metrics are disabled - set GC_METRICS_ENABLED to run test");
-      // used for manual jmx / jconsole validation - not for automated testing
-      // try {
-      // Thread.sleep(120_000);
-      // } catch (InterruptedException ex) {
-      // Thread.currentThread().interrupt();
-      // }
       return;
     }
 
@@ -71,6 +65,13 @@ public class GcMetricsIT extends AccumuloClusterHarness {
     MetricsFileTailer gcTail = new MetricsFileTailer("accumulo.sink.file-gc");
     Thread t1 = new Thread(gcTail);
     t1.start();
+
+    // used for manual jmx / jconsole validation - not for automated testing
+    // try {
+    // Thread.sleep(320_000);
+    // } catch (InterruptedException ex) {
+    // Thread.currentThread().interrupt();
+    // }
 
     try {
 
