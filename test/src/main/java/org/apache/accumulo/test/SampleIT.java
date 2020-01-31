@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -280,10 +279,8 @@ public class SampleIT extends AccumuloClusterHarness {
   private int countEntries(Iterable<Entry<Key,Value>> scanner) {
 
     int count = 0;
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
-    while (iter.hasNext()) {
-      iter.next();
+    for (Entry<Key,Value> keyValueEntry : scanner) {
       count++;
     }
 

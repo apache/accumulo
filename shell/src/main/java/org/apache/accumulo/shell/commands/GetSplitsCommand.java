@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
@@ -84,8 +83,7 @@ public class GetSplitsCommand extends Command {
         final Text end = new Text(start);
         end.append(new byte[] {'<'}, 0, 1);
         scanner.setRange(new Range(start, end));
-        for (Iterator<Entry<Key,Value>> iterator = scanner.iterator(); iterator.hasNext();) {
-          final Entry<Key,Value> next = iterator.next();
+        for (final Entry<Key,Value> next : scanner) {
           if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(next.getKey())) {
             KeyExtent extent = new KeyExtent(next.getKey().getRow(), next.getValue());
             final String pr = encode(encode, extent.getPrevEndRow());

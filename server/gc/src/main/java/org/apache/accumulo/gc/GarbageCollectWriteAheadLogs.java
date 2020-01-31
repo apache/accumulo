@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -284,10 +283,7 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     // remove any entries if there's a log reference (recovery hasn't finished)
-    Iterator<TabletLocationState> states = store.iterator();
-    while (states.hasNext()) {
-      TabletLocationState state = states.next();
-
+    for (TabletLocationState state : store) {
       // Tablet is still assigned to a dead server. Master has moved markers and reassigned it
       // Easiest to just ignore all the WALs for the dead server.
       if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {

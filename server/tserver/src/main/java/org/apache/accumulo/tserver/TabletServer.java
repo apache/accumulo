@@ -2187,12 +2187,8 @@ public class TabletServer extends AbstractServer {
             closedCopy = copyClosedLogs(closedLogs);
           }
 
-          Iterator<Entry<KeyExtent,Tablet>> iter = getOnlineTablets().entrySet().iterator();
-
           // bail early now if we're shutting down
-          while (iter.hasNext()) {
-
-            Entry<KeyExtent,Tablet> entry = iter.next();
+          for (Entry<KeyExtent,Tablet> entry : getOnlineTablets().entrySet()) {
 
             Tablet tablet = entry.getValue();
 
