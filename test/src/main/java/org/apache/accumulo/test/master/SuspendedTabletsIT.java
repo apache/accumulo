@@ -81,6 +81,11 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   public static final int TABLETS = 100;
 
   @Override
+  protected int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
     cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "ms");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
