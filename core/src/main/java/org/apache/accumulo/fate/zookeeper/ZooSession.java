@@ -19,13 +19,14 @@
 package org.apache.accumulo.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
-import static java.util.concurrent.TimeUnit.*;
 
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
@@ -155,7 +156,7 @@ public class ZooSession {
             log.warn("interrupted", e);
           }
       }
-      //test comment ignore
+      // test comment ignore
       if (NANOSECONDS.toMillis(System.nanoTime() - startTime) > 2L * timeout) {
         throw new RuntimeException("Failed to connect to zookeeper (" + host
             + ") within 2x zookeeper timeout period " + timeout);
@@ -163,13 +164,11 @@ public class ZooSession {
 
       if (tryAgain) {
         if (NANOSECONDS.toMillis(startTime + 2L * MILLISECONDS.toNanos(timeout))
-            < NANOSECONDS
-                .toMillis(System.nanoTime() + MILLISECONDS.toNanos(sleepTime)
-                    + MILLISECONDS.toNanos(connectTimeWait))) {
+            < NANOSECONDS.toMillis(System.nanoTime() + MILLISECONDS.toNanos(sleepTime)
+                + MILLISECONDS.toNanos(connectTimeWait))) {
 
-          sleepTime =
-              NANOSECONDS.toMillis(startTime + 2L * MILLISECONDS.toNanos(timeout)
-                  - System.nanoTime() - MILLISECONDS.toNanos(connectTimeWait));
+          sleepTime = NANOSECONDS.toMillis(startTime + 2L * MILLISECONDS.toNanos(timeout)
+              - System.nanoTime() - MILLISECONDS.toNanos(connectTimeWait));
         }
         if (sleepTime < 0) {
           connectTimeWait -= sleepTime;
