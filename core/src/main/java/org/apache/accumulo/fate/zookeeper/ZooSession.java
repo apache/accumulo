@@ -25,7 +25,7 @@ import java.net.UnknownHostException;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import static java.util.concurrent.TimeUnit.*;
 
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
@@ -120,18 +120,7 @@ public class ZooSession {
     boolean tryAgain = true;
     long sleepTime = 100;
     ZooKeeper zooKeeper = null;
-    /*
-     * Originally, startTime = System.currentTimeMillis(). Changed to System.nanoTime() to more
-     * accurately compute durations because it is not based on system clock variations. The
-     * ZooKeeper method signature expects an int value for 'timeout' and performs several
-     * calculations that can result in Numeric Expression Overflow errors if large, nanosecond
-     * values are used. For ths reason, System.nanoTime() is is converted to MS units prior to being
-     * used in calculations. Although, the resolution of 'startTime' is still in the MS range, the
-     * value from which it is calculated is nanoTime. Also, the MS units are preserved in the
-     * original method code, without the need for conversion. TimeUnit.convert is not used because
-     * "conversions from fine to coarser granularities truncate, so lose precision" (Oracle Java 7
-     * API)
-     */
+
     long startTime = System.nanoTime();
 
     while (tryAgain) {
@@ -167,20 +156,20 @@ public class ZooSession {
           }
       }
       //test comment ignore
-      if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) > 2L * timeout) {
+      if (NANOSECONDS.toMillis(System.nanoTime() - startTime) > 2L * timeout) {
         throw new RuntimeException("Failed to connect to zookeeper (" + host
             + ") within 2x zookeeper timeout period " + timeout);
       }
 
       if (tryAgain) {
-        if (TimeUnit.NANOSECONDS.toMillis(startTime + 2L * TimeUnit.MILLISECONDS.toNanos(timeout))
-            < TimeUnit.NANOSECONDS
-                .toMillis(System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(sleepTime)
-                    + TimeUnit.MILLISECONDS.toNanos(connectTimeWait))) {
+        if (NANOSECONDS.toMillis(startTime + 2L * MILLISECONDS.toNanos(timeout))
+            < NANOSECONDS
+                .toMillis(System.nanoTime() + MILLISECONDS.toNanos(sleepTime)
+                    + MILLISECONDS.toNanos(connectTimeWait))) {
 
           sleepTime =
-              TimeUnit.NANOSECONDS.toMillis(startTime + 2L * TimeUnit.MILLISECONDS.toNanos(timeout)
-                  - System.nanoTime() - TimeUnit.MILLISECONDS.toNanos(connectTimeWait));
+              NANOSECONDS.toMillis(startTime + 2L * MILLISECONDS.toNanos(timeout)
+                  - System.nanoTime() - MILLISECONDS.toNanos(connectTimeWait));
         }
         if (sleepTime < 0) {
           connectTimeWait -= sleepTime;
