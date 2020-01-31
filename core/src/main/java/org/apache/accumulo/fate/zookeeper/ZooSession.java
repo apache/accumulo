@@ -158,11 +158,10 @@ public class ZooSession {
 
       long stopTime = System.nanoTime();
       long duration = NANOSECONDS.toMillis(stopTime - startTime);
-      
+
       if (duration > 2L * timeout) {
-        throw new RuntimeException(
-            "Failed to connect to zookeeper (" + host + ") within 2x zookeeper timeout period "
-                + timeout);
+        throw new RuntimeException("Failed to connect to zookeeper (" + host
+            + ") within 2x zookeeper timeout period " + timeout);
       }
 
       if (tryAgain) {
