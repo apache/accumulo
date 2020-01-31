@@ -21,7 +21,6 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -132,9 +131,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
 
       try {
         count = 0;
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        while (iter.hasNext()) {
-          iter.next();
+        for (Entry<Key,Value> keyValueEntry : scanner) {
           count++;
         }
         fail("scanner did not fail");

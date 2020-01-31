@@ -49,8 +49,8 @@ public class FastFormat {
 
     int index = outputOffset;
 
-    for (int i = 0; i < prefix.length; i++) {
-      output[index++] = prefix[i];
+    for (byte b : prefix) {
+      output[index++] = b;
     }
 
     int end = width - strNum.length() + index;
