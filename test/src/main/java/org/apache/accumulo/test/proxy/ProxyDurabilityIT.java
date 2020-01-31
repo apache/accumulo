@@ -63,7 +63,7 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 120;
+    return 240;
   }
 
   @Override

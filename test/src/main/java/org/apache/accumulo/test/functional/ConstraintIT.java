@@ -51,7 +51,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 30;
+    return 60;
   }
 
   @Test
