@@ -19,7 +19,6 @@
 package org.apache.accumulo.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.io.IOException;
@@ -156,20 +155,19 @@ public class ZooSession {
             log.warn("interrupted", e);
           }
       }
-      // test comment ignore
-      if (NANOSECONDS.toMillis(System.nanoTime() - startTime) > 2L * timeout) {
-        throw new RuntimeException("Failed to connect to zookeeper (" + host
-            + ") within 2x zookeeper timeout period " + timeout);
+
+      long stopTime = System.nanoTime();
+      long duration = NANOSECONDS.toMillis(stopTime - startTime);
+      
+      if (duration > 2L * timeout) {
+        throw new RuntimeException(
+            "Failed to connect to zookeeper (" + host + ") within 2x zookeeper timeout period "
+                + timeout);
       }
 
       if (tryAgain) {
-        if (NANOSECONDS.toMillis(startTime + 2L * MILLISECONDS.toNanos(timeout))
-            < NANOSECONDS.toMillis(System.nanoTime() + MILLISECONDS.toNanos(sleepTime)
-                + MILLISECONDS.toNanos(connectTimeWait))) {
-
-          sleepTime = NANOSECONDS.toMillis(startTime + 2L * MILLISECONDS.toNanos(timeout)
-              - System.nanoTime() - MILLISECONDS.toNanos(connectTimeWait));
-        }
+        if (2L * timeout < duration + sleepTime + connectTimeWait)
+          sleepTime = 2L * timeout - duration - connectTimeWait;
         if (sleepTime < 0) {
           connectTimeWait -= sleepTime;
           sleepTime = 0;
