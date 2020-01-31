@@ -186,7 +186,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -2500,7 +2499,7 @@ public class TabletServer extends AbstractServer {
 
         TabletResourceManager trm =
             resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
-        TabletData data = new TabletData(extent, fs, tabletMetadata);
+        TabletData data = new TabletData(tabletMetadata);
 
         tablet = new Tablet(TabletServer.this, extent, trm, data);
         // If a minor compaction starts after a tablet opens, this indicates a log recovery
@@ -3217,7 +3216,7 @@ public class TabletServer extends AbstractServer {
     Collections.sort(sorted, (e1, e2) -> (int) (e1.timestamp - e2.timestamp));
     for (LogEntry entry : sorted) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(fs.getFullPath(FileType.WAL, entry.filename));
+      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.filename));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {

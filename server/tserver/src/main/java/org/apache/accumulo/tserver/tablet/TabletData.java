@@ -26,13 +26,11 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.fs.FileRef;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.state.TServerInstance;
 
 /*
@@ -51,26 +49,24 @@ public class TabletData {
   private String directoryName = null;
 
   // Read tablet data from metadata tables
-  public TabletData(KeyExtent extent, VolumeManager fs, TabletMetadata meta) {
+  public TabletData(TabletMetadata meta) {
 
     this.time = meta.getTime();
     this.compactID = meta.getCompactId().orElse(-1);
     this.flushID = meta.getFlushId().orElse(-1);
     this.directoryName = meta.getDirName();
     this.logEntries.addAll(meta.getLogs());
-    meta.getScans().forEach(tabletFile -> scanFiles
-        .add(new FileRef(fs, tabletFile.getMetadataEntry(), meta.getTableId())));
+    meta.getScans().forEach(tabletFile -> scanFiles.add(new FileRef(tabletFile)));
 
     if (meta.getLast() != null)
       this.lastLocation = new TServerInstance(meta.getLast());
 
     meta.getFilesMap().forEach((tabletFile, dfv) -> {
-      dataFiles.put(new FileRef(fs, tabletFile.getMetadataEntry(), meta.getTableId()), dfv);
+      dataFiles.put(new FileRef(tabletFile), dfv);
     });
 
     meta.getLoaded().forEach((path, txid) -> {
-      bulkImported.computeIfAbsent(txid, k -> new ArrayList<FileRef>())
-          .add(new FileRef(fs, path, meta.getTableId()));
+      bulkImported.computeIfAbsent(txid, k -> new ArrayList<>()).add(new FileRef(path));
     });
   }
 

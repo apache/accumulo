@@ -59,7 +59,12 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
+  @Test
   public void testRecoveryOverMultipleTables() throws Exception {
     final int N = 3;
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {

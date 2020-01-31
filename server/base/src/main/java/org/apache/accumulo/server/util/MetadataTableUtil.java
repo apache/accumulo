@@ -64,6 +64,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -87,7 +88,6 @@ import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.hadoop.io.Text;
@@ -273,20 +273,15 @@ public class MetadataTableUtil {
   public static void addDeleteEntries(KeyExtent extent, Set<FileRef> datafilesToDelete,
       ServerContext context) {
 
-    TableId tableId = extent.getTableId();
-
     // TODO could use batch writer,would need to handle failure and retry like update does -
     // ACCUMULO-1294
     for (FileRef pathToRemove : datafilesToDelete) {
-      update(context,
-          ServerAmpleImpl.createDeleteMutation(context, tableId, pathToRemove.path().toString()),
-          extent);
+      update(context, ServerAmpleImpl.createDeleteMutation(pathToRemove.path().toString()), extent);
     }
   }
 
   public static void addDeleteEntry(ServerContext context, TableId tableId, String path) {
-    update(context, ServerAmpleImpl.createDeleteMutation(context, tableId, path),
-        new KeyExtent(tableId, null, null));
+    update(context, ServerAmpleImpl.createDeleteMutation(path), new KeyExtent(tableId, null, null));
   }
 
   public static void removeScanFiles(KeyExtent extent, Set<FileRef> scanFiles,
@@ -367,15 +362,15 @@ public class MetadataTableUtil {
           Key key = cell.getKey();
 
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            FileRef ref = new FileRef(context.getVolumeManager(), key);
-            bw.addMutation(
-                ServerAmpleImpl.createDeleteMutation(context, tableId, ref.meta().toString()));
+            FileRef ref =
+                new FileRef(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
+            bw.addMutation(ServerAmpleImpl.createDeleteMutation(ref.meta().toString()));
           }
 
           if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
             String uri =
                 GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, cell.getValue().toString());
-            bw.addMutation(ServerAmpleImpl.createDeleteMutation(context, tableId, uri));
+            bw.addMutation(ServerAmpleImpl.createDeleteMutation(uri));
           }
         }
 
@@ -412,8 +407,6 @@ public class MetadataTableUtil {
     ArrayList<LogEntry> result = new ArrayList<>();
     TreeMap<FileRef,DataFileValue> sizes = new TreeMap<>();
 
-    VolumeManager fs = context.getVolumeManager();
-
     TabletMetadata tablet = context.getAmple().readTablet(extent, FILES, LOGS, PREV_ROW, DIR);
 
     if (!tablet.getExtent().equals(extent))
@@ -421,10 +414,7 @@ public class MetadataTableUtil {
 
     result.addAll(tablet.getLogs());
 
-    tablet.getFilesMap().forEach((k, v) -> {
-      sizes.put(new FileRef(k.getMetadataEntry(),
-          fs.getFullPath(tablet.getTableId(), k.getMetadataEntry())), v);
-    });
+    tablet.getFilesMap().forEach((tf, v) -> sizes.put(new FileRef(tf.getMetadataEntry()), v));
 
     return new Pair<>(result, sizes);
   }

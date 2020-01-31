@@ -46,7 +46,12 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION, "0s");
   }
 
-  @Test(timeout = 45 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 45;
+  }
+
+  @Test
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       while (client.instanceOperations().getTabletServers().isEmpty()) {

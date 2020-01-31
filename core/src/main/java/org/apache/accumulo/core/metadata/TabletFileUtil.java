@@ -16,27 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.master.tableOps.clone;
+package org.apache.accumulo.core.metadata;
 
-import java.io.Serializable;
-import java.util.Map;
-import java.util.Set;
+import org.apache.hadoop.fs.Path;
 
-import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.TableId;
+/**
+ * Utility class for validation of metadata tablet files.
+ */
+public class TabletFileUtil {
 
-class CloneInfo implements Serializable {
-
-  private static final long serialVersionUID = 1L;
-
-  TableId srcTableId;
-  String tableName;
-  TableId tableId;
-  NamespaceId namespaceId;
-  NamespaceId srcNamespaceId;
-  Map<String,String> propertiesToSet;
-  Set<String> propertiesToExclude;
-  boolean keepOffline;
-
-  public String user;
+  /**
+   * Validate if string is a valid path. Return normalized string or throw exception if not valid.
+   * This was added to facilitate more use of TabletFile over String but this puts the validation in
+   * one location in the case where TabletFile can't be used.
+   */
+  public static String validate(String path) {
+    Path p = new Path(path);
+    if (p.toUri().getScheme() == null) {
+      throw new IllegalArgumentException("Invalid path provided, no scheme in " + path);
+    }
+    return p.toString();
+  }
 }

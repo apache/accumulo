@@ -26,6 +26,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.lang3.Range;
@@ -81,8 +82,9 @@ public enum PropertyType {
           + " 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
           + "Examples of invalid host lists are '', ':1000', and 'localhost:80000'"),
 
-  @SuppressWarnings("unchecked")
-  PORT("port", or(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}")),
+  PORT("port",
+      x -> Stream.of(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}"))
+          .anyMatch(y -> y.test(x)),
       "An positive integer in the range 1024-65535 (not already in use or"
           + " specified elsewhere in the configuration),\n"
           + "zero to indicate any open ephemeral port, or a range of positive"
@@ -173,11 +175,6 @@ public enum PropertyType {
     Preconditions.checkState(predicate != null,
         "Predicate was null, maybe this enum was serialized????");
     return predicate.test(value);
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Predicate<String> or(final Predicate<String>... others) {
-    return (x) -> Arrays.stream(others).anyMatch(y -> y.test(x));
   }
 
   private static Predicate<String> in(final boolean caseSensitive, final String... allowedSet) {

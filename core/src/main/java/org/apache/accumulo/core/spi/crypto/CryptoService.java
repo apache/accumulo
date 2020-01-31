@@ -26,6 +26,7 @@ import java.util.Map;
  * and a {@link FileDecrypter} for decryption.
  *
  * @since 2.0
+ * @see org.apache.accumulo.core.spi
  */
 public interface CryptoService {
 

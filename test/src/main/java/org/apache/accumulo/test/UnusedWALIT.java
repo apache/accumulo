@@ -57,11 +57,6 @@ import com.google.common.collect.Iterators;
 public class UnusedWALIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 120;
-  }
-
-  @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     final long logSize = 1024 * 1024 * 10;
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
@@ -70,6 +65,11 @@ public class UnusedWALIT extends ConfigurableMacBase {
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     hadoopCoreSite.set("fs.namenode.fs-limits.min-block-size", Long.toString(logSize));
+  }
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
   }
 
   @Test
