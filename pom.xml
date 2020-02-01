@@ -1234,12 +1234,9 @@
                 </module>
                 <module name="NonEmptyAtclauseDescription" />
                 <module name="JavadocMethod">
-                  <property name="allowMissingJavadoc" value="true" />
                   <property name="allowMissingParamTags" value="true" />
-                  <property name="allowMissingThrowsTags" value="true" />
                   <property name="allowMissingReturnTag" value="true" />
                   <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
-                  <property name="allowThrowsTagsForSubclasses" value="true" />
                 </module>
                 <module name="MissingOverrideCheck" />
               </module>
