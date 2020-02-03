@@ -60,17 +60,11 @@ public class VolumeUtil {
     return path;
   }
 
-  public static String switchVolume(String path, FileType ft, List<Pair<Path,Path>> replacements) {
+  public static Path switchVolume(String path, FileType ft, List<Pair<Path,Path>> replacements) {
     if (replacements.size() == 0) {
       log.trace("Not switching volume because there are no replacements");
       return null;
     }
-
-    if (!path.contains(":")) {
-      // ignore relative paths
-      return null;
-    }
-
     Path p = new Path(path);
 
     // removing slash because new Path("hdfs://nn1").equals(new Path("hdfs://nn1/")) evaluates to
@@ -81,7 +75,7 @@ public class VolumeUtil {
       Path key = removeTrailingSlash(pair.getFirst());
 
       if (key.equals(volume)) {
-        String replacement = new Path(pair.getSecond(), ft.removeVolume(p)).toString();
+        Path replacement = new Path(pair.getSecond(), ft.removeVolume(p));
         log.trace("Replacing {} with {}", path, replacement);
         return replacement;
       }
@@ -93,15 +87,14 @@ public class VolumeUtil {
   }
 
   private static LogEntry switchVolumes(LogEntry le, List<Pair<Path,Path>> replacements) {
-    String switchedPath = switchVolume(le.filename, FileType.WAL, replacements);
+    Path switchedPath = switchVolume(le.filename, FileType.WAL, replacements);
+    String switchedString;
     int numSwitched = 0;
-    if (switchedPath != null)
+    if (switchedPath != null) {
+      switchedString = switchedPath.toString();
       numSwitched++;
-    else
-      switchedPath = le.filename;
-
-    if (switchVolume(le.filename, FileType.WAL, replacements) != null) {
-      numSwitched++;
+    } else {
+      switchedString = le.filename;
     }
 
     if (numSwitched == 0) {
@@ -109,7 +102,7 @@ public class VolumeUtil {
       return null;
     }
 
-    LogEntry newLogEntry = new LogEntry(le.extent, le.timestamp, le.server, switchedPath);
+    LogEntry newLogEntry = new LogEntry(le.extent, le.timestamp, le.server, switchedString);
 
     log.trace("Switched {} to {}", le, newLogEntry);
 
@@ -168,10 +161,10 @@ public class VolumeUtil {
 
     for (Entry<FileRef,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
       String metaPath = entry.getKey().meta().toString();
-      String switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
+      Path switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
       if (switchedPath != null) {
         filesToRemove.add(entry.getKey());
-        FileRef switchedRef = new FileRef(switchedPath, new Path(switchedPath));
+        FileRef switchedRef = new FileRef(switchedPath.toString(), switchedPath);
         filesToAdd.put(switchedRef, entry.getValue());
         ret.datafiles.put(switchedRef, entry.getValue());
         log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);
