@@ -75,7 +75,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
       for (TableInfo ti : e.getValue().getTableMap().values()) {
         numTablets += ti.tablets;
       }
-      if (numTablets < avg) {
+      if (numTablets <= avg) {
         tServerArray.add(e.getKey());
         toAssign.put(e.getKey(), avg - numTablets);
       }

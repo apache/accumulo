@@ -84,6 +84,11 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   public static final int TABLETS = 100;
 
   @Override
+  protected int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
     cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "ms");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
@@ -273,8 +278,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
   }
 
-  private static interface TServerKiller {
-    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+  private interface TServerKiller {
+    void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
         throws Exception;
   }
 

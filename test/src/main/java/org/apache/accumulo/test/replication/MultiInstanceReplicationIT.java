@@ -84,7 +84,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {
-    return 10 * 60;
+    return 15 * 60;
   }
 
   @Before
