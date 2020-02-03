@@ -172,7 +172,6 @@ public class GarbageCollectionAlgorithm {
 
     }
 
-    // TODO - TabletIterator checks metadata consistency - could a failure be signaled in metrics?
     Iterator<Entry<Key,Value>> iter = gce.getReferenceIterator();
     while (iter.hasNext()) {
       Entry<Key,Value> entry = iter.next();
