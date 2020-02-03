@@ -58,7 +58,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+    return 5 * 60;
   }
 
   @Test

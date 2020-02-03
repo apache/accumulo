@@ -90,7 +90,7 @@ class MinorCompactionTask implements Runnable {
         }
         try (TraceScope span = Trace.startSpan("compact")) {
           this.stats = tablet.minorCompact(tablet.getTabletMemory().getMinCMemTable(), tmpFileRef,
-              newMapfileLocation, mergeFile, true, queued, commitSession, flushId, mincReason);
+              newMapfileLocation, mergeFile, queued, commitSession, flushId, mincReason);
         }
 
         if (minorCompaction.getSpan() != null) {

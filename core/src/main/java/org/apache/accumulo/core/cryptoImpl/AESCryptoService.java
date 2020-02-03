@@ -269,9 +269,9 @@ public class AESCryptoService implements CryptoService {
     private final Integer GCM_TAG_LENGTH_IN_BITS = 16 * 8;
     private final String transformation = "AES/GCM/NoPadding";
     private boolean ivReused = false;
-    private Key encryptingKek;
-    private String keyLocation;
-    private String keyManager;
+    private final Key encryptingKek;
+    private final String keyLocation;
+    private final String keyManager;
 
     public AESGCMCryptoModule(Key encryptingKek, String keyLocation, String keyManager) {
       this.encryptingKek = encryptingKek;
@@ -291,14 +291,14 @@ public class AESCryptoService implements CryptoService {
 
     public class AESGCMFileEncrypter implements FileEncrypter {
 
-      private byte[] firstInitVector;
-      private Key fek;
-      private byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
+      private final byte[] firstInitVector;
+      private final Key fek;
+      private final byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
 
       AESGCMFileEncrypter() {
-        fek = AESKeyUtils.generateKey(sr, KEY_LENGTH_IN_BYTES);
-        sr.nextBytes(initVector);
-        firstInitVector = Arrays.copyOf(initVector, initVector.length);
+        this.fek = AESKeyUtils.generateKey(sr, KEY_LENGTH_IN_BYTES);
+        sr.nextBytes(this.initVector);
+        this.firstInitVector = Arrays.copyOf(this.initVector, this.initVector.length);
       }
 
       @Override
@@ -368,7 +368,7 @@ public class AESCryptoService implements CryptoService {
     }
 
     public class AESGCMFileDecrypter implements FileDecrypter {
-      private Key fek;
+      private final Key fek;
 
       AESGCMFileDecrypter(Key fek) {
         this.fek = fek;
@@ -405,9 +405,9 @@ public class AESCryptoService implements CryptoService {
     private final Integer IV_LENGTH_IN_BYTES = 16;
     private final Integer KEY_LENGTH_IN_BYTES = 16;
     private final String transformation = "AES/CBC/NoPadding";
-    private Key encryptingKek;
-    private String keyLocation;
-    private String keyManager;
+    private final Key encryptingKek;
+    private final String keyLocation;
+    private final String keyManager;
 
     public AESCBCCryptoModule(Key encryptingKek, String keyLocation, String keyManager) {
       this.encryptingKek = encryptingKek;
@@ -462,7 +462,7 @@ public class AESCryptoService implements CryptoService {
 
     @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
     public class AESCBCFileDecrypter implements FileDecrypter {
-      private Key fek;
+      private final Key fek;
 
       AESCBCFileDecrypter(Key fek) {
         this.fek = fek;
