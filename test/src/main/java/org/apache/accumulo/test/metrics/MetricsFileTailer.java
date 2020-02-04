@@ -80,6 +80,8 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
     // dump received configuration keys received.
     if (log.isTraceEnabled()) {
+      // required for commons configuration - version 1.6
+      @SuppressWarnings("unchecked")
       Iterator<String> keys = sub.getKeys();
       while (keys.hasNext()) {
         log.trace("configuration key:{}", keys.next());
@@ -141,10 +143,12 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
       if (log.isTraceEnabled()) {
         log.trace("Config {}", config);
+        // required for commons configuration - version 1.6
+        @SuppressWarnings("unchecked")
         Iterator<String> iterator = sub.getKeys();
         while (iterator.hasNext()) {
           String key = iterator.next();
-          log.trace("'{}\'=\'{}\'", key, sub.getProperty(key));
+          log.trace("'{}'='{}'", key, sub.getProperty(key));
         }
       }
 
