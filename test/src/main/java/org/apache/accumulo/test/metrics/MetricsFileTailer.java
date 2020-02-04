@@ -124,20 +124,7 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
       String filename = propUrl.getFile();
 
-      // Read data from this file
-      // File propertiesFile = new File(filename);
-
-      // ConfigurationFactory factory = new ConfigurationFactory(filename);
       Configuration config = new PropertiesConfiguration(filename);
-
-      // Configurations configs = new Configurations();
-      //
-      // Configuration config = configs.properties(new File("config.properties"));
-      // FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
-      // new FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration.class)
-      // .configure(params.fileBased().setFile(propertiesFile));
-      //
-      // Configuration config = builder.getConfiguration();
 
       final Configuration sub = config.subset(metricsPrefix);
 

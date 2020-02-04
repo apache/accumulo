@@ -66,12 +66,8 @@ public class GcMetricsIT extends AccumuloClusterHarness {
     Thread t1 = new Thread(gcTail);
     t1.start();
 
-    // used for manual jmx / jconsole validation - not for automated testing
-    // try {
-    // Thread.sleep(320_000);
-    // } catch (InterruptedException ex) {
-    // Thread.currentThread().interrupt();
-    // }
+    // uncomment for manual jmx / jconsole validation - not for automated testing
+    // manualValidationPause();
 
     try {
 
@@ -104,6 +100,20 @@ public class GcMetricsIT extends AccumuloClusterHarness {
 
     } catch (Exception ex) {
       throw new IllegalStateException("gc metrics file read failed", ex);
+    }
+  }
+
+  /**
+   * This method just sleeps for a while (test will likely time out) The pause is to allow manual
+   * validation of metrics by connecting to the running gc process with jconsole (or other jmx
+   * utility). It should not be used for automatic testing.
+   */
+  @SuppressWarnings("unused")
+  private void manualValidationPause() {
+    try {
+      Thread.sleep(320_000);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
     }
   }
 
