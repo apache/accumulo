@@ -37,4 +37,11 @@ public class TabletFileUtil {
     }
     return p.toString();
   }
+
+  public static Path validate(Path path) {
+    if (path.toUri().getScheme() == null) {
+      throw new IllegalArgumentException("Invalid path provided, no scheme in " + path);
+    }
+    return path;
+  }
 }
