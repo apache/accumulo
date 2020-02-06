@@ -78,6 +78,7 @@ import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -98,7 +99,6 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -254,15 +254,14 @@ public class Tablet {
 
   // Files that are currently in the process of bulk importing. Access to this is protected by the
   // tablet lock.
-  private final Set<FileRef> bulkImporting = new HashSet<>();
+  private final Set<TabletFile> bulkImporting = new HashSet<>();
 
   // Files that were successfully bulk imported. Using a concurrent map supports non-locking
   // operations on the key set which is useful for the periodic task that cleans up completed bulk
   // imports for all tablets. However the values of this map are ArrayList which do not support
   // concurrency. This is ok because all operations on the values are done while the tablet lock is
   // held.
-  private final ConcurrentHashMap<Long,List<FileRef>> bulkImported =
-      new ConcurrentHashMap<Long,List<FileRef>>();
+  private final ConcurrentHashMap<Long,List<TabletFile>> bulkImported = new ConcurrentHashMap<>();
 
   private final int logId;
 
@@ -288,9 +287,9 @@ public class Tablet {
     return dirUri;
   }
 
-  FileRef getNextMapFilename(String prefix) throws IOException {
+  TabletFile getNextMapFilename(String prefix) throws IOException {
     String extension = FileOperations.getNewFileExtension(tableConfiguration);
-    return new FileRef(chooseTabletDir() + "/" + prefix
+    return new TabletFile(chooseTabletDir() + "/" + prefix
         + context.getUniqueNameAllocator().getNextName() + "." + extension);
   }
 
@@ -347,12 +346,12 @@ public class Tablet {
 
     this.dirName = data.getDirectoryName();
 
-    for (Entry<Long,List<FileRef>> entry : data.getBulkImported().entrySet()) {
+    for (Entry<Long,List<TabletFile>> entry : data.getBulkImported().entrySet()) {
       this.bulkImported.put(entry.getKey(), new ArrayList<>(entry.getValue()));
     }
 
     final List<LogEntry> logEntries = tabletPaths.logEntries;
-    final SortedMap<FileRef,DataFileValue> datafiles = tabletPaths.datafiles;
+    final SortedMap<TabletFile,DataFileValue> datafiles = tabletPaths.datafiles;
 
     constraintChecker = tableConfiguration.newDeriver(conf -> new ConstraintChecker(conf));
 
@@ -374,8 +373,8 @@ public class Tablet {
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       try {
         Set<String> absPaths = new HashSet<>();
-        for (FileRef ref : datafiles.keySet()) {
-          absPaths.add(ref.path().toString());
+        for (TabletFile ref : datafiles.keySet()) {
+          absPaths.add(ref.getNormalizedPath());
         }
 
         tabletServer.recover(this.getTabletServer().getFileSystem(), extent, logEntries, absPaths,
@@ -794,8 +793,8 @@ public class Tablet {
     return new Scanner(this, range, scanParams, interruptFlag);
   }
 
-  DataFileValue minorCompact(InMemoryMap memTable, FileRef tmpDatafile, FileRef newDatafile,
-      FileRef mergeFile, long queued, CommitSession commitSession, long flushId,
+  DataFileValue minorCompact(InMemoryMap memTable, TabletFile tmpDatafile, TabletFile newDatafile,
+      TabletFile mergeFile, long queued, CommitSession commitSession, long flushId,
       MinorCompactionReason mincReason) {
     boolean failed = false;
     long start = System.currentTimeMillis();
@@ -855,7 +854,7 @@ public class Tablet {
     otherLogs = currentLogs;
     currentLogs = new HashSet<>();
 
-    FileRef mergeFile = null;
+    TabletFile mergeFile = null;
     if (mincReason != MinorCompactionReason.RECOVERY) {
       mergeFile = getDatafileManager().reserveMergingMinorCompactionFile();
     }
@@ -1371,7 +1370,7 @@ public class Tablet {
     }
 
     try {
-      Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> fileLog =
+      Pair<List<LogEntry>,SortedMap<TabletFile,DataFileValue>> fileLog =
           MetadataTableUtil.getFileAndLogEntries(context, extent);
 
       if (fileLog.getFirst().size() != 0) {
@@ -1456,7 +1455,7 @@ public class Tablet {
 
   private final long splitCreationTime;
 
-  private SplitRowSpec findSplitRow(Collection<FileRef> files) {
+  private SplitRowSpec findSplitRow(Collection<TabletFile> files) {
 
     // never split the root tablet
     // check if we already decided that we can never split
@@ -1603,16 +1602,16 @@ public class Tablet {
     return common;
   }
 
-  private Map<FileRef,Pair<Key,Key>> getFirstAndLastKeys(SortedMap<FileRef,DataFileValue> allFiles)
-      throws IOException {
-    final Map<FileRef,Pair<Key,Key>> result = new HashMap<>();
+  private Map<TabletFile,Pair<Key,Key>>
+      getFirstAndLastKeys(SortedMap<TabletFile,DataFileValue> allFiles) throws IOException {
+    final Map<TabletFile,Pair<Key,Key>> result = new HashMap<>();
     final FileOperations fileFactory = FileOperations.getInstance();
     final VolumeManager fs = getTabletServer().getFileSystem();
-    for (Entry<FileRef,DataFileValue> entry : allFiles.entrySet()) {
-      FileRef file = entry.getKey();
-      FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
+    for (Entry<TabletFile,DataFileValue> entry : allFiles.entrySet()) {
+      TabletFile file = entry.getKey();
+      FileSystem ns = fs.getVolumeByPath(file.getPath()).getFileSystem();
       try (FileSKVIterator openReader = fileFactory.newReaderBuilder()
-          .forFile(file.path().toString(), ns, ns.getConf(), context.getCryptoService())
+          .forFile(file.getMetadataEntry(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(this.getTableConfiguration()).seekToBeginning().build()) {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
@@ -1622,15 +1621,15 @@ public class Tablet {
     return result;
   }
 
-  List<FileRef> findChopFiles(KeyExtent extent, Map<FileRef,Pair<Key,Key>> firstAndLastKeys,
-      Collection<FileRef> allFiles) {
-    List<FileRef> result = new ArrayList<>();
+  List<TabletFile> findChopFiles(KeyExtent extent, Map<TabletFile,Pair<Key,Key>> firstAndLastKeys,
+      Collection<TabletFile> allFiles) {
+    List<TabletFile> result = new ArrayList<>();
     if (firstAndLastKeys == null) {
       result.addAll(allFiles);
       return result;
     }
 
-    for (FileRef file : allFiles) {
+    for (TabletFile file : allFiles) {
       Pair<Key,Key> pair = firstAndLastKeys.get(file);
       if (pair == null) {
         // file was created or imported after we obtained the first and last keys... there
@@ -1672,7 +1671,7 @@ public class Tablet {
 
     Pair<Long,UserCompactionConfig> compactionId = null;
     CompactionStrategy strategy = null;
-    Map<FileRef,Pair<Key,Key>> firstAndLastKeys = null;
+    Map<TabletFile,Pair<Key,Key>> firstAndLastKeys = null;
 
     if (reason == MajorCompactionReason.USER) {
       try {
@@ -1704,7 +1703,7 @@ public class Tablet {
       strategy.gatherInformation(request);
     }
 
-    Map<FileRef,DataFileValue> filesToCompact = null;
+    Map<TabletFile,DataFileValue> filesToCompact = null;
 
     int maxFilesToCompact = tableConfiguration.getCount(Property.TSERV_MAJC_THREAD_MAXOPEN);
 
@@ -1729,8 +1728,8 @@ public class Tablet {
       majorCompactionState = CompactionState.IN_PROGRESS;
       notifyAll();
 
-      SortedMap<FileRef,DataFileValue> allFiles = getDatafileManager().getDatafileSizes();
-      List<FileRef> inputFiles = new ArrayList<>();
+      SortedMap<TabletFile,DataFileValue> allFiles = getDatafileManager().getDatafileSizes();
+      List<TabletFile> inputFiles = new ArrayList<>();
       if (reason == MajorCompactionReason.CHOP) {
         // enforce rules: files with keys outside our range need to be compacted
         inputFiles.addAll(findChopFiles(extent, firstAndLastKeys, allFiles.keySet()));
@@ -1762,7 +1761,7 @@ public class Tablet {
       } else {
         // If no original files will exist at the end of the compaction, we do not have to propagate
         // deletes
-        Set<FileRef> droppedFiles = new HashSet<>();
+        Set<TabletFile> droppedFiles = new HashSet<>();
         droppedFiles.addAll(inputFiles);
         if (plan != null) {
           droppedFiles.addAll(plan.deleteFiles);
@@ -1833,11 +1832,11 @@ public class Tablet {
           numToCompact = filesToCompact.size() - maxFilesToCompact + 1;
         }
 
-        Set<FileRef> smallestFiles = removeSmallest(filesToCompact, numToCompact);
+        Set<TabletFile> smallestFiles = removeSmallest(filesToCompact, numToCompact);
 
-        FileRef fileName =
+        TabletFile fileName =
             getNextMapFilename((filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
-        FileRef compactTmpName = new FileRef(fileName.path() + "_tmp");
+        TabletFile compactTmpName = new TabletFile(fileName.getMetadataEntry() + "_tmp");
 
         AccumuloConfiguration tableConf = createCompactionConfiguration(tableConfiguration, plan);
 
@@ -1865,7 +1864,7 @@ public class Tablet {
 
           };
 
-          HashMap<FileRef,DataFileValue> copy =
+          HashMap<TabletFile,DataFileValue> copy =
               new HashMap<>(getDatafileManager().getDatafileSizes());
           if (!copy.keySet().containsAll(smallestFiles)) {
             throw new IllegalStateException("Cannot find data file values for " + smallestFiles
@@ -1941,18 +1940,18 @@ public class Tablet {
     return result;
   }
 
-  private Set<FileRef> removeSmallest(Map<FileRef,DataFileValue> filesToCompact,
+  private Set<TabletFile> removeSmallest(Map<TabletFile,DataFileValue> filesToCompact,
       int maxFilesToCompact) {
     // ensure this method works properly when multiple files have the same size
 
     // short-circuit; also handles zero files case
     if (filesToCompact.size() <= maxFilesToCompact) {
-      Set<FileRef> smallestFiles = new HashSet<>(filesToCompact.keySet());
+      Set<TabletFile> smallestFiles = new HashSet<>(filesToCompact.keySet());
       filesToCompact.clear();
       return smallestFiles;
     }
 
-    PriorityQueue<Pair<FileRef,Long>> fileHeap =
+    PriorityQueue<Pair<TabletFile,Long>> fileHeap =
         new PriorityQueue<>(filesToCompact.size(), (o1, o2) -> {
           if (o1.getSecond().equals(o2.getSecond())) {
             return o1.getFirst().compareTo(o2.getFirst());
@@ -1963,13 +1962,13 @@ public class Tablet {
           return 1;
         });
 
-    for (Entry<FileRef,DataFileValue> entry : filesToCompact.entrySet()) {
+    for (Entry<TabletFile,DataFileValue> entry : filesToCompact.entrySet()) {
       fileHeap.add(new Pair<>(entry.getKey(), entry.getValue().getSize()));
     }
 
-    Set<FileRef> smallestFiles = new HashSet<>();
+    Set<TabletFile> smallestFiles = new HashSet<>();
     while (smallestFiles.size() < maxFilesToCompact && fileHeap.size() > 0) {
-      Pair<FileRef,Long> pair = fileHeap.remove();
+      Pair<TabletFile,Long> pair = fileHeap.remove();
       filesToCompact.remove(pair.getFirst());
       smallestFiles.add(pair.getFirst());
     }
@@ -2137,7 +2136,7 @@ public class Tablet {
     // this info is used for optimization... it is ok if map files are missing
     // from the set... can still query and insert into the tablet while this
     // map file operation is happening
-    Map<FileRef,FileUtil.FileInfo> firstAndLastRows =
+    Map<TabletFile,FileUtil.FileInfo> firstAndLastRows =
         FileUtil.tryToGetFirstAndLastRows(context, getDatafileManager().getFiles());
 
     synchronized (this) {
@@ -2175,9 +2174,9 @@ public class Tablet {
       String lowDirectoryName = createTabletDirectoryName(context, midRow);
 
       // write new tablet information to MetadataTable
-      SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
-      SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
-      List<FileRef> highDatafilesToRemove = new ArrayList<>();
+      SortedMap<TabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
+      SortedMap<TabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
+      List<TabletFile> highDatafilesToRemove = new ArrayList<>();
 
       MetadataTableUtil.splitDatafiles(midRow, splitRatio, firstAndLastRows,
           getDatafileManager().getDatafileSizes(), lowDatafileSizes, highDatafileSizes,
@@ -2212,7 +2211,7 @@ public class Tablet {
     }
   }
 
-  public SortedMap<FileRef,DataFileValue> getDatafiles() {
+  public SortedMap<TabletFile,DataFileValue> getDatafiles() {
     return getDatafileManager().getDatafileSizes();
   }
 
@@ -2257,14 +2256,14 @@ public class Tablet {
     return splitCreationTime;
   }
 
-  public void importMapFiles(long tid, Map<FileRef,MapFileInfo> fileMap, boolean setTime)
+  public void importMapFiles(long tid, Map<TabletFile,MapFileInfo> fileMap, boolean setTime)
       throws IOException {
-    Map<FileRef,DataFileValue> entries = new HashMap<>(fileMap.size());
+    Map<TabletFile,DataFileValue> entries = new HashMap<>(fileMap.size());
     List<String> files = new ArrayList<>();
 
-    for (Entry<FileRef,MapFileInfo> entry : fileMap.entrySet()) {
+    for (Entry<TabletFile,MapFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
-      files.add(entry.getKey().path().toString());
+      files.add(entry.getKey().getNormalizedPath());
     }
 
     // Clients timeout and will think that this operation failed.
@@ -2283,9 +2282,9 @@ public class Tablet {
             "Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock for " + extent);
       }
 
-      List<FileRef> alreadyImported = bulkImported.get(tid);
+      List<TabletFile> alreadyImported = bulkImported.get(tid);
       if (alreadyImported != null) {
-        for (FileRef entry : alreadyImported) {
+        for (TabletFile entry : alreadyImported) {
           if (fileMap.remove(entry) != null) {
             log.trace("Ignoring import of bulk file already imported: {}", entry);
           }
@@ -2662,7 +2661,7 @@ public class Tablet {
     return tabletServer;
   }
 
-  public void updatePersistedTime(long bulkTime, Map<FileRef,DataFileValue> paths, long tid) {
+  public void updatePersistedTime(long bulkTime, Map<TabletFile,DataFileValue> paths, long tid) {
     synchronized (timeLock) {
       if (bulkTime > persistedTime) {
         persistedTime = bulkTime;
@@ -2675,8 +2674,9 @@ public class Tablet {
 
   }
 
-  public void updateTabletDataFile(long maxCommittedTime, FileRef newDatafile, FileRef absMergeFile,
-      DataFileValue dfv, Set<String> unusedWalLogs, Set<FileRef> filesInUseByScans, long flushId) {
+  public void updateTabletDataFile(long maxCommittedTime, TabletFile newDatafile,
+      TabletFile absMergeFile, DataFileValue dfv, Set<String> unusedWalLogs,
+      Set<TabletFile> filesInUseByScans, long flushId) {
     synchronized (timeLock) {
       if (maxCommittedTime > persistedTime) {
         persistedTime = maxCommittedTime;

@@ -33,7 +33,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.metadata.schema.TabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 
 public abstract class Translator<IT,OT> {
 

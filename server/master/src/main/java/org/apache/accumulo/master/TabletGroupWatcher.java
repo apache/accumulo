@@ -58,7 +58,6 @@ import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -74,7 +73,6 @@ import org.apache.accumulo.master.state.MergeStats;
 import org.apache.accumulo.master.state.TableCounts;
 import org.apache.accumulo.master.state.TableStats;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -603,12 +601,11 @@ abstract class TabletGroupWatcher extends Daemon {
       TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-      Set<FileRef> datafiles = new TreeSet<>();
+      Set<String> datafiles = new TreeSet<>();
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-          datafiles
-              .add(new FileRef(TabletFileUtil.validate(key.getColumnQualifierData().toString())));
+          datafiles.add(key.getColumnQualifierData().toString());
           if (datafiles.size() > 1000) {
             MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
             datafiles.clear();
@@ -621,7 +618,7 @@ abstract class TabletGroupWatcher extends Daemon {
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           String path = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(extent.getTableId(),
               entry.getValue().toString());
-          datafiles.add(new FileRef(path));
+          datafiles.add(path);
           if (datafiles.size() > 1000) {
             MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
             datafiles.clear();

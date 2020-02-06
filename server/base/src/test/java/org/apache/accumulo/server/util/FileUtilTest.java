@@ -33,7 +33,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.Path;
@@ -66,13 +66,13 @@ public class FileUtilTest {
 
   @Test
   public void testToPathStrings() {
-    Collection<FileRef> c = new java.util.ArrayList<>();
-    FileRef r1 = createMock(FileRef.class);
-    expect(r1.path()).andReturn(new Path("/foo"));
+    Collection<TabletFile> c = new java.util.ArrayList<>();
+    TabletFile r1 = createMock(TabletFile.class);
+    expect(r1.getNormalizedPath()).andReturn("/foo");
     replay(r1);
     c.add(r1);
-    FileRef r2 = createMock(FileRef.class);
-    expect(r2.path()).andReturn(new Path("/bar"));
+    TabletFile r2 = createMock(TabletFile.class);
+    expect(r2.getNormalizedPath()).andReturn("/bar");
     replay(r2);
     c.add(r2);
 
