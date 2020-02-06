@@ -31,33 +31,30 @@ import org.apache.hadoop.fs.Path;
 
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
- *
- * ZooTabletStateStore: information about the root tablet is stored in ZooKeeper MetaDataStateStore:
- * information about the other tablets are stored in the metadata table
  */
 public interface TabletStateStore extends Iterable<TabletLocationState> {
 
   /**
    * Identifying name for this tablet state store.
    */
-  public abstract String name();
+  String name();
 
   /**
    * Scan the information about the tablets covered by this store
    */
   @Override
-  public abstract ClosableIterator<TabletLocationState> iterator();
+  ClosableIterator<TabletLocationState> iterator();
 
   /**
    * Store the assigned locations in the data store.
    */
-  public abstract void setFutureLocations(Collection<Assignment> assignments)
+  void setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException;
 
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online
    */
-  public abstract void setLocations(Collection<Assignment> assignments)
+  void setLocations(Collection<Assignment> assignments)
       throws DistributedStoreException;
 
   /**
@@ -68,21 +65,21 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
    * @param logsForDeadServers
    *          a cache of logs in use by servers when they died
    */
-  public abstract void unassign(Collection<TabletLocationState> tablets,
+  void unassign(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException;
 
   /**
    * Mark tablets as having no known or future location, but desiring to be returned to their
    * previous tserver.
    */
-  public abstract void suspend(Collection<TabletLocationState> tablets,
+  void suspend(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException;
 
   /**
    * Remove a suspension marker for a collection of tablets, moving them to being simply unassigned.
    */
-  public abstract void unsuspend(Collection<TabletLocationState> tablets)
+  void unsuspend(Collection<TabletLocationState> tablets)
       throws DistributedStoreException;
 
   public static void unassign(ServerContext context, TabletLocationState tls,
