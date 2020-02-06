@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.tablet;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.ByteArrayInputStream;
@@ -73,6 +74,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -365,7 +367,7 @@ public class Tablet {
     tabletMemory = new TabletMemory(this);
 
     if (!logEntries.isEmpty()) {
-      log.info("Starting Write-Ahead Log recovery for {}", this.extent);
+      TabletLogger.recovering(extent, logEntries);
       final AtomicLong entriesUsedOnTablet = new AtomicLong(0);
       // track max time from walog entries without timestamps
       final AtomicLong maxTime = new AtomicLong(Long.MIN_VALUE);
@@ -429,9 +431,8 @@ public class Tablet {
 
       rebuildReferencedLogs();
 
-      log.info(
-          "Write-Ahead Log recovery complete for {} ({} mutations applied, {} entries created)",
-          this.extent, entriesUsedOnTablet.get(), getTabletMemory().getNumEntries());
+      TabletLogger.recovered(extent, logEntries, entriesUsedOnTablet.get(),
+          getTabletMemory().getNumEntries());
     }
 
     String contextName = tableConfiguration.get(Property.TABLE_CLASSPATH);
@@ -454,8 +455,6 @@ public class Tablet {
       // look for any temp files hanging around
       removeOldTemporaryFiles();
     }
-
-    log.debug("TABLET_HIST {} opened", extent);
   }
 
   public ServerContext getContext() {
@@ -1226,7 +1225,7 @@ public class Tablet {
   }
 
   void initiateClose(boolean saveState) {
-    log.debug("initiateClose(saveState={}) {}", saveState, getExtent());
+    log.trace("initiateClose(saveState={}) {}", saveState, getExtent());
 
     MinorCompactionTask mct = null;
 
@@ -1285,7 +1284,7 @@ public class Tablet {
       throw new IllegalStateException("Bad close state " + closeState + " on tablet " + extent);
     }
 
-    log.debug("completeClose(saveState={} completeClose={}) {}", saveState, completeClose, extent);
+    log.trace("completeClose(saveState={} completeClose={}) {}", saveState, completeClose, extent);
 
     // ensure this method is only called once, also guards against multiple
     // threads entering the method at the same time
@@ -1350,8 +1349,6 @@ public class Tablet {
 
     // close map files
     getTabletResources().close();
-
-    log.debug("TABLET_HIST {} closed", extent);
 
     if (completeClose) {
       closeState = CloseState.COMPLETE;
@@ -1783,7 +1780,7 @@ public class Tablet {
 
     try {
 
-      log.debug(String.format("MajC initiate lock %.2f secs, wait %.2f secs", (t3 - t2) / 1000.0,
+      log.trace(String.format("MajC initiate lock %.2f secs, wait %.2f secs", (t3 - t2) / 1000.0,
           (t2 - t1) / 1000.0));
 
       if (updateCompactionID) {
@@ -2199,7 +2196,7 @@ public class Tablet {
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove,
           getTabletServer().getContext(), getTabletServer().getLock());
 
-      log.debug("TABLET_HIST {} split {} {}", extent, low, high);
+      TabletLogger.split(extent, low, high, getTabletServer().getTabletSession());
 
       newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID,
           lastCompactID, lastLocation, bulkImported));
@@ -2366,10 +2363,18 @@ public class Tablet {
      * Ensuring referencedLogs accurately tracks these sets ensures in use walogs are not GCed.
      */
 
+    var prev = referencedLogs;
+
     var builder = ImmutableSet.<DfsLogger>builder();
     builder.addAll(currentLogs);
     builder.addAll(otherLogs);
     referencedLogs = builder.build();
+
+    if (TabletLogger.isWalRefLoggingEnabled() && !prev.equals(referencedLogs)) {
+      TabletLogger.walRefsChanged(extent,
+          referencedLogs.stream().map(DfsLogger::getPath).map(Path::getName).collect(toList()));
+    }
+
   }
 
   public void removeInUseLogs(Set<DfsLogger> candidates) {
@@ -2448,15 +2453,15 @@ public class Tablet {
 
     // do debug logging outside tablet lock
     for (String logger : otherLogsCopy) {
-      log.debug("Logs for memory compacted: {} {}", getExtent(), logger);
+      log.trace("Logs for memory compacted: {} {}", getExtent(), logger);
     }
 
     for (String logger : currentLogsCopy) {
-      log.debug("Logs for current memory: {} {}", getExtent(), logger);
+      log.trace("Logs for current memory: {} {}", getExtent(), logger);
     }
 
     for (String logger : unusedLogs) {
-      log.debug("Logs to be destroyed: {} {}", getExtent(), logger);
+      log.trace("Logs to be destroyed: {} {}", getExtent(), logger);
     }
 
     return unusedLogs;

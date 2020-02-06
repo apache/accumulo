@@ -36,16 +36,16 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.master.state.ClosableIterator;
-import org.apache.accumulo.server.master.state.MetaDataStateStore;
-import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -87,7 +87,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
       // scan the metadata table and get the two table location states
       Set<TServerInstance> states = new HashSet<>();
       Set<TabletLocationState> oldLocations = new HashSet<>();
-      MetaDataStateStore store = new MetaDataStateStore(context, null);
+      TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
       while (states.size() < 2) {
         UtilWaitThread.sleep(250);
         oldLocations.clear();
@@ -147,11 +147,11 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
       moved.current.putLocation(assignment);
       bw.addMutation(assignment);
       bw.close();
-      waitForCleanStore(new RootTabletStateStore(context, null));
+      waitForCleanStore(TabletStateStore.getStoreForLevel(DataLevel.METADATA, context));
     }
   }
 
-  private void waitForCleanStore(MetaDataStateStore store) {
+  private void waitForCleanStore(TabletStateStore store) {
     while (true) {
       try (ClosableIterator<TabletLocationState> iter = store.iterator()) {
         Iterators.size(iter);

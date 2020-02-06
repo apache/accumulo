@@ -111,7 +111,7 @@ public class MinorCompactor extends Compactor {
   @Override
   public CompactionStats call() {
     final String outputFileName = getOutputFile();
-    log.debug("Begin minor compaction {} {}", outputFileName, getExtent());
+    log.trace("Begin minor compaction {} {}", outputFileName, getExtent());
 
     // output to new MapFile with a temporary name
     int sleepTime = 100;

@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.util.MapCounter;
@@ -264,8 +265,7 @@ class DatafileManager {
     }
 
     for (Entry<FileRef,DataFileValue> entry : paths.entrySet()) {
-      log.debug("TABLET_HIST {} import {} {}", tablet.getExtent(), entry.getKey(),
-          entry.getValue());
+      TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
     }
   }
 
@@ -463,13 +463,12 @@ class DatafileManager {
     // must do this after list of files in memory is updated above
     removeFilesAfterScan(filesInUseByScans);
 
-    if (absMergeFile != null)
-      log.debug("TABLET_HIST {} MinC [{},memory] -> {}", tablet.getExtent(), absMergeFile,
-          newDatafile);
-    else
-      log.debug("TABLET_HIST {} MinC [memory] -> {}", tablet.getExtent(), newDatafile);
-    log.debug(String.format("MinC finish lock %.2f secs %s", (t2 - t1) / 1000.0,
-        tablet.getExtent().toString()));
+    TabletLogger.flushed(tablet.getExtent(), absMergeFile, newDatafile);
+
+    if (log.isTraceEnabled()) {
+      log.trace(String.format("MinC finish lock %.2f secs %s", (t2 - t1) / 1000.0,
+          tablet.getExtent().toString()));
+    }
     long splitSize = tablet.getTableConfiguration().getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     if (dfv.getSize() > splitSize) {
       log.debug(String.format("Minor Compaction wrote out file larger than split threshold."
@@ -555,8 +554,11 @@ class DatafileManager {
         tablet.getTabletServer().getLock());
     removeFilesAfterScan(filesInUseByScans);
 
-    log.debug(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));
-    log.debug("TABLET_HIST {} MajC  --> {}", oldDatafiles, newDatafile);
+    if (log.isTraceEnabled()) {
+      log.trace(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));
+    }
+
+    TabletLogger.compacted(extent, oldDatafiles, newDatafile);
   }
 
   public SortedMap<FileRef,DataFileValue> getDatafileSizes() {

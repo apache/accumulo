@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
@@ -50,12 +51,10 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.master.LiveTServerSet;
-import org.apache.accumulo.server.master.state.MetaDataStateStore;
-import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
-import org.apache.accumulo.server.master.state.ZooTabletStateStore;
+import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -94,8 +93,10 @@ public class GarbageCollectWriteAheadLogs {
     this.useTrash = useTrash;
     this.liveServers = liveServers;
     this.walMarker = new WalStateManager(context);
-    this.store = () -> Iterators.concat(new ZooTabletStateStore(context.getAmple()).iterator(),
-        new RootTabletStateStore(context).iterator(), new MetaDataStateStore(context).iterator());
+    this.store = () -> Iterators.concat(
+        TabletStateStore.getStoreForLevel(DataLevel.ROOT, context).iterator(),
+        TabletStateStore.getStoreForLevel(DataLevel.METADATA, context).iterator(),
+        TabletStateStore.getStoreForLevel(DataLevel.USER, context).iterator());
   }
 
   /**
