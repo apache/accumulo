@@ -150,7 +150,7 @@ class FateMetricValues {
     private long zkFateChildOpsTotal = 0;
     private long zkConnectionErrors = 0;
 
-    private Map<String,Long> txStateCounters;
+    private final Map<String,Long> txStateCounters;
     private Map<String,Long> opTypeCounters;
 
     Builder() {

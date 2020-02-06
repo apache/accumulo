@@ -27,23 +27,22 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.curator.test.TestingServer;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZookeeperTestingServer {
+public class ZooKeeperTestingServer {
 
-  private static final Logger log = LoggerFactory.getLogger(ZookeeperTestingServer.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooKeeperTestingServer.class);
 
   private TestingServer zkServer;
   private final ZooKeeper zoo;
 
   private static final Random rand = new SecureRandom();
 
-  public ZookeeperTestingServer() {
+  public ZooKeeperTestingServer() {
 
     try {
 
@@ -71,11 +70,9 @@ public class ZookeeperTestingServer {
 
       log.info("c:{}", zkServer.getConnectString());
 
-      zoo = new ZooKeeper(zkServer.getConnectString(), 5_000, new Watcher() {
-        public void process(WatchedEvent we) {
-          if (we.getState() == Watcher.Event.KeeperState.SyncConnected) {
-            connectionLatch.countDown();
-          }
+      zoo = new ZooKeeper(zkServer.getConnectString(), 5_000, watchedEvent -> {
+        if (watchedEvent.getState() == Watcher.Event.KeeperState.SyncConnected) {
+          connectionLatch.countDown();
         }
       });
 

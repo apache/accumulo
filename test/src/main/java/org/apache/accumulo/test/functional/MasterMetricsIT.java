@@ -96,12 +96,9 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
   /**
    * Validates that the expected metrics are published - this excludes the dynamic metrics derived
    * from operation types.
-   *
-   * @throws Exception
-   *           any exception is a test failure.
    */
   @Test
-  public void metricsPublished() throws Exception {
+  public void metricsPublished() {
 
     log.trace("Client started, properties:{}", accumuloClient.properties());
 

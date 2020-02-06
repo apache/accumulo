@@ -58,14 +58,14 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
   private final String metricsPrefix;
 
-  private Lock lock = new ReentrantLock();
-  private AtomicBoolean running = new AtomicBoolean(Boolean.TRUE);
+  private final Lock lock = new ReentrantLock();
+  private final AtomicBoolean running = new AtomicBoolean(Boolean.TRUE);
 
-  private AtomicLong lastUpdate = new AtomicLong(0);
-  private long startTime = System.nanoTime();
+  private final AtomicLong lastUpdate = new AtomicLong(0);
+  private final long startTime = System.nanoTime();
 
   private int lineCounter = 0;
-  private String[] lineBuffer = new String[BUFFER_SIZE];
+  private final String[] lineBuffer = new String[BUFFER_SIZE];
 
   private final String metricsFilename;
 
@@ -84,8 +84,6 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
     // dump received configuration keys received.
     if (log.isTraceEnabled()) {
-      // required for commons configuration - version 1.6
-      @SuppressWarnings("unchecked")
       Iterator<String> keys = sub.getKeys();
       while (keys.hasNext()) {
         log.trace("configuration key:{}", keys.next());
@@ -147,8 +145,6 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
       if (log.isTraceEnabled()) {
         log.trace("Config {}", config);
-        // required for commons configuration - version 1.6
-        @SuppressWarnings("unchecked")
         Iterator<String> iterator = sub.getKeys();
         while (iterator.hasNext()) {
           String key = iterator.next();
@@ -160,7 +156,7 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
     } catch (ConfigurationException ex) {
       throw new IllegalStateException(
-          String.format("Could not find configuration file \'%s\' on classpath",
+          String.format("Could not find configuration file '%s' on classpath",
               MetricsTestSinkProperties.METRICS_PROP_FILENAME));
     }
   }
@@ -327,11 +323,7 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
     @Override
     public String toString() {
-      final StringBuilder sb = new StringBuilder("LineUpdate{");
-      sb.append("lastUpdate=").append(lastUpdate);
-      sb.append(", line='").append(line).append('\'');
-      sb.append('}');
-      return sb.toString();
+      return "LineUpdate{" + "lastUpdate=" + lastUpdate + ", line='" + line + '\'' + '}';
     }
   }
 

@@ -21,9 +21,6 @@ package org.apache.accumulo.master.metrics.fate;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.master.Master;
-import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.hadoop.metrics2.AbstractMetric;
 import org.apache.hadoop.metrics2.MetricsCollector;
 import org.apache.hadoop.metrics2.MetricsInfo;
@@ -42,7 +39,7 @@ class InMemTestCollector implements MetricsCollector {
 
   @Override
   public MetricsRecordBuilder addRecord(String s) {
-    log.debug("FC: Adding string: {}", s);
+    log.debug("RecordBuilder: Adding string: {}", s);
     return builder;
   }
 
@@ -143,15 +140,6 @@ class InMemTestCollector implements MetricsCollector {
 
     @Override
     public MetricsCollector parent() {
-      return null;
-    }
-  }
-
-  private static class FakeOp<String> extends MasterRepo {
-    private static final long serialVersionUID = -1L;
-
-    @Override
-    public Repo<Master> call(long tid, Master environment) {
       return null;
     }
   }

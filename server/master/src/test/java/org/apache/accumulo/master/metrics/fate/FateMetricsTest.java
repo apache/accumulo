@@ -54,19 +54,16 @@ public class FateMetricsTest {
   private static final Logger log = LoggerFactory.getLogger(FateMetricsTest.class);
   public static final String MOCK_ZK_ROOT = "/accumulo/1234";
 
-  private static ZookeeperTestingServer szk = null;
+  private static ZooKeeperTestingServer szk = null;
 
-  private ZooReaderWriter zooReaderWriter = null;
-  private ZooStore<String> zooStore = null;
+  private ZooStore<Master> zooStore = null;
   private ZooKeeper zookeeper = null;
 
-  private Master master = null;
   private ServerContext context = null;
 
   @BeforeClass
-  public static void setupZk() throws Exception {
-    szk = new ZookeeperTestingServer();
-    String conn = szk.getConn();
+  public static void setupZk() {
+    szk = new ZooKeeperTestingServer();
     szk.initPaths(MOCK_ZK_ROOT);
   }
 
@@ -86,7 +83,7 @@ public class FateMetricsTest {
   @Before
   public void init() throws Exception {
 
-    zooReaderWriter = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
+    ZooReaderWriter zooReaderWriter = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
 
     zookeeper = zooReaderWriter.getZooKeeper();
 
@@ -94,7 +91,7 @@ public class FateMetricsTest {
 
     zooStore = new ZooStore<>(MOCK_ZK_ROOT + Constants.ZFATE, zooReaderWriter);
 
-    master = EasyMock.createMock(Master.class);
+    Master master = EasyMock.createMock(Master.class);
     context = EasyMock.createMock(ServerContext.class);
 
     EasyMock.expect(context.getZooReaderWriter()).andReturn(zooReaderWriter).anyTimes();
@@ -110,12 +107,9 @@ public class FateMetricsTest {
 
   /**
    * Validate that the expected metrics values are present in the metrics collector output
-   *
-   * @throws Exception
-   *           any exception is a test failure.
    */
   @Test
-  public void noFates() throws Exception {
+  public void noFates() {
 
     FateMetrics metrics = new FateMetrics(context, 10);
     metrics.overrideRefresh(0);
@@ -150,14 +144,12 @@ public class FateMetricsTest {
    * Seed a fake FAKE fate that has a reserved transaction id. This sets a "new" status, but the
    * repo and debug props are not yet set. Verify the the metric collection handles partial
    * transaction states.
-   *
-   * @throws Exception
-   *           any exception is a test failure.
    */
   @Test
-  public void fateNewStatus() throws Exception {
+  public void fateNewStatus() {
 
     long tx1Id = zooStore.create();
+    log.trace("ZooStore tx1 id {}", tx1Id);
 
     FateMetrics metrics = new FateMetrics(context, 10);
     metrics.overrideRefresh(0);
@@ -212,10 +204,10 @@ public class FateMetricsTest {
 
     zooStore.setStatus(txId, ReadOnlyTStore.TStatus.IN_PROGRESS);
 
-    Repo repo = new FakeOp();
+    Repo<Master> repo = new FakeOp();
     zooStore.push(txId, repo);
 
-    Repo step = new FakeOpStep1();
+    Repo<Master> step = new FakeOpStep1();
     zooStore.push(txId, step);
 
     zooStore.setProperty(txId, "debug", repo.getDescription());
