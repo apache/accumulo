@@ -58,6 +58,7 @@ import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -605,7 +606,7 @@ abstract class TabletGroupWatcher extends Daemon {
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-          datafiles.add(key.getColumnQualifierData().toString());
+          datafiles.add(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
           if (datafiles.size() > 1000) {
             MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
             datafiles.clear();
