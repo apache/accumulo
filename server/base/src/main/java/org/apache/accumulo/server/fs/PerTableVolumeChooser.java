@@ -41,7 +41,6 @@ public class PerTableVolumeChooser implements VolumeChooser {
       new ConcurrentHashMap<>();
   private final ConcurrentHashMap<ChooserScope,VolumeChooser> scopeSpecificChooserCache =
       new ConcurrentHashMap<>();
-  private final RandomVolumeChooser randomChooser = new RandomVolumeChooser();
 
   private static final String TABLE_CUSTOM_SUFFIX = "volume.chooser";
 

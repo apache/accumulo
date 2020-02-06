@@ -62,7 +62,6 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDirectives;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
-import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters;
 import org.apache.accumulo.core.spi.scan.ScanExecutor;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
@@ -174,18 +173,17 @@ public class TabletServerResourceManager {
     return result;
   }
 
-  private ExecutorService createIdlingEs(Property max, String name, long timeout,
-      TimeUnit timeUnit) {
+  private ExecutorService createIdlingEs(Property max, String name) {
     LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     int maxThreads = context.getConfiguration().getCount(max);
-    ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, timeout, timeUnit, queue,
-        new NamingThreadFactory(name));
+    ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 60, TimeUnit.SECONDS,
+        queue, new NamingThreadFactory(name));
     tp.allowCoreThreadTimeOut(true);
     return addEs(() -> context.getConfiguration().getCount(max), name, tp);
   }
 
-  private ExecutorService createEs(int max, String name) {
-    return addEs(name, Executors.newFixedThreadPool(max, new NamingThreadFactory(name)));
+  private ExecutorService createEs() {
+    return addEs("splitter", Executors.newFixedThreadPool(1, new NamingThreadFactory("splitter")));
   }
 
   private ExecutorService createEs(Property max, String name) {
@@ -252,8 +250,8 @@ public class TabletServerResourceManager {
     return createEs(maxThreadsSupplier, name, queue, OptionalInt.empty());
   }
 
-  private ExecutorService createEs(int min, int max, int timeout, String name) {
-    return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS,
+  private ExecutorService createEs(int timeout, String name) {
+    return addEs(name, new ThreadPoolExecutor(0, 1, timeout, TimeUnit.SECONDS,
         new LinkedBlockingQueue<>(), new NamingThreadFactory(name)));
   }
 
@@ -391,13 +389,13 @@ public class TabletServerResourceManager {
     // files first!
     majorCompactionThreadPool = createEs(Property.TSERV_MAJC_MAXCONCURRENT, "major compactor",
         new CompactionQueue().asBlockingQueueOfRunnable());
-    rootMajorCompactionThreadPool = createEs(0, 1, 300, "md root major compactor");
-    defaultMajorCompactionThreadPool = createEs(0, 1, 300, "md major compactor");
+    rootMajorCompactionThreadPool = createEs(300, "md root major compactor");
+    defaultMajorCompactionThreadPool = createEs(300, "md major compactor");
 
-    splitThreadPool = createEs(1, "splitter");
-    defaultSplitThreadPool = createEs(0, 1, 60, "md splitter");
+    splitThreadPool = createEs();
+    defaultSplitThreadPool = createEs(60, "md splitter");
 
-    defaultMigrationPool = createEs(0, 1, 60, "metadata tablet migration");
+    defaultMigrationPool = createEs(60, "metadata tablet migration");
     migrationPool = createEs(Property.TSERV_MIGRATE_MAXCONCURRENT, "tablet migration");
 
     // not sure if concurrent assignments can run safely... even if they could there is probably no
@@ -407,16 +405,15 @@ public class TabletServerResourceManager {
     // concurrent assignments would put more load on the metadata table at startup
     assignmentPool = createEs(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "tablet assignment");
 
-    assignMetaDataPool = createEs(0, 1, 60, "metadata tablet assignment");
+    assignMetaDataPool = createEs(60, "metadata tablet assignment");
 
     activeAssignments = new ConcurrentHashMap<>();
 
-    summaryRetrievalPool = createIdlingEs(Property.TSERV_SUMMARY_RETRIEVAL_THREADS,
-        "summary file retriever", 60, TimeUnit.SECONDS);
-    summaryRemotePool = createIdlingEs(Property.TSERV_SUMMARY_REMOTE_THREADS, "summary remote", 60,
-        TimeUnit.SECONDS);
-    summaryParitionPool = createIdlingEs(Property.TSERV_SUMMARY_PARTITION_THREADS,
-        "summary partition", 60, TimeUnit.SECONDS);
+    summaryRetrievalPool =
+        createIdlingEs(Property.TSERV_SUMMARY_RETRIEVAL_THREADS, "summary file retriever");
+    summaryRemotePool = createIdlingEs(Property.TSERV_SUMMARY_REMOTE_THREADS, "summary remote");
+    summaryParitionPool =
+        createIdlingEs(Property.TSERV_SUMMARY_PARTITION_THREADS, "summary partition");
 
     Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors();
     Map<String,Queue<?>> scanExecQueues = new HashMap<>();
@@ -929,8 +926,8 @@ public class TabletServerResourceManager {
   }
 
   @SuppressWarnings("deprecation")
-  private static abstract class DispatchParamsImpl
-      implements DispatchParameters, DispatchParmaters {
+  private static abstract class DispatchParamsImpl implements DispatchParameters,
+      org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters {
 
   }
 

@@ -187,7 +187,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -464,8 +463,8 @@ public class TabletServer extends AbstractServer {
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
-    SimpleTimer.getInstance(aconf).schedule(() -> TabletLocator.clearLocators(),
-        jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
+    SimpleTimer.getInstance(aconf).schedule(() -> TabletLocator.clearLocators(), jitter(),
+        jitter());
     walMarker = new WalStateManager(context);
 
     // Create the secret manager
@@ -491,10 +490,10 @@ public class TabletServer extends AbstractServer {
     return Constants.VERSION;
   }
 
-  private static long jitter(long ms) {
+  private static long jitter() {
     Random r = new SecureRandom();
     // add a random 10% wait
-    return (long) ((1. + (r.nextDouble() / 10)) * ms);
+    return (long) ((1. + (r.nextDouble() / 10)) * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 
   private final SessionManager sessionManager;
@@ -2492,7 +2491,7 @@ public class TabletServer extends AbstractServer {
 
         TabletResourceManager trm =
             resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
-        TabletData data = new TabletData(extent, fs, tabletMetadata);
+        TabletData data = new TabletData(tabletMetadata);
 
         tablet = new Tablet(TabletServer.this, extent, trm, data);
         // If a minor compaction starts after a tablet opens, this indicates a log recovery
@@ -2587,13 +2586,14 @@ public class TabletServer extends AbstractServer {
     }
   }
 
-  private HostAndPort startServer(AccumuloConfiguration conf, String address, Property portHint,
-      TProcessor processor, String threadName) throws UnknownHostException {
+  private HostAndPort startServer(AccumuloConfiguration conf, String address, TProcessor processor)
+      throws UnknownHostException {
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
         ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), address, portHint,
-        processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
-        Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, maxMessageSizeProperty);
+    ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), address,
+        Property.TSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
+        "Thrift Client Server", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
+        Property.TSERV_THREADCHECK, maxMessageSizeProperty);
     this.server = sp.server;
     return sp.address;
   }
@@ -2642,8 +2642,7 @@ public class TabletServer extends AbstractServer {
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(),
-        Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
+    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
     log.info("address = {}", address);
     return address;
   }
@@ -3209,7 +3208,7 @@ public class TabletServer extends AbstractServer {
     Collections.sort(sorted, (e1, e2) -> (int) (e1.timestamp - e2.timestamp));
     for (LogEntry entry : sorted) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(fs.getFullPath(FileType.WAL, entry.filename));
+      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.filename));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {

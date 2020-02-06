@@ -547,7 +547,7 @@ public class Tablet {
           timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
 
           if (exceededMemoryUsage || timesUp) {
-            addUnfinishedRange(lookupResult, range, key, false);
+            addUnfinishedRange(lookupResult, range, key);
             break;
           }
 
@@ -567,7 +567,7 @@ public class Tablet {
                 + " that does not follow the last key returned: " + yieldPosition + " <= "
                 + results.get(results.size() - 1).getKey());
           }
-          addUnfinishedRange(lookupResult, range, yieldPosition, false);
+          addUnfinishedRange(lookupResult, range, yieldPosition);
 
           log.debug("Scan yield detected at position " + yieldPosition);
           getTabletServer().getScanMetrics().addYield(1);
@@ -615,7 +615,7 @@ public class Tablet {
     }
 
     if (entriesAdded > 0) {
-      addUnfinishedRange(lookupResult, range, results.get(results.size() - 1).getKey(), false);
+      addUnfinishedRange(lookupResult, range, results.get(results.size() - 1).getKey());
     } else {
       lookupResult.unfinishedRanges.add(range);
     }
@@ -623,11 +623,9 @@ public class Tablet {
     lookupResult.closed = true;
   }
 
-  private void addUnfinishedRange(LookupResult lookupResult, Range range, Key key,
-      boolean inclusiveStartKey) {
+  private void addUnfinishedRange(LookupResult lookupResult, Range range, Key key) {
     if (range.getEndKey() == null || key.compareTo(range.getEndKey()) < 0) {
-      Range nlur =
-          new Range(new Key(key), inclusiveStartKey, range.getEndKey(), range.isEndKeyInclusive());
+      Range nlur = new Range(new Key(key), false, range.getEndKey(), range.isEndKeyInclusive());
       lookupResult.unfinishedRanges.add(nlur);
     }
   }
@@ -797,8 +795,8 @@ public class Tablet {
   }
 
   DataFileValue minorCompact(InMemoryMap memTable, FileRef tmpDatafile, FileRef newDatafile,
-      FileRef mergeFile, boolean hasQueueTime, long queued, CommitSession commitSession,
-      long flushId, MinorCompactionReason mincReason) {
+      FileRef mergeFile, long queued, CommitSession commitSession, long flushId,
+      MinorCompactionReason mincReason) {
     boolean failed = false;
     long start = System.currentTimeMillis();
     timer.incrementStatusMinor();
@@ -844,12 +842,8 @@ public class Tablet {
       }
       TabletServerMinCMetrics minCMetrics = getTabletServer().getMinCMetrics();
       minCMetrics.addActive(lastMinorCompactionFinishTime - start);
-      if (hasQueueTime) {
-        timer.updateTime(Operation.MINOR, queued, start, count, failed);
-        minCMetrics.addQueued(start - queued);
-      } else {
-        timer.updateTime(Operation.MINOR, start, failed);
-      }
+      timer.updateTime(Operation.MINOR, queued, start, count, failed);
+      minCMetrics.addQueued(start - queued);
     }
   }
 
@@ -1226,19 +1220,12 @@ public class Tablet {
    * performed.
    */
   public void close(boolean saveState) throws IOException {
-    initiateClose(saveState, false, false);
+    initiateClose(saveState);
     completeClose(saveState, true);
   }
 
-  void initiateClose(boolean saveState, boolean queueMinC, boolean disableWrites) {
-
-    if (!saveState && queueMinC) {
-      throw new IllegalArgumentException("Bad state initiating close on " + extent
-          + ". State not saved and requested minor compactions queue");
-    }
-
-    log.trace("initiateClose(saveState={} queueMinC={} disableWrites={}) {}", saveState, queueMinC,
-        disableWrites, getExtent());
+  void initiateClose(boolean saveState) {
+    log.trace("initiateClose(saveState={}) {}", saveState, getExtent());
 
     MinorCompactionTask mct = null;
 
@@ -1252,11 +1239,6 @@ public class Tablet {
       // should cause running major compactions to stop
       closeState = CloseState.CLOSING;
       this.notifyAll();
-
-      // determines if inserts and queries can still continue while minor compacting
-      if (disableWrites) {
-        closeState = CloseState.CLOSED;
-      }
 
       // wait for major compactions to finish, setting closing to
       // true should cause any running major compactions to abort
@@ -1287,12 +1269,6 @@ public class Tablet {
       } catch (NoNodeException e) {
         throw new RuntimeException("Exception on " + extent + " during prep for MinC", e);
       }
-
-      if (queueMinC) {
-        getTabletResources().executeMinorCompaction(mct);
-        return;
-      }
-
     }
 
     // do minor compaction outside of synch block so that tablet can be read and written to while
@@ -2150,7 +2126,7 @@ public class Tablet {
     }
 
     try {
-      initiateClose(true, false, false);
+      initiateClose(true);
     } catch (IllegalStateException ise) {
       log.debug("File {} not splitting : {}", extent, ise.getMessage());
       return null;

@@ -414,8 +414,7 @@ public class Upgrader9to10 implements Upgrader {
 
           String updatedDel = switchToAllVolumes(olddelete);
 
-          writer
-              .addMutation(ServerAmpleImpl.createDeleteMutation(ctx, level.tableId(), updatedDel));
+          writer.addMutation(ServerAmpleImpl.createDeleteMutation(updatedDel));
         }
         writer.flush();
         // if nothing thrown then we're good so mark all deleted

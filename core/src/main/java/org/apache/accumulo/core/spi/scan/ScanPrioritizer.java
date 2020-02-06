@@ -28,6 +28,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
  * configuring, find the documentation for the {@code tserver.scan.executors.} property.
  *
  * @since 2.0.0
+ * @see org.apache.accumulo.core.spi
  */
 public interface ScanPrioritizer {
 

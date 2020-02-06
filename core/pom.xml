@@ -208,6 +208,7 @@
                 <include>org[.]apache[.]accumulo[.]core[.]client[.].*</include>
                 <include>org[.]apache[.]accumulo[.]core[.]data[.].*</include>
                 <include>org[.]apache[.]accumulo[.]core[.]security[.].*</include>
+                <include>org[.]apache[.]accumulo[.]core[.]iterators[.].*</include>
                 <!-- The following types are not advertised as in API, but are
 		     used in a such a way by API classes that we want to
 		     ensure they do not reference non public API types.
@@ -215,7 +216,6 @@
 		     API.  These types were not placed in the allows set
 		     because no analysis is done on types in that set. -->
                 <include>org[.]apache[.]accumulo[.]core[.]util[.](Pair|ComparablePair)</include>
-                <include>org[.]apache[.]accumulo[.]core[.]iterators[.]IteratorUtil[$]IteratorScope</include>
               </includes>
               <excludes>
                 <exclude>.*[.]impl[.].*</exclude>
@@ -255,9 +255,9 @@
               <excludes />
               <allows>
                 <allow>org[.]apache[.]hadoop[.]io[.]Text</allow>
-                <allow>org[.]apache[.]accumulo[.]core[.]client(?!.*[.](impl|thrift)[.].*)[.].*</allow>
-                <allow>org[.]apache[.]accumulo[.]core[.]data(?!.*[.](impl|thrift)[.].*)[.].*</allow>
-                <allow>org[.]apache[.]accumulo[.]core[.]security(?!.*[.](crypto)[.].*)[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]client[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]data[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]security[.].*</allow>
               </allows>
             </configuration>
           </execution>

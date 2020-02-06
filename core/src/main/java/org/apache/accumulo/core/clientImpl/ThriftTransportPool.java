@@ -389,7 +389,7 @@ public class ThriftTransportPool {
   private class Closer implements Runnable {
 
     private void closeConnections() throws InterruptedException {
-      while (true) {
+      while (!getConnectionPool().shutdown) {
         closeExpiredConnections();
         Thread.sleep(500);
       }

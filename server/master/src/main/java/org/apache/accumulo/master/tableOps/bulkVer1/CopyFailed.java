@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -126,7 +127,8 @@ class CopyFailed extends MasterRepo {
 
       for (Entry<Key,Value> entry : mscanner) {
         if (BulkFileColumnFamily.getBulkLoadTid(entry.getValue()) == tid) {
-          FileRef loadedFile = new FileRef(fs, entry.getKey());
+          FileRef loadedFile = new FileRef(
+              TabletFileUtil.validate(entry.getKey().getColumnQualifierData().toString()));
           String absPath = failures.remove(loadedFile);
           if (absPath != null) {
             loadedFailures.put(loadedFile, absPath);

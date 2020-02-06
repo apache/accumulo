@@ -73,6 +73,7 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
@@ -738,23 +739,35 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
+    clone(srcTableName, newTableName,
+        CloneConfiguration.builder().setFlush(flush).setPropertiesToSet(propertiesToSet)
+            .setPropertiesToExclude(propertiesToExclude).setKeepOffline(false).build());
+  }
+
+  @Override
+  public void clone(String srcTableName, String newTableName, CloneConfiguration config)
+      throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
+      TableExistsException {
 
     checkArgument(srcTableName != null, "srcTableName is null");
     checkArgument(newTableName != null, "newTableName is null");
 
     TableId srcTableId = Tables.getTableId(context, srcTableName);
 
-    if (flush)
+    if (config.isFlush())
       _flush(srcTableId, null, null, true);
 
+    Set<String> propertiesToExclude = config.getPropertiesToExclude();
     if (propertiesToExclude == null)
       propertiesToExclude = Collections.emptySet();
 
+    Map<String,String> propertiesToSet = config.getPropertiesToSet();
     if (propertiesToSet == null)
       propertiesToSet = Collections.emptyMap();
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.canonical().getBytes(UTF_8)),
-        ByteBuffer.wrap(newTableName.getBytes(UTF_8)));
+        ByteBuffer.wrap(newTableName.getBytes(UTF_8)),
+        ByteBuffer.wrap(Boolean.toString(config.isKeepOffline()).getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
     for (Entry<String,String> entry : propertiesToSet.entrySet()) {
       if (entry.getKey().startsWith(CLONE_EXCLUDE_PREFIX))

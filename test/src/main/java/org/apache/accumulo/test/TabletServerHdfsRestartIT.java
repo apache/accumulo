@@ -45,7 +45,12 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // wait until a tablet server is up

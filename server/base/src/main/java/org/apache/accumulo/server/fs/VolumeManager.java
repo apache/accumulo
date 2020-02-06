@@ -24,8 +24,6 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.ServerConstants;
@@ -161,14 +159,6 @@ public interface VolumeManager {
 
   // forward to the appropriate FileSystem object
   FileStatus[] globStatus(Path path) throws IOException;
-
-  // Convert a file or directory metadata reference into a path
-  Path getFullPath(Key key);
-
-  Path getFullPath(TableId tableId, String path);
-
-  // Given a filename, figure out the qualified path given multiple namespaces
-  Path getFullPath(FileType fileType, String fileName);
 
   // forward to the appropriate FileSystem object
   ContentSummary getContentSummary(Path dir) throws IOException;

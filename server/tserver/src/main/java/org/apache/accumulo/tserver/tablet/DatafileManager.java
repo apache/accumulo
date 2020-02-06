@@ -170,23 +170,16 @@ class DatafileManager {
     }
   }
 
-  private TreeSet<FileRef> waitForScansToFinish(Set<FileRef> pathsToWaitFor, boolean blockNewScans,
-      long maxWaitTime) {
+  private TreeSet<FileRef> waitForScansToFinish(Set<FileRef> pathsToWaitFor) {
+    long maxWait = 10000L;
     long startTime = System.currentTimeMillis();
     TreeSet<FileRef> inUse = new TreeSet<>();
 
     try (TraceScope waitForScans = Trace.startSpan("waitForScans")) {
       synchronized (tablet) {
-        if (blockNewScans) {
-          if (reservationsBlocked)
-            throw new IllegalStateException();
-
-          reservationsBlocked = true;
-        }
-
         for (FileRef path : pathsToWaitFor) {
           while (fileScanReferenceCounts.get(path) > 0
-              && System.currentTimeMillis() - startTime < maxWaitTime) {
+              && System.currentTimeMillis() - startTime < maxWait) {
             try {
               tablet.wait(100);
             } catch (InterruptedException e) {
@@ -199,12 +192,6 @@ class DatafileManager {
           if (fileScanReferenceCounts.get(path) > 0)
             inUse.add(path);
         }
-
-        if (blockNewScans) {
-          reservationsBlocked = false;
-          tablet.notifyAll();
-        }
-
       }
     }
     return inUse;
@@ -558,7 +545,7 @@ class DatafileManager {
       t2 = System.currentTimeMillis();
     }
 
-    Set<FileRef> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
+    Set<FileRef> filesInUseByScans = waitForScansToFinish(oldDatafiles);
     if (filesInUseByScans.size() > 0)
       log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
     MasterMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,

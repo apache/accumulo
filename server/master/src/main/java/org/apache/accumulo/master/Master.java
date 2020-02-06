@@ -1242,7 +1242,7 @@ public class Master extends AbstractServer
    * Allows property configuration to block master start-up waiting for a minimum number of tservers
    * to register in zookeeper. It also accepts a maximum time to wait - if the time expires, the
    * start-up will continue with any tservers available. This check is only performed at master
-   * initialization, when the master aquires the lock. The following properties are used to control
+   * initialization, when the master acquires the lock. The following properties are used to control
    * the behaviour:
    * <ul>
    * <li>MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT - when set to 0 or less, no blocking occurs (default
@@ -1263,7 +1263,7 @@ public class Master extends AbstractServer
 
     if (minTserverCount <= 0) {
       log.info(
-          "tserver availability check disabled, contining with-{} servers." + "To enable, set {}",
+          "tserver availability check disabled, continuing with-{} servers." + "To enable, set {}",
           tserverSet.size(), Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
       return;
     }

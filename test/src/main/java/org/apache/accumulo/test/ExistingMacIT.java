@@ -61,7 +61,7 @@ import org.junit.Test;
 public class ExistingMacIT extends ConfigurableMacBase {
   @Override
   public int defaultTimeoutSeconds() {
-    return 2 * 60;
+    return 4 * 60;
   }
 
   @Override

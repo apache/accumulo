@@ -50,6 +50,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
@@ -231,7 +232,7 @@ class WriteExportFiles extends MasterRepo {
       entry.getValue().write(dataOut);
 
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        String path = fs.getFullPath(entry.getKey()).toString();
+        String path = TabletFileUtil.validate(entry.getKey().getColumnQualifierData().toString());
         String[] tokens = path.split("/");
         if (tokens.length < 1) {
           throw new RuntimeException("Illegal path " + path);
