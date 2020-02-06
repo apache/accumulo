@@ -26,6 +26,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.hadoop.fs.Path;
 
+/**
+ * Wraps a tablet state store and logs important events.
+ */
 class LoggingTabletStateStore implements TabletStateStore {
 
   private TabletStateStore wrapped;
