@@ -35,12 +35,12 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZooTabletStateStore extends TabletStateStore {
+class ZooTabletStateStore implements TabletStateStore {
 
   private static final Logger log = LoggerFactory.getLogger(ZooTabletStateStore.class);
   private final Ample ample;
 
-  public ZooTabletStateStore(Ample ample) {
+  ZooTabletStateStore(Ample ample) {
     this.ample = ample;
   }
 
@@ -86,7 +86,6 @@ public class ZooTabletStateStore extends TabletStateStore {
 
           TabletLocationState result = new TabletLocationState(RootTable.EXTENT, futureSession,
               currentSession, lastSession, null, logs, false);
-          log.debug("Returning root tablet state: {}", result);
           return result;
         } catch (Exception ex) {
           throw new RuntimeException(ex);
@@ -113,7 +112,7 @@ public class ZooTabletStateStore extends TabletStateStore {
       throw new IllegalArgumentException("You can only store the root tablet location");
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-    tabletMutator.putLocation(assignment, LocationType.FUTURE);
+    tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
     tabletMutator.mutate();
   }
 
@@ -126,8 +125,8 @@ public class ZooTabletStateStore extends TabletStateStore {
       throw new IllegalArgumentException("You can only store the root tablet location");
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-    tabletMutator.putLocation(assignment, LocationType.CURRENT);
-    tabletMutator.deleteLocation(assignment, LocationType.FUTURE);
+    tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
+    tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
 
     tabletMutator.mutate();
   }

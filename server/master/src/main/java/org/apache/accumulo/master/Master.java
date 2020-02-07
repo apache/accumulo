@@ -71,6 +71,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -109,14 +110,12 @@ import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
-import org.apache.accumulo.server.master.state.MetaDataStateStore;
-import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.master.state.TabletState;
-import org.apache.accumulo.server.master.state.ZooTabletStateStore;
+import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -1071,8 +1070,8 @@ public class Master extends AbstractServer
       throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
     }
 
-    watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(context, this), null) {
-
+    watchers.add(new TabletGroupWatcher(this,
+        TabletStateStore.getStoreForLevel(DataLevel.USER, context, this), null) {
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1080,26 +1079,26 @@ public class Master extends AbstractServer
       }
     });
 
-    watchers.add(
-        new TabletGroupWatcher(this, new RootTabletStateStore(context, this), watchers.get(0)) {
-          @Override
-          boolean canSuspendTablets() {
-            // Allow metadata tablets to enter suspended state only if so configured. Generally
-            // we'll want metadata tablets to
-            // be immediately reassigned, even if there's a global table.suspension.duration
-            // setting.
-            return getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE);
-          }
-        });
+    watchers.add(new TabletGroupWatcher(this,
+        TabletStateStore.getStoreForLevel(DataLevel.METADATA, context, this), watchers.get(0)) {
+      @Override
+      boolean canSuspendTablets() {
+        // Allow metadata tablets to enter suspended state only if so configured. Generally
+        // we'll want metadata tablets to
+        // be immediately reassigned, even if there's a global table.suspension.duration
+        // setting.
+        return getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE);
+      }
+    });
 
-    watchers.add(
-        new TabletGroupWatcher(this, new ZooTabletStateStore(context.getAmple()), watchers.get(1)) {
-          @Override
-          boolean canSuspendTablets() {
-            // Never allow root tablet to enter suspended state.
-            return false;
-          }
-        });
+    watchers.add(new TabletGroupWatcher(this,
+        TabletStateStore.getStoreForLevel(DataLevel.ROOT, context), watchers.get(1)) {
+      @Override
+      boolean canSuspendTablets() {
+        // Never allow root tablet to enter suspended state.
+        return false;
+      }
+    });
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }

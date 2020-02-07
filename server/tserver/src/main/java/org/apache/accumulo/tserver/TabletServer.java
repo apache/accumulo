@@ -111,6 +111,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.Compacting;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -1775,8 +1776,7 @@ public class TabletServer extends AbstractServer {
         }
       }
 
-      // add the assignment job to the appropriate queue
-      log.info("Loading tablet {}", extent);
+      TabletLogger.loading(extent, TabletServer.this.getTabletSession());
 
       final AssignmentHandler ah = new AssignmentHandler(extent);
       // final Runnable ah = new LoggingRunnable(log, );
@@ -2363,10 +2363,8 @@ public class TabletServer extends AbstractServer {
         if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()
             || (extent.isMeta()
                 && !getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE))) {
-          log.debug("Unassigning {}", tls);
           TabletStateStore.unassign(getContext(), tls, null);
         } else {
-          log.debug("Suspending " + tls);
           TabletStateStore.suspend(getContext(), tls, null,
               requestTimeSkew + MILLISECONDS.convert(System.nanoTime(), NANOSECONDS));
         }
@@ -2384,8 +2382,6 @@ public class TabletServer extends AbstractServer {
       // roll tablet stats over into tablet server's statsKeeper object as
       // historical data
       statsKeeper.saveMajorMinorTimes(t.getTabletStats());
-      log.info("unloaded {}", extent);
-
     }
   }
 
@@ -2404,8 +2400,6 @@ public class TabletServer extends AbstractServer {
 
     @Override
     public void run() {
-      log.info("{}: got assignment from master: {}", clientAddress, extent);
-
       synchronized (unopenedTablets) {
         synchronized (openingTablets) {
           synchronized (onlineTablets) {
@@ -2437,8 +2431,6 @@ public class TabletServer extends AbstractServer {
           openingTablets.add(extent);
         }
       }
-
-      log.debug("Loading extent: {}", extent);
 
       // check Metadata table before accepting assignment
       Text locationToOpen = null;

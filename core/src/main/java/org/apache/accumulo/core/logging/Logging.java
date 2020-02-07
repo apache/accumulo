@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.master.state;
+package org.apache.accumulo.core.logging;
 
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-
-public class Assignment {
-  public KeyExtent tablet;
-  public TServerInstance server;
-
-  public Assignment(KeyExtent tablet, TServerInstance server) {
-    this.tablet = tablet;
-    this.server = server;
-  }
+/**
+ * @see org.apache.accumulo.core.logging
+ */
+public class Logging {
+  /**
+   * Prefix for all log messages in logical logging namespaces. When chosing suffixes, try to avoid
+   * existing source package names like {@code core}. This prefix was chosen to make it easy to
+   * configure all Accumulo logging for loggers using fully qualified class names and logical
+   * loggers.
+   */
+  public static final String PREFIX = "org.apache.accumulo.";
 }

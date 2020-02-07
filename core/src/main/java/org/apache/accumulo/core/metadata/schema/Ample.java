@@ -95,6 +95,16 @@ public interface Ample {
         throw new UnsupportedOperationException();
       return id;
     }
+
+    public static DataLevel of(TableId tableId) {
+      if (tableId.equals(RootTable.ID)) {
+        return DataLevel.ROOT;
+      } else if (tableId.equals(MetadataTable.ID)) {
+        return DataLevel.METADATA;
+      } else {
+        return DataLevel.USER;
+      }
+    }
   }
 
   /**
