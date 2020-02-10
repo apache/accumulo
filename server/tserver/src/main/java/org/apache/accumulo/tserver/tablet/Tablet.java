@@ -2730,24 +2730,6 @@ public class Tablet {
 
   }
 
-  /**
-   * Handles updating a tablets last Location
-   */
-  public void updateLastLocation(long updateTime) {
-    // unsure if this sync block is needed here. Need input.
-    synchronized (timeLock) {
-      if (updateTime > persistedTime) {
-        persistedTime = updateTime;
-      }
-
-      MasterMetadataUtil.updateLastLocation(getTabletServer().getContext(), extent,
-          tabletTime.getMetadataTime(persistedTime), tabletServer.getClientAddressString(),
-          tabletServer.getLock(), lastLocation);
-
-      lastLocation = null;
-    }
-  }
-
   TabletResourceManager getTabletResources() {
     return tabletResources;
   }

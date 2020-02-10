@@ -2523,12 +2523,6 @@ public class TabletServer extends AbstractServer {
         Assignment assignment = new Assignment(extent, getTabletSession());
         TabletStateStore.setLocation(getContext(), assignment);
 
-        // if the location in TabletData is set but does not equal the assigment server, then
-        // LastLocation needs update
-        if (data.getLastLocation() != null
-            && !data.getLastLocation().hostPort().equals(assignment.server.hostPort()))
-          tablet.updateLastLocation(System.currentTimeMillis());
-
         synchronized (openingTablets) {
           synchronized (onlineTablets) {
             openingTablets.remove(extent);
