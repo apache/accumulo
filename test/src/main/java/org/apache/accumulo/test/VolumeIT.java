@@ -415,8 +415,10 @@ public class VolumeIT extends ConfigurableMacBase {
     verifyVolumesUsed(client, tableNames[0], false, v1, v2);
 
     // write to 2nd table, but do not flush data to disk before shutdown
-    writeData(tableNames[1],
-        cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD)));
+    try (AccumuloClient c2 =
+        cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
+      writeData(tableNames[1], c2);
+    }
 
     if (cleanShutdown)
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
