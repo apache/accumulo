@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -98,20 +99,19 @@ public class TabletLogger {
     }
   }
 
-  public static void compacted(KeyExtent extent, Collection<? extends Ample.FileMeta> inputs,
-      Ample.FileMeta output) {
+  public static void compacted(KeyExtent extent, Collection<? extends TabletFile> inputs,
+      TabletFile output) {
     fileLog.debug("Compacted {} created {} from {}", extent, output, inputs);
   }
 
-  public static void flushed(KeyExtent extent, Ample.FileMeta absMergeFile,
-      Ample.FileMeta newDatafile) {
+  public static void flushed(KeyExtent extent, TabletFile absMergeFile, TabletFile newDatafile) {
     if (absMergeFile == null)
       fileLog.debug("Flushed {} created {} from [memory]", extent, newDatafile);
     else
       fileLog.debug("Flushed {} created {} from [memory,{}]", extent, newDatafile, absMergeFile);
   }
 
-  public static void bulkImported(KeyExtent extent, Ample.FileMeta file) {
+  public static void bulkImported(KeyExtent extent, TabletFile file) {
     fileLog.debug("Imported {} {}  ", extent, file);
   }
 

@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -66,8 +67,10 @@ public class TabletMetadataTest {
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
 
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier("bf1").put(FateTxId.formatTid(56));
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier("bf2").put(FateTxId.formatTid(59));
+    String bf1 = "hdfs://nn1/acc/tables/1/t-0001/bf1";
+    String bf2 = "hdfs://nn1/acc/tables/1/t-0001/bf2";
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1).put(FateTxId.formatTid(56));
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2).put(FateTxId.formatTid(59));
 
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
@@ -110,7 +113,7 @@ public class TabletMetadataTest {
     assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
     assertEquals(6L, tm.getFlushId().getAsLong());
     assertEquals(rowMap, tm.getKeyValues());
-    assertEquals(Map.of("bf1", 56L, "bf2", 59L), tm.getLoaded());
+    assertEquals(Map.of(new TabletFile(bf1), 56L, new TabletFile(bf2), 59L), tm.getLoaded());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
     assertEquals("s001", tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());

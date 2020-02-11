@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.server.fs;
 
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.TabletFile;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;

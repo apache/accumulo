@@ -49,12 +49,12 @@ import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterato
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
@@ -90,9 +90,9 @@ public class Compactor implements Callable<CompactionStats> {
     RateLimiter getWriteLimiter();
   }
 
-  private final Map<FileRef,DataFileValue> filesToCompact;
+  private final Map<TabletFile,DataFileValue> filesToCompact;
   private final InMemoryMap imm;
-  private final FileRef outputFile;
+  private final TabletFile outputFile;
   private final boolean propogateDeletes;
   private final AccumuloConfiguration acuTableConf;
   private final CompactionEnv env;
@@ -147,8 +147,8 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  public Compactor(ServerContext context, Tablet tablet, Map<FileRef,DataFileValue> files,
-      InMemoryMap imm, FileRef outputFile, boolean propogateDeletes, CompactionEnv env,
+  public Compactor(ServerContext context, Tablet tablet, Map<TabletFile,DataFileValue> files,
+      InMemoryMap imm, TabletFile outputFile, boolean propogateDeletes, CompactionEnv env,
       List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
     this.context = context;
     this.extent = tablet.getExtent();
@@ -201,8 +201,8 @@ public class Compactor implements Callable<CompactionStats> {
 
     clearStats();
 
-    final Path outputFilePath = outputFile.path();
-    final String outputFilePathName = outputFilePath.toString();
+    final Path outputFilePath = outputFile.getPath();
+    final String outputFilePathName = outputFile.getNormalizedPath();
     String oldThreadName = Thread.currentThread().getName();
     String newThreadName = "MajC compacting " + extent + " started "
         + dateFormatter.format(new Date()) + " file: " + outputFile;
@@ -240,8 +240,8 @@ public class Compactor implements Callable<CompactionStats> {
       try {
         mfwTmp.close(); // if the close fails it will cause the compaction to fail
       } catch (IOException ex) {
-        if (!fs.deleteRecursively(outputFile.path())) {
-          if (fs.exists(outputFile.path())) {
+        if (!fs.deleteRecursively(outputFile.getPath())) {
+          if (fs.exists(outputFile.getPath())) {
             log.error("Unable to delete {}", outputFile);
           }
         }
@@ -273,8 +273,8 @@ public class Compactor implements Callable<CompactionStats> {
           try {
             mfw.close();
           } finally {
-            if (!fs.deleteRecursively(outputFile.path()))
-              if (fs.exists(outputFile.path()))
+            if (!fs.deleteRecursively(outputFile.getPath()))
+              if (fs.exists(outputFile.getPath()))
                 log.error("Unable to delete {}", outputFile);
           }
         }
@@ -289,21 +289,21 @@ public class Compactor implements Callable<CompactionStats> {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
 
-    for (FileRef mapFile : filesToCompact.keySet()) {
+    for (TabletFile mapFile : filesToCompact.keySet()) {
       try {
 
         FileOperations fileFactory = FileOperations.getInstance();
-        FileSystem fs = this.fs.getVolumeByPath(mapFile.path()).getFileSystem();
+        FileSystem fs = this.fs.getVolumeByPath(mapFile.getPath()).getFileSystem();
         FileSKVIterator reader;
 
         reader = fileFactory.newReaderBuilder()
-            .forFile(mapFile.path().toString(), fs, fs.getConf(), context.getCryptoService())
+            .forFile(mapFile.getMetadataEntry(), fs, fs.getConf(), context.getCryptoService())
             .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter()).build();
 
         readers.add(reader);
 
         SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(context,
-            extent.getTableId(), mapFile.path().toString(), false, reader);
+            extent.getTableId(), mapFile.getMetadataEntry(), false, reader);
 
         if (filesToCompact.get(mapFile).isTimeSet()) {
           iter = new TimeSettingIterator(iter, filesToCompact.get(mapFile).getTime());
@@ -314,7 +314,7 @@ public class Compactor implements Callable<CompactionStats> {
       } catch (Throwable e) {
 
         ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId(),
-            ProblemType.FILE_READ, mapFile.path().toString(), e));
+            ProblemType.FILE_READ, mapFile.getMetadataEntry(), e));
 
         log.warn("Some problem opening map file {} {}", mapFile, e.getMessage(), e);
         // failed to open some map file... close the ones that were opened
@@ -398,7 +398,7 @@ public class Compactor implements Callable<CompactionStats> {
             } catch (IOException e) {
               log.error("{}", e.getMessage(), e);
             }
-            fs.deleteRecursively(outputFile.path());
+            fs.deleteRecursively(outputFile.getPath());
           } catch (Exception e) {
             log.warn("Failed to delete Canceled compaction output file {}", outputFile, e);
           }
@@ -422,7 +422,7 @@ public class Compactor implements Callable<CompactionStats> {
     }
   }
 
-  Collection<FileRef> getFilesToCompact() {
+  Collection<TabletFile> getFilesToCompact() {
     return filesToCompact.keySet();
   }
 

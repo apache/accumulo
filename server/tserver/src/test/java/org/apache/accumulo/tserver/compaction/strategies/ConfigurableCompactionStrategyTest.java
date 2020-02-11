@@ -29,8 +29,8 @@ import org.apache.accumulo.core.compaction.CompactionSettings;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
@@ -46,8 +46,8 @@ public class ConfigurableCompactionStrategyTest {
         new MajorCompactionRequest(new KeyExtent(TableId.of("1"), null, null),
             MajorCompactionReason.USER, null, getServerContext());
 
-    Map<FileRef,DataFileValue> files = new HashMap<>();
-    files.put(new FileRef("hdfs://nn1/accumulo/tables/1/t-009/F00001.rf"),
+    Map<TabletFile,DataFileValue> files = new HashMap<>();
+    files.put(new TabletFile("hdfs://nn1/accumulo/tables/1/t-009/F00001.rf"),
         new DataFileValue(50000, 400));
     mcr.setFiles(files);
 

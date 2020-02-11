@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -77,7 +78,7 @@ public class TabletMetadata {
   private Location location;
   private Map<TabletFile,DataFileValue> files;
   private List<TabletFile> scans;
-  private Map<String,Long> loadedFiles;
+  private Map<TabletFile,Long> loadedFiles;
   private EnumSet<ColumnType> fetchedCols;
   private KeyExtent extent;
   private Location last;
@@ -204,7 +205,7 @@ public class TabletMetadata {
     return location != null && location.getType() == LocationType.CURRENT;
   }
 
-  public Map<String,Long> getLoaded() {
+  public Map<TabletFile,Long> getLoaded() {
     ensureFetched(ColumnType.LOADED);
     return loadedFiles;
   }
@@ -283,7 +284,7 @@ public class TabletMetadata {
     var filesBuilder = ImmutableMap.<TabletFile,DataFileValue>builder();
     var scansBuilder = ImmutableList.<TabletFile>builder();
     var logsBuilder = ImmutableList.<LogEntry>builder();
-    final var loadedFilesBuilder = ImmutableMap.<String,Long>builder();
+    final var loadedFilesBuilder = ImmutableMap.<TabletFile,Long>builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
@@ -345,7 +346,7 @@ public class TabletMetadata {
           filesBuilder.put(new TabletFile(qual), new DataFileValue(val));
           break;
         case BulkFileColumnFamily.STR_NAME:
-          loadedFilesBuilder.put(qual, BulkFileColumnFamily.getBulkLoadTid(val));
+          loadedFilesBuilder.put(new TabletFile(qual), BulkFileColumnFamily.getBulkLoadTid(val));
           break;
         case CurrentLocationColumnFamily.STR_NAME:
           te.setLocationOnce(val, qual, LocationType.CURRENT);

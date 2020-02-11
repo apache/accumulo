@@ -26,10 +26,10 @@ import java.util.Map;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.CompactionReason;
 import org.apache.accumulo.core.tabletserver.thrift.CompactionType;
-import org.apache.accumulo.server.fs.FileRef;
 
 public class CompactionInfo {
 
@@ -125,8 +125,8 @@ public class CompactionInfo {
       iterOptions.put(iterSetting.getName(), iterSetting.getOptions());
     }
     List<String> filesToCompact = new ArrayList<>();
-    for (FileRef ref : compactor.getFilesToCompact())
-      filesToCompact.add(ref.toString());
+    for (TabletFile file : compactor.getFilesToCompact())
+      filesToCompact.add(file.getNormalizedPath());
     return new ActiveCompaction(compactor.extent.toThrift(),
         System.currentTimeMillis() - compactor.getStartTime(), filesToCompact,
         compactor.getOutputFile(), type, reason, localityGroup, entriesRead, entriesWritten, iiList,

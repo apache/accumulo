@@ -41,7 +41,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -52,7 +52,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -64,9 +63,9 @@ public class MasterMetadataUtil {
   private static final Logger log = LoggerFactory.getLogger(MasterMetadataUtil.class);
 
   public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
-      TServerInstance location, Map<FileRef,DataFileValue> datafileSizes,
-      Map<Long,? extends Collection<FileRef>> bulkLoadedFiles, MetadataTime time, long lastFlushID,
-      long lastCompactID, ZooLock zooLock) {
+      TServerInstance location, Map<TabletFile,DataFileValue> datafileSizes,
+      Map<Long,? extends Collection<TabletFile>> bulkLoadedFiles, MetadataTime time,
+      long lastFlushID, long lastCompactID, ZooLock zooLock) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.getPrevEndRow());
@@ -87,8 +86,8 @@ public class MasterMetadataUtil {
 
     datafileSizes.forEach(tablet::putFile);
 
-    for (Entry<Long,? extends Collection<FileRef>> entry : bulkLoadedFiles.entrySet()) {
-      for (FileRef ref : entry.getValue()) {
+    for (Entry<Long,? extends Collection<TabletFile>> entry : bulkLoadedFiles.entrySet()) {
+      for (TabletFile ref : entry.getValue()) {
         tablet.putBulkFile(ref, entry.getKey().longValue());
       }
     }
@@ -136,11 +135,11 @@ public class MasterMetadataUtil {
       } else {
         log.info("Finishing incomplete split {} {}", metadataEntry, metadataPrevEndRow);
 
-        List<FileRef> highDatafilesToRemove = new ArrayList<>();
+        List<TabletFile> highDatafilesToRemove = new ArrayList<>();
 
-        SortedMap<FileRef,DataFileValue> origDatafileSizes = new TreeMap<>();
-        SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
-        SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
+        SortedMap<TabletFile,DataFileValue> origDatafileSizes = new TreeMap<>();
+        SortedMap<TabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
+        SortedMap<TabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
 
         try (Scanner scanner3 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
           Key rowKey = new Key(metadataEntry);
@@ -150,10 +149,8 @@ public class MasterMetadataUtil {
 
           for (Entry<Key,Value> entry : scanner3) {
             if (entry.getKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-              String tabletFilePath =
-                  TabletFileUtil.validate(entry.getKey().getColumnQualifierData().toString());
-              origDatafileSizes.put(new FileRef(tabletFilePath),
-                  new DataFileValue(entry.getValue().get()));
+              TabletFile tf = new TabletFile(entry.getKey().getColumnQualifierData().toString());
+              origDatafileSizes.put(tf, new DataFileValue(entry.getValue().get()));
             }
           }
         }
@@ -181,16 +178,9 @@ public class MasterMetadataUtil {
   }
 
   public static void replaceDatafiles(ServerContext context, KeyExtent extent,
-      Set<FileRef> datafilesToDelete, Set<FileRef> scanFiles, FileRef path, Long compactionId,
-      DataFileValue size, String address, TServerInstance lastLocation, ZooLock zooLock) {
-    replaceDatafiles(context, extent, datafilesToDelete, scanFiles, path, compactionId, size,
-        address, lastLocation, zooLock, true);
-  }
-
-  public static void replaceDatafiles(ServerContext context, KeyExtent extent,
-      Set<FileRef> datafilesToDelete, Set<FileRef> scanFiles, FileRef path, Long compactionId,
-      DataFileValue size, String address, TServerInstance lastLocation, ZooLock zooLock,
-      boolean insertDeleteFlags) {
+      Set<TabletFile> datafilesToDelete, Set<TabletFile> scanFiles, TabletFile path,
+      Long compactionId, DataFileValue size, String address, TServerInstance lastLocation,
+      ZooLock zooLock) {
 
     context.getAmple().putGcCandidates(extent.getTableId(), datafilesToDelete);
 
@@ -224,8 +214,8 @@ public class MasterMetadataUtil {
    *          should be relative to the table directory
    *
    */
-  public static void updateTabletDataFile(ServerContext context, KeyExtent extent, FileRef path,
-      FileRef mergeFile, DataFileValue dfv, MetadataTime time, Set<FileRef> filesInUseByScans,
+  public static void updateTabletDataFile(ServerContext context, KeyExtent extent, TabletFile path,
+      TabletFile mergeFile, DataFileValue dfv, MetadataTime time, Set<TabletFile> filesInUseByScans,
       String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
       long flushId) {
 

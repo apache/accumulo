@@ -32,17 +32,17 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.fs.FileRef;
 import org.junit.Test;
 
 public class SizeLimitCompactionStrategyTest {
 
-  private static Map<FileRef,DataFileValue> nfl(String... sa) {
+  private static Map<TabletFile,DataFileValue> nfl(String... sa) {
 
-    HashMap<FileRef,DataFileValue> ret = new HashMap<>();
+    HashMap<TabletFile,DataFileValue> ret = new HashMap<>();
     for (int i = 0; i < sa.length; i += 2) {
-      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]),
+      ret.put(new TabletFile("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]),
           new DataFileValue(ConfigurationTypeHelper.getFixedMemoryAsBytes(sa[i + 1]), 1));
     }
 

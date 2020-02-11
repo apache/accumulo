@@ -26,11 +26,11 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.state.TServerInstance;
 
 /*
@@ -38,13 +38,13 @@ import org.apache.accumulo.server.master.state.TServerInstance;
  */
 public class TabletData {
   private MetadataTime time = null;
-  private SortedMap<FileRef,DataFileValue> dataFiles = new TreeMap<>();
+  private SortedMap<TabletFile,DataFileValue> dataFiles = new TreeMap<>();
   private List<LogEntry> logEntries = new ArrayList<>();
-  private HashSet<FileRef> scanFiles = new HashSet<>();
+  private HashSet<TabletFile> scanFiles = new HashSet<>();
   private long flushID = -1;
   private long compactID = -1;
   private TServerInstance lastLocation = null;
-  private Map<Long,List<FileRef>> bulkImported = new HashMap<>();
+  private Map<Long,List<TabletFile>> bulkImported = new HashMap<>();
   private long splitTime = 0;
   private String directoryName = null;
 
@@ -56,24 +56,22 @@ public class TabletData {
     this.flushID = meta.getFlushId().orElse(-1);
     this.directoryName = meta.getDirName();
     this.logEntries.addAll(meta.getLogs());
-    meta.getScans().forEach(tabletFile -> scanFiles.add(new FileRef(tabletFile)));
+    scanFiles.addAll(meta.getScans());
 
     if (meta.getLast() != null)
       this.lastLocation = new TServerInstance(meta.getLast());
 
-    meta.getFilesMap().forEach((tabletFile, dfv) -> {
-      dataFiles.put(new FileRef(tabletFile), dfv);
-    });
+    dataFiles.putAll(meta.getFilesMap());
 
     meta.getLoaded().forEach((path, txid) -> {
-      bulkImported.computeIfAbsent(txid, k -> new ArrayList<>()).add(new FileRef(path));
+      bulkImported.computeIfAbsent(txid, k -> new ArrayList<>()).add(path);
     });
   }
 
   // Data pulled from an existing tablet to make a split
-  public TabletData(String dirName, SortedMap<FileRef,DataFileValue> highDatafileSizes,
+  public TabletData(String dirName, SortedMap<TabletFile,DataFileValue> highDatafileSizes,
       MetadataTime time, long lastFlushID, long lastCompactID, TServerInstance lastLocation,
-      Map<Long,List<FileRef>> bulkIngestedFiles) {
+      Map<Long,List<TabletFile>> bulkIngestedFiles) {
     this.directoryName = dirName;
     this.dataFiles = highDatafileSizes;
     this.time = time;
@@ -88,7 +86,7 @@ public class TabletData {
     return time;
   }
 
-  public SortedMap<FileRef,DataFileValue> getDataFiles() {
+  public SortedMap<TabletFile,DataFileValue> getDataFiles() {
     return dataFiles;
   }
 
@@ -96,7 +94,7 @@ public class TabletData {
     return logEntries;
   }
 
-  public HashSet<FileRef> getScanFiles() {
+  public HashSet<TabletFile> getScanFiles() {
     return scanFiles;
   }
 
@@ -112,7 +110,7 @@ public class TabletData {
     return lastLocation;
   }
 
-  public Map<Long,List<FileRef>> getBulkImported() {
+  public Map<Long,List<TabletFile>> getBulkImported() {
     return bulkImported;
   }
 

@@ -45,10 +45,10 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -481,17 +481,17 @@ public class FileUtil {
     return numKeys;
   }
 
-  public static Map<FileRef,FileInfo> tryToGetFirstAndLastRows(ServerContext context,
-      Set<FileRef> mapfiles) {
+  public static Map<TabletFile,FileInfo> tryToGetFirstAndLastRows(ServerContext context,
+      Set<TabletFile> mapfiles) {
 
-    HashMap<FileRef,FileInfo> mapFilesInfo = new HashMap<>();
+    HashMap<TabletFile,FileInfo> mapFilesInfo = new HashMap<>();
 
     long t1 = System.currentTimeMillis();
 
-    for (FileRef mapfile : mapfiles) {
+    for (TabletFile mapfile : mapfiles) {
 
       FileSKVIterator reader = null;
-      FileSystem ns = context.getVolumeManager().getVolumeByPath(mapfile.path()).getFileSystem();
+      FileSystem ns = context.getVolumeManager().getVolumeByPath(mapfile.getPath()).getFileSystem();
       try {
         reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(mapfile.toString(), ns, ns.getConf(), context.getCryptoService())
@@ -525,12 +525,12 @@ public class FileUtil {
   }
 
   public static WritableComparable<Key> findLastKey(ServerContext context,
-      Collection<FileRef> mapFiles) throws IOException {
+      Collection<TabletFile> mapFiles) throws IOException {
 
     Key lastKey = null;
 
-    for (FileRef ref : mapFiles) {
-      Path path = ref.path();
+    for (TabletFile ref : mapFiles) {
+      Path path = ref.getPath();
       FileSystem ns = context.getVolumeManager().getVolumeByPath(path).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
@@ -567,10 +567,10 @@ public class FileUtil {
         null, context.getCryptoService());
   }
 
-  public static Collection<String> toPathStrings(Collection<FileRef> refs) {
+  public static Collection<String> toPathStrings(Collection<TabletFile> refs) {
     ArrayList<String> ret = new ArrayList<>();
-    for (FileRef fileRef : refs) {
-      ret.add(fileRef.path().toString());
+    for (TabletFile fileRef : refs) {
+      ret.add(fileRef.getNormalizedPath());
     }
 
     return ret;
