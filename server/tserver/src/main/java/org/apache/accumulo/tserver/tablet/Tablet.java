@@ -357,8 +357,11 @@ public class Tablet implements TabletCommitter {
         ReplicationConfigurationUtil.isEnabled(extent, this.tableConfiguration);
     TabletFiles tabletPaths =
         new TabletFiles(data.getDirectory(), data.getLogEntris(), data.getDataFiles());
-    tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer, tabletServer.getLock(), fs, extent,
-        tabletPaths, replicationEnabled);
+    List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
+    if (!replacements.isEmpty()) {
+      tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer, tabletServer.getLock(), fs, extent,
+          tabletPaths, replicationEnabled, replacements);
+    }
 
     // deal with relative path for the directory
     Path locationPath;

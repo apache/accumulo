@@ -184,9 +184,8 @@ public class VolumeUtil {
    * for use it chooses a new tablet directory.
    */
   public static TabletFiles updateTabletVolumes(AccumuloServerContext context, ZooLock zooLock,
-      VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
-      throws IOException {
-    List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
+      VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate,
+      List<Pair<Path,Path>> replacements) throws IOException {
     log.trace("Using volume replacements: " + replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();
