@@ -138,7 +138,7 @@ ${mvnProjBaseDir}
       $ACCUMULO_HOME/lib/accumulo-proxy.jar,
       $ACCUMULO_HOME/lib/[^.].*.jar,
       <!-- ZooKeeper requirements -->
-      $ZOOKEEPER_HOME/zookeeper[^.].*.jar,
+      $ZOOKEEPER_HOME/lib/zookeeper[^.].*.jar,
       <!-- Common Hadoop requirements -->
       $HADOOP_CONF_DIR,
       <!-- Hadoop 2 requirements -->
