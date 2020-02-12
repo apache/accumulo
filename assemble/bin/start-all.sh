@@ -45,7 +45,7 @@ if [ ! -d $ZOOKEEPER_HOME ]; then
    exit 1
 fi
 
-ZOOKEEPER_VERSION=$(find -L $ZOOKEEPER_HOME -maxdepth 1 -name "zookeeper-[0-9]*.jar" | head -1)
+ZOOKEEPER_VERSION=$(find -L $ZOOKEEPER_HOME -maxdepth 2 -name "zookeeper-[0-9]*.jar" | head -1)
 if [ -z "$ZOOKEEPER_VERSION" ]; then
    echo "A Zookeeper JAR was not found in $ZOOKEEPER_HOME."
    echo "Please check ZOOKEEPER_HOME, either globally or in accumulo-env.sh."
