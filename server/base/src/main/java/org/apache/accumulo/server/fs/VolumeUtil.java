@@ -137,6 +137,8 @@ public class VolumeUtil {
       KeyExtent extent, TabletFiles tabletFiles, boolean replicate) {
     List<Pair<Path,Path>> replacements =
         ServerConstants.getVolumeReplacements(context.getConfiguration(), context.getHadoopConf());
+    if (replacements.isEmpty())
+      return tabletFiles;
     log.trace("Using volume replacements: {}", replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();
