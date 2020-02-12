@@ -120,6 +120,7 @@ import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -183,7 +184,6 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -532,12 +532,12 @@ public class TabletServer extends AbstractServer {
           for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
             TKeyExtent tke = entry.getKey();
             Map<String,MapFileInfo> fileMap = entry.getValue();
-            Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
+            Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
             for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
               Path path = new Path(mapping.getKey());
               FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
               path = ns.makeQualified(path);
-              fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
+              fileRefMap.put(new TabletFile(path.toString()), mapping.getValue());
             }
 
             Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
@@ -574,12 +574,12 @@ public class TabletServer extends AbstractServer {
 
       watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
         tabletImports.forEach((tke, fileMap) -> {
-          Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
+          Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
           for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
             Path path = new Path(dir, mapping.getKey());
             FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
             path = ns.makeQualified(path);
-            fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
+            fileRefMap.put(new TabletFile(path, path.toString()), mapping.getValue());
           }
 
           Tablet importTablet = getOnlineTablet(new KeyExtent(tke));

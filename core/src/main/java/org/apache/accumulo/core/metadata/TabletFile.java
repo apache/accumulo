@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata.schema;
+package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
@@ -45,11 +46,14 @@ public class TabletFile implements Comparable<TabletFile> {
   private final Path metaPath;
   private final String normalizedPath;
 
-  public TabletFile(String metadataEntry) {
-    this.metadataEntry = Objects.requireNonNull(metadataEntry);
+  /**
+   * Construct a tablet file using a Path object already created. Used in the case where we had to
+   * use Path object to qualify an absolute path.
+   */
+  public TabletFile(Path metaPath, String originalMetaEntry) {
+    this.metadataEntry = Objects.requireNonNull(originalMetaEntry);
+    this.metaPath = Objects.requireNonNull(metaPath);
     String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metadataEntry;
-
-    this.metaPath = new Path(metadataEntry);
 
     // use Path object to step backwards from the filename through all the parts
     this.fileName = metaPath.getName();
@@ -75,6 +79,14 @@ public class TabletFile implements Comparable<TabletFile> {
         + tabletDir + "/" + fileName;
   }
 
+  /**
+   * Construct a tablet file using the string read from the metadata. Preserve the exact string so
+   * the entry can be deleted.
+   */
+  public TabletFile(String metadataEntry) {
+    this(new Path(metadataEntry), metadataEntry);
+  }
+
   public String getVolume() {
     return volume;
   }
@@ -92,10 +104,17 @@ public class TabletFile implements Comparable<TabletFile> {
   }
 
   /**
-   * Exact string that is stored the metadata table
+   * Exact string that is stored in the metadata table
    */
   public String getMetadataEntry() {
     return metadataEntry;
+  }
+
+  /**
+   * Exact string that is stored in the metadata table but as a Text object
+   */
+  public Text getMetadataText() {
+    return new Text(metadataEntry);
   }
 
   public String getNormalizedPath() {
@@ -103,11 +122,7 @@ public class TabletFile implements Comparable<TabletFile> {
   }
 
   public Path getPath() {
-    return new Path(normalizedPath);
-  }
-
-  public Text meta() {
-    return new Text(metadataEntry);
+    return metaPath;
   }
 
   @Override
@@ -131,5 +146,10 @@ public class TabletFile implements Comparable<TabletFile> {
   @Override
   public int hashCode() {
     return normalizedPath.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return normalizedPath;
   }
 }

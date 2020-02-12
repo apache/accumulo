@@ -19,6 +19,7 @@
 package org.apache.accumulo.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -120,7 +121,7 @@ public class ZooSession {
     long sleepTime = 100;
     ZooKeeper zooKeeper = null;
 
-    long startTime = System.currentTimeMillis();
+    long startTime = System.nanoTime();
 
     while (tryAgain) {
       try {
@@ -155,14 +156,17 @@ public class ZooSession {
           }
       }
 
-      if (System.currentTimeMillis() - startTime > 2L * timeout) {
+      long stopTime = System.nanoTime();
+      long duration = NANOSECONDS.toMillis(stopTime - startTime);
+
+      if (duration > 2L * timeout) {
         throw new RuntimeException("Failed to connect to zookeeper (" + host
             + ") within 2x zookeeper timeout period " + timeout);
       }
 
       if (tryAgain) {
-        if (startTime + 2L * timeout < System.currentTimeMillis() + sleepTime + connectTimeWait)
-          sleepTime = startTime + 2L * timeout - System.currentTimeMillis() - connectTimeWait;
+        if (2L * timeout < duration + sleepTime + connectTimeWait)
+          sleepTime = 2L * timeout - duration - connectTimeWait;
         if (sleepTime < 0) {
           connectTimeWait -= sleepTime;
           sleepTime = 0;

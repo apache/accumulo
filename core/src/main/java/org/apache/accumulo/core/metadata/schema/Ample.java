@@ -25,6 +25,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -138,7 +139,7 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
-  default void putGcCandidates(TableId tableId, Collection<? extends Ample.FileMeta> candidates) {
+  default void putGcCandidates(TableId tableId, Collection<TabletFile> candidates) {
     throw new UnsupportedOperationException();
   }
 
@@ -186,13 +187,13 @@ public interface Ample {
   interface TabletMutator {
     public TabletMutator putPrevEndRow(Text per);
 
-    public TabletMutator putFile(FileMeta path, DataFileValue dfv);
+    public TabletMutator putFile(TabletFile path, DataFileValue dfv);
 
-    public TabletMutator deleteFile(FileMeta path);
+    public TabletMutator deleteFile(TabletFile path);
 
-    public TabletMutator putScan(FileMeta path);
+    public TabletMutator putScan(TabletFile path);
 
-    public TabletMutator deleteScan(FileMeta path);
+    public TabletMutator deleteScan(TabletFile path);
 
     public TabletMutator putCompactionId(long compactionId);
 
@@ -214,7 +215,7 @@ public interface Ample {
 
     public TabletMutator putTime(MetadataTime time);
 
-    public TabletMutator putBulkFile(Ample.FileMeta bulkref, long tid);
+    public TabletMutator putBulkFile(TabletFile bulkref, long tid);
 
     public TabletMutator deleteBulkFile(Ample.FileMeta bulkref);
 
