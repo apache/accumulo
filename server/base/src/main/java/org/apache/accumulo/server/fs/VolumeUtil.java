@@ -187,6 +187,8 @@ public class VolumeUtil {
       VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
       throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
+    if (replacements.isEmpty())
+      return tabletFiles;
     log.trace("Using volume replacements: " + replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();
