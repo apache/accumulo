@@ -118,12 +118,12 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
         // ignore metadata tables
         if (line.contains("!0") || line.contains("+r"))
           continue;
-        if (line.contains("Starting Write-Ahead Log")) {
+        if (line.contains("recovering data from walogs")) {
           assertFalse(started);
           started = true;
           recoveries++;
         }
-        if (line.contains("Write-Ahead Log recovery complete")) {
+        if (line.matches(".*recovered \\d+ mutations creating \\d+ entries from \\d+ walogs.*")) {
           assertTrue(started);
           started = false;
         }

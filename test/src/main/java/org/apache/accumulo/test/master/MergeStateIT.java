@@ -144,7 +144,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
       // Verify the tablet state: hosted, and count
       TabletStateStore metaDataStateStore =
-          TabletStateStore.getStoreForLevel(DataLevel.USER, context);
+          TabletStateStore.getStoreForLevel(DataLevel.USER, context, state);
       int count = 0;
       for (TabletLocationState tss : metaDataStateStore) {
         if (tss != null)
