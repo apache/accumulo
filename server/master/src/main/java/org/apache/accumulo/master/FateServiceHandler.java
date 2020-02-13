@@ -162,7 +162,7 @@ class FateServiceHandler implements FateService.Iface {
               TableOperationExceptionType.OTHER,
               "Expected at least " + SPLIT_OFFSET + " arguments, saw :" + arguments.size());
         }
-        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
+        String tableName = validateNewTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
         InitialTableState initialTableState =
             InitialTableState.valueOf(ByteBufferUtil.toString(arguments.get(2)));
@@ -698,17 +698,19 @@ class FateServiceHandler implements FateService.Iface {
     }
   }
 
-  /* Old method
   // Verify table name arguments are valid, and match any additional restrictions
   private String validateTableNameArgument(ByteBuffer tableNameArg, TableOperation op,
       Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
+    if (tableName.length() > 1024) {
+      log.warn("Table names greater than 1024 characters should be renamed to conform to a 1024 character limit. " +
+              "Longer table names are no longer supported and may result in unexpected behavior.");
+    }
     return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
   }
-  */
 
   // Verify table name arguments are valid, and match any additional restrictions
-  private String validateTableNameArgument(ByteBuffer tableNameArg, TableOperation op,
+  private String validateNewTableNameArgument(ByteBuffer tableNameArg, TableOperation op,
       Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
     if (tableName.length() > 1024) {
