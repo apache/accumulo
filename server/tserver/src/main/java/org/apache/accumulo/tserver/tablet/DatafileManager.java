@@ -197,17 +197,12 @@ class DatafileManager {
     return inUse;
   }
 
-  public void importMapFiles(long tid, Map<TabletFile,DataFileValue> fileMap, boolean setTime)
+  public void importMapFiles(long tid, Map<TabletFile,DataFileValue> paths, boolean setTime)
       throws IOException {
 
     String bulkDir = null;
 
-    Map<TabletFile,DataFileValue> paths = new HashMap<>();
-    for (Entry<TabletFile,DataFileValue> entry : fileMap.entrySet())
-      paths.put(entry.getKey(), entry.getValue());
-
     for (TabletFile tpath : paths.keySet()) {
-
       boolean inTheRightDirectory = false;
       Path parent = tpath.getPath().getParent().getParent();
       for (String tablesDir : ServerConstants.getTablesDirs(tablet.getContext())) {
