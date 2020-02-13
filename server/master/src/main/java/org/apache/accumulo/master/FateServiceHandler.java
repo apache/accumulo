@@ -698,13 +698,26 @@ class FateServiceHandler implements FateService.Iface {
     }
   }
 
+  /* Old method
   // Verify table name arguments are valid, and match any additional restrictions
   private String validateTableNameArgument(ByteBuffer tableNameArg, TableOperation op,
       Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
     return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
   }
+  */
 
+  // Verify table name arguments are valid, and match any additional restrictions
+  private String validateTableNameArgument(ByteBuffer tableNameArg, TableOperation op,
+      Validator<String> userValidator) throws ThriftTableOperationException {
+    String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
+    if (tableName.length() > 1024) {
+      throw new ThriftTableOperationException(null, tableName, op, TableOperationExceptionType.OTHER,
+              "Table names must be less than or equal to 1024 characters. " + "'" + tableName +
+              "' is " + tableName.length() + " characters long.");
+    }
+    return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
+  }
   private void validateArgumentCount(List<ByteBuffer> arguments, TableOperation op, int expected)
       throws ThriftTableOperationException {
     if (arguments.size() != expected) {
