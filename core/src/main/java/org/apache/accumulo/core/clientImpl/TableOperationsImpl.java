@@ -216,7 +216,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(ntc != null, "ntc is null");
-    checkArgument(tableName.length() > 1024, "tableName is longer than 1024 characters");
+    checkArgument(tableName.length() < 1025, "tableName is longer than 1024 characters");
 
     List<ByteBuffer> args = new ArrayList<>();
     args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
