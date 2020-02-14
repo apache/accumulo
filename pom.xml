@@ -380,12 +380,6 @@
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-test</artifactId>
         <version>${project.version}</version>
-        <classifier>mrit</classifier>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-test</artifactId>
-        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>

@@ -224,11 +224,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-test</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-tracer</artifactId>
       <optional>true</optional>
     </dependency>
@@ -551,23 +546,6 @@
           </plugin>
         </plugins>
       </build>
-    </profile>
-    <profile>
-      <!-- create shaded test jar appropriate for running ITs on MapReduce -->
-      <id>mrit</id>
-      <activation>
-        <property>
-          <name>mrit</name>
-        </property>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.accumulo</groupId>
-          <artifactId>accumulo-test</artifactId>
-          <classifier>mrit</classifier>
-          <optional>true</optional>
-        </dependency>
-      </dependencies>
     </profile>
   </profiles>
 </project>
