@@ -190,7 +190,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     accumuloClient.tableOperations().delete(tableName);
   }
 
-  @Test
+  @Test(expected = IllegalArgumentException.class)
   public void createTableWithTableNameLengthLimit()
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     StringBuilder tableNameBuilder = new StringBuilder();
