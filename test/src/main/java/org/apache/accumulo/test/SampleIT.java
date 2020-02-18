@@ -277,14 +277,7 @@ public class SampleIT extends AccumuloClusterHarness {
   }
 
   private int countEntries(Iterable<Entry<Key,Value>> scanner) {
-
-    int count = 0;
-
-    for (Entry<Key,Value> keyValueEntry : scanner) {
-      count++;
-    }
-
-    return count;
+    return Iterables.size(scanner);
   }
 
   private void setRange(Range range, List<? extends ScannerBase> scanners) {
