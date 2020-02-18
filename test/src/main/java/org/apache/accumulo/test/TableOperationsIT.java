@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -193,7 +194,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   public void createTableWithTableNameLengthLimit()
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     StringBuilder tableNameBuilder = new StringBuilder();
-    for (int i = 0; i < 1026; i++) {
+    for (int i = 0; i < MAX_TABLE_NAME_LEN + 1; i++) {
       tableNameBuilder.append('a');
     }
     String tableName = tableNameBuilder.toString();

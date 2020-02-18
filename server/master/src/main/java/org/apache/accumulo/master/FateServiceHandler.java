@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.master;
 
+import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
 import static org.apache.accumulo.master.util.TableValidators.CAN_CLONE;
 import static org.apache.accumulo.master.util.TableValidators.NOT_METADATA;
 import static org.apache.accumulo.master.util.TableValidators.NOT_ROOT_ID;
@@ -701,7 +702,7 @@ class FateServiceHandler implements FateService.Iface {
   private String validateTableNameArgument(ByteBuffer tableNameArg, TableOperation op,
       Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
-    if ((tableName != null) && (tableName.length() > 1024)) {
+    if ((tableName != null) && (tableName.length() > MAX_TABLE_NAME_LEN)) {
       log.warn(
           "Table names greater than 1024 characters should be renamed to conform to a 1024 character limit. "
               + "Longer table names are no longer supported and may result in unexpected behavior.");
@@ -713,10 +714,10 @@ class FateServiceHandler implements FateService.Iface {
   private String validateNewTableNameArgument(ByteBuffer tableNameArg, TableOperation op,
       Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
-    if ((tableName != null) && (tableName.length() > 1024)) {
+    if ((tableName != null) && (tableName.length() > MAX_TABLE_NAME_LEN)) {
       throw new ThriftTableOperationException(null, tableName, op,
           TableOperationExceptionType.OTHER,
-          "Table names must be less than or equal to 1024 characters. " + "'" + tableName + "' is "
+          "Table names must be less than or equal to " + MAX_TABLE_NAME_LEN + " characters. " + "'" + tableName + "' is "
               + tableName.length() + " characters long.");
     }
     return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
