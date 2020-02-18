@@ -65,8 +65,7 @@ public class ListVolumesUsed {
     try (TabletsMetadata tablets = TabletsMetadata.builder().forLevel(level)
         .fetch(TabletMetadata.ColumnType.FILES, TabletMetadata.ColumnType.LOGS).build(context)) {
       for (TabletMetadata tabletMetadata : tablets) {
-        tabletMetadata.getFiles()
-            .forEach(file -> volumes.add(getTableURI(file.getMetadataEntry())));
+        tabletMetadata.getFiles().forEach(file -> volumes.add(getTableURI(file.getMetaRead())));
         tabletMetadata.getLogs().forEach(le -> getLogURIs(volumes, le));
       }
     }

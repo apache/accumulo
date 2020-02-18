@@ -464,8 +464,7 @@ public class CollectTabletStats {
     for (TabletFile file : files) {
       FileSystem ns = fs.getVolumeByPath(file.getPath()).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getMetadataEntry(), ns, ns.getConf(),
-              CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getMetaRead(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(aconf).build();
       Range range = new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true);
       reader.seek(range, columnSet, columnSet.size() != 0);
@@ -498,8 +497,7 @@ public class CollectTabletStats {
     for (TabletFile file : files) {
       FileSystem ns = fs.getVolumeByPath(file.getPath()).getFileSystem();
       readers.add(FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getMetadataEntry(), ns, ns.getConf(),
-              CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getMetaRead(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(aconf.getSystemConfiguration()).build());
     }
 

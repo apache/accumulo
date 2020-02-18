@@ -367,7 +367,7 @@ class DatafileManager {
     // this metadata write does not go up... it goes sideways or to itself
     if (absMergeFile != null)
       MetadataTableUtil.addDeleteEntries(tablet.getExtent(),
-          Collections.singleton(absMergeFile.getMetadataEntry()), tablet.getContext());
+          Collections.singleton(absMergeFile.getMetaUpdateDelete()), tablet.getContext());
 
     Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
     boolean replicate =

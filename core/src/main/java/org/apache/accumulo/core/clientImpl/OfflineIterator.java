@@ -310,9 +310,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     // TODO need to close files - ACCUMULO-1303
     for (TabletFile file : absFiles) {
       FileSystem fs =
-          VolumeConfiguration.getVolume(file.getMetadataEntry(), conf, config).getFileSystem();
+          VolumeConfiguration.getVolume(file.getMetaRead(), conf, config).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getMetadataEntry(), fs, conf, CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getMetaRead(), fs, conf, CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(acuTableConf).build();
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);

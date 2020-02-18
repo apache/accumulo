@@ -163,11 +163,11 @@ public class VolumeUtil {
     }
 
     for (Entry<TabletFile,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
-      String metaPath = entry.getKey().getNormalizedPath();
+      String metaPath = entry.getKey().getMetaUpdateDelete();
       Path switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
       if (switchedPath != null) {
         filesToRemove.add(entry.getKey());
-        TabletFile switchedFile = new TabletFile(switchedPath, switchedPath.toString());
+        TabletFile switchedFile = new TabletFile(switchedPath);
         filesToAdd.put(switchedFile, entry.getValue());
         ret.datafiles.put(switchedFile, entry.getValue());
         log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);

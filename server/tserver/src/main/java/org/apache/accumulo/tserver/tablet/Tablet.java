@@ -289,8 +289,8 @@ public class Tablet {
 
   TabletFile getNextMapFilename(String prefix) throws IOException {
     String extension = FileOperations.getNewFileExtension(tableConfiguration);
-    return new TabletFile(chooseTabletDir() + "/" + prefix
-        + context.getUniqueNameAllocator().getNextName() + "." + extension);
+    return new TabletFile(new Path(chooseTabletDir() + "/" + prefix
+        + context.getUniqueNameAllocator().getNextName() + "." + extension));
   }
 
   private void checkTabletDir(Path path) throws IOException {
@@ -374,7 +374,7 @@ public class Tablet {
       try {
         Set<String> absPaths = new HashSet<>();
         for (TabletFile ref : datafiles.keySet()) {
-          absPaths.add(ref.getNormalizedPath());
+          absPaths.add(ref.getMetaRead());
         }
 
         tabletServer.recover(this.getTabletServer().getFileSystem(), extent, logEntries, absPaths,
@@ -1474,7 +1474,7 @@ public class Tablet {
     try {
       // we should make .25 below configurable
       keys = FileUtil.findMidPoint(context, chooseTabletDir(), extent.getPrevEndRow(),
-          extent.getEndRow(), FileUtil.toPathStrings(files), .25);
+          extent.getEndRow(), files, .25);
     } catch (IOException e) {
       log.error("Failed to find midpoint {}", e.getMessage());
       return null;
@@ -1611,7 +1611,7 @@ public class Tablet {
       TabletFile file = entry.getKey();
       FileSystem ns = fs.getVolumeByPath(file.getPath()).getFileSystem();
       try (FileSKVIterator openReader = fileFactory.newReaderBuilder()
-          .forFile(file.getMetadataEntry(), ns, ns.getConf(), context.getCryptoService())
+          .forFile(file.getMetaRead(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(this.getTableConfiguration()).seekToBeginning().build()) {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
@@ -1834,9 +1834,9 @@ public class Tablet {
 
         Set<TabletFile> smallestFiles = removeSmallest(filesToCompact, numToCompact);
 
-        TabletFile fileName =
+        TabletFile newFile =
             getNextMapFilename((filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
-        TabletFile compactTmpName = new TabletFile(fileName.getMetadataEntry() + "_tmp");
+        TabletFile compactTmpName = new TabletFile(new Path(newFile.getMetaInsert() + "_tmp"));
 
         AccumuloConfiguration tableConf = createCompactionConfiguration(tableConfiguration, plan);
 
@@ -1894,14 +1894,14 @@ public class Tablet {
           if (lastBatch && plan != null && plan.deleteFiles != null) {
             smallestFiles.addAll(plan.deleteFiles);
           }
-          getDatafileManager().bringMajorCompactionOnline(smallestFiles, compactTmpName, fileName,
+          getDatafileManager().bringMajorCompactionOnline(smallestFiles, compactTmpName, newFile,
               filesToCompact.size() == 0 && compactionId != null ? compactionId.getFirst() : null,
               new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
 
           // when major compaction produces a file w/ zero entries, it will be deleted... do not
           // want to add the deleted file
           if (filesToCompact.size() > 0 && mcs.getEntriesWritten() > 0) {
-            filesToCompact.put(fileName,
+            filesToCompact.put(newFile,
                 new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
           }
         }
@@ -2150,10 +2150,8 @@ public class Tablet {
         splitPoint = findSplitRow(getDatafileManager().getFiles());
       } else {
         Text tsp = new Text(sp);
-        splitPoint = new SplitRowSpec(
-            FileUtil.estimatePercentageLTE(context, chooseTabletDir(), extent.getPrevEndRow(),
-                extent.getEndRow(), FileUtil.toPathStrings(getDatafileManager().getFiles()), tsp),
-            tsp);
+        splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(context, chooseTabletDir(),
+            extent.getPrevEndRow(), extent.getEndRow(), getDatafileManager().getFiles(), tsp), tsp);
       }
 
       if (splitPoint == null || splitPoint.row == null) {
@@ -2263,7 +2261,7 @@ public class Tablet {
 
     for (Entry<TabletFile,MapFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
-      files.add(entry.getKey().getNormalizedPath());
+      files.add(entry.getKey().getMetaInsert());
     }
 
     // Clients timeout and will think that this operation failed.

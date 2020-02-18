@@ -88,7 +88,7 @@ public class MasterMetadataUtil {
 
     for (Entry<Long,? extends Collection<TabletFile>> entry : bulkLoadedFiles.entrySet()) {
       for (TabletFile ref : entry.getValue()) {
-        tablet.putBulkFile(ref, entry.getKey().longValue());
+        tablet.putBulkFile(ref, entry.getKey());
       }
     }
 

@@ -199,7 +199,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   public static Mutation createDeleteMutation(TabletFile pathToRemove) {
-    return createDelMutation(pathToRemove.getMetadataEntry());
+    return createDelMutation(pathToRemove.getMetaUpdateDelete());
   }
 
   private static Mutation createDelMutation(String path) {

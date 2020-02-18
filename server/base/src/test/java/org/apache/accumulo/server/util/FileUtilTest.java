@@ -18,22 +18,15 @@
  */
 package org.apache.accumulo.server.util;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.Path;
@@ -62,25 +55,6 @@ public class FileUtilTest {
   @Before
   public void createTmpDir() throws IOException {
     accumuloDir = tmpDir.newFolder(testName.getMethodName());
-  }
-
-  @Test
-  public void testToPathStrings() {
-    Collection<TabletFile> c = new java.util.ArrayList<>();
-    TabletFile r1 = createMock(TabletFile.class);
-    expect(r1.getNormalizedPath()).andReturn("/foo");
-    replay(r1);
-    c.add(r1);
-    TabletFile r2 = createMock(TabletFile.class);
-    expect(r2.getNormalizedPath()).andReturn("/bar");
-    replay(r2);
-    c.add(r2);
-
-    Collection<String> cs = FileUtil.toPathStrings(c);
-    assertEquals(2, cs.size());
-    Iterator<String> iter = cs.iterator();
-    assertEquals("/foo", iter.next());
-    assertEquals("/bar", iter.next());
   }
 
   @Test

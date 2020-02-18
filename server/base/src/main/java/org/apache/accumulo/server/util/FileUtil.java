@@ -112,13 +112,13 @@ public class FileUtil {
     return result;
   }
 
-  public static Collection<String> reduceFiles(ServerContext context, Configuration conf,
-      Text prevEndRow, Text endRow, Collection<String> mapFiles, int maxFiles, Path tmpDir,
+  public static Collection<TabletFile> reduceFiles(ServerContext context, Configuration conf,
+      Text prevEndRow, Text endRow, Collection<TabletFile> mapFiles, int maxFiles, Path tmpDir,
       int pass) throws IOException {
 
     AccumuloConfiguration acuConf = context.getConfiguration();
 
-    ArrayList<String> paths = new ArrayList<>(mapFiles);
+    ArrayList<TabletFile> paths = new ArrayList<>(mapFiles);
 
     if (paths.size() <= maxFiles)
       return paths;
@@ -127,33 +127,34 @@ public class FileUtil {
 
     int start = 0;
 
-    ArrayList<String> outFiles = new ArrayList<>();
+    ArrayList<TabletFile> outFiles = new ArrayList<>();
 
     int count = 0;
 
     while (start < paths.size()) {
       int end = Math.min(maxFiles + start, paths.size());
-      List<String> inFiles = paths.subList(start, end);
+      List<TabletFile> inFiles = paths.subList(start, end);
 
       start = end;
 
-      String newMapFile = String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION);
+      TabletFile newMapFile =
+          new TabletFile(new Path(String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION)));
 
       outFiles.add(newMapFile);
       FileSystem ns =
-          context.getVolumeManager().getVolumeByPath(new Path(newMapFile)).getFileSystem();
+          context.getVolumeManager().getVolumeByPath(newMapFile.getPath()).getFileSystem();
       FileSKVWriter writer = new RFileOperations().newWriterBuilder()
-          .forFile(newMapFile.toString(), ns, ns.getConf(), context.getCryptoService())
+          .forFile(newMapFile.getMetaInsert(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(acuConf).build();
       writer.startDefaultLocalityGroup();
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(inFiles.size());
 
       FileSKVIterator reader = null;
       try {
-        for (String s : inFiles) {
-          ns = context.getVolumeManager().getVolumeByPath(new Path(s)).getFileSystem();
+        for (TabletFile file : inFiles) {
+          ns = context.getVolumeManager().getVolumeByPath(file.getPath()).getFileSystem();
           reader = FileOperations.getInstance().newIndexReaderBuilder()
-              .forFile(s, ns, ns.getConf(), context.getCryptoService())
+              .forFile(file.getMetaRead(), ns, ns.getConf(), context.getCryptoService())
               .withTableConfiguration(acuConf).build();
           iters.add(reader);
         }
@@ -204,13 +205,14 @@ public class FileUtil {
   }
 
   public static SortedMap<Double,Key> findMidPoint(ServerContext context, String tabletDir,
-      Text prevEndRow, Text endRow, Collection<String> mapFiles, double minSplit)
+      Text prevEndRow, Text endRow, Collection<TabletFile> mapFiles, double minSplit)
       throws IOException {
     return findMidPoint(context, tabletDir, prevEndRow, endRow, mapFiles, minSplit, true);
   }
 
   public static double estimatePercentageLTE(ServerContext context, String tabletDir,
-      Text prevEndRow, Text endRow, Collection<String> mapFiles, Text splitRow) throws IOException {
+      Text prevEndRow, Text endRow, Collection<TabletFile> mapFiles, Text splitRow)
+      throws IOException {
 
     Path tmpDir = null;
 
@@ -287,10 +289,10 @@ public class FileUtil {
    *          indexing interval is unknown.
    */
   public static SortedMap<Double,Key> findMidPoint(ServerContext context, String tabletDirectory,
-      Text prevEndRow, Text endRow, Collection<String> mapFiles, double minSplit, boolean useIndex)
-      throws IOException {
+      Text prevEndRow, Text endRow, Collection<TabletFile> mapFiles, double minSplit,
+      boolean useIndex) throws IOException {
 
-    Collection<String> origMapFiles = mapFiles;
+    Collection<TabletFile> origMapFiles = mapFiles;
 
     Path tmpDir = null;
 
@@ -424,7 +426,7 @@ public class FileUtil {
   }
 
   private static long countIndexEntries(ServerContext context, Text prevEndRow, Text endRow,
-      Collection<String> mapFiles, boolean useIndex, ArrayList<FileSKVIterator> readers)
+      Collection<TabletFile> mapFiles, boolean useIndex, ArrayList<FileSKVIterator> readers)
       throws IOException {
 
     AccumuloConfiguration acuConf = context.getConfiguration();
@@ -432,18 +434,17 @@ public class FileUtil {
     long numKeys = 0;
 
     // count the total number of index entries
-    for (String ref : mapFiles) {
+    for (TabletFile file : mapFiles) {
       FileSKVIterator reader = null;
-      Path path = new Path(ref);
-      FileSystem ns = context.getVolumeManager().getVolumeByPath(path).getFileSystem();
+      FileSystem ns = context.getVolumeManager().getVolumeByPath(file.getPath()).getFileSystem();
       try {
         if (useIndex)
           reader = FileOperations.getInstance().newIndexReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
+              .forFile(file.getMetaRead(), ns, ns.getConf(), context.getCryptoService())
               .withTableConfiguration(acuConf).build();
         else
           reader = FileOperations.getInstance().newScanReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
+              .forFile(file.getMetaRead(), ns, ns.getConf(), context.getCryptoService())
               .withTableConfiguration(acuConf).overRange(new Range(prevEndRow, false, null, true),
                   LocalityGroupUtil.EMPTY_CF_SET, false)
               .build();
@@ -468,11 +469,11 @@ public class FileUtil {
 
       if (useIndex)
         readers.add(FileOperations.getInstance().newIndexReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
+            .forFile(file.getMetaRead(), ns, ns.getConf(), context.getCryptoService())
             .withTableConfiguration(acuConf).build());
       else
         readers.add(FileOperations.getInstance().newScanReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
+            .forFile(file.getMetaRead(), ns, ns.getConf(), context.getCryptoService())
             .withTableConfiguration(acuConf).overRange(new Range(prevEndRow, false, null, true),
                 LocalityGroupUtil.EMPTY_CF_SET, false)
             .build());
@@ -494,7 +495,7 @@ public class FileUtil {
       FileSystem ns = context.getVolumeManager().getVolumeByPath(mapfile.getPath()).getFileSystem();
       try {
         reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(mapfile.toString(), ns, ns.getConf(), context.getCryptoService())
+            .forFile(mapfile.getMetaRead(), ns, ns.getConf(), context.getCryptoService())
             .withTableConfiguration(context.getConfiguration()).build();
 
         Key firstKey = reader.getFirstKey();
@@ -529,11 +530,10 @@ public class FileUtil {
 
     Key lastKey = null;
 
-    for (TabletFile ref : mapFiles) {
-      Path path = ref.getPath();
-      FileSystem ns = context.getVolumeManager().getVolumeByPath(path).getFileSystem();
+    for (TabletFile file : mapFiles) {
+      FileSystem ns = context.getVolumeManager().getVolumeByPath(file.getPath()).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
+          .forFile(file.getMetaRead(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
 
       try {
@@ -565,15 +565,6 @@ public class FileUtil {
     FileSystem ns = context.getVolumeManager().getVolumeByPath(mapFile).getFileSystem();
     return BulkImport.estimateSizes(context.getConfiguration(), mapFile, fileSize, extents, ns,
         null, context.getCryptoService());
-  }
-
-  public static Collection<String> toPathStrings(Collection<TabletFile> refs) {
-    ArrayList<String> ret = new ArrayList<>();
-    for (TabletFile fileRef : refs) {
-      ret.add(fileRef.getNormalizedPath());
-    }
-
-    return ret;
   }
 
 }

@@ -183,6 +183,7 @@ public class MetadataTableUtil {
     tablet.putTime(time);
     estSizes.forEach(tablet::putFile);
 
+    // TODO check to see if we need to delete.. putBulkFile does an insert
     for (TabletFile file : estSizes.keySet()) {
       tablet.putBulkFile(file, tid);
     }
@@ -255,12 +256,12 @@ public class MetadataTableUtil {
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
 
     for (Entry<TabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
-      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetadataText(),
+      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetaInsertText(),
           new Value(entry.getValue().encode()));
     }
 
     for (TabletFile pathToRemove : highDatafilesToRemove) {
-      m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetadataText());
+      m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetaUpdateDeleteText());
     }
 
     update(context, zooLock, m, new KeyExtent(metadataEntry, (Text) null));

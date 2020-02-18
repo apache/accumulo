@@ -32,7 +32,7 @@ public class TabletFileTest {
     TabletFile tabletFile = new TabletFile(metadataEntry);
 
     assertEquals(volume, tabletFile.getVolume());
-    assertEquals(metadataEntry, tabletFile.getMetadataEntry());
+    assertEquals(metadataEntry, tabletFile.getMetaUpdateDelete());
     assertEquals(TableId.of(tableId), tabletFile.getTableId());
     assertEquals(tabletDir, tabletFile.getTabletDir());
     assertEquals(fileName, tabletFile.getFileName());

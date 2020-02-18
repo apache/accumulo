@@ -497,8 +497,9 @@ public class FileManager {
     private Map<FileSKVIterator,String> openFileRefs(Collection<TabletFile> files)
         throws TooManyFilesException, IOException {
       List<String> strings = new ArrayList<>(files.size());
-      for (TabletFile ref : files)
-        strings.add(ref.getMetadataEntry());
+      for (TabletFile file : files) {
+        strings.add(file.getMetaRead());
+      }
       return openFiles(strings);
     }
 

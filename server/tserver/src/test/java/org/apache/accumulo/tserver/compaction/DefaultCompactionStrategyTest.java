@@ -227,7 +227,7 @@ public class DefaultCompactionStrategyTest {
   private static Set<String> asStringSet(Collection<TabletFile> refs) {
     HashSet<String> result = new HashSet<>();
     for (TabletFile ref : refs) {
-      result.add(ref.getNormalizedPath());
+      result.add(ref.getMetaRead());
     }
     return result;
   }

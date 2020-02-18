@@ -391,7 +391,7 @@ public class VolumeIT extends ConfigurableMacBase {
       int count = 0;
       for (TabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
           .getFiles()) {
-        assertTrue(file.getMetadataEntry().startsWith(v2.toString()));
+        assertTrue(file.getMetaUpdateDelete().startsWith(v2.toString()));
         count++;
       }
 
@@ -463,8 +463,8 @@ public class VolumeIT extends ConfigurableMacBase {
     int count = 0;
     for (TabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
         .getFiles()) {
-      assertTrue(file.getMetadataEntry().startsWith(v8.toString())
-          || file.getMetadataEntry().startsWith(v9.toString()));
+      assertTrue(file.getMetaUpdateDelete().startsWith(v8.toString())
+          || file.getMetaUpdateDelete().startsWith(v9.toString()));
       count++;
     }
 

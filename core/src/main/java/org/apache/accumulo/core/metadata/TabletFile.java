@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
@@ -42,18 +43,31 @@ public class TabletFile implements Comparable<TabletFile> {
   private final TableId tableId; // 2a
   private final String tabletDir; // t-0003
   private final String fileName; // C0004.rf
-  private final String metadataEntry;
   private final Path metaPath;
   private final String normalizedPath;
 
+  private Optional<String> metadataEntry;
+
   /**
-   * Construct a tablet file using a Path object already created. Used in the case where we had to
-   * use Path object to qualify an absolute path.
+   * Construct new tablet file using a Path. Used in the case where we had to use Path object to
+   * qualify an absolute path or create a new file.
    */
-  public TabletFile(Path metaPath, String originalMetaEntry) {
-    this.metadataEntry = Objects.requireNonNull(originalMetaEntry);
+  public TabletFile(Path metaPath) {
+    this(metaPath, Optional.empty());
+  }
+
+  /**
+   * Construct a tablet file using the string read from the metadata. Preserve the exact string so
+   * the entry can be deleted.
+   */
+  public TabletFile(String metadataEntry) {
+    this(new Path(metadataEntry), Optional.of(Objects.requireNonNull(metadataEntry)));
+  }
+
+  private TabletFile(Path metaPath, Optional<String> originalMetaEntry) {
+    this.metadataEntry = originalMetaEntry;
     this.metaPath = Objects.requireNonNull(metaPath);
-    String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metadataEntry;
+    String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
 
     // use Path object to step backwards from the filename through all the parts
     this.fileName = metaPath.getName();
@@ -79,14 +93,6 @@ public class TabletFile implements Comparable<TabletFile> {
         + tabletDir + "/" + fileName;
   }
 
-  /**
-   * Construct a tablet file using the string read from the metadata. Preserve the exact string so
-   * the entry can be deleted.
-   */
-  public TabletFile(String metadataEntry) {
-    this(new Path(metadataEntry), metadataEntry);
-  }
-
   public String getVolume() {
     return volume;
   }
@@ -104,21 +110,50 @@ public class TabletFile implements Comparable<TabletFile> {
   }
 
   /**
-   * Exact string that is stored in the metadata table
+   * Return a string for reading the tablet file. Doesn't have to be exact string in metadata.
    */
-  public String getMetadataEntry() {
-    return metadataEntry;
+  public String getMetaRead() {
+    return normalizedPath;
   }
 
   /**
-   * Exact string that is stored in the metadata table but as a Text object
+   * Return a string for inserting a new tablet file.
    */
-  public Text getMetadataText() {
-    return new Text(metadataEntry);
+  public String getMetaInsert() {
+    return normalizedPath;
   }
 
-  public String getNormalizedPath() {
-    return normalizedPath;
+  /**
+   * Return a new Text object of {@link #getMetaInsert()}
+   */
+  public Text getMetaInsertText() {
+    return new Text(getMetaInsert());
+  }
+
+  /**
+   * New file was written to metadata so update the entry.
+   */
+  public void inserted() {
+    this.metadataEntry = Optional.of(normalizedPath);
+  }
+
+  /**
+   * Return the exact string that is stored in the metadata table. This is important for updating
+   * and deleting metadata entries. If the exact string is not used, erroneous entries can pollute
+   * the metadata table.
+   */
+  public String getMetaUpdateDelete() {
+    if (metadataEntry.isEmpty())
+      throw new IllegalStateException(
+          "TabletFile " + metaPath + " does not have a metadata entry.");
+    return metadataEntry.get();
+  }
+
+  /**
+   * Return a new Text object of {@link #getMetaUpdateDelete()}
+   */
+  public Text getMetaUpdateDeleteText() {
+    return new Text(getMetaUpdateDelete());
   }
 
   public Path getPath() {
@@ -130,7 +165,7 @@ public class TabletFile implements Comparable<TabletFile> {
     if (equals(o)) {
       return 0;
     } else {
-      return normalizedPath.compareTo(o.getNormalizedPath());
+      return normalizedPath.compareTo(o.normalizedPath);
     }
   }
 
@@ -138,7 +173,7 @@ public class TabletFile implements Comparable<TabletFile> {
   public boolean equals(Object obj) {
     if (obj instanceof TabletFile) {
       TabletFile that = (TabletFile) obj;
-      return normalizedPath.equals(that.getNormalizedPath());
+      return normalizedPath.equals(that.normalizedPath);
     }
     return false;
   }
