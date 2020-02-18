@@ -702,9 +702,10 @@ class FateServiceHandler implements FateService.Iface {
   private String validateTableNameArgument(ByteBuffer tableNameArg, TableOperation op,
       Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
-    if (tableName.length() > 1024) {
-      log.warn("Table names greater than 1024 characters should be renamed to conform to a 1024 character limit. " +
-              "Longer table names are no longer supported and may result in unexpected behavior.");
+    if ((tableName != null) && (tableName.length() > 1024)) {
+      log.warn(
+          "Table names greater than 1024 characters should be renamed to conform to a 1024 character limit. "
+              + "Longer table names are no longer supported and may result in unexpected behavior.");
     }
     return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
   }
@@ -713,13 +714,15 @@ class FateServiceHandler implements FateService.Iface {
   private String validateNewTableNameArgument(ByteBuffer tableNameArg, TableOperation op,
       Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
-    if (tableName.length() > 1024) {
-      throw new ThriftTableOperationException(null, tableName, op, TableOperationExceptionType.OTHER,
-              "Table names must be less than or equal to 1024 characters. " + "'" + tableName +
-              "' is " + tableName.length() + " characters long.");
+    if ((tableName != null) && (tableName.length() > 1024)) {
+      throw new ThriftTableOperationException(null, tableName, op,
+          TableOperationExceptionType.OTHER,
+          "Table names must be less than or equal to 1024 characters. " + "'" + tableName + "' is "
+              + tableName.length() + " characters long.");
     }
     return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
   }
+
   private void validateArgumentCount(List<ByteBuffer> arguments, TableOperation op, int expected)
       throws ThriftTableOperationException {
     if (arguments.size() != expected) {

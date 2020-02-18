@@ -188,9 +188,10 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     accumuloClient.tableOperations().delete(tableName);
   }
+
   @Test
-  public void createTableWithTableNameLengthLimit() throws AccumuloException,
-          AccumuloSecurityException, TableExistsException {
+  public void createTableWithTableNameLengthLimit()
+      throws AccumuloException, AccumuloSecurityException, TableExistsException {
     StringBuilder tableNameBuilder = new StringBuilder();
     for (int i = 0; i < 1026; i++) {
       tableNameBuilder.append('a');
@@ -199,7 +200,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     accumuloClient.tableOperations().create(tableName);
     assertTrue(!accumuloClient.tableOperations().exists(tableName));
   }
-  
+
   @Test
   public void createMergeClonedTable() throws Exception {
     String[] names = getUniqueNames(2);
