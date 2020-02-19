@@ -19,12 +19,15 @@ package org.apache.accumulo.core.cli;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Scanner;
 import java.util.UUID;
 
+import com.beust.jcommander.ParameterException;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -111,10 +114,73 @@ public class ClientOpts extends Help {
     }
   }
 
-  public static class PasswordConverter implements IStringConverter<Password> {
+  public static class PasswordConverter implements IStringConverter<String> {
+    public static final String STDIN = "stdin";
+
+    private enum KeyType {
+      PASS("pass:"), ENV("env:") {
+        @Override
+        String process(String value) {
+          return System.getenv(value);
+        }
+      },
+      FILE("file:") {
+        @Override
+        String process(String value) {
+          Scanner scanner = null;
+          try {
+            scanner = new Scanner(new File(value));
+            return scanner.nextLine();
+          } catch (FileNotFoundException e) {
+            throw new ParameterException(e);
+          } finally {
+            if (scanner != null) {
+              scanner.close();
+            }
+          }
+        }
+      },
+      STDIN(PasswordConverter.STDIN) {
+        @Override
+        public boolean matches(String value) {
+          return prefix.equals(value);
+        }
+
+        @Override
+        public String convert(String value) {
+          // Will check for this later
+          return prefix;
+        }
+      };
+
+      String prefix;
+
+      private KeyType(String prefix) {
+        this.prefix = prefix;
+      }
+
+      public boolean matches(String value) {
+        return value.startsWith(prefix);
+      }
+
+      public String convert(String value) {
+        return process(value.substring(prefix.length()));
+      }
+
+      String process(String value) {
+        return value;
+      }
+    }
+
     @Override
-    public Password convert(String value) {
-      return new Password(value);
+    public String convert(String value) {
+      for (KeyType keyType : KeyType.values()) {
+        if (keyType.matches(value)) {
+          return keyType.convert(value);
+        }
+      }
+
+      return value;
     }
   }
 

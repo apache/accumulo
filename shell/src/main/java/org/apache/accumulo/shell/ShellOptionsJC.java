@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -48,82 +49,12 @@ public class ShellOptionsJC {
   @Parameter(names = {"-u", "--user"}, description = "username (defaults to your OS user)")
   private String username = null;
 
-  public static class PasswordConverter implements IStringConverter<String> {
-    public static final String STDIN = "stdin";
-
-    private enum KeyType {
-      PASS("pass:"), ENV("env:") {
-        @Override
-        String process(String value) {
-          return System.getenv(value);
-        }
-      },
-      FILE("file:") {
-        @Override
-        String process(String value) {
-          Scanner scanner = null;
-          try {
-            scanner = new Scanner(new File(value));
-            return scanner.nextLine();
-          } catch (FileNotFoundException e) {
-            throw new ParameterException(e);
-          } finally {
-            if (scanner != null) {
-              scanner.close();
-            }
-          }
-        }
-      },
-      STDIN(PasswordConverter.STDIN) {
-        @Override
-        public boolean matches(String value) {
-          return prefix.equals(value);
-        }
-
-        @Override
-        public String convert(String value) {
-          // Will check for this later
-          return prefix;
-        }
-      };
-
-      String prefix;
-
-      private KeyType(String prefix) {
-        this.prefix = prefix;
-      }
-
-      public boolean matches(String value) {
-        return value.startsWith(prefix);
-      }
-
-      public String convert(String value) {
-        return process(value.substring(prefix.length()));
-      }
-
-      String process(String value) {
-        return value;
-      }
-    }
-
-    @Override
-    public String convert(String value) {
-      for (KeyType keyType : KeyType.values()) {
-        if (keyType.matches(value)) {
-          return keyType.convert(value);
-        }
-      }
-
-      return value;
-    }
-  }
-
   // Note: Don't use "password = true" because then it will prompt even if we have a token
   @Parameter(names = {"-p", "--password"},
       description = "password (can be specified as 'pass:<password>',"
           + " 'file:<local file containing the password>', 'env:<variable containing"
           + " the pass>', or stdin)",
-      converter = PasswordConverter.class)
+      converter = ClientOpts.PasswordConverter.class)
   private String password;
 
   public static class TokenConverter implements IStringConverter<AuthenticationToken> {
