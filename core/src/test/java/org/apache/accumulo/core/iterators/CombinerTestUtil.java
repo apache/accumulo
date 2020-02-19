@@ -22,4 +22,8 @@ public class CombinerTestUtil {
   public static void clearLogCache() {
     Combiner.loggedMsgCache.invalidateAll();
   }
+
+  public static long cacheSize() {
+    return Combiner.loggedMsgCache.size();
+  }
 }
