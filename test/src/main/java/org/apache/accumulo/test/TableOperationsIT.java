@@ -194,7 +194,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   public void createTableWithTableNameLengthLimit()
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     StringBuilder tableNameBuilder = new StringBuilder();
-    for (int i = 0; i < MAX_TABLE_NAME_LEN + 1; i++) {
+    for (int i = 0; i <= MAX_TABLE_NAME_LEN; i++) {
       tableNameBuilder.append('a');
     }
     String tableName = tableNameBuilder.toString();

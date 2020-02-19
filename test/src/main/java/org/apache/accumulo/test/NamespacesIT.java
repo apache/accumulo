@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.Constants.MAX_NAMESPACE_LEN;
+import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -189,6 +191,18 @@ public class NamespacesIT extends SharedMiniClusterBase {
       assertFalse(c.namespaceOperations().exists(namespace));
       assertFalse(c.tableOperations().exists(t));
     }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void createNamespaceWithNamespaceLengthLimit()
+          throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
+    StringBuilder namespaceBuilder = new StringBuilder();
+    for (int i = 0; i <= MAX_NAMESPACE_LEN; i++) {
+      namespaceBuilder.append('a');
+    }
+    String namespace = namespaceBuilder.toString();
+    c.namespaceOperations().create(namespace);
+    assertTrue(!c.namespaceOperations().exists(namespace));
   }
 
   @Test
