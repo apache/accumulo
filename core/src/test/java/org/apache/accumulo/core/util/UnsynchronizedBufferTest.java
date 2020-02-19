@@ -140,8 +140,9 @@ public class UnsynchronizedBufferTest {
     // 2^0 < size <= 2^1
     assertEquals(2, UnsynchronizedBuffer.nextArraySize(2));
 
-    // 2^exp < size <= 2^(exp+1) (for all exp: [1,29])
+    // 2^1 < size <= 2^30
     for (int exp = 1; exp < 30; ++exp) {
+      // 2^exp < size <= 2^(exp+1) (for all exp: [1,29])
       int nextExp = exp + 1;
       assertEquals(1 << nextExp, UnsynchronizedBuffer.nextArraySize((1 << exp) + 1));
       assertEquals(1 << nextExp, UnsynchronizedBuffer.nextArraySize(1 << nextExp));
