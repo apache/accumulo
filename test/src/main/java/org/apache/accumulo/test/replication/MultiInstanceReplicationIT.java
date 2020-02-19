@@ -68,6 +68,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +78,7 @@ import com.google.common.collect.Iterators;
 /**
  * Replication tests which start at least two MAC instances and replicate data between them
  */
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class MultiInstanceReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MultiInstanceReplicationIT.class);
 

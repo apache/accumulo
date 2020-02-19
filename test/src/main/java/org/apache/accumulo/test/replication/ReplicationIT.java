@@ -100,6 +100,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,6 +118,7 @@ import com.google.protobuf.TextFormat;
  * MockReplicaSystem is used to "fake" the peer instance that we're replicating to. This lets us
  * test replication in a functional way without having to worry about two real systems.
  */
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class ReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationIT.class);
   private static final long MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS = 5000l;

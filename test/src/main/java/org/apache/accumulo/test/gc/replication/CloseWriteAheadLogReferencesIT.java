@@ -57,10 +57,12 @@ import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
   private WrappedCloseWriteAheadLogReferences refs;
