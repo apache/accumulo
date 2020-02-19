@@ -262,8 +262,11 @@ public class UnsynchronizedBuffer {
     if (i < 0)
       throw new IllegalArgumentException();
 
-    if (i > (1 << 30))
-      return Integer.MAX_VALUE; // this is the next power of 2 minus one... a special case
+    if (i > (1 << 30)) {
+      // this is the next power of 2 minus 8... a special case taken from ArrayList limits
+      // because some JVMs can't allocate an array that large
+      return Integer.MAX_VALUE - 8;
+    }
 
     if (i == 0) {
       return 1;

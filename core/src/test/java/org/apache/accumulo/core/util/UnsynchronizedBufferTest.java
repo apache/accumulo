@@ -125,4 +125,32 @@ public class UnsynchronizedBufferTest {
     assertTrue("The byte array written to by UnsynchronizedBuffer is not equal to WritableUtils",
         Arrays.equals(hadoopBytes, accumuloBytes));
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testNextArraySizeNegative() {
+    UnsynchronizedBuffer.nextArraySize(-1);
+  }
+
+  @Test
+  public void testNextArraySize() {
+    // 0 <= size <= 2^0
+    assertEquals(1, UnsynchronizedBuffer.nextArraySize(0));
+    assertEquals(1, UnsynchronizedBuffer.nextArraySize(1));
+
+    // 2^0 < size <= 2^1
+    assertEquals(2, UnsynchronizedBuffer.nextArraySize(2));
+
+    // 2^exp < size <= 2^(exp+1) (for all exp: [1,29])
+    for (int exp = 1; exp < 30; ++exp) {
+      int nextExp = exp + 1;
+      assertEquals(1 << nextExp, UnsynchronizedBuffer.nextArraySize((1 << exp) + 1));
+      assertEquals(1 << nextExp, UnsynchronizedBuffer.nextArraySize(1 << nextExp));
+    }
+    // 2^30 < size < Integer.MAX_VALUE
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize((1 << 30) + 1));
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE - 9));
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE - 8));
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE));
+  }
+
 }
