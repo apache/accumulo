@@ -117,4 +117,5 @@ public class Constants {
   public static final int DEFAULT_VISIBILITY_CACHE_SIZE = 1000;
 
   public static final int MAX_TABLE_NAME_LEN = 1024;
+  public static final int MAX_NAMESPACE_LEN = 1024;
 }

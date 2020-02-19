@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.master;
 
+import static org.apache.accumulo.core.Constants.MAX_NAMESPACE_LEN;
 import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
 import static org.apache.accumulo.master.util.TableValidators.CAN_CLONE;
 import static org.apache.accumulo.master.util.TableValidators.NOT_METADATA;
@@ -114,7 +115,7 @@ class FateServiceHandler implements FateService.Iface {
       case NAMESPACE_CREATE: {
         TableOperation tableOp = TableOperation.CREATE;
         validateArgumentCount(arguments, tableOp, 1);
-        String namespace = validateNamespaceArgument(arguments.get(0), tableOp, null);
+        String namespace = validateNewNamespaceArgument(arguments.get(0), tableOp, null);
 
         if (!master.security.canCreateNamespace(c))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -129,7 +130,7 @@ class FateServiceHandler implements FateService.Iface {
         validateArgumentCount(arguments, tableOp, 2);
         String oldName = validateNamespaceArgument(arguments.get(0), tableOp,
             Namespaces.NOT_DEFAULT.and(Namespaces.NOT_ACCUMULO));
-        String newName = validateNamespaceArgument(arguments.get(1), tableOp, null);
+        String newName = validateNewNamespaceArgument(arguments.get(1), tableOp, null);
 
         NamespaceId namespaceId =
             ClientServiceHandler.checkNamespaceId(master.getContext(), oldName, tableOp);
@@ -735,6 +736,24 @@ class FateServiceHandler implements FateService.Iface {
   private String validateNamespaceArgument(ByteBuffer namespaceArg, TableOperation op,
       Validator<String> userValidator) throws ThriftTableOperationException {
     String namespace = namespaceArg == null ? null : ByteBufferUtil.toString(namespaceArg);
+    if ((namespace != null) && (namespace.length() > MAX_NAMESPACE_LEN)) {
+      log.warn(
+              "Namespaces greater than " + MAX_NAMESPACE_LEN + " characters should be renamed to conform to a 1024 character limit. "
+                      + "Longer namespaces are no longer supported and may result in unexpected behavior.");
+    }
+    return _validateArgument(namespace, op, Namespaces.VALID_NAME.and(userValidator));
+  }
+
+  // Verify namespace arguments are valid, and match any additional restrictions
+  private String validateNewNamespaceArgument(ByteBuffer namespaceArg, TableOperation op,
+                                           Validator<String> userValidator) throws ThriftTableOperationException {
+    String namespace = namespaceArg == null ? null : ByteBufferUtil.toString(namespaceArg);
+    if ((namespace != null) && (namespace.length() > MAX_NAMESPACE_LEN)) {
+      throw new ThriftTableOperationException(null, namespace, op,
+              TableOperationExceptionType.OTHER,
+              "Namespaces must be less than or equal to " + MAX_NAMESPACE_LEN + " characters. " + "'" + namespace + "' is "
+                      + namespace.length() + " characters long.");
+    }
     return _validateArgument(namespace, op, Namespaces.VALID_NAME.and(userValidator));
   }
 
