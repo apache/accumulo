@@ -207,7 +207,7 @@ class FateServiceHandler implements FateService.Iface {
         final String oldTableName =
             validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String newTableName =
-            validateTableNameArgument(arguments.get(1), tableOp, new Validator<String>() {
+            validateNewTableNameArgument(arguments.get(1), tableOp, new Validator<String>() {
 
               @Override
               public boolean test(String argument) {
@@ -255,7 +255,7 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.CLONE;
         validateArgumentCount(arguments, tableOp, 3);
         TableId srcTableId = validateTableIdArgument(arguments.get(0), tableOp, CAN_CLONE);
-        String tableName = validateTableNameArgument(arguments.get(1), tableOp, NOT_SYSTEM);
+        String tableName = validateNewTableNameArgument(arguments.get(1), tableOp, NOT_SYSTEM);
         boolean keepOffline = false;
         if (arguments.get(2) != null) {
           keepOffline = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(2)));
@@ -434,7 +434,7 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_BULK_IMPORT: {
         TableOperation tableOp = TableOperation.BULK_IMPORT;
         validateArgumentCount(arguments, tableOp, 4);
-        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
+        String tableName = validateNewTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String dir = ByteBufferUtil.toString(arguments.get(1));
         String failDir = ByteBufferUtil.toString(arguments.get(2));
         boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
@@ -513,7 +513,7 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_IMPORT: {
         TableOperation tableOp = TableOperation.IMPORT;
         validateArgumentCount(arguments, tableOp, 2);
-        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
+        String tableName = validateNewTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
         NamespaceId namespaceId;
         try {
@@ -698,13 +698,13 @@ class FateServiceHandler implements FateService.Iface {
     }
   }
 
-  // Verify table name arguments are valid, and match any additional restrictions
+  // Verify older table name arguments are valid, and match any additional restrictions
   private String validateTableNameArgument(ByteBuffer tableNameArg, TableOperation op,
       Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
     if ((tableName != null) && (tableName.length() > MAX_TABLE_NAME_LEN)) {
       log.warn(
-          "Table names greater than 1024 characters should be renamed to conform to a 1024 character limit. "
+          "Table names greater than " + MAX_TABLE_NAME_LEN + " characters should be renamed to conform to a 1024 character limit. "
               + "Longer table names are no longer supported and may result in unexpected behavior.");
     }
     return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
