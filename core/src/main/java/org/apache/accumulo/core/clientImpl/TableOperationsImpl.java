@@ -217,7 +217,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(ntc != null, "ntc is null");
-    checkArgument(tableName.length() < MAX_TABLE_NAME_LEN + 1, "tableName is longer than 1024 characters");
+    checkArgument(tableName.length() <= MAX_TABLE_NAME_LEN, "Table name is longer than 1024 characters");
 
     List<ByteBuffer> args = new ArrayList<>();
     args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
@@ -753,6 +753,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     checkArgument(srcTableName != null, "srcTableName is null");
     checkArgument(newTableName != null, "newTableName is null");
+    checkArgument(newTableName.length() <= MAX_TABLE_NAME_LEN, "Table name is longer than 1024 characters");
 
     TableId srcTableId = Tables.getTableId(context, srcTableName);
 
@@ -788,7 +789,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException,
       TableNotFoundException, AccumuloException, TableExistsException {
-
+    checkArgument(oldTableName.length() <= MAX_TABLE_NAME_LEN, "Table names longer than 1024 characters" +
+                    "are no longer supported and may result in unexpected behavior");
+    checkArgument(newTableName.length() <= MAX_TABLE_NAME_LEN, "Table name is longer than 1024 characters");
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(UTF_8)),
         ByteBuffer.wrap(newTableName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
@@ -1499,6 +1502,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(importDir != null, "importDir is null");
+    checkArgument(tableName.length() <= MAX_TABLE_NAME_LEN, "Table name is longer than 1024 characters");
 
     try {
       importDir = checkPath(importDir, "Table", "").toString();
