@@ -61,7 +61,7 @@ public class TabletFile implements Comparable<TabletFile> {
    * the entry can be deleted.
    */
   public TabletFile(String metadataEntry) {
-    this(new Path(metadataEntry), Optional.of(Objects.requireNonNull(metadataEntry)));
+    this(new Path(metadataEntry), Optional.of(metadataEntry));
   }
 
   private TabletFile(Path metaPath, Optional<String> originalMetaEntry) {
@@ -110,7 +110,7 @@ public class TabletFile implements Comparable<TabletFile> {
   }
 
   /**
-   * Return a string for reading the tablet file. Doesn't have to be exact string in metadata.
+   * Return a string for opening and reading the tablet file. Doesn't have to be exact string in metadata.
    */
   public String getMetaRead() {
     return normalizedPath;
