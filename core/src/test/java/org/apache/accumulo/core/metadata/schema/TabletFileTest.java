@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.junit.Test;
 
@@ -29,7 +30,7 @@ public class TabletFileTest {
 
   private TabletFile test(String metadataEntry, String volume, String tableId, String tabletDir,
       String fileName) {
-    TabletFile tabletFile = new TabletFile(metadataEntry);
+    StoredTabletFile tabletFile = new StoredTabletFile(metadataEntry);
 
     assertEquals(volume, tabletFile.getVolume());
     assertEquals(metadataEntry, tabletFile.getMetaUpdateDelete());
@@ -106,7 +107,7 @@ public class TabletFileTest {
     String metadataEntry = uglyVolume + "/tables/" + id + "/" + dir + "/" + filename;
     TabletFile uglyFile =
         test(metadataEntry, "hdfs://nn.somewhere.com:86753/accumulo", id, dir, filename);
-    TabletFile niceFile = new TabletFile(
+    TabletFile niceFile = new StoredTabletFile(
         "hdfs://nn.somewhere.com:86753/accumulo/tables/" + id + "/" + dir + "/" + filename);
     assertEquals(niceFile, uglyFile);
     assertEquals(niceFile.hashCode(), uglyFile.hashCode());

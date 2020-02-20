@@ -54,7 +54,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
@@ -824,7 +824,7 @@ public class TabletServerResourceManager {
     // BEGIN methods that Tablets call to make decisions about major compaction
     // when too many files are open, we may want tablets to compact down
     // to one map file
-    public boolean needsMajorCompaction(SortedMap<TabletFile,DataFileValue> tabletFiles,
+    public boolean needsMajorCompaction(SortedMap<StoredTabletFile,DataFileValue> tabletFiles,
         MajorCompactionReason reason) {
       if (closed) {
         return false;// throw new IOException("closed");

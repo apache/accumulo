@@ -144,7 +144,7 @@ public class FileUtil {
       FileSystem ns =
           context.getVolumeManager().getVolumeByPath(newMapFile.getPath()).getFileSystem();
       FileSKVWriter writer = new RFileOperations().newWriterBuilder()
-          .forFile(newMapFile.getMetaInsert(), ns, ns.getConf(), context.getCryptoService())
+          .forFile(newMapFile.getPathStr(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(acuConf).build();
       writer.startDefaultLocalityGroup();
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(inFiles.size());

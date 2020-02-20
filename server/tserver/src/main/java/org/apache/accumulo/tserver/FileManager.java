@@ -563,7 +563,7 @@ public class FileManager {
 
         if (sawTimeSet) {
           // constructing FileRef is expensive so avoid if not needed
-          DataFileValue value = files.get(new TabletFile(filename));
+          DataFileValue value = files.get(new TabletFile(new Path(filename)));
           if (value.isTimeSet()) {
             iter = new TimeSettingIterator(iter, value.getTime());
           }

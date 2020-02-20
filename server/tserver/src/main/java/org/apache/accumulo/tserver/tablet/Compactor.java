@@ -49,6 +49,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterato
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -89,7 +90,7 @@ public class Compactor implements Callable<CompactionStats> {
     RateLimiter getWriteLimiter();
   }
 
-  private final Map<TabletFile,DataFileValue> filesToCompact;
+  private final Map<StoredTabletFile,DataFileValue> filesToCompact;
   private final InMemoryMap imm;
   private final TabletFile outputFile;
   private final boolean propogateDeletes;
@@ -146,7 +147,7 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  public Compactor(ServerContext context, Tablet tablet, Map<TabletFile,DataFileValue> files,
+  public Compactor(ServerContext context, Tablet tablet, Map<StoredTabletFile,DataFileValue> files,
       InMemoryMap imm, TabletFile outputFile, boolean propogateDeletes, CompactionEnv env,
       List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
     this.context = context;
@@ -310,8 +311,8 @@ public class Compactor implements Callable<CompactionStats> {
 
       } catch (Throwable e) {
 
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId(),
-            ProblemType.FILE_READ, mapFile.getPathStr(), e));
+        ProblemReports.getInstance(context).report(
+            new ProblemReport(extent.getTableId(), ProblemType.FILE_READ, mapFile.getPathStr(), e));
 
         log.warn("Some problem opening map file {} {}", mapFile, e.getMessage(), e);
         // failed to open some map file... close the ones that were opened
@@ -419,7 +420,7 @@ public class Compactor implements Callable<CompactionStats> {
     }
   }
 
-  Collection<TabletFile> getFilesToCompact() {
+  Collection<StoredTabletFile> getFilesToCompact() {
     return filesToCompact.keySet();
   }
 

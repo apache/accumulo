@@ -154,7 +154,7 @@ public class Upgrader9to10 implements Upgrader {
       logs.forEach(tabletMutator::putWal);
 
       Map<String,DataFileValue> files = cleanupRootTabletFiles(ctx.getVolumeManager(), dir);
-      files.forEach((path, dfv) -> tabletMutator.putFile(new TabletFile(path), dfv));
+      files.forEach((path, dfv) -> tabletMutator.putFile(new TabletFile(new Path(path)), dfv));
 
       tabletMutator.putTime(computeRootTabletTime(ctx, files.keySet()));
 

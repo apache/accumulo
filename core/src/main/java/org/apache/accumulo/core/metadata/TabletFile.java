@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
@@ -30,9 +29,11 @@ import org.apache.hadoop.io.Text;
 import com.google.common.base.Preconditions;
 
 /**
- * Object representing a tablet file entry in the metadata table. Keeps a string of the exact entry
- * of what is in the metadata table for the column qualifier of the
- * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily}
+ * Object representing a tablet file that may exist in the metadata table. This class is used for
+ * reading and opening tablet files. It is also used when inserting new tablet files. When a new
+ * file is inserted, the {@link #insert()} method is called and returns a {@link StoredTabletFile}
+ * For situations where a tablet file needs to be updated or deleted in the metadata, a
+ * {@link StoredTabletFile} is required.
  * <p>
  * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
  * in Upgrader9to10.upgradeRelativePaths()
@@ -43,29 +44,14 @@ public class TabletFile implements Comparable<TabletFile> {
   private final TableId tableId; // 2a
   private final String tabletDir; // t-0003
   private final String fileName; // C0004.rf
-  private final Path metaPath;
+  protected final Path metaPath;
   private final String normalizedPath;
-
-  private Optional<String> metadataEntry;
 
   /**
    * Construct new tablet file using a Path. Used in the case where we had to use Path object to
    * qualify an absolute path or create a new file.
    */
   public TabletFile(Path metaPath) {
-    this(metaPath, Optional.empty());
-  }
-
-  /**
-   * Construct a tablet file using the string read from the metadata. Preserve the exact string so
-   * the entry can be deleted.
-   */
-  public TabletFile(String metadataEntry) {
-    this(new Path(metadataEntry), Optional.of(metadataEntry));
-  }
-
-  private TabletFile(Path metaPath, Optional<String> originalMetaEntry) {
-    this.metadataEntry = originalMetaEntry;
     this.metaPath = Objects.requireNonNull(metaPath);
     String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
 
@@ -110,7 +96,8 @@ public class TabletFile implements Comparable<TabletFile> {
   }
 
   /**
-   * Return a string for opening and reading the tablet file. Doesn't have to be exact string in metadata.
+   * Return a string for opening and reading the tablet file. Doesn't have to be exact string in
+   * metadata.
    */
   public String getPathStr() {
     return normalizedPath;
@@ -131,29 +118,10 @@ public class TabletFile implements Comparable<TabletFile> {
   }
 
   /**
-   * New file was written to metadata so update the entry.
+   * New file was written to metadata so return a StoredTabletFile
    */
-  public void inserted() {
-    this.metadataEntry = Optional.of(normalizedPath);
-  }
-
-  /**
-   * Return the exact string that is stored in the metadata table. This is important for updating
-   * and deleting metadata entries. If the exact string is not used, erroneous entries can pollute
-   * the metadata table.
-   */
-  public String getMetaUpdateDelete() {
-    if (metadataEntry.isEmpty())
-      throw new IllegalStateException(
-          "TabletFile " + metaPath + " does not have a metadata entry.");
-    return metadataEntry.get();
-  }
-
-  /**
-   * Return a new Text object of {@link #getMetaUpdateDelete()}
-   */
-  public Text getMetaUpdateDeleteText() {
-    return new Text(getMetaUpdateDelete());
+  public StoredTabletFile insert() {
+    return new StoredTabletFile(normalizedPath);
   }
 
   public Path getPath() {

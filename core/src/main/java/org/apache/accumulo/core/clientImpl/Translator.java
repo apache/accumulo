@@ -33,6 +33,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 
 public abstract class Translator<IT,OT> {
@@ -103,6 +104,13 @@ public abstract class Translator<IT,OT> {
   public static class TabletFileTranslator extends Translator<TabletFile,String> {
     @Override
     public String translate(TabletFile input) {
+      return input.getPathStr();
+    }
+  }
+
+  public static class StoredTabletFileTranslator extends Translator<StoredTabletFile,String> {
+    @Override
+    public String translate(StoredTabletFile input) {
       return input.getPathStr();
     }
   }

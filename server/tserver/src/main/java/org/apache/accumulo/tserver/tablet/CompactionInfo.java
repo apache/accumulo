@@ -125,7 +125,7 @@ public class CompactionInfo {
           iterSetting.getName()));
       iterOptions.put(iterSetting.getName(), iterSetting.getOptions());
     }
-    List<String> files = Translator.translate(compactor.getFilesToCompact(), Translators.TFT);
+    List<String> files = Translator.translate(compactor.getFilesToCompact(), Translators.STFT);
     return new ActiveCompaction(compactor.extent.toThrift(),
         System.currentTimeMillis() - compactor.getStartTime(), files, compactor.getOutputFile(),
         type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions);

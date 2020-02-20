@@ -50,6 +50,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -178,13 +179,13 @@ public class DefaultCompactionStrategyTest {
     }
 
     TestCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
-        Map<TabletFile,DataFileValue> files) {
+        Map<StoredTabletFile,DataFileValue> files) {
       super(extent, reason, dfault, getServerContext());
       setFiles(files);
     }
 
     TestCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
-        Map<TabletFile,DataFileValue> files, AccumuloConfiguration config) {
+        Map<StoredTabletFile,DataFileValue> files, AccumuloConfiguration config) {
       super(extent, reason, config, getServerContext());
       setFiles(files);
     }
@@ -202,10 +203,10 @@ public class DefaultCompactionStrategyTest {
 
   }
 
-  static Map<TabletFile,DataFileValue> createFileMap(Object... objs) {
-    Map<TabletFile,DataFileValue> files = new HashMap<>();
+  static Map<StoredTabletFile,DataFileValue> createFileMap(Object... objs) {
+    Map<StoredTabletFile,DataFileValue> files = new HashMap<>();
     for (int i = 0; i < objs.length; i += 2) {
-      files.put(new TabletFile("hdfs://nn1/accumulo/tables/5/t-0001/" + objs[i]),
+      files.put(new StoredTabletFile("hdfs://nn1/accumulo/tables/5/t-0001/" + objs[i]),
           new DataFileValue(((Number) objs[i + 1]).longValue(), 0));
     }
     return files;
@@ -224,7 +225,7 @@ public class DefaultCompactionStrategyTest {
     return asSet(Arrays.asList(strings));
   }
 
-  private static Set<String> asStringSet(Collection<TabletFile> refs) {
+  private static Set<String> asStringSet(Collection<StoredTabletFile> refs) {
     HashSet<String> result = new HashSet<>();
     for (TabletFile ref : refs) {
       result.add(ref.getPathStr());
@@ -330,7 +331,7 @@ public class DefaultCompactionStrategyTest {
     private ConfigurationCopy config;
 
     int nextFile = 0;
-    Map<TabletFile,DataFileValue> files = new HashMap<>();
+    Map<StoredTabletFile,DataFileValue> files = new HashMap<>();
 
     long totalRead = 0;
     long added = 0;
@@ -348,7 +349,7 @@ public class DefaultCompactionStrategyTest {
             "hdfs://nn1/accumulo/tables/5/t-0001/I" + String.format("%06d", nextFile) + ".rf";
         nextFile++;
 
-        files.put(new TabletFile(name), new DataFileValue(size, entries));
+        files.put(new StoredTabletFile(name), new DataFileValue(size, entries));
         added += size;
       }
     }
@@ -366,7 +367,7 @@ public class DefaultCompactionStrategyTest {
         long totalSize = 0;
         long totalEntries = 0;
 
-        for (TabletFile fr : plan.inputFiles) {
+        for (StoredTabletFile fr : plan.inputFiles) {
           DataFileValue dfv = files.remove(fr);
 
           totalSize += dfv.getSize();
@@ -379,7 +380,7 @@ public class DefaultCompactionStrategyTest {
             "hdfs://nn1/accumulo/tables/5/t-0001/C" + String.format("%06d", nextFile) + ".rf";
         nextFile++;
 
-        files.put(new TabletFile(name), new DataFileValue(totalSize, totalEntries));
+        files.put(new StoredTabletFile(name), new DataFileValue(totalSize, totalEntries));
 
         return totalSize;
 
@@ -397,12 +398,12 @@ public class DefaultCompactionStrategyTest {
     }
 
     void print() {
-      List<Entry<TabletFile,DataFileValue>> entries = new ArrayList<>(files.entrySet());
+      List<Entry<StoredTabletFile,DataFileValue>> entries = new ArrayList<>(files.entrySet());
 
       Collections.sort(entries,
           (e1, e2) -> Long.compare(e2.getValue().getSize(), e1.getValue().getSize()));
 
-      for (Entry<TabletFile,DataFileValue> entry : entries) {
+      for (Entry<StoredTabletFile,DataFileValue> entry : entries) {
 
         System.out.printf("%s %,d %,d\n", entry.getKey().getFileName(), entry.getValue().getSize(),
             entry.getValue().getNumEntries());
