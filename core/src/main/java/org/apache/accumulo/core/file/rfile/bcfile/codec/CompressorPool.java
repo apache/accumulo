@@ -1,22 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile.bcfile.codec;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -24,13 +27,12 @@ import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.commons.pool2.impl.GenericKeyedObjectPool;
 import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
-import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Compressor factory extension that enables object pooling using Commons Pool. The design will have a keyed compressor pool and decompressor pool. The key of
- * which will be the Algorithm itself.
+ * Compressor factory extension that enables object pooling using Commons Pool. The design will have
+ * a keyed compressor pool and decompressor pool. The key of which will be the Algorithm itself.
  *
  */
 public class CompressorPool extends DefaultCompressorFactory {
@@ -60,7 +62,8 @@ public class CompressorPool extends DefaultCompressorFactory {
     compressorPool.setMaxTotalPerKey(-1);
     compressorPool.setTestOnReturn(false);
 
-    decompressorPool = new GenericKeyedObjectPool<Algorithm,Decompressor>(new DecompressorPoolFactory());
+    decompressorPool =
+        new GenericKeyedObjectPool<Algorithm,Decompressor>(new DecompressorPoolFactory());
     // ensure that the pool grows when needed.
     decompressorPool.setBlockWhenExhausted(false);
     // no limit
@@ -89,7 +92,7 @@ public class CompressorPool extends DefaultCompressorFactory {
 
   @Override
   public Compressor getCompressor(Algorithm compressionAlgorithm) throws IOException {
-    Preconditions.checkNotNull(compressionAlgorithm, "Algorithm cannot be null");
+    Objects.requireNonNull(compressionAlgorithm, "Algorithm cannot be null");
     try {
       return compressorPool.borrowObject(compressionAlgorithm);
     } catch (Exception e) {
@@ -102,8 +105,8 @@ public class CompressorPool extends DefaultCompressorFactory {
 
   @Override
   public void releaseCompressor(Algorithm compressionAlgorithm, Compressor compressor) {
-    Preconditions.checkNotNull(compressionAlgorithm, "Algorithm cannot be null");
-    Preconditions.checkNotNull(compressor, "Compressor should not be null");
+    Objects.requireNonNull(compressionAlgorithm, "Algorithm cannot be null");
+    Objects.requireNonNull(compressor, "Compressor should not be null");
     try {
       compressorPool.returnObject(compressionAlgorithm, compressor);
     } catch (Exception e) {
@@ -116,8 +119,8 @@ public class CompressorPool extends DefaultCompressorFactory {
 
   @Override
   public void releaseDecompressor(Algorithm compressionAlgorithm, Decompressor decompressor) {
-    Preconditions.checkNotNull(compressionAlgorithm, "Algorithm cannot be null");
-    Preconditions.checkNotNull(decompressor, "Deompressor should not be null");
+    Objects.requireNonNull(compressionAlgorithm, "Algorithm cannot be null");
+    Objects.requireNonNull(decompressor, "Deompressor should not be null");
     try {
       decompressorPool.returnObject(compressionAlgorithm, decompressor);
     } catch (Exception e) {
@@ -130,7 +133,7 @@ public class CompressorPool extends DefaultCompressorFactory {
 
   @Override
   public Decompressor getDecompressor(Algorithm compressionAlgorithm) {
-    Preconditions.checkNotNull(compressionAlgorithm, "Algorithm cannot be null");
+    Objects.requireNonNull(compressionAlgorithm, "Algorithm cannot be null");
     try {
       return decompressorPool.borrowObject(compressionAlgorithm);
     } catch (Exception e) {
@@ -142,7 +145,8 @@ public class CompressorPool extends DefaultCompressorFactory {
   }
 
   /**
-   * Closes both pools, which will clear and evict the respective compressor/decompressors. {@inheritDoc}
+   * Closes both pools, which will clear and evict the respective compressor/decompressors.
+   * {@inheritDoc}
    */
   @Override
   public void close() {
@@ -160,7 +164,8 @@ public class CompressorPool extends DefaultCompressorFactory {
   }
 
   /**
-   * Updates the maximum number of idle objects allowed, the sweep time, and the minimum time before eviction is used {@inheritDoc}
+   * Updates the maximum number of idle objects allowed, the sweep time, and the minimum time before
+   * eviction is used {@inheritDoc}
    */
   @Override
   public void update(final AccumuloConfiguration acuConf) {
@@ -168,10 +173,12 @@ public class CompressorPool extends DefaultCompressorFactory {
       final int poolMaxIdle = acuConf.getCount(Property.TSERV_COMPRESSOR_POOL_IDLE);
       setMaxIdle(poolMaxIdle);
 
-      final long idleSweepTimeMs = acuConf.getTimeInMillis(Property.TSERV_COMPRESSOR_POOL_IDLE_SWEEP_TIME);
+      final long idleSweepTimeMs =
+          acuConf.getTimeInMillis(Property.TSERV_COMPRESSOR_POOL_IDLE_SWEEP_TIME);
 
       setIdleSweepTime(idleSweepTimeMs);
-      final long idleStoreTimeMs = acuConf.getTimeInMillis(Property.TSERV_COMPRESSOR_POOL_IDLE_STORE_TIME);
+      final long idleStoreTimeMs =
+          acuConf.getTimeInMillis(Property.TSERV_COMPRESSOR_POOL_IDLE_STORE_TIME);
       setIdleStoreTime(idleStoreTimeMs);
 
     } catch (Exception e) {

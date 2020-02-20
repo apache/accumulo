@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile.bcfile.codec;
 
@@ -24,7 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.hadoop.conf.Configuration;
@@ -50,7 +52,8 @@ public class CompressorPoolTest {
     String extClazz = System.getProperty(Compression.Algorithm.CONF_LZO_CLASS);
     String clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.LzoCodec";
     try {
-      CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+      CompressionCodec codec =
+          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
       Assert.assertNotNull(codec);
       isSupported.put(Compression.Algorithm.LZO, true);
@@ -63,7 +66,7 @@ public class CompressorPoolTest {
 
   @Test
   public void testAlgorithms() throws IOException {
-    CompressorPool factory = new CompressorPool(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorPool factory = new CompressorPool(DefaultConfiguration.getInstance());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
 
@@ -80,7 +83,7 @@ public class CompressorPoolTest {
 
   @Test
   public void testMultipleEventuallyTheSameCompressors() throws IOException {
-    CompressorPool factory = new CompressorPool(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorPool factory = new CompressorPool(DefaultConfiguration.getInstance());
     factory.setMaxIdle(25);
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
@@ -101,8 +104,8 @@ public class CompressorPoolTest {
           factory.releaseCompressor(al, compressor);
         }
         /**
-         * At this point we should have released all of our compressors. Since we are using the pooled factory, we know that the next 25 we retrieve should be
-         * the same we just returned.
+         * At this point we should have released all of our compressors. Since we are using the
+         * pooled factory, we know that the next 25 we retrieve should be the same we just returned.
          */
         compressors = new ArrayList<>();
 
@@ -127,7 +130,7 @@ public class CompressorPoolTest {
 
   @Test
   public void testMultipleTestEviction() throws IOException, InterruptedException {
-    CompressorPool factory = new CompressorPool(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorPool factory = new CompressorPool(DefaultConfiguration.getInstance());
     factory.setMaxIdle(25);
     factory.setIdleSweepTime(100);
     factory.setIdleStoreTime(10);
@@ -173,7 +176,7 @@ public class CompressorPoolTest {
 
   @Test
   public void testMultipleNotTheSameDeompressors() throws IOException {
-    CompressorPool factory = new CompressorPool(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorPool factory = new CompressorPool(DefaultConfiguration.getInstance());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
 
@@ -200,7 +203,7 @@ public class CompressorPoolTest {
 
   @Test
   public void testMultipleChangeInMiddle() throws IOException {
-    CompressorFactory factory = new CompressorPool(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorFactory factory = new CompressorPool(DefaultConfiguration.getInstance());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
 
@@ -214,7 +217,7 @@ public class CompressorPoolTest {
           // stop about half way through and change the pool
           if (i == 12) {
             factory.close();
-            factory = new DefaultCompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
+            factory = new DefaultCompressorFactory(DefaultConfiguration.getInstance());
           }
         }
 
@@ -233,7 +236,7 @@ public class CompressorPoolTest {
   @Test
   public void returnNull() {
 
-    CompressorPool factory = new CompressorPool(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorPool factory = new CompressorPool(DefaultConfiguration.getInstance());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
         try {

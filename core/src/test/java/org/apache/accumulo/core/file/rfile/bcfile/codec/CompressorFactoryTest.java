@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile.bcfile.codec;
 
@@ -24,7 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.hadoop.conf.Configuration;
@@ -50,7 +52,8 @@ public class CompressorFactoryTest {
     String extClazz = System.getProperty(Compression.Algorithm.CONF_LZO_CLASS);
     String clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.LzoCodec";
     try {
-      CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+      CompressionCodec codec =
+          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
       Assert.assertNotNull(codec);
       isSupported.put(Compression.Algorithm.LZO, true);
@@ -63,7 +66,7 @@ public class CompressorFactoryTest {
 
   @Test
   public void testAlgoreithms() throws IOException {
-    CompressorFactory factory = new DefaultCompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorFactory factory = new DefaultCompressorFactory(DefaultConfiguration.getInstance());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
 
@@ -80,7 +83,7 @@ public class CompressorFactoryTest {
 
   @Test
   public void testMultipleNotTheSameCompressors() throws IOException {
-    CompressorFactory factory = new DefaultCompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorFactory factory = new DefaultCompressorFactory(DefaultConfiguration.getInstance());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
 
@@ -107,7 +110,7 @@ public class CompressorFactoryTest {
 
   @Test
   public void testMultipleNotTheSameDecompressors() throws IOException {
-    CompressorFactory factory = new DefaultCompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorFactory factory = new DefaultCompressorFactory(DefaultConfiguration.getInstance());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
 
@@ -135,7 +138,7 @@ public class CompressorFactoryTest {
   @Test
   public void returnNull() {
 
-    CompressorFactory factory = new DefaultCompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorFactory factory = new DefaultCompressorFactory(DefaultConfiguration.getInstance());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
         try {

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile.bcfile.codec;
 
@@ -54,16 +56,19 @@ public class CompressionUpdater implements Runnable {
       try {
         tempFactory = Class.forName(compressorClass).asSubclass(CompressorFactory.class);
       } catch (ClassNotFoundException cfe) {
-        LOG.warn("Could not find class " + compressorClass + " so not setting desired CompressorFactory");
+        LOG.warn("Could not find class " + compressorClass
+            + " so not setting desired CompressorFactory");
         // do nothing
         return;
       }
       LOG.info("Setting compressor factory to " + tempFactory);
       try {
-        Compression.setCompressionFactory(tempFactory.getConstructor(AccumuloConfiguration.class).newInstance(acuConf));
+        Compression.setCompressionFactory(
+            tempFactory.getConstructor(AccumuloConfiguration.class).newInstance(acuConf));
         compressorFactoryClazz = tempFactory;
       } catch (Exception e) {
-        LOG.error("Could not set compressor factory to " + compressorFactoryClazz + " defaulting to CompressorFactory", e);
+        LOG.error("Could not set compressor factory to " + compressorFactoryClazz
+            + " defaulting to CompressorFactory", e);
         Compression.setCompressionFactory(new DefaultCompressorFactory(acuConf));
       }
     } else {
@@ -73,9 +78,9 @@ public class CompressionUpdater implements Runnable {
     /**
      * Adjust compression buffer sizes.
      */
-    final long inputBufferSize = acuConf.getMemoryInBytes(Property.TSERV_COMPRESSOR_IN_BUFFER);
+    final long inputBufferSize = acuConf.getAsBytes(Property.TSERV_COMPRESSOR_IN_BUFFER);
     Compression.setDataInputBufferSize((int) inputBufferSize);
-    final long outputBufferSize = acuConf.getMemoryInBytes(Property.TSERV_COMPRESSOR_OUT_BUFFER);
+    final long outputBufferSize = acuConf.getAsBytes(Property.TSERV_COMPRESSOR_OUT_BUFFER);
     Compression.setDataOutputBufferSize((int) outputBufferSize);
   }
 
