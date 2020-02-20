@@ -704,9 +704,9 @@ class FateServiceHandler implements FateService.Iface {
       Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
     if ((tableName != null) && (tableName.length() > MAX_TABLE_NAME_LEN)) {
-      log.warn(
-          "Table names greater than " + MAX_TABLE_NAME_LEN + " characters should be renamed to conform to a 1024 character limit. "
-              + "Longer table names are no longer supported and may result in unexpected behavior.");
+      log.warn("Table names greater than " + MAX_TABLE_NAME_LEN
+          + " characters should be renamed to conform to a 1024 character limit. "
+          + "Longer table names are no longer supported and may result in unexpected behavior.");
     }
     return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
   }
@@ -718,8 +718,8 @@ class FateServiceHandler implements FateService.Iface {
     if ((tableName != null) && (tableName.length() > MAX_TABLE_NAME_LEN)) {
       throw new ThriftTableOperationException(null, tableName, op,
           TableOperationExceptionType.OTHER,
-          "Table names must be less than or equal to " + MAX_TABLE_NAME_LEN + " characters. " + "'" + tableName + "' is "
-              + tableName.length() + " characters long.");
+          "Table names must be less than or equal to " + MAX_TABLE_NAME_LEN + " characters. " + "'"
+              + tableName + "' is " + tableName.length() + " characters long.");
     }
     return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
   }
@@ -737,22 +737,22 @@ class FateServiceHandler implements FateService.Iface {
       Validator<String> userValidator) throws ThriftTableOperationException {
     String namespace = namespaceArg == null ? null : ByteBufferUtil.toString(namespaceArg);
     if ((namespace != null) && (namespace.length() > MAX_NAMESPACE_LEN)) {
-      log.warn(
-              "Namespaces greater than " + MAX_NAMESPACE_LEN + " characters should be renamed to conform to a 1024 character limit. "
-                      + "Longer namespaces are no longer supported and may result in unexpected behavior.");
+      log.warn("Namespaces greater than " + MAX_NAMESPACE_LEN
+          + " characters should be renamed to conform to a 1024 character limit. "
+          + "Longer namespaces are no longer supported and may result in unexpected behavior.");
     }
     return _validateArgument(namespace, op, Namespaces.VALID_NAME.and(userValidator));
   }
 
   // Verify namespace arguments are valid, and match any additional restrictions
   private String validateNewNamespaceArgument(ByteBuffer namespaceArg, TableOperation op,
-                                           Validator<String> userValidator) throws ThriftTableOperationException {
+      Validator<String> userValidator) throws ThriftTableOperationException {
     String namespace = namespaceArg == null ? null : ByteBufferUtil.toString(namespaceArg);
     if ((namespace != null) && (namespace.length() > MAX_NAMESPACE_LEN)) {
       throw new ThriftTableOperationException(null, namespace, op,
-              TableOperationExceptionType.OTHER,
-              "Namespaces must be less than or equal to " + MAX_NAMESPACE_LEN + " characters. " + "'" + namespace + "' is "
-                      + namespace.length() + " characters long.");
+          TableOperationExceptionType.OTHER,
+          "Namespaces must be less than or equal to " + MAX_NAMESPACE_LEN + " characters. " + "'"
+              + namespace + "' is " + namespace.length() + " characters long.");
     }
     return _validateArgument(namespace, op, Namespaces.VALID_NAME.and(userValidator));
   }
