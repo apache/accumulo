@@ -39,6 +39,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
+
 /**
  * Ensures that all threads spawned for ZooKeeper and Thrift connectivity are reaped after calling
  * CleanUp.shutdown().
@@ -130,10 +132,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
       }
 
       try {
-        count = 0;
-        for (Entry<Key,Value> keyValueEntry : scanner) {
-          count++;
-        }
+        count = Iterables.size(scanner);
         fail("scanner did not fail");
       } catch (Exception e) {
 
