@@ -76,10 +76,10 @@ public class CompressorPool extends DefaultCompressorFactory {
   }
 
   /**
-   * Set the max idle time that the compressor and decompressor pools will hold objects.
+   * Set the max idle compressor and decompressor objects held within the pool.
    *
    * @param maxIdle
-   *          maximum idle time.
+   *          maximum idle compressors or decompressors.
    */
   public void setMaxIdle(final int maxIdle) {
     // check that we are changing the value.
@@ -142,6 +142,28 @@ public class CompressorPool extends DefaultCompressorFactory {
       // this will most likely result in an exception when returning so an end will occur
       return compressionAlgorithm.getCodec().createDecompressor();
     }
+  }
+
+  /**
+   * Get the number of active decompressors reported by the pool.
+   *
+   * @param algo
+   *          algorithm
+   * @return the number of active decompressors in the pool.
+   */
+  public int getActiveDecompressors(final Algorithm algo) {
+    return decompressorPool.getNumActive(algo);
+  }
+
+  /**
+   * Returns the number of active compressors reported by the pool.
+   *
+   * @param algo
+   *          algorithm.
+   * @return number of active compressors in the pool.
+   */
+  public int getActiveCompressors(final Algorithm algo) {
+    return compressorPool.getNumActive(algo);
   }
 
   /**

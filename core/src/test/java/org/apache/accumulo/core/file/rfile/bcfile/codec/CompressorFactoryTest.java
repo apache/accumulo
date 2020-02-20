@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile.codec;
 
-import static org.junit.Assert.fail;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +32,6 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,7 +52,7 @@ public class CompressorFactoryTest {
       CompressionCodec codec =
           (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
-      Assert.assertNotNull(codec);
+      org.junit.Assert.assertNotNull(codec);
       isSupported.put(Compression.Algorithm.LZO, true);
 
     } catch (ClassNotFoundException e) {
@@ -65,17 +62,17 @@ public class CompressorFactoryTest {
   }
 
   @Test
-  public void testAlgoreithms() throws IOException {
+  public void testAlgorithms() throws IOException {
     CompressorFactory factory = new DefaultCompressorFactory(DefaultConfiguration.getInstance());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
 
         Compressor compressor = factory.getCompressor(al);
-        Assert.assertNotNull(compressor);
+        org.junit.Assert.assertNotNull(compressor);
         factory.releaseCompressor(al, compressor);
 
         Decompressor decompressor = factory.getDecompressor(al);
-        Assert.assertNotNull(decompressor);
+        org.junit.Assert.assertNotNull(decompressor);
         factory.releaseDecompressor(al, decompressor);
       }
     }
@@ -91,13 +88,13 @@ public class CompressorFactoryTest {
         ArrayList<Compressor> compressors = new ArrayList<>();
         for (int i = 0; i < 25; i++) {
           Compressor compressor = factory.getCompressor(al);
-          Assert.assertNotNull(compressor);
+          org.junit.Assert.assertNotNull(compressor);
           compressors.add(compressor);
           compressorHashCodes.add(Integer.valueOf(System.identityHashCode(compressor)));
         }
 
         // assert that we have 25 with this particular factory.
-        Assert.assertEquals(25, compressorHashCodes.size());
+        org.junit.Assert.assertEquals(25, compressorHashCodes.size());
 
         // free them for posterity sake
         for (Compressor compressor : compressors) {
@@ -118,13 +115,13 @@ public class CompressorFactoryTest {
         ArrayList<Decompressor> decompressors = new ArrayList<>();
         for (int i = 0; i < 25; i++) {
           Decompressor decompressor = factory.getDecompressor(al);
-          Assert.assertNotNull(decompressor);
+          org.junit.Assert.assertNotNull(decompressor);
           decompressors.add(decompressor);
           compressorHashCodes.add(Integer.valueOf(System.identityHashCode(decompressor)));
         }
 
         // assert that we have 25 with this particular factory.
-        Assert.assertEquals(25, compressorHashCodes.size());
+        org.junit.Assert.assertEquals(25, compressorHashCodes.size());
 
         // free them for posterity sake
         for (Decompressor decompressor : decompressors) {
@@ -143,28 +140,28 @@ public class CompressorFactoryTest {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
         try {
           factory.releaseCompressor(null, null);
-          fail("Should have caught null when passing null algorithm");
+          org.junit.Assert.fail("Should have caught null when passing null algorithm");
         } catch (NullPointerException npe) {
 
         }
 
         try {
           factory.releaseCompressor(al, null);
-          fail("Should have caught null when passing null compressor");
+          org.junit.Assert.fail("Should have caught null when passing null compressor");
         } catch (NullPointerException npe) {
 
         }
 
         try {
           factory.releaseDecompressor(null, null);
-          fail("Should have caught null when passing null algorithm");
+          org.junit.Assert.fail("Should have caught null when passing null algorithm");
         } catch (NullPointerException npe) {
 
         }
 
         try {
           factory.releaseDecompressor(al, null);
-          fail("Should have caught null when passing null decompressor");
+          org.junit.Assert.fail("Should have caught null when passing null decompressor");
         } catch (NullPointerException npe) {
 
         }
