@@ -498,7 +498,7 @@ public class FileManager {
         throws TooManyFilesException, IOException {
       List<String> strings = new ArrayList<>(files.size());
       for (TabletFile file : files) {
-        strings.add(file.getMetaRead());
+        strings.add(file.getPathStr());
       }
       return openFiles(strings);
     }

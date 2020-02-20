@@ -183,7 +183,6 @@ public class MetadataTableUtil {
     tablet.putTime(time);
     estSizes.forEach(tablet::putFile);
 
-    // TODO check to see if we need to delete.. putBulkFile does an insert
     for (TabletFile file : estSizes.keySet()) {
       tablet.putBulkFile(file, tid);
     }

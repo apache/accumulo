@@ -112,7 +112,7 @@ public class TabletFile implements Comparable<TabletFile> {
   /**
    * Return a string for opening and reading the tablet file. Doesn't have to be exact string in metadata.
    */
-  public String getMetaRead() {
+  public String getPathStr() {
     return normalizedPath;
   }
 

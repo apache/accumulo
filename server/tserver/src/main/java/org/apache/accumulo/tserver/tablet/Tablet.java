@@ -374,7 +374,7 @@ public class Tablet {
       try {
         Set<String> absPaths = new HashSet<>();
         for (TabletFile ref : datafiles.keySet()) {
-          absPaths.add(ref.getMetaRead());
+          absPaths.add(ref.getPathStr());
         }
 
         tabletServer.recover(this.getTabletServer().getFileSystem(), extent, logEntries, absPaths,
@@ -1611,7 +1611,7 @@ public class Tablet {
       TabletFile file = entry.getKey();
       FileSystem ns = fs.getVolumeByPath(file.getPath()).getFileSystem();
       try (FileSKVIterator openReader = fileFactory.newReaderBuilder()
-          .forFile(file.getMetaRead(), ns, ns.getConf(), context.getCryptoService())
+          .forFile(file.getPathStr(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(this.getTableConfiguration()).seekToBeginning().build()) {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();

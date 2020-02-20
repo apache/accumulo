@@ -103,7 +103,7 @@ public abstract class Translator<IT,OT> {
   public static class TabletFileTranslator extends Translator<TabletFile,String> {
     @Override
     public String translate(TabletFile input) {
-      return input.getMetaRead();
+      return input.getPathStr();
     }
   }
 

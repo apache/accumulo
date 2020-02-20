@@ -182,7 +182,7 @@ public class MajorCompactionRequest implements Cloneable {
     FileOperations fileFactory = FileOperations.getInstance();
     FileSystem ns = volumeManager.getVolumeByPath(tabletFile.getPath()).getFileSystem();
     return fileFactory.newReaderBuilder()
-        .forFile(tabletFile.getMetaRead(), ns, ns.getConf(), context.getCryptoService())
+        .forFile(tabletFile.getPathStr(), ns, ns.getConf(), context.getCryptoService())
         .withTableConfiguration(tableConfig).seekToBeginning().build();
   }
 
