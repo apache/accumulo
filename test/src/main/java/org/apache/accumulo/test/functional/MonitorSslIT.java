@@ -141,7 +141,7 @@ public class MonitorSslIT extends ConfigurableMacBase {
         }
       }
     }
-    URL url = new URL("https://" + monitorLocation);
+    URL url = new URL(monitorLocation);
     log.debug("Fetching web page {}", url);
     String result = FunctionalTestUtils.readAll(url.openStream());
     assertTrue(result.length() > 100);

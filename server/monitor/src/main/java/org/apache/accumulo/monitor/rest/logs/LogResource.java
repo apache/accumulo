@@ -56,6 +56,7 @@ public class LogResource {
    * REST call to clear the logs
    */
   @POST
+  @Path("clear")
   public void clearLogs() {
     monitor.recentLogs().clearEvents();
   }
