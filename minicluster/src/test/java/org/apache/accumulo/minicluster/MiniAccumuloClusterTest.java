@@ -245,8 +245,7 @@ public class MiniAccumuloClusterTest {
             .configure(new Parameters().properties().setFile(accumuloProps));
     PropertiesConfiguration conf = propsBuilder.getConfiguration();
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,
-        Property.MONITOR_LOG4J_PORT, Property.MASTER_CLIENTPORT, Property.TRACE_PORT,
-        Property.GC_PORT}) {
+        Property.MASTER_CLIENTPORT, Property.TRACE_PORT, Property.GC_PORT}) {
       String value = conf.getString(randomPortProp.getKey());
       assertNotNull("Found no value for " + randomPortProp, value);
       assertEquals("0", value);

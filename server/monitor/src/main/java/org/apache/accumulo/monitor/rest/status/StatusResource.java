@@ -28,9 +28,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.server.monitor.DedupedLogEvent;
-import org.apache.accumulo.server.monitor.LogService;
-import org.apache.log4j.Level;
 
 /**
  * Generates the status for master, gc, and tservers as well as log and problem reports
@@ -56,7 +53,6 @@ public class StatusResource {
   @GET
   public StatusInformation getTables() {
 
-    StatusInformation status;
     Status masterStatus;
     Status gcStatus;
     Status tServerStatus = Status.ERROR;
@@ -98,20 +94,8 @@ public class StatusResource {
       tServerStatus = Status.ERROR;
     }
 
-    List<DedupedLogEvent> logs = LogService.getInstance().getEvents();
-    boolean logsHaveError = false;
-    for (DedupedLogEvent dedupedLogEvent : logs) {
-      if (dedupedLogEvent.getEvent().getLevel().isGreaterOrEqual(Level.ERROR)) {
-        logsHaveError = true;
-        break;
-      }
-    }
-
-    int numProblems = monitor.getProblemSummary().entrySet().size();
-
-    status = new StatusInformation(masterStatus.toString(), gcStatus.toString(),
-        tServerStatus.toString(), logs.size(), logsHaveError, numProblems);
-
-    return status;
+    return new StatusInformation(masterStatus.toString(), gcStatus.toString(),
+        tServerStatus.toString(), monitor.recentLogs().numEvents(),
+        monitor.recentLogs().eventsIncludeErrors(), monitor.getProblemSummary().entrySet().size());
   }
 }

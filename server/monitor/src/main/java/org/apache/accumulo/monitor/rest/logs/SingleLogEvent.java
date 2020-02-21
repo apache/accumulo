@@ -18,43 +18,21 @@
  */
 package org.apache.accumulo.monitor.rest.logs;
 
+import org.apache.accumulo.monitor.util.logging.AccumuloMonitorAppender;
+
 /**
- * A single message logged
- *
- * @since 2.0.0
+ * A basic POJO to serialize single log events as JSON for transmitting from the
+ * {@link AccumuloMonitorAppender} to the REST endpoint at
+ * {@link LogResource#append(SingleLogEvent)}.
  */
-public class LogEvent {
+public class SingleLogEvent {
 
   // Variable names become JSON keys
   public long timestamp;
-  public Object application;
-  public int count;
-  public String level, message;
-  public String[] stacktrace;
+  public String application;
+  public String logger;
+  public String level;
+  public String message;
+  public String stacktrace;
 
-  public LogEvent() {}
-
-  /**
-   * Stores a new log event
-   *
-   * @param timestamp
-   *          log event timestamp
-   * @param application
-   *          log event application
-   * @param count
-   *          log event count
-   * @param level
-   *          log event level
-   * @param message
-   *          log event message
-   */
-  public LogEvent(long timestamp, Object application, int count, String level, String message,
-      String[] stacktrace) {
-    this.timestamp = timestamp;
-    this.application = application;
-    this.count = count;
-    this.level = level;
-    this.message = message;
-    this.stacktrace = stacktrace;
-  }
 }

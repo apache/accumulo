@@ -36,8 +36,8 @@ public class MonitorUtilTest {
 
     ZooReader zr = mock(ZooReader.class);
     ClientContext context = mock(ClientContext.class);
-    expect(context.getZooKeeperRoot()).andReturn("/root/");
-    expect(zr.getData("/root/" + Constants.ZMONITOR_HTTP_ADDR, null))
+    expect(context.getZooKeeperRoot()).andReturn("/root");
+    expect(zr.getData("/root" + Constants.ZMONITOR_HTTP_ADDR, null))
         .andThrow(new NoNodeException());
 
     replay(zr, context);
