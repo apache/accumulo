@@ -1091,6 +1091,8 @@
                 <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-common:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-core:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:*</usedUndeclaredDependency>
+                <!-- ignore runtime log4j dependency for test; it only needs log4j-1.2-api instead -->
+                <usedUndeclaredDependency>log4j:log4j:jar:*</usedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't detected as use since the annotation has retention of source -->
