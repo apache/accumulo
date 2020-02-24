@@ -29,8 +29,10 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.concurrent.Replication;
 import org.apache.hadoop.conf.Configuration;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class ReplicationRandomWalkIT extends ConfigurableMacBase {
 
   @Override

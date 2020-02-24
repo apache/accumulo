@@ -59,10 +59,12 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.easymock.EasyMock;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplIT.class);
 
