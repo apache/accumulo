@@ -59,7 +59,7 @@ if [[ -n "$CLASSPATH" ]]; then
 else
   CLASSPATH="${conf}"
 fi
-CLASSPATH="${CLASSPATH}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${HADOOP_HOME}/share/hadoop/client/*"
+CLASSPATH="${CLASSPATH}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${ZOOKEEPER_HOME}/lib/*:${HADOOP_HOME}/share/hadoop/client/*"
 export CLASSPATH
 
 ##################################################################
