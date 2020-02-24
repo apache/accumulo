@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.InetAddress;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,11 +66,11 @@ import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.monitor.util.logging.RecentLogs;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.Halt;
@@ -450,19 +451,22 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     log.debug("Using {} to advertise monitor location in ZooKeeper", advertiseHost);
 
     try {
-      String monitorAddress = HostAndPort.fromParts(advertiseHost, server.getPort()).toString();
-      context.getZooReaderWriter().putPersistentData(
-          context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
-          NodeExistsPolicy.OVERWRITE);
-      log.info("Set monitor address in zookeeper to {}", monitorAddress);
+      URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
+      final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
+      final ZooReaderWriter zoo = context.getZooReaderWriter();
+      // Delete before we try to re-create in case the previous session hasn't yet expired
+      try {
+        zoo.delete(path, -1);
+      } catch (KeeperException e) {
+        // We don't care if the node is already gone
+        if (KeeperException.Code.NONODE != e.code()) {
+          throw e;
+        }
+      }
+      zoo.putEphemeralData(path, url.toString().getBytes(UTF_8));
+      log.info("Set monitor address in zookeeper to {}", url);
     } catch (Exception ex) {
-      log.error("Unable to set monitor HTTP address in zookeeper", ex);
-    }
-
-    if (advertiseHost != null) {
-      LogService.startLogListener(context, advertiseHost);
-    } else {
-      log.warn("Not starting log4j listener as we could not determine address to use");
+      log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
     }
 
     new Daemon(new LoggingRunnable(log, new ZooKeeperStatus(context)), "ZooKeeperStatus").start();
@@ -562,6 +566,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   }
 
   private final Map<HostAndPort,ScanStats> allScans = new HashMap<>();
+  private final RecentLogs recentLogs = new RecentLogs();
 
   public Map<HostAndPort,ScanStats> getScans() {
     synchronized (allScans) {
@@ -811,6 +816,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   @Override
   public boolean isActiveService() {
     return monitorInitialized.get();
+  }
+
+  public RecentLogs recentLogs() {
+    return recentLogs;
   }
 
 }

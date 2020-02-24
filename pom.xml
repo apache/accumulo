@@ -236,6 +236,11 @@
         <version>3.7.1</version>
       </dependency>
       <dependency>
+        <groupId>com.lmax</groupId>
+        <artifactId>disruptor</artifactId>
+        <version>3.4.2</version>
+      </dependency>
+      <dependency>
         <groupId>com.sun.xml.bind</groupId>
         <artifactId>jaxb-core</artifactId>
         <version>2.3.0.1</version>
@@ -487,6 +492,12 @@
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-minikdc</artifactId>
         <version>${hadoop.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -519,6 +530,16 @@
         <groupId>org.apache.zookeeper</groupId>
         <artifactId>zookeeper</artifactId>
         <version>${zookeeper.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
@@ -751,14 +772,11 @@
         <version>${slf4j.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-log4j12</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-nop</artifactId>
-        <version>${slf4j.version}</version>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>2.13.0</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -1073,6 +1091,8 @@
                 <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-common:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-core:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:*</usedUndeclaredDependency>
+                <!-- ignore runtime log4j dependency for test; it only needs log4j-1.2-api instead -->
+                <usedUndeclaredDependency>log4j:log4j:jar:*</usedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't detected as use since the annotation has retention of source -->
@@ -1087,7 +1107,6 @@
                 <unusedDeclaredDependency>org.glassfish.jersey.inject:jersey-hk2:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.slf4j:slf4j-log4j12:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>junit:junit:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>javax.servlet:javax.servlet-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>javax.el:javax.el-api:jar:*</unusedDeclaredDependency>
@@ -1097,6 +1116,11 @@
                 <unusedDeclaredDependency>org.apache.accumulo:accumulo-native:tar.gz:*</unusedDeclaredDependency>
                 <!-- ignore runtime dependencies of commons-configuration2 -->
                 <unusedDeclaredDependency>commons-beanutils:commons-beanutils:jar:*</unusedDeclaredDependency>
+                <!-- ignore runtime log4j dependencies at test scope -->
+                <unusedDeclaredDependency>log4j:log4j:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.logging.log4j:log4j-web:jar:*</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
