@@ -213,7 +213,7 @@ public class Fate<T> {
    * <p>
    * Note: Users of this class should call {@link #startTransactionRunners(int)} to launch the
    * worker threads after creating a Fate object.
-   * 
+   *
    * @param toLogStrFunc
    *          A function that converts Repo to Strings that are suitable for logging
    */
