@@ -101,7 +101,8 @@ public class FateLogger {
       @Override
       public void push(long tid, Repo<T> repo) throws StackOverflowException {
         store.push(tid, repo);
-        storeLog.trace("pushed {} {}", formatTid(tid), toLogString.apply(repo));
+        if (storeLog.isTraceEnabled())
+          storeLog.trace("pushed {} {}", formatTid(tid), toLogString.apply(repo));
       }
 
       @Override
