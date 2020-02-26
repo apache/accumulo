@@ -403,7 +403,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       zooCfg.setProperty("clientPort", config.getZooKeeperPort() + "");
       zooCfg.setProperty("maxClientCnxns", "1000");
       zooCfg.setProperty("dataDir", config.getZooKeeperDir().getAbsolutePath());
-      zooCfg.setProperty("4lw.commands.whitelist", "ruok");
+      zooCfg.setProperty("4lw.commands.whitelist", "ruok,wchs");
       zooCfg.setProperty("admin.enableServer", "false");
       zooCfg.store(fileWriter, null);
 
