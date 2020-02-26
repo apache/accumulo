@@ -155,7 +155,7 @@
     <thrift.version>0.12.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
-    <zookeeper.version>3.4.14</zookeeper.version>
+    <zookeeper.version>3.5.7</zookeeper.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -319,11 +319,6 @@
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>4.12</version>
-      </dependency>
-      <dependency>
-        <groupId>log4j</groupId>
-        <artifactId>log4j</artifactId>
-        <version>1.2.17</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -540,6 +535,11 @@
             <artifactId>log4j</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.zookeeper</groupId>
+        <artifactId>zookeeper-jute</artifactId>
+        <version>${zookeeper.version}</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
@@ -1091,8 +1091,6 @@
                 <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-common:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-core:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:*</usedUndeclaredDependency>
-                <!-- ignore runtime log4j dependency for test; it only needs log4j-1.2-api instead -->
-                <usedUndeclaredDependency>log4j:log4j:jar:*</usedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't detected as use since the annotation has retention of source -->
@@ -1117,7 +1115,6 @@
                 <!-- ignore runtime dependencies of commons-configuration2 -->
                 <unusedDeclaredDependency>commons-beanutils:commons-beanutils:jar:*</unusedDeclaredDependency>
                 <!-- ignore runtime log4j dependencies at test scope -->
-                <unusedDeclaredDependency>log4j:log4j:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-web:jar:*</unusedDeclaredDependency>
