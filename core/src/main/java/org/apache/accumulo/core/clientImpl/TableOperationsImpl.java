@@ -791,6 +791,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException,
       TableNotFoundException, AccumuloException, TableExistsException {
+    if (oldTableName.length() > MAX_TABLE_NAME_LEN) {
+      log.warn("Table names longer than " + MAX_TABLE_NAME_LEN + " are no longer supported and might result in " +
+              "unexpected behavior.");
+    }
     checkArgument(newTableName.length() <= MAX_TABLE_NAME_LEN,
         "Table name is longer than 1024 characters");
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(UTF_8)),
