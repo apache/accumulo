@@ -166,9 +166,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public void rename(String oldNamespaceName, String newNamespaceName)
       throws AccumuloSecurityException, NamespaceNotFoundException, AccumuloException,
       NamespaceExistsException {
-    checkArgument(oldNamespaceName.length() <= MAX_NAMESPACE_LEN,
-        "Namespaces longer than 1024 characters"
-            + "are no longer supported and may result in unexpected behavior");
     checkArgument(newNamespaceName.length() <= MAX_TABLE_NAME_LEN,
         "Namespace is longer than 1024 characters");
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes(UTF_8)),

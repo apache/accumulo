@@ -435,7 +435,7 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_BULK_IMPORT: {
         TableOperation tableOp = TableOperation.BULK_IMPORT;
         validateArgumentCount(arguments, tableOp, 4);
-        String tableName = validateNewTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
+        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String dir = ByteBufferUtil.toString(arguments.get(1));
         String failDir = ByteBufferUtil.toString(arguments.get(2));
         boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
