@@ -253,5 +253,4 @@ public class MasterMetadataUtil {
 
     tablet.mutate();
   }
-
 }
