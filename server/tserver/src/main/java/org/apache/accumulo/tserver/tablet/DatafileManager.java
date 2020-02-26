@@ -545,8 +545,7 @@ class DatafileManager {
       t2 = System.currentTimeMillis();
     }
 
-    // TODO look into concurrency issue if we have the files updated in memory before metadata
-    // minor compaction does the opposite... updates the metadata first then memory
+    // known consistency issue between minor and major compactions - see ACCUMULO-18
     Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
     if (filesInUseByScans.size() > 0)
       log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
