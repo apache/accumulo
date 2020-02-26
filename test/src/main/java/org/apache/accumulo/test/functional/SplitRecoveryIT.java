@@ -147,7 +147,6 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     Text midRow = new Text(mr);
 
     SortedMap<StoredTabletFile,DataFileValue> splitMapFiles = null;
-    SortedMap<StoredTabletFile,DataFileValue> storedFiles = new TreeMap<>();
 
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
@@ -162,8 +161,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
       int tid = 0;
       TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, tid);
-      storedFiles.putAll(MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles,
-          new MetadataTime(0, TimeType.LOGICAL), context, zl));
+      SortedMap<StoredTabletFile,DataFileValue> storedFiles =
+          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles,
+              new MetadataTime(0, TimeType.LOGICAL), context, zl));
       if (i == extentToSplit) {
         splitMapFiles = storedFiles;
       }
