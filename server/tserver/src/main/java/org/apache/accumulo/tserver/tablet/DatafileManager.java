@@ -439,11 +439,10 @@ class DatafileManager {
     synchronized (tablet) {
       t1 = System.currentTimeMillis();
 
-      if (datafileSizes.containsKey(newFile)) {
-        log.error("Adding file that is already in set {}", newFile);
-      }
-
       if (dfv.getNumEntries() > 0) {
+        if (datafileSizes.containsKey(newFile)) {
+          log.error("Adding file that is already in set {}", newFile);
+        }
         datafileSizes.put(newFile, dfv);
       }
 
@@ -461,7 +460,7 @@ class DatafileManager {
     // must do this after list of files in memory is updated above
     removeFilesAfterScan(filesInUseByScans);
 
-    TabletLogger.flushed(tablet.getExtent(), absMergeFile, newFile);
+    TabletLogger.flushed(tablet.getExtent(), absMergeFile, newDatafile);
 
     if (log.isTraceEnabled()) {
       log.trace(String.format("MinC finish lock %.2f secs %s", (t2 - t1) / 1000.0,
