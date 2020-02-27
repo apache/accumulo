@@ -26,18 +26,19 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy.SizeWindow;
 import org.junit.Test;
 
 public class SizeWindowTest {
 
   static class TestSizeWindow extends SizeWindow {
-    private static Map<FileRef,DataFileValue> convert(Map<String,Integer> testData) {
-      Map<FileRef,DataFileValue> files = new HashMap<>();
+    private static Map<TabletFile,DataFileValue> convert(Map<String,Integer> testData) {
+      Map<TabletFile,DataFileValue> files = new HashMap<>();
       testData.forEach((k, v) -> {
-        files.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + k), new DataFileValue(v, 0));
+        files.put(new TabletFile("hdfs://nn1/accumulo/tables/5/t-0001/" + k),
+            new DataFileValue(v, 0));
       });
       return files;
     }
@@ -51,7 +52,7 @@ public class SizeWindowTest {
   }
 
   static Collection<String> getFileNames(SizeWindow sw) {
-    return sw.getFiles().stream().map(fr -> fr.path().getName()).collect(Collectors.toSet());
+    return sw.getFiles().stream().map(TabletFile::getFileName).collect(Collectors.toSet());
   }
 
   static Map<String,Integer> genTestData(int start, int end) {

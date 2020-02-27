@@ -21,7 +21,6 @@ package org.apache.accumulo.gc;
 import static org.apache.accumulo.gc.SimpleGarbageCollector.CANDIDATE_MEMORY_PERCENTAGE;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.getCurrentArguments;
@@ -50,7 +49,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
@@ -185,8 +183,6 @@ public class SimpleGarbageCollectorTest {
 
     VolumeManager volMgr2 = createMock(VolumeManager.class);
     expect(volMgr2.getVolumes()).andReturn(vols).anyTimes();
-    expect(volMgr2.getFullPath(eq(FileType.TABLE), anyObject()))
-        .andAnswer(() -> new Path(getCurrentArguments()[1].toString())).anyTimes();
 
     replay(vol1, vol2, volMgr2);
 

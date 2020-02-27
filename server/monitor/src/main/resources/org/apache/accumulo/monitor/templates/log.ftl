@@ -41,6 +41,7 @@
                 }
               },
               { "data": "application" },
+              { "data": "logger" },
               { "data": "count" },
               { "data": "level",
                 "type": "html",
@@ -75,7 +76,7 @@
             }
             else {
                 tr.addClass( 'details' );
-                row.child( formatStacktrace(row.data().stacktrace) ).show();
+                row.child( "<pre>" + row.data().stacktrace + "</pre>" ).show();
 
                 // Add to the 'open' array
                 if ( idx === -1 ) {
@@ -100,16 +101,6 @@
           });
         }); // end document ready
 
-        // format stacktrace
-        function formatStacktrace(d) {
-          var str = new String("<pre>");
-          $.each(d, function( index, value ) {
-            str = str + value + "<br>";
-          });
-          str = str + "</pre>";
-          return str;
-        }
-
         /**
          * Used to refresh the table
          */
@@ -125,6 +116,7 @@
             <tr>
               <th>Timestamp</th>
               <th>Application</th>
+              <th>Logger</th>
               <th>Count</th>
               <th>Level</th>
               <th class="logevent">Message</th>

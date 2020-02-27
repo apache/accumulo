@@ -47,8 +47,10 @@ import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   private AccumuloClient client;

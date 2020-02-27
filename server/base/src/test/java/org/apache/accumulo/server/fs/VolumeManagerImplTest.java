@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.fs;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
@@ -27,9 +26,7 @@ import java.util.List;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,30 +46,6 @@ public class VolumeManagerImplTest {
   }
 
   @Test
-  public void defaultTabletDirWithoutTableId() {
-    thrown.expect(IllegalArgumentException.class);
-    fs.getFullPath(FileType.TABLE, "/default_tablet/");
-  }
-
-  @Test
-  public void tabletDirWithoutTableId() {
-    thrown.expect(IllegalArgumentException.class);
-    fs.getFullPath(FileType.TABLE, "/t-0000001/");
-  }
-
-  @Test
-  public void defaultTabletFileWithoutTableId() {
-    thrown.expect(IllegalArgumentException.class);
-    fs.getFullPath(FileType.TABLE, "/default_tablet/C0000001.rf");
-  }
-
-  @Test
-  public void tabletFileWithoutTableId() {
-    thrown.expect(IllegalArgumentException.class);
-    fs.getFullPath(FileType.TABLE, "/t-0000001/C0000001.rf");
-  }
-
-  @Test
   public void invalidChooserConfigured() throws Exception {
     List<String> volumes = Arrays.asList("file://one/", "file://two/", "file://three/");
     ConfigurationCopy conf = new ConfigurationCopy();
@@ -82,32 +55,6 @@ public class VolumeManagerImplTest {
         "org.apache.accumulo.server.fs.ChooserThatDoesntExist");
     thrown.expect(RuntimeException.class);
     VolumeManagerImpl.get(conf, hadoopConf);
-  }
-
-  @Test
-  public void tabletDirWithTableId() throws Exception {
-    String basePath = fs.getDefaultVolume().getBasePath();
-    String scheme = fs.getDefaultVolume().getFileSystem().getUri().toURL().getProtocol();
-    Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory());
-    List<String> pathsToTest =
-        Arrays.asList("1/default_tablet", "1/default_tablet/", "1/t-0000001");
-    for (String pathToTest : pathsToTest) {
-      Path fullPath = fs.getFullPath(FileType.TABLE, pathToTest);
-      assertEquals(new Path(expectedBase, pathToTest), fullPath);
-    }
-  }
-
-  @Test
-  public void tabletFileWithTableId() throws Exception {
-    String basePath = fs.getDefaultVolume().getBasePath();
-    String scheme = fs.getDefaultVolume().getFileSystem().getUri().toURL().getProtocol();
-    Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory());
-    List<String> pathsToTest =
-        Arrays.asList("1/default_tablet/C0000001.rf", "1/t-0000001/C0000001.rf");
-    for (String pathToTest : pathsToTest) {
-      Path fullPath = fs.getFullPath(FileType.TABLE, pathToTest);
-      assertEquals(new Path(expectedBase, pathToTest), fullPath);
-    }
   }
 
   @Test

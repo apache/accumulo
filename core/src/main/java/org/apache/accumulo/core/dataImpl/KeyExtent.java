@@ -451,10 +451,10 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     }
   }
 
-  public static byte[] tableOfMetadataRow(Text row) {
+  public static TableId tableOfMetadataRow(Text row) {
     KeyExtent ke = new KeyExtent();
     ke.decodeMetadataRow(row);
-    return ke.getTableId().canonical().getBytes(UTF_8);
+    return ke.getTableId();
   }
 
   public boolean contains(final ByteSequence bsrow) {

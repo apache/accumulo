@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -49,9 +50,9 @@ import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
-import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -142,7 +143,8 @@ public class MergeStateIT extends ConfigurableMacBase {
               MergeInfo.Operation.MERGE));
 
       // Verify the tablet state: hosted, and count
-      MetaDataStateStore metaDataStateStore = new MetaDataStateStore(context, state);
+      TabletStateStore metaDataStateStore =
+          TabletStateStore.getStoreForLevel(DataLevel.USER, context, state);
       int count = 0;
       for (TabletLocationState tss : metaDataStateStore) {
         if (tss != null)
@@ -208,7 +210,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     }
   }
 
-  private MergeStats scan(MockCurrentState state, MetaDataStateStore metaDataStateStore) {
+  private MergeStats scan(MockCurrentState state, TabletStateStore metaDataStateStore) {
     MergeStats stats = new MergeStats(state.mergeInfo);
     stats.getMergeInfo().setState(MergeState.WAITING_FOR_OFFLINE);
     for (TabletLocationState tss : metaDataStateStore) {

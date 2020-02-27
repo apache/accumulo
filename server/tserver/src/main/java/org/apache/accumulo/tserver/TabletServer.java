@@ -111,6 +111,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.Compacting;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -119,6 +120,7 @@ import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -182,11 +184,9 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -463,8 +463,8 @@ public class TabletServer extends AbstractServer {
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
-    SimpleTimer.getInstance(aconf).schedule(() -> TabletLocator.clearLocators(),
-        jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
+    SimpleTimer.getInstance(aconf).schedule(() -> TabletLocator.clearLocators(), jitter(),
+        jitter());
     walMarker = new WalStateManager(context);
 
     // Create the secret manager
@@ -490,10 +490,10 @@ public class TabletServer extends AbstractServer {
     return Constants.VERSION;
   }
 
-  private static long jitter(long ms) {
+  private static long jitter() {
     Random r = new SecureRandom();
     // add a random 10% wait
-    return (long) ((1. + (r.nextDouble() / 10)) * ms);
+    return (long) ((1. + (r.nextDouble() / 10)) * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 
   private final SessionManager sessionManager;
@@ -532,12 +532,12 @@ public class TabletServer extends AbstractServer {
           for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
             TKeyExtent tke = entry.getKey();
             Map<String,MapFileInfo> fileMap = entry.getValue();
-            Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
+            Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
             for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
               Path path = new Path(mapping.getKey());
               FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
               path = ns.makeQualified(path);
-              fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
+              fileRefMap.put(new TabletFile(path.toString()), mapping.getValue());
             }
 
             Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
@@ -574,12 +574,12 @@ public class TabletServer extends AbstractServer {
 
       watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
         tabletImports.forEach((tke, fileMap) -> {
-          Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
+          Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
           for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
             Path path = new Path(dir, mapping.getKey());
             FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
             path = ns.makeQualified(path);
-            fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
+            fileRefMap.put(new TabletFile(path, path.toString()), mapping.getValue());
           }
 
           Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
@@ -1776,8 +1776,7 @@ public class TabletServer extends AbstractServer {
         }
       }
 
-      // add the assignment job to the appropriate queue
-      log.info("Loading tablet {}", extent);
+      TabletLogger.loading(extent, TabletServer.this.getTabletSession());
 
       final AssignmentHandler ah = new AssignmentHandler(extent);
       // final Runnable ah = new LoggingRunnable(log, );
@@ -2188,12 +2187,8 @@ public class TabletServer extends AbstractServer {
             closedCopy = copyClosedLogs(closedLogs);
           }
 
-          Iterator<Entry<KeyExtent,Tablet>> iter = getOnlineTablets().entrySet().iterator();
-
           // bail early now if we're shutting down
-          while (iter.hasNext()) {
-
-            Entry<KeyExtent,Tablet> entry = iter.next();
+          for (Entry<KeyExtent,Tablet> entry : getOnlineTablets().entrySet()) {
 
             Tablet tablet = entry.getValue();
 
@@ -2364,10 +2359,8 @@ public class TabletServer extends AbstractServer {
         if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()
             || (extent.isMeta()
                 && !getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE))) {
-          log.debug("Unassigning {}", tls);
           TabletStateStore.unassign(getContext(), tls, null);
         } else {
-          log.debug("Suspending " + tls);
           TabletStateStore.suspend(getContext(), tls, null,
               requestTimeSkew + MILLISECONDS.convert(System.nanoTime(), NANOSECONDS));
         }
@@ -2385,8 +2378,6 @@ public class TabletServer extends AbstractServer {
       // roll tablet stats over into tablet server's statsKeeper object as
       // historical data
       statsKeeper.saveMajorMinorTimes(t.getTabletStats());
-      log.info("unloaded {}", extent);
-
     }
   }
 
@@ -2405,8 +2396,6 @@ public class TabletServer extends AbstractServer {
 
     @Override
     public void run() {
-      log.info("{}: got assignment from master: {}", clientAddress, extent);
-
       synchronized (unopenedTablets) {
         synchronized (openingTablets) {
           synchronized (onlineTablets) {
@@ -2438,8 +2427,6 @@ public class TabletServer extends AbstractServer {
           openingTablets.add(extent);
         }
       }
-
-      log.debug("Loading extent: {}", extent);
 
       // check Metadata table before accepting assignment
       Text locationToOpen = null;
@@ -2500,7 +2487,7 @@ public class TabletServer extends AbstractServer {
 
         TabletResourceManager trm =
             resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
-        TabletData data = new TabletData(extent, fs, tabletMetadata);
+        TabletData data = new TabletData(tabletMetadata);
 
         tablet = new Tablet(TabletServer.this, extent, trm, data);
         // If a minor compaction starts after a tablet opens, this indicates a log recovery
@@ -2595,13 +2582,14 @@ public class TabletServer extends AbstractServer {
     }
   }
 
-  private HostAndPort startServer(AccumuloConfiguration conf, String address, Property portHint,
-      TProcessor processor, String threadName) throws UnknownHostException {
+  private HostAndPort startServer(AccumuloConfiguration conf, String address, TProcessor processor)
+      throws UnknownHostException {
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
         ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), address, portHint,
-        processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
-        Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, maxMessageSizeProperty);
+    ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), address,
+        Property.TSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
+        "Thrift Client Server", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
+        Property.TSERV_THREADCHECK, maxMessageSizeProperty);
     this.server = sp.server;
     return sp.address;
   }
@@ -2650,8 +2638,7 @@ public class TabletServer extends AbstractServer {
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(),
-        Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
+    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
     log.info("address = {}", address);
     return address;
   }
@@ -3217,7 +3204,7 @@ public class TabletServer extends AbstractServer {
     Collections.sort(sorted, (e1, e2) -> (int) (e1.timestamp - e2.timestamp));
     for (LogEntry entry : sorted) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(fs.getFullPath(FileType.WAL, entry.filename));
+      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.filename));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {

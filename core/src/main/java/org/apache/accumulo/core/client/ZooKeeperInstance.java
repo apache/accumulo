@@ -124,15 +124,15 @@ public class ZooKeeperInstance implements Instance {
   @Override
   public String getInstanceID() {
     if (instanceId == null) {
-      instanceId = ZooUtil.getInstanceID(zooCache, instanceName);
+      instanceId = ClientContext.getInstanceID(zooCache, instanceName);
     }
-    ZooUtil.verifyInstanceId(zooCache, instanceId, instanceName);
+    ClientContext.verifyInstanceId(zooCache, instanceId, instanceName);
     return instanceId;
   }
 
   @Override
   public List<String> getMasterLocations() {
-    return ZooUtil.getMasterLocations(zooCache, getInstanceID());
+    return ClientContext.getMasterLocations(zooCache, getInstanceID());
   }
 
   @Override

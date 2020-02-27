@@ -71,6 +71,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -92,6 +93,7 @@ import org.apache.accumulo.master.replication.MasterReplicationCoordinator;
 import org.apache.accumulo.master.replication.ReplicationDriver;
 import org.apache.accumulo.master.replication.WorkDriver;
 import org.apache.accumulo.master.state.TableCounts;
+import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.master.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
@@ -109,14 +111,12 @@ import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
-import org.apache.accumulo.server.master.state.MetaDataStateStore;
-import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.master.state.TabletState;
-import org.apache.accumulo.server.master.state.ZooTabletStateStore;
+import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -154,6 +154,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.util.concurrent.RateLimiter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -169,6 +170,8 @@ public class Master extends AbstractServer
 
   static final int ONE_SECOND = 1000;
   static final long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
+  // made this less than TIME_TO_WAIT_BETWEEN_SCANS, so that the cache is cleared between cycles
+  static final long TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE = TIME_TO_WAIT_BETWEEN_SCANS / 4;
   private static final long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   static final long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   private static final long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
@@ -176,6 +179,7 @@ public class Master extends AbstractServer
   private static final int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = ONE_SECOND;
   static final int MAX_TSERVER_WORK_CHUNK = 5000;
   private static final int MAX_BAD_STATUS_COUNT = 3;
+  private static final double MAX_SHUTDOWNS_PER_SEC = 10D / 60D;
 
   final VolumeManager fs;
   private final Object balancedNotifier = new Object();
@@ -908,6 +912,7 @@ public class Master extends AbstractServer
         threads == 0 ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
+    final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {
@@ -941,18 +946,26 @@ public class Master extends AbstractServer
         } catch (Exception ex) {
           log.error("unable to get tablet server status {} {}", server, ex.toString());
           log.debug("unable to get tablet server status {}", server, ex);
+          // Attempt to shutdown server only if able to acquire. If unable, this tablet server
+          // will be removed from the badServers set below and status will be reattempted again
+          // MAX_BAD_STATUS_COUNT times
           if (badServers.computeIfAbsent(server, k -> new AtomicInteger(0)).incrementAndGet()
               > MAX_BAD_STATUS_COUNT) {
-            log.warn("attempting to stop {}", server);
-            try {
-              TServerConnection connection2 = tserverSet.getConnection(server);
-              if (connection2 != null) {
-                connection2.halt(masterLock);
+            if (shutdownServerRateLimiter.tryAcquire()) {
+              log.warn("attempting to stop {}", server);
+              try {
+                TServerConnection connection2 = tserverSet.getConnection(server);
+                if (connection2 != null) {
+                  connection2.halt(masterLock);
+                }
+              } catch (TTransportException e1) {
+                // ignore: it's probably down
+              } catch (Exception e2) {
+                log.info("error talking to troublesome tablet server", e2);
               }
-            } catch (TTransportException e1) {
-              // ignore: it's probably down
-            } catch (Exception e2) {
-              log.info("error talking to troublesome tablet server", e2);
+            } else {
+              log.warn("Unable to shutdown {} as over the shutdown limit of {} per minute", server,
+                  MAX_SHUTDOWNS_PER_SEC * 60);
             }
             badServers.remove(server);
           }
@@ -1021,7 +1034,7 @@ public class Master extends AbstractServer
       throw new IllegalStateException("Exception getting master lock", e);
     }
 
-    recoveryManager = new RecoveryManager(this);
+    recoveryManager = new RecoveryManager(this, TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE);
 
     context.getTableManager().addObserver(this);
 
@@ -1058,7 +1071,8 @@ public class Master extends AbstractServer
       throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
     }
 
-    watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(context, this), null) {
+    watchers.add(new TabletGroupWatcher(this,
+        TabletStateStore.getStoreForLevel(DataLevel.USER, context, this), null) {
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1066,26 +1080,26 @@ public class Master extends AbstractServer
       }
     });
 
-    watchers.add(
-        new TabletGroupWatcher(this, new RootTabletStateStore(context, this), watchers.get(0)) {
-          @Override
-          boolean canSuspendTablets() {
-            // Allow metadata tablets to enter suspended state only if so configured. Generally
-            // we'll want metadata tablets to
-            // be immediately reassigned, even if there's a global table.suspension.duration
-            // setting.
-            return getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE);
-          }
-        });
+    watchers.add(new TabletGroupWatcher(this,
+        TabletStateStore.getStoreForLevel(DataLevel.METADATA, context, this), watchers.get(0)) {
+      @Override
+      boolean canSuspendTablets() {
+        // Allow metadata tablets to enter suspended state only if so configured. Generally
+        // we'll want metadata tablets to
+        // be immediately reassigned, even if there's a global table.suspension.duration
+        // setting.
+        return getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE);
+      }
+    });
 
-    watchers.add(
-        new TabletGroupWatcher(this, new ZooTabletStateStore(context.getAmple()), watchers.get(1)) {
-          @Override
-          boolean canSuspendTablets() {
-            // Never allow root tablet to enter suspended state.
-            return false;
-          }
-        });
+    watchers.add(new TabletGroupWatcher(this,
+        TabletStateStore.getStoreForLevel(DataLevel.ROOT, context), watchers.get(1)) {
+      @Override
+      boolean canSuspendTablets() {
+        // Never allow root tablet to enter suspended state.
+        return false;
+      }
+    });
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }
@@ -1104,7 +1118,7 @@ public class Master extends AbstractServer
 
       int threads = getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
 
-      fate = new Fate<>(this, store);
+      fate = new Fate<>(this, store, TraceRepo::toLogString);
       fate.startTransactionRunners(threads);
 
       SimpleTimer.getInstance(getConfiguration()).schedule(() -> store.ageOff(), 63000, 63000);
@@ -1229,7 +1243,7 @@ public class Master extends AbstractServer
    * Allows property configuration to block master start-up waiting for a minimum number of tservers
    * to register in zookeeper. It also accepts a maximum time to wait - if the time expires, the
    * start-up will continue with any tservers available. This check is only performed at master
-   * initialization, when the master aquires the lock. The following properties are used to control
+   * initialization, when the master acquires the lock. The following properties are used to control
    * the behaviour:
    * <ul>
    * <li>MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT - when set to 0 or less, no blocking occurs (default
@@ -1250,7 +1264,7 @@ public class Master extends AbstractServer
 
     if (minTserverCount <= 0) {
       log.info(
-          "tserver availability check disabled, contining with-{} servers." + "To enable, set {}",
+          "tserver availability check disabled, continuing with-{} servers." + "To enable, set {}",
           tserverSet.size(), Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
       return;
     }

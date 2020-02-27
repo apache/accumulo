@@ -40,13 +40,14 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,7 +109,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void putGcCandidates(TableId tableId, Collection<? extends Ample.FileMeta> candidates) {
+  public void putGcCandidates(TableId tableId, Collection<TabletFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
       mutateRootGcCandidates(rgcc -> rgcc.add(candidates));
@@ -116,8 +117,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
 
     try (BatchWriter writer = createWriter(tableId)) {
-      for (Ample.FileMeta file : candidates) {
-        writer.addMutation(createDeleteMutation(context, tableId, file.path().toString()));
+      for (TabletFile file : candidates) {
+        writer.addMutation(createDeleteMutation(file));
       }
     } catch (MutationsRejectedException e) {
       throw new RuntimeException(e);
@@ -192,10 +193,17 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
   }
 
-  public static Mutation createDeleteMutation(ServerContext context, TableId tableId,
-      String pathToRemove) {
-    Path path = context.getVolumeManager().getFullPath(tableId, pathToRemove);
-    Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path.toString())));
+  public static Mutation createDeleteMutation(String pathToRemove) {
+    String path = TabletFileUtil.validate(pathToRemove);
+    return createDelMutation(path);
+  }
+
+  public static Mutation createDeleteMutation(TabletFile pathToRemove) {
+    return createDelMutation(pathToRemove.getMetadataEntry());
+  }
+
+  private static Mutation createDelMutation(String path) {
+    Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path)));
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.SkewedKeyValue.NAME);
     return delFlag;
   }

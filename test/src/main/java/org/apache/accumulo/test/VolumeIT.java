@@ -45,7 +45,6 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
-import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -58,10 +57,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
@@ -185,92 +184,6 @@ public class VolumeIT extends ConfigurableMacBase {
 
     createScanner.close();
     assertEquals(expected, actual);
-  }
-
-  @Test
-  public void testRelativePaths() throws Exception {
-
-    List<String> expected = new ArrayList<>();
-
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName,
-          new NewTableConfiguration().withoutDefaultIterators());
-
-      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-
-      SortedSet<Text> partitions = new TreeSet<>();
-      // with some splits
-      for (String s : "c,g,k,p,s,v".split(","))
-        partitions.add(new Text(s));
-
-      client.tableOperations().addSplits(tableName, partitions);
-
-      BatchWriter bw = client.createBatchWriter(tableName);
-
-      // create two files in each tablet
-      for (String s : VolumeChooserIT.alpha_rows) {
-        Mutation m = new Mutation(s);
-        m.put("cf1", "cq1", "1");
-        bw.addMutation(m);
-        expected.add(s + ":cf1:cq1:1");
-      }
-
-      bw.flush();
-      client.tableOperations().flush(tableName, null, null, true);
-
-      for (String s : VolumeChooserIT.alpha_rows) {
-        Mutation m = new Mutation(s);
-        m.put("cf1", "cq1", "2");
-        bw.addMutation(m);
-        expected.add(s + ":cf1:cq1:2");
-      }
-
-      bw.close();
-      client.tableOperations().flush(tableName, null, null, true);
-
-      verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
-
-      client.tableOperations().offline(tableName, true);
-
-      client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
-          TablePermission.WRITE);
-
-      try (Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-        metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
-
-        try (BatchWriter mbw = client.createBatchWriter(MetadataTable.NAME)) {
-          for (Entry<Key,Value> entry : metaScanner) {
-            String cq = entry.getKey().getColumnQualifier().toString();
-            if (cq.startsWith(v1.toString())) {
-              Path path = new Path(cq);
-              String relPath = "/" + path.getParent().getName() + "/" + path.getName();
-              Mutation fileMut = new Mutation(entry.getKey().getRow());
-              fileMut.putDelete(entry.getKey().getColumnFamily(),
-                  entry.getKey().getColumnQualifier());
-              fileMut.put(entry.getKey().getColumnFamily().toString(), relPath,
-                  entry.getValue().toString());
-              mbw.addMutation(fileMut);
-            }
-          }
-        }
-
-        client.tableOperations().online(tableName, true);
-
-        verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
-
-        client.tableOperations().compact(tableName, null, null, true, true);
-
-        verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
-
-        for (Entry<Key,Value> entry : metaScanner) {
-          String cq = entry.getKey().getColumnQualifier().toString();
-          Path path = new Path(cq);
-          assertTrue("relative path not deleted " + path, path.depth() > 2);
-        }
-      }
-    }
   }
 
   @Test
@@ -476,9 +389,9 @@ public class VolumeIT extends ConfigurableMacBase {
 
       // check that root tablet is not on volume 1
       int count = 0;
-      for (String file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
+      for (TabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
           .getFiles()) {
-        assertTrue(file.startsWith(v2.toString()));
+        assertTrue(file.getMetadataEntry().startsWith(v2.toString()));
         count++;
       }
 
@@ -502,8 +415,10 @@ public class VolumeIT extends ConfigurableMacBase {
     verifyVolumesUsed(client, tableNames[0], false, v1, v2);
 
     // write to 2nd table, but do not flush data to disk before shutdown
-    writeData(tableNames[1],
-        cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD)));
+    try (AccumuloClient c2 =
+        cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
+      writeData(tableNames[1], c2);
+    }
 
     if (cleanShutdown)
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
@@ -546,9 +461,10 @@ public class VolumeIT extends ConfigurableMacBase {
 
     // check that root tablet is not on volume 1 or 2
     int count = 0;
-    for (String file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
+    for (TabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
         .getFiles()) {
-      assertTrue(file.startsWith(v8.toString()) || file.startsWith(v9.toString()));
+      assertTrue(file.getMetadataEntry().startsWith(v8.toString())
+          || file.getMetadataEntry().startsWith(v9.toString()));
       count++;
     }
 

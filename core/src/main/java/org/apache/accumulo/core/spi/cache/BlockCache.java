@@ -26,6 +26,7 @@ import org.apache.accumulo.core.file.blockfile.cache.lru.SynchronousLoadingBlock
  * Block cache interface.
  *
  * @since 2.0.0
+ * @see org.apache.accumulo.core.spi
  */
 public interface BlockCache {
 

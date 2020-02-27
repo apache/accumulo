@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -60,7 +61,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
@@ -144,7 +144,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
     Text midRow = new Text(mr);
 
-    SortedMap<FileRef,DataFileValue> splitMapFiles = null;
+    SortedMap<TabletFile,DataFileValue> splitMapFiles = null;
 
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
@@ -153,8 +153,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       String tdir =
           ServerConstants.getTablesDirs(context)[0] + "/" + extent.getTableId() + "/" + dirName;
       MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
-      SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<>();
-      mapFiles.put(new FileRef(tdir + "/" + RFile.EXTENSION + "_000_000"),
+      SortedMap<TabletFile,DataFileValue> mapFiles = new TreeMap<>();
+      mapFiles.put(new TabletFile(tdir + "/" + RFile.EXTENSION + "_000_000"),
           new DataFileValue(1000017 + i, 10000 + i));
 
       if (i == extentToSplit) {
@@ -175,24 +175,23 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         "localhost:1234", failPoint, zl);
   }
 
-  private static Map<Long,List<FileRef>> getBulkFilesLoaded(ServerContext context,
+  private static Map<Long,List<TabletFile>> getBulkFilesLoaded(ServerContext context,
       KeyExtent extent) {
-    Map<Long,List<FileRef>> bulkFiles = new HashMap<>();
+    Map<Long,List<TabletFile>> bulkFiles = new HashMap<>();
 
     context.getAmple().readTablet(extent).getLoaded()
-        .forEach((path, txid) -> bulkFiles.computeIfAbsent(txid, k -> new ArrayList<FileRef>())
-            .add(new FileRef(context.getVolumeManager(), path, extent.getTableId())));
+        .forEach((path, txid) -> bulkFiles.computeIfAbsent(txid, k -> new ArrayList<>()).add(path));
 
     return bulkFiles;
   }
 
   private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent, KeyExtent high,
-      KeyExtent low, double splitRatio, SortedMap<FileRef,DataFileValue> mapFiles, Text midRow,
+      KeyExtent low, double splitRatio, SortedMap<TabletFile,DataFileValue> mapFiles, Text midRow,
       String location, int steps, ZooLock zl) throws Exception {
 
-    SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
-    SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
-    List<FileRef> highDatafilesToRemove = new ArrayList<>();
+    SortedMap<TabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
+    SortedMap<TabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
+    List<TabletFile> highDatafilesToRemove = new ArrayList<>();
 
     MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<>(), mapFiles,
         lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
@@ -206,7 +205,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     writer.update(m);
 
     if (steps >= 1) {
-      Map<Long,List<FileRef>> bulkFiles = getBulkFilesLoaded(context, extent);
+      Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, extent);
 
       MasterMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes, bulkFiles,
           new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
@@ -226,8 +225,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       ensureTabletHasNoUnexpectedMetadataEntries(context, low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(context, high, highDatafileSizes);
 
-      Map<Long,? extends Collection<FileRef>> lowBulkFiles = getBulkFilesLoaded(context, low);
-      Map<Long,? extends Collection<FileRef>> highBulkFiles = getBulkFilesLoaded(context, high);
+      Map<Long,? extends Collection<TabletFile>> lowBulkFiles = getBulkFilesLoaded(context, low);
+      Map<Long,? extends Collection<TabletFile>> highBulkFiles = getBulkFilesLoaded(context, high);
 
       if (!lowBulkFiles.equals(highBulkFiles)) {
         throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
@@ -243,7 +242,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
-      SortedMap<FileRef,DataFileValue> expectedMapFiles) throws Exception {
+      SortedMap<TabletFile,DataFileValue> expectedMapFiles) throws Exception {
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetadataRange());
 
@@ -298,14 +297,14 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
       assertTrue(sawPer);
 
-      SortedMap<FileRef,DataFileValue> fixedMapFiles =
+      SortedMap<TabletFile,DataFileValue> fixedMapFiles =
           MetadataTableUtil.getFileAndLogEntries(context, extent).getSecond();
       verifySame(expectedMapFiles, fixedMapFiles);
     }
   }
 
-  private void verifySame(SortedMap<FileRef,DataFileValue> datafileSizes,
-      SortedMap<FileRef,DataFileValue> fixedDatafileSizes) throws Exception {
+  private void verifySame(SortedMap<TabletFile,DataFileValue> datafileSizes,
+      SortedMap<TabletFile,DataFileValue> fixedDatafileSizes) throws Exception {
 
     if (!datafileSizes.keySet().containsAll(fixedDatafileSizes.keySet())
         || !fixedDatafileSizes.keySet().containsAll(datafileSizes.keySet())) {
@@ -313,7 +312,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
           + fixedDatafileSizes.keySet());
     }
 
-    for (Entry<FileRef,DataFileValue> entry : datafileSizes.entrySet()) {
+    for (Entry<TabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
       DataFileValue dfv = entry.getValue();
       DataFileValue otherDfv = fixedDatafileSizes.get(entry.getKey());
 

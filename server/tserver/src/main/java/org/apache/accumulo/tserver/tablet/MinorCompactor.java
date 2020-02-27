@@ -33,11 +33,11 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -52,9 +52,9 @@ public class MinorCompactor extends Compactor {
 
   private static final Logger log = LoggerFactory.getLogger(MinorCompactor.class);
 
-  private static final Map<FileRef,DataFileValue> EMPTY_MAP = Collections.emptyMap();
+  private static final Map<TabletFile,DataFileValue> EMPTY_MAP = Collections.emptyMap();
 
-  private static Map<FileRef,DataFileValue> toFileMap(FileRef mergeFile, DataFileValue dfv) {
+  private static Map<TabletFile,DataFileValue> toFileMap(TabletFile mergeFile, DataFileValue dfv) {
     if (mergeFile == null)
       return EMPTY_MAP;
 
@@ -64,8 +64,8 @@ public class MinorCompactor extends Compactor {
   private final TabletServer tabletServer;
 
   public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
-      FileRef mergeFile, DataFileValue dfv, FileRef outputFile, MinorCompactionReason mincReason,
-      TableConfiguration tableConfig) {
+      TabletFile mergeFile, DataFileValue dfv, TabletFile outputFile,
+      MinorCompactionReason mincReason, TableConfiguration tableConfig) {
     super(tabletServer.getContext(), tablet, toFileMap(mergeFile, dfv), imm, outputFile, true,
         new CompactionEnv() {
 
@@ -111,7 +111,7 @@ public class MinorCompactor extends Compactor {
   @Override
   public CompactionStats call() {
     final String outputFileName = getOutputFile();
-    log.debug("Begin minor compaction {} {}", outputFileName, getExtent());
+    log.trace("Begin minor compaction {} {}", outputFileName, getExtent());
 
     // output to new MapFile with a temporary name
     int sleepTime = 100;

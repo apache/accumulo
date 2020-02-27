@@ -38,17 +38,17 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
@@ -111,12 +111,6 @@ public class FileManager {
 
   private VolumeManager fs;
 
-  // the data cache and index cache are allocated in
-  // TabletResourceManager and passed through the file opener to
-  // CachableBlockFile which can handle the caches being
-  // null if unallocated
-  private BlockCache dataCache = null;
-  private BlockCache indexCache = null;
   private Cache<String,Long> fileLenCache;
 
   private long maxIdleTime;
@@ -163,21 +157,12 @@ public class FileManager {
 
   }
 
-  /**
-   *
-   * @param dataCache
-   *          : underlying file can and should be able to handle a null cache
-   * @param indexCache
-   *          : underlying file can and should be able to handle a null cache
-   */
   public FileManager(ServerContext context, VolumeManager fs, int maxOpen,
-      Cache<String,Long> fileLenCache, BlockCache dataCache, BlockCache indexCache) {
+      Cache<String,Long> fileLenCache) {
 
     if (maxOpen <= 0)
       throw new IllegalArgumentException("maxOpen <= 0");
     this.context = context;
-    this.dataCache = dataCache;
-    this.indexCache = indexCache;
     this.fileLenCache = fileLenCache;
 
     this.filePermits = new Semaphore(maxOpen, false);
@@ -277,7 +262,7 @@ public class FileManager {
   }
 
   private Map<FileSKVIterator,String> reserveReaders(KeyExtent tablet, Collection<String> files,
-      boolean continueOnFailure) throws IOException {
+      boolean continueOnFailure, CacheProvider cacheProvider) throws IOException {
 
     if (!tablet.isMeta() && files.size() >= maxOpen) {
       throw new IllegalArgumentException("requested files exceeds max open");
@@ -322,6 +307,8 @@ public class FileManager {
       }
     }
 
+    readersReserved.forEach((k, v) -> k.setCacheProvider(cacheProvider));
+
     // close files before opening files to ensure we stay under resource
     // limitations
     closeReaders(filesToClose);
@@ -338,7 +325,7 @@ public class FileManager {
             .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
             .withTableConfiguration(
                 context.getServerConfFactory().getTableConfiguration(tablet.getTableId()))
-            .withBlockCache(dataCache, indexCache).withFileLenCache(fileLenCache).build();
+            .withCacheProvider(cacheProvider).withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
 
@@ -491,11 +478,13 @@ public class FileManager {
     private ArrayList<FileSKVIterator> tabletReservedReaders;
     private KeyExtent tablet;
     private boolean continueOnFailure;
+    private CacheProvider cacheProvider;
 
-    ScanFileManager(KeyExtent tablet) {
+    ScanFileManager(KeyExtent tablet, CacheProvider cacheProvider) {
       tabletReservedReaders = new ArrayList<>();
       dataSources = new ArrayList<>();
       this.tablet = tablet;
+      this.cacheProvider = cacheProvider;
 
       continueOnFailure = context.getServerConfFactory().getTableConfiguration(tablet.getTableId())
           .getBoolean(Property.TABLE_FAILURES_IGNORE);
@@ -505,11 +494,11 @@ public class FileManager {
       }
     }
 
-    private Map<FileSKVIterator,String> openFileRefs(Collection<FileRef> files)
+    private Map<FileSKVIterator,String> openFileRefs(Collection<TabletFile> files)
         throws TooManyFilesException, IOException {
       List<String> strings = new ArrayList<>(files.size());
-      for (FileRef ref : files)
-        strings.add(ref.path().toString());
+      for (TabletFile ref : files)
+        strings.add(ref.getMetadataEntry());
       return openFiles(strings);
     }
 
@@ -526,13 +515,13 @@ public class FileManager {
       }
 
       Map<FileSKVIterator,String> newlyReservedReaders =
-          reserveReaders(tablet, files, continueOnFailure);
+          reserveReaders(tablet, files, continueOnFailure, cacheProvider);
 
       tabletReservedReaders.addAll(newlyReservedReaders.keySet());
       return newlyReservedReaders;
     }
 
-    public synchronized List<InterruptibleIterator> openFiles(Map<FileRef,DataFileValue> files,
+    public synchronized List<InterruptibleIterator> openFiles(Map<TabletFile,DataFileValue> files,
         boolean detachable, SamplerConfigurationImpl samplerConfig) throws IOException {
 
       Map<FileSKVIterator,String> newlyReservedReaders = openFileRefs(files.keySet());
@@ -573,7 +562,7 @@ public class FileManager {
 
         if (sawTimeSet) {
           // constructing FileRef is expensive so avoid if not needed
-          DataFileValue value = files.get(new FileRef(filename));
+          DataFileValue value = files.get(new TabletFile(filename));
           if (value.isTimeSet()) {
             iter = new TimeSettingIterator(iter, value.getTime());
           }
@@ -639,7 +628,7 @@ public class FileManager {
     }
   }
 
-  public ScanFileManager newScanFileManager(KeyExtent tablet) {
-    return new ScanFileManager(tablet);
+  public ScanFileManager newScanFileManager(KeyExtent tablet, CacheProvider cacheProvider) {
+    return new ScanFileManager(tablet, cacheProvider);
   }
 }

@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +53,9 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
 public class RecoveryManager {
 
   private static final Logger log = LoggerFactory.getLogger(RecoveryManager.class);
@@ -59,12 +63,17 @@ public class RecoveryManager {
   private Map<String,Long> recoveryDelay = new HashMap<>();
   private Set<String> closeTasksQueued = new HashSet<>();
   private Set<String> sortsQueued = new HashSet<>();
+  private Cache<Path,Boolean> existenceCache;
   private ScheduledExecutorService executor;
   private Master master;
   private ZooCache zooCache;
 
-  public RecoveryManager(Master master) {
+  public RecoveryManager(Master master, long timeToCacheExistsInMillis) {
     this.master = master;
+    existenceCache =
+        CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
+            .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
+
     executor = Executors.newScheduledThreadPool(4, new NamingThreadFactory("Walog sort starter "));
     zooCache = new ZooCache(master.getContext().getZooReaderWriter(), null);
     try {
@@ -132,6 +141,14 @@ public class RecoveryManager {
     log.info("Created zookeeper entry {} with data {}", path, work);
   }
 
+  private boolean exists(final Path path) throws IOException {
+    try {
+      return existenceCache.get(path, () -> master.getFileSystem().exists(path));
+    } catch (ExecutionException e) {
+      throw new IOException(e);
+    }
+  }
+
   public boolean recoverLogs(KeyExtent extent, Collection<Collection<String>> walogs)
       throws IOException {
     boolean recoveryNeeded = false;
@@ -139,21 +156,20 @@ public class RecoveryManager {
     for (Collection<String> logs : walogs) {
       for (String walog : logs) {
 
-        String switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL, ServerConstants
+        Path switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL, ServerConstants
             .getVolumeReplacements(master.getConfiguration(), master.getContext().getHadoopConf()));
         if (switchedWalog != null) {
           // replaces the volume used for sorting, but do not change entry in metadata table. When
           // the tablet loads it will change the metadata table entry. If
           // the tablet has the same replacement config, then it will find the sorted log.
           log.info("Volume replaced {} -> {}", walog, switchedWalog);
-          walog = switchedWalog;
+          walog = switchedWalog.toString();
         }
 
         String[] parts = walog.split("/");
         String sortId = parts[parts.length - 1];
-        String filename = master.getFileSystem().getFullPath(FileType.WAL, walog).toString();
+        String filename = new Path(walog).toString();
         String dest = RecoveryPath.getRecoveryPath(new Path(filename)).toString();
-        log.debug("Recovering {} to {}", filename, dest);
 
         boolean sortQueued;
         synchronized (this) {
@@ -168,7 +184,7 @@ public class RecoveryManager {
           }
         }
 
-        if (master.getFileSystem().exists(SortedLogState.getFinishedMarkerPath(dest))) {
+        if (exists(SortedLogState.getFinishedMarkerPath(dest))) {
           synchronized (this) {
             closeTasksQueued.remove(sortId);
             recoveryDelay.remove(sortId);

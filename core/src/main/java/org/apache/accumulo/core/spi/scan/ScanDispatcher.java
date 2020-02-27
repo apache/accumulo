@@ -31,6 +31,7 @@ import com.google.common.base.Preconditions;
  * {@code table.scan.dispatcher.opts.} properties.
  *
  * @since 2.0.0
+ * @see org.apache.accumulo.core.spi
  */
 public interface ScanDispatcher {
 
@@ -40,7 +41,7 @@ public interface ScanDispatcher {
    *
    * @since 2.0.0
    */
-  public static interface InitParameters {
+  public interface InitParameters {
     /**
      *
      * @return The configured options. For example if the table properties
@@ -58,7 +59,7 @@ public interface ScanDispatcher {
   /**
    * This method is called once after a ScanDispatcher is instantiated.
    */
-  public default void init(InitParameters params) {
+  default void init(InitParameters params) {
     Preconditions.checkArgument(params.getOptions().isEmpty(), "No options expected");
   }
 
@@ -68,8 +69,33 @@ public interface ScanDispatcher {
    * future.
    *
    * @since 2.0.0
+   * @deprecated since 2.1.0 replaced by {@link DispatchParameters} and
+   *             {@link ScanDispatcher#dispatch(DispatchParameters)}
    */
-  public static interface DispatchParmaters {
+  @Deprecated
+  public interface DispatchParmaters extends DispatchParameters {}
+
+  /**
+   * @return Should return one of the executors named params.getScanExecutors().keySet()
+   *
+   * @deprecated since 2.1.0 please implement {@link #dispatch(DispatchParameters)} instead of this.
+   *             Accumulo will only call {@link #dispatch(DispatchParameters)} directly, it will
+   *             never call this. However the default implementation of
+   *             {@link #dispatch(DispatchParameters)} calls this method.
+   */
+  @Deprecated
+  default String dispatch(DispatchParmaters params) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * The method parameters for {@link ScanDispatcher#dispatch(DispatchParameters)}. This interface
+   * exists so the API can evolve and additional parameters can be passed to the method in the
+   * future.
+   *
+   * @since 2.1.0
+   */
+  public interface DispatchParameters {
     /**
      * @return information about the scan to be dispatched.
      */
@@ -84,7 +110,17 @@ public interface ScanDispatcher {
   }
 
   /**
-   * @return Should return one of the executors named params.getScanExecutors().keySet()
+   * Accumulo calls this method for each scan batch to determine what executor to use and how to
+   * utilize cache for the scan.
+   *
+   * @since 2.1.0
    */
-  String dispatch(DispatchParmaters params);
+
+  default ScanDirectives dispatch(DispatchParameters params) {
+    String executor = dispatch((DispatchParmaters) params);
+    if (executor.equals(DefaultScanDirectives.DEFAULT_SCAN_DIRECTIVES.getExecutorName()))
+      return DefaultScanDirectives.DEFAULT_SCAN_DIRECTIVES;
+
+    return ScanDirectives.builder().setExecutorName(executor).build();
+  }
 }

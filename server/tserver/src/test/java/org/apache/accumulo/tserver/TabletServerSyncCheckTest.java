@@ -22,8 +22,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
@@ -176,21 +174,6 @@ public class TabletServerSyncCheckTest {
 
     @Override
     public FileStatus[] globStatus(Path path) {
-      return null;
-    }
-
-    @Override
-    public Path getFullPath(Key key) {
-      return null;
-    }
-
-    @Override
-    public Path getFullPath(TableId tableId, String path) {
-      return null;
-    }
-
-    @Override
-    public Path getFullPath(FileType fileType, String fileName) {
       return null;
     }
 

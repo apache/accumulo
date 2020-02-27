@@ -26,13 +26,12 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -58,6 +57,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -262,27 +262,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       throw new AccumuloException(
           " " + currentExtent + " is not previous extent " + tablet.getExtent());
 
-    // Old property is only used to resolve relative paths into absolute paths. For systems upgraded
-    // with relative paths, it's assumed that correct instance.dfs.{uri,dir} is still correct in the
-    // configuration
-    @SuppressWarnings("deprecation")
-    String tablesDir = config.get(Property.INSTANCE_DFS_DIR) + Constants.HDFS_TABLES_DIR;
-
-    List<String> absFiles = new ArrayList<>();
-    for (String relPath : tablet.getFiles()) {
-      if (relPath.contains(":")) {
-        absFiles.add(relPath);
-      } else {
-        // handle old-style relative paths
-        if (relPath.startsWith("..")) {
-          absFiles.add(tablesDir + relPath.substring(2));
-        } else {
-          absFiles.add(tablesDir + "/" + tableId + relPath);
-        }
-      }
-    }
-
-    iter = createIterator(tablet.getExtent(), absFiles);
+    iter = createIterator(tablet.getExtent(), tablet.getFiles());
     iter.seek(range, LocalityGroupUtil.families(options.fetchedColumns),
         options.fetchedColumns.size() != 0);
     currentExtent = tablet.getExtent();
@@ -296,7 +276,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
   }
 
-  private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent, List<String> absFiles)
+  private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent,
+      Collection<TabletFile> absFiles)
       throws TableNotFoundException, AccumuloException, IOException {
 
     // TODO share code w/ tablet - ACCUMULO-1303
@@ -327,10 +308,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
 
     // TODO need to close files - ACCUMULO-1303
-    for (String file : absFiles) {
-      FileSystem fs = VolumeConfiguration.getVolume(file, conf, config).getFileSystem();
+    for (TabletFile file : absFiles) {
+      FileSystem fs =
+          VolumeConfiguration.getVolume(file.getMetadataEntry(), conf, config).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file, fs, conf, CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getMetadataEntry(), fs, conf, CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(acuTableConf).build();
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);

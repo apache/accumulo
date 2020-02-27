@@ -24,7 +24,6 @@ import java.io.PrintStream;
 import java.util.Base64;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -33,7 +32,7 @@ import com.beust.jcommander.Parameter;
 
 public class DumpZookeeper {
 
-  private static IZooReaderWriter zk = null;
+  private static ZooReaderWriter zk = null;
 
   private static class Encoded {
     public String encoding;

@@ -24,7 +24,6 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
@@ -94,13 +93,6 @@ public class PreferredVolumeChooserTest {
       }
     };
     return chooser.getPreferredVolumes(env, ALL_OPTIONS);
-  }
-
-  @Test
-  public void testInitScopeSelectsRandomlyFromAll() {
-    replay(serviceEnv, tableConf, systemConf);
-    String[] volumes = choose(ChooserScope.INIT);
-    assertSame(ALL_OPTIONS, volumes);
   }
 
   @Test
@@ -218,6 +210,29 @@ public class PreferredVolumeChooserTest {
     thrown.expect(VolumeChooserException.class);
     choose(ChooserScope.LOGGER);
     fail("should not reach");
+  }
+
+  @Test
+  public void testInitScopeUsingInitProperty() {
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.INIT))).andReturn("2,1")
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
+
+    String[] volumes = choose(ChooserScope.INIT);
+    Arrays.sort(volumes);
+    assertArrayEquals(new String[] {"1", "2"}, volumes);
+  }
+
+  @Test
+  public void testInitScopeUsingDefaultProperty() {
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.INIT))).andReturn(null).once();
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn("3,2")
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
+
+    String[] volumes = choose(ChooserScope.INIT);
+    Arrays.sort(volumes);
+    assertArrayEquals(new String[] {"2", "3"}, volumes);
   }
 
 }

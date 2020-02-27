@@ -63,9 +63,7 @@ public class Token {
   }
 
   public Token getSubcommand(String name) {
-    Iterator<Token> iter = subcommands.iterator();
-    while (iter.hasNext()) {
-      Token t = iter.next();
+    for (Token t : subcommands) {
       if (t.containsCommand(name))
         return t;
     }
@@ -101,9 +99,7 @@ public class Token {
   }
 
   public boolean containsCommand(String match) {
-    Iterator<String> iter = command.iterator();
-    while (iter.hasNext()) {
-      String t = iter.next();
+    for (String t : command) {
       if (caseSensitive) {
         if (t.equals(match))
           return true;

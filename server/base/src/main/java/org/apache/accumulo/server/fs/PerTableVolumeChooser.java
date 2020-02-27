@@ -41,7 +41,6 @@ public class PerTableVolumeChooser implements VolumeChooser {
       new ConcurrentHashMap<>();
   private final ConcurrentHashMap<ChooserScope,VolumeChooser> scopeSpecificChooserCache =
       new ConcurrentHashMap<>();
-  private final RandomVolumeChooser randomChooser = new RandomVolumeChooser();
 
   private static final String TABLE_CUSTOM_SUFFIX = "volume.chooser";
 
@@ -67,17 +66,10 @@ public class PerTableVolumeChooser implements VolumeChooser {
 
   // visible (not private) for testing
   VolumeChooser getDelegateChooser(VolumeChooserEnvironment env) {
-    switch (env.getScope()) {
-      case INIT:
-        // TODO should be possible to read from SiteConfiguration during init
-        log.warn("Not possible to determine delegate chooser at '{}' scope. Using {}.",
-            ChooserScope.INIT, RandomVolumeChooser.class.getName());
-        return randomChooser;
-      case TABLE:
-        return getVolumeChooserForTable(env);
-      default:
-        return getVolumeChooserForScope(env);
+    if (env.getScope() == ChooserScope.TABLE) {
+      return getVolumeChooserForTable(env);
     }
+    return getVolumeChooserForScope(env);
   }
 
   private VolumeChooser getVolumeChooserForTable(VolumeChooserEnvironment env) {

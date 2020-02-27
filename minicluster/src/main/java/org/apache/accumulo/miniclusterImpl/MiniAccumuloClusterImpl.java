@@ -72,7 +72,7 @@ import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -84,7 +84,6 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.commons.io.IOUtils;
@@ -269,6 +268,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public ProcessInfo _exec(Class<?> clazz, ServerType serverType,
       Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
+    if (serverType == ServerType.ZOOKEEPER) {
+      // disable zookeeper's log4j 1.2 jmx support, which depends on log4j 1.2 on the class path,
+      // which we don't need or expect to be there
+      jvmOpts.add("-Dzookeeper.jmx.log4j.disable=true");
+    }
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
     if (configOverrides != null && !configOverrides.isEmpty()) {
       File siteFile =
@@ -399,6 +403,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       zooCfg.setProperty("clientPort", config.getZooKeeperPort() + "");
       zooCfg.setProperty("maxClientCnxns", "1000");
       zooCfg.setProperty("dataDir", config.getZooKeeperDir().getAbsolutePath());
+      zooCfg.setProperty("4lw.commands.whitelist", "ruok,wchs");
+      zooCfg.setProperty("admin.enableServer", "false");
       zooCfg.store(fileWriter, null);
 
       fileWriter.close();
@@ -462,10 +468,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
       Path instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(fs);
 
-      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
-      IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(
-          cc.get(Property.INSTANCE_ZK_HOST), (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
-          cc.get(Property.INSTANCE_SECRET));
+      String instanceIdFromFile =
+          VolumeManager.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
+      ZooReaderWriter zrw = new ZooReaderWriter(cc.get(Property.INSTANCE_ZK_HOST),
+          (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET));
 
       String rootPath = ZooUtil.getRoot(instanceIdFromFile);
 

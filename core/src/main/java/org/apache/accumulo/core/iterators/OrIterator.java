@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -255,11 +254,9 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
     // Clear the PriorityQueue so that we can re-populate it.
     sorted.clear();
 
-    Iterator<TermSource> iter = sources.iterator();
     // For each term, seek forward.
     // if a hit is not found, delete it from future searches.
-    while (iter.hasNext()) {
-      TermSource ts = iter.next();
+    for (TermSource ts : sources) {
       // Pivot the provided range into the correct range for this TermSource and seek the TS.
       ts.seek(range);
 

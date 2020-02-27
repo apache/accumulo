@@ -146,14 +146,12 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           Thread.sleep(2000);
         }
       }
-      String scheme = "http://";
       if (getCluster() instanceof StandaloneAccumuloCluster) {
         String monitorSslKeystore =
             getCluster().getSiteConfiguration().get(Property.MONITOR_SSL_KEYSTORE.getKey());
         if (monitorSslKeystore != null && !monitorSslKeystore.isEmpty()) {
           log.info(
               "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");
-          scheme = "https://";
           SSLContext ctx = SSLContext.getInstance("TLSv1.2");
           TrustManager[] tm = {new TestTrustManager()};
           ctx.init(new KeyManager[0], tm, new SecureRandom());
@@ -162,7 +160,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
         }
       }
-      URL url = new URL(scheme + monitorLocation);
+      URL url = new URL(monitorLocation);
       log.debug("Fetching web page {}", url);
       String result = FunctionalTestUtils.readAll(url.openStream());
       assertTrue(result.length() > 100);

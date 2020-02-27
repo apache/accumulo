@@ -19,25 +19,13 @@
 package org.apache.accumulo.server.master.state;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.util.HostAndPort;
 
-public class Assignment implements Ample.TServer {
+public class Assignment {
   public KeyExtent tablet;
   public TServerInstance server;
 
   public Assignment(KeyExtent tablet, TServerInstance server) {
     this.tablet = tablet;
     this.server = server;
-  }
-
-  @Override
-  public HostAndPort getLocation() {
-    return server.getLocation();
-  }
-
-  @Override
-  public String getSession() {
-    return server.getSession();
   }
 }

@@ -96,7 +96,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
   public static final String MAX_BUFFER_SIZE_OPT = "maxBufferSize";
   private static final long DEFAULT_MAX_BUFFER_SIZE = 10000000;
 
-  protected Logger log = LoggerFactory.getLogger(getClass());
+  private Logger log = LoggerFactory.getLogger(getClass());
 
   protected ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
   protected int keyPos = -1;

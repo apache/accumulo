@@ -54,7 +54,12 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 3 * 60;
+  }
+
+  @Test
   public void nondurableTableHasDurableWrites() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -72,7 +77,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void durableTableLosesNonDurableWrites() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -104,7 +109,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void testConditionDurability() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -123,7 +128,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void testConditionDurability2() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];

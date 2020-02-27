@@ -31,10 +31,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
-public class MetaDataStateStore extends TabletStateStore {
+class MetaDataStateStore implements TabletStateStore {
 
   private static final int THREADS = 4;
   private static final int LATENCY = 1000;
@@ -50,16 +49,8 @@ public class MetaDataStateStore extends TabletStateStore {
     this.targetTableName = targetTableName;
   }
 
-  public MetaDataStateStore(ClientContext context, CurrentState state) {
+  MetaDataStateStore(ClientContext context, CurrentState state) {
     this(context, state, MetadataTable.NAME);
-  }
-
-  protected MetaDataStateStore(ServerContext context, String tableName) {
-    this(context, null, tableName);
-  }
-
-  public MetaDataStateStore(ServerContext context) {
-    this(context, MetadataTable.NAME);
   }
 
   @Override
@@ -126,11 +117,17 @@ public class MetaDataStateStore extends TabletStateStore {
   @Override
   public void unassign(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
-    suspend(tablets, logsForDeadServers, -1);
+    unassign(tablets, logsForDeadServers, -1);
   }
 
   @Override
   public void suspend(Collection<TabletLocationState> tablets,
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      throws DistributedStoreException {
+    unassign(tablets, logsForDeadServers, suspensionTimestamp);
+  }
+
+  private void unassign(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
     BatchWriter writer = createBatchWriter();

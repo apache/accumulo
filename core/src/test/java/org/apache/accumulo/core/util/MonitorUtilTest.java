@@ -18,28 +18,51 @@
  */
 package org.apache.accumulo.core.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class MonitorUtilTest {
 
+  private ZooReader zr;
+  private ClientContext context;
+
+  @Before
+  public void beforeEachTest() {
+    zr = mock(ZooReader.class);
+    context = mock(ClientContext.class);
+    expect(context.getZooKeeperRoot()).andReturn("/root");
+  }
+
+  @After
+  public void afterEachTest() {
+    verify(zr, context);
+  }
+
+  @Test
+  public void testNodeFound() throws Exception {
+    expect(zr.getData("/root" + Constants.ZMONITOR_HTTP_ADDR, null))
+        .andReturn("http://example.org/".getBytes(UTF_8));
+    replay(zr, context);
+    assertEquals("http://example.org/", MonitorUtil.getLocation(zr, context));
+  }
+
   @Test
   public void testNoNodeFound() throws Exception {
-
-    ZooReader zr = mock(ZooReader.class);
-    ClientContext context = mock(ClientContext.class);
-    expect(context.getZooKeeperRoot()).andReturn("/root/");
-    expect(zr.getData("/root/" + Constants.ZMONITOR_HTTP_ADDR, null))
+    expect(zr.getData("/root" + Constants.ZMONITOR_HTTP_ADDR, null))
         .andThrow(new NoNodeException());
-
     replay(zr, context);
     assertNull(MonitorUtil.getLocation(zr, context));
   }

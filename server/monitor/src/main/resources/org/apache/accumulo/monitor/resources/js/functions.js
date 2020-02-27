@@ -463,7 +463,7 @@ function getLogs() {
  * REST POST call to clear logs
  */
 function clearLogs() {
-  $.post('/rest/logs');
+  $.post('/rest/logs/clear');
 }
 
 /**

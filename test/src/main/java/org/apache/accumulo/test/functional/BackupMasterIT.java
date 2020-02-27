@@ -25,10 +25,9 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.junit.Test;
 
 public class BackupMasterIT extends ConfigurableMacBase {
@@ -46,8 +45,7 @@ public class BackupMasterIT extends ConfigurableMacBase {
     Process backup = exec(Master.class);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
-      IZooReaderWriter writer = new ZooReaderWriterFactory()
-          .getZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);
+      ZooReaderWriter writer = new ZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);
       String root = "/accumulo/" + client.instanceOperations().getInstanceID();
       List<String> children = Collections.emptyList();
       // wait for 2 lock entries

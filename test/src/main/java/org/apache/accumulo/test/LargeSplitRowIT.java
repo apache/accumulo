@@ -62,8 +62,13 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     cfg.setSiteConfig(siteConfig);
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
   // User added split
-  @Test(timeout = 60 * 1000)
+  @Test
   public void userAddedSplit() throws Exception {
 
     log.info("User added split");
@@ -204,10 +209,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       automaticSplit(client, 15, 1);
 
       String tableName = new String();
-      java.util.Iterator<String> iterator = client.tableOperations().list().iterator();
 
-      while (iterator.hasNext()) {
-        String curr = iterator.next();
+      for (String curr : client.tableOperations().list()) {
         if (!curr.startsWith(Namespace.ACCUMULO.name() + ".")) {
           tableName = curr;
         }

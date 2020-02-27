@@ -36,7 +36,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
@@ -164,7 +163,7 @@ public class ServerClient {
     ZooCache zc = context.getZooCache();
     for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
       String path = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver;
-      byte[] data = ZooUtil.getLockData(zc, path);
+      byte[] data = zc.getLockData(path);
       if (data != null) {
         String strData = new String(data, UTF_8);
         if (!strData.equals("master"))

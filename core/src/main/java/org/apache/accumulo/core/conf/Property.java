@@ -124,6 +124,10 @@ public enum Property {
           + "currently in use, run 'accumulo admin volumes -l'. To use a comma or "
           + "other reserved characters in a URI use standard URI hex encoding. For "
           + "example replace commas with %2C."),
+  INSTANCE_VOLUMES_UPGRADE_RELATIVE("instance.volumes.upgrade.relative", "", PropertyType.STRING,
+      "The volume dfs uri containing relative tablet file paths. Relative paths may exist in the metadata from "
+          + "versions prior to 1.6. This property is only required if a relative path is detected "
+          + "during the upgrade process and will only be used once."),
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user "
@@ -291,13 +295,13 @@ public enum Property {
       "Minimum number of tservers that need to be registered before master will "
           + "start tablet assignment - checked at master initialization, when master gets lock. "
           + " When set to 0 or less, no blocking occurs. Default is 0 (disabled) to keep original "
-          + " behaviour. Added with version 2.0"),
+          + " behaviour. Added with version 1.10"),
   MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT("master.startup.tserver.avail.max.wait", "0",
       PropertyType.TIMEDURATION,
       "Maximum time master will wait for tserver available threshold "
           + "to be reached before continuing. When set to 0 or less, will block "
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
-          + "threshold is set greater than 0. Added with version 2.0"),
+          + "threshold is set greater than 0. Added with version 1.10"),
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the tablet servers"),
@@ -540,8 +544,6 @@ public enum Property {
       "Properties in this category affect the behavior of the monitor web server."),
   MONITOR_PORT("monitor.port.client", "9995", PropertyType.PORT,
       "The listening port for the monitor's http service"),
-  MONITOR_LOG4J_PORT("monitor.port.log4j", "4560", PropertyType.PORT,
-      "The listening port for the monitor's log4j logging collection."),
   MONITOR_SSL_KEYSTORE("monitor.ssl.keyStore", "", PropertyType.PATH,
       "The keystore for enabling monitor SSL."),
   @Sensitive

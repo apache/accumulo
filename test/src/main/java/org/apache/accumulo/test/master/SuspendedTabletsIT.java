@@ -76,13 +76,18 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   private static final Random RANDOM = new SecureRandom();
   private static ExecutorService THREAD_POOL;
 
-  public static final int TSERVERS = 5;
-  public static final long SUSPEND_DURATION = MILLISECONDS.convert(30, SECONDS);
-  public static final int TABLETS = 100;
+  public static final int TSERVERS = 3;
+  public static final long SUSPEND_DURATION = 20;
+  public static final int TABLETS = 30;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "ms");
+    cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "s");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setNumTservers(TSERVERS);
@@ -231,22 +236,21 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
       // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
       log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
-      for (ds = TabletLocations.retrieve(ctx, tableName);
-          ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0;
-          ds = TabletLocations.retrieve(ctx, tableName)) {
+      while (ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0) {
         Thread.sleep(1000);
+        ds = TabletLocations.retrieve(ctx, tableName);
       }
       assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
 
       // Finally, after much longer, remaining suspended tablets should be reassigned.
       log.info("Awaiting tablet reassignment for remaining tablets");
-      for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS;
-          ds = TabletLocations.retrieve(ctx, tableName)) {
+      while (ds.hostedCount != TABLETS) {
         Thread.sleep(1000);
+        ds = TabletLocations.retrieve(ctx, tableName);
       }
 
       long recoverTime = System.nanoTime();
-      assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
+      assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, SECONDS));
     }
   }
 

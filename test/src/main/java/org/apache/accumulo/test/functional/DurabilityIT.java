@@ -20,7 +20,6 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,10 +37,8 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
-import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -57,9 +54,9 @@ public class DurabilityIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
   }
 
-  @BeforeClass
-  public static void checkMR() {
-    assumeFalse(IntegrationTestMapReduce.isMapReduce());
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
   }
 
   static final long N = 100000;
@@ -88,7 +85,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     c.tableOperations().create(tableName);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testSync() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -100,7 +97,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testFlush() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -112,7 +109,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testLog() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -125,7 +122,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testNone() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -138,7 +135,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testIncreaseDurability() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -163,7 +160,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     return result;
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testMetaDurability() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];

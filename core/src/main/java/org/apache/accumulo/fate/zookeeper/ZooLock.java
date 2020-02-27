@@ -63,7 +63,7 @@ public class ZooLock implements Watcher {
 
   private boolean lockWasAcquired;
   private final String path;
-  protected final IZooReaderWriter zooKeeper;
+  protected final ZooReaderWriter zooKeeper;
   private String lock;
   private LockWatcher lockWatcher;
   private boolean watchingParent = false;
@@ -73,12 +73,12 @@ public class ZooLock implements Watcher {
     this(new ZooCache(zoo), zoo, path);
   }
 
-  public ZooLock(String zookeepers, int timeInMillis, String scheme, byte[] auth, String path) {
+  public ZooLock(String zookeepers, int timeInMillis, String secret, String path) {
     this(new ZooCacheFactory().getZooCache(zookeepers, timeInMillis),
-        ZooReaderWriter.getInstance(zookeepers, timeInMillis, scheme, auth), path);
+        new ZooReaderWriter(zookeepers, timeInMillis, secret), path);
   }
 
-  protected ZooLock(ZooCache zc, IZooReaderWriter zrw, String path) {
+  protected ZooLock(ZooCache zc, ZooReaderWriter zrw, String path) {
     getLockDataZooCache = zc;
     this.path = path;
     zooKeeper = zrw;
@@ -489,7 +489,7 @@ public class ZooLock implements Watcher {
     return getSessionId(getLockDataZooCache, path);
   }
 
-  public static void deleteLock(IZooReaderWriter zk, String path)
+  public static void deleteLock(ZooReaderWriter zk, String path)
       throws InterruptedException, KeeperException {
     List<String> children;
 
@@ -511,7 +511,7 @@ public class ZooLock implements Watcher {
 
   }
 
-  public static boolean deleteLock(IZooReaderWriter zk, String path, String lockData)
+  public static boolean deleteLock(ZooReaderWriter zk, String path, String lockData)
       throws InterruptedException, KeeperException {
     List<String> children;
 

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.fs;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -26,6 +25,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -61,17 +61,11 @@ public class VolumeUtil {
     return path;
   }
 
-  public static String switchVolume(String path, FileType ft, List<Pair<Path,Path>> replacements) {
+  public static Path switchVolume(String path, FileType ft, List<Pair<Path,Path>> replacements) {
     if (replacements.size() == 0) {
       log.trace("Not switching volume because there are no replacements");
       return null;
     }
-
-    if (!path.contains(":")) {
-      // ignore relative paths
-      return null;
-    }
-
     Path p = new Path(path);
 
     // removing slash because new Path("hdfs://nn1").equals(new Path("hdfs://nn1/")) evaluates to
@@ -82,7 +76,7 @@ public class VolumeUtil {
       Path key = removeTrailingSlash(pair.getFirst());
 
       if (key.equals(volume)) {
-        String replacement = new Path(pair.getSecond(), ft.removeVolume(p)).toString();
+        Path replacement = new Path(pair.getSecond(), ft.removeVolume(p));
         log.trace("Replacing {} with {}", path, replacement);
         return replacement;
       }
@@ -94,15 +88,14 @@ public class VolumeUtil {
   }
 
   private static LogEntry switchVolumes(LogEntry le, List<Pair<Path,Path>> replacements) {
-    String switchedPath = switchVolume(le.filename, FileType.WAL, replacements);
+    Path switchedPath = switchVolume(le.filename, FileType.WAL, replacements);
+    String switchedString;
     int numSwitched = 0;
-    if (switchedPath != null)
+    if (switchedPath != null) {
+      switchedString = switchedPath.toString();
       numSwitched++;
-    else
-      switchedPath = le.filename;
-
-    if (switchVolume(le.filename, FileType.WAL, replacements) != null) {
-      numSwitched++;
+    } else {
+      switchedString = le.filename;
     }
 
     if (numSwitched == 0) {
@@ -110,7 +103,7 @@ public class VolumeUtil {
       return null;
     }
 
-    LogEntry newLogEntry = new LogEntry(le.extent, le.timestamp, le.server, switchedPath);
+    LogEntry newLogEntry = new LogEntry(le.extent, le.timestamp, le.server, switchedString);
 
     log.trace("Switched {} to {}", le, newLogEntry);
 
@@ -120,7 +113,7 @@ public class VolumeUtil {
   public static class TabletFiles {
     public String dirName;
     public List<LogEntry> logEntries;
-    public SortedMap<FileRef,DataFileValue> datafiles;
+    public SortedMap<TabletFile,DataFileValue> datafiles;
 
     public TabletFiles() {
       logEntries = new ArrayList<>();
@@ -128,7 +121,7 @@ public class VolumeUtil {
     }
 
     public TabletFiles(String dirName, List<LogEntry> logEntries,
-        SortedMap<FileRef,DataFileValue> datafiles) {
+        SortedMap<TabletFile,DataFileValue> datafiles) {
       this.dirName = dirName;
       this.logEntries = logEntries;
       this.datafiles = datafiles;
@@ -141,17 +134,18 @@ public class VolumeUtil {
    * for use it chooses a new tablet directory.
    */
   public static TabletFiles updateTabletVolumes(ServerContext context, ZooLock zooLock,
-      VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
-      throws IOException {
+      KeyExtent extent, TabletFiles tabletFiles, boolean replicate) {
     List<Pair<Path,Path>> replacements =
         ServerConstants.getVolumeReplacements(context.getConfiguration(), context.getHadoopConf());
+    if (replacements.isEmpty())
+      return tabletFiles;
     log.trace("Using volume replacements: {}", replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();
     List<LogEntry> logsToAdd = new ArrayList<>();
 
-    List<FileRef> filesToRemove = new ArrayList<>();
-    SortedMap<FileRef,DataFileValue> filesToAdd = new TreeMap<>();
+    List<TabletFile> filesToRemove = new ArrayList<>();
+    SortedMap<TabletFile,DataFileValue> filesToAdd = new TreeMap<>();
 
     TabletFiles ret = new TabletFiles();
 
@@ -168,14 +162,14 @@ public class VolumeUtil {
       }
     }
 
-    for (Entry<FileRef,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
-      String metaPath = entry.getKey().meta().toString();
-      String switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
+    for (Entry<TabletFile,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
+      String metaPath = entry.getKey().getNormalizedPath();
+      Path switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
       if (switchedPath != null) {
         filesToRemove.add(entry.getKey());
-        FileRef switchedRef = new FileRef(switchedPath, new Path(switchedPath));
-        filesToAdd.put(switchedRef, entry.getValue());
-        ret.datafiles.put(switchedRef, entry.getValue());
+        TabletFile switchedFile = new TabletFile(switchedPath, switchedPath.toString());
+        filesToAdd.put(switchedFile, entry.getValue());
+        ret.datafiles.put(switchedFile, entry.getValue());
         log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);
       } else {
         ret.datafiles.put(entry.getKey(), entry.getValue());

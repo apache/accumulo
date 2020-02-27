@@ -33,17 +33,16 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
-import org.apache.hadoop.fs.Path;
 
 public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
@@ -56,7 +55,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   private final AccumuloConfiguration tableConfig;
   private final TableId tableId;
   private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators;
-  private Map<FileRef,DataFileValue> files;
+  private Map<TabletFile,DataFileValue> files;
 
   private final Authorizations authorizations; // these will only be supplied during scan scope
   private SamplerConfiguration samplerConfig;
@@ -81,7 +80,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
       AccumuloConfiguration tableConfig, TableId tableId, ScanFileManager trm,
-      Map<FileRef,DataFileValue> files, Authorizations authorizations,
+      Map<TabletFile,DataFileValue> files, Authorizations authorizations,
       SamplerConfigurationImpl samplerConfig,
       ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
     if (scope == IteratorScope.majc)
@@ -154,7 +153,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   @Override
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
       throws IOException {
-    FileRef ref = new FileRef(mapFileName, new Path(mapFileName));
+    TabletFile ref = new TabletFile(mapFileName);
     return trm.openFiles(Collections.singletonMap(ref, files.get(ref)), false, null).get(0);
   }
 
@@ -219,6 +218,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     return context;
   }
 
+  @Deprecated
   @Override
   public ServiceEnvironment getServiceEnv() {
     return serviceEnvironment;

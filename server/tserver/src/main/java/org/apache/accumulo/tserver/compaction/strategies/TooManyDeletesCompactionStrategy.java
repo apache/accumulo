@@ -32,8 +32,8 @@ import org.apache.accumulo.core.client.rfile.RFile.WriterOptions;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
@@ -143,7 +143,7 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
     long total = 0;
     long deletes = 0;
 
-    for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet()) {
+    for (Entry<TabletFile,DataFileValue> entry : request.getFiles().entrySet()) {
       Collection<Summary> summaries =
           request.getSummaries(Collections.singleton(entry.getKey()), summarizerPredicate);
       if (summaries.size() == 1) {

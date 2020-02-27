@@ -21,7 +21,6 @@ package org.apache.accumulo.shell.commands;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -95,8 +94,7 @@ public class SetScanIterCommand extends SetIterCommand {
     final HashSet<OptionGroup> groups = new HashSet<>();
     final Options parentOptions = super.getOptions();
     final Options modifiedOptions = new Options();
-    for (Iterator<?> it = parentOptions.getOptions().iterator(); it.hasNext();) {
-      Option o = (Option) it.next();
+    for (Option o : parentOptions.getOptions()) {
       if (!IteratorScope.majc.name().equals(o.getOpt())
           && !IteratorScope.minc.name().equals(o.getOpt())
           && !IteratorScope.scan.name().equals(o.getOpt())) {
