@@ -22,7 +22,7 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.commons.configuration.AbstractFileConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.EnvironmentConfiguration;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.SystemConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.event.ConfigurationEvent;
@@ -44,7 +44,7 @@ public class MetricsConfiguration {
 
   private static SystemConfiguration sysConfig = null;
 
-  private static EnvironmentConfiguration envConfig = null;
+  private static MapConfiguration envConfig = null;
 
   private XMLConfiguration xConfig = null;
 
@@ -111,7 +111,7 @@ public class MetricsConfiguration {
   public Configuration getEnvironmentConfiguration() {
     synchronized (MetricsConfiguration.class) {
       if (null == envConfig)
-        envConfig = new EnvironmentConfiguration();
+        envConfig = new MapConfiguration(System.getenv());
       return envConfig;
     }
   }
