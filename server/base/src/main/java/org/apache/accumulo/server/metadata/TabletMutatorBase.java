@@ -21,6 +21,7 @@ package org.apache.accumulo.server.metadata;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -72,28 +73,28 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putFile(TabletFile path, DataFileValue dfv) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(DataFileColumnFamily.NAME, path.getMetadataText(), new Value(dfv.encode()));
+    mutation.put(DataFileColumnFamily.NAME, path.getMetaInsertText(), new Value(dfv.encode()));
     return this;
   }
 
   @Override
-  public Ample.TabletMutator deleteFile(TabletFile path) {
+  public Ample.TabletMutator deleteFile(StoredTabletFile path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(DataFileColumnFamily.NAME, path.getMetadataText());
+    mutation.putDelete(DataFileColumnFamily.NAME, path.getMetaUpdateDeleteText());
     return this;
   }
 
   @Override
   public Ample.TabletMutator putScan(TabletFile path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(ScanFileColumnFamily.NAME, path.getMetadataText(), new Value(new byte[0]));
+    mutation.put(ScanFileColumnFamily.NAME, path.getMetaInsertText(), new Value(new byte[0]));
     return this;
   }
 
   @Override
-  public Ample.TabletMutator deleteScan(TabletFile path) {
+  public Ample.TabletMutator deleteScan(StoredTabletFile path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(ScanFileColumnFamily.NAME, path.getMetadataText());
+    mutation.putDelete(ScanFileColumnFamily.NAME, path.getMetaUpdateDeleteText());
     return this;
   }
 
@@ -178,7 +179,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putBulkFile(TabletFile bulkref, long tid) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(TabletsSection.BulkFileColumnFamily.NAME, bulkref.getMetadataText(),
+    mutation.put(TabletsSection.BulkFileColumnFamily.NAME, bulkref.getMetaInsertText(),
         new Value(FateTxId.formatTid(tid)));
     return this;
   }

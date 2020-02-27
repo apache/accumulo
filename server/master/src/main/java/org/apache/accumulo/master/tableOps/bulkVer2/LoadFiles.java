@@ -220,7 +220,7 @@ class LoadFiles extends MasterRepo {
 
         for (final Bulk.FileInfo fileInfo : files) {
           Path fullPath = new Path(bulkDir, fileInfo.getFileName());
-          TabletFile bulkFile = new TabletFile(fullPath, fullPath.toString());
+          TabletFile bulkFile = new TabletFile(fullPath);
 
           if (!loadedFiles.contains(bulkFile)) {
             thriftImports.put(fileInfo.getFileName(), new MapFileInfo(fileInfo.getEstFileSize()));

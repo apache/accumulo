@@ -25,6 +25,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -113,7 +114,7 @@ public class VolumeUtil {
   public static class TabletFiles {
     public String dirName;
     public List<LogEntry> logEntries;
-    public SortedMap<TabletFile,DataFileValue> datafiles;
+    public SortedMap<StoredTabletFile,DataFileValue> datafiles;
 
     public TabletFiles() {
       logEntries = new ArrayList<>();
@@ -121,7 +122,7 @@ public class VolumeUtil {
     }
 
     public TabletFiles(String dirName, List<LogEntry> logEntries,
-        SortedMap<TabletFile,DataFileValue> datafiles) {
+        SortedMap<StoredTabletFile,DataFileValue> datafiles) {
       this.dirName = dirName;
       this.logEntries = logEntries;
       this.datafiles = datafiles;
@@ -144,7 +145,7 @@ public class VolumeUtil {
     List<LogEntry> logsToRemove = new ArrayList<>();
     List<LogEntry> logsToAdd = new ArrayList<>();
 
-    List<TabletFile> filesToRemove = new ArrayList<>();
+    List<StoredTabletFile> filesToRemove = new ArrayList<>();
     SortedMap<TabletFile,DataFileValue> filesToAdd = new TreeMap<>();
 
     TabletFiles ret = new TabletFiles();
@@ -162,14 +163,14 @@ public class VolumeUtil {
       }
     }
 
-    for (Entry<TabletFile,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
-      String metaPath = entry.getKey().getNormalizedPath();
+    for (Entry<StoredTabletFile,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
+      String metaPath = entry.getKey().getMetaUpdateDelete();
       Path switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
       if (switchedPath != null) {
         filesToRemove.add(entry.getKey());
-        TabletFile switchedFile = new TabletFile(switchedPath, switchedPath.toString());
+        TabletFile switchedFile = new TabletFile(switchedPath);
         filesToAdd.put(switchedFile, entry.getValue());
-        ret.datafiles.put(switchedFile, entry.getValue());
+        ret.datafiles.put(switchedFile.insert(), entry.getValue());
         log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);
       } else {
         ret.datafiles.put(entry.getKey(), entry.getValue());

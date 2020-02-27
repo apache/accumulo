@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.compaction.CompactionSettings;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -55,7 +56,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     // shouldCompact(). See CompactionStrategy javadocs.
     void gatherInformation(MajorCompactionRequest request) {}
 
-    abstract boolean shouldCompact(Entry<TabletFile,DataFileValue> file,
+    abstract boolean shouldCompact(Entry<StoredTabletFile,DataFileValue> file,
         MajorCompactionRequest request);
   }
 
@@ -87,7 +88,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
             ? (Set<SummarizerConfiguration>) configs : new HashSet<>(configs);
         okFiles = new HashSet<>();
 
-        for (TabletFile tabletFile : request.getFiles().keySet()) {
+        for (StoredTabletFile tabletFile : request.getFiles().keySet()) {
           Map<SummarizerConfiguration,Summary> sMap = new HashMap<>();
           Collection<Summary> summaries;
           summaries =
@@ -121,7 +122,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
 
     @Override
-    public boolean shouldCompact(Entry<TabletFile,DataFileValue> file,
+    public boolean shouldCompact(Entry<StoredTabletFile,DataFileValue> file,
         MajorCompactionRequest request) {
 
       if (!gatherCalled) {
@@ -169,7 +170,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
 
     @Override
-    public boolean shouldCompact(Entry<TabletFile,DataFileValue> file,
+    public boolean shouldCompact(Entry<StoredTabletFile,DataFileValue> file,
         MajorCompactionRequest request) {
 
       if (!gatherCalled) {
@@ -194,7 +195,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
 
     @Override
-    public boolean shouldCompact(Entry<TabletFile,DataFileValue> file,
+    public boolean shouldCompact(Entry<StoredTabletFile,DataFileValue> file,
         MajorCompactionRequest request) {
       return shouldCompact(file.getValue().getSize(), esize);
     }
@@ -210,7 +211,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
 
     @Override
-    public boolean shouldCompact(Entry<TabletFile,DataFileValue> file,
+    public boolean shouldCompact(Entry<StoredTabletFile,DataFileValue> file,
         MajorCompactionRequest request) {
       return pattern.matcher(getInput(file.getKey().getPath())).matches();
     }
@@ -304,10 +305,10 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
 
   }
 
-  private List<TabletFile> getFilesToCompact(MajorCompactionRequest request) {
-    List<TabletFile> filesToCompact = new ArrayList<>();
+  private List<StoredTabletFile> getFilesToCompact(MajorCompactionRequest request) {
+    List<StoredTabletFile> filesToCompact = new ArrayList<>();
 
-    for (Entry<TabletFile,DataFileValue> entry : request.getFiles().entrySet()) {
+    for (Entry<StoredTabletFile,DataFileValue> entry : request.getFiles().entrySet()) {
       boolean compact = false;
       for (Test test : tests) {
         if (andTest) {
@@ -341,7 +342,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
 
   @Override
   public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
-    List<TabletFile> filesToCompact = getFilesToCompact(request);
+    List<StoredTabletFile> filesToCompact = getFilesToCompact(request);
     if (filesToCompact.size() >= minFiles) {
       CompactionPlan plan = new CompactionPlan();
       plan.inputFiles.addAll(filesToCompact);

@@ -27,7 +27,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.base.Preconditions;
@@ -63,7 +63,7 @@ public class RootGcCandidates {
     this.candidates = candidates;
   }
 
-  public void add(Collection<TabletFile> refs) {
+  public void add(Collection<StoredTabletFile> refs) {
     refs.forEach(ref -> {
       String parent = ref.getPath().getParent().toString();
       candidates.computeIfAbsent(parent, k -> new TreeSet<>()).add(ref.getFileName());

@@ -37,6 +37,7 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
@@ -58,7 +59,7 @@ import org.slf4j.LoggerFactory;
 class DatafileManager {
   private final Logger log = LoggerFactory.getLogger(DatafileManager.class);
   // access to datafilesizes needs to be synchronized: see CompactionRunner#getNumFiles
-  private final Map<TabletFile,DataFileValue> datafileSizes =
+  private final Map<StoredTabletFile,DataFileValue> datafileSizes =
       Collections.synchronizedMap(new TreeMap<>());
   private final Tablet tablet;
   private Long maxMergingMinorCompactionFileSize;
@@ -66,8 +67,8 @@ class DatafileManager {
   // ensure we only have one reader/writer of our bulk file notes at at time
   private final Object bulkFileImportLock = new Object();
 
-  DatafileManager(Tablet tablet, SortedMap<TabletFile,DataFileValue> datafileSizes) {
-    for (Entry<TabletFile,DataFileValue> datafiles : datafileSizes.entrySet()) {
+  DatafileManager(Tablet tablet, SortedMap<StoredTabletFile,DataFileValue> datafileSizes) {
+    for (Entry<StoredTabletFile,DataFileValue> datafiles : datafileSizes.entrySet()) {
       this.datafileSizes.put(datafiles.getKey(), datafiles.getValue());
     }
     this.tablet = tablet;
@@ -75,8 +76,8 @@ class DatafileManager {
 
   private TabletFile mergingMinorCompactionFile = null;
   private final Set<TabletFile> filesToDeleteAfterScan = new HashSet<>();
-  private final Map<Long,Set<TabletFile>> scanFileReservations = new HashMap<>();
-  private final MapCounter<TabletFile> fileScanReferenceCounts = new MapCounter<>();
+  private final Map<Long,Set<StoredTabletFile>> scanFileReservations = new HashMap<>();
+  private final MapCounter<StoredTabletFile> fileScanReferenceCounts = new MapCounter<>();
   private long nextScanReservationId = 0;
   private boolean reservationsBlocked = false;
 
@@ -99,7 +100,7 @@ class DatafileManager {
         }
       }
 
-      Set<TabletFile> absFilePaths = new HashSet<>(datafileSizes.keySet());
+      Set<StoredTabletFile> absFilePaths = new HashSet<>(datafileSizes.keySet());
 
       long rid = nextScanReservationId++;
 
@@ -107,7 +108,7 @@ class DatafileManager {
 
       Map<TabletFile,DataFileValue> ret = new HashMap<>();
 
-      for (TabletFile path : absFilePaths) {
+      for (StoredTabletFile path : absFilePaths) {
         fileScanReferenceCounts.increment(path, 1);
         ret.put(path, datafileSizes.get(path));
       }
@@ -118,16 +119,16 @@ class DatafileManager {
 
   void returnFilesForScan(Long reservationId) {
 
-    final Set<TabletFile> filesToDelete = new HashSet<>();
+    final Set<StoredTabletFile> filesToDelete = new HashSet<>();
 
     synchronized (tablet) {
-      Set<TabletFile> absFilePaths = scanFileReservations.remove(reservationId);
+      Set<StoredTabletFile> absFilePaths = scanFileReservations.remove(reservationId);
 
       if (absFilePaths == null)
         throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
 
       boolean notify = false;
-      for (TabletFile path : absFilePaths) {
+      for (StoredTabletFile path : absFilePaths) {
         long refCount = fileScanReferenceCounts.decrement(path, 1);
         if (refCount == 0) {
           if (filesToDeleteAfterScan.remove(path))
@@ -148,14 +149,14 @@ class DatafileManager {
     }
   }
 
-  void removeFilesAfterScan(Set<TabletFile> scanFiles) {
+  void removeFilesAfterScan(Set<StoredTabletFile> scanFiles) {
     if (scanFiles.size() == 0)
       return;
 
-    Set<TabletFile> filesToDelete = new HashSet<>();
+    Set<StoredTabletFile> filesToDelete = new HashSet<>();
 
     synchronized (tablet) {
-      for (TabletFile path : scanFiles) {
+      for (StoredTabletFile path : scanFiles) {
         if (fileScanReferenceCounts.get(path) == 0)
           filesToDelete.add(path);
         else
@@ -170,14 +171,14 @@ class DatafileManager {
     }
   }
 
-  private TreeSet<TabletFile> waitForScansToFinish(Set<TabletFile> pathsToWaitFor) {
+  private TreeSet<StoredTabletFile> waitForScansToFinish(Set<StoredTabletFile> pathsToWaitFor) {
     long maxWait = 10000L;
     long startTime = System.currentTimeMillis();
-    TreeSet<TabletFile> inUse = new TreeSet<>();
+    TreeSet<StoredTabletFile> inUse = new TreeSet<>();
 
     try (TraceScope waitForScans = Trace.startSpan("waitForScans")) {
       synchronized (tablet) {
-        for (TabletFile path : pathsToWaitFor) {
+        for (StoredTabletFile path : pathsToWaitFor) {
           while (fileScanReferenceCounts.get(path) > 0
               && System.currentTimeMillis() - startTime < maxWait) {
             try {
@@ -188,7 +189,7 @@ class DatafileManager {
           }
         }
 
-        for (TabletFile path : pathsToWaitFor) {
+        for (StoredTabletFile path : pathsToWaitFor) {
           if (fileScanReferenceCounts.get(path) > 0)
             inUse.add(path);
         }
@@ -201,6 +202,8 @@ class DatafileManager {
       throws IOException {
 
     String bulkDir = null;
+    // once tablet files are inserted into the metadata they will become StoredTabletFiles
+    Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(paths.size());
 
     for (TabletFile tpath : paths.keySet()) {
       boolean inTheRightDirectory = false;
@@ -241,17 +244,16 @@ class DatafileManager {
           }
         }
 
-        tablet.updatePersistedTime(bulkTime, paths, tid);
+        newFiles = tablet.updatePersistedTime(bulkTime, paths, tid);
       }
     }
 
     synchronized (tablet) {
-      for (Entry<TabletFile,DataFileValue> tpath : paths.entrySet()) {
+      for (Entry<StoredTabletFile,DataFileValue> tpath : newFiles.entrySet()) {
         if (datafileSizes.containsKey(tpath.getKey())) {
           log.error("Adding file that is already in set {}", tpath.getKey());
         }
         datafileSizes.put(tpath.getKey(), tpath.getValue());
-
       }
 
       tablet.getTabletResources().importedMapFiles();
@@ -259,12 +261,12 @@ class DatafileManager {
       tablet.computeNumEntries();
     }
 
-    for (Entry<TabletFile,DataFileValue> entry : paths.entrySet()) {
+    for (Entry<StoredTabletFile,DataFileValue> entry : newFiles.entrySet()) {
       TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
     }
   }
 
-  TabletFile reserveMergingMinorCompactionFile() {
+  StoredTabletFile reserveMergingMinorCompactionFile() {
     if (mergingMinorCompactionFile != null)
       throw new IllegalStateException(
           "Tried to reserve merging minor compaction file when already reserved  : "
@@ -294,9 +296,9 @@ class DatafileManager {
         maxFileSize = maxMergingMinorCompactionFileSize;
       }
       long min = maxFileSize;
-      TabletFile minName = null;
+      StoredTabletFile minName = null;
 
-      for (Entry<TabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
+      for (Entry<StoredTabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
         if (entry.getValue().getSize() <= min && !majorCompactingFiles.contains(entry.getKey())) {
           min = entry.getValue().getSize();
           minName = entry.getKey();
@@ -323,8 +325,8 @@ class DatafileManager {
   }
 
   void bringMinorCompactionOnline(TabletFile tmpDatafile, TabletFile newDatafile,
-      TabletFile absMergeFile, DataFileValue dfv, CommitSession commitSession, long flushId) {
-
+      StoredTabletFile absMergeFile, DataFileValue dfv, CommitSession commitSession, long flushId) {
+    StoredTabletFile newFile;
     // rename before putting in metadata table, so files in metadata table should
     // always exist
     do {
@@ -359,7 +361,7 @@ class DatafileManager {
     // here, but that was incorrect because a scan could start after waiting but before
     // memory was updated... assuming the file is always in use by scans leads to
     // one unneeded metadata update when it was not actually in use
-    Set<TabletFile> filesInUseByScans = Collections.emptySet();
+    Set<StoredTabletFile> filesInUseByScans = Collections.emptySet();
     if (absMergeFile != null)
       filesInUseByScans = Collections.singleton(absMergeFile);
 
@@ -367,7 +369,7 @@ class DatafileManager {
     // this metadata write does not go up... it goes sideways or to itself
     if (absMergeFile != null)
       MetadataTableUtil.addDeleteEntries(tablet.getExtent(),
-          Collections.singleton(absMergeFile.getMetadataEntry()), tablet.getContext());
+          Collections.singleton(absMergeFile.getMetaUpdateDelete()), tablet.getContext());
 
     Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
     boolean replicate =
@@ -395,8 +397,8 @@ class DatafileManager {
       // following metadata
       // write is made
 
-      tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, absMergeFile,
-          dfv, unusedWalLogs, filesInUseByScans, flushId);
+      newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile,
+          absMergeFile, dfv, unusedWalLogs, filesInUseByScans, flushId);
 
       // Mark that we have data we want to replicate
       // This WAL could still be in use by other Tablets *from the same table*, so we can only mark
@@ -437,12 +439,11 @@ class DatafileManager {
     synchronized (tablet) {
       t1 = System.currentTimeMillis();
 
-      if (datafileSizes.containsKey(newDatafile)) {
-        log.error("Adding file that is already in set {}", newDatafile);
-      }
-
       if (dfv.getNumEntries() > 0) {
-        datafileSizes.put(newDatafile, dfv);
+        if (datafileSizes.containsKey(newFile)) {
+          log.error("Adding file that is already in set {}", newFile);
+        }
+        datafileSizes.put(newFile, dfv);
       }
 
       if (absMergeFile != null) {
@@ -472,7 +473,7 @@ class DatafileManager {
     }
   }
 
-  public void reserveMajorCompactingFiles(Collection<TabletFile> files) {
+  public void reserveMajorCompactingFiles(Collection<StoredTabletFile> files) {
     if (majorCompactingFiles.size() != 0)
       throw new IllegalStateException("Major compacting files not empty " + majorCompactingFiles);
 
@@ -488,8 +489,9 @@ class DatafileManager {
     majorCompactingFiles.clear();
   }
 
-  void bringMajorCompactionOnline(Set<TabletFile> oldDatafiles, TabletFile tmpDatafile,
-      TabletFile newDatafile, Long compactionId, DataFileValue dfv) throws IOException {
+  StoredTabletFile bringMajorCompactionOnline(Set<StoredTabletFile> oldDatafiles,
+      TabletFile tmpDatafile, TabletFile newDatafile, Long compactionId, DataFileValue dfv)
+      throws IOException {
     final KeyExtent extent = tablet.getExtent();
     long t1, t2;
 
@@ -507,14 +509,15 @@ class DatafileManager {
     }
 
     TServerInstance lastLocation = null;
+    // calling insert to get the new file before inserting into the metadata
+    StoredTabletFile newFile = newDatafile.insert();
     synchronized (tablet) {
-
       t1 = System.currentTimeMillis();
 
       tablet.incrementDataSourceDeletions();
 
       // atomically remove old files and add new file
-      for (TabletFile oldDatafile : oldDatafiles) {
+      for (StoredTabletFile oldDatafile : oldDatafiles) {
         if (!datafileSizes.containsKey(oldDatafile)) {
           log.error("file does not exist in set {}", oldDatafile);
         }
@@ -522,16 +525,16 @@ class DatafileManager {
         majorCompactingFiles.remove(oldDatafile);
       }
 
-      if (datafileSizes.containsKey(newDatafile)) {
-        log.error("Adding file that is already in set {}", newDatafile);
+      if (datafileSizes.containsKey(newFile)) {
+        log.error("Adding file that is already in set {}", newFile);
       }
 
       if (dfv.getNumEntries() > 0) {
-        datafileSizes.put(newDatafile, dfv);
+        datafileSizes.put(newFile, dfv);
       }
 
       // could be used by a follow on compaction in a multipass compaction
-      majorCompactingFiles.add(newDatafile);
+      majorCompactingFiles.add(newFile);
 
       tablet.computeNumEntries();
 
@@ -541,11 +544,12 @@ class DatafileManager {
       t2 = System.currentTimeMillis();
     }
 
-    Set<TabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
+    // known consistency issue between minor and major compactions - see ACCUMULO-18
+    Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
     if (filesInUseByScans.size() > 0)
       log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
     MasterMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
-        filesInUseByScans, newDatafile, compactionId, dfv,
+        filesInUseByScans, newFile, compactionId, dfv,
         tablet.getTabletServer().getClientAddressString(), lastLocation,
         tablet.getTabletServer().getLock());
     removeFilesAfterScan(filesInUseByScans);
@@ -554,12 +558,13 @@ class DatafileManager {
       log.trace(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));
     }
 
-    TabletLogger.compacted(extent, oldDatafiles, newDatafile);
+    TabletLogger.compacted(extent, oldDatafiles, newFile);
+    return newFile;
   }
 
-  public SortedMap<TabletFile,DataFileValue> getDatafileSizes() {
+  public SortedMap<StoredTabletFile,DataFileValue> getDatafileSizes() {
     synchronized (tablet) {
-      TreeMap<TabletFile,DataFileValue> copy = new TreeMap<>(datafileSizes);
+      TreeMap<StoredTabletFile,DataFileValue> copy = new TreeMap<>(datafileSizes);
       return Collections.unmodifiableSortedMap(copy);
     }
   }
