@@ -25,7 +25,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
+import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.util.LoggingRunnable;
@@ -211,9 +213,12 @@ public class Fate<T> {
    * <p>
    * Note: Users of this class should call {@link #startTransactionRunners(int)} to launch the
    * worker threads after creating a Fate object.
+   *
+   * @param toLogStrFunc
+   *          A function that converts Repo to Strings that are suitable for logging
    */
-  public Fate(T environment, TStore<T> store) {
-    this.store = store;
+  public Fate(T environment, TStore<T> store, Function<Repo<T>,String> toLogStrFunc) {
+    this.store = FateLogger.wrap(store, toLogStrFunc);
     this.environment = environment;
   }
 
@@ -251,6 +256,7 @@ public class Fate<T> {
             // this should not happen
             throw new RuntimeException(e);
           }
+
         }
 
         if (autoCleanUp)

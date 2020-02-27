@@ -93,6 +93,7 @@ import org.apache.accumulo.master.replication.MasterReplicationCoordinator;
 import org.apache.accumulo.master.replication.ReplicationDriver;
 import org.apache.accumulo.master.replication.WorkDriver;
 import org.apache.accumulo.master.state.TableCounts;
+import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.master.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
@@ -1117,7 +1118,7 @@ public class Master extends AbstractServer
 
       int threads = getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
 
-      fate = new Fate<>(this, store);
+      fate = new Fate<>(this, store, TraceRepo::toLogString);
       fate.startTransactionRunners(threads);
 
       SimpleTimer.getInstance(getConfiguration()).schedule(() -> store.ageOff(), 63000, 63000);
