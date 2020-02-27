@@ -20,12 +20,12 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-public class FateMetricValuesTest {
+public class FateMetricSnapshotTest {
 
   @Test
   public void defaultValueTest() {
 
-    FateMetricValues v = FateMetricValues.builder().build();
+    FateMetricSnapshot v = FateMetricSnapshot.builder().build();
 
     assertEquals(0, v.getCurrentFateOps());
     assertEquals(0, v.getZkFateChildOpsTotal());
@@ -35,18 +35,18 @@ public class FateMetricValuesTest {
   @Test
   public void valueTest() {
 
-    FateMetricValues.Builder builder = FateMetricValues.builder();
+    FateMetricSnapshot.Builder builder = FateMetricSnapshot.builder();
 
-    FateMetricValues v =
+    FateMetricSnapshot v =
         builder.withCurrentFateOps(1).withZkFateChildOpsTotal(2).withZkConnectionErrors(3).build();
 
     assertEquals(1, v.getCurrentFateOps());
     assertEquals(2, v.getZkFateChildOpsTotal());
     assertEquals(3, v.getZkConnectionErrors());
 
-    FateMetricValues.Builder builder2 = builder.copy(v);
+    FateMetricSnapshot.Builder builder2 = builder.copy(v);
 
-    FateMetricValues v2 = builder2.withCurrentFateOps(11).build();
+    FateMetricSnapshot v2 = builder2.withCurrentFateOps(11).build();
 
     assertEquals(11, v2.getCurrentFateOps());
     assertEquals(2, v2.getZkFateChildOpsTotal());

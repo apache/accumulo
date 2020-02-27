@@ -24,6 +24,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,16 +46,16 @@ import org.slf4j.LoggerFactory;
  * and the zookeeper id (zxid) is expected to continuously increase because the zookeeper id is used
  * by zookeeper for ordering operations.
  */
-public class FateMetrics implements Metrics, FateMetricsMBean {
+public class FateLegacyJMXMetrics implements Metrics, FateLegacyJMXMetricsMBean {
 
-  private static final Logger log = LoggerFactory.getLogger(FateMetrics.class);
+  private static final Logger log = LoggerFactory.getLogger(FateLegacyJMXMetrics.class);
 
   // limit calls to update fate counters to guard against hammering zookeeper.
   private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(10);
 
-  private volatile long minimumRefreshDelay;
+  private final long minimumRefreshDelay;
 
-  private final AtomicReference<FateMetricValues> metricValues;
+  private final AtomicReference<FateMetricSnapshot> metricValues;
 
   private volatile long lastUpdate = 0;
 
@@ -64,21 +65,26 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
 
   private volatile boolean enabled = false;
 
-  public FateMetrics(final String instanceId, final long minimumRefreshDelay) {
+  private final ZooReaderWriter zoo;
+
+  public FateLegacyJMXMetrics(final String instanceId, final long minimumRefreshDelay) {
 
     this.instanceId = instanceId;
 
+    zoo = ZooReaderWriter.getInstance();
+
     this.minimumRefreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
-    metricValues = new AtomicReference<>(FateMetricValues.builder().build());
+    metricValues = new AtomicReference<>(FateMetricSnapshot.builder().build());
 
     try {
       objectName = new ObjectName(
-          "accumulo.server.metrics:service=FateMetrics,name=FateMetricsMBean,instance="
+          "accumulo.server.metrics:service=FateLegacyJMXMetrics,name=FateLegacyJMXMetricsMBean,instance="
               + Thread.currentThread().getName());
     } catch (Exception e) {
       log.error("Exception setting MBean object name", e);
     }
+
   }
 
   @Override
@@ -99,23 +105,18 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
   /**
    * Update the metric values from zookeeper after minimumRefreshDelay has expired.
    */
-  public synchronized FateMetricValues snapshot() {
-
-    FateMetricValues current = metricValues.get();
+  public synchronized void snapshot() {
 
     long now = System.currentTimeMillis();
-
     if ((lastUpdate + minimumRefreshDelay) > now) {
-      return current;
+      return;
     }
 
-    FateMetricValues updates = FateMetricValues.updateFromZookeeper(instanceId, current);
+    FateMetricSnapshot updates = FateMetricSnapshot.getFromZooKeeper(instanceId, zoo);
 
     metricValues.set(updates);
 
     lastUpdate = now;
-
-    return updates;
   }
 
   @Override
