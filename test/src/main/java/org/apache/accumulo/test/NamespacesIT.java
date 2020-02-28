@@ -201,7 +201,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
     }
     String namespace = namespaceBuilder.toString();
     c.namespaceOperations().create(namespace);
-    assertFalse(c.namespaceOperations().exists(namespace));
+    assertTrue(!c.namespaceOperations().exists(namespace));
   }
 
   @Test
