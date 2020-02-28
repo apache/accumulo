@@ -738,7 +738,7 @@ class FateServiceHandler implements FateService.Iface {
     String namespace = namespaceArg == null ? null : ByteBufferUtil.toString(namespaceArg);
     if ((namespace != null) && (namespace.length() > MAX_NAMESPACE_LEN)) {
       log.warn("Namespaces greater than " + MAX_NAMESPACE_LEN
-          + " characters should be renamed to conform to a 1024 character limit. "
+          + " characters should be renamed to conform to a "+MAX_NAMESPACE_LEN+" character limit. "
           + "Longer namespaces are no longer supported and may result in unexpected behavior.");
     }
     return _validateArgument(namespace, op, Namespaces.VALID_NAME.and(userValidator));
