@@ -705,7 +705,7 @@ class FateServiceHandler implements FateService.Iface {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
     if ((tableName != null) && (tableName.length() > MAX_TABLE_NAME_LEN)) {
       log.warn("Table names greater than " + MAX_TABLE_NAME_LEN
-          + " characters should be renamed to conform to a 1024 character limit. "
+          + " characters should be renamed to conform to a "+MAX_TABLE_NAME_LEN+" character limit. "
           + "Longer table names are no longer supported and may result in unexpected behavior.");
     }
     return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
