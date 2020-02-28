@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy.SizeWindow;
@@ -34,10 +35,10 @@ import org.junit.Test;
 public class SizeWindowTest {
 
   static class TestSizeWindow extends SizeWindow {
-    private static Map<TabletFile,DataFileValue> convert(Map<String,Integer> testData) {
-      Map<TabletFile,DataFileValue> files = new HashMap<>();
+    private static Map<StoredTabletFile,DataFileValue> convert(Map<String,Integer> testData) {
+      Map<StoredTabletFile,DataFileValue> files = new HashMap<>();
       testData.forEach((k, v) -> {
-        files.put(new TabletFile("hdfs://nn1/accumulo/tables/5/t-0001/" + k),
+        files.put(new StoredTabletFile("hdfs://nn1/accumulo/tables/5/t-0001/" + k),
             new DataFileValue(v, 0));
       });
       return files;

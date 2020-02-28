@@ -544,8 +544,6 @@ public enum Property {
       "Properties in this category affect the behavior of the monitor web server."),
   MONITOR_PORT("monitor.port.client", "9995", PropertyType.PORT,
       "The listening port for the monitor's http service"),
-  MONITOR_LOG4J_PORT("monitor.port.log4j", "4560", PropertyType.PORT,
-      "The listening port for the monitor's log4j logging collection."),
   MONITOR_SSL_KEYSTORE("monitor.ssl.keyStore", "", PropertyType.PATH,
       "The keystore for enabling monitor SSL."),
   @Sensitive

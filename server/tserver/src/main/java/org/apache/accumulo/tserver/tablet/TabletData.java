@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -38,9 +39,9 @@ import org.apache.accumulo.server.master.state.TServerInstance;
  */
 public class TabletData {
   private MetadataTime time = null;
-  private SortedMap<TabletFile,DataFileValue> dataFiles = new TreeMap<>();
+  private SortedMap<StoredTabletFile,DataFileValue> dataFiles = new TreeMap<>();
   private List<LogEntry> logEntries = new ArrayList<>();
-  private HashSet<TabletFile> scanFiles = new HashSet<>();
+  private HashSet<StoredTabletFile> scanFiles = new HashSet<>();
   private long flushID = -1;
   private long compactID = -1;
   private TServerInstance lastLocation = null;
@@ -69,7 +70,7 @@ public class TabletData {
   }
 
   // Data pulled from an existing tablet to make a split
-  public TabletData(String dirName, SortedMap<TabletFile,DataFileValue> highDatafileSizes,
+  public TabletData(String dirName, SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
       MetadataTime time, long lastFlushID, long lastCompactID, TServerInstance lastLocation,
       Map<Long,List<TabletFile>> bulkIngestedFiles) {
     this.directoryName = dirName;
@@ -86,7 +87,7 @@ public class TabletData {
     return time;
   }
 
-  public SortedMap<TabletFile,DataFileValue> getDataFiles() {
+  public SortedMap<StoredTabletFile,DataFileValue> getDataFiles() {
     return dataFiles;
   }
 
@@ -94,7 +95,7 @@ public class TabletData {
     return logEntries;
   }
 
-  public HashSet<TabletFile> getScanFiles() {
+  public HashSet<StoredTabletFile> getScanFiles() {
     return scanFiles;
   }
 

@@ -20,7 +20,6 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,10 +37,8 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
-import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -60,11 +57,6 @@ public class DurabilityIT extends ConfigurableMacBase {
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
-  }
-
-  @BeforeClass
-  public static void checkMR() {
-    assumeFalse(IntegrationTestMapReduce.isMapReduce());
   }
 
   static final long N = 100000;

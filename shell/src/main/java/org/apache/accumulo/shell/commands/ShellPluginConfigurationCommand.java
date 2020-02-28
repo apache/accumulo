@@ -64,12 +64,9 @@ public abstract class ShellPluginConfigurationCommand extends Command {
       shellState.getReader().println("Removed " + pluginType + " on " + tableName);
     } else if (cl.hasOption(listPluginOption.getOpt())) {
       // Get the options for this table
-      final Iterator<Entry<String,String>> iter =
-          shellState.getAccumuloClient().tableOperations().getProperties(tableName).iterator();
 
-      while (iter.hasNext()) {
-        Entry<String,String> ent = iter.next();
-
+      for (Entry<String,String> ent : shellState.getAccumuloClient().tableOperations()
+          .getProperties(tableName)) {
         // List all parameters with the property name
         if (ent.getKey().startsWith(tableProp.toString())) {
           shellState.getReader().println(ent.getKey() + ": " + ent.getValue());

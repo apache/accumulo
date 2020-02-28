@@ -71,10 +71,6 @@
       <artifactId>junit</artifactId>
     </dependency>
     <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
     </dependency>
@@ -155,6 +151,10 @@
       <artifactId>htrace-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-1.2-api</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.thrift</groupId>
       <artifactId>libthrift</artifactId>
     </dependency>
@@ -193,8 +193,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -298,64 +298,6 @@
                 <configuration>
                   <executable>${basedir}/src/main/scripts/generate-thrift.sh</executable>
                 </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <!-- create shaded test jar appropriate for running ITs on MapReduce -->
-      <id>mrit</id>
-      <activation>
-        <property>
-          <name>mrit</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-shade-plugin</artifactId>
-            <configuration>
-              <artifactSet>
-                <excludes>
-                  <exclude>com.google.auto.service</exclude>
-                  <exclude>com.google.auto</exclude>
-                  <exclude>javax.servlet:servlet-api</exclude>
-                  <exclude>org.apache.accumulo:accumulo-native</exclude>
-                  <exclude>org.slf4j:slf4j-log4j12</exclude>
-                </excludes>
-              </artifactSet>
-              <shadedArtifactAttached>true</shadedArtifactAttached>
-              <shadedClassifierName>mrit</shadedClassifierName>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
-              <filters>
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>META-INF/*.DSA</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>META-INF/DEPENDENCIES</exclude>
-                  </excludes>
-                </filter>
-              </filters>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <manifestEntries>
-                    <Sealed>false</Sealed>
-                    <Main-Class>org.apache.accumulo.test.mrit.IntegrationTestMapReduce</Main-Class>
-                  </manifestEntries>
-                </transformer>
-              </transformers>
-            </configuration>
-            <executions>
-              <execution>
-                <id>create-shaded-mrit</id>
-                <goals>
-                  <goal>shade</goal>
-                </goals>
               </execution>
             </executions>
           </plugin>

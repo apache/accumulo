@@ -63,6 +63,8 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 
+    // disable adminServer, which runs on port 8080 by default and we don't need
+    System.setProperty("zookeeper.admin.enableServer", "false");
     zooKeeper = new TestingServer();
 
     MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, SECRET);

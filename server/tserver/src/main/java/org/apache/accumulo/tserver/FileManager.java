@@ -497,8 +497,9 @@ public class FileManager {
     private Map<FileSKVIterator,String> openFileRefs(Collection<TabletFile> files)
         throws TooManyFilesException, IOException {
       List<String> strings = new ArrayList<>(files.size());
-      for (TabletFile ref : files)
-        strings.add(ref.getMetadataEntry());
+      for (TabletFile file : files) {
+        strings.add(file.getPathStr());
+      }
       return openFiles(strings);
     }
 
@@ -562,7 +563,7 @@ public class FileManager {
 
         if (sawTimeSet) {
           // constructing FileRef is expensive so avoid if not needed
-          DataFileValue value = files.get(new TabletFile(filename));
+          DataFileValue value = files.get(new TabletFile(new Path(filename)));
           if (value.isTimeSet()) {
             iter = new TimeSettingIterator(iter, value.getTime());
           }

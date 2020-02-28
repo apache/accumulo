@@ -115,6 +115,6 @@ public class AccumuloITBase {
    * time to wait per-method before declaring a timeout, in seconds.
    */
   protected int defaultTimeoutSeconds() {
-    return 0;
+    return 600;
   }
 }

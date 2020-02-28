@@ -21,7 +21,6 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -39,6 +38,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Ensures that all threads spawned for ZooKeeper and Thrift connectivity are reaped after calling
@@ -131,12 +132,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
       }
 
       try {
-        count = 0;
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        while (iter.hasNext()) {
-          iter.next();
-          count++;
-        }
+        count = Iterables.size(scanner);
         fail("scanner did not fail");
       } catch (Exception e) {
 

@@ -274,42 +274,43 @@ public class ZooLockTest {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
 
     ConnectedWatcher watcher = new ConnectedWatcher();
-    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 30000, watcher);
-    zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+    try (ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 30000, watcher)) {
+      zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
 
-    while (!watcher.isConnected()) {
-      Thread.sleep(200);
+      while (!watcher.isConnected()) {
+        Thread.sleep(200);
+      }
+
+      zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
+      ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "secret", parent);
+
+      assertFalse(zl.isLocked());
+
+      // would not expect data to be set on this node, but it should not cause problems.....
+      zk.setData(parent, "foo".getBytes(UTF_8), -1);
+
+      TestALW lw = new TestALW();
+
+      zl.lockAsync(lw, "test1".getBytes(UTF_8));
+
+      lw.waitForChanges(1);
+
+      assertTrue(lw.locked);
+      assertTrue(zl.isLocked());
+      assertNull(lw.exception);
+      assertNull(lw.reason);
+
+      // would not expect data to be set on this node either
+      zk.setData(zl.getLockPath(), "bar".getBytes(UTF_8), -1);
+
+      zk.delete(zl.getLockPath(), -1);
+
+      lw.waitForChanges(2);
+
+      assertEquals(LockLossReason.LOCK_DELETED, lw.reason);
+      assertNull(lw.exception);
     }
-
-    zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-
-    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "secret", parent);
-
-    assertFalse(zl.isLocked());
-
-    // would not expect data to be set on this node, but it should not cause problems.....
-    zk.setData(parent, "foo".getBytes(UTF_8), -1);
-
-    TestALW lw = new TestALW();
-
-    zl.lockAsync(lw, "test1".getBytes(UTF_8));
-
-    lw.waitForChanges(1);
-
-    assertTrue(lw.locked);
-    assertTrue(zl.isLocked());
-    assertNull(lw.exception);
-    assertNull(lw.reason);
-
-    // would not expect data to be set on this node either
-    zk.setData(zl.getLockPath(), "bar".getBytes(UTF_8), -1);
-
-    zk.delete(zl.getLockPath(), -1);
-
-    lw.waitForChanges(2);
-
-    assertEquals(LockLossReason.LOCK_DELETED, lw.reason);
-    assertNull(lw.exception);
 
   }
 
@@ -320,58 +321,60 @@ public class ZooLockTest {
     ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "secret", parent);
 
     ConnectedWatcher watcher = new ConnectedWatcher();
-    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, watcher);
-    zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+    try (ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, watcher)) {
+      zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
 
-    while (!watcher.isConnected()) {
-      Thread.sleep(200);
-    }
+      while (!watcher.isConnected()) {
+        Thread.sleep(200);
+      }
 
-    for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < 10; i++) {
+        zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+        zk.delete(parent, -1);
+      }
+
       zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zk.delete(parent, -1);
+
+      TestALW lw = new TestALW();
+
+      boolean ret = zl.tryLock(lw, "test1".getBytes(UTF_8));
+
+      assertTrue(ret);
+
+      // make sure still watching parent even though a lot of events occurred for the parent
+      synchronized (zl) {
+        Field field = zl.getClass().getDeclaredField("watchingParent");
+        field.setAccessible(true);
+        assertTrue((Boolean) field.get(zl));
+      }
+
+      zl.unlock();
     }
-
-    zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-
-    TestALW lw = new TestALW();
-
-    boolean ret = zl.tryLock(lw, "test1".getBytes(UTF_8));
-
-    assertTrue(ret);
-
-    // make sure still watching parent even though a lot of events occurred for the parent
-    synchronized (zl) {
-      Field field = zl.getClass().getDeclaredField("watchingParent");
-      field.setAccessible(true);
-      assertTrue((Boolean) field.get(zl));
-    }
-
-    zl.unlock();
   }
 
   @Test(timeout = 10000)
   public void testChangeData() throws Exception {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
     ConnectedWatcher watcher = new ConnectedWatcher();
-    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, watcher);
-    zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+    try (ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, watcher)) {
+      zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
 
-    while (!watcher.isConnected()) {
-      Thread.sleep(200);
+      while (!watcher.isConnected()) {
+        Thread.sleep(200);
+      }
+
+      zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
+      ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "secret", parent);
+
+      TestALW lw = new TestALW();
+
+      zl.lockAsync(lw, "test1".getBytes(UTF_8));
+      assertEquals("test1", new String(zk.getData(zl.getLockPath(), null, null)));
+
+      zl.replaceLockData("test2".getBytes(UTF_8));
+      assertEquals("test2", new String(zk.getData(zl.getLockPath(), null, null)));
     }
-
-    zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-
-    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "secret", parent);
-
-    TestALW lw = new TestALW();
-
-    zl.lockAsync(lw, "test1".getBytes(UTF_8));
-    assertEquals("test1", new String(zk.getData(zl.getLockPath(), null, null)));
-
-    zl.replaceLockData("test2".getBytes(UTF_8));
-    assertEquals("test2", new String(zk.getData(zl.getLockPath(), null, null)));
   }
 
   @AfterClass

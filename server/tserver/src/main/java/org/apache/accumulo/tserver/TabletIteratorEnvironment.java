@@ -43,6 +43,7 @@ import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
+import org.apache.hadoop.fs.Path;
 
 public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
@@ -153,7 +154,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   @Override
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
       throws IOException {
-    TabletFile ref = new TabletFile(mapFileName);
+    TabletFile ref = new TabletFile(new Path(mapFileName));
     return trm.openFiles(Collections.singletonMap(ref, files.get(ref)), false, null).get(0);
   }
 

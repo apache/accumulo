@@ -268,6 +268,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public ProcessInfo _exec(Class<?> clazz, ServerType serverType,
       Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
+    if (serverType == ServerType.ZOOKEEPER) {
+      // disable zookeeper's log4j 1.2 jmx support, which depends on log4j 1.2 on the class path,
+      // which we don't need or expect to be there
+      jvmOpts.add("-Dzookeeper.jmx.log4j.disable=true");
+    }
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
     if (configOverrides != null && !configOverrides.isEmpty()) {
       File siteFile =
@@ -398,6 +403,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       zooCfg.setProperty("clientPort", config.getZooKeeperPort() + "");
       zooCfg.setProperty("maxClientCnxns", "1000");
       zooCfg.setProperty("dataDir", config.getZooKeeperDir().getAbsolutePath());
+      zooCfg.setProperty("4lw.commands.whitelist", "ruok,wchs");
+      zooCfg.setProperty("admin.enableServer", "false");
       zooCfg.store(fileWriter, null);
 
       fileWriter.close();

@@ -537,7 +537,7 @@ public class TabletServer extends AbstractServer {
               Path path = new Path(mapping.getKey());
               FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
               path = ns.makeQualified(path);
-              fileRefMap.put(new TabletFile(path.toString()), mapping.getValue());
+              fileRefMap.put(new TabletFile(path), mapping.getValue());
             }
 
             Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
@@ -574,19 +574,19 @@ public class TabletServer extends AbstractServer {
 
       watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
         tabletImports.forEach((tke, fileMap) -> {
-          Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
+          Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
           for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
             Path path = new Path(dir, mapping.getKey());
             FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
             path = ns.makeQualified(path);
-            fileRefMap.put(new TabletFile(path, path.toString()), mapping.getValue());
+            newFileMap.put(new TabletFile(path), mapping.getValue());
           }
 
           Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
 
           if (importTablet != null) {
             try {
-              importTablet.importMapFiles(tid, fileRefMap, setTime);
+              importTablet.importMapFiles(tid, newFileMap, setTime);
             } catch (IOException ioe) {
               log.debug("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke),
                   ioe.getMessage());
@@ -2187,12 +2187,8 @@ public class TabletServer extends AbstractServer {
             closedCopy = copyClosedLogs(closedLogs);
           }
 
-          Iterator<Entry<KeyExtent,Tablet>> iter = getOnlineTablets().entrySet().iterator();
-
           // bail early now if we're shutting down
-          while (iter.hasNext()) {
-
-            Entry<KeyExtent,Tablet> entry = iter.next();
+          for (Entry<KeyExtent,Tablet> entry : getOnlineTablets().entrySet()) {
 
             Tablet tablet = entry.getValue();
 

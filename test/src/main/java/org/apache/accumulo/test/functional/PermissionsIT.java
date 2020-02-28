@@ -20,13 +20,13 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -722,9 +722,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
     switch (perm) {
       case READ:
         try (Scanner scanner = test_user_client.createScanner(tableName, Authorizations.EMPTY)) {
-          Iterator<Entry<Key,Value>> iter = scanner.iterator();
-          while (iter.hasNext())
-            iter.next();
+          for (Entry<Key,Value> keyValueEntry : scanner) {
+            assertNotNull(keyValueEntry);
+          }
         }
         break;
       case WRITE:

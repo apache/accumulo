@@ -165,7 +165,6 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
-      mergePropWithRandomPort(Property.MONITOR_LOG4J_PORT.getKey());
       mergePropWithRandomPort(Property.REPLICATION_RECEIPT_SERVICE_PORT.getKey());
       mergePropWithRandomPort(Property.MASTER_REPLICATION_COORDINATOR_PORT.getKey());
 

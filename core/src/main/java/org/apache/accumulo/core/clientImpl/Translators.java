@@ -22,6 +22,7 @@ import org.apache.accumulo.core.clientImpl.Translator.CVSTranslator;
 import org.apache.accumulo.core.clientImpl.Translator.ColumnTranslator;
 import org.apache.accumulo.core.clientImpl.Translator.KeyExtentTranslator;
 import org.apache.accumulo.core.clientImpl.Translator.RangeTranslator;
+import org.apache.accumulo.core.clientImpl.Translator.StoredTabletFileTranslator;
 import org.apache.accumulo.core.clientImpl.Translator.TCVSTranslator;
 import org.apache.accumulo.core.clientImpl.Translator.TKeyExtentTranslator;
 import org.apache.accumulo.core.clientImpl.Translator.TRangeTranslator;
@@ -38,4 +39,5 @@ public class Translators {
   public static final Translator<Range,TRange> RT = new RangeTranslator();
   public static final CVSTranslator CVST = new CVSTranslator();
   public static final TabletFileTranslator TFT = new TabletFileTranslator();
+  public static final StoredTabletFileTranslator STFT = new StoredTabletFileTranslator();
 }

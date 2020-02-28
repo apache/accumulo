@@ -159,8 +159,8 @@ public class DynamicBloomFilter extends Filter {
       return true;
     }
 
-    for (int i = 0; i < matrix.length; i++) {
-      if (matrix[i].membershipTest(key)) {
+    for (BloomFilter bloomFilter : matrix) {
+      if (bloomFilter.membershipTest(key)) {
         return true;
       }
     }
@@ -170,8 +170,8 @@ public class DynamicBloomFilter extends Filter {
 
   @Override
   public void not() {
-    for (int i = 0; i < matrix.length; i++) {
-      matrix[i].not();
+    for (BloomFilter bloomFilter : matrix) {
+      bloomFilter.not();
     }
   }
 
@@ -213,8 +213,8 @@ public class DynamicBloomFilter extends Filter {
   public String toString() {
     StringBuilder res = new StringBuilder();
 
-    for (int i = 0; i < matrix.length; i++) {
-      res.append(matrix[i]);
+    for (BloomFilter bloomFilter : matrix) {
+      res.append(bloomFilter);
       res.append(Character.LINE_SEPARATOR);
     }
     return res.toString();
@@ -228,8 +228,8 @@ public class DynamicBloomFilter extends Filter {
     out.writeInt(nr);
     out.writeInt(currentNbRecord);
     out.writeInt(matrix.length);
-    for (int i = 0; i < matrix.length; i++) {
-      matrix[i].write(out);
+    for (BloomFilter bloomFilter : matrix) {
+      bloomFilter.write(out);
     }
   }
 

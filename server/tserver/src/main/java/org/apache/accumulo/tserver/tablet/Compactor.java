@@ -49,6 +49,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterato
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -65,7 +66,6 @@ import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
@@ -90,7 +90,7 @@ public class Compactor implements Callable<CompactionStats> {
     RateLimiter getWriteLimiter();
   }
 
-  private final Map<TabletFile,DataFileValue> filesToCompact;
+  private final Map<StoredTabletFile,DataFileValue> filesToCompact;
   private final InMemoryMap imm;
   private final TabletFile outputFile;
   private final boolean propogateDeletes;
@@ -147,7 +147,7 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  public Compactor(ServerContext context, Tablet tablet, Map<TabletFile,DataFileValue> files,
+  public Compactor(ServerContext context, Tablet tablet, Map<StoredTabletFile,DataFileValue> files,
       InMemoryMap imm, TabletFile outputFile, boolean propogateDeletes, CompactionEnv env,
       List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
     this.context = context;
@@ -201,8 +201,6 @@ public class Compactor implements Callable<CompactionStats> {
 
     clearStats();
 
-    final Path outputFilePath = outputFile.getPath();
-    final String outputFilePathName = outputFile.getNormalizedPath();
     String oldThreadName = Thread.currentThread().getName();
     String newThreadName = "MajC compacting " + extent + " started "
         + dateFormatter.format(new Date()) + " file: " + outputFile;
@@ -210,9 +208,9 @@ public class Compactor implements Callable<CompactionStats> {
     thread = Thread.currentThread();
     try {
       FileOperations fileFactory = FileOperations.getInstance();
-      FileSystem ns = this.fs.getVolumeByPath(outputFilePath).getFileSystem();
+      FileSystem ns = this.fs.getVolumeByPath(outputFile.getPath()).getFileSystem();
       mfw = fileFactory.newWriterBuilder()
-          .forFile(outputFilePathName, ns, ns.getConf(), context.getCryptoService())
+          .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter()).build();
 
       Map<String,Set<ByteSequence>> lGroups = getLocalityGroups(acuTableConf);
@@ -297,13 +295,13 @@ public class Compactor implements Callable<CompactionStats> {
         FileSKVIterator reader;
 
         reader = fileFactory.newReaderBuilder()
-            .forFile(mapFile.getMetadataEntry(), fs, fs.getConf(), context.getCryptoService())
+            .forFile(mapFile.getPathStr(), fs, fs.getConf(), context.getCryptoService())
             .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter()).build();
 
         readers.add(reader);
 
         SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(context,
-            extent.getTableId(), mapFile.getMetadataEntry(), false, reader);
+            extent.getTableId(), mapFile.getPathStr(), false, reader);
 
         if (filesToCompact.get(mapFile).isTimeSet()) {
           iter = new TimeSettingIterator(iter, filesToCompact.get(mapFile).getTime());
@@ -313,8 +311,8 @@ public class Compactor implements Callable<CompactionStats> {
 
       } catch (Throwable e) {
 
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId(),
-            ProblemType.FILE_READ, mapFile.getMetadataEntry(), e));
+        ProblemReports.getInstance(context).report(
+            new ProblemReport(extent.getTableId(), ProblemType.FILE_READ, mapFile.getPathStr(), e));
 
         log.warn("Some problem opening map file {} {}", mapFile, e.getMessage(), e);
         // failed to open some map file... close the ones that were opened
@@ -422,7 +420,7 @@ public class Compactor implements Callable<CompactionStats> {
     }
   }
 
-  Collection<TabletFile> getFilesToCompact() {
+  Collection<StoredTabletFile> getFilesToCompact() {
     return filesToCompact.keySet();
   }
 

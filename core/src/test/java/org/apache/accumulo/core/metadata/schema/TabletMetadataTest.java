@@ -38,7 +38,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -75,12 +75,12 @@ public class TabletMetadataTest {
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
     DataFileValue dfv1 = new DataFileValue(555, 23);
-    TabletFile tf1 = new TabletFile("hdfs://nn1/acc/tables/1/t-0001/df1.rf");
-    TabletFile tf2 = new TabletFile("hdfs://nn1/acc/tables/1/t-0001/df2.rf");
-    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf1.getMetadataEntry())
+    StoredTabletFile tf1 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/df1.rf");
+    StoredTabletFile tf2 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/df2.rf");
+    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf1.getMetaUpdateDelete())
         .put(dfv1.encode());
     DataFileValue dfv2 = new DataFileValue(234, 13);
-    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf2.getMetadataEntry())
+    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf2.getMetaUpdateDelete())
         .put(dfv2.encode());
 
     mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
@@ -94,10 +94,10 @@ public class TabletMetadataTest {
     mutation.at().family(le2.getColumnFamily()).qualifier(le2.getColumnQualifier())
         .timestamp(le2.timestamp).put(le2.getValue());
 
-    TabletFile sf1 = new TabletFile("hdfs://nn1/acc/tables/1/t-0001/sf1.rf");
-    TabletFile sf2 = new TabletFile("hdfs://nn1/acc/tables/1/t-0001/sf2.rf");
-    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf1.getMetadataEntry()).put("");
-    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf2.getMetadataEntry()).put("");
+    StoredTabletFile sf1 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf1.rf");
+    StoredTabletFile sf2 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf2.rf");
+    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf1.getMetaUpdateDelete()).put("");
+    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf2.getMetaUpdateDelete()).put("");
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
@@ -113,7 +113,8 @@ public class TabletMetadataTest {
     assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
     assertEquals(6L, tm.getFlushId().getAsLong());
     assertEquals(rowMap, tm.getKeyValues());
-    assertEquals(Map.of(new TabletFile(bf1), 56L, new TabletFile(bf2), 59L), tm.getLoaded());
+    assertEquals(Map.of(new StoredTabletFile(bf1), 56L, new StoredTabletFile(bf2), 59L),
+        tm.getLoaded());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
     assertEquals("s001", tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
