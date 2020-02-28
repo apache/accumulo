@@ -199,7 +199,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     }
     String tableName = tableNameBuilder.toString();
     accumuloClient.tableOperations().create(tableName);
-    assertTrue(!accumuloClient.tableOperations().exists(tableName));
+    assertFalse(accumuloClient.tableOperations().exists(tableName));
   }
 
   @Test
