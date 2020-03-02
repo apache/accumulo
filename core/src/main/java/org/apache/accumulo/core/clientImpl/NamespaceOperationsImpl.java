@@ -122,7 +122,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(namespace.length() <= MAX_NAMESPACE_LEN,
-        "Namespace is longer than 1024 characters");
+        "Namespace is longer than " + MAX_NAMESPACE_LEN + " characters");
     try {
       doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE,
           Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8))), Collections.emptyMap(),
@@ -167,7 +167,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       throws AccumuloSecurityException, NamespaceNotFoundException, AccumuloException,
       NamespaceExistsException {
     checkArgument(newNamespaceName.length() <= MAX_TABLE_NAME_LEN,
-        "Namespace is longer than 1024 characters");
+        "Namespace is longer than " + MAX_TABLE_NAME_LEN + " characters");
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes(UTF_8)),
         ByteBuffer.wrap(newNamespaceName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
