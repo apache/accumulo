@@ -501,7 +501,7 @@ class DatafileManager {
     }
 
     if (dfv.getNumEntries() == 0) {
-      tablet.getTabletServer().getFileSystem().deleteRecursively(newDatafile.getPath());
+      tablet.getTabletServer().getFileSystem().deleteRecursively(tmpDatafile.getPath());
     } else {
       // rename before putting in metadata table, so files in metadata table should
       // always exist
