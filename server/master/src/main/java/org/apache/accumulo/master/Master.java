@@ -187,7 +187,7 @@ public class Master extends AbstractServer
   private final List<TabletGroupWatcher> watchers = new ArrayList<>();
   final SecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers =
-      Collections.synchronizedMap(new HashMap<TServerInstance,AtomicInteger>());
+      Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final SortedMap<KeyExtent,TServerInstance> migrations =
       Collections.synchronizedSortedMap(new TreeMap<>());
@@ -1636,7 +1636,7 @@ public class Master extends AbstractServer
     final MasterMonitorInfo result = new MasterMonitorInfo();
 
     result.tServerInfo = new ArrayList<>();
-    result.tableMap = new HashMap<String,TableInfo>();
+    result.tableMap = new HashMap<>();
     for (Entry<TServerInstance,TabletServerStatus> serverEntry : tserverStatus.entrySet()) {
       final TabletServerStatus status = serverEntry.getValue();
       result.tServerInfo.add(status);

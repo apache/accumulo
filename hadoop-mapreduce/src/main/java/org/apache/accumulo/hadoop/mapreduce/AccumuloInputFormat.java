@@ -87,7 +87,7 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
   @Override
   public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context) {
 
-    return new AccumuloRecordReader<Key,Value>(CLASS) {
+    return new AccumuloRecordReader<>(CLASS) {
       @Override
       public boolean nextKeyValue() {
         if (scannerIterator.hasNext()) {

@@ -62,7 +62,7 @@ public class AccumuloRowInputFormat
       JobConf job, Reporter reporter) throws IOException {
     log.setLevel(getLogLevel(job));
     RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>> recordReader =
-        new RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
+        new RecordReaderBase<>() {
           RowIterator rowIterator;
 
           @Override

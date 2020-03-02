@@ -71,16 +71,15 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   // and does not read all of the data. For this case do not want iterator tracking to consume too
   // much memory. Also it would be best to avoid an RPC storm of close methods for thousands
   // sessions that may have timed out.
-  private Map<ScannerIterator,Long> iters =
-      new LinkedHashMap<ScannerIterator,Long>(MAX_ENTRIES + 1, .75F, true) {
-        private static final long serialVersionUID = 1L;
+  private Map<ScannerIterator,Long> iters = new LinkedHashMap<>(MAX_ENTRIES + 1, .75F, true) {
+    private static final long serialVersionUID = 1L;
 
-        // This method is called just after a new entry has been added
-        @Override
-        public boolean removeEldestEntry(Map.Entry<ScannerIterator,Long> eldest) {
-          return size() > MAX_ENTRIES;
-        }
-      };
+    // This method is called just after a new entry has been added
+    @Override
+    public boolean removeEldestEntry(Map.Entry<ScannerIterator,Long> eldest) {
+      return size() > MAX_ENTRIES;
+    }
+  };
 
   /**
    * This is used for ScannerIterators to report their activity back to the scanner that created

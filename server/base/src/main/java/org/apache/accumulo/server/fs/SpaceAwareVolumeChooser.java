@@ -76,7 +76,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
 
       choiceCache = CacheBuilder.newBuilder()
           .expireAfterWrite(computationCacheDuration, TimeUnit.MILLISECONDS)
-          .build(new CacheLoader<List<String>,WeightedRandomCollection>() {
+          .build(new CacheLoader<>() {
             @Override
             public WeightedRandomCollection load(List<String> key) {
               return new WeightedRandomCollection(key, env, random);
