@@ -1504,7 +1504,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(importDir != null, "importDir is null");
     checkArgument(tableName.length() <= MAX_TABLE_NAME_LEN,
-        "Table name is longer than 1024 characters");
+        "Table name is longer than "+ MAX_TABLE_NAME_LEN +" characters");
 
     try {
       importDir = checkPath(importDir, "Table", "").toString();
