@@ -72,7 +72,7 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
       throw new IllegalArgumentException("No RecordReader for " + split.getClass());
     }
 
-    return new RecordReaderBase<Key,Value>() {
+    return new RecordReaderBase<>() {
       @Override
       public boolean nextKeyValue() throws IOException, InterruptedException {
         if (scannerIterator.hasNext()) {

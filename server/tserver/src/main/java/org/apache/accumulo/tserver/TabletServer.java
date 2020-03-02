@@ -320,9 +320,9 @@ public class TabletServer extends AbstractServer {
 
   private final OnlineTablets onlineTablets = new OnlineTablets();
   private final SortedSet<KeyExtent> unopenedTablets =
-      Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
+      Collections.synchronizedSortedSet(new TreeSet<>());
   private final SortedSet<KeyExtent> openingTablets =
-      Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
+      Collections.synchronizedSortedSet(new TreeSet<>());
   private final Map<KeyExtent,Long> recentlyUnloadedCache =
       Collections.synchronizedMap(new LRUMap<>(1000));
 
@@ -842,7 +842,7 @@ public class TabletServer extends AbstractServer {
       }
 
       Set<Column> columnSet = tcolumns.isEmpty() ? Collections.emptySet()
-          : new HashSet<Column>(Collections2.transform(tcolumns, Column::new));
+          : new HashSet<>(Collections2.transform(tcolumns, Column::new));
 
       ScanParameters scanParams =
           new ScanParameters(-1, new Authorizations(authorizations), columnSet, ssiList, ssio,

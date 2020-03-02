@@ -245,7 +245,7 @@ public class Gatherer {
     return () -> {
       Iterator<Entry<K,V>> esi = map.entrySet().iterator();
 
-      return new Iterator<Map<K,V>>() {
+      return new Iterator<>() {
         @Override
         public boolean hasNext() {
           return esi.hasNext();

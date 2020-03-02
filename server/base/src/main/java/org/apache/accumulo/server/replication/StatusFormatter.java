@@ -58,7 +58,7 @@ public class StatusFormatter implements Formatter {
   private FormatterConfig config;
 
   /* so a new date object doesn't get created for every record in the scan result */
-  private static ThreadLocal<Date> tmpDate = new ThreadLocal<Date>() {
+  private static ThreadLocal<Date> tmpDate = new ThreadLocal<>() {
     @Override
     protected Date initialValue() {
       return new Date();
