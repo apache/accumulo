@@ -545,9 +545,7 @@ class DatafileManager {
     if (filesInUseByScans.size() > 0)
       log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
     MasterMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
-        filesInUseByScans, newDatafile, compactionId, dfv,
-        tablet.getTabletServer().getClientAddressString(), lastLocation,
-        tablet.getTabletServer().getLock());
+        filesInUseByScans, newDatafile, compactionId, dfv, tablet.getTabletServer().getLock());
     removeFilesAfterScan(filesInUseByScans);
 
     if (log.isTraceEnabled()) {
