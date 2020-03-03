@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -388,14 +389,13 @@ public class InputTableConfig implements Writable {
       return false;
     if (useLocalIterators != that.useLocalIterators)
       return false;
-    if (columns != null ? !columns.equals(that.columns) : that.columns != null)
+    if (!Objects.equals(columns, that.columns))
       return false;
-    if (iterators != null ? !iterators.equals(that.iterators) : that.iterators != null)
+    if (!Objects.equals(iterators, that.iterators))
       return false;
-    if (ranges != null ? !ranges.equals(that.ranges) : that.ranges != null)
+    if (!Objects.equals(ranges, that.ranges))
       return false;
-    if (samplerConfig != null ? !samplerConfig.equals(that.samplerConfig)
-        : that.samplerConfig != null)
+    if (!Objects.equals(samplerConfig, that.samplerConfig))
       return false;
     return true;
   }

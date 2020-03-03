@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -324,10 +325,10 @@ public class Condition {
     if (!(c.cv.equals(cv))) {
       return false;
     }
-    if (!(c.val == null ? val == null : c.val.equals(val))) {
+    if (!(Objects.equals(c.val, val))) {
       return false;
     }
-    if (!(c.ts == null ? ts == null : c.ts.equals(ts))) {
+    if (!(Objects.equals(c.ts, ts))) {
       return false;
     }
     return Arrays.equals(c.iterators, iterators);
