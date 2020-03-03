@@ -48,16 +48,12 @@ public class DiskUsage {
 
     DiskUsage diskUsage = (DiskUsage) o;
 
-    if (!Objects.equals(tables, diskUsage.tables))
-      return false;
-    return Objects.equals(usage, diskUsage.usage);
+    return Objects.equals(tables, diskUsage.tables) && Objects.equals(usage, diskUsage.usage);
   }
 
   @Override
   public int hashCode() {
-    int result = tables != null ? tables.hashCode() : 0;
-    result = 31 * result + (usage != null ? usage.hashCode() : 0);
-    return result;
+    return Objects.hash(tables, usage);
   }
 
   @Override
