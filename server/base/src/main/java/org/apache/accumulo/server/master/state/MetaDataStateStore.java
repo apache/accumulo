@@ -67,7 +67,7 @@ class MetaDataStateStore implements TabletStateStore {
         Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
         assignment.server.putLocation(m);
         assignment.server.clearLastLocation(m);
-        assignment.server.putLastLocation(m);
+       // assignment.server.putLastLocation(m);
         assignment.server.clearFutureLocation(m);
         SuspendingTServer.clearSuspension(m);
         writer.addMutation(m);
@@ -136,6 +136,7 @@ class MetaDataStateStore implements TabletStateStore {
       for (TabletLocationState tls : tablets) {
         Mutation m = new Mutation(tls.extent.getMetadataEntry());
         if (tls.current != null) {
+          tls.last.putLastLocation(m);
           tls.current.clearLocation(m);
           if (logsForDeadServers != null) {
             List<Path> logs = logsForDeadServers.get(tls.current);
