@@ -311,7 +311,7 @@ public class Condition {
   public boolean equals(Object o) {
     if (this == o)
       return true;
-    if (o == null || !(o instanceof Condition))
+    if (!(o instanceof Condition))
       return false;
     Condition condition = (Condition) o;
     return Objects.equals(cf, condition.cf) && Objects.equals(cq, condition.cq)
