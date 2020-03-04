@@ -192,7 +192,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void createNamespaceWithNamespaceLengthLimit()
       throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
     StringBuilder namespaceBuilder = new StringBuilder();
@@ -200,8 +200,11 @@ public class NamespacesIT extends SharedMiniClusterBase {
       namespaceBuilder.append('a');
     }
     String namespace = namespaceBuilder.toString();
-    c.namespaceOperations().create(namespace);
-    assertTrue(!c.namespaceOperations().exists(namespace));
+    try {
+      c.namespaceOperations().create(namespace);
+    } catch (IllegalArgumentException exc) {
+      assertTrue(!c.namespaceOperations().exists(namespace));
+    }
   }
 
   @Test

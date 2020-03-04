@@ -705,8 +705,8 @@ class FateServiceHandler implements FateService.Iface {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
     if ((tableName != null) && (tableName.length() > MAX_TABLE_NAME_LEN)) {
       log.warn("Table names greater than " + MAX_TABLE_NAME_LEN
-          + " characters should be renamed to conform to a " + MAX_TABLE_NAME_LEN 
-          + " character limit. Longer table names are no longer supported and may result in " 
+          + " characters should be renamed to conform to a " + MAX_TABLE_NAME_LEN
+          + " character limit. Longer table names are no longer supported and may result in "
           + " unexpected behavior.");
     }
     return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
@@ -739,7 +739,8 @@ class FateServiceHandler implements FateService.Iface {
     String namespace = namespaceArg == null ? null : ByteBufferUtil.toString(namespaceArg);
     if ((namespace != null) && (namespace.length() > MAX_NAMESPACE_LEN)) {
       log.warn("Namespaces greater than " + MAX_NAMESPACE_LEN
-          + " characters should be renamed to conform to a " + MAX_NAMESPACE_LEN + " character limit. "
+          + " characters should be renamed to conform to a " + MAX_NAMESPACE_LEN
+          + " character limit. "
           + "Longer namespaces are no longer supported and may result in unexpected behavior.");
     }
     return _validateArgument(namespace, op, Namespaces.VALID_NAME.and(userValidator));
