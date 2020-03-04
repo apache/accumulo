@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -308,41 +309,20 @@ public class Condition {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
+    if (this == o)
       return true;
-    }
-    if (o == null || !(o instanceof Condition)) {
+    if (o == null || !(o instanceof Condition))
       return false;
-    }
-    Condition c = (Condition) o;
-    if (!(c.cf.equals(cf))) {
-      return false;
-    }
-    if (!(c.cq.equals(cq))) {
-      return false;
-    }
-    if (!(c.cv.equals(cv))) {
-      return false;
-    }
-    if (!(c.val == null ? val == null : c.val.equals(val))) {
-      return false;
-    }
-    if (!(c.ts == null ? ts == null : c.ts.equals(ts))) {
-      return false;
-    }
-    return Arrays.equals(c.iterators, iterators);
+    Condition condition = (Condition) o;
+    return Objects.equals(cf, condition.cf) && Objects.equals(cq, condition.cq)
+        && Objects.equals(cv, condition.cv) && Objects.equals(val, condition.val)
+        && Objects.equals(ts, condition.ts) && Arrays.equals(iterators, condition.iterators);
   }
 
   @Override
   public int hashCode() {
-    int result = 17;
-    result = 31 * result + cf.hashCode();
-    result = 31 * result + cq.hashCode();
-    result = 31 * result + cv.hashCode();
-    result = 31 * result + (val == null ? 0 : val.hashCode());
-    result = 31 * result + (ts == null ? 0 : ts.hashCode());
+    int result = Objects.hash(cf, cq, cv, val, ts);
     result = 31 * result + Arrays.hashCode(iterators);
     return result;
   }
-
 }
