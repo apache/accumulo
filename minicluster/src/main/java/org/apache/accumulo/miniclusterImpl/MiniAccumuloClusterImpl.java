@@ -519,9 +519,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           // sleep a little bit to let zookeeper come up before calling init, seems to work better
           long startTime = System.currentTimeMillis();
           while (true) {
-            Socket s = null;
-            try {
-              s = new Socket("localhost", config.getZooKeeperPort());
+            try (Socket s = new Socket("localhost", config.getZooKeeperPort())) {
               s.setReuseAddress(true);
               s.getOutputStream().write("ruok\n".getBytes());
               s.getOutputStream().flush();
@@ -538,10 +536,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               }
               // Don't spin absurdly fast
               sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
-            } finally {
-              if (s != null) {
-                s.close();
-              }
             }
           }
         }
