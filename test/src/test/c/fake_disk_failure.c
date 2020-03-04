@@ -25,7 +25,6 @@
 static
 void test_pause() {
   static char trickFile[1024] = "";
-  static char pid[10] = "";
   if (trickFile[0] == '\0') {
     strcpy(trickFile, getenv("TRICK_FILE"));
   }

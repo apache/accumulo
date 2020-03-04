@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -44,6 +46,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -63,7 +66,29 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     return 4 * 60;
   }
 
-  class DumpOutput extends Daemon {
+  private static final AtomicBoolean sharedLibBuilt = new AtomicBoolean(false);
+
+  @SuppressFBWarnings(value = "COMMAND_INJECTION",
+      justification = "command executed is not from user input")
+  @BeforeClass
+  public static void buildSharedLib() throws IOException, InterruptedException {
+    String root = System.getProperty("user.dir");
+    String source = root + "/src/test/c/fake_disk_failure.c";
+    String lib = root + "/target/fake_disk_failure.so";
+    String platform = System.getProperty("os.name");
+    String[] cmd;
+    if (platform.equals("Darwin")) {
+      cmd = new String[] {"gcc", "-arch", "x86_64", "-arch", "i386", "-dynamiclib", "-O3", "-fPIC",
+          source, "-o", lib};
+    } else {
+      cmd = new String[] {"gcc", "-D_GNU_SOURCE", "-Wall", "-fPIC", source, "-shared", "-o", lib,
+          "-ldl"};
+    }
+    Process gcc = new ProcessBuilder(cmd).inheritIO().start();
+    sharedLibBuilt.set(gcc.waitFor() == 0);
+  }
+
+  private static class DumpOutput extends Daemon {
 
     private final Scanner scanner;
     private final StringBuilder output;
@@ -111,7 +136,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "COMMAND_INJECTION"},
       justification = "path provided by test; command args provided by test")
   public String test(int seconds, boolean expectTserverDied) throws Exception {
-    assumeTrue(makeDiskFailureLibrary());
+    assumeTrue("Shared library did not build", sharedLibBuilt.get());
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       while (c.instanceOperations().getTabletServers().isEmpty()) {
         // wait until a tserver is running
@@ -208,24 +233,4 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       }
     }
   }
-
-  @SuppressFBWarnings(value = "COMMAND_INJECTION",
-      justification = "command executed is not from user input")
-  private boolean makeDiskFailureLibrary() throws Exception {
-    String root = System.getProperty("user.dir");
-    String source = root + "/src/test/c/fake_disk_failure.c";
-    String lib = root + "/target/fake_disk_failure.so";
-    String platform = System.getProperty("os.name");
-    String[] cmd;
-    if (platform.equals("Darwin")) {
-      cmd = new String[] {"gcc", "-arch", "x86_64", "-arch", "i386", "-dynamiclib", "-O3", "-fPIC",
-          source, "-o", lib};
-    } else {
-      cmd = new String[] {"gcc", "-D_GNU_SOURCE", "-Wall", "-fPIC", source, "-shared", "-o", lib,
-          "-ldl"};
-    }
-    Process gcc = Runtime.getRuntime().exec(cmd);
-    return gcc.waitFor() == 0;
-  }
-
 }
