@@ -378,38 +378,17 @@ public class InputTableConfig implements Writable {
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
-
     InputTableConfig that = (InputTableConfig) o;
-
-    if (autoAdjustRanges != that.autoAdjustRanges)
-      return false;
-    if (offlineScan != that.offlineScan)
-      return false;
-    if (useIsolatedScanners != that.useIsolatedScanners)
-      return false;
-    if (useLocalIterators != that.useLocalIterators)
-      return false;
-    if (!Objects.equals(columns, that.columns))
-      return false;
-    if (!Objects.equals(iterators, that.iterators))
-      return false;
-    if (!Objects.equals(ranges, that.ranges))
-      return false;
-    if (!Objects.equals(samplerConfig, that.samplerConfig))
-      return false;
-    return true;
+    return autoAdjustRanges == that.autoAdjustRanges && useLocalIterators == that.useLocalIterators
+        && useIsolatedScanners == that.useIsolatedScanners && offlineScan == that.offlineScan
+        && Objects.equals(iterators, that.iterators) && Objects.equals(ranges, that.ranges)
+        && Objects.equals(columns, that.columns)
+        && Objects.equals(samplerConfig, that.samplerConfig);
   }
 
   @Override
   public int hashCode() {
-    int result = 31 * (iterators != null ? iterators.hashCode() : 0);
-    result = 31 * result + (ranges != null ? ranges.hashCode() : 0);
-    result = 31 * result + (columns != null ? columns.hashCode() : 0);
-    result = 31 * result + (autoAdjustRanges ? 1 : 0);
-    result = 31 * result + (useLocalIterators ? 1 : 0);
-    result = 31 * result + (useIsolatedScanners ? 1 : 0);
-    result = 31 * result + (offlineScan ? 1 : 0);
-    result = 31 * result + (samplerConfig == null ? 0 : samplerConfig.hashCode());
-    return result;
+    return Objects.hash(iterators, ranges, columns, autoAdjustRanges, useLocalIterators,
+        useIsolatedScanners, offlineScan, samplerConfig);
   }
 }
