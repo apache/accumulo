@@ -22,15 +22,15 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -56,7 +56,6 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.GENERAL_RPC_TIMEOUT, "5s");
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.FALSE.toString());
-    cfg.useMiniDFS(true);
   }
 
   @Override
@@ -66,39 +65,36 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
 
   class DumpOutput extends Daemon {
 
-    private final BufferedReader rdr;
+    private final Scanner scanner;
     private final StringBuilder output;
+    private final PrintStream printer;
+    private final String printerName;
 
-    DumpOutput(InputStream is) {
-      rdr = new BufferedReader(new InputStreamReader(is));
+    DumpOutput(InputStream is, PrintStream out) {
+      scanner = new Scanner(is);
       output = new StringBuilder();
+      printer = out;
+      printerName = out == System.out ? "stdout" : out == System.err ? "stderr" : out.toString();
     }
 
     @Override
     public void run() {
-      try {
-        while (true) {
-          String line = rdr.readLine();
-          if (line == null)
-            break;
-          System.out.println(line);
-          output.append(line);
-          output.append("\n");
-        }
-      } catch (IOException ex) {
-        log.error("IOException", ex);
+      while (scanner.hasNextLine()) {
+        String line = scanner.nextLine();
+        output.append(line);
+        output.append("\n");
+        printer.printf("%s(%s):%s%n", getClass().getSimpleName(), printerName, line);
       }
     }
 
-    @Override
-    public String toString() {
+    public String getCaptured() {
       return output.toString();
     }
   }
 
   @Test
   public void testRecover() throws Exception {
-    test(10);
+    test(10, false);
   }
 
   @Test
@@ -112,15 +108,10 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     }
   }
 
-  public String test(int seconds) throws Exception {
-    return test(seconds, false);
-  }
-
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "COMMAND_INJECTION"},
       justification = "path provided by test; command args provided by test")
   public String test(int seconds, boolean expectTserverDied) throws Exception {
-    if (!makeDiskFailureLibrary())
-      return null;
+    assumeTrue(makeDiskFailureLibrary());
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       while (c.instanceOperations().getTabletServers().isEmpty()) {
         // wait until a tserver is running
@@ -148,9 +139,11 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       env.put("DYLD_FORCE_FLAT_NAMESPACE", "true");
       Process ingest = null;
       Process tserver = builder.start();
-      DumpOutput t = new DumpOutput(tserver.getInputStream());
+      DumpOutput stderrCollector = new DumpOutput(tserver.getErrorStream(), System.err);
+      DumpOutput stdoutCollector = new DumpOutput(tserver.getInputStream(), System.out);
       try {
-        t.start();
+        stderrCollector.start();
+        stdoutCollector.start();
         sleepUninterruptibly(1, TimeUnit.SECONDS);
         // don't need the regular tablet server
         cluster.killProcess(ServerType.TABLET_SERVER,
@@ -183,11 +176,12 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
         } else {
           sleepUninterruptibly(5, TimeUnit.SECONDS);
           tserver.waitFor();
-          t.join();
+          stderrCollector.join();
+          stdoutCollector.join();
           tserver = null;
         }
         // verify the process was blocked
-        String results = t.toString();
+        String results = stdoutCollector.getCaptured();
         assertTrue(results.contains("sleeping\nsleeping\nsleeping\n"));
         return results;
       } finally {
@@ -207,7 +201,8 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
           } finally {
             tserver.destroy();
             tserver.waitFor();
-            t.join();
+            stderrCollector.join();
+            stdoutCollector.join();
           }
         }
       }
