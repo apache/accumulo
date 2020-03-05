@@ -202,6 +202,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
     String namespace = namespaceBuilder.toString();
     try {
       c.namespaceOperations().create(namespace);
+      fail("IllegalArgumentException was not thrown");
     } catch (IllegalArgumentException exc) {
       assertTrue(!c.namespaceOperations().exists(namespace));
     }

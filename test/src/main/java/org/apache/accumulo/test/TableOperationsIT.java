@@ -189,7 +189,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     accumuloClient.tableOperations().delete(tableName);
   }
-  
+
   @Test
   public void createTableWithTableNameLengthLimit()
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
@@ -200,6 +200,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     String tableName = tableNameBuilder.toString();
     try {
       accumuloClient.tableOperations().create(tableName);
+      fail("IllegalArgumentException was not thrown");
     } catch (IllegalArgumentException exc) {
       assertTrue(!accumuloClient.tableOperations().exists(tableName));
     }
