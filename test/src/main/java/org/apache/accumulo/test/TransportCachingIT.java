@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,6 +51,7 @@ import org.slf4j.LoggerFactory;
 public class TransportCachingIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(TransportCachingIT.class);
   private static int ATTEMPTS = 0;
+  private static final SecureRandom random = new SecureRandom();
 
   @Test
   public void testCachedTransport() throws InterruptedException {
@@ -101,6 +103,8 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       }
 
       ThriftTransportPool pool = ThriftTransportPool.getInstance();
+      pool.setRandomIndex(random.nextInt(servers.size()));
+
       TTransport first = null;
       while (first == null) {
         try {

@@ -19,17 +19,8 @@
 package org.apache.accumulo.core.clientImpl;
 
 import java.security.SecureRandom;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -57,6 +48,12 @@ public class ThriftTransportPool {
 
   private static final SecureRandom random = new SecureRandom();
   private long killTime = 1000 * 3;
+  private Integer randomIndex = null;
+
+  @VisibleForTesting
+  public void setRandomIndex(int randomIndex) {
+    this.randomIndex = randomIndex;
+  }
 
   private static class CachedConnections {
     Deque<CachedConnection> unreserved = new ArrayDeque<>(); // stack - LIFO
@@ -693,8 +690,12 @@ public class ThriftTransportPool {
     ConnectionPool pool = getConnectionPool();
     int retryCount = 0;
     while (servers.size() > 0 && retryCount < 10) {
+      int index;
+      if (randomIndex == null)
+        index = random.nextInt(servers.size());
+      else
+        index = randomIndex;
 
-      int index = random.nextInt(servers.size());
       ThriftTransportKey ttk = servers.get(index);
 
       if (preferCachedConnection) {
