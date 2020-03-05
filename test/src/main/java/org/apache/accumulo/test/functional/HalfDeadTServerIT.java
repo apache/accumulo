@@ -51,10 +51,27 @@ import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+/**
+ * This test verifies tserver behavior when the node experiences certain failure states that cause
+ * it to be unresponsive to network I/O and/or disk access.
+ *
+ * <p>
+ * This failure state is simulated in a tserver by running that tserver with a shared library that
+ * hooks the read/write system calls. When the shared library sees a specific trigger file, it
+ * pauses the system calls and prints "sleeping", until that file is deleted, after which it proxies
+ * the system call to the real system implementation.
+ *
+ * <p>
+ * In response to failures of the type this test simulates, the tserver should recover if the system
+ * call is stalled for less than the ZooKeeper timeout. Otherwise, it should lose its lock in
+ * ZooKeeper and terminate itself.
+ */
 public class HalfDeadTServerIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    // configure only one tserver from mini; mini won't less us configure 0, so instead, we will
+    // start only 1, and kill it to start our own in the desired simulation environment
     cfg.setNumTservers(1);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.GENERAL_RPC_TIMEOUT, "5s");
@@ -84,36 +101,39 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       cmd = new String[] {"gcc", "-D_GNU_SOURCE", "-Wall", "-fPIC", source, "-shared", "-o", lib,
           "-ldl"};
     }
+    // inherit IO to link see the command's output on the current console
     Process gcc = new ProcessBuilder(cmd).inheritIO().start();
+    // wait for and record whether the compilation of the native library succeeded
     sharedLibBuilt.set(gcc.waitFor() == 0);
   }
 
+  // a simple class to capture a launched process' output (and repeat it back)
   private static class DumpOutput extends Daemon {
 
-    private final Scanner scanner;
-    private final StringBuilder output;
+    private final Scanner lineScanner;
+    private final StringBuilder capturedOutput;
     private final PrintStream printer;
     private final String printerName;
 
-    DumpOutput(InputStream is, PrintStream out) {
-      scanner = new Scanner(is);
-      output = new StringBuilder();
+    DumpOutput(InputStream is, PrintStream out, String name) {
+      lineScanner = new Scanner(is);
+      capturedOutput = new StringBuilder();
       printer = out;
-      printerName = out == System.out ? "stdout" : out == System.err ? "stderr" : out.toString();
+      printerName = name;
     }
 
     @Override
     public void run() {
-      while (scanner.hasNextLine()) {
-        String line = scanner.nextLine();
-        output.append(line);
-        output.append("\n");
+      while (lineScanner.hasNextLine()) {
+        String line = lineScanner.nextLine();
+        capturedOutput.append(line);
+        capturedOutput.append("\n");
         printer.printf("%s(%s):%s%n", getClass().getSimpleName(), printerName, line);
       }
     }
 
     public String getCaptured() {
-      return output.toString();
+      return capturedOutput.toString();
     }
   }
 
@@ -137,9 +157,9 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       justification = "path provided by test; command args provided by test")
   public String test(int seconds, boolean expectTserverDied) throws Exception {
     assumeTrue("Shared library did not build", sharedLibBuilt.get());
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      while (c.instanceOperations().getTabletServers().isEmpty()) {
-        // wait until a tserver is running
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      while (client.instanceOperations().getTabletServers().isEmpty()) {
+        // wait until the tserver that we need to kill is running
         Thread.sleep(50);
       }
 
@@ -164,8 +184,8 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       env.put("DYLD_FORCE_FLAT_NAMESPACE", "true");
       Process ingest = null;
       Process tserver = builder.start();
-      DumpOutput stderrCollector = new DumpOutput(tserver.getErrorStream(), System.err);
-      DumpOutput stdoutCollector = new DumpOutput(tserver.getInputStream(), System.out);
+      DumpOutput stderrCollector = new DumpOutput(tserver.getErrorStream(), System.err, "stderr");
+      DumpOutput stdoutCollector = new DumpOutput(tserver.getInputStream(), System.out, "stdout");
       try {
         stderrCollector.start();
         stdoutCollector.start();
@@ -174,8 +194,8 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
         cluster.killProcess(ServerType.TABLET_SERVER,
             cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
         sleepUninterruptibly(1, TimeUnit.SECONDS);
-        c.tableOperations().create("test_ingest");
-        assertEquals(1, c.instanceOperations().getTabletServers().size());
+        client.tableOperations().create("test_ingest");
+        assertEquals(1, client.instanceOperations().getTabletServers().size());
         int rows = 100 * 1000;
         ingest =
             cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--rows", rows + "")
@@ -197,7 +217,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
           assertEquals(0, ingest.waitFor());
           VerifyIngest.VerifyParams params = new VerifyIngest.VerifyParams(getClientProperties());
           params.rows = rows;
-          VerifyIngest.verifyIngest(c, params);
+          VerifyIngest.verifyIngest(client, params);
         } else {
           sleepUninterruptibly(5, TimeUnit.SECONDS);
           tserver.waitFor();
