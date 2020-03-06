@@ -68,16 +68,14 @@ public class FateMetricsTest {
 
   private final MetricsSystem ms = DefaultMetricsSystem.initialize("Accumulo");
 
-  private static ZooReaderWriter zooReaderWriter;
-
   @BeforeClass
   public static void setupZk() {
     // using default zookeeper port - we don't have a full configuration
     szk = new ZooKeeperTestingServer();
     szk.initPaths(MOCK_ZK_ROOT);
 
-    // populate ZooReaderWriter cache
-    zooReaderWriter = ZooReaderWriter.getInstance(szk.getConn(), 30_000, A_FAKE_SECRET);
+    // populate ZooReaderWriter cache for future ZooReaderWriter.getInstance() calls
+    ZooReaderWriter.getInstance(szk.getConn(), 30_000, A_FAKE_SECRET);
   }
 
   @AfterClass
