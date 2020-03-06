@@ -388,7 +388,7 @@ public class VolumeManagerImpl implements VolumeManager {
   public Path matchingFileSystem(Path source, Set<String> options) {
     try {
       if (ViewFSUtils.isViewFS(source, hadoopConf)) {
-        return ViewFSUtils.matchingFileSystem(source, options.toArray(new String[0]), hadoopConf);
+        return ViewFSUtils.matchingFileSystem(source, options, hadoopConf);
       }
     } catch (IOException e) {
       throw new RuntimeException(e);

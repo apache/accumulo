@@ -23,6 +23,10 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -30,10 +34,12 @@ import org.junit.Test;
 
 public class ViewFSUtilsTest {
 
-  private String[] shuffle(String... inputs) {
-    // code below will modify array
-    Collections.shuffle(Arrays.asList(inputs));
-    return inputs;
+  private Set<String> shuffle(String... inputs) {
+    List<String> inputsArray = Arrays.asList(inputs);
+    // shuffle will modify array, because ArrayList implements RandomAccess
+    Collections.shuffle(inputsArray);
+    // preserve the shuffled array as an insertion-ordered set
+    return inputsArray.stream().collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
   @Test
@@ -45,11 +51,12 @@ public class ViewFSUtilsTest {
       conf.set("fs.viewfs.mounttable.default.link./ns2", "file:///tmp/ns2");
       conf.set("fs.viewfs.mounttable.default.link./ns22", "file:///tmp/ns22");
 
-      String[] tablesDirs1 =
+      Set<String> tablesDirs1 =
           shuffle("viewfs:///ns1/accumulo/tables", "viewfs:///ns2/accumulo/tables",
               "viewfs:///ns22/accumulo/tables", "viewfs:///ns/accumulo/tables");
-      String[] tablesDirs2 = shuffle("viewfs:/ns1/accumulo/tables", "viewfs:/ns2/accumulo/tables",
-          "viewfs:/ns22/accumulo/tables", "viewfs:/ns/accumulo/tables");
+      Set<String> tablesDirs2 =
+          shuffle("viewfs:/ns1/accumulo/tables", "viewfs:/ns2/accumulo/tables",
+              "viewfs:/ns22/accumulo/tables", "viewfs:/ns/accumulo/tables");
 
       for (String ns : Arrays.asList("ns1", "ns2", "ns22", "ns")) {
         Path match = ViewFSUtils.matchingFileSystem(new Path("viewfs:/" + ns + "/bulk_import_01"),
@@ -82,13 +89,14 @@ public class ViewFSUtilsTest {
       conf.set("fs.viewfs.mounttable.default.link./ns1/C", "file:///tmp/3");
       conf.set("fs.viewfs.mounttable.default.link./ns2", "file:///tmp/3");
 
-      String[] tablesDirs1 =
+      Set<String> tablesDirs1 =
           shuffle("viewfs:///ns1/accumulo/tables", "viewfs:///ns1/A/accumulo/tables",
               "viewfs:///ns1/AA/accumulo/tables", "viewfs:///ns1/C/accumulo/tables",
               "viewfs:///ns2/accumulo/tables", "viewfs:///accumulo/tables");
-      String[] tablesDirs2 = shuffle("viewfs:/ns1/accumulo/tables", "viewfs:/ns1/A/accumulo/tables",
-          "viewfs:/ns1/AA/accumulo/tables", "viewfs:/ns1/C/accumulo/tables",
-          "viewfs:/ns2/accumulo/tables", "viewfs:/accumulo/tables");
+      Set<String> tablesDirs2 =
+          shuffle("viewfs:/ns1/accumulo/tables", "viewfs:/ns1/A/accumulo/tables",
+              "viewfs:/ns1/AA/accumulo/tables", "viewfs:/ns1/C/accumulo/tables",
+              "viewfs:/ns2/accumulo/tables", "viewfs:/accumulo/tables");
 
       for (String ns : Arrays.asList("", "/ns1", "/ns1/A", "/ns1/AA", "/ns1/C", "/ns2")) {
         Path match = ViewFSUtils.matchingFileSystem(new Path("viewfs:" + ns + "/bulk_import_01"),

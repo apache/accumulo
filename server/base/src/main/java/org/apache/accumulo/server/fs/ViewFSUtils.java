@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.fs;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -45,7 +46,7 @@ public class ViewFSUtils {
     return fs.getClass().getName().equals(VIEWFS_CLASSNAME);
   }
 
-  public static Path matchingFileSystem(Path source, String[] options, Configuration conf)
+  public static Path matchingFileSystem(Path source, Set<String> options, Configuration conf)
       throws IOException {
 
     if (!isViewFS(source, conf))
