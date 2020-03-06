@@ -62,9 +62,9 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       long rpcTimeout =
           ConfigurationTypeHelper.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
-      List<ThriftTransportKey> servers = Lists.transform(tservers,
-          serverStr -> new ThriftTransportKey(HostAndPort.fromString(serverStr), rpcTimeout,
-              context));
+      List<ThriftTransportKey> servers = tservers.stream().map(serverStr -> {
+        return new ThriftTransportKey(HostAndPort.fromString(serverStr), rpcTimeout, context);
+      }).collect(Collectors.toList());
 
       ThriftTransportPool pool = ThriftTransportPool.getInstance();
       TTransport first = null;
