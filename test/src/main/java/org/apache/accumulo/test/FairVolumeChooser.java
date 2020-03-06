@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.server.fs.VolumeChooser;
@@ -32,25 +33,26 @@ public class FairVolumeChooser implements VolumeChooser {
       new ConcurrentHashMap<>();
 
   @Override
-  public String choose(VolumeChooserEnvironment env, String[] options) {
+  public String choose(VolumeChooserEnvironment env, Set<String> options) {
     int currentChoice;
-    Integer lastChoice = optionLengthToLastChoice.get(options.length);
+    String[] optionsArray = options.toArray(new String[0]);
+    Integer lastChoice = optionLengthToLastChoice.get(optionsArray.length);
     if (lastChoice == null) {
       currentChoice = 0;
     } else {
       currentChoice = lastChoice + 1;
-      if (currentChoice >= options.length) {
+      if (currentChoice >= optionsArray.length) {
         currentChoice = 0;
       }
     }
 
-    optionLengthToLastChoice.put(options.length, currentChoice);
+    optionLengthToLastChoice.put(optionsArray.length, currentChoice);
 
-    return options[currentChoice];
+    return optionsArray[currentChoice];
   }
 
   @Override
-  public String[] choosable(VolumeChooserEnvironment env, String[] options) {
+  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
     return options;
   }
 }

@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -38,7 +39,6 @@ import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
@@ -385,10 +385,10 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public Path matchingFileSystem(Path source, String[] options) {
+  public Path matchingFileSystem(Path source, Set<String> options) {
     try {
       if (ViewFSUtils.isViewFS(source, hadoopConf)) {
-        return ViewFSUtils.matchingFileSystem(source, options, hadoopConf);
+        return ViewFSUtils.matchingFileSystem(source, options.toArray(new String[0]), hadoopConf);
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -413,11 +413,10 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public String choose(VolumeChooserEnvironment env, String[] options) {
+  public String choose(VolumeChooserEnvironment env, Set<String> options) {
     final String choice;
     choice = chooser.choose(env, options);
-
-    if (!(ArrayUtils.contains(options, choice))) {
+    if (!options.contains(choice)) {
       String msg = "The configured volume chooser, '" + chooser.getClass()
           + "', or one of its delegates returned a volume not in the set of options provided";
       throw new VolumeChooserException(msg);
@@ -427,11 +426,11 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public String[] choosable(VolumeChooserEnvironment env, String[] options) {
-    final String[] choices = chooser.choosable(env, options);
+  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
+    final Set<String> choices = chooser.choosable(env, options);
 
     for (String choice : choices) {
-      if (!(ArrayUtils.contains(options, choice))) {
+      if (!options.contains(choice)) {
         String msg = "The configured volume chooser, '" + chooser.getClass()
             + "', or one of its delegates returned a volume not in the set of options provided";
         throw new VolumeChooserException(msg);

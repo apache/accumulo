@@ -23,6 +23,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -80,33 +81,35 @@ public class ServerConstants {
       Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, DATA_VERSION);
   public static final Set<Integer> NEEDS_UPGRADE = Sets.difference(CAN_RUN, Set.of(DATA_VERSION));
 
-  private static String[] baseUris = null;
+  private static Set<String> baseUris = null;
 
   private static List<Pair<Path,Path>> replacementsList = null;
 
-  public static String[] getBaseUris(ServerContext context) {
+  public static Set<String> getBaseUris(ServerContext context) {
     return getBaseUris(context.getConfiguration(), context.getHadoopConf());
   }
 
   // these are functions to delay loading the Accumulo configuration unless we must
-  public static synchronized String[] getBaseUris(AccumuloConfiguration conf,
+  public static synchronized Set<String> getBaseUris(AccumuloConfiguration conf,
       Configuration hadoopConf) {
     if (baseUris == null) {
-      baseUris = checkBaseUris(conf, hadoopConf,
-          VolumeConfiguration.getVolumeUris(conf, hadoopConf), false);
+      baseUris = Collections.unmodifiableSet(checkBaseUris(conf, hadoopConf,
+          VolumeConfiguration.getVolumeUris(conf, hadoopConf), false));
     }
 
     return baseUris;
   }
 
-  public static String[] checkBaseUris(AccumuloConfiguration conf, Configuration hadoopConf,
-      String[] configuredBaseDirs, boolean ignore) {
+  public static Set<String> checkBaseUris(AccumuloConfiguration conf, Configuration hadoopConf,
+      Set<String> configuredBaseDirs, boolean ignore) {
     // all base dirs must have same instance id and data version, any dirs that have neither should
     // be ignored
     String firstDir = null;
     String firstIid = null;
     Integer firstVersion = null;
-    ArrayList<String> baseDirsList = new ArrayList<>();
+    // preserve order from configuration (to match user expectations a bit when volumes get sent to
+    // user-implemented VolumeChoosers)
+    LinkedHashSet<String> baseDirsList = new LinkedHashSet<>();
     for (String baseDir : configuredBaseDirs) {
       Path path = new Path(baseDir, INSTANCE_ID_DIR);
       String currentIid;
@@ -145,18 +148,18 @@ public class ServerConstants {
       throw new RuntimeException("None of the configured paths are initialized.");
     }
 
-    return baseDirsList.toArray(new String[baseDirsList.size()]);
+    return baseDirsList;
   }
 
   public static final String TABLE_DIR = "tables";
   public static final String RECOVERY_DIR = "recovery";
   public static final String WAL_DIR = "wal";
 
-  public static String[] getTablesDirs(ServerContext context) {
+  public static Set<String> getTablesDirs(ServerContext context) {
     return VolumeConfiguration.prefix(getBaseUris(context), TABLE_DIR);
   }
 
-  public static String[] getRecoveryDirs(ServerContext context) {
+  public static Set<String> getRecoveryDirs(ServerContext context) {
     return VolumeConfiguration.prefix(getBaseUris(context), RECOVERY_DIR);
   }
 

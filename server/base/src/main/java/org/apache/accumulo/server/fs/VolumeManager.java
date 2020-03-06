@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.volume.Volume;
@@ -130,7 +131,7 @@ public interface VolumeManager {
   Volume getVolumeByPath(Path path);
 
   // return the item in options that is in the same volume as source
-  Path matchingFileSystem(Path source, String[] options);
+  Path matchingFileSystem(Path source, Set<String> options);
 
   // forward to the appropriate FileSystem object
   FileStatus[] listStatus(Path path) throws IOException;
@@ -164,10 +165,10 @@ public interface VolumeManager {
   ContentSummary getContentSummary(Path dir) throws IOException;
 
   // decide on which of the given locations to create a new file
-  String choose(VolumeChooserEnvironment env, String[] options);
+  String choose(VolumeChooserEnvironment env, Set<String> options);
 
   // return all valid locations to create a new file
-  String[] choosable(VolumeChooserEnvironment env, String[] options);
+  Set<String> choosable(VolumeChooserEnvironment env, Set<String> options);
 
   // are sync and flush supported for the given path
   boolean canSyncAndFlush(Path path);

@@ -20,18 +20,20 @@ package org.apache.accumulo.server.fs;
 
 import java.security.SecureRandom;
 import java.util.Random;
+import java.util.Set;
 
 public class RandomVolumeChooser implements VolumeChooser {
   protected final Random random = new SecureRandom();
 
   @Override
-  public String choose(VolumeChooserEnvironment env, String[] options)
+  public String choose(VolumeChooserEnvironment env, Set<String> options)
       throws VolumeChooserException {
-    return options[random.nextInt(options.length)];
+    String[] optionsArray = options.toArray(new String[0]);
+    return optionsArray[random.nextInt(optionsArray.length)];
   }
 
   @Override
-  public String[] choosable(VolumeChooserEnvironment env, String[] options)
+  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options)
       throws VolumeChooserException {
     return options;
   }

@@ -23,10 +23,10 @@ import static org.easymock.EasyMock.createStrictMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.util.Arrays;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -47,7 +47,7 @@ public class PreferredVolumeChooserTest {
     return "volume.preferred." + scope.name().toLowerCase();
   }
 
-  private static final String[] ALL_OPTIONS = {"1", "2", "3"};
+  private static final Set<String> ALL_OPTIONS = Set.of("1", "2", "3");
 
   private ServiceEnvironment serviceEnv;
   private Configuration tableConf;
@@ -74,7 +74,7 @@ public class PreferredVolumeChooserTest {
     verify(serviceEnv, tableConf, systemConf);
   }
 
-  private String[] chooseForTable() {
+  private Set<String> chooseForTable() {
     VolumeChooserEnvironment env =
         new VolumeChooserEnvironmentImpl(TableId.of("testTable"), null, null) {
           @Override
@@ -85,7 +85,7 @@ public class PreferredVolumeChooserTest {
     return chooser.getPreferredVolumes(env, ALL_OPTIONS);
   }
 
-  private String[] choose(ChooserScope scope) {
+  private Set<String> choose(ChooserScope scope) {
     VolumeChooserEnvironment env = new VolumeChooserEnvironmentImpl(scope, null) {
       @Override
       public ServiceEnvironment getServiceEnv() {
@@ -99,10 +99,7 @@ public class PreferredVolumeChooserTest {
   public void testTableScopeUsingTableProperty() {
     expect(tableConf.getTableCustom(TABLE_CUSTOM_SUFFIX)).andReturn("2,1");
     replay(serviceEnv, tableConf, systemConf);
-
-    String[] volumes = chooseForTable();
-    Arrays.sort(volumes);
-    assertArrayEquals(new String[] {"1", "2"}, volumes);
+    assertEquals(Set.of("1", "2"), chooseForTable());
   }
 
   @Test
@@ -111,10 +108,7 @@ public class PreferredVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn("3,2")
         .once();
     replay(serviceEnv, tableConf, systemConf);
-
-    String[] volumes = chooseForTable();
-    Arrays.sort(volumes);
-    assertArrayEquals(new String[] {"2", "3"}, volumes);
+    assertEquals(Set.of("2", "3"), chooseForTable());
   }
 
   @Test
@@ -156,10 +150,7 @@ public class PreferredVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.LOGGER))).andReturn("2,1")
         .once();
     replay(serviceEnv, tableConf, systemConf);
-
-    String[] volumes = choose(ChooserScope.LOGGER);
-    Arrays.sort(volumes);
-    assertArrayEquals(new String[] {"1", "2"}, volumes);
+    assertEquals(Set.of("1", "2"), choose(ChooserScope.LOGGER));
   }
 
   @Test
@@ -169,10 +160,7 @@ public class PreferredVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn("3,2")
         .once();
     replay(serviceEnv, tableConf, systemConf);
-
-    String[] volumes = choose(ChooserScope.LOGGER);
-    Arrays.sort(volumes);
-    assertArrayEquals(new String[] {"2", "3"}, volumes);
+    assertEquals(Set.of("2", "3"), choose(ChooserScope.LOGGER));
   }
 
   @Test
@@ -217,10 +205,7 @@ public class PreferredVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.INIT))).andReturn("2,1")
         .once();
     replay(serviceEnv, tableConf, systemConf);
-
-    String[] volumes = choose(ChooserScope.INIT);
-    Arrays.sort(volumes);
-    assertArrayEquals(new String[] {"1", "2"}, volumes);
+    assertEquals(Set.of("1", "2"), choose(ChooserScope.INIT));
   }
 
   @Test
@@ -229,10 +214,7 @@ public class PreferredVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn("3,2")
         .once();
     replay(serviceEnv, tableConf, systemConf);
-
-    String[] volumes = choose(ChooserScope.INIT);
-    Arrays.sort(volumes);
-    assertArrayEquals(new String[] {"2", "3"}, volumes);
+    assertEquals(Set.of("2", "3"), choose(ChooserScope.INIT));
   }
 
 }

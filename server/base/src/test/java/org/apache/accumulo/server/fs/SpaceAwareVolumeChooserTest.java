@@ -21,6 +21,7 @@ package org.apache.accumulo.server.fs;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
@@ -50,7 +51,7 @@ public class SpaceAwareVolumeChooserTest {
   String volumeTwo = "hdfs://nn2:8020/applications/accumulo/tables";
 
   // Different volumes with different paths
-  String[] tableDirs = {volumeOne, volumeTwo};
+  Set<String> tableDirs = Set.of(volumeOne, volumeTwo);
 
   int vol1Count = 0;
   int vol2Count = 0;

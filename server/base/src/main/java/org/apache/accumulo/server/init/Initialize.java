@@ -361,7 +361,7 @@ public class Initialize implements KeywordExecutable {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
-    String[] configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
+    Set<String> configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
     String instanceName = instanceNamePath.substring(getInstanceNamePrefix().length());
     ServerContext serverContext = new ServerContext(siteConfig, instanceName, uuid.toString());
     VolumeChooserEnvironment chooserEnv =
@@ -483,7 +483,7 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
-  private static void initDirs(VolumeManager fs, UUID uuid, String[] baseDirs, boolean print)
+  private static void initDirs(VolumeManager fs, UUID uuid, Set<String> baseDirs, boolean print)
       throws IOException {
     for (String baseDir : baseDirs) {
       fs.mkdirs(new Path(new Path(baseDir, ServerConstants.VERSION_DIR),
@@ -892,14 +892,13 @@ public class Initialize implements KeywordExecutable {
   private static void addVolumes(VolumeManager fs, SiteConfiguration siteConfig,
       Configuration hadoopConf) throws IOException {
 
-    String[] volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
+    Set<String> volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
 
-    HashSet<String> initializedDirs = new HashSet<>();
-    initializedDirs.addAll(
-        Arrays.asList(ServerConstants.checkBaseUris(siteConfig, hadoopConf, volumeURIs, true)));
+    Set<String> initializedDirs =
+        ServerConstants.checkBaseUris(siteConfig, hadoopConf, volumeURIs, true);
 
     HashSet<String> uinitializedDirs = new HashSet<>();
-    uinitializedDirs.addAll(Arrays.asList(volumeURIs));
+    uinitializedDirs.addAll(volumeURIs);
     uinitializedDirs.removeAll(initializedDirs);
 
     Path aBasePath = new Path(initializedDirs.iterator().next());
@@ -925,7 +924,7 @@ public class Initialize implements KeywordExecutable {
           + ServerUtil.getAccumuloPersistentVersion(fs));
     }
 
-    initDirs(fs, uuid, uinitializedDirs.toArray(new String[uinitializedDirs.size()]), true);
+    initDirs(fs, uuid, uinitializedDirs, true);
   }
 
   static class Opts extends Help {
