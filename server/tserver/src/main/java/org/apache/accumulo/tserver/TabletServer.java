@@ -3006,11 +3006,11 @@ public class TabletServer extends AbstractServer {
   private void checkWalCanSync(ServerContext context) {
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.ChooserScope.LOGGER, context);
-    String[] prefixes;
+    Set<String> prefixes;
     var options = ServerConstants.getBaseUris(context);
     try {
       prefixes = fs.choosable(chooserEnv, options);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       log.warn("Unable to determine if WAL directories ({}) support sync or flush. "
           + "Data loss may occur.", Arrays.asList(options), e);
       return;

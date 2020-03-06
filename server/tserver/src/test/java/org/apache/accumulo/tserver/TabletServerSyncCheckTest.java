@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.volume.Volume;
@@ -133,7 +134,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public Path matchingFileSystem(Path source, String[] options) {
+    public Path matchingFileSystem(Path source, Set<String> options) {
       return null;
     }
 
@@ -183,7 +184,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public String choose(VolumeChooserEnvironment env, String[] options) {
+    public String choose(VolumeChooserEnvironment env, Set<String> options) {
       return null;
     }
 

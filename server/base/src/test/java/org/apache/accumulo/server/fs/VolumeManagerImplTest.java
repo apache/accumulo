@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -67,13 +68,13 @@ public class VolumeManagerImplTest {
 
   public static class WrongVolumeChooser implements VolumeChooser {
     @Override
-    public String choose(VolumeChooserEnvironment env, String[] options) {
+    public String choose(VolumeChooserEnvironment env, Set<String> options) {
       return "file://totally-not-given/";
     }
 
     @Override
-    public String[] choosable(VolumeChooserEnvironment env, String[] options) {
-      return new String[] {"file://totally-not-given"};
+    public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
+      return Set.of("file://totally-not-given");
     }
   }
 
@@ -83,16 +84,16 @@ public class VolumeManagerImplTest {
   // Expected to throw a runtime exception when the WrongVolumeChooser picks an invalid volume.
   @Test
   public void chooseFromOptions() throws Exception {
-    List<String> volumes = Arrays.asList("file://one/", "file://two/", "file://three/");
+    Set<String> volumes = Set.of("file://one/", "file://two/", "file://three/");
     ConfigurationCopy conf = new ConfigurationCopy();
-    conf.set(INSTANCE_DFS_URI, volumes.get(0));
+    conf.set(INSTANCE_DFS_URI, volumes.iterator().next());
     conf.set(Property.INSTANCE_VOLUMES, String.join(",", volumes));
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     thrown.expect(RuntimeException.class);
     VolumeManager vm = VolumeManagerImpl.get(conf, hadoopConf);
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(TableId.of("sometable"), null, null);
-    String choice = vm.choose(chooserEnv, volumes.toArray(new String[0]));
+    String choice = vm.choose(chooserEnv, volumes);
     assertTrue("shouldn't see invalid options from misbehaving chooser.", volumes.contains(choice));
   }
 }

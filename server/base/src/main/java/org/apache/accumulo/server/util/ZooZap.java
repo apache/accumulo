@@ -75,7 +75,7 @@ public class ZooZap {
       SecurityUtil.serverLogin(siteConf);
     }
 
-    String volDir = VolumeConfiguration.getVolumeUris(siteConf, hadoopConf)[0];
+    String volDir = VolumeConfiguration.getVolumeUris(siteConf, hadoopConf).iterator().next();
     Path instanceDir = new Path(volDir, "instance_id");
     String iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, siteConf, hadoopConf);
     ZooReaderWriter zoo = new ZooReaderWriter(siteConf);

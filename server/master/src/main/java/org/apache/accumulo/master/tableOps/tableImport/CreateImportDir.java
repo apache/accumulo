@@ -19,7 +19,7 @@
 package org.apache.accumulo.master.tableOps.tableImport;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.Repo;
@@ -47,10 +47,9 @@ class CreateImportDir extends MasterRepo {
     UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
 
     Path exportDir = new Path(tableInfo.exportDir);
-    String[] tableDirs = ServerConstants.getTablesDirs(master.getContext());
+    Set<String> tableDirs = ServerConstants.getTablesDirs(master.getContext());
 
-    log.info("Looking for matching filesystem for " + exportDir + " from options "
-        + Arrays.toString(tableDirs));
+    log.info("Looking for matching filesystem for " + exportDir + " from options " + tableDirs);
     Path base = master.getFileSystem().matchingFileSystem(exportDir, tableDirs);
     if (base == null) {
       throw new IOException(tableInfo.exportDir + " is not in a volume configured for Accumulo");
