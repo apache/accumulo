@@ -26,7 +26,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.metrics.MetricsFileTailer;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +50,12 @@ public class GcMetricsIT extends AccumuloClusterHarness {
       "AccGcWalErrors", "AccGcWalFinished", "AccGcWalInUse", "AccGcWalStarted"};
 
   @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setProperty(Property.GENERAL_LEGACY_METRICS, "false");
+    cfg.setProperty(Property.GC_METRICS_ENABLED, "true");
+  }
+
+  @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
   }
@@ -55,8 +63,14 @@ public class GcMetricsIT extends AccumuloClusterHarness {
   @Test
   public void gcMetricsPublished() {
 
-    if (!cluster.getSiteConfiguration().getBoolean(Property.GC_METRICS_ENABLED)) {
-      log.info("gc metrics are disabled - set GC_METRICS_ENABLED to run test");
+    boolean gcMetricsEnabled =
+        cluster.getSiteConfiguration().getBoolean(Property.GC_METRICS_ENABLED);
+    boolean useLegacyMetrics =
+        cluster.getSiteConfiguration().getBoolean(Property.GENERAL_LEGACY_METRICS);
+
+    if (!gcMetricsEnabled || useLegacyMetrics) {
+      log.info("gc metrics are disabled with GC_METRICS_ENABLED={}, GENERAL_LEGACY_METRICS={}",
+          gcMetricsEnabled, useLegacyMetrics);
       return;
     }
 

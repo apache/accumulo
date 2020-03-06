@@ -21,8 +21,8 @@ import static java.util.Objects.requireNonNull;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.master.metrics.fate.FateMetrics;
-import org.apache.accumulo.master.metrics.fate.Metrics2FateMetrics;
+import org.apache.accumulo.master.metrics.fate.FateHadoop2Metrics;
+import org.apache.accumulo.master.metrics.fate.FateLegacyJMXMetrics;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.hadoop.metrics2.MetricsSystem;
@@ -109,12 +109,18 @@ public class MasterMetricsFactory {
   }
 
   private Metrics createFateMetrics() {
+
     String id = master.getInstance().getInstanceID();
+
     if (useOldMetrics) {
-      return new FateMetrics(id, fateMinUpdateInterval);
+      if (enableFateMetrics) {
+        log.warn(
+            "Enhanced FATE metrics (Transaction and OpType counts) unavailable when using legacy metrics.");
+      }
+      return new FateLegacyJMXMetrics(id, fateMinUpdateInterval);
     }
 
-    return new Metrics2FateMetrics(id, metricsSystem, fateMinUpdateInterval);
+    return new FateHadoop2Metrics(id, metricsSystem, fateMinUpdateInterval);
   }
 
 }

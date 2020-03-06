@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.master.metrics.fate;
 
-public interface FateMetricsMBean {
+public interface FateLegacyJMXMetricsMBean {
 
-  public long getCurrentFateOps();
+  long getCurrentFateOps();
 
-  public long getZkFateChildOpsTotal();
+  long getZkFateChildOpsTotal();
 
-  public long getZKConnectionErrorsTotal();
+  long getZKConnectionErrorsTotal();
 
 }

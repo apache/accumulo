@@ -22,6 +22,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReaderWriter {
   private static final String SCHEME = "digest";
   private static final String USER = "accumulo";
@@ -41,4 +43,25 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
     return instance;
   }
 
+  /**
+   * This method exposes the zookeeper connection parameters when instantiating a cached singleton
+   * ZooReaderWriter instance for later use in testing. The instance will only be created once,
+   * otherwise the previously cached instance is returned.
+   *
+   * @param zooConnString
+   *          a zookeeper connection string of host:port pair of server(s)
+   * @param timeInMillis
+   *          the zooKeeper connection timeout
+   * @param secret
+   *          the Accumulo instance secret
+   * @return a ZooReaderWriter instance either created or previously cached.
+   */
+  @VisibleForTesting
+  public static synchronized ZooReaderWriter getInstance(String zooConnString, int timeInMillis,
+      String secret) {
+    if (instance == null) {
+      instance = new ZooReaderWriter(zooConnString, timeInMillis, secret);
+    }
+    return instance;
+  }
 }
