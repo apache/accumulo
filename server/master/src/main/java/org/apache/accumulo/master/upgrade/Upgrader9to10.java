@@ -54,6 +54,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -69,7 +70,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -154,7 +154,7 @@ public class Upgrader9to10 implements Upgrader {
       logs.forEach(tabletMutator::putWal);
 
       Map<String,DataFileValue> files = cleanupRootTabletFiles(ctx.getVolumeManager(), dir);
-      files.forEach((path, dfv) -> tabletMutator.putFile(new FileRef(path), dfv));
+      files.forEach((path, dfv) -> tabletMutator.putFile(new TabletFile(new Path(path)), dfv));
 
       tabletMutator.putTime(computeRootTabletTime(ctx, files.keySet()));
 

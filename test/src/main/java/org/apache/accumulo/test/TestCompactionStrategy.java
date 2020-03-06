@@ -20,7 +20,8 @@ package org.apache.accumulo.test;
 
 import java.util.Map;
 
-import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
@@ -46,10 +47,10 @@ public class TestCompactionStrategy extends CompactionStrategy {
     if (shouldCompact)
       return true;
 
-    for (FileRef fref : request.getFiles().keySet()) {
-      if (fref.path().getName().startsWith(inputPrefix))
+    for (TabletFile file : request.getFiles().keySet()) {
+      if (file.getFileName().startsWith(inputPrefix))
         return true;
-      if (fref.path().getName().startsWith(dropPrefix))
+      if (file.getFileName().startsWith(dropPrefix))
         return true;
     }
 
@@ -60,11 +61,11 @@ public class TestCompactionStrategy extends CompactionStrategy {
   public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
     CompactionPlan plan = new CompactionPlan();
 
-    for (FileRef fref : request.getFiles().keySet()) {
-      if (fref.path().getName().startsWith(dropPrefix)) {
-        plan.deleteFiles.add(fref);
-      } else if (fref.path().getName().startsWith(inputPrefix)) {
-        plan.inputFiles.add(fref);
+    for (StoredTabletFile file : request.getFiles().keySet()) {
+      if (file.getFileName().startsWith(dropPrefix)) {
+        plan.deleteFiles.add(file);
+      } else if (file.getFileName().startsWith(inputPrefix)) {
+        plan.inputFiles.add(file);
       }
     }
 

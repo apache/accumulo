@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.Objects;
 import java.util.SortedSet;
 
 public class DiskUsage {
@@ -47,16 +48,12 @@ public class DiskUsage {
 
     DiskUsage diskUsage = (DiskUsage) o;
 
-    if (tables != null ? !tables.equals(diskUsage.tables) : diskUsage.tables != null)
-      return false;
-    return usage != null ? usage.equals(diskUsage.usage) : diskUsage.usage == null;
+    return Objects.equals(tables, diskUsage.tables) && Objects.equals(usage, diskUsage.usage);
   }
 
   @Override
   public int hashCode() {
-    int result = tables != null ? tables.hashCode() : 0;
-    result = 31 * result + (usage != null ? usage.hashCode() : 0);
-    return result;
+    return Objects.hash(tables, usage);
   }
 
   @Override

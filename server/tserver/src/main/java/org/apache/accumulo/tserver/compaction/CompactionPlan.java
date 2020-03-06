@@ -24,7 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 
 import com.google.common.collect.Sets;
 
@@ -33,8 +34,8 @@ import com.google.common.collect.Sets;
  * should simply be deleted, and the optional parameters used to create the resulting output file.
  */
 public class CompactionPlan {
-  public final List<FileRef> inputFiles = new ArrayList<>();
-  public final List<FileRef> deleteFiles = new ArrayList<>();
+  public final List<StoredTabletFile> inputFiles = new ArrayList<>();
+  public final List<StoredTabletFile> deleteFiles = new ArrayList<>();
   public WriteParameters writeParameters = null;
 
   @Override
@@ -68,9 +69,9 @@ public class CompactionPlan {
    * @throws IllegalStateException
    *           thrown when validation fails.
    */
-  public final void validate(Set<FileRef> allFiles) {
-    Set<FileRef> inputSet = new HashSet<>(inputFiles);
-    Set<FileRef> deleteSet = new HashSet<>(deleteFiles);
+  public final void validate(Set<StoredTabletFile> allFiles) {
+    Set<TabletFile> inputSet = new HashSet<>(inputFiles);
+    Set<StoredTabletFile> deleteSet = new HashSet<>(deleteFiles);
 
     if (!allFiles.containsAll(inputSet)) {
       inputSet.removeAll(allFiles);

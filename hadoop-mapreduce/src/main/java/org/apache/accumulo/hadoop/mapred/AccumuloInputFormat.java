@@ -62,7 +62,7 @@ public class AccumuloInputFormat implements InputFormat<Key,Value> {
   public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter)
       throws IOException {
 
-    AccumuloRecordReader<Key,Value> recordReader = new AccumuloRecordReader<Key,Value>(CLASS) {
+    AccumuloRecordReader<Key,Value> recordReader = new AccumuloRecordReader<>(CLASS) {
 
       @Override
       public boolean next(Key key, Value value) {

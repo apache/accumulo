@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>21</version>
+    <version>23</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -117,7 +117,7 @@
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.62</bouncycastle.version>
     <!-- Curator version -->
-    <curator.version>2.12.0</curator.version>
+    <curator.version>4.2.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <!-- extra release args for testing -->
@@ -155,7 +155,7 @@
     <thrift.version>0.12.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
-    <zookeeper.version>3.4.14</zookeeper.version>
+    <zookeeper.version>3.5.7</zookeeper.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -234,6 +234,11 @@
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
         <version>3.7.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.lmax</groupId>
+        <artifactId>disruptor</artifactId>
+        <version>3.4.2</version>
       </dependency>
       <dependency>
         <groupId>com.sun.xml.bind</groupId>
@@ -316,11 +321,6 @@
         <version>4.12</version>
       </dependency>
       <dependency>
-        <groupId>log4j</groupId>
-        <artifactId>log4j</artifactId>
-        <version>1.2.17</version>
-      </dependency>
-      <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-core</artifactId>
         <version>${project.version}</version>
@@ -375,12 +375,6 @@
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-start</artifactId>
         <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-test</artifactId>
-        <version>${project.version}</version>
-        <classifier>mrit</classifier>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -493,6 +487,12 @@
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-minikdc</artifactId>
         <version>${hadoop.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -524,6 +524,21 @@
       <dependency>
         <groupId>org.apache.zookeeper</groupId>
         <artifactId>zookeeper</artifactId>
+        <version>${zookeeper.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.zookeeper</groupId>
+        <artifactId>zookeeper-jute</artifactId>
         <version>${zookeeper.version}</version>
       </dependency>
       <dependency>
@@ -757,14 +772,11 @@
         <version>${slf4j.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-log4j12</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-nop</artifactId>
-        <version>${slf4j.version}</version>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>2.13.0</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -939,6 +951,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
+          <version>3.8.2</version>
           <configuration>
             <skipDeploy>true</skipDeploy>
           </configuration>
@@ -994,7 +1007,7 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.10.0</version>
+          <version>2.11.0</version>
           <configuration>
             <configFile>${eclipseFormatterStyle}</configFile>
             <compilerCompliance>${maven.compiler.source}</compilerCompliance>
@@ -1034,7 +1047,7 @@
         <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>impsort-maven-plugin</artifactId>
-          <version>1.3.0</version>
+          <version>1.3.2</version>
           <configuration>
             <removeUnused>true</removeUnused>
             <groups>java.,javax.,org.,com.</groups>
@@ -1092,7 +1105,6 @@
                 <unusedDeclaredDependency>org.glassfish.jersey.inject:jersey-hk2:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.slf4j:slf4j-log4j12:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>junit:junit:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>javax.servlet:javax.servlet-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>javax.el:javax.el-api:jar:*</unusedDeclaredDependency>
@@ -1102,6 +1114,10 @@
                 <unusedDeclaredDependency>org.apache.accumulo:accumulo-native:tar.gz:*</unusedDeclaredDependency>
                 <!-- ignore runtime dependencies of commons-configuration2 -->
                 <unusedDeclaredDependency>commons-beanutils:commons-beanutils:jar:*</unusedDeclaredDependency>
+                <!-- ignore runtime log4j dependencies at test scope -->
+                <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.logging.log4j:log4j-web:jar:*</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>

@@ -117,17 +117,17 @@ public class VisibilityEvaluator {
   public static byte[] escape(byte[] auth, boolean quote) {
     int escapeCount = 0;
 
-    for (int i = 0; i < auth.length; i++)
-      if (auth[i] == '"' || auth[i] == '\\')
+    for (byte value : auth)
+      if (value == '"' || value == '\\')
         escapeCount++;
 
     if (escapeCount > 0 || quote) {
       byte[] escapedAuth = new byte[auth.length + escapeCount + (quote ? 2 : 0)];
       int index = quote ? 1 : 0;
-      for (int i = 0; i < auth.length; i++) {
-        if (auth[i] == '"' || auth[i] == '\\')
+      for (byte b : auth) {
+        if (b == '"' || b == '\\')
           escapedAuth[index++] = '\\';
-        escapedAuth[index++] = auth[i];
+        escapedAuth[index++] = b;
       }
 
       if (quote) {

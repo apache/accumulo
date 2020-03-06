@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableSortedMap;
  */
 public class OnlineTablets {
   private volatile ImmutableSortedMap<KeyExtent,Tablet> snapshot = ImmutableSortedMap.of();
-  private final SortedMap<KeyExtent,Tablet> onlineTablets = new TreeMap<KeyExtent,Tablet>();
+  private final SortedMap<KeyExtent,Tablet> onlineTablets = new TreeMap<>();
 
   public synchronized void put(KeyExtent ke, Tablet t) {
     onlineTablets.put(ke, t);

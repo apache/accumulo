@@ -18,18 +18,17 @@
  */
 package org.apache.accumulo.monitor.rest.logs;
 
-import java.util.ArrayList;
 import java.util.List;
 
+import javax.inject.Inject;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.accumulo.server.monitor.DedupedLogEvent;
-import org.apache.accumulo.server.monitor.LogService;
-import org.apache.log4j.spi.LoggingEvent;
+import org.apache.accumulo.monitor.Monitor;
 
 /**
  * Responsible for generating a new log JSON object
@@ -40,56 +39,37 @@ import org.apache.log4j.spi.LoggingEvent;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class LogResource {
 
+  @Inject
+  private Monitor monitor;
+
   /**
    * Generates log event list as a JSON object
    *
    * @return log event array
    */
   @GET
-  public List<LogEvent> getRecentLogs() {
-    List<DedupedLogEvent> dedupedLogEvents = LogService.getInstance().getEvents();
-    ArrayList<LogEvent> logEvents = new ArrayList<>(dedupedLogEvents.size());
-
-    for (DedupedLogEvent dev : dedupedLogEvents) {
-      LoggingEvent ev = dev.getEvent();
-      Object application = ev.getMDC("application");
-      if (application == null)
-        application = "";
-      String msg = ev.getMessage().toString();
-      // truncate if full hadoop errors get logged as a message
-      msg = sanitize(msg);
-      if (msg.length() > 300)
-        msg = msg.substring(0, 300);
-
-      String[] stacktrace = ev.getThrowableStrRep();
-      if (stacktrace != null)
-        for (int i = 0; i < stacktrace.length; i++)
-          stacktrace[i] = sanitize(stacktrace[i]);
-
-      // Add a new log event to the list
-      logEvents.add(new LogEvent(ev.getTimeStamp(), application, dev.getCount(),
-          ev.getLevel().toString(), msg.trim(), stacktrace));
-    }
-    return logEvents;
-  }
-
-  private String sanitize(String s) {
-    StringBuilder text = new StringBuilder();
-    for (int i = 0; i < s.length(); i++) {
-      char c = s.charAt(i);
-      int type = Character.getType(c);
-      boolean notPrintable = type == Character.UNASSIGNED || type == Character.LINE_SEPARATOR
-          || type == Character.NON_SPACING_MARK || type == Character.PRIVATE_USE;
-      text.append(notPrintable ? '?' : c);
-    }
-    return text.toString().replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  public List<SanitizedLogEvent> getRecentLogs() {
+    return monitor.recentLogs().getSanitizedEvents();
   }
 
   /**
    * REST call to clear the logs
    */
   @POST
+  @Path("clear")
   public void clearLogs() {
-    LogService.getInstance().clear();
+    monitor.recentLogs().clearEvents();
+  }
+
+  /**
+   * REST call to append a log message
+   *
+   * @since 2.1.0
+   */
+  @POST
+  @Path("append")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public void append(SingleLogEvent event) {
+    monitor.recentLogs().addEvent(event);
   }
 }

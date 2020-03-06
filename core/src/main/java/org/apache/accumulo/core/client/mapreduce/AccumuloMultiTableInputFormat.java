@@ -76,7 +76,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
   public RecordReader<Key,Value> createRecordReader(InputSplit inputSplit,
       TaskAttemptContext context) throws IOException, InterruptedException {
     log.setLevel(getLogLevel(context));
-    return new AbstractRecordReader<Key,Value>() {
+    return new AbstractRecordReader<>() {
       @Override
       public boolean nextKeyValue() throws IOException, InterruptedException {
         if (scannerIterator.hasNext()) {

@@ -271,7 +271,7 @@ public class SummarizerConfiguration {
      * @see SummarizerConfiguration#getOptions()
      */
     public Builder addOptions(Map<String,String> options) {
-      options.entrySet().forEach(e -> addOption(e.getKey(), e.getValue()));
+      options.forEach(this::addOption);
       return this;
     }
 

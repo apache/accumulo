@@ -21,8 +21,8 @@ package org.apache.accumulo.test;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
@@ -50,7 +50,7 @@ public class SizeCompactionStrategy extends CompactionStrategy {
   public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
     CompactionPlan plan = new CompactionPlan();
 
-    for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet())
+    for (Entry<StoredTabletFile,DataFileValue> entry : request.getFiles().entrySet())
       if (entry.getValue().getSize() < size)
         plan.inputFiles.add(entry.getKey());
 

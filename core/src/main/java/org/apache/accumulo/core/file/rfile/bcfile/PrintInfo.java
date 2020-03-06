@@ -39,10 +39,8 @@ public class PrintInfo {
   public static void printMetaBlockInfo(SiteConfiguration siteConfig, Configuration conf,
       FileSystem fs, Path path) throws IOException {
     FSDataInputStream fsin = fs.open(path);
-    BCFile.Reader bcfr = null;
-    try {
-      bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf,
-          CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.ACCUMULO));
+    try (BCFile.Reader bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf,
+        CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.ACCUMULO))) {
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
 
@@ -56,10 +54,6 @@ public class PrintInfo {
         out.println(
             "      Compression type     : " + entry.getValue().getCompressionAlgorithm().getName());
         out.println();
-      }
-    } finally {
-      if (bcfr != null) {
-        bcfr.close();
       }
     }
   }

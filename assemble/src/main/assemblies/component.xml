@@ -46,6 +46,7 @@
         <include>com.google.guava:failureaccess</include>
         <include>com.google.guava:guava</include>
         <include>com.google.protobuf:protobuf-java</include>
+        <include>com.lmax:disruptor</include>
         <include>com.sun.xml.bind</include>
         <include>commons-beanutils:commons-beanutils</include>
         <include>commons-cli:commons-cli</include>
@@ -60,7 +61,6 @@
         <include>javax.ws.rs:javax.ws.rs-api</include>
         <include>javax.xml.bind:jaxb-api</include>
         <include>jline:jline</include>
-        <include>log4j:log4j</include>
         <include>org.apache.commons:commons-collections4</include>
         <include>org.apache.commons:commons-configuration2</include>
         <include>org.apache.commons:commons-lang3</include>
@@ -69,6 +69,11 @@
         <include>org.apache.commons:commons-vfs2</include>
         <include>org.apache.htrace:htrace-core4</include>
         <include>org.apache.htrace:htrace-core</include>
+        <include>org.apache.logging.log4j:log4j-1.2-api</include>
+        <include>org.apache.logging.log4j:log4j-api</include>
+        <include>org.apache.logging.log4j:log4j-core</include>
+        <include>org.apache.logging.log4j:log4j-slf4j-impl</include>
+        <include>org.apache.logging.log4j:log4j-web</include>
         <include>org.apache.thrift:libthrift</include>
         <include>org.eclipse.jetty:jetty-continuation</include>
         <include>org.eclipse.jetty:jetty-http</include>
@@ -105,7 +110,6 @@
         <include>org.javassist:javassist</include>
         <include>org.jboss.logging:jboss-logging</include>
         <include>org.slf4j:slf4j-api</include>
-        <include>org.slf4j:slf4j-log4j12</include>
       </includes>
     </dependencySet>
   </dependencySets>

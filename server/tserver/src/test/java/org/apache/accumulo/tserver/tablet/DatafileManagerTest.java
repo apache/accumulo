@@ -27,9 +27,10 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.FileRef;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,10 +43,10 @@ public class DatafileManagerTest {
   private KeyExtent extent;
   private TableConfiguration tableConf;
 
-  private SortedMap<FileRef,DataFileValue> createFileMap(String... sa) {
-    SortedMap<FileRef,DataFileValue> ret = new TreeMap<>();
+  private SortedMap<StoredTabletFile,DataFileValue> createFileMap(String... sa) {
+    SortedMap<StoredTabletFile,DataFileValue> ret = new TreeMap<>();
     for (int i = 0; i < sa.length; i += 2) {
-      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]),
+      ret.put(new StoredTabletFile("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]),
           new DataFileValue(ConfigurationTypeHelper.getFixedMemoryAsBytes(sa[i + 1]), 1));
     }
     return ret;
@@ -74,11 +75,11 @@ public class DatafileManagerTest {
         .andReturn(maxMergeFileSize);
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("largefile", "10M", "file2", "100M",
-        "file3", "100M", "file4", "100M", "file5", "100M");
+    SortedMap<StoredTabletFile,DataFileValue> testFiles = createFileMap("largefile", "10M", "file2",
+        "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
-    FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
+    TabletFile mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
 
@@ -92,11 +93,11 @@ public class DatafileManagerTest {
   public void testReserveMergingMinorCompactionFile_MaxFilesNotReached() {
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles =
+    SortedMap<StoredTabletFile,DataFileValue> testFiles =
         createFileMap("smallfile", "100B", "file2", "100M", "file3", "100M", "file4", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
-    FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
+    TabletFile mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
 
@@ -114,15 +115,15 @@ public class DatafileManagerTest {
         .andReturn(maxMergeFileSize);
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M",
-        "file3", "100M", "file4", "100M", "file5", "100M");
+    SortedMap<StoredTabletFile,DataFileValue> testFiles = createFileMap("smallfile", "100B",
+        "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
-    FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
+    TabletFile mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
 
-    assertEquals("smallfile", mergeFile.path().getName());
+    assertEquals("smallfile", mergeFile.getFileName());
   }
 
   /*
@@ -136,15 +137,15 @@ public class DatafileManagerTest {
         .andReturn(maxMergeFileSize);
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallishfile", "10M", "file2",
-        "100M", "file3", "100M", "file4", "100M", "file5", "100M");
+    SortedMap<StoredTabletFile,DataFileValue> testFiles = createFileMap("smallishfile", "10M",
+        "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
-    FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
+    TabletFile mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
 
-    assertEquals("smallishfile", mergeFile.path().getName());
+    assertEquals("smallishfile", mergeFile.getFileName());
   }
 
 }

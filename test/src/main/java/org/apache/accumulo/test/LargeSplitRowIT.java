@@ -209,10 +209,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       automaticSplit(client, 15, 1);
 
       String tableName = new String();
-      java.util.Iterator<String> iterator = client.tableOperations().list().iterator();
 
-      while (iterator.hasNext()) {
-        String curr = iterator.next();
+      for (String curr : client.tableOperations().list()) {
         if (!curr.startsWith(Namespace.ACCUMULO.name() + ".")) {
           tableName = curr;
         }

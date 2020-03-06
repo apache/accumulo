@@ -27,8 +27,8 @@ public class ByteUtils {
    */
   public static byte[] escape(byte[] in) {
     int escapeCount = 0;
-    for (int i = 0; i < in.length; i++) {
-      if (in[i] == 0x00 || in[i] == 0x01) {
+    for (byte value : in) {
+      if (value == 0x00 || value == 0x01) {
         escapeCount++;
       }
     }
@@ -39,8 +39,8 @@ public class ByteUtils {
     byte[] ret = new byte[escapeCount + in.length];
     int index = 0;
 
-    for (int i = 0; i < in.length; i++) {
-      switch (in[i]) {
+    for (byte b : in) {
+      switch (b) {
         case 0x00:
           ret[index++] = 0x01;
           ret[index++] = 0x01;
@@ -50,7 +50,7 @@ public class ByteUtils {
           ret[index++] = 0x02;
           break;
         default:
-          ret[index++] = in[i];
+          ret[index++] = b;
       }
     }
 

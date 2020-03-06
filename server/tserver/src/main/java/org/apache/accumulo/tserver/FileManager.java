@@ -45,10 +45,10 @@ import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
@@ -494,11 +494,12 @@ public class FileManager {
       }
     }
 
-    private Map<FileSKVIterator,String> openFileRefs(Collection<FileRef> files)
+    private Map<FileSKVIterator,String> openFileRefs(Collection<TabletFile> files)
         throws TooManyFilesException, IOException {
       List<String> strings = new ArrayList<>(files.size());
-      for (FileRef ref : files)
-        strings.add(ref.path().toString());
+      for (TabletFile file : files) {
+        strings.add(file.getPathStr());
+      }
       return openFiles(strings);
     }
 
@@ -521,7 +522,7 @@ public class FileManager {
       return newlyReservedReaders;
     }
 
-    public synchronized List<InterruptibleIterator> openFiles(Map<FileRef,DataFileValue> files,
+    public synchronized List<InterruptibleIterator> openFiles(Map<TabletFile,DataFileValue> files,
         boolean detachable, SamplerConfigurationImpl samplerConfig) throws IOException {
 
       Map<FileSKVIterator,String> newlyReservedReaders = openFileRefs(files.keySet());
@@ -562,7 +563,7 @@ public class FileManager {
 
         if (sawTimeSet) {
           // constructing FileRef is expensive so avoid if not needed
-          DataFileValue value = files.get(new FileRef(filename));
+          DataFileValue value = files.get(new TabletFile(new Path(filename)));
           if (value.isTimeSet()) {
             iter = new TimeSettingIterator(iter, value.getTime());
           }

@@ -45,7 +45,7 @@ public class GcVolumeUtil {
 
       Collection<Volume> volumes = fs.getVolumes();
 
-      ArrayList<Path> ret = new ArrayList<Path>(volumes.size());
+      ArrayList<Path> ret = new ArrayList<>(volumes.size());
       for (Volume vol : volumes) {
         Path volPath = vol.prefixChild(relPath);
         ret.add(volPath);

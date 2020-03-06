@@ -332,8 +332,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     this.hrtlbConf =
         context.getServerConfFactory().getSystemConfiguration().newDeriver(HrtlbConf::new);
 
-    tablesRegExCache = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS)
-        .build(new CacheLoader<TableId,Deriver<Map<String,String>>>() {
+    tablesRegExCache =
+        CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build(new CacheLoader<>() {
           @Override
           public Deriver<Map<String,String>> load(TableId key) throws Exception {
             return context.getServerConfFactory().getTableConfiguration(key)

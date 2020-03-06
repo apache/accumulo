@@ -72,9 +72,9 @@ public class ColumnTest {
 
   @Test
   public void testEqualsCompare() {
-    for (int i = 0; i < col.length; i++)
-      for (int j = 0; j < col.length; j++)
-        assertEquals(col[i].equals(col[j]), col[i].compareTo(col[j]) == 0);
+    for (Column value : col)
+      for (Column column : col)
+        assertEquals(value.equals(column), value.compareTo(column) == 0);
   }
 
   @Test

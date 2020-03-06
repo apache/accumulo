@@ -46,6 +46,7 @@ import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -213,14 +214,15 @@ class LoadFiles extends MasterRepo {
           server = location.getHostAndPort();
         }
 
-        Set<String> loadedFiles = tablet.getLoaded().keySet();
+        Set<TabletFile> loadedFiles = tablet.getLoaded().keySet();
 
         Map<String,MapFileInfo> thriftImports = new HashMap<>();
 
         for (final Bulk.FileInfo fileInfo : files) {
-          String fullPath = new Path(bulkDir, fileInfo.getFileName()).toString();
+          Path fullPath = new Path(bulkDir, fileInfo.getFileName());
+          TabletFile bulkFile = new TabletFile(fullPath);
 
-          if (!loadedFiles.contains(fullPath)) {
+          if (!loadedFiles.contains(bulkFile)) {
             thriftImports.put(fileInfo.getFileName(), new MapFileInfo(fileInfo.getEstFileSize()));
           }
         }

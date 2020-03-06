@@ -24,8 +24,8 @@ import java.util.Map;
 
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
@@ -141,7 +141,7 @@ public class BasicCompactionStrategy extends DefaultCompactionStrategy {
 
   private MajorCompactionRequest filterFiles(MajorCompactionRequest mcr) {
     if (filterSize != null) {
-      Map<FileRef,DataFileValue> filteredFiles = new HashMap<>();
+      Map<StoredTabletFile,DataFileValue> filteredFiles = new HashMap<>();
       mcr.getFiles().forEach((fr, dfv) -> {
         if (dfv.getSize() <= filterSize) {
           filteredFiles.put(fr, dfv);
@@ -159,8 +159,8 @@ public class BasicCompactionStrategy extends DefaultCompactionStrategy {
    */
   private Long calculateTotalSize(MajorCompactionRequest request, CompactionPlan plan) {
     long totalSize = 0;
-    Map<FileRef,DataFileValue> allFiles = request.getFiles();
-    for (FileRef fileRef : plan.inputFiles) {
+    Map<StoredTabletFile,DataFileValue> allFiles = request.getFiles();
+    for (StoredTabletFile fileRef : plan.inputFiles) {
       totalSize += allFiles.get(fileRef).getSize();
     }
     return totalSize;

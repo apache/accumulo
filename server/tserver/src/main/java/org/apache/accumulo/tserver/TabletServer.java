@@ -120,6 +120,7 @@ import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -183,7 +184,6 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -320,9 +320,9 @@ public class TabletServer extends AbstractServer {
 
   private final OnlineTablets onlineTablets = new OnlineTablets();
   private final SortedSet<KeyExtent> unopenedTablets =
-      Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
+      Collections.synchronizedSortedSet(new TreeSet<>());
   private final SortedSet<KeyExtent> openingTablets =
-      Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
+      Collections.synchronizedSortedSet(new TreeSet<>());
   private final Map<KeyExtent,Long> recentlyUnloadedCache =
       Collections.synchronizedMap(new LRUMap<>(1000));
 
@@ -532,12 +532,12 @@ public class TabletServer extends AbstractServer {
           for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
             TKeyExtent tke = entry.getKey();
             Map<String,MapFileInfo> fileMap = entry.getValue();
-            Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
+            Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
             for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
               Path path = new Path(mapping.getKey());
               FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
               path = ns.makeQualified(path);
-              fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
+              fileRefMap.put(new TabletFile(path), mapping.getValue());
             }
 
             Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
@@ -574,19 +574,19 @@ public class TabletServer extends AbstractServer {
 
       watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
         tabletImports.forEach((tke, fileMap) -> {
-          Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
+          Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
           for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
             Path path = new Path(dir, mapping.getKey());
             FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
             path = ns.makeQualified(path);
-            fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
+            newFileMap.put(new TabletFile(path), mapping.getValue());
           }
 
           Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
 
           if (importTablet != null) {
             try {
-              importTablet.importMapFiles(tid, fileRefMap, setTime);
+              importTablet.importMapFiles(tid, newFileMap, setTime);
             } catch (IOException ioe) {
               log.debug("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke),
                   ioe.getMessage());
@@ -842,7 +842,7 @@ public class TabletServer extends AbstractServer {
       }
 
       Set<Column> columnSet = tcolumns.isEmpty() ? Collections.emptySet()
-          : new HashSet<Column>(Collections2.transform(tcolumns, Column::new));
+          : new HashSet<>(Collections2.transform(tcolumns, Column::new));
 
       ScanParameters scanParams =
           new ScanParameters(-1, new Authorizations(authorizations), columnSet, ssiList, ssio,
@@ -2187,12 +2187,8 @@ public class TabletServer extends AbstractServer {
             closedCopy = copyClosedLogs(closedLogs);
           }
 
-          Iterator<Entry<KeyExtent,Tablet>> iter = getOnlineTablets().entrySet().iterator();
-
           // bail early now if we're shutting down
-          while (iter.hasNext()) {
-
-            Entry<KeyExtent,Tablet> entry = iter.next();
+          for (Entry<KeyExtent,Tablet> entry : getOnlineTablets().entrySet()) {
 
             Tablet tablet = entry.getValue();
 

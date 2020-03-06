@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.strategies.BasicCompactionStrategy;
 
 /**
@@ -42,8 +42,8 @@ public class SizeLimitCompactionStrategy extends DefaultCompactionStrategy {
   }
 
   private MajorCompactionRequest filterFiles(MajorCompactionRequest mcr) {
-    Map<FileRef,DataFileValue> filteredFiles = new HashMap<>();
-    for (Entry<FileRef,DataFileValue> entry : mcr.getFiles().entrySet()) {
+    Map<StoredTabletFile,DataFileValue> filteredFiles = new HashMap<>();
+    for (Entry<StoredTabletFile,DataFileValue> entry : mcr.getFiles().entrySet()) {
       if (entry.getValue().getSize() <= limit) {
         filteredFiles.put(entry.getKey(), entry.getValue());
       }

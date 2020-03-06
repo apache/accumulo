@@ -60,11 +60,13 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class StatusMakerIT extends ConfigurableMacBase {
 
   private AccumuloClient client;

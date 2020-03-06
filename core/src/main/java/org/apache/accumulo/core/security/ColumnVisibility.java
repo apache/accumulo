@@ -561,8 +561,8 @@ public class ColumnVisibility {
   public static byte[] quote(byte[] term) {
     boolean needsQuote = false;
 
-    for (int i = 0; i < term.length; i++) {
-      if (!Authorizations.isValidAuthChar(term[i])) {
+    for (byte b : term) {
+      if (!Authorizations.isValidAuthChar(b)) {
         needsQuote = true;
         break;
       }
