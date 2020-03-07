@@ -33,8 +33,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.metrics2.MetricsSystem;
-import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.EasyMock;
@@ -62,8 +60,6 @@ public class FateMetricsTest {
 
   private ZooStore<Master> zooStore = null;
   private ZooKeeper zookeeper = null;
-
-  private final MetricsSystem ms = DefaultMetricsSystem.initialize("Accumulo");
 
   private static ZooReaderWriter zooReaderWriter;
   private ServerContext context = null;
