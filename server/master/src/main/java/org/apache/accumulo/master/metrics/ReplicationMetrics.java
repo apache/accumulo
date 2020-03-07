@@ -118,7 +118,8 @@ public class ReplicationMetrics extends MasterMetrics {
     for (Path path : paths) {
       if (!pathModTimes.containsKey(path)) {
         try {
-          pathModTimes.put(path, master.getFileSystem().getFileStatus(path).getModificationTime());
+          pathModTimes.put(path,
+              master.getVolumeManager().getFileStatus(path).getModificationTime());
         } catch (IOException e) {
           // Ignore all IOExceptions
           // Either the system is unavailable or the file was deleted

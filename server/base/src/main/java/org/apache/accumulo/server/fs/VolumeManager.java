@@ -29,7 +29,6 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -44,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * This also concentrates a bunch of meta-operations like waiting for SAFE_MODE, and closing WALs.
  * N.B. implementations must be thread safe.
  */
-public interface VolumeManager {
+public interface VolumeManager extends AutoCloseable {
 
   enum FileType {
     TABLE(ServerConstants.TABLE_DIR),
@@ -96,13 +95,14 @@ public interface VolumeManager {
   }
 
   // close the underlying FileSystems
+  @Override
   void close() throws IOException;
 
   // forward to the appropriate FileSystem object
   FSDataOutputStream create(Path dest) throws IOException;
 
-  // forward to the appropriate FileSystem object
-  FSDataOutputStream create(Path path, boolean b) throws IOException;
+  // forward to the appropriate FileSystem object's create method with overwrite flag set to true
+  FSDataOutputStream overwrite(Path path) throws IOException;
 
   // forward to the appropriate FileSystem object
   FSDataOutputStream create(Path path, boolean b, int int1, short int2, long long1)
@@ -128,7 +128,7 @@ public interface VolumeManager {
   FileStatus getFileStatus(Path path) throws IOException;
 
   // find the appropriate FileSystem object given a path
-  Volume getVolumeByPath(Path path);
+  FileSystem getFileSystemByPath(Path path);
 
   // return the item in options that is in the same volume as source
   Path matchingFileSystem(Path source, Set<String> options);
@@ -160,9 +160,6 @@ public interface VolumeManager {
 
   // forward to the appropriate FileSystem object
   FileStatus[] globStatus(Path path) throws IOException;
-
-  // forward to the appropriate FileSystem object
-  ContentSummary getContentSummary(Path dir) throws IOException;
 
   // decide on which of the given locations to create a new file
   String choose(VolumeChooserEnvironment env, Set<String> options);

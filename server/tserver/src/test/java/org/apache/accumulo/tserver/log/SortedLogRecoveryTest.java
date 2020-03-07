@@ -45,7 +45,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.data.ServerMutation;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
@@ -70,6 +69,10 @@ public class SortedLogRecoveryTest {
   static final Text cf = new Text("cf");
   static final Text cq = new Text("cq");
   static final Value value = new Value("value");
+
+  @Rule
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -137,25 +140,20 @@ public class SortedLogRecoveryTest {
     }
   }
 
-  private static List<Mutation> recover(Map<String,KeyValue[]> logs, KeyExtent extent)
-      throws IOException {
+  private List<Mutation> recover(Map<String,KeyValue[]> logs, KeyExtent extent) throws IOException {
     return recover(logs, new HashSet<>(), extent);
   }
 
-  private static List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files,
-      KeyExtent extent) throws IOException {
-    TemporaryFolder root =
-        new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-    root.create();
-    final String workdir = root.getRoot().getAbsolutePath() + "/workdir";
-    VolumeManager fs = VolumeManagerImpl.getLocal(workdir);
-    final Path workdirPath = new Path("file://" + workdir);
-    fs.deleteRecursively(workdirPath);
-    ArrayList<Path> dirs = new ArrayList<>();
-    try {
+  private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent)
+      throws IOException {
+    final String workdir = tempFolder.newFolder().getAbsolutePath();
+    try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
+      final Path workdirPath = new Path("file://" + workdir);
+      fs.deleteRecursively(workdirPath);
+      ArrayList<Path> dirs = new ArrayList<>();
       for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
         String path = workdir + "/" + entry.getKey();
-        FileSystem ns = fs.getVolumeByPath(new Path(path)).getFileSystem();
+        FileSystem ns = fs.getFileSystemByPath(new Path(path));
         @SuppressWarnings("deprecation")
         Writer map = new MapFile.Writer(ns.getConf(), ns, path + "/log1", LogFileKey.class,
             LogFileValue.class);
@@ -171,8 +169,6 @@ public class SortedLogRecoveryTest {
       CaptureMutations capture = new CaptureMutations();
       recovery.recover(extent, dirs, files, capture);
       return capture.result;
-    } finally {
-      root.delete();
     }
   }
 

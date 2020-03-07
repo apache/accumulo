@@ -118,7 +118,7 @@ public class BulkImport extends MasterRepo {
     Utils.getReadLock(master, tableId, tid).lock();
 
     // check that the error directory exists and is empty
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
 
     Path errorPath = new Path(errorDir);
     FileStatus errorStatus = null;

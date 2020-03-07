@@ -58,7 +58,7 @@ class MapImportFileNames extends MasterRepo {
     BufferedWriter mappingsWriter = null;
 
     try {
-      VolumeManager fs = environment.getFileSystem();
+      VolumeManager fs = environment.getVolumeManager();
 
       fs.mkdirs(new Path(tableInfo.importDir));
 
@@ -113,6 +113,6 @@ class MapImportFileNames extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    env.getFileSystem().deleteRecursively(new Path(tableInfo.importDir));
+    env.getVolumeManager().deleteRecursively(new Path(tableInfo.importDir));
   }
 }

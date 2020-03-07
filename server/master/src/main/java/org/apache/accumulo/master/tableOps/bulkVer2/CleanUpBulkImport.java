@@ -64,8 +64,8 @@ public class CleanUpBulkImport extends MasterRepo {
     Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     Path mappingFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);
     try {
-      master.getFileSystem().delete(renamingFile);
-      master.getFileSystem().delete(mappingFile);
+      master.getVolumeManager().delete(renamingFile);
+      master.getVolumeManager().delete(mappingFile);
     } catch (IOException ioe) {
       log.debug("Failed to delete renames and/or loadmap", ioe);
     }

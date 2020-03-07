@@ -574,7 +574,7 @@ public class Initialize implements KeywordExecutable {
     for (Tablet tablet : tablets) {
       createEntriesForTablet(sorted, tablet);
     }
-    FileSystem fs = volmanager.getVolumeByPath(new Path(fileName)).getFileSystem();
+    FileSystem fs = volmanager.getFileSystemByPath(new Path(fileName));
 
     CryptoService cs = CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO);
 
@@ -981,38 +981,41 @@ public class Initialize implements KeywordExecutable {
       SecurityUtil.serverLogin(siteConfig);
       Configuration hadoopConfig = new Configuration();
 
-      VolumeManager fs = VolumeManagerImpl.get(siteConfig, hadoopConfig);
+      try (var fs = VolumeManagerImpl.get(siteConfig, hadoopConfig)) {
 
-      if (opts.resetSecurity) {
-        log.info("Resetting security on accumulo.");
-        try (ServerContext context = new ServerContext(siteConfig)) {
-          if (isInitialized(fs, siteConfig, hadoopConfig)) {
-            if (!opts.forceResetSecurity) {
-              ConsoleReader c = getConsoleReader();
-              String userEnteredName = c.readLine("WARNING: This will remove all"
-                  + " users from Accumulo! If you wish to proceed enter the instance" + " name: ");
-              if (userEnteredName != null && !context.getInstanceName().equals(userEnteredName)) {
-                log.error("Aborted reset security: Instance name did not match current instance.");
-                return;
+        if (opts.resetSecurity) {
+          log.info("Resetting security on accumulo.");
+          try (ServerContext context = new ServerContext(siteConfig)) {
+            if (isInitialized(fs, siteConfig, hadoopConfig)) {
+              if (!opts.forceResetSecurity) {
+                ConsoleReader c = getConsoleReader();
+                String userEnteredName = c.readLine("WARNING: This will remove all"
+                    + " users from Accumulo! If you wish to proceed enter the instance"
+                    + " name: ");
+                if (userEnteredName != null && !context.getInstanceName().equals(userEnteredName)) {
+                  log.error(
+                      "Aborted reset security: Instance name did not match current instance.");
+                  return;
+                }
               }
-            }
 
-            final String rootUser = getRootUserName(siteConfig, opts);
-            opts.rootpass = getRootPassword(siteConfig, opts, rootUser);
-            initSecurity(context, opts, rootUser);
-          } else {
-            log.error("FATAL: Attempted to reset security on accumulo before it was initialized");
+              final String rootUser = getRootUserName(siteConfig, opts);
+              opts.rootpass = getRootPassword(siteConfig, opts, rootUser);
+              initSecurity(context, opts, rootUser);
+            } else {
+              log.error("FATAL: Attempted to reset security on accumulo before it was initialized");
+            }
           }
         }
-      }
 
-      if (opts.addVolumes) {
-        addVolumes(fs, siteConfig, hadoopConfig);
-      }
+        if (opts.addVolumes) {
+          addVolumes(fs, siteConfig, hadoopConfig);
+        }
 
-      if (!opts.resetSecurity && !opts.addVolumes) {
-        if (!doInit(siteConfig, opts, hadoopConfig, fs)) {
-          System.exit(-1);
+        if (!opts.resetSecurity && !opts.addVolumes) {
+          if (!doInit(siteConfig, opts, hadoopConfig, fs)) {
+            System.exit(-1);
+          }
         }
       }
     } catch (Exception e) {

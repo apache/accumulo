@@ -319,7 +319,7 @@ public class FileManager {
         if (!file.contains(":"))
           throw new IllegalArgumentException("Expected uri, got : " + file);
         Path path = new Path(file);
-        FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+        FileSystem ns = fs.getFileSystemByPath(path);
         // log.debug("Opening "+file + " path " + path);
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())

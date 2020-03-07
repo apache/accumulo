@@ -38,11 +38,9 @@ public class VolumeConfiguration {
 
   public static Volume getVolume(String path, Configuration conf, AccumuloConfiguration acuconf)
       throws IOException {
-    requireNonNull(path);
-
-    if (path.contains(":")) {
+    if (requireNonNull(path).contains(":")) {
       // An absolute path
-      return create(new Path(path), conf);
+      return new VolumeImpl(new Path(path), conf);
     } else {
       // A relative path
       return getDefaultVolume(conf, acuconf);
@@ -149,14 +147,6 @@ public class VolumeConfiguration {
     String dfsDir = acuconf.get(Property.INSTANCE_DFS_DIR);
     return new VolumeImpl(fs,
         dfsDir == null ? Property.INSTANCE_DFS_DIR.getDefaultValue() : dfsDir);
-  }
-
-  public static <T extends FileSystem> Volume create(T fs, String basePath) {
-    return new VolumeImpl(fs, basePath);
-  }
-
-  public static Volume create(Path path, Configuration conf) throws IOException {
-    return new VolumeImpl(path, conf);
   }
 
 }

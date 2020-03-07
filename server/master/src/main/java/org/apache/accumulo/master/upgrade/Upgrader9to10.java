@@ -302,7 +302,7 @@ public class Upgrader9to10 implements Upgrader {
       for (String good : goodPaths) {
         Path path = new Path(good);
 
-        FileSystem ns = context.getVolumeManager().getVolumeByPath(path).getFileSystem();
+        FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
         long maxTime = -1;
         try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())

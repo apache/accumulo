@@ -408,7 +408,7 @@ public class CollectTabletStats {
         // assume it is a map file
         status = fs.getFileStatus(new Path(file + "/data"));
       }
-      FileSystem ns = fs.getVolumeByPath(file.getPath()).getFileSystem();
+      FileSystem ns = fs.getFileSystemByPath(file.getPath());
       BlockLocation[] locs = ns.getFileBlockLocations(status, 0, status.getLen());
 
       System.out.println("\t\t\tBlocks for : " + file);
@@ -462,7 +462,7 @@ public class CollectTabletStats {
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
 
     for (TabletFile file : files) {
-      FileSystem ns = fs.getVolumeByPath(file.getPath()).getFileSystem();
+      FileSystem ns = fs.getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(aconf).build();
@@ -495,7 +495,7 @@ public class CollectTabletStats {
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
 
     for (TabletFile file : files) {
-      FileSystem ns = fs.getVolumeByPath(file.getPath()).getFileSystem();
+      FileSystem ns = fs.getFileSystemByPath(file.getPath());
       readers.add(FileOperations.getInstance().newReaderBuilder()
           .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(aconf.getSystemConfiguration()).build());

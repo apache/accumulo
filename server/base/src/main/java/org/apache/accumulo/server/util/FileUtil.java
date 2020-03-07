@@ -47,7 +47,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
@@ -141,8 +140,7 @@ public class FileUtil {
           new TabletFile(new Path(String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION)));
 
       outFiles.add(newMapFile);
-      FileSystem ns =
-          context.getVolumeManager().getVolumeByPath(newMapFile.getPath()).getFileSystem();
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(newMapFile.getPath());
       FileSKVWriter writer = new RFileOperations().newWriterBuilder()
           .forFile(newMapFile.getPathStr(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(acuConf).build();
@@ -152,7 +150,7 @@ public class FileUtil {
       FileSKVIterator reader = null;
       try {
         for (TabletFile file : inFiles) {
-          ns = context.getVolumeManager().getVolumeByPath(file.getPath()).getFileSystem();
+          ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
           reader = FileOperations.getInstance().newIndexReaderBuilder()
               .forFile(file.getPathStr(), ns, ns.getConf(), context.getCryptoService())
               .withTableConfiguration(acuConf).build();
@@ -415,8 +413,8 @@ public class FileUtil {
     }
 
     if (tmpDir != null) {
-      Volume v = fs.getVolumeByPath(tmpDir);
-      if (v.getFileSystem().exists(tmpDir)) {
+      FileSystem actualFs = fs.getFileSystemByPath(tmpDir);
+      if (actualFs.exists(tmpDir)) {
         fs.deleteRecursively(tmpDir);
         return;
       }
@@ -436,7 +434,7 @@ public class FileUtil {
     // count the total number of index entries
     for (TabletFile file : mapFiles) {
       FileSKVIterator reader = null;
-      FileSystem ns = context.getVolumeManager().getVolumeByPath(file.getPath()).getFileSystem();
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
       try {
         if (useIndex)
           reader = FileOperations.getInstance().newIndexReaderBuilder()
@@ -492,7 +490,7 @@ public class FileUtil {
     for (TabletFile mapfile : mapfiles) {
 
       FileSKVIterator reader = null;
-      FileSystem ns = context.getVolumeManager().getVolumeByPath(mapfile.getPath()).getFileSystem();
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(mapfile.getPath());
       try {
         reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(mapfile.getPathStr(), ns, ns.getConf(), context.getCryptoService())
@@ -531,7 +529,7 @@ public class FileUtil {
     Key lastKey = null;
 
     for (TabletFile file : mapFiles) {
-      FileSystem ns = context.getVolumeManager().getVolumeByPath(file.getPath()).getFileSystem();
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file.getPathStr(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
@@ -562,7 +560,7 @@ public class FileUtil {
   public static Map<KeyExtent,Long> estimateSizes(ServerContext context, Path mapFile,
       long fileSize, List<KeyExtent> extents) throws IOException {
 
-    FileSystem ns = context.getVolumeManager().getVolumeByPath(mapFile).getFileSystem();
+    FileSystem ns = context.getVolumeManager().getFileSystemByPath(mapFile);
     return BulkImport.estimateSizes(context.getConfiguration(), mapFile, fileSize, extents, ns,
         null, context.getCryptoService());
   }

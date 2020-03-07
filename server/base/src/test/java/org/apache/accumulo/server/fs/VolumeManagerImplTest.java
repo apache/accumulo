@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.fs;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.List;
@@ -28,23 +28,16 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class VolumeManagerImplTest {
 
-  protected VolumeManager fs;
   private Configuration hadoopConf = new Configuration();
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
-
-  @Before
-  public void setup() throws Exception {
-    fs = VolumeManagerImpl.getLocal(System.getProperty("user.dir"));
-  }
 
   @Test
   public void invalidChooserConfigured() throws Exception {
@@ -55,7 +48,9 @@ public class VolumeManagerImplTest {
     conf.set(Property.GENERAL_VOLUME_CHOOSER,
         "org.apache.accumulo.server.fs.ChooserThatDoesntExist");
     thrown.expect(RuntimeException.class);
-    VolumeManagerImpl.get(conf, hadoopConf);
+    try (var vm = VolumeManagerImpl.get(conf, hadoopConf)) {
+      fail("shouldn't reach here " + vm);
+    }
   }
 
   @Test
@@ -63,7 +58,9 @@ public class VolumeManagerImplTest {
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(Property.INSTANCE_VOLUMES, "viewfs://dummy");
     thrown.expect(IllegalArgumentException.class);
-    VolumeManagerImpl.get(conf, hadoopConf);
+    try (var vm = VolumeManagerImpl.get(conf, hadoopConf)) {
+      fail("shouldn't reach here " + vm);
+    }
   }
 
   public static class WrongVolumeChooser implements VolumeChooser {
@@ -90,10 +87,11 @@ public class VolumeManagerImplTest {
     conf.set(Property.INSTANCE_VOLUMES, String.join(",", volumes));
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     thrown.expect(RuntimeException.class);
-    VolumeManager vm = VolumeManagerImpl.get(conf, hadoopConf);
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(TableId.of("sometable"), null, null);
-    String choice = vm.choose(chooserEnv, volumes);
-    assertTrue("shouldn't see invalid options from misbehaving chooser.", volumes.contains(choice));
+    try (var vm = VolumeManagerImpl.get(conf, hadoopConf)) {
+      VolumeChooserEnvironment chooserEnv =
+          new VolumeChooserEnvironmentImpl(TableId.of("sometable"), null, null);
+      vm.choose(chooserEnv, volumes);
+      fail("shouldn't reach here");
+    }
   }
 }

@@ -50,7 +50,7 @@ class CreateImportDir extends MasterRepo {
     Set<String> tableDirs = ServerConstants.getTablesDirs(master.getContext());
 
     log.info("Looking for matching filesystem for {} from options {}", exportDir, tableDirs);
-    Path base = master.getFileSystem().matchingFileSystem(exportDir, tableDirs);
+    Path base = master.getVolumeManager().matchingFileSystem(exportDir, tableDirs);
     if (base == null) {
       throw new IOException(tableInfo.exportDir + " is not in a volume configured for Accumulo");
     }

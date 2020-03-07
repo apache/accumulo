@@ -41,20 +41,14 @@ public class VolumeImpl implements Volume {
   private final Configuration hadoopConf;
 
   public VolumeImpl(Path path, Configuration conf) throws IOException {
-    requireNonNull(path);
-    requireNonNull(conf);
-
-    this.fs = path.getFileSystem(conf);
+    this.fs = requireNonNull(path).getFileSystem(requireNonNull(conf));
     this.basePath = path.toUri().getPath();
     this.hadoopConf = conf;
   }
 
   public VolumeImpl(FileSystem fs, String basePath) {
-    requireNonNull(fs);
-    requireNonNull(basePath);
-
-    this.fs = fs;
-    this.basePath = basePath;
+    this.fs = requireNonNull(fs);
+    this.basePath = requireNonNull(basePath);
     this.hadoopConf = fs.getConf();
   }
 

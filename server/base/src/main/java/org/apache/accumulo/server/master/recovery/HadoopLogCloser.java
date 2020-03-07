@@ -41,7 +41,7 @@ public class HadoopLogCloser implements LogCloser {
   @Override
   public long close(AccumuloConfiguration conf, Configuration hadoopConf, VolumeManager fs,
       Path source) throws IOException {
-    FileSystem ns = fs.getVolumeByPath(source).getFileSystem();
+    FileSystem ns = fs.getFileSystemByPath(source);
 
     // if path points to a viewfs path, then resolve to underlying filesystem
     if (ViewFSUtils.isViewFS(ns)) {

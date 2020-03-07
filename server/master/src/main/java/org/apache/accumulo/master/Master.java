@@ -138,7 +138,6 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -181,7 +180,6 @@ public class Master extends AbstractServer
   private static final int MAX_BAD_STATUS_COUNT = 3;
   private static final double MAX_SHUTDOWNS_PER_SEC = 10D / 60D;
 
-  final VolumeManager fs;
   private final Object balancedNotifier = new Object();
   final LiveTServerSet tserverSet;
   private final List<TabletGroupWatcher> watchers = new ArrayList<>();
@@ -377,7 +375,6 @@ public class Master extends AbstractServer
     super("master", opts, args);
     ServerContext context = super.getContext();
     this.serverConfig = context.getServerConfFactory();
-    this.fs = context.getVolumeManager();
 
     AccumuloConfiguration aconf = serverConfig.getSystemConfiguration();
 
@@ -1598,8 +1595,8 @@ public class Master extends AbstractServer
     return serverConfig;
   }
 
-  public VolumeManager getFileSystem() {
-    return this.fs;
+  public VolumeManager getVolumeManager() {
+    return getContext().getVolumeManager();
   }
 
   public void assignedTablet(KeyExtent extent) {
@@ -1723,13 +1720,11 @@ public class Master extends AbstractServer
   }
 
   public FSDataOutputStream getOutputStream(final String path) throws IOException {
-    FileSystem fileSystem = fs.getDefaultVolume().getFileSystem();
-    return fileSystem.create(new Path(path));
+    return getVolumeManager().getDefaultVolume().getFileSystem().create(new Path(path));
   }
 
   public FSDataInputStream getInputStream(final String path) throws IOException {
-    FileSystem fileSystem = fs.getDefaultVolume().getFileSystem();
-    return fileSystem.open(new Path(path));
+    return getVolumeManager().getDefaultVolume().getFileSystem().open(new Path(path));
   }
 
 }

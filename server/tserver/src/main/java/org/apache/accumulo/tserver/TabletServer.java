@@ -535,7 +535,7 @@ public class TabletServer extends AbstractServer {
             Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
             for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
               Path path = new Path(mapping.getKey());
-              FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+              FileSystem ns = fs.getFileSystemByPath(path);
               path = ns.makeQualified(path);
               fileRefMap.put(new TabletFile(path), mapping.getValue());
             }
@@ -577,7 +577,7 @@ public class TabletServer extends AbstractServer {
           Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
           for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
             Path path = new Path(dir, mapping.getKey());
-            FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+            FileSystem ns = fs.getFileSystemByPath(path);
             path = ns.makeQualified(path);
             newFileMap.put(new TabletFile(path), mapping.getValue());
           }
@@ -2115,7 +2115,7 @@ public class TabletServer extends AbstractServer {
       BlockCache summaryCache = resourceManager.getSummaryCache();
       BlockCache indexCache = resourceManager.getIndexCache();
       Cache<String,Long> fileLenCache = resourceManager.getFileLenCache();
-      FileSystemResolver volMgr = p -> fs.getVolumeByPath(p).getFileSystem();
+      FileSystemResolver volMgr = p -> fs.getFileSystemByPath(p);
       Future<SummaryCollection> future =
           new Gatherer(getContext(), request, tableCfg, getContext().getCryptoService())
               .processFiles(volMgr, files, summaryCache, indexCache, fileLenCache, srp);

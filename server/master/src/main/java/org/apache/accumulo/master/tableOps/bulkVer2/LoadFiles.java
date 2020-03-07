@@ -94,7 +94,7 @@ class LoadFiles extends MasterRepo {
           + FateTxId.formatTid(tid) + ")");
       return 100;
     }
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     try (LoadMappingIterator lmi = BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(),
         bulkInfo.tableId, p -> fs.open(p))) {

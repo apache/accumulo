@@ -105,7 +105,7 @@ class LoadFiles extends MasterRepo {
     master.updateBulkImportStatus(source, BulkImportState.LOADING);
     ExecutorService executor = getThreadPool(master);
     final AccumuloConfiguration conf = master.getConfiguration();
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
     List<FileStatus> files = new ArrayList<>();
     for (FileStatus entry : fs.listStatus(new Path(bulk))) {
       files.add(entry);
@@ -202,7 +202,7 @@ class LoadFiles extends MasterRepo {
       }
     }
 
-    FSDataOutputStream failFile = fs.create(new Path(errorDir, BulkImport.FAILURES_TXT), true);
+    FSDataOutputStream failFile = fs.overwrite(new Path(errorDir, BulkImport.FAILURES_TXT));
     try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(failFile, UTF_8))) {
       for (String f : filesToLoad) {
         out.write(f);

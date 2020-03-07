@@ -95,7 +95,7 @@ public class LocalityCheck {
     }
     for (String file : files) {
       Path filePath = new Path(file);
-      FileSystem ns = fs.getVolumeByPath(filePath).getFileSystem();
+      FileSystem ns = fs.getFileSystemByPath(filePath);
       FileStatus fileStatus = ns.getFileStatus(filePath);
       BlockLocation[] fileBlockLocations =
           ns.getFileBlockLocations(fileStatus, 0, fileStatus.getLen());
