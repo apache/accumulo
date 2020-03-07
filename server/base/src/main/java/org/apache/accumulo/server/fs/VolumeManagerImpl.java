@@ -348,13 +348,6 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public Path matchingFileSystem(Path source, Set<String> options) {
-    try {
-      if (ViewFSUtils.isViewFS(source, hadoopConf)) {
-        return ViewFSUtils.matchingFileSystem(source, options, hadoopConf);
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
     URI sourceUri = source.toUri();
     return options.stream().filter(opt -> {
       URI optUri = URI.create(opt);
