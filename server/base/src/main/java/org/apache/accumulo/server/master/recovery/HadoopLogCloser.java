@@ -26,10 +26,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FsConstants;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.hadoop.fs.viewfs.ViewFileSystem;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,7 @@ public class HadoopLogCloser implements LogCloser {
     FileSystem ns = fs.getFileSystemByPath(source);
 
     // if path points to a viewfs path, then resolve to underlying filesystem
-    if (ns.getScheme().equals(FsConstants.VIEWFS_SCHEME)) {
+    if (ns instanceof ViewFileSystem) {
       Path newSource = ns.resolvePath(source);
       if (!newSource.equals(source) && newSource.toUri().getScheme() != null) {
         ns = newSource.getFileSystem(hadoopConf);
