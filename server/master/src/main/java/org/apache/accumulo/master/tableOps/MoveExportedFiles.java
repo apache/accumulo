@@ -17,6 +17,7 @@
 package org.apache.accumulo.master.tableOps;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
@@ -48,17 +49,22 @@ class MoveExportedFiles extends MasterRepo {
 
       Map<String,String> fileNameMappings = PopulateMetadataTable.readMappingFile(fs, tableInfo);
 
+      FileStatus[] exportedFiles = fs.listStatus(new Path(tableInfo.exportDir));
+      FileStatus[] importedFiles = fs.listStatus(new Path(tableInfo.importDir));
+
       for (String oldFileName : fileNameMappings.keySet()) {
-        if (!fs.exists(new Path(tableInfo.exportDir, oldFileName))) {
-          throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName,
-              TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-              "File referenced by exported table does not exists " + oldFileName);
+        if (Arrays.stream(exportedFiles).filter(fstat ->
+            fstat.getPath().getName().equals(oldFileName)).count() != 1) {
+          if (Arrays.stream(importedFiles).filter(fstat ->
+              fstat.getPath().getName().equals(fileNameMappings.get(oldFileName))).count() != 1) {
+            throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName,
+                TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+                "File referenced by exported table does not exist " + oldFileName);
+          }
         }
       }
 
-      FileStatus[] files = fs.listStatus(new Path(tableInfo.exportDir));
-
-      for (FileStatus fileStatus : files) {
+      for (FileStatus fileStatus : exportedFiles) {
         String newName = fileNameMappings.get(fileStatus.getPath().getName());
 
         if (newName != null)
