@@ -99,7 +99,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       assertSame("Expected third and sixth transport to be the same instance", third, sixth);
 
       TTransport seventh = getAnyTransport(servers, pool, true);
-      assertSame("Expected third and sixth transport to be the same instance", second, seventh);
+      assertSame("Expected second and seventh transport to be the same instance", second, seventh);
 
       pool.returnTransport(fifth);
       pool.returnTransport(sixth);
