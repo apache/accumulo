@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -38,8 +39,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Lists;
 
 /**
  * Test that {@link ThriftTransportPool} actually adheres to the cachedConnection argument
@@ -64,73 +63,58 @@ public class TransportCachingIT extends AccumuloClusterHarness {
 
       List<ThriftTransportKey> servers = tservers.stream().map(serverStr -> {
         return new ThriftTransportKey(HostAndPort.fromString(serverStr), rpcTimeout, context);
-      }).collect(Collectors.toList());
+      }).collect(Collectors.toList()).subList(0, 1);
 
       ThriftTransportPool pool = ThriftTransportPool.getInstance();
-      TTransport first = null;
-      while (first == null) {
-        try {
-          // Get a transport (cached or not)
-          first = pool.getAnyTransport(servers, true).getSecond();
-        } catch (TTransportException e) {
-          log.warn("Failed to obtain transport to {}", servers);
-        }
-      }
+      TTransport first = getAnyTransport(servers, pool, true);
 
       assertNotNull(first);
       // Return it to unreserve it
       pool.returnTransport(first);
 
-      TTransport second = null;
-      while (second == null) {
-        try {
-          // Get a cached transport (should be the first)
-          second = pool.getAnyTransport(servers, true).getSecond();
-        } catch (TTransportException e) {
-          log.warn("Failed obtain 2nd transport to {}", servers);
-        }
-      }
+      TTransport second = getAnyTransport(servers, pool, true);
 
       // We should get the same transport
       assertSame("Expected the first and second to be the same instance", first, second);
       // Return the 2nd
       pool.returnTransport(second);
 
-      TTransport third = null;
-      while (third == null) {
-        try {
-          // Get a non-cached transport
-          third = pool.getAnyTransport(servers, false).getSecond();
-        } catch (TTransportException e) {
-          log.warn("Failed obtain 3rd transport to {}", servers);
-        }
-      }
-
+      // ensure does not get a cached connection
+      TTransport third = getAnyTransport(servers, pool, false);
       assertNotSame("Expected second and third transport to be different instances", second, third);
-      pool.returnTransport(third);
 
-      // ensure the LIFO scheme with a fourth and fifth entry
-      TTransport fourth = null;
-      while (fourth == null) {
-        try {
-          // Get a non-cached transport
-          fourth = pool.getAnyTransport(servers.subList(0, 1), false).getSecond();
-        } catch (TTransportException e) {
-          log.warn("Failed obtain 4th transport to {}", servers);
-        }
-      }
+      // ensure the LIFO queue per server
+      TTransport fourth = getAnyTransport(servers, pool, false);
+      assertNotSame("Expected third and fourth transport to be different instances", third, fourth);
+
+      pool.returnTransport(third);
       pool.returnTransport(fourth);
-      TTransport fifth = null;
-      while (fifth == null) {
-        try {
-          // Get a cached transport
-          fifth = pool.getAnyTransport(servers.subList(0, 1), true).getSecond();
-        } catch (TTransportException e) {
-          log.warn("Failed obtain 5th transport to {}", servers);
-        }
-      }
+
+      TTransport fifth = getAnyTransport(servers, pool, true);
       assertSame("Expected fourth and fifth transport to be the same instance", fourth, fifth);
+
+      TTransport sixth = getAnyTransport(servers, pool, true);
+      assertSame("Expected third and sixth transport to be the same instance", third, sixth);
+
+      TTransport seventh = getAnyTransport(servers, pool, true);
+      assertSame("Expected third and sixth transport to be the same instance", second, seventh);
+
       pool.returnTransport(fifth);
+      pool.returnTransport(sixth);
+      pool.returnTransport(seventh);
     }
+  }
+
+  private TTransport getAnyTransport(List<ThriftTransportKey> servers, ThriftTransportPool pool,
+      boolean preferCached) {
+    TTransport first = null;
+    while (first == null) {
+      try {
+        first = pool.getAnyTransport(servers, preferCached).getSecond();
+      } catch (TTransportException e) {
+        log.warn("Failed to obtain transport to {}", servers);
+      }
+    }
+    return first;
   }
 }
