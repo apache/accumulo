@@ -63,7 +63,10 @@ public class TransportCachingIT extends AccumuloClusterHarness {
 
       List<ThriftTransportKey> servers = tservers.stream().map(serverStr -> {
         return new ThriftTransportKey(HostAndPort.fromString(serverStr), rpcTimeout, context);
-      }).collect(Collectors.toList()).subList(0, 1);
+      }).collect(Collectors.toList());
+
+      // only want to use one server for all subsequent test
+      servers = servers.subList(0, 1);
 
       ThriftTransportPool pool = ThriftTransportPool.getInstance();
       TTransport first = getAnyTransport(servers, pool, true);
@@ -76,20 +79,19 @@ public class TransportCachingIT extends AccumuloClusterHarness {
 
       // We should get the same transport
       assertSame("Expected the first and second to be the same instance", first, second);
-      // Return the 2nd
       pool.returnTransport(second);
 
-      // ensure does not get a cached connection
+      // Ensure does not get cached connection just returned
       TTransport third = getAnyTransport(servers, pool, false);
       assertNotSame("Expected second and third transport to be different instances", second, third);
 
-      // ensure the LIFO queue per server
       TTransport fourth = getAnyTransport(servers, pool, false);
       assertNotSame("Expected third and fourth transport to be different instances", third, fourth);
 
       pool.returnTransport(third);
       pool.returnTransport(fourth);
 
+      // The following three asserts ensure the per server queue is LIFO
       TTransport fifth = getAnyTransport(servers, pool, true);
       assertSame("Expected fourth and fifth transport to be the same instance", fourth, fifth);
 
