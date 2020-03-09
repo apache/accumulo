@@ -31,11 +31,10 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -47,31 +46,28 @@ public class TestUpgradePathForWALogs {
 
   private static final String WALOG_FROM_15 = "/walog-from-15.walog";
   private static final String WALOG_FROM_16 = "/walog-from-16.walog";
-  private static File testDir;
 
   AccumuloConfiguration config = DefaultConfiguration.getInstance();
   VolumeManager fs;
 
-  @BeforeClass
-  public static void createTestDirectory() {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/upgrade-tests");
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = new File(baseDir, TestUpgradePathForWALogs.class.getName());
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir() || testDir.isDirectory());
-  }
-
   @Rule
-  public TemporaryFolder root = new TemporaryFolder(testDir);
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir"), "target"));
 
   @Before
   public void setUp() throws Exception {
-    root.create();
-    String path = root.getRoot().getAbsolutePath() + "/manyMaps";
-    fs = VolumeManagerImpl.getLocal(path);
+    File workDir = tempFolder.newFolder();
+    String path = workDir.getAbsolutePath();
+    assertTrue(workDir.delete());
+    fs = VolumeManagerImpl.getLocalForTesting(path);
     Path manyMapsPath = new Path("file://" + path);
     fs.mkdirs(manyMapsPath);
     fs.create(SortedLogState.getFinishedMarkerPath(manyMapsPath)).close();
+  }
+
+  @After
+  public void tearDown() throws IOException {
+    fs.close();
   }
 
   @Test
@@ -83,7 +79,7 @@ public class TestUpgradePathForWALogs {
 
       walogStream = getClass().getResourceAsStream(WALOG_FROM_15);
       walogInHDFStream =
-          new FileOutputStream(new File(root.getRoot().getAbsolutePath() + WALOG_FROM_15));
+          new FileOutputStream(new File(tempFolder.getRoot().getAbsolutePath() + WALOG_FROM_15));
 
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();
@@ -94,8 +90,8 @@ public class TestUpgradePathForWALogs {
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
       logProcessor.sort(WALOG_FROM_15,
-          new Path("file://" + root.getRoot().getAbsolutePath() + WALOG_FROM_15),
-          "file://" + root.getRoot().getAbsolutePath() + "/manyMaps");
+          new Path("file://" + tempFolder.getRoot().getAbsolutePath() + WALOG_FROM_15),
+          "file://" + tempFolder.getRoot().getAbsolutePath() + "/manyMaps");
 
     } finally {
       if (walogStream != null) {
@@ -119,7 +115,7 @@ public class TestUpgradePathForWALogs {
 
       walogStream = getClass().getResourceAsStream(walogToTest);
       walogInHDFStream =
-          new FileOutputStream(new File(root.getRoot().getAbsolutePath() + walogToTest));
+          new FileOutputStream(new File(tempFolder.getRoot().getAbsolutePath() + walogToTest));
 
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();
@@ -130,8 +126,8 @@ public class TestUpgradePathForWALogs {
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
       logProcessor.sort(walogToTest,
-          new Path("file://" + root.getRoot().getAbsolutePath() + walogToTest),
-          "file://" + root.getRoot().getAbsolutePath() + "/manyMaps");
+          new Path("file://" + tempFolder.getRoot().getAbsolutePath() + walogToTest),
+          "file://" + tempFolder.getRoot().getAbsolutePath() + "/manyMaps");
 
     } finally {
       if (walogStream != null) {

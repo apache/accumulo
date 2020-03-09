@@ -33,12 +33,17 @@ import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class DumpConfigIT extends ConfigurableMacBase {
+
+  @Rule
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir"), "target"));
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -54,23 +59,19 @@ public class DumpConfigIT extends ConfigurableMacBase {
       justification = "user.dir is suitable test input")
   @Test
   public void test() throws Exception {
-    File target = new File(System.getProperty("user.dir"), "target");
-    assertTrue(target.exists() || target.mkdirs());
-    TemporaryFolder folder = new TemporaryFolder(target);
-    folder.create();
-    File siteFileBackup = new File(folder.getRoot(), "accumulo.properties.bak");
+    File folder = tempFolder.newFolder();
+    File siteFileBackup = new File(folder, "accumulo.properties.bak");
     assertFalse(siteFileBackup.exists());
-    assertEquals(0,
-        exec(Admin.class, "dumpConfig", "-a", "-d", folder.getRoot().getPath()).waitFor());
+    assertEquals(0, exec(Admin.class, "dumpConfig", "-a", "-d", folder.getPath()).waitFor());
     assertTrue(siteFileBackup.exists());
     String site = FunctionalTestUtils.readAll(new FileInputStream(siteFileBackup));
     assertTrue(site.contains(Property.TABLE_FILE_BLOCK_SIZE.getKey()));
     assertTrue(site.contains("1234567"));
     String meta = FunctionalTestUtils
-        .readAll(new FileInputStream(new File(folder.getRoot(), MetadataTable.NAME + ".cfg")));
+        .readAll(new FileInputStream(new File(folder, MetadataTable.NAME + ".cfg")));
     assertTrue(meta.contains(Property.TABLE_FILE_REPLICATION.getKey()));
-    String systemPerm = FunctionalTestUtils
-        .readAll(new FileInputStream(new File(folder.getRoot(), "root_user.cfg")));
+    String systemPerm =
+        FunctionalTestUtils.readAll(new FileInputStream(new File(folder, "root_user.cfg")));
     assertTrue(systemPerm.contains("grant System.ALTER_USER -s -u root"));
     assertTrue(systemPerm.contains("grant Table.READ -t " + MetadataTable.NAME + " -u root"));
     assertFalse(systemPerm.contains("grant Table.DROP -t " + MetadataTable.NAME + " -u root"));

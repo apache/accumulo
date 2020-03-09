@@ -460,13 +460,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       Configuration hadoopConf = config.getHadoopConfiguration();
 
       ConfigurationCopy cc = new ConfigurationCopy(acuConf);
-      VolumeManager fs;
-      try {
-        fs = VolumeManagerImpl.get(cc, hadoopConf);
+      Path instanceIdPath;
+      try (var fs = VolumeManagerImpl.get(cc, hadoopConf)) {
+        instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(fs);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-      Path instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(fs);
 
       String instanceIdFromFile =
           VolumeManager.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);

@@ -129,7 +129,7 @@ class WriteExportFiles extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     try {
-      exportTable(master.getFileSystem(), master.getContext(), tableInfo.tableName,
+      exportTable(master.getVolumeManager(), master.getContext(), tableInfo.tableName,
           tableInfo.tableID, tableInfo.exportDir);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonical(),
@@ -152,10 +152,10 @@ class WriteExportFiles extends MasterRepo {
       TableId tableID, String exportDir) throws Exception {
 
     fs.mkdirs(new Path(exportDir));
-    Path exportMetaFilePath = fs.getVolumeByPath(new Path(exportDir)).getFileSystem()
+    Path exportMetaFilePath = fs.getFileSystemByPath(new Path(exportDir))
         .makeQualified(new Path(exportDir, Constants.EXPORT_FILE));
 
-    FSDataOutputStream fileOut = fs.create(exportMetaFilePath, false);
+    FSDataOutputStream fileOut = fs.create(exportMetaFilePath);
     ZipOutputStream zipOut = new ZipOutputStream(fileOut);
     BufferedOutputStream bufOut = new BufferedOutputStream(zipOut);
     DataOutputStream dataOut = new DataOutputStream(bufOut);
@@ -194,7 +194,7 @@ class WriteExportFiles extends MasterRepo {
   private static void createDistcpFile(VolumeManager fs, String exportDir, Path exportMetaFilePath,
       Map<String,String> uniqueFiles) throws IOException {
     BufferedWriter distcpOut = new BufferedWriter(
-        new OutputStreamWriter(fs.create(new Path(exportDir, "distcp.txt"), false), UTF_8));
+        new OutputStreamWriter(fs.create(new Path(exportDir, "distcp.txt")), UTF_8));
 
     try {
       for (String file : uniqueFiles.values()) {

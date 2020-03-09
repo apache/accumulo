@@ -36,7 +36,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
@@ -79,65 +78,66 @@ public class LogReader {
     Opts opts = new Opts();
     opts.parseArgs(LogReader.class.getName(), args);
     var siteConfig = SiteConfiguration.auto();
-    VolumeManager fs = VolumeManagerImpl.get(siteConfig, new Configuration());
+    try (var fs = VolumeManagerImpl.get(siteConfig, new Configuration())) {
 
-    Matcher rowMatcher = null;
-    KeyExtent ke = null;
-    Text row = null;
-    if (opts.files.isEmpty()) {
-      new JCommander(opts).usage();
-      return;
-    }
-    if (opts.row != null) {
-      row = new Text(opts.row);
-    }
-    if (opts.extent != null) {
-      String[] sa = opts.extent.split(";");
-      ke = new KeyExtent(TableId.of(sa[0]), new Text(sa[1]), new Text(sa[2]));
-    }
-    if (opts.regexp != null) {
-      Pattern pattern = Pattern.compile(opts.regexp);
-      rowMatcher = pattern.matcher("");
-    }
+      Matcher rowMatcher = null;
+      KeyExtent ke = null;
+      Text row = null;
+      if (opts.files.isEmpty()) {
+        new JCommander(opts).usage();
+        return;
+      }
+      if (opts.row != null) {
+        row = new Text(opts.row);
+      }
+      if (opts.extent != null) {
+        String[] sa = opts.extent.split(";");
+        ke = new KeyExtent(TableId.of(sa[0]), new Text(sa[1]), new Text(sa[2]));
+      }
+      if (opts.regexp != null) {
+        Pattern pattern = Pattern.compile(opts.regexp);
+        rowMatcher = pattern.matcher("");
+      }
 
-    Set<Integer> tabletIds = new HashSet<>();
+      Set<Integer> tabletIds = new HashSet<>();
 
-    for (String file : opts.files) {
+      for (String file : opts.files) {
 
-      Path path = new Path(file);
-      LogFileKey key = new LogFileKey();
-      LogFileValue value = new LogFileValue();
+        Path path = new Path(file);
+        LogFileKey key = new LogFileKey();
+        LogFileValue value = new LogFileValue();
 
-      if (fs.getFileStatus(path).isFile()) {
-        try (final FSDataInputStream fsinput = fs.open(path)) {
-          // read log entries from a simple hdfs file
-          DFSLoggerInputStreams streams;
-          try {
-            streams = DfsLogger.readHeaderAndReturnStream(fsinput, siteConfig);
-          } catch (LogHeaderIncompleteException e) {
-            log.warn("Could not read header for {} . Ignoring...", path);
-            continue;
-          }
+        if (fs.getFileStatus(path).isFile()) {
+          try (final FSDataInputStream fsinput = fs.open(path)) {
+            // read log entries from a simple hdfs file
+            DFSLoggerInputStreams streams;
+            try {
+              streams = DfsLogger.readHeaderAndReturnStream(fsinput, siteConfig);
+            } catch (LogHeaderIncompleteException e) {
+              log.warn("Could not read header for {} . Ignoring...", path);
+              continue;
+            }
 
-          try (DataInputStream input = streams.getDecryptingInputStream()) {
-            while (true) {
-              try {
-                key.readFields(input);
-                value.readFields(input);
-              } catch (EOFException ex) {
-                break;
+            try (DataInputStream input = streams.getDecryptingInputStream()) {
+              while (true) {
+                try {
+                  key.readFields(input);
+                  value.readFields(input);
+                } catch (EOFException ex) {
+                  break;
+                }
+                printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
               }
-              printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
             }
           }
-        }
-      } else {
-        // read the log entries sorted in a map file
-        try (RecoveryLogReader input = new RecoveryLogReader(fs, path)) {
-          while (input.hasNext()) {
-            Entry<LogFileKey,LogFileValue> entry = input.next();
-            printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
-                opts.maxMutations);
+        } else {
+          // read the log entries sorted in a map file
+          try (RecoveryLogReader input = new RecoveryLogReader(fs, path)) {
+            while (input.hasNext()) {
+              Entry<LogFileKey,LogFileValue> entry = input.next();
+              printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
+                  opts.maxMutations);
+            }
           }
         }
       }

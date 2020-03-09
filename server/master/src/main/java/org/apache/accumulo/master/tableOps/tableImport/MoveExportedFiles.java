@@ -47,7 +47,7 @@ class MoveExportedFiles extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     try {
-      VolumeManager fs = master.getFileSystem();
+      VolumeManager fs = master.getVolumeManager();
 
       Map<String,String> fileNameMappings = PopulateMetadataTable.readMappingFile(fs, tableInfo);
 

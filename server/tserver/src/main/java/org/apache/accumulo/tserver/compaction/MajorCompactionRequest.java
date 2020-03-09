@@ -158,7 +158,7 @@ public class MajorCompactionRequest implements Cloneable {
     SummaryCollection sc = new SummaryCollection();
     SummarizerFactory factory = new SummarizerFactory(tableConfig);
     for (TabletFile file : files) {
-      FileSystem fs = volumeManager.getVolumeByPath(file.getPath()).getFileSystem();
+      FileSystem fs = volumeManager.getFileSystemByPath(file.getPath());
       Configuration conf = context.getHadoopConf();
       SummaryCollection fsc = SummaryReader
           .load(fs, conf, factory, file.getPath(), summarySelector, summaryCache, indexCache,
@@ -181,7 +181,7 @@ public class MajorCompactionRequest implements Cloneable {
     // @TODO verify the file isn't some random file in HDFS
     // @TODO ensure these files are always closed?
     FileOperations fileFactory = FileOperations.getInstance();
-    FileSystem ns = volumeManager.getVolumeByPath(tabletFile.getPath()).getFileSystem();
+    FileSystem ns = volumeManager.getFileSystemByPath(tabletFile.getPath());
     return fileFactory.newReaderBuilder()
         .forFile(tabletFile.getPathStr(), ns, ns.getConf(), context.getCryptoService())
         .withTableConfiguration(tableConfig).seekToBeginning().build();

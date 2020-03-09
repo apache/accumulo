@@ -31,8 +31,8 @@ import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -41,7 +41,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class AccumuloReloadingVFSClassLoaderTest {
 
-  private TemporaryFolder folder1 =
+  @Rule
+  public TemporaryFolder folder1 =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
   String folderPath;
   private FileSystemManager vfs;
@@ -50,7 +51,6 @@ public class AccumuloReloadingVFSClassLoaderTest {
   public void setup() throws Exception {
     vfs = ContextManagerTest.getVFS();
 
-    folder1.create();
     folderPath = folder1.getRoot().toURI() + ".*";
 
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
@@ -176,11 +176,6 @@ public class AccumuloReloadingVFSClassLoaderTest {
     assertFalse(o1.equals(o2));
 
     arvcl.close();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    folder1.delete();
   }
 
 }

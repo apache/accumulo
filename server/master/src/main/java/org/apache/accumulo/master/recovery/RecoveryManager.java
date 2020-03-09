@@ -104,7 +104,7 @@ public class RecoveryManager {
       boolean rescheduled = false;
       try {
         long time = closer.close(master.getConfiguration(), master.getContext().getHadoopConf(),
-            master.getFileSystem(), new Path(source));
+            master.getVolumeManager(), new Path(source));
 
         if (time > 0) {
           executor.schedule(this, time, TimeUnit.MILLISECONDS);
@@ -143,7 +143,7 @@ public class RecoveryManager {
 
   private boolean exists(final Path path) throws IOException {
     try {
-      return existenceCache.get(path, () -> master.getFileSystem().exists(path));
+      return existenceCache.get(path, () -> master.getVolumeManager().exists(path));
     } catch (ExecutionException e) {
       throw new IOException(e);
     }
