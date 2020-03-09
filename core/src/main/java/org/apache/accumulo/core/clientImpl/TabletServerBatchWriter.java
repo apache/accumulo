@@ -990,7 +990,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       } catch (ThriftSecurityException e) {
         updateAuthorizationFailures(tabMuts.keySet(), e.code);
         throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (TException e) {
+      } catch (Throwable e) {
         throw new IOException(e);
       }
     }

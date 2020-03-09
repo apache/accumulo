@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,6 +54,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -64,8 +66,10 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -266,6 +270,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
+import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
@@ -350,6 +355,11 @@ public class TabletServer extends AbstractServer {
 
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
+
+  int maxThreads = getServerConfig().getConfiguration().getCount(Property.TSERV_MAX_WRITETHREADS);
+  int maxThreadPermits = maxThreads == 0 ? Integer.MAX_VALUE : maxThreads;
+
+  private Semaphore sem = new Semaphore(maxThreadPermits);
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
@@ -949,16 +959,12 @@ public class TabletServer extends AbstractServer {
 
     private void setUpdateTablet(UpdateSession us, KeyExtent keyExtent) {
 
-      int activeThreadCount = Thread.activeCount();
-      int maxWriteThreads =
-          getServerConfig().getConfiguration().getCount(Property.TSERV_MAX_WRITETHREADS);
-
       long t1 = System.currentTimeMillis();
       if (us.currentTablet != null && us.currentTablet.getExtent().equals(keyExtent)) {
         return;
       }
       if (us.currentTablet == null
-          && (us.failures.containsKey(keyExtent) || us.authFailures.containsKey(keyExtent))) {
+              && (us.failures.containsKey(keyExtent) || us.authFailures.containsKey(keyExtent))) {
         // if there were previous failures, then do not accept additional writes
         return;
       }
@@ -968,26 +974,15 @@ public class TabletServer extends AbstractServer {
         // if user has no permission to write to this table, add it to
         // the failures list
         boolean sameTable = us.currentTablet != null
-            && (us.currentTablet.getExtent().getTableId().equals(keyExtent.getTableId()));
+                && (us.currentTablet.getExtent().getTableId().equals(keyExtent.getTableId()));
         tableId = keyExtent.getTableId();
         if (sameTable || security.canWrite(us.getCredentials(), tableId,
-            Tables.getNamespaceId(getContext(), tableId))) {
+                Tables.getNamespaceId(getContext(), tableId))) {
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = getOnlineTablet(keyExtent);
           if (us.currentTablet != null) {
-            if (maxWriteThreads == 0 || activeThreadCount <= maxWriteThreads
-                || (TabletType.type(keyExtent) == TabletType.METADATA
-                    || TabletType.type(keyExtent) == TabletType.ROOT)) {
-              us.queuedMutations.put(us.currentTablet, new ArrayList<>());
-              log.info("Active Thread Count: {}  Tablet Type: {}", activeThreadCount,
-                  TabletType.type(keyExtent).toString());
-            } else {
-              us.failures.put(keyExtent, 0L);
-              log.error("THREAD LIMIT EXCEEDED. Active : {} Max: {} Tablet Type: {}",
-                  activeThreadCount, maxWriteThreads, TabletType.type(keyExtent).toString());
-              updateMetrics.addMaxThreadLimitExceeded(0);
-            }
+            us.queuedMutations.put(us.currentTablet, new ArrayList<>());
           } else {
             // not serving tablet, so report all mutations as
             // failures
@@ -1013,7 +1008,7 @@ public class TabletServer extends AbstractServer {
         return;
       } catch (ThriftSecurityException e) {
         log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(),
-            e);
+                e);
         long t2 = System.currentTimeMillis();
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
@@ -1021,19 +1016,36 @@ public class TabletServer extends AbstractServer {
         updateMetrics.addPermissionErrors(0);
         return;
       }
+
     }
 
     @Override
     public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent tkeyExtent,
-        List<TMutation> tmutations) {
+        List<TMutation> tmutations) throws TException {
       UpdateSession us = (UpdateSession) sessionManager.reserveSession(updateID);
       if (us == null) {
         return;
       }
 
       boolean reserved = true;
+      boolean allowWriteThreadSemaphore = false;
       try {
         KeyExtent keyExtent = new KeyExtent(tkeyExtent);
+
+        // added by Ivan
+        if (TabletType.type(keyExtent) == TabletType.USER) {
+          if (!sem.tryAcquire()) {
+            us.failures.put(keyExtent, 0L);
+            updateMetrics.addUnknownTabletErrors(0);
+            log.error("zxz MUTATION failed");
+            throw new TException("zxz No more threads available for mutations at " + new Date());
+          }
+          else {
+            allowWriteThreadSemaphore = true;
+            log.info("zxz Available permits: {}", sem.availablePermits());
+          }
+        }
+
         setUpdateTablet(us, keyExtent);
 
         if (us.currentTablet != null) {
@@ -1050,7 +1062,7 @@ public class TabletServer extends AbstractServer {
               .getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
           if (totalQueued > total) {
             try {
-              flush(us);
+                flush(us);
             } catch (HoldTimeoutException hte) {
               // Assumption is that the client has timed out and is gone. If that's not the case,
               // then removing the session should cause the client to fail
@@ -1061,12 +1073,16 @@ public class TabletServer extends AbstractServer {
             }
           }
         }
-      } finally {
+      }finally{
+        if (allowWriteThreadSemaphore)
+           sem.release();
         if (reserved) {
           sessionManager.unreserveSession(us);
         }
       }
+
     }
+
 
     private void flush(UpdateSession us) {
 
@@ -1093,7 +1109,7 @@ public class TabletServer extends AbstractServer {
 
           Tablet tablet = entry.getKey();
           Durability durability =
-              DurabilityImpl.resolveDurabilty(us.durability, tablet.getDurability());
+                  DurabilityImpl.resolveDurabilty(us.durability, tablet.getDurability());
           List<Mutation> mutations = entry.getValue();
           if (mutations.size() > 0) {
             try {
@@ -1112,7 +1128,7 @@ public class TabletServer extends AbstractServer {
                   CommitSession session = prepared.getCommitSession();
                   if (durability != Durability.NONE) {
                     loggables.put(session,
-                        new TabletMutations(session, validMutations, durability));
+                            new TabletMutations(session, validMutations, durability));
                   }
                   sendables.put(session, validMutations);
                 }
@@ -1159,14 +1175,13 @@ public class TabletServer extends AbstractServer {
               log.warn("logging mutations failed, retrying");
             } catch (Throwable t) {
               log.error("Unknown exception logging mutations, counts"
-                  + " for mutations in flight not decremented!", t);
+                      + " for mutations in flight not decremented!", t);
               throw new RuntimeException(t);
             }
           }
         }
 
         try (TraceScope commit = Trace.startSpan("commit")) {
-
           long t1 = System.currentTimeMillis();
           sendables.forEach((commitSession, mutations) -> {
             commitSession.commit(mutations);
@@ -1178,7 +1193,7 @@ public class TabletServer extends AbstractServer {
               // need to increment the count based on the original
               // number of mutations from the client NOT the filtered number
               us.successfulCommits.increment(us.currentTablet,
-                  us.queuedMutations.get(us.currentTablet).size());
+                      us.queuedMutations.get(us.currentTablet).size());
             }
           });
           long t2 = System.currentTimeMillis();
@@ -1189,8 +1204,6 @@ public class TabletServer extends AbstractServer {
           updateAvgCommitTime(t2 - t1, sendables.size());
         }
       } finally {
-        KeyExtent keyExtent = us.currentTablet.getExtent();
-
         us.queuedMutations.clear();
         if (us.currentTablet != null) {
           us.queuedMutations.put(us.currentTablet, new ArrayList<>());
