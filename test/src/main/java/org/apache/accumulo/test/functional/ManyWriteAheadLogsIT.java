@@ -198,13 +198,15 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
   }
 
   private void addOpenWals(ServerContext c, Set<String> allWalsSeen) throws Exception {
-    Map<String,WalState> wals = WALSunnyDayIT._getWals(c);
-    Set<Entry<String,WalState>> es = wals.entrySet();
+
     int open = 0;
-    int attempts = 1;
+    int attempts = 0;
     boolean foundWal = false;
 
     while (open == 0) {
+      attempts++;
+      Map<String,WalState> wals = WALSunnyDayIT._getWals(c);
+      Set<Entry<String,WalState>> es = wals.entrySet();
       for (Entry<String,WalState> entry : es) {
         if (entry.getValue() == WalState.OPEN) {
           open++;
@@ -213,13 +215,12 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
         } else {
           log.error("The WalState is " + entry.getValue());// CLOSED or UNREFERENCED
         }
+      }
 
-        if (!foundWal) {
-          attempts++;
-          Thread.sleep(50);
-          if (attempts % 50 == 0)
-            log.info("Has not found an open WAL in " + attempts + " attempts.");
-        }
+      if (!foundWal) {
+        Thread.sleep(50);
+        if (attempts % 50 == 0)
+          log.info("Has not found an open WAL in " + attempts + " attempts.");
       }
     }
 
