@@ -146,17 +146,13 @@ public class PrintInfo implements KeywordExecutable {
     return "Prints rfile info";
   }
 
-  @SuppressWarnings("unchecked")
-  protected Class<? extends BiFunction<Key,Value,String>> getFormatter(String formatterClazz) {
-    try {
-      if (formatterClazz != null) {
-        return (Class<? extends BiFunction<Key,Value,String>>) this.getClass().getClassLoader()
+  protected Class<? extends BiFunction<Key,Value,String>> getFormatter(String formatterClazz)
+      throws ClassNotFoundException {
+    @SuppressWarnings("unchecked")
+    Class<? extends BiFunction<Key,Value,String>> clazz =
+        (Class<? extends BiFunction<Key,Value,String>>) this.getClass().getClassLoader()
             .loadClass(formatterClazz).asSubclass(BiFunction.class);
-      }
-    } catch (ClassNotFoundException e) {
-      System.err.println("Could not find formatter class: " + formatterClazz);
-    }
-    return null;
+    return clazz;
   }
 
   @SuppressFBWarnings(value = "DM_EXIT",
@@ -169,6 +165,13 @@ public class PrintInfo implements KeywordExecutable {
       System.err.println("No files were given");
       System.exit(1);
     }
+
+    if ((opts.fullKeys || opts.dump) && opts.formatterClazz != null) {
+      System.err.println(
+          "--formatter argument is incompatible with --dump or --fullKeys, specify either, not both.");
+      System.exit(1);
+    }
+
     var siteConfig = opts.getSiteConfiguration();
 
     Configuration conf = new Configuration();
