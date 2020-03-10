@@ -1043,6 +1043,7 @@ public class TabletServer extends AbstractServer {
           else {
             allowWriteThreadSemaphore = true;
             log.info("zxz Available permits: {}", sem.availablePermits());
+            log.info("zxz Write Threads Limit: {}",  maxThreadPermits);
           }
         }
 

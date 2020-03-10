@@ -49,7 +49,7 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
 
     // sets the thread limit on the SERVER SIDE
     // default value is 0. when set to 0, there is no limit
-    cfg.setProperty(TSERV_MAX_WRITETHREADS.getKey(), "1");
+    cfg.setProperty(TSERV_MAX_WRITETHREADS.getKey(), "0");
   }
 
   @Test

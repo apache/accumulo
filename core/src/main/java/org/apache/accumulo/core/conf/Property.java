@@ -371,7 +371,7 @@ public enum Property {
   TSERV_MEM_MGMT("tserver.memory.manager",
       "org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager", PropertyType.CLASSNAME,
       "An implementation of MemoryManger that accumulo will use."),
-  TSERV_MAX_WRITETHREADS("tserver.max.writethreads", "0", PropertyType.COUNT,
+  TSERV_MAX_WRITETHREADS("tserver.max.writethreads", "3", PropertyType.COUNT,
       "The maximum number of write threads allowed for tablet servers."
           + "When set to 0, there is no limit."),
   TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION,
