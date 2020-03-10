@@ -25,6 +25,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -57,33 +58,56 @@ import org.slf4j.LoggerFactory;
 public class Upgrader9to10Test {
   private static Logger log = LoggerFactory.getLogger(Upgrader9to10Test.class);
 
+  private static final String VOL_PROP = "hdfs://nn1:8020/accumulo";
+
   @Test
-  public void testSwitchRelative() {
+  public void testSwitchRelativeDeletes() throws Exception {
+    VolumeManager fs = createMock(VolumeManager.class);
+    expect(fs.exists(anyObject())).andReturn(true).anyTimes();
+    replay(fs);
+
+    Path resolved = Upgrader9to10.resolveRelativeDelete(fs, "/5a/t-0005", VOL_PROP);
+    assertEquals(new Path(VOL_PROP + "/tables/5a/t-0005"), resolved);
     assertEquals(GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5a"), "t-0005"),
-        Upgrader9to10.switchToAllVolumes("/5a/t-0005"));
-    assertEquals("/5a/" + BULK_PREFIX + "0005",
-        Upgrader9to10.switchToAllVolumes("/5a/" + BULK_PREFIX + "0005"));
-    assertEquals("/5a/t-0005/F0009.rf", Upgrader9to10.switchToAllVolumes("/5a/t-0005/F0009.rf"));
+        Upgrader9to10.switchToAllVolumes(resolved));
+
+    resolved = Upgrader9to10.resolveRelativeDelete(fs, "/5a/" + BULK_PREFIX + "0005", VOL_PROP);
+    assertEquals(new Path(VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005"), resolved);
+    assertEquals(VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005",
+        Upgrader9to10.switchToAllVolumes(resolved));
+
+    resolved = Upgrader9to10.resolveRelativeDelete(fs, "/5a/t-0005/F0009.rf", VOL_PROP);
+    assertEquals(new Path(VOL_PROP + "/tables/5a/t-0005/F0009.rf"), resolved);
+    assertEquals(VOL_PROP + "/tables/5a/t-0005/F0009.rf",
+        Upgrader9to10.switchToAllVolumes(resolved));
   }
 
   @Test(expected = IllegalStateException.class)
-  public void testBadRelativeTooShort() {
-    Upgrader9to10.switchToAllVolumes("/5a");
+  public void testBadRelativeDeleteTooShort() throws Exception {
+    VolumeManager fs = createMock(VolumeManager.class);
+    expect(fs.exists(anyObject())).andReturn(true).anyTimes();
+    replay(fs);
+    Upgrader9to10.resolveRelativeDelete(fs, "/5a", VOL_PROP);
   }
 
   @Test(expected = IllegalStateException.class)
-  public void testBadRelativeTooLong() {
-    Upgrader9to10.switchToAllVolumes("/5a/5a/t-0005/F0009.rf");
+  public void testBadRelativeDeleteTooLong() throws Exception {
+    VolumeManager fs = createMock(VolumeManager.class);
+    expect(fs.exists(anyObject())).andReturn(true).anyTimes();
+    replay(fs);
+    Upgrader9to10.resolveRelativeDelete(fs, "/5a/5a/t-0005/F0009.rf", VOL_PROP);
   }
 
   @Test
-  public void testSwitch() {
+  public void testSwitchAllVolumes() {
     assertEquals(GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5a"), "t-0005"),
-        Upgrader9to10.switchToAllVolumes("hdfs://localhost:9000/accumulo/tables/5a/t-0005"));
-    assertEquals("hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005", Upgrader9to10
-        .switchToAllVolumes("hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005"));
+        Upgrader9to10
+            .switchToAllVolumes(new Path("hdfs://localhost:9000/accumulo/tables/5a/t-0005")));
+    assertEquals("hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005",
+        Upgrader9to10.switchToAllVolumes(
+            new Path("hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005")));
     assertEquals("hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf", Upgrader9to10
-        .switchToAllVolumes("hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf"));
+        .switchToAllVolumes(new Path("hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf")));
   }
 
   @Test
@@ -159,8 +183,8 @@ public class Upgrader9to10Test {
     List<Mutation> results = new ArrayList<>();
 
     setupMocks(c, fs, map, results);
-    assertEquals("Invalid Relative path check",
-        Upgrader9to10.checkForRelativePaths(c, fs, tableName, volumeUpgrade), false);
+    assertFalse("Invalid Relative path check",
+        Upgrader9to10.checkForRelativePaths(c, fs, tableName, volumeUpgrade));
     assertTrue(results.isEmpty());
   }
 

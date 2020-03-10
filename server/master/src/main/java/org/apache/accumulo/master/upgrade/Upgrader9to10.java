@@ -68,7 +68,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
@@ -405,6 +404,8 @@ public class Upgrader9to10 implements Upgrader {
     try (BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig())) {
       log.info("looking for candidates in table {}", tableName);
       Iterator<String> oldCandidates = getOldCandidates(ctx, tableName);
+      String upgradeProp = ctx.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
+
       while (oldCandidates.hasNext()) {
         List<String> deletes = readCandidatesInBatch(oldCandidates);
         log.info("found {} deletes to upgrade", deletes.size());
@@ -412,7 +413,8 @@ public class Upgrader9to10 implements Upgrader {
           // create new formatted delete
           log.trace("upgrading delete entry for {}", olddelete);
 
-          String updatedDel = switchToAllVolumes(olddelete);
+          Path absolutePath = resolveRelativeDelete(ctx.getVolumeManager(), olddelete, upgradeProp);
+          String updatedDel = switchToAllVolumes(absolutePath);
 
           writer.addMutation(ServerAmpleImpl.createDeleteMutation(updatedDel));
         }
@@ -430,26 +432,27 @@ public class Upgrader9to10 implements Upgrader {
     }
   }
 
+  /**
+   * If path of file to delete is a directory, change it to all volumes. See {@link GcVolumeUtil}.
+   * For example: A directory "hdfs://localhost:9000/accumulo/tables/5a/t-0005" with depth = 4 will
+   * be switched to "agcav:/tables/5a/t-0005". A file
+   * "hdfs://localhost:9000/accumulo/tables/5a/t-0005/A0012.rf" with depth = 5 will be returned as
+   * is.
+   */
   @VisibleForTesting
-  static String switchToAllVolumes(String olddelete) {
-    Path relPath = VolumeManager.FileType.TABLE.removeVolume(new Path(olddelete));
-
-    if (relPath == null) {
-      // An old style relative delete marker of the form /<table id>/<tablet dir>[/<file>]
-      relPath = new Path("/" + VolumeManager.FileType.TABLE.getDirectory() + olddelete);
-      Preconditions.checkState(
-          olddelete.startsWith("/") && relPath.depth() == 3 || relPath.depth() == 4,
-          "Unrecongnized relative delete marker {}", olddelete);
-    }
-
-    if (relPath.depth() == 3 && !relPath.getName().startsWith(Constants.BULK_PREFIX)) {
-      return GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of(relPath.getParent().getName()),
-          relPath.getName());
+  static String switchToAllVolumes(Path olddelete) {
+    // for directory, change volume to all volumes
+    if (olddelete.depth() == 4 && !olddelete.getName().startsWith(Constants.BULK_PREFIX)) {
+      return GcVolumeUtil.getDeleteTabletOnAllVolumesUri(
+          TableId.of(olddelete.getParent().getName()), olddelete.getName());
     } else {
-      return olddelete;
+      return olddelete.toString();
     }
   }
 
+  /**
+   * Return path of the file from old delete markers
+   */
   private Iterator<String> getOldCandidates(ServerContext ctx, String tableName)
       throws TableNotFoundException {
     Range range = MetadataSchema.DeletesSection.getRange();
@@ -548,7 +551,6 @@ public class Upgrader9to10 implements Upgrader {
           }
           Path relPath = resolveRelativePath(metaEntry, key);
           Path absPath = new Path(upgradeProperty, relPath);
-          // Path absPath = new Path(Paths.get(upgradeProperty).normalize().toString(), relPath);
           if (fs.exists(absPath)) {
             log.debug("Changing Tablet File path from {} to {}", metaEntry, absPath);
             Mutation m = new Mutation(key.getRow());
@@ -595,7 +597,6 @@ public class Upgrader9to10 implements Upgrader {
           }
           Path relPath = resolveRelativePath(metaEntry, key);
           Path absPath = new Path(upgradeProperty, relPath);
-          // Path absPath = new Path(Paths.get(upgradeProperty).normalize().toString(), relPath);
           if (!fs.exists(absPath)) {
             throw new IllegalArgumentException("Tablet file " + relPath + " not found at " + absPath
                 + " using volume: " + upgradeProperty);
@@ -615,7 +616,7 @@ public class Upgrader9to10 implements Upgrader {
    * Resolve old-style relative paths, returning Path of everything except volume and base
    */
   private static Path resolveRelativePath(String metadataEntry, Key key) {
-    String prefix = ServerConstants.TABLE_DIR + "/";
+    String prefix = VolumeManager.FileType.TABLE.getDirectory() + "/";
     if (metadataEntry.startsWith("../")) {
       // resolve style "../2a/t-0003/C0004.rf"
       return new Path(prefix + metadataEntry.substring(3));
@@ -624,5 +625,40 @@ public class Upgrader9to10 implements Upgrader {
       TableId tableId = KeyExtent.tableOfMetadataRow(key.getRow());
       return new Path(prefix + tableId.canonical() + metadataEntry);
     }
+  }
+
+  /**
+   * Resolve old relative delete markers of the form /tableId/tabletDir/[file] to
+   * UpgradeVolume/tables/tableId/tabletDir/[file]
+   */
+  static Path resolveRelativeDelete(VolumeManager fs, String oldDelete, String upgradeProperty) {
+    Path pathNoVolume = VolumeManager.FileType.TABLE.removeVolume(new Path(oldDelete));
+
+    // abs path won't be null so return
+    if (pathNoVolume != null)
+      return pathNoVolume;
+
+    // use Path to check the format is correct
+    Path pathToCheck = new Path(oldDelete);
+    Preconditions.checkState(
+        oldDelete.startsWith("/") && (pathToCheck.depth() == 2 || pathToCheck.depth() == 3),
+        "Unrecognized relative delete marker {}", oldDelete);
+
+    // found relative paths so verify the property used to build the absolute paths
+    if (upgradeProperty == null || upgradeProperty.isBlank()) {
+      throw new IllegalArgumentException(
+          "Missing required property " + Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE.getKey());
+    }
+    Path absPath =
+        new Path(upgradeProperty, VolumeManager.FileType.TABLE.getDirectory() + oldDelete);
+    try {
+      if (!fs.exists(absPath)) {
+        throw new IllegalArgumentException("File not found at " + absPath + " for Delete marker "
+            + oldDelete + " using volume: " + upgradeProperty);
+      }
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+    return absPath;
   }
 }
