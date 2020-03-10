@@ -205,6 +205,8 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
       if (entry.getValue() == WalState.OPEN) {
         open++;
         allWalsSeen.add(entry.getKey());
+      } else {
+        log.error("The WalState is " + entry.getValue());// CLOSED or UNREFERENCED
       }
     }
 
