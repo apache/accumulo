@@ -220,7 +220,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
       if (!foundWal) {
         Thread.sleep(50);
         if (attempts % 50 == 0)
-          log.info("Has not found an open WAL in " + attempts + " attempts.");
+          log.debug("No open WALs found in {} attempts.", attempts);
       }
     }
 
