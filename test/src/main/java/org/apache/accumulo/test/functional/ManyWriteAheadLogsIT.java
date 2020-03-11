@@ -224,7 +224,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
       }
     }
 
-    log.debug("It took " + attempts + " attempt(s) to find an open WAL");
+    log.debug("It took {} attempt(s) to find {} open WALs", attempts, open);
     assertTrue("Open WALs not in expected range " + open, open > 0 && open < 4);
   }
 
