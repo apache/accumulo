@@ -414,7 +414,7 @@ public class Upgrader9to10 implements Upgrader {
           // create new formatted delete
           log.trace("upgrading delete entry for {}", olddelete);
 
-          Path absolutePath = resolveRelativeDelete(ctx.getVolumeManager(), olddelete, upgradeProp);
+          Path absolutePath = resolveRelativeDelete(olddelete, upgradeProp);
           String updatedDel = switchToAllVolumes(absolutePath);
 
           writer.addMutation(ServerAmpleImpl.createDeleteMutation(updatedDel));
@@ -635,7 +635,7 @@ public class Upgrader9to10 implements Upgrader {
    * Resolve old relative delete markers of the form /tableId/tabletDir/[file] to
    * UpgradeVolume/tables/tableId/tabletDir/[file]
    */
-  static Path resolveRelativeDelete(VolumeManager fs, String oldDelete, String upgradeProperty) {
+  static Path resolveRelativeDelete(String oldDelete, String upgradeProperty) {
     Path pathNoVolume = VolumeManager.FileType.TABLE.removeVolume(new Path(oldDelete));
 
     // removeVolume will return null if path doesn't have a volume aka is a relative path

@@ -61,41 +61,31 @@ public class Upgrader9to10Test {
   private static final String VOL_PROP = "hdfs://nn1:8020/accumulo";
 
   @Test
-  public void testSwitchRelativeDeletes() throws Exception {
-    VolumeManager fs = createMock(VolumeManager.class);
-    expect(fs.exists(anyObject())).andReturn(true).anyTimes();
-    replay(fs);
-
-    Path resolved = Upgrader9to10.resolveRelativeDelete(fs, "/5a/t-0005", VOL_PROP);
+  public void testSwitchRelativeDeletes() {
+    Path resolved = Upgrader9to10.resolveRelativeDelete("/5a/t-0005", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/t-0005"), resolved);
     assertEquals(GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5a"), "t-0005"),
         Upgrader9to10.switchToAllVolumes(resolved));
 
-    resolved = Upgrader9to10.resolveRelativeDelete(fs, "/5a/" + BULK_PREFIX + "0005", VOL_PROP);
+    resolved = Upgrader9to10.resolveRelativeDelete("/5a/" + BULK_PREFIX + "0005", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005"), resolved);
     assertEquals(VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005",
         Upgrader9to10.switchToAllVolumes(resolved));
 
-    resolved = Upgrader9to10.resolveRelativeDelete(fs, "/5a/t-0005/F0009.rf", VOL_PROP);
+    resolved = Upgrader9to10.resolveRelativeDelete("/5a/t-0005/F0009.rf", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/t-0005/F0009.rf"), resolved);
     assertEquals(VOL_PROP + "/tables/5a/t-0005/F0009.rf",
         Upgrader9to10.switchToAllVolumes(resolved));
   }
 
   @Test(expected = IllegalStateException.class)
-  public void testBadRelativeDeleteTooShort() throws Exception {
-    VolumeManager fs = createMock(VolumeManager.class);
-    expect(fs.exists(anyObject())).andReturn(true).anyTimes();
-    replay(fs);
-    Upgrader9to10.resolveRelativeDelete(fs, "/5a", VOL_PROP);
+  public void testBadRelativeDeleteTooShort() {
+    Upgrader9to10.resolveRelativeDelete("/5a", VOL_PROP);
   }
 
   @Test(expected = IllegalStateException.class)
   public void testBadRelativeDeleteTooLong() throws Exception {
-    VolumeManager fs = createMock(VolumeManager.class);
-    expect(fs.exists(anyObject())).andReturn(true).anyTimes();
-    replay(fs);
-    Upgrader9to10.resolveRelativeDelete(fs, "/5a/5a/t-0005/F0009.rf", VOL_PROP);
+    Upgrader9to10.resolveRelativeDelete("/5a/5a/t-0005/F0009.rf", VOL_PROP);
   }
 
   @Test
