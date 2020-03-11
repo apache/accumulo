@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
@@ -434,17 +435,20 @@ public class Upgrader9to10 implements Upgrader {
 
   /**
    * If path of file to delete is a directory, change it to all volumes. See {@link GcVolumeUtil}.
-   * For example: A directory "hdfs://localhost:9000/accumulo/tables/5a/t-0005" with depth = 4 will
-   * be switched to "agcav:/tables/5a/t-0005". A file
-   * "hdfs://localhost:9000/accumulo/tables/5a/t-0005/A0012.rf" with depth = 5 will be returned as
-   * is.
+   * For example: A directory "hdfs://localhost:9000/accumulo/tables/5a/t-0005" with volume removed
+   * "tables/5a/t-0005" depth = 3 will be switched to "agcav:/tables/5a/t-0005". A file
+   * "hdfs://localhost:9000/accumulo/tables/5a/t-0005/A0012.rf" with volume removed
+   * "tables/5a/t-0005/A0012.rf" depth = 4 will be returned as is.
    */
   @VisibleForTesting
   static String switchToAllVolumes(Path olddelete) {
-    // for directory, change volume to all volumes
-    if (olddelete.depth() == 4 && !olddelete.getName().startsWith(Constants.BULK_PREFIX)) {
+    Path pathNoVolume = Objects.requireNonNull(VolumeManager.FileType.TABLE.removeVolume(olddelete),
+        "Invalid delete marker. No volume in path: " + olddelete);
+
+    // a directory path with volume removed will have a depth of 3 so change volume to all volumes
+    if (pathNoVolume.depth() == 3 && !pathNoVolume.getName().startsWith(Constants.BULK_PREFIX)) {
       return GcVolumeUtil.getDeleteTabletOnAllVolumesUri(
-          TableId.of(olddelete.getParent().getName()), olddelete.getName());
+          TableId.of(pathNoVolume.getParent().getName()), pathNoVolume.getName());
     } else {
       return olddelete.toString();
     }
@@ -634,11 +638,12 @@ public class Upgrader9to10 implements Upgrader {
   static Path resolveRelativeDelete(VolumeManager fs, String oldDelete, String upgradeProperty) {
     Path pathNoVolume = VolumeManager.FileType.TABLE.removeVolume(new Path(oldDelete));
 
-    // abs path won't be null so return
+    // removeVolume will return null if path doesn't have a volume aka is a relative path
     if (pathNoVolume != null)
       return pathNoVolume;
 
-    // use Path to check the format is correct
+    // A relative path directory of the form "/tableId/tabletDir" will have depth == 2
+    // A relative path file of the form "/tableId/tabletDir/file" will have depth == 3
     Path pathToCheck = new Path(oldDelete);
     Preconditions.checkState(
         oldDelete.startsWith("/") && (pathToCheck.depth() == 2 || pathToCheck.depth() == 3),
@@ -649,16 +654,6 @@ public class Upgrader9to10 implements Upgrader {
       throw new IllegalArgumentException(
           "Missing required property " + Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE.getKey());
     }
-    Path absPath =
-        new Path(upgradeProperty, VolumeManager.FileType.TABLE.getDirectory() + oldDelete);
-    try {
-      if (!fs.exists(absPath)) {
-        throw new IllegalArgumentException("File not found at " + absPath + " for Delete marker "
-            + oldDelete + " using volume: " + upgradeProperty);
-      }
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-    return absPath;
+    return new Path(upgradeProperty, VolumeManager.FileType.TABLE.getDirectory() + oldDelete);
   }
 }
