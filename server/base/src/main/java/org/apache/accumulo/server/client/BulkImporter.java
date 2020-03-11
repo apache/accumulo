@@ -115,6 +115,9 @@ public class BulkImporter {
     int numAssignThreads = context.getConfiguration()
         .getCount(Property.TSERV_BULK_ASSIGNMENT_THREADS);
 
+    final int maxAssignedTablets = context.getConfiguration()
+        .getCount(Property.TSERV_BULK_MAX_TABLET_OVERLAP);
+
     timer = new StopWatch<>(Timers.class);
     timer.start(Timers.TOTAL);
 
@@ -158,6 +161,15 @@ public class BulkImporter {
             if (tabletsToAssignMapFileTo.size() == 0) {
               List<KeyExtent> empty = Collections.emptyList();
               completeFailures.put(mapFile, empty);
+            } else if (maxAssignedTablets != 0
+                && tabletsToAssignMapFileTo.size() > maxAssignedTablets) {
+              log.error("Tried to assign " + mapFile + " to " + tabletsToAssignMapFileTo.size()
+                  + " tablets, exceeding limit of " + maxAssignedTablets);
+              List<KeyExtent> extents = new ArrayList<>(tabletsToAssignMapFileTo.size());
+              for (int i = 0; i < tabletsToAssignMapFileTo.size(); i++) {
+                extents.add(tabletsToAssignMapFileTo.get(i).tablet_extent);
+              }
+              completeFailures.put(mapFile, extents);
             } else
               assignments.put(mapFile, tabletsToAssignMapFileTo);
           }

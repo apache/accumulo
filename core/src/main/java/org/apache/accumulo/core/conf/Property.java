@@ -525,7 +525,9 @@ public enum Property {
   TSERV_SLOW_FLUSH_MILLIS("tserver.slow.flush.time", "100ms", PropertyType.TIMEDURATION,
       "If a flush to the write-ahead log takes longer than this period of time,"
           + " debugging information will written, and may result in a log rollover."),
-
+  TSERV_BULK_MAX_TABLET_OVERLAP("tserver.bulk.max.overlap", "0", PropertyType.COUNT,
+      "Max number of tablets a bulk import file can have referenced before the bulk load is failed."
+          + " Set to zero to ignore."),
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector."),
