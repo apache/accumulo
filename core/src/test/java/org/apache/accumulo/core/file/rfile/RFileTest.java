@@ -77,7 +77,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -111,8 +110,8 @@ public class RFileTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   static class SeekableByteArrayInputStream extends ByteArrayInputStream
       implements Seekable, PositionedReadable {
@@ -226,8 +225,8 @@ public class RFileTest {
       CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(PositionedOutputs.wrap(dos),
           "gz", conf, accumuloConfiguration);
 
-      SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
-          .newSamplerConfig(accumuloConfiguration);
+      SamplerConfigurationImpl samplerConfig =
+          SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
 
       if (samplerConfig != null) {
@@ -388,7 +387,7 @@ public class RFileTest {
               Key k = newKey(rowS, cfS, cqS, cvS, ts);
               // check below ensures when all key sizes are same more than one index block is
               // created
-              Assert.assertEquals(27, k.getSize());
+              assertEquals(27, k.getSize());
               k.setDeleted(true);
               Value v = newValue("" + val);
               trf.writer.append(k, v);
@@ -396,7 +395,7 @@ public class RFileTest {
               expectedValues.add(v);
 
               k = newKey(rowS, cfS, cqS, cvS, ts);
-              Assert.assertEquals(27, k.getSize());
+              assertEquals(27, k.getSize());
               v = newValue("" + val);
               trf.writer.append(k, v);
               expectedKeys.add(k);
@@ -516,7 +515,7 @@ public class RFileTest {
       count++;
       iiter.next();
     }
-    Assert.assertEquals(20, count);
+    assertEquals(20, count);
 
     trf.closeReader();
   }
@@ -1739,8 +1738,8 @@ public class RFileTest {
   }
 
   private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
-    ConfigurationCopy result = new ConfigurationCopy(
-        AccumuloConfiguration.getDefaultConfiguration());
+    ConfigurationCopy result =
+        new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
     Configuration conf = new Configuration(false);
     conf.addResource(cryptoConfSetting);
     for (Entry<String,String> e : conf) {
@@ -1953,7 +1952,7 @@ public class RFileTest {
       throws IOException {
 
     sample.seek(new Range(), columnFamilies, inclusive);
-    Assert.assertEquals(sampleData, toList(sample));
+    assertEquals(sampleData, toList(sample));
 
     Random rand = new Random();
     long seed = rand.nextLong();
@@ -1991,8 +1990,7 @@ public class RFileTest {
 
       sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies,
           inclusive);
-      Assert.assertEquals("seed: " + seed, sampleData.subList(startIndex, endIndex),
-          toList(sample));
+      assertEquals("seed: " + seed, sampleData.subList(startIndex, endIndex), toList(sample));
     }
   }
 
@@ -2033,12 +2031,12 @@ public class RFileTest {
 
         trf.openReader();
 
-        FileSKVIterator sample = trf.reader
-            .getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+        FileSKVIterator sample =
+            trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
 
         checkSample(sample, sampleData);
 
-        Assert.assertEquals(expectedDataHash, hash(trf.reader));
+        assertEquals(expectedDataHash, hash(trf.reader));
 
         SampleIE ie = new SampleIE(
             SamplerConfigurationImpl.newSamplerConfig(sampleConf).toSamplerConfiguration());
@@ -2054,8 +2052,8 @@ public class RFileTest {
           SortedKeyValueIterator<Key,Value> allDC1 = sampleDC1.deepCopy(new SampleIE(null));
           SortedKeyValueIterator<Key,Value> allDC2 = sample.deepCopy(new SampleIE(null));
 
-          Assert.assertEquals(expectedDataHash, hash(allDC1));
-          Assert.assertEquals(expectedDataHash, hash(allDC2));
+          assertEquals(expectedDataHash, hash(allDC1));
+          assertEquals(expectedDataHash, hash(allDC2));
 
           checkSample(sample, sampleData);
           checkSample(sampleDC1, sampleData);
@@ -2146,12 +2144,12 @@ public class RFileTest {
 
         trf.closeWriter();
 
-        Assert.assertTrue(sampleDataLG1.size() > 0);
-        Assert.assertTrue(sampleDataLG2.size() > 0);
+        assertTrue(sampleDataLG1.size() > 0);
+        assertTrue(sampleDataLG2.size() > 0);
 
         trf.openReader(false);
-        FileSKVIterator sample = trf.reader
-            .getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+        FileSKVIterator sample =
+            trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
 
         checkSample(sample, sampleDataLG1, newColFamByteSequence("metaA", "metaB"), true);
         checkSample(sample, sampleDataLG1, newColFamByteSequence("metaA"), true);
@@ -2224,7 +2222,7 @@ public class RFileTest {
     FileSKVIterator iiter = trf.reader.getIndex();
     while (iiter.hasTop()) {
       Key k = iiter.getTopKey();
-      Assert.assertTrue(k + " " + k.getSize() + " >= 20", k.getSize() < 20);
+      assertTrue(k + " " + k.getSize() + " >= 20", k.getSize() < 20);
       iiter.next();
     }
 
@@ -2232,9 +2230,9 @@ public class RFileTest {
 
     for (Key key : keys) {
       trf.reader.seek(new Range(key, null), EMPTY_COL_FAMS, false);
-      Assert.assertTrue(trf.reader.hasTop());
-      Assert.assertEquals(key, trf.reader.getTopKey());
-      Assert.assertEquals(new Value((key.hashCode() + "").getBytes()), trf.reader.getTopValue());
+      assertTrue(trf.reader.hasTop());
+      assertEquals(key, trf.reader.getTopKey());
+      assertEquals(new Value((key.hashCode() + "").getBytes()), trf.reader.getTopValue());
     }
   }
 
@@ -2286,50 +2284,50 @@ public class RFileTest {
         MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
 
     // table tablet's directory
-    Key tableDirKey = new Key(tableExtent,
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    Key tableDirKey =
+        new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableDirKey, new Value(/* TABLE_TABLETS_TABLET_DIR */"/table_info".getBytes()));
 
     // table tablet time
-    Key tableTimeKey = new Key(tableExtent,
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    Key tableTimeKey =
+        new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
 
     // table tablet's prevrow
-    Key tablePrevRowKey = new Key(tableExtent,
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    Key tablePrevRowKey =
+        new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+            TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
 
     // ----------] default tablet info
     Text defaultExtent = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID, null));
 
     // default's directory
-    Key defaultDirKey = new Key(defaultExtent,
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    Key defaultDirKey =
+        new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
 
     // default's time
-    Key defaultTimeKey = new Key(defaultExtent,
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    Key defaultTimeKey =
+        new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
 
     // default's prevrow
-    Key defaultPrevRowKey = new Key(defaultExtent,
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    Key defaultPrevRowKey =
+        new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+            TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultPrevRowKey,
         KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
 
     testRfile.closeWriter();
 
     if (true) {
-      FileOutputStream fileOutputStream = new FileOutputStream(
-          tempFolder.newFile("testEncryptedRootFile.rf"));
+      FileOutputStream fileOutputStream =
+          new FileOutputStream(tempFolder.newFile("testEncryptedRootFile.rf"));
       fileOutputStream.write(testRfile.baos.toByteArray());
       fileOutputStream.flush();
       fileOutputStream.close();

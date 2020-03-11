@@ -17,6 +17,9 @@
 
 package org.apache.accumulo.server.master.balancer;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,12 +38,13 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.junit.Test;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 
+@SuppressModernizer
 public class GroupBalancerTest {
 
   private static Function<KeyExtent,String> partitioner = new Function<KeyExtent,String>() {
@@ -86,8 +90,8 @@ public class GroupBalancerTest {
               new Function<Map.Entry<KeyExtent,TServerInstance>,Pair<KeyExtent,Location>>() {
 
                 @Override
-                public Pair<KeyExtent,Location> apply(
-                    final Entry<KeyExtent,TServerInstance> input) {
+                public Pair<KeyExtent,Location>
+                    apply(final Entry<KeyExtent,TServerInstance> input) {
                   return new Pair<>(input.getKey(), new Location(input.getValue()));
                 }
               });
@@ -126,12 +130,12 @@ public class GroupBalancerTest {
 
         balancer.balance(current, migrations, migrationsOut);
 
-        Assert.assertTrue("Max Migration exceeded " + maxMigrations + " " + migrationsOut.size(),
+        assertTrue("Max Migration exceeded " + maxMigrations + " " + migrationsOut.size(),
             migrationsOut.size() <= (maxMigrations + 5));
 
         for (TabletMigration tabletMigration : migrationsOut) {
-          Assert.assertEquals(tabletLocs.get(tabletMigration.tablet), tabletMigration.oldServer);
-          Assert.assertTrue(tservers.contains(tabletMigration.newServer));
+          assertEquals(tabletLocs.get(tabletMigration.tablet), tabletMigration.oldServer);
+          assertTrue(tservers.contains(tabletMigration.newServer));
 
           tabletLocs.put(tabletMigration.tablet, tabletMigration.newServer);
         }
@@ -179,16 +183,16 @@ public class GroupBalancerTest {
         MapCounter<String> tgc = entry.getValue();
         int tserverExtra = 0;
         for (String group : groupCounts.keySet()) {
-          Assert.assertTrue(tgc.get(group) >= expectedCounts.get(group));
-          Assert.assertTrue(
+          assertTrue(tgc.get(group) >= expectedCounts.get(group));
+          assertTrue(
               "Group counts not as expected group:" + group + " actual:" + tgc.get(group)
                   + " expected:" + (expectedCounts.get(group) + 1) + " tserver:" + entry.getKey(),
               tgc.get(group) <= expectedCounts.get(group) + 1);
           tserverExtra += tgc.get(group) - expectedCounts.get(group);
         }
 
-        Assert.assertTrue(tserverExtra >= expectedExtra);
-        Assert.assertTrue(tserverExtra <= maxExtraGroups);
+        assertTrue(tserverExtra >= expectedExtra);
+        assertTrue(tserverExtra <= maxExtraGroups);
       }
     }
 

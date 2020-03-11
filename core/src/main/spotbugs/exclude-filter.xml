@@ -1,0 +1,113 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<FindBugsFilter>
+  <Match>
+    <!-- ignore thrift-generated files -->
+    <Or>
+      <Package name="org.apache.accumulo.core.client.impl.thrift" />
+      <Package name="org.apache.accumulo.core.data.thrift" />
+      <Package name="org.apache.accumulo.core.gc.thrift" />
+      <Package name="org.apache.accumulo.core.master.thrift" />
+      <Package name="org.apache.accumulo.core.replication.thrift" />
+      <Package name="org.apache.accumulo.core.security.thrift" />
+      <Package name="org.apache.accumulo.core.tabletserver.thrift" />
+      <Package name="org.apache.accumulo.core.trace.thrift" />
+    </Or>
+  </Match>
+  <Match>
+    <!-- ignore Writable false positives about closing wrapped DataInput stream -->
+    <Or>
+      <Class name="org.apache.accumulo.core.bloomfilter.BloomFilter" />
+    </Or>
+    <Method name="readFields" params="java.io.DataInput" returns="void" />
+    <Bug code="OS" pattern="OS_OPEN_STREAM" />
+  </Match>
+  <Match>
+    <Class name="org.apache.accumulo.core.file.blockfile.impl.SeekableByteArrayInputStream" />
+    <Field name="buffer" />
+    <Bug code="VO" pattern="VO_VOLATILE_REFERENCE_TO_ARRAY" />
+  </Match>
+  <Match>
+    <!-- locking is confusing, but probably correct -->
+    <Class name="org.apache.accumulo.core.client.impl.TabletLocatorImpl" />
+    <Method name="processInvalidated" params="org.apache.accumulo.core.client.impl.ClientContext,org.apache.accumulo.core.client.impl.TabletLocatorImpl$LockCheckerSession" returns="void" />
+    <Bug code="UL" pattern="UL_UNRELEASED_LOCK" />
+  </Match>
+  <Match>
+    <!-- ignore intentional name shadowing -->
+    <Or>
+      <Package name="org.apache.accumulo.core.iterators.user" />
+      <Package name="org.apache.accumulo.core.iterators" />
+      <Package name="org.apache.accumulo.core.trace" />
+      <Class name="org.apache.accumulo.core.client.mapred.RangeInputSplit" />
+      <Class name="org.apache.accumulo.core.client.mapred.impl.BatchInputSplit" />
+      <Class name="org.apache.accumulo.core.util.AddressUtil" />
+      <Class name="org.apache.accumulo.core.zookeeper.ZooUtil" />
+      <Class name="org.apache.accumulo.core.security.VisibilityConstraint" />
+      <Class name="org.apache.accumulo.core.client.mock.IteratorAdapter" />
+    </Or>
+    <Or>
+      <Bug code="NM" pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS" />
+      <Bug code="NM" pattern="NM_SAME_SIMPLE_NAME_AS_INTERFACE" />
+    </Or>
+  </Match>
+  <Match>
+    <!-- bad practice to start a thread in constructor; we should be careful using this class -->
+    <Class name="org.apache.accumulo.core.file.blockfile.cache.LruBlockCache" />
+    <Bug code="SC" pattern="SC_START_IN_CTOR" />
+  </Match>
+  <Match>
+    <!-- locking is confusing, but probably correct -->
+    <Class name="org.apache.accumulo.core.file.blockfile.cache.LruBlockCache$EvictionThread" />
+    <Or>
+      <Bug code="NN" pattern="NN_NAKED_NOTIFY" />
+      <Bug code="UW" pattern="UW_UNCOND_WAIT" />
+    </Or>
+  </Match>
+  <Match>
+    <!-- allowed only for backwards compatibility, but this is generally a pretty bad practice -->
+    <Class name="org.apache.accumulo.core.data.Value" />
+    <Method name="equals" params="java.lang.Object" returns="boolean" />
+    <Bug code="EQ" pattern="EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS" />
+  </Match>
+  <Match>
+    <!-- CryptoTest shouldn't close the given I/O streams, because they are just wrapping them -->
+    <Or>
+      <Class name="org.apache.accumulo.core.security.crypto.CryptoTest" />
+      <Class name="org.apache.accumulo.core.security.crypto.DefaultCryptoModule" />
+    </Or>
+    <Bug code="OS" pattern="OS_OPEN_STREAM" />
+  </Match>
+  <Match>
+    <!-- admin classes can call System.exit -->
+    <Or>
+      <Class name="org.apache.accumulo.core.util.Jar" />
+      <Class name="org.apache.accumulo.core.file.rfile.PrintInfo" />
+    </Or>
+    <Bug code="DM" pattern="DM_EXIT" />
+  </Match>
+  <Match>
+    <!-- The purpose of the method is to test a null argument -->
+    <Class name="org.apache.accumulo.core.client.impl.ScannerOptionsTest" />
+    <Bug code="NP" pattern="NP_NULL_PARAM_DEREF_ALL_TARGETS_DANGEROUS" />
+  </Match>
+  <Match>
+    <!-- Must ignore these everywhere, because of a javac byte code generation bug -->
+    <!-- https://github.com/spotbugs/spotbugs/issues/756 -->
+    <Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE" />
+  </Match>
+</FindBugsFilter>

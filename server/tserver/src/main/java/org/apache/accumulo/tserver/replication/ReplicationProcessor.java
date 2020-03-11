@@ -76,8 +76,8 @@ public class ReplicationProcessor implements Processor {
 
   @Override
   public void process(String workID, byte[] data) {
-    ReplicationTarget target = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(workID)
-        .getValue();
+    ReplicationTarget target =
+        DistributedWorkQueueWorkAssignerHelper.fromQueueKey(workID).getValue();
     String file = new String(data, UTF_8);
 
     log.debug("Received replication work for {} to {}", file, target);
@@ -156,8 +156,8 @@ public class ReplicationProcessor implements Processor {
 
   protected String getPeerType(String peerName) {
     // Find the configured replication peer so we know how to replicate to it
-    Map<String,String> configuredPeers = conf
-        .getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
+    Map<String,String> configuredPeers =
+        conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
     String peerType = configuredPeers.get(Property.REPLICATION_PEERS.getKey() + peerName);
     if (null == peerType) {
       String msg = "Cannot process replication for unknown peer: " + peerName;

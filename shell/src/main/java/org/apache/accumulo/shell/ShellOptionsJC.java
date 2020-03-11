@@ -243,8 +243,8 @@ public class ShellOptionsJC {
     if (null == authenticationToken) {
       final ClientConfiguration clientConf = getClientConfiguration();
       // Automatically use a KerberosToken if the client conf is configured for SASL
-      final boolean saslEnabled = Boolean
-          .parseBoolean(clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+      final boolean saslEnabled =
+          Boolean.parseBoolean(clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
       if (saslEnabled) {
         authenticationToken = new KerberosToken();
       }

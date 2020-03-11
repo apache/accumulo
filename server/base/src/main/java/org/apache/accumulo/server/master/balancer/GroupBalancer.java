@@ -48,6 +48,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.commons.lang.mutable.MutableInt;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 
 import com.google.common.base.Function;
 import com.google.common.collect.HashBasedTable;
@@ -78,6 +79,7 @@ public abstract class GroupBalancer extends TabletBalancer {
   /**
    * @return A function that groups tablets into named groups.
    */
+  @SuppressModernizer
   protected abstract Function<KeyExtent,String> getPartitioner();
 
   public GroupBalancer(String tableId) {
@@ -772,6 +774,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
   }
 
+  @SuppressModernizer
   static class LocationFunction
       implements Function<Iterator<Entry<Key,Value>>,Pair<KeyExtent,Location>> {
     @Override

@@ -63,8 +63,8 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
   @Before
   public void updateMajcDelay() throws Exception {
     Connector c = getConnector();
-    majcDelay = c.instanceOperations().getSystemConfiguration()
-        .get(Property.TSERV_MAJC_DELAY.getKey());
+    majcDelay =
+        c.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
     if (getClusterType() == ClusterType.STANDALONE) {
       // Gotta wait for the cluster to get out of the default sleep value

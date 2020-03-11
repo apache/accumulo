@@ -167,8 +167,8 @@ public class TablesServlet extends BasicServlet {
     if (RootTable.ID.equals(tableId)) {
       locs.add(instance.getRootTabletLocation());
     } else {
-      String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME
-          : MetadataTable.NAME;
+      String systemTableName =
+          MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
       MetaDataTableScanner scanner = new MetaDataTableScanner(Monitor.getContext(),
           new Range(KeyExtent.getMetadataEntry(tableId, new Text()),
               KeyExtent.getMetadataEntry(tableId, null)),
@@ -202,8 +202,8 @@ public class TablesServlet extends BasicServlet {
       }
     }
 
-    Table tableDetails = new Table("participatingTServers",
-        "Participating&nbsp;Tablet&nbsp;Servers");
+    Table tableDetails =
+        new Table("participatingTServers", "Participating&nbsp;Tablet&nbsp;Servers");
     tableDetails.setSubCaption(displayName);
     TServersServlet.doTserverList(req, sb, tservers, tableId, tableDetails);
   }

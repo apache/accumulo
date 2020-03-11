@@ -35,7 +35,7 @@ public class DefaultFormatterTest {
   public static final TimeZone UTC = TimeZone.getTimeZone("UTC");
   public static final TimeZone EST = TimeZone.getTimeZone("EST");
   DefaultFormatter df;
-  Iterable<Entry<Key,Value>> empty = Collections.<Key,Value> emptyMap().entrySet();
+  Iterable<Entry<Key,Value>> empty = Collections.<Key,Value>emptyMap().entrySet();
 
   @Before
   public void setUp() {

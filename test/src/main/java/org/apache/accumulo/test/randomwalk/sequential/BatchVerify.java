@@ -51,8 +51,8 @@ public class BatchVerify extends Test {
     }
 
     Connector conn = env.getConnector();
-    BatchScanner scanner = conn.createBatchScanner(state.getString("seqTableName"),
-        new Authorizations(), 2);
+    BatchScanner scanner =
+        conn.createBatchScanner(state.getString("seqTableName"), new Authorizations(), 2);
 
     try {
       int count = 0;

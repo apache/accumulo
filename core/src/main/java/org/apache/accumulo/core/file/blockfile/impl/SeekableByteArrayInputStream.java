@@ -17,10 +17,10 @@
 
 package org.apache.accumulo.core.file.blockfile.impl;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.io.InputStream;
-
-import com.google.common.base.Preconditions;
 
 /**
  * This class is like byte array input stream with two differences. It supports seeking and avoids
@@ -31,8 +31,8 @@ public class SeekableByteArrayInputStream extends InputStream {
   // making this volatile for the following case
   // * thread 1 creates and initalizes byte array
   // * thread 2 reads from bye array
-  // Findbugs complains about this because thread2 may not see any changes to the byte array after
-  // thread 1 set the voltile,
+  // spotbugs complains about this because thread2 may not see any changes to the byte array after
+  // thread 1 set the volatile,
   // however the expectation is that the byte array is static. In the case of it being static,
   // volatile ensures that
   // thread 2 sees all of thread 1 changes before setting the volatile.
@@ -115,14 +115,14 @@ public class SeekableByteArrayInputStream extends InputStream {
   public void close() throws IOException {}
 
   public SeekableByteArrayInputStream(byte[] buf) {
-    Preconditions.checkNotNull(buf, "bug argument was null");
+    requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
     this.cur = 0;
     this.max = buf.length;
   }
 
   public SeekableByteArrayInputStream(byte[] buf, int maxOffset) {
-    Preconditions.checkNotNull(buf, "bug argument was null");
+    requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
     this.cur = 0;
     this.max = maxOffset;

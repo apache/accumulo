@@ -22,6 +22,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.test.randomwalk.Environment;
@@ -173,15 +173,15 @@ public class BulkInsert extends Test {
   private void sort(State state, Environment env, FileSystem fs, String tableName, String seqFile,
       String outputDir, String workDir, int maxSplits) throws Exception {
 
-    PrintStream out = new PrintStream(
-        new BufferedOutputStream(fs.create(new Path(workDir + "/splits.txt"))), false,
-        UTF_8.name());
+    PrintStream out =
+        new PrintStream(new BufferedOutputStream(fs.create(new Path(workDir + "/splits.txt"))),
+            false, UTF_8.name());
 
     Connector conn = env.getConnector();
 
     Collection<Text> splits = conn.tableOperations().listSplits(tableName, maxSplits);
     for (Text split : splits)
-      out.println(Base64.encodeBase64String(TextUtil.getBytes(split)));
+      out.println(Base64.getEncoder().encodeToString(TextUtil.getBytes(split)));
 
     out.close();
 

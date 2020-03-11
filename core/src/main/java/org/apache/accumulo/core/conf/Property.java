@@ -326,6 +326,10 @@ public enum Property {
   MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation",
       "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechansim to steal write access to a file"),
+  MASTER_FATE_METRICS_ENABLED("master.fate.metrics.enabled", "false", PropertyType.BOOLEAN,
+      "Enable reporting of FATE metrics in JMX (and logging with Hadoop Metrics2"),
+  MASTER_FATE_METRICS_MIN_UPDATE_INTERVAL("master.fate.metrics.min.update.interval", "60s",
+      PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run FAult-Tolerant Executions. These are "
           + "primarily table operations like merge."),
@@ -346,6 +350,18 @@ public enum Property {
   MASTER_METADATA_SUSPENDABLE("master.metadata.suspendable", "false", PropertyType.BOOLEAN,
       "Allow tablets for the " + MetadataTable.NAME
           + " table to be suspended via table.suspend.duration."),
+  MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT("master.startup.tserver.avail.min.count", "0",
+      PropertyType.COUNT,
+      "Minimum number of tservers that need to be registered before master will "
+          + "start tablet assignment - checked at master initialization, when master gets lock. "
+          + " When set to 0 or less, no blocking occurs. Default is 0 (disabled) to keep original "
+          + " behaviour. Added with version 1.10"),
+  MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT("master.startup.tserver.avail.max.wait", "0",
+      PropertyType.TIMEDURATION,
+      "Maximum time master will wait for tserver available threshold "
+          + "to be reached before continuing. When set to 0 or less, will block "
+          + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
+          + "threshold is set greater than 0. Added with version 1.10"),
 
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
@@ -481,6 +497,11 @@ public enum Property {
       "The time between adjustments of the server thread pool."),
   TSERV_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.MEMORY,
       "The maximum size of a message that can be sent to a tablet server."),
+  TSERV_LOG_BUSY_TABLETS_COUNT("tserver.log.busy.tablets.count", "0", PropertyType.COUNT,
+      "Number of busiest tablets to log. Logged at interval controlled by "
+          + "tserver.log.busy.tablets.interval. If <= 0, logging of busy tablets is disabled"),
+  TSERV_LOG_BUSY_TABLETS_INTERVAL("tserver.log.busy.tablets.interval", "1h",
+      PropertyType.TIMEDURATION, "Time interval between logging out busy tablets information."),
   TSERV_HOLD_TIME_SUICIDE("tserver.hold.time.max", "5m", PropertyType.TIMEDURATION,
       "The maximum time for a tablet server to be in the \"memory full\" state."
           + " If the tablet server cannot write out memory in this much time, it will"
@@ -525,6 +546,9 @@ public enum Property {
   TSERV_SLOW_FLUSH_MILLIS("tserver.slow.flush.time", "100ms", PropertyType.TIMEDURATION,
       "If a flush to the write-ahead log takes longer than this period of time,"
           + " debugging information will written, and may result in a log rollover."),
+  TSERV_SLOW_FILEPERMIT_MILLIS("tserver.slow.filepermit.time", "100ms", PropertyType.TIMEDURATION,
+      "If a thread blocks more than this period of time waiting to get file permits,"
+          + " debugging information will be written."),
   TSERV_BULK_MAX_TABLET_OVERLAP("tserver.bulk.max.overlap", "0", PropertyType.COUNT,
       "Max number of tablets a bulk import file can have referenced before the bulk load is failed."
           + " Set to zero to ignore."),
@@ -546,6 +570,13 @@ public enum Property {
       "Archive any files/directories instead of moving to the HDFS trash or deleting."),
   GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION,
       "Percent of gc cycles to trace"),
+  GC_USE_FULL_COMPACTION("gc.post.metadata.action", "compact", PropertyType.GC_POST_ACTION,
+      "When the gc runs it can make a lot of changes to the metadata, on completion, "
+          + " to force the changes to be written to disk, the metadata and root tables can be flushed"
+          + " and possibly compacted. Legal values are: compact - which both flushes and compacts the"
+          + " metadata; flush - which flushes only (compactions may be triggered if required); or none"),
+  GC_METRICS_ENABLED("gc.metrics.enabled", "false", PropertyType.BOOLEAN,
+      "Enable detailed gc metrics reporting with hadoop metrics."),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
@@ -568,6 +599,10 @@ public enum Property {
       "The keystore password for enabling monitor SSL."),
   MONITOR_SSL_KEYSTORETYPE("monitor.ssl.keyStoreType", "jks", PropertyType.STRING,
       "Type of SSL keystore"),
+  @Sensitive
+  MONITOR_SSL_KEYPASS("monitor.ssl.keyPassword", "", PropertyType.STRING,
+      "Optional: the password for the private key in the keyStore. When not provided, this "
+          + "defaults to the keystore password."),
   MONITOR_SSL_TRUSTSTORE("monitor.ssl.trustStore", "", PropertyType.PATH,
       "The truststore for enabling monitor SSL."),
   @Sensitive
@@ -1036,14 +1071,14 @@ public enum Property {
   }
 
   private void precomputeAnnotations() {
-    isSensitive = hasAnnotation(Sensitive.class)
-        || hasPrefixWithAnnotation(getKey(), Sensitive.class);
-    isDeprecated = hasAnnotation(Deprecated.class)
-        || hasPrefixWithAnnotation(getKey(), Deprecated.class);
-    isExperimental = hasAnnotation(Experimental.class)
-        || hasPrefixWithAnnotation(getKey(), Experimental.class);
-    isInterpolated = hasAnnotation(Interpolated.class)
-        || hasPrefixWithAnnotation(getKey(), Interpolated.class);
+    isSensitive =
+        hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
+    isDeprecated =
+        hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
+    isExperimental =
+        hasAnnotation(Experimental.class) || hasPrefixWithAnnotation(getKey(), Experimental.class);
+    isInterpolated =
+        hasAnnotation(Interpolated.class) || hasPrefixWithAnnotation(getKey(), Interpolated.class);
     annotationsComputed = true;
   }
 
@@ -1150,17 +1185,18 @@ public enum Property {
    * Properties we check the value of within the TabletServer request handling or maintenance
    * processing loops.
    */
-  public static final EnumSet<Property> HOT_PATH_PROPERTIES = EnumSet.of(
-      Property.TSERV_CLIENT_TIMEOUT, Property.TSERV_TOTAL_MUTATION_QUEUE_MAX,
-      Property.TSERV_ARCHIVE_WALOGS, Property.GC_TRASH_IGNORE, Property.TSERV_MAJC_DELAY,
-      Property.TABLE_MINC_LOGS_MAX, Property.TSERV_MAJC_MAXCONCURRENT,
-      Property.REPLICATION_WORKER_THREADS, Property.TABLE_DURABILITY, Property.INSTANCE_ZK_TIMEOUT,
-      Property.TABLE_CLASSPATH, Property.MASTER_METADATA_SUSPENDABLE,
-      Property.TABLE_FAILURES_IGNORE, Property.TABLE_SCAN_MAXMEM);
+  public static final EnumSet<Property> HOT_PATH_PROPERTIES =
+      EnumSet.of(Property.TSERV_CLIENT_TIMEOUT, Property.TSERV_TOTAL_MUTATION_QUEUE_MAX,
+          Property.TSERV_ARCHIVE_WALOGS, Property.GC_TRASH_IGNORE, Property.TSERV_MAJC_DELAY,
+          Property.TABLE_MINC_LOGS_MAX, Property.TSERV_MAJC_MAXCONCURRENT,
+          Property.REPLICATION_WORKER_THREADS, Property.TABLE_DURABILITY,
+          Property.INSTANCE_ZK_TIMEOUT, Property.TABLE_CLASSPATH,
+          Property.MASTER_METADATA_SUSPENDABLE, Property.TABLE_FAILURES_IGNORE,
+          Property.TABLE_SCAN_MAXMEM, Property.TSERV_SLOW_FILEPERMIT_MILLIS);
 
-  private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
-      Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,
-      Property.MASTER_CLIENTPORT, Property.GC_PORT);
+  private static final EnumSet<Property> fixedProperties =
+      EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
+          Property.TSERV_SCAN_MAX_OPENFILES, Property.MASTER_CLIENTPORT, Property.GC_PORT);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
@@ -1209,10 +1245,12 @@ public enum Property {
    * @return true if this is property is a class property
    */
   public static boolean isClassProperty(String key) {
-    return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey()) && key
-        .substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length == 1)
-        || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) && key
-            .substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length == 2)
+    return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
+        && key.substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length
+            == 1)
+        || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
+            && key.substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length
+                == 2)
         || key.equals(Property.TABLE_LOAD_BALANCER.getKey());
   }
 
@@ -1301,8 +1339,8 @@ public enum Property {
    *         from each key
    */
   public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
-    Map<String,String> longNames = tableConf
-        .getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
+    Map<String,String> longNames =
+        tableConf.getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
     Map<String,String> result = new HashMap<>();
     for (Entry<String,String> entry : longNames.entrySet()) {
       result.put(

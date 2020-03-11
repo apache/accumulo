@@ -19,6 +19,7 @@ package org.apache.accumulo.master.tableOps;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.math.BigInteger;
+import java.util.Base64;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -29,7 +30,6 @@ import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -158,7 +158,7 @@ public class Utils {
     Instance instance = HdfsZooInstance.getInstance();
 
     String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
-        + Base64.encodeBase64String(directory.getBytes(UTF_8));
+        + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
 
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
 
@@ -172,7 +172,7 @@ public class Utils {
       throws KeeperException, InterruptedException {
     Instance instance = HdfsZooInstance.getInstance();
     String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
-        + Base64.encodeBase64String(directory.getBytes(UTF_8));
+        + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
     ZooReservation.release(ZooReaderWriter.getInstance(), resvPath, String.format("%016x", tid));
   }
 

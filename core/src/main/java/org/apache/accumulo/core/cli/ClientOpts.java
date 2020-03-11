@@ -52,6 +52,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.IStringConverter;
@@ -152,8 +153,8 @@ public class ClientOpts extends Help {
       // It's expected that the user is already logged in via UserGroupInformation or external to
       // this program (kinit).
       try {
-        AuthenticationToken token = Class.forName(tokenClassName)
-            .asSubclass(AuthenticationToken.class).newInstance();
+        AuthenticationToken token =
+            Class.forName(tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
         token.init(props);
         return token;
       } catch (Exception e) {
@@ -252,8 +253,8 @@ public class ClientOpts extends Help {
    * overwrite the options if the user has provided something specifically.
    */
   public void updateKerberosCredentials(ClientConfiguration clientConfig) {
-    final boolean clientConfSaslEnabled = Boolean
-        .parseBoolean(clientConfig.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+    final boolean clientConfSaslEnabled =
+        Boolean.parseBoolean(clientConfig.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
     if ((saslEnabled || clientConfSaslEnabled) && null == tokenClassName) {
       tokenClassName = KerberosToken.CLASS_NAME;
       // ACCUMULO-3701 We need to ensure we're logged in before parseArgs returns as the MapReduce
@@ -375,6 +376,7 @@ public class ClientOpts extends Help {
         }
 
         @Override
+        @SuppressModernizer
         public void getProperties(Map<String,String> props, Predicate<String> filter) {
           for (Entry<String,String> prop : DefaultConfiguration.getInstance())
             if (filter.apply(prop.getKey()))
@@ -399,10 +401,13 @@ public class ClientOpts extends Help {
       String instanceIDFromFile = ZooUtil.getInstanceIDFromHdfs(instanceDir, config);
       if (config.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED))
         clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
-      return cachedClientConfig = clientConfig.withInstance(UUID.fromString(instanceIDFromFile))
-          .withZkHosts(zookeepers);
+      return cachedClientConfig =
+          clientConfig.withInstance(UUID.fromString(instanceIDFromFile)).withZkHosts(zookeepers);
     }
-    return cachedClientConfig = clientConfig.withInstance(instance).withZkHosts(zookeepers);
-  }
 
+    if (instance != null && zookeepers != null)
+      return cachedClientConfig = clientConfig.withInstance(instance).withZkHosts(zookeepers);
+    else
+      return clientConfig;
+  }
 }

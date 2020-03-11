@@ -17,6 +17,12 @@
 package org.apache.accumulo.test.replication;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -61,8 +67,8 @@ import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +78,7 @@ import com.google.common.collect.Iterators;
 /**
  * Replication tests which start at least two MAC instances and replicate data between them
  */
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class MultiInstanceReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MultiInstanceReplicationIT.class);
 
@@ -79,7 +86,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {
-    return 10 * 60;
+    return 15 * 60;
   }
 
   @Before
@@ -122,10 +129,10 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       Map<String,String> peerSiteConfig = new HashMap<>();
       peerSiteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
       String keystorePath = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey());
-      Assert.assertNotNull("Keystore Path was null", keystorePath);
+      assertNotNull("Keystore Path was null", keystorePath);
       peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), keystorePath);
       String truststorePath = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PATH.getKey());
-      Assert.assertNotNull("Truststore Path was null", truststorePath);
+      assertNotNull("Truststore Path was null", truststorePath);
       peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), truststorePath);
 
       // Passwords might be stored in CredentialProvider
@@ -133,8 +140,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       if (null != keystorePassword) {
         peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
       }
-      String truststorePassword = primarySiteConfig
-          .get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+      String truststorePassword =
+          primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
       if (null != truststorePassword) {
         peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
       }
@@ -144,8 +151,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     }
 
     // Use the CredentialProvider if the primary also uses one
-    String credProvider = primarySiteConfig
-        .get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    String credProvider =
+        primarySiteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
     if (null != credProvider) {
       Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
       peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(),
@@ -154,7 +161,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 10 * 60 * 1000)
+  @Test
   public void dataWasReplicatedToThePeer() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
         createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
@@ -197,11 +204,11 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       connMaster.tableOperations().create(masterTable);
       String masterTableId = connMaster.tableOperations().tableIdMap().get(masterTable);
-      Assert.assertNotNull(masterTableId);
+      assertNotNull(masterTableId);
 
       connPeer.tableOperations().create(peerTable);
       String peerTableId = connPeer.tableOperations().tableIdMap().get(peerTable);
-      Assert.assertNotNull(peerTableId);
+      assertNotNull(peerTableId);
 
       connPeer.securityOperations().grantTablePermission(peerUserName, peerTable,
           TablePermission.WRITE);
@@ -227,8 +234,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       log.info("Wrote all data to master cluster");
 
-      final Set<String> filesNeedingReplication = connMaster.replicationOperations()
-          .referencedFiles(masterTable);
+      final Set<String> filesNeedingReplication =
+          connMaster.replicationOperations().referencedFiles(masterTable);
 
       log.info("Files to replicate: " + filesNeedingReplication);
 
@@ -282,7 +289,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         future.get(60, TimeUnit.SECONDS);
       } catch (TimeoutException e) {
         future.cancel(true);
-        Assert.fail("Drain did not finish within 60 seconds");
+        fail("Drain did not finish within 60 seconds");
       } finally {
         executor.shutdownNow();
       }
@@ -315,17 +322,17 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       while (masterIter.hasNext() && peerIter.hasNext()) {
         masterEntry = masterIter.next();
         peerEntry = peerIter.next();
-        Assert.assertEquals(masterEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+        assertEquals(masterEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
             masterEntry.getKey().compareTo(peerEntry.getKey(),
                 PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-        Assert.assertEquals(masterEntry.getValue(), peerEntry.getValue());
+        assertEquals(masterEntry.getValue(), peerEntry.getValue());
       }
 
       log.info("Last master entry: " + masterEntry);
       log.info("Last peer entry: " + peerEntry);
 
-      Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
-      Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
+      assertFalse("Had more data to read from the master", masterIter.hasNext());
+      assertFalse("Had more data to read from the peer", peerIter.hasNext());
     } finally {
       peerCluster.stop();
     }
@@ -374,19 +381,19 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       // Create tables
       connMaster.tableOperations().create(masterTable1);
       String masterTableId1 = connMaster.tableOperations().tableIdMap().get(masterTable1);
-      Assert.assertNotNull(masterTableId1);
+      assertNotNull(masterTableId1);
 
       connMaster.tableOperations().create(masterTable2);
       String masterTableId2 = connMaster.tableOperations().tableIdMap().get(masterTable2);
-      Assert.assertNotNull(masterTableId2);
+      assertNotNull(masterTableId2);
 
       connPeer.tableOperations().create(peerTable1);
       String peerTableId1 = connPeer.tableOperations().tableIdMap().get(peerTable1);
-      Assert.assertNotNull(peerTableId1);
+      assertNotNull(peerTableId1);
 
       connPeer.tableOperations().create(peerTable2);
       String peerTableId2 = connPeer.tableOperations().tableIdMap().get(peerTable2);
-      Assert.assertNotNull(peerTableId2);
+      assertNotNull(peerTableId2);
 
       // Grant write permission
       connPeer.securityOperations().grantTablePermission(peerUserName, peerTable1,
@@ -469,22 +476,22 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       long countTable = 0l;
       for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
         countTable++;
-        Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+        assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
             + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable1));
       }
 
       log.info("Found {} records in {}", countTable, peerTable1);
-      Assert.assertEquals(masterTable1Records, countTable);
+      assertEquals(masterTable1Records, countTable);
 
       countTable = 0l;
       for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
         countTable++;
-        Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+        assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
             + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable2));
       }
 
       log.info("Found {} records in {}", countTable, peerTable2);
-      Assert.assertEquals(masterTable2Records, countTable);
+      assertEquals(masterTable2Records, countTable);
 
     } finally {
       peer1Cluster.stop();
@@ -534,11 +541,11 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
     connMaster.tableOperations().create(masterTable);
     String masterTableId = connMaster.tableOperations().tableIdMap().get(masterTable);
-    Assert.assertNotNull(masterTableId);
+    assertNotNull(masterTableId);
 
     connPeer.tableOperations().create(peerTable);
     String peerTableId = connPeer.tableOperations().tableIdMap().get(peerTable);
-    Assert.assertNotNull(peerTableId);
+    assertNotNull(peerTableId);
 
     // Give our replication user the ability to write to the table
     connPeer.securityOperations().grantTablePermission(peerUserName, peerTable,
@@ -594,13 +601,13 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
     while (masterIter.hasNext() && peerIter.hasNext()) {
       Entry<Key,Value> masterEntry = masterIter.next(), peerEntry = peerIter.next();
-      Assert.assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+      assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
           masterEntry.getKey().compareTo(peerEntry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-      Assert.assertEquals(masterEntry.getValue(), peerEntry.getValue());
+      assertEquals(masterEntry.getValue(), peerEntry.getValue());
     }
 
-    Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
-    Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
+    assertFalse("Had more data to read from the master", masterIter.hasNext());
+    assertFalse("Had more data to read from the peer", peerIter.hasNext());
 
     peerCluster.stop();
   }
@@ -651,19 +658,19 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       connMaster.tableOperations().create(masterTable1);
       String masterTableId1 = connMaster.tableOperations().tableIdMap().get(masterTable1);
-      Assert.assertNotNull(masterTableId1);
+      assertNotNull(masterTableId1);
 
       connMaster.tableOperations().create(masterTable2);
       String masterTableId2 = connMaster.tableOperations().tableIdMap().get(masterTable2);
-      Assert.assertNotNull(masterTableId2);
+      assertNotNull(masterTableId2);
 
       connPeer.tableOperations().create(peerTable1);
       String peerTableId1 = connPeer.tableOperations().tableIdMap().get(peerTable1);
-      Assert.assertNotNull(peerTableId1);
+      assertNotNull(peerTableId1);
 
       connPeer.tableOperations().create(peerTable2);
       String peerTableId2 = connPeer.tableOperations().tableIdMap().get(peerTable2);
-      Assert.assertNotNull(peerTableId2);
+      assertNotNull(peerTableId2);
 
       // Give our replication user the ability to write to the tables
       connPeer.securityOperations().grantTablePermission(peerUserName, peerTable1,
@@ -736,7 +743,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      Assert.assertNotEquals(0, fullyReplicated);
+      assertNotEquals(0, fullyReplicated);
 
       // We have to wait for the master to assign the replication work, a local tserver to process
       // it, and then the remote tserver to replay it
@@ -745,7 +752,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       for (int i = 0; i < 10; i++) {
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
-          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
               + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable1));
         }
 
@@ -758,8 +765,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      Assert.assertTrue("Found no records in " + peerTable1 + " in the peer cluster",
-          countTable > 0);
+      assertTrue("Found no records in " + peerTable1 + " in the peer cluster", countTable > 0);
 
       // We have to wait for the master to assign the replication work, a local tserver to process
       // it, and then the remote tserver to replay it
@@ -768,7 +774,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         countTable = 0l;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;
-          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
               + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable2));
         }
 
@@ -781,8 +787,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      Assert.assertTrue("Found no records in " + peerTable2 + " in the peer cluster",
-          countTable > 0);
+      assertTrue("Found no records in " + peerTable2 + " in the peer cluster", countTable > 0);
 
     } finally {
       peer1Cluster.stop();

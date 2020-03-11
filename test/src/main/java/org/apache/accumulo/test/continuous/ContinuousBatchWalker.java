@@ -66,8 +66,8 @@ public class ContinuousBatchWalker {
     scanner.setBatchSize(scanOpts.scanBatchSize);
 
     while (true) {
-      BatchScanner bs = conn.createBatchScanner(clientOpts.getTableName(), auths,
-          bsOpts.scanThreads);
+      BatchScanner bs =
+          conn.createBatchScanner(clientOpts.getTableName(), auths, bsOpts.scanThreads);
       bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
 
       Set<Text> batch = getBatch(scanner, opts.min, opts.max, scanOpts.scanBatchSize, r);

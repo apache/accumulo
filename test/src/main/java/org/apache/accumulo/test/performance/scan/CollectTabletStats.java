@@ -120,8 +120,8 @@ public class CollectTabletStats {
     }
 
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
-    List<KeyExtent> candidates = findTablets(context, !opts.selectFarTablets, opts.getTableName(),
-        tabletLocations);
+    List<KeyExtent> candidates =
+        findTablets(context, !opts.selectFarTablets, opts.getTableName(), tabletLocations);
 
     if (candidates.size() < opts.numThreads) {
       System.err.println("ERROR : Unable to find " + opts.numThreads + " "
@@ -368,8 +368,8 @@ public class CollectTabletStats {
     for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
       String loc = entry.getValue();
       if (loc != null) {
-        boolean isLocal = HostAndPort.fromString(entry.getValue()).getHost()
-            .equals(localaddress.getHostName());
+        boolean isLocal =
+            HostAndPort.fromString(entry.getValue()).getHost().equals(localaddress.getHostName());
 
         if (selectLocalTablets && isLocal) {
           candidates.add(entry.getKey());
@@ -445,8 +445,8 @@ public class CollectTabletStats {
     DeletingIterator delIter = new DeletingIterator(multiIter, false);
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
     SortedKeyValueIterator<Key,Value> colFilter = ColumnQualifierFilter.wrap(cfsi, columnSet);
-    SortedKeyValueIterator<Key,Value> visFilter = VisibilityFilter.wrap(colFilter, authorizations,
-        defaultLabels);
+    SortedKeyValueIterator<Key,Value> visFilter =
+        VisibilityFilter.wrap(colFilter, authorizations, defaultLabels);
 
     if (useTableIterators)
       return IteratorUtil.loadIterators(IteratorScope.scan, visFilter, ke, conf, ssiList, ssio,

@@ -41,8 +41,8 @@ import org.slf4j.LoggerFactory;
  */
 public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
 
-  private static final Logger log = LoggerFactory
-      .getLogger(CachingHDFSSecretKeyEncryptionStrategy.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(CachingHDFSSecretKeyEncryptionStrategy.class);
   private SecretKeyCache secretKeyCache = new SecretKeyCache();
 
   @Override
@@ -84,8 +84,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
     if (Cipher.UNWRAP_MODE == encryptionMode) {
       try {
-        Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(),
-            Cipher.SECRET_KEY);
+        Key plaintextKey =
+            cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
         params.setPlaintextKey(plaintextKey.getEncoded());
       } catch (InvalidKeyException e) {
         log.error("{}", e.getMessage(), e);
@@ -183,8 +183,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
     @SuppressWarnings("deprecation")
     private String getFullPathToKey(CryptoModuleParameters params) {
-      String pathToKeyName = params.getAllOptions()
-          .get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
+      String pathToKeyName =
+          params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
       String instanceDirectory = params.getAllOptions().get(Property.INSTANCE_DFS_DIR.getKey());
 
       if (pathToKeyName == null) {

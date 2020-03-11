@@ -67,7 +67,6 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PreAllocatedArray;
@@ -78,7 +77,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 public class InMemoryMap {
@@ -110,10 +108,8 @@ public class InMemoryMap {
   public static final String TYPE_LOCALITY_GROUP_MAP = "LocalityGroupMap";
   public static final String TYPE_LOCALITY_GROUP_MAP_NATIVE = "LocalityGroupMap with native";
 
-  // @formatter:off
   private AtomicReference<Pair<SamplerConfigurationImpl,Sampler>> samplerRef =
-    new AtomicReference<>(null);
-  // @formatter:on
+      new AtomicReference<>(null);
 
   private AccumuloConfiguration config;
 
@@ -132,12 +128,12 @@ public class InMemoryMap {
     return pair.getSecond();
   }
 
-  public InMemoryMap(AccumuloConfiguration config) throws LocalityGroupConfigurationError {
+  public InMemoryMap(AccumuloConfiguration config, String tableId) {
 
     boolean useNativeMap = config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
 
     this.memDumpDir = config.get(Property.TSERV_MEMDUMP_DIR);
-    this.lggroups = LocalityGroupUtil.getLocalityGroups(config);
+    this.lggroups = LocalityGroupUtil.getLocalityGroupsIgnoringErrors(config, tableId);
 
     this.config = config;
 
@@ -399,8 +395,8 @@ public class InMemoryMap {
   }
 
   private static class DefaultMap implements SimpleMap {
-    private ConcurrentSkipListMap<Key,Value> map = new ConcurrentSkipListMap<>(
-        new MemKeyComparator());
+    private ConcurrentSkipListMap<Key,Value> map =
+        new ConcurrentSkipListMap<>(new MemKeyComparator());
     private AtomicLong bytesInMemory = new AtomicLong();
     private AtomicInteger size = new AtomicInteger();
 
@@ -570,8 +566,8 @@ public class InMemoryMap {
     return map.size();
   }
 
-  private final Set<MemoryIterator> activeIters = Collections
-      .synchronizedSet(new HashSet<MemoryIterator>());
+  private final Set<MemoryIterator> activeIters =
+      Collections.synchronizedSet(new HashSet<MemoryIterator>());
 
   class MemoryDataSource implements DataSource {
 
@@ -866,13 +862,8 @@ public class InMemoryMap {
   }
 
   private AccumuloConfiguration createSampleConfig(AccumuloConfiguration siteConf) {
-    ConfigurationCopy confCopy = new ConfigurationCopy(
-        Iterables.filter(siteConf, new Predicate<Entry<String,String>>() {
-          @Override
-          public boolean apply(Entry<String,String> input) {
-            return !input.getKey().startsWith(Property.TABLE_SAMPLER.getKey());
-          }
-        }));
+    ConfigurationCopy confCopy = new ConfigurationCopy(Iterables.filter(siteConf,
+        input -> !input.getKey().startsWith(Property.TABLE_SAMPLER.getKey())));
 
     for (Entry<String,String> entry : samplerRef.get().getFirst().toTablePropertiesMap()
         .entrySet()) {

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -28,7 +30,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -67,8 +68,8 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
           // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
           String tserver = conn.instanceOperations().getTabletServers().iterator().next();
           do {
-            ArrayList<ActiveScan> scans = new ArrayList<>(
-                conn.instanceOperations().getActiveScans(tserver));
+            ArrayList<ActiveScan> scans =
+                new ArrayList<>(conn.instanceOperations().getActiveScans(tserver));
             Iterator<ActiveScan> iter = scans.iterator();
             while (iter.hasNext()) {
               ActiveScan scan = iter.next();
@@ -95,7 +96,7 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
     try {
       // Use the scanner, expect problems
       Iterators.size(scanner.iterator());
-      Assert.fail("Scan should not succeed");
+      fail("Scan should not succeed");
     } catch (Exception ex) {} finally {
       thread.join();
     }

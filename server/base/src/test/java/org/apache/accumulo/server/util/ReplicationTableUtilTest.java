@@ -21,6 +21,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +58,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ReplicationTableUtilTest {
@@ -96,19 +97,19 @@ public class ReplicationTableUtilTest {
 
     verify(writer);
 
-    Assert.assertEquals(1, mutations.size());
+    assertEquals(1, mutations.size());
     Mutation m = mutations.get(0);
 
-    Assert.assertEquals(MetadataSchema.ReplicationSection.getRowPrefix()
+    assertEquals(MetadataSchema.ReplicationSection.getRowPrefix()
         + "file:/home/user/accumulo/wal/server+port/" + uuid, new Text(m.getRow()).toString());
 
     List<ColumnUpdate> updates = m.getUpdates();
-    Assert.assertEquals(1, updates.size());
+    assertEquals(1, updates.size());
     ColumnUpdate update = updates.get(0);
 
-    Assert.assertEquals(MetadataSchema.ReplicationSection.COLF, new Text(update.getColumnFamily()));
-    Assert.assertEquals("1", new Text(update.getColumnQualifier()).toString());
-    Assert.assertEquals(StatusUtil.fileCreatedValue(createdTime), new Value(update.getValue()));
+    assertEquals(MetadataSchema.ReplicationSection.COLF, new Text(update.getColumnFamily()));
+    assertEquals("1", new Text(update.getColumnQualifier()).toString());
+    assertEquals(StatusUtil.fileCreatedValue(createdTime), new Value(update.getValue()));
   }
 
   @Test
@@ -121,18 +122,18 @@ public class ReplicationTableUtilTest {
     Text row = new Text(filePath.toString());
     KeyExtent extent = new KeyExtent("1", new Text("b"), new Text("a"));
 
-    Mutation m = ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat),
-        extent);
+    Mutation m =
+        ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat), extent);
 
-    Assert.assertEquals(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + row),
+    assertEquals(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + row),
         new Text(m.getRow()));
-    Assert.assertEquals(1, m.getUpdates().size());
+    assertEquals(1, m.getUpdates().size());
     ColumnUpdate col = m.getUpdates().get(0);
 
-    Assert.assertEquals(MetadataSchema.ReplicationSection.COLF, new Text(col.getColumnFamily()));
-    Assert.assertEquals(extent.getTableId(), new Text(col.getColumnQualifier()).toString());
-    Assert.assertEquals(0, col.getColumnVisibility().length);
-    Assert.assertArrayEquals(stat.toByteArray(), col.getValue());
+    assertEquals(MetadataSchema.ReplicationSection.COLF, new Text(col.getColumnFamily()));
+    assertEquals(extent.getTableId(), new Text(col.getColumnQualifier()).toString());
+    assertEquals(0, col.getColumnVisibility().length);
+    assertArrayEquals(stat.toByteArray(), col.getValue());
   }
 
   @Test
@@ -152,7 +153,7 @@ public class ReplicationTableUtilTest {
     expectLastCall().once();
 
     expect(tops.getProperties(myMetadataTable))
-        .andReturn(Collections.<Entry<String,String>> emptyList());
+        .andReturn(Collections.<Entry<String,String>>emptyList());
     tops.setProperty(myMetadataTable, Property.TABLE_FORMATTER_CLASS.getKey(),
         ReplicationTableUtil.STATUS_FORMATTER_CLASS_NAME);
     expectLastCall().once();

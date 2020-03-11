@@ -63,7 +63,6 @@ import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -109,8 +108,8 @@ public class InMemoryMapTest {
   }
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   public void mutate(InMemoryMap imm, String row, String column, long ts) {
     Mutation m = new Mutation(new Text(row));
@@ -179,7 +178,7 @@ public class InMemoryMapTest {
     ConfigurationCopy config = new ConfigurationCopy(DefaultConfiguration.getInstance());
     config.set(Property.TSERV_NATIVEMAP_ENABLED, "" + useNative);
     config.set(Property.TSERV_MEMDUMP_DIR, memDumpDir);
-    return new InMemoryMap(config);
+    return new InMemoryMap(config, "--TEST--");
   }
 
   @Test
@@ -552,7 +551,7 @@ public class InMemoryMapTest {
         LocalityGroupUtil.encodeColumnFamilies(toTextSet("cf3", "cf4")));
     config.set(Property.TABLE_LOCALITY_GROUPS.getKey(), "lg1,lg2");
 
-    InMemoryMap imm = new InMemoryMap(config);
+    InMemoryMap imm = new InMemoryMap(config, "--TEST--");
 
     Mutation m1 = new Mutation("r1");
     m1.put("cf1", "x", 2, "1");
@@ -615,7 +614,7 @@ public class InMemoryMapTest {
 
     for (ConfigurationCopy config : Arrays.asList(config1, config2)) {
 
-      InMemoryMap imm = new InMemoryMap(config);
+      InMemoryMap imm = new InMemoryMap(config, "--TEST--");
 
       TreeMap<Key,Value> expectedSample = new TreeMap<>();
       TreeMap<Key,Value> expectedAll = new TreeMap<>();
@@ -701,7 +700,7 @@ public class InMemoryMapTest {
       config1.set(entry.getKey(), entry.getValue());
     }
 
-    InMemoryMap imm = new InMemoryMap(config1);
+    InMemoryMap imm = new InMemoryMap(config1, "--TEST--");
 
     TreeMap<Key,Value> expectedSample = new TreeMap<>();
     TreeMap<Key,Value> expectedAll = new TreeMap<>();
@@ -735,7 +734,7 @@ public class InMemoryMapTest {
     iFlag.set(true);
     try {
       readAll(iter);
-      Assert.fail();
+      fail();
     } catch (IterationInterruptedException iie) {}
 
     miter.close();
@@ -761,7 +760,7 @@ public class InMemoryMapTest {
       config1.set(entry.getKey(), entry.getValue());
     }
 
-    InMemoryMap imm = new InMemoryMap(config1);
+    InMemoryMap imm = new InMemoryMap(config1, "--TEST--");
 
     mutate(imm, "r", "cf:cq", 5, "b");
 
@@ -793,7 +792,7 @@ public class InMemoryMapTest {
     // when in mem map is empty should be able to get sample iterator with any sample config
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
     iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
-    Assert.assertFalse(iter.hasTop());
+    assertFalse(iter.hasTop());
   }
 
   @Test
@@ -806,7 +805,7 @@ public class InMemoryMapTest {
       config1.set(entry.getKey(), entry.getValue());
     }
 
-    InMemoryMap imm = new InMemoryMap(config1);
+    InMemoryMap imm = new InMemoryMap(config1, "--TEST--");
 
     // change sampler config after creating in mem map.
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
@@ -825,15 +824,15 @@ public class InMemoryMapTest {
 
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
     iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
-    Assert.assertEquals(expectedSample, readAll(iter));
+    assertEquals(expectedSample, readAll(iter));
 
     SortedKeyValueIterator<Key,Value> dc = iter.deepCopy(new SampleIE(sampleConfig2));
     dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
-    Assert.assertEquals(expectedSample, readAll(dc));
+    assertEquals(expectedSample, readAll(dc));
 
     iter = imm.skvIterator(null);
     iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
-    Assert.assertEquals(expectedAll, readAll(iter));
+    assertEquals(expectedAll, readAll(iter));
 
     iter = imm.skvIterator(sampleConfig1);
     thrown.expect(SampleNotPresentException.class);

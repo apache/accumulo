@@ -38,8 +38,8 @@ import com.google.common.cache.Cache;
 
 public abstract class FileOperations {
 
-  private static final HashSet<String> validExtensions = new HashSet<>(
-      Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
+  private static final HashSet<String> validExtensions =
+      new HashSet<>(Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
 
   public static Set<String> getValidExtensions() {
     return validExtensions;
@@ -139,10 +139,8 @@ public abstract class FileOperations {
    */
   @SuppressWarnings("unchecked")
   public NeedsFile<NeedsRange<OpenScanReaderOperationBuilder>> newScanReaderBuilder() {
-    // @formatter:off
-    return (NeedsFile<NeedsRange<OpenScanReaderOperationBuilder>>)
-      (NeedsFile<?>) new OpenScanReaderOperation();
-    // @formatter:on
+    return (NeedsFile<
+        NeedsRange<OpenScanReaderOperationBuilder>>) (NeedsFile<?>) new OpenScanReaderOperation();
   }
 
   /**
@@ -178,10 +176,8 @@ public abstract class FileOperations {
   /**
    * Options common to all FileOperations.
    */
-  // @formatter:off
-  protected static class
-    FileAccessOperation<SubclassType extends FileAccessOperation<SubclassType>> {
-  // @formatter:on
+  protected static class FileAccessOperation<
+      SubclassType extends FileAccessOperation<SubclassType>> {
     private AccumuloConfiguration tableConfiguration;
 
     private String filename;

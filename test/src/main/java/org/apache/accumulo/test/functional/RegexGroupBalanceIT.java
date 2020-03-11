@@ -50,7 +50,12 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
     cfg.setNumTservers(4);
   }
 
-  @Test(timeout = 120000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void testBalancing() throws Exception {
     Connector conn = getConnector();
     String tablename = getUniqueNames(1)[0];
@@ -181,8 +186,8 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
       } else {
         group = group.substring(tableId.length() + 1).substring(0, 2);
       }
-      String loc = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier())
-          .toString();
+      String loc =
+          new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier()).toString();
 
       MutableInt count = groupLocationCounts.get(group, loc);
       if (count == null) {

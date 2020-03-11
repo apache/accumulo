@@ -40,8 +40,8 @@ public class GetAuthsCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, IOException {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
     // Sort authorizations
-    Authorizations auths = shellState.getConnector().securityOperations()
-        .getUserAuthorizations(user);
+    Authorizations auths =
+        shellState.getConnector().securityOperations().getUserAuthorizations(user);
     List<String> set = sortAuthorizations(auths);
     shellState.getReader().println(StringUtils.join(set, ','));
     return 0;

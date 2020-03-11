@@ -139,8 +139,8 @@ public class GarbageCollectionAlgorithm {
     boolean checkForBulkProcessingFiles = false;
     Iterator<String> relativePaths = candidateMap.keySet().iterator();
     while (!checkForBulkProcessingFiles && relativePaths.hasNext())
-      checkForBulkProcessingFiles |= relativePaths.next().toLowerCase(Locale.ENGLISH)
-          .contains(Constants.BULK_PREFIX);
+      checkForBulkProcessingFiles |=
+          relativePaths.next().toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
 
     if (checkForBulkProcessingFiles) {
       Iterator<String> blipiter = gce.getBlipIterator();
@@ -225,10 +225,10 @@ public class GarbageCollectionAlgorithm {
   protected void confirmDeletesFromReplication(
       Iterator<Entry<String,Status>> replicationNeededIterator,
       Iterator<Entry<String,String>> candidateMapIterator) {
-    PeekingIterator<Entry<String,Status>> pendingReplication = Iterators
-        .peekingIterator(replicationNeededIterator);
-    PeekingIterator<Entry<String,String>> candidates = Iterators
-        .peekingIterator(candidateMapIterator);
+    PeekingIterator<Entry<String,Status>> pendingReplication =
+        Iterators.peekingIterator(replicationNeededIterator);
+    PeekingIterator<Entry<String,String>> candidates =
+        Iterators.peekingIterator(candidateMapIterator);
     while (pendingReplication.hasNext() && candidates.hasNext()) {
       Entry<String,Status> pendingReplica = pendingReplication.peek();
       Entry<String,String> candidate = candidates.peek();

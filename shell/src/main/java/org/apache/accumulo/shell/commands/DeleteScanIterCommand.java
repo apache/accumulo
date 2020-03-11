@@ -37,8 +37,8 @@ public class DeleteScanIterCommand extends Command {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     if (cl.hasOption(allOpt.getOpt())) {
-      final List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions
-          .remove(tableName);
+      final List<IteratorSetting> tableScanIterators =
+          shellState.scanIteratorOptions.remove(tableName);
       if (tableScanIterators == null) {
         Shell.log.info("No scan iterators set on table " + tableName);
       } else {
@@ -47,8 +47,8 @@ public class DeleteScanIterCommand extends Command {
       }
     } else if (cl.hasOption(nameOpt.getOpt())) {
       final String name = cl.getOptionValue(nameOpt.getOpt());
-      final List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions
-          .get(tableName);
+      final List<IteratorSetting> tableScanIterators =
+          shellState.scanIteratorOptions.get(tableName);
       if (tableScanIterators != null) {
         boolean found = false;
         for (Iterator<IteratorSetting> iter = tableScanIterators.iterator(); iter.hasNext();) {

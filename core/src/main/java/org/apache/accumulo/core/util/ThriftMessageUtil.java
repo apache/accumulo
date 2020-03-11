@@ -92,8 +92,8 @@ public class ThriftMessageUtil {
   public <T extends TBase<?,?>> T deserialize(byte[] serialized, int offset, int length, T instance)
       throws IOException {
     requireNonNull(instance);
-    TCompactProtocol proto = new TCompactProtocol(
-        new TMemoryInputTransport(serialized, offset, length));
+    TCompactProtocol proto =
+        new TCompactProtocol(new TMemoryInputTransport(serialized, offset, length));
     try {
       instance.read(proto);
     } catch (TException e) {

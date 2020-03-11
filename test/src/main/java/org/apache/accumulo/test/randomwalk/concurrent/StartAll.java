@@ -48,8 +48,8 @@ public class StartAll extends Test {
         AccumuloServerContext context = new AccumuloServerContext(
             new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
         Client client = MasterClient.getConnection(context);
-        MasterMonitorInfo masterStats = client.getMasterStats(Tracer.traceInfo(),
-            context.rpcCreds());
+        MasterMonitorInfo masterStats =
+            client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
         if (!masterStats.tServerInfo.isEmpty())
           break;
       } catch (Exception ex) {

@@ -19,6 +19,7 @@ package org.apache.accumulo.core.iterators.user;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -53,7 +54,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.WriterAppender;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class CombinerTest {
@@ -81,8 +81,8 @@ public class CombinerTest {
     }
   }
 
-  static final IteratorEnvironment SCAN_IE = new CombinerIteratorEnvironment(IteratorScope.scan,
-      false);
+  static final IteratorEnvironment SCAN_IE =
+      new CombinerIteratorEnvironment(IteratorScope.scan, false);
 
   static Key newKey(int row, int colf, int colq, long ts, boolean deleted) {
     Key k = newKey(row, colf, colq, ts);
@@ -757,7 +757,7 @@ public class CombinerTest {
 
     try {
       ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
-      Assert.fail();
+      fail();
     } catch (IllegalArgumentException e) {}
 
     is.clearOptions();
@@ -766,7 +766,7 @@ public class CombinerTest {
 
     try {
       ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
-      Assert.fail();
+      fail();
     } catch (IllegalArgumentException e) {}
   }
 
@@ -894,11 +894,10 @@ public class CombinerTest {
 
     String logMsgs = writer.toString();
     if (expectedLog == null) {
-      Assert.assertTrue("Expected 0 length log message, but got : " + logMsgs,
-          logMsgs.length() == 0);
+      assertTrue("Expected 0 length log message, but got : " + logMsgs, logMsgs.length() == 0);
     } else {
       logMsgs = logMsgs.replace('\n', ' ');
-      Assert.assertTrue("Did not match pattern [" + expectedLog + "] in [" + logMsgs + "]",
+      assertTrue("Did not match pattern [" + expectedLog + "] in [" + logMsgs + "]",
           logMsgs.matches(expectedLog));
     }
   }

@@ -57,8 +57,8 @@ public class SequentialBatchWriter {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(SequentialBatchWriter.class.getName(), args, bwOpts);
     Connector connector = opts.getConnector();
-    BatchWriter bw = connector.createBatchWriter(opts.getTableName(),
-        bwOpts.getBatchWriterConfig());
+    BatchWriter bw =
+        connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
 
     long end = opts.start + opts.num;
 

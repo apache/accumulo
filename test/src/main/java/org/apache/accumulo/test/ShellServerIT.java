@@ -80,7 +80,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -362,8 +361,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       fs.mkdirs(importDir);
 
       // Implement a poor-man's DistCp
-      try (BufferedReader reader = new BufferedReader(
-          new FileReader(new File(exportDir, "distcp.txt")))) {
+      try (BufferedReader reader =
+          new BufferedReader(new FileReader(new File(exportDir, "distcp.txt")))) {
         for (String line; (line = reader.readLine()) != null;) {
           Path exportedFile = new Path(line);
           // There isn't a cp on FileSystem??
@@ -801,8 +800,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void classpath() throws Exception {
     // classpath
-    ts.exec("classpath", true, "Level 2: Java Classloader (loads everything"
-        + " defined by java classpath) URL classpath items are", true);
+    ts.exec("classpath", true,
+        "Level 2: Java Classloader (loads everything defined by java classpath)", true);
   }
 
   @Test
@@ -829,6 +828,29 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", true, "value", true);
     ts.exec("clonetable " + table + " " + clone);
     // verify constraint, config, and splits were cloned
+    ts.exec("table " + clone);
+    ts.exec("scan", true, "value", true);
+    ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
+    ts.exec("config -t " + clone + " -np", true, "123M", true);
+    ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
+    ts.exec("deletetable -f " + table);
+    ts.exec("deletetable -f " + clone);
+  }
+
+  @Test
+  public void clonetableOffline() throws Exception {
+    final String table = name.getMethodName(), clone = table + "_clone";
+
+    // clonetable
+    ts.exec("createtable " + table + " -evc");
+    ts.exec("config -t " + table + " -s table.split.threshold=123M", true);
+    ts.exec("addsplits -t " + table + " a b c", true);
+    ts.exec("insert a b c value");
+    ts.exec("scan", true, "value", true);
+    ts.exec("clonetable " + table + " " + clone + " -o");
+    // verify constraint, config, and splits were cloned
+    ts.exec("table " + clone);
+    ts.exec("scan", false, "TableOfflineException", true);
     ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
     ts.exec("config -t " + clone + " -np", true, "123M", true);
     ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
@@ -851,15 +873,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Connector connector = getConnector();
     for (Entry<String,String> entry : connector.tableOperations().getProperties(table)) {
       if (entry.getKey().equals("table.custom.description"))
-        Assert.assertTrue("Initial property was not set correctly",
+        assertTrue("Initial property was not set correctly",
             entry.getValue().equals("description"));
 
       if (entry.getKey().equals("table.custom.testProp"))
-        Assert.assertTrue("Initial property was not set correctly",
-            entry.getValue().equals("testProp"));
+        assertTrue("Initial property was not set correctly", entry.getValue().equals("testProp"));
 
       if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-        Assert.assertTrue("Initial property was not set correctly", entry.getValue().equals("10K"));
+        assertTrue("Initial property was not set correctly", entry.getValue().equals("10K"));
 
     }
     ts.exec("deletetable -f " + table);
@@ -1351,7 +1372,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  // @Test(timeout = 45000)
+  @Test
   public void history() throws Exception {
     final String table = name.getMethodName();
 
@@ -1775,19 +1796,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void scansWithClassLoaderContext() throws Exception {
+  public void scansWithClassLoaderContext() throws IOException {
     try {
       Class.forName(VALUE_REVERSING_ITERATOR);
       fail("ValueReversingIterator already on the classpath");
-    } catch (Exception e) {
-      // Do nothing here, This is success. The following line is here
-      // so that findbugs doesn't have a stroke.
-      assertTrue(true);
+    } catch (ClassNotFoundException e) {
+      // expected; iterator is already on the class path
     }
     ts.exec("createtable t");
     // Assert that the TabletServer does not know anything about our class
-    String result = ts
-        .exec("setiter -scan -n reverse -t t -p 21 -class " + VALUE_REVERSING_ITERATOR);
+    String result =
+        ts.exec("setiter -scan -n reverse -t t -p 21 -class " + VALUE_REVERSING_ITERATOR);
     assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
@@ -1902,20 +1921,61 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table);
   }
 
+  /**
+   * Validate importdirectory command accepts adding -t tablename option or the accepts original
+   * format that uses the current working table. Currently this test does not validate the actual
+   * import - only the command syntax.
+   *
+   * @throws Exception
+   *           any exception is a test failure.
+   */
+  @Test
+  public void importDirectoryCmdFmt() throws Exception {
+    final String table = name.getMethodName();
+
+    File importDir = new File(rootPath, "import_" + table);
+    assertTrue(importDir.mkdir());
+    File errorsDir = new File(rootPath, "errors_" + table);
+    assertTrue(errorsDir.mkdir());
+
+    // expect fail - table does not exist.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), false,
+        "TableNotFoundException");
+
+    ts.exec(String.format("table %s", table), false, "TableNotFoundException");
+
+    ts.exec("createtable " + table, true);
+
+    // validate -t option is used.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
+
+    // validate original cmd format.
+    ts.exec(String.format("table %s", table), true);
+    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), true);
+
+    // expect fail - invalid command,
+    ts.exec("importdirectory false", false, "Expected 3 arguments. There was 1.");
+
+    // expect fail - original cmd without a table.
+    ts.exec("notable", true);
+    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), false,
+        "java.lang.IllegalStateException: Not in a table context.");
+  }
+
   private static final String FAKE_CONTEXT = "FAKE";
   private static final String FAKE_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
       + "/target/" + ShellServerIT.class.getSimpleName() + "-fake-iterators.jar";
   private static final String REAL_CONTEXT = "REAL";
   private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
       + "/target/" + ShellServerIT.class.getSimpleName() + "-real-iterators.jar";
-  private static final String VALUE_REVERSING_ITERATOR = "org.apache.accumulo.test."
-      + "functional.ValueReversingIterator";
-  private static final String SUMMING_COMBINER_ITERATOR = "org.apache.accumulo.core."
-      + "iterators.user.SummingCombiner";
-  private static final String COLUMN_FAMILY_COUNTER_ITERATOR = "org.apache.accumulo.core.iterators"
-      + ".ColumnFamilyCounter";
+  private static final String VALUE_REVERSING_ITERATOR =
+      "org.apache.accumulo.test." + "functional.ValueReversingIterator";
+  private static final String SUMMING_COMBINER_ITERATOR =
+      "org.apache.accumulo.core." + "iterators.user.SummingCombiner";
+  private static final String COLUMN_FAMILY_COUNTER_ITERATOR =
+      "org.apache.accumulo.core.iterators" + ".ColumnFamilyCounter";
 
-  private void setupRealContextPath() throws Exception {
+  private void setupRealContextPath() throws IOException {
     // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");
@@ -1925,7 +1985,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     fs.copyFromLocalFile(jarPath, dstPath);
   }
 
-  private void setupFakeContextPath() throws Exception {
+  private void setupFakeContextPath() throws IOException {
     // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");

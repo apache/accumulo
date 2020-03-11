@@ -29,8 +29,10 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.concurrent.Replication;
 import org.apache.hadoop.conf.Configuration;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class ReplicationRandomWalkIT extends ConfigurableMacBase {
 
   @Override
@@ -40,7 +42,12 @@ public class ReplicationRandomWalkIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
   }
 
-  @Test(timeout = 5 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
+
+  @Test
   public void runReplicationRandomWalkStep() throws Exception {
     Replication r = new Replication();
 

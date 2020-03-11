@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
@@ -54,12 +58,13 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplIT.class);
 
@@ -168,7 +173,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     t.start();
 
     // With the records, we shouldn't be drained
-    Assert.assertFalse(done.get());
+    assertFalse(done.get());
 
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
@@ -176,7 +181,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.addMutation(m);
     bw.flush();
 
-    Assert.assertFalse(done.get());
+    assertFalse(done.get());
 
     m = new Mutation(ReplicationSection.getRowPrefix() + file2);
     m.putDelete(ReplicationSection.COLF, new Text(tableId));
@@ -185,7 +190,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.close();
 
     // Removing metadata entries doesn't change anything
-    Assert.assertFalse(done.get());
+    assertFalse(done.get());
 
     // Remove the replication entries too
     bw = ReplicationTable.getBatchWriter(conn);
@@ -194,7 +199,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.addMutation(m);
     bw.flush();
 
-    Assert.assertFalse(done.get());
+    assertFalse(done.get());
 
     m = new Mutation(file2);
     m.putDelete(StatusSection.NAME, new Text(tableId));
@@ -204,12 +209,12 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     try {
       t.join(5000);
     } catch (InterruptedException e) {
-      Assert.fail("ReplicationOperations.drain did not complete");
+      fail("ReplicationOperations.drain did not complete");
     }
 
     // After both metadata and replication
-    Assert.assertTrue("Drain never finished", done.get());
-    Assert.assertFalse("Saw unexpectetd exception", exception.get());
+    assertTrue("Drain never finished", done.get());
+    assertFalse("Saw unexpectetd exception", exception.get());
   }
 
   @Test
@@ -269,7 +274,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     t.start();
 
     // With the records, we shouldn't be drained
-    Assert.assertFalse(done.get());
+    assertFalse(done.get());
 
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
@@ -278,7 +283,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.flush();
 
     // Removing metadata entries doesn't change anything
-    Assert.assertFalse(done.get());
+    assertFalse(done.get());
 
     // Remove the replication entries too
     bw = ReplicationTable.getBatchWriter(conn);
@@ -290,12 +295,12 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     try {
       t.join(5000);
     } catch (InterruptedException e) {
-      Assert.fail("ReplicationOperations.drain did not complete");
+      fail("ReplicationOperations.drain did not complete");
     }
 
     // After both metadata and replication
-    Assert.assertTrue("Drain never completed", done.get());
-    Assert.assertFalse("Saw unexpected exception", exception.get());
+    assertTrue("Drain never completed", done.get());
+    assertFalse("Saw unexpected exception", exception.get());
   }
 
   @Test
@@ -348,7 +353,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     t.start();
 
     // With the records, we shouldn't be drained
-    Assert.assertFalse(done.get());
+    assertFalse(done.get());
 
     Status newStatus = Status.newBuilder().setBegin(1000).setEnd(2000).setInfiniteEnd(false)
         .setClosed(true).build();
@@ -359,7 +364,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.flush();
 
     // Removing metadata entries doesn't change anything
-    Assert.assertFalse(done.get());
+    assertFalse(done.get());
 
     // Remove the replication entries too
     bw = ReplicationTable.getBatchWriter(conn);
@@ -371,12 +376,12 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     try {
       t.join(5000);
     } catch (InterruptedException e) {
-      Assert.fail("ReplicationOperations.drain did not complete");
+      fail("ReplicationOperations.drain did not complete");
     }
 
     // New records, but not fully replicated ones don't cause it to complete
-    Assert.assertFalse("Drain somehow finished", done.get());
-    Assert.assertFalse("Saw unexpected exception", exception.get());
+    assertFalse("Drain somehow finished", done.get());
+    assertFalse("Saw unexpected exception", exception.get());
   }
 
   @Test
@@ -453,11 +458,11 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     try {
       t.join(5000);
     } catch (InterruptedException e) {
-      Assert.fail("ReplicationOperations.drain did not complete");
+      fail("ReplicationOperations.drain did not complete");
     }
 
     // We should pass immediately because we aren't waiting on both files to be deleted (just the
     // one that we did)
-    Assert.assertTrue("Drain didn't finish", done.get());
+    assertTrue("Drain didn't finish", done.get());
   }
 }

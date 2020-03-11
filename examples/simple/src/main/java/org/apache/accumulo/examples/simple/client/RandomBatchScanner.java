@@ -169,8 +169,8 @@ public class RandomBatchScanner {
     opts.parseArgs(RandomBatchScanner.class.getName(), args, bsOpts);
 
     Connector connector = opts.getConnector();
-    BatchScanner batchReader = connector.createBatchScanner(opts.getTableName(), opts.auths,
-        bsOpts.scanThreads);
+    BatchScanner batchReader =
+        connector.createBatchScanner(opts.getTableName(), opts.auths, bsOpts.scanThreads);
     batchReader.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
 
     Random r;

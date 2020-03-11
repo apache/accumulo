@@ -18,6 +18,9 @@ package org.apache.accumulo.test.replication;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -56,11 +59,12 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase {
 
   @Override
@@ -82,7 +86,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     final int numericTableId = Integer.parseInt(tableId);
     final int fakeTableId = numericTableId + 1;
 
-    Assert.assertNotNull("Did not find table ID", tableId);
+    assertNotNull("Did not find table ID", tableId);
 
     conn.tableOperations().setProperty(tableName, Property.TABLE_REPLICATION.getKey(), "true");
     conn.tableOperations().setProperty(tableName,
@@ -92,8 +96,8 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
         ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "50000"));
 
     FileSystem fs = FileSystem.getLocal(new Configuration());
-    File tserverWalDir = new File(accumuloDir,
-        ServerConstants.WAL_DIR + Path.SEPARATOR + "faketserver+port");
+    File tserverWalDir =
+        new File(accumuloDir, ServerConstants.WAL_DIR + Path.SEPARATOR + "faketserver+port");
     File tserverWal = new File(tserverWalDir, UUID.randomUUID().toString());
     fs.mkdirs(new Path(tserverWalDir.getAbsolutePath()));
 
@@ -126,14 +130,14 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = tserverWal.getAbsolutePath();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
 
     key.event = LogEvents.COMPACTION_START;
-    key.filename = accumuloDir.getAbsolutePath() + "/tables/" + fakeTableId
-        + "/t-000001/A000001.rf";
+    key.filename =
+        accumuloDir.getAbsolutePath() + "/tables/" + fakeTableId + "/t-000001/A000001.rf";
     value.mutations = Collections.emptyList();
 
     key.write(dos);
@@ -207,7 +211,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     log.info("Bringing table online");
     conn.tableOperations().online(tableName, true);
 
-    Assert.assertEquals(1, Iterables.size(conn.createScanner(tableName, Authorizations.EMPTY)));
+    assertEquals(1, Iterables.size(conn.createScanner(tableName, Authorizations.EMPTY)));
 
     log.info("Table has performed recovery, state of metadata:");
 
@@ -222,7 +226,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     for (Entry<Key,Value> entry : s) {
       Status status = Status.parseFrom(entry.getValue().get());
       log.info(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(status));
-      Assert.assertFalse("Status record was closed and it should not be", status.getClosed());
+      assertFalse("Status record was closed and it should not be", status.getClosed());
     }
   }
 }

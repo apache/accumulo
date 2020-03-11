@@ -142,28 +142,28 @@ public class Monitor {
   }
 
   private static final int MAX_TIME_PERIOD = 60 * 60 * 1000;
-  private static final List<Pair<Long,Double>> loadOverTime = Collections
-      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> ingestRateOverTime = Collections
-      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> ingestByteRateOverTime = Collections
-      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Integer>> minorCompactionsOverTime = Collections
-      .synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Integer>> majorCompactionsOverTime = Collections
-      .synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> lookupsOverTime = Collections
-      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Integer>> queryRateOverTime = Collections
-      .synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Integer>> scanRateOverTime = Collections
-      .synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> queryByteRateOverTime = Collections
-      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> indexCacheHitRateOverTime = Collections
-      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> dataCacheHitRateOverTime = Collections
-      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> loadOverTime =
+      Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> ingestRateOverTime =
+      Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> ingestByteRateOverTime =
+      Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> minorCompactionsOverTime =
+      Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> majorCompactionsOverTime =
+      Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> lookupsOverTime =
+      Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> queryRateOverTime =
+      Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> scanRateOverTime =
+      Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> queryByteRateOverTime =
+      Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> indexCacheHitRateOverTime =
+      Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> dataCacheHitRateOverTime =
+      Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
   private static EventCounter lookupRateTracker = new EventCounter();
   private static EventCounter indexCacheHitTracker = new EventCounter();
   private static EventCounter indexCacheRequestTracker = new EventCounter();
@@ -186,8 +186,8 @@ public class Monitor {
   private ZooLock monitorLock;
 
   private static final String DEFAULT_INSTANCE_NAME = "(Unavailable)";
-  public static final AtomicReference<String> cachedInstanceName = new AtomicReference<>(
-      DEFAULT_INSTANCE_NAME);
+  public static final AtomicReference<String> cachedInstanceName =
+      new AtomicReference<>(DEFAULT_INSTANCE_NAME);
 
   private static class EventCounter {
 

@@ -97,8 +97,8 @@ public class ARS {
 
     // it is important to use an isolated scanner so that only whole mutations are seen
     try (
-        ConditionalWriter cwriter = conn.createConditionalWriter(rTable,
-            new ConditionalWriterConfig());
+        ConditionalWriter cwriter =
+            conn.createConditionalWriter(rTable, new ConditionalWriterConfig());
         Scanner scanner = new IsolatedScanner(conn.createScanner(rTable, Authorizations.EMPTY))) {
       while (true) {
         Status status = cwriter.write(update).getStatus();
@@ -181,8 +181,8 @@ public class ARS {
 
     // its important to use an isolated scanner so that only whole mutations are seen
     try (
-        ConditionalWriter cwriter = conn.createConditionalWriter(rTable,
-            new ConditionalWriterConfig());
+        ConditionalWriter cwriter =
+            conn.createConditionalWriter(rTable, new ConditionalWriterConfig());
         Scanner scanner = new IsolatedScanner(conn.createScanner(rTable, Authorizations.EMPTY))) {
       while (true) {
         scanner.setRange(new Range(row));
@@ -205,8 +205,8 @@ public class ARS {
         }
 
         if (reservation != null) {
-          ConditionalMutation update = new ConditionalMutation(row,
-              new Condition("tx", "seq").setValue(seq + ""));
+          ConditionalMutation update =
+              new ConditionalMutation(row, new Condition("tx", "seq").setValue(seq + ""));
           update.putDelete("res", reservation);
           update.put("tx", "seq", (seq + 1) + "");
 

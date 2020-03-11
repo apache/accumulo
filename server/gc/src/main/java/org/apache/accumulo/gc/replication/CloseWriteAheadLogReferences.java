@@ -294,8 +294,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
   protected List<String> getActiveWalsForServer(TInfo tinfo, HostAndPort server) {
     TabletClientService.Client tserverClient = null;
     try {
-      tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server,
-          context);
+      tserverClient =
+          ThriftUtil.getClient(new TabletClientService.Client.Factory(), server, context);
       return tserverClient.getActiveLogs(tinfo, context.rpcCreds());
     } catch (TTransportException e) {
       log.warn("Failed to fetch active write-ahead logs from " + server, e);

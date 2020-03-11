@@ -41,10 +41,11 @@ import org.slf4j.LoggerFactory;
  * principal of "frank" equals "frank" from "frank/hostname@DOMAIN").
  */
 public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandler {
-  private static final Logger log = LoggerFactory
-      .getLogger(TCredentialsUpdatingInvocationHandler.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(TCredentialsUpdatingInvocationHandler.class);
 
-  private static final ConcurrentHashMap<String,Class<? extends AuthenticationToken>> TOKEN_CLASS_CACHE = new ConcurrentHashMap<>();
+  private static final ConcurrentHashMap<String,
+      Class<? extends AuthenticationToken>> TOKEN_CLASS_CACHE = new ConcurrentHashMap<>();
   private final I instance;
   private final UserImpersonation impersonation;
 
@@ -166,8 +167,8 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     }
     // return the current one and throw away the one we just created if some other thread created it
     // first
-    Class<? extends AuthenticationToken> current = TOKEN_CLASS_CACHE.putIfAbsent(tokenClassName,
-        typedClz);
+    Class<? extends AuthenticationToken> current =
+        TOKEN_CLASS_CACHE.putIfAbsent(tokenClassName, typedClz);
     return current != null ? current : typedClz;
   }
 

@@ -57,8 +57,8 @@ import org.apache.log4j.Logger;
 class DatafileManager {
   private final Logger log = Logger.getLogger(DatafileManager.class);
   // access to datafilesizes needs to be synchronized: see CompactionRunner#getNumFiles
-  private final Map<FileRef,DataFileValue> datafileSizes = Collections
-      .synchronizedMap(new TreeMap<FileRef,DataFileValue>());
+  private final Map<FileRef,DataFileValue> datafileSizes =
+      Collections.synchronizedMap(new TreeMap<FileRef,DataFileValue>());
   private final Tablet tablet;
   private Long maxMergingMinorCompactionFileSize;
 
@@ -401,8 +401,8 @@ class DatafileManager {
           tablet.getTabletServer());
 
     Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
-    boolean replicate = ReplicationConfigurationUtil.isEnabled(tablet.getExtent(),
-        tablet.getTableConfiguration());
+    boolean replicate =
+        ReplicationConfigurationUtil.isEnabled(tablet.getExtent(), tablet.getTableConfiguration());
     Set<String> logFileOnly = null;
     if (replicate) {
       // unusedWalLogs is of the form host/fileURI, need to strip off the host portion
@@ -498,8 +498,8 @@ class DatafileManager {
       log.log(TLevel.TABLET_HIST, tablet.getExtent() + " MinC [memory] -> " + newDatafile);
     log.debug(String.format("MinC finish lock %.2f secs %s", (t2 - t1) / 1000.0,
         tablet.getExtent().toString()));
-    long splitSize = tablet.getTableConfiguration()
-        .getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
+    long splitSize =
+        tablet.getTableConfiguration().getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
     if (dfv.getSize() > splitSize) {
       log.debug(String.format("Minor Compaction wrote out file larger than split threshold."
           + " split threshold = %,d  file size = %,d", splitSize, dfv.getSize()));

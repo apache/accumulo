@@ -95,8 +95,8 @@ public class ZooKeeperStatus implements Runnable {
 
       TreeSet<ZooKeeperState> update = new TreeSet<>();
 
-      String zookeepers[] = SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST)
-          .split(",");
+      String zookeepers[] =
+          SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST).split(",");
       for (String keeper : zookeepers) {
         int clients = 0;
         String mode = "unknown";

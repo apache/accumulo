@@ -271,7 +271,7 @@ public class ClientConfiguration extends CompositeConfiguration {
    * @since 1.9.0
    */
   public static ClientConfiguration create() {
-    return new ClientConfiguration(Collections.<Configuration> emptyList());
+    return new ClientConfiguration(Collections.<Configuration>emptyList());
   }
 
   /**

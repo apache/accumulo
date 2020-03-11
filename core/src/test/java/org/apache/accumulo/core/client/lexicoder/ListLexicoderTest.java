@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
@@ -23,6 +25,8 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Test;
 
 public class ListLexicoderTest extends AbstractLexicoderTest {
 
@@ -32,7 +36,7 @@ public class ListLexicoderTest extends AbstractLexicoderTest {
   private List<Long> data4 = new ArrayList<>();
   private List<Long> data5 = new ArrayList<>();
 
-  @Override
+  @Before
   public void setUp() {
 
     data1.add(1l);
@@ -51,6 +55,7 @@ public class ListLexicoderTest extends AbstractLexicoderTest {
     data5.add(1l);
   }
 
+  @Test
   public void testSortOrder() {
     List<List<Long>> data = new ArrayList<>();
 
@@ -79,6 +84,7 @@ public class ListLexicoderTest extends AbstractLexicoderTest {
 
   }
 
+  @Test
   public void testDecodes() {
     assertDecodes(new ListLexicoder<>(new LongLexicoder()), data1);
     assertDecodes(new ListLexicoder<>(new LongLexicoder()), data2);

@@ -43,7 +43,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {
-    return 60;
+    return 120;
   }
 
   @Test

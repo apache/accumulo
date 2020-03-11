@@ -63,7 +63,6 @@ import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -95,8 +94,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       AccumuloSecurityException, TableNotFoundException, TException {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
-    List<DiskUsage> diskUsage = connector.tableOperations()
-        .getDiskUsage(Collections.singleton(tableName));
+    List<DiskUsage> diskUsage =
+        connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsage.size());
     assertEquals(0, (long) diskUsage.get(0).getUsage());
     assertEquals(tableName, diskUsage.get(0).getTables().iterator().next());
@@ -123,8 +122,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     connector.tableOperations().create(tableName);
 
     // verify 0 disk usage
-    List<DiskUsage> diskUsages = connector.tableOperations()
-        .getDiskUsage(Collections.singleton(tableName));
+    List<DiskUsage> diskUsages =
+        connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsages.size());
     assertEquals(1, diskUsages.get(0).getTables().size());
     assertEquals(Long.valueOf(0), diskUsages.get(0).getUsage());
@@ -180,8 +179,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
-    Iterable<Map.Entry<String,String>> itrProps = connector.tableOperations()
-        .getProperties(tableName);
+    Iterable<Map.Entry<String,String>> itrProps =
+        connector.tableOperations().getProperties(tableName);
     Map<String,String> props = propsToMap(itrProps);
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1"));
@@ -194,8 +193,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     String originalTable = names[0];
     TableOperations tops = connector.tableOperations();
 
-    TreeSet<Text> splits = Sets
-        .newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d")));
+    TreeSet<Text> splits =
+        Sets.newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d")));
 
     tops.create(originalTable);
     tops.addSplits(originalTable, splits);
@@ -233,17 +232,17 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         rowCounts.put(row, 1);
       }
 
-      Assert.assertEquals(Integer.parseInt(cf) + Integer.parseInt(cq), Integer.parseInt(value));
+      assertEquals(Integer.parseInt(cf) + Integer.parseInt(cq), Integer.parseInt(value));
     }
 
     Collection<Text> clonedSplits = tops.listSplits(clonedTable);
     Set<Text> expectedSplits = Sets.newHashSet(new Text("b"), new Text("c"), new Text("d"));
     for (Text clonedSplit : clonedSplits) {
-      Assert.assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit,
+      assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit,
           expectedSplits.remove(clonedSplit));
     }
 
-    Assert.assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits,
+    assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits,
         expectedSplits.isEmpty());
   }
 
@@ -341,7 +340,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         // Cancelled the compaction before it ran. No generated entries.
         break;
       default:
-        Assert.fail("Unexpected number of entries");
+        fail("Unexpected number of entries");
         break;
     }
     connector.tableOperations().delete(tableName);

@@ -16,21 +16,22 @@
  */
 package org.apache.accumulo.monitor;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.TreeSet;
 
 import org.apache.accumulo.monitor.ZooKeeperStatus.ZooKeeperState;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ZooKeeperStatusTest {
 
   @Test
   public void zkHostSortingTest() {
-    List<String> expectedHosts = Arrays.asList("rack1node1", "rack2node1", "rack4node1",
-        "rack4node4");
+    List<String> expectedHosts =
+        Arrays.asList("rack1node1", "rack2node1", "rack4node1", "rack4node4");
 
     // Add the states in a not correctly sorted order
     TreeSet<ZooKeeperState> states = new TreeSet<>();
@@ -45,11 +46,11 @@ public class ZooKeeperStatusTest {
     }
 
     // Assert we have 4 of each
-    Assert.assertEquals(expectedHosts.size(), actualHosts.size());
+    assertEquals(expectedHosts.size(), actualHosts.size());
 
     // Assert the ordering is correct
     for (int i = 0; i < expectedHosts.size(); i++) {
-      Assert.assertEquals(expectedHosts.get(i), actualHosts.get(i));
+      assertEquals(expectedHosts.get(i), actualHosts.get(i));
     }
 
   }

@@ -133,8 +133,8 @@ public class VisMetricsGatherer
         if (hash) {
           String md5String = "";
           try {
-            byte[] md5Bytes = MessageDigest.getInstance("MD5")
-                .digest(entry.getKey().getBytes(UTF_8));
+            byte[] md5Bytes =
+                MessageDigest.getInstance("MD5").digest(entry.getKey().getBytes(UTF_8));
             md5String = new String(md5Bytes, UTF_8);
           } catch (NoSuchAlgorithmException e) {
             out.println("Failed to convert key to MD5 hash: " + e.getMessage());

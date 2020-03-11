@@ -254,8 +254,8 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
       ChunkInputFormat.setScanAuthorizations(job, AUTHS);
 
       @SuppressWarnings("unchecked")
-      Class<? extends Mapper<?,?,?,?>> forName = (Class<? extends Mapper<?,?,?,?>>) Class
-          .forName(args[1]);
+      Class<? extends Mapper<?,?,?,?>> forName =
+          (Class<? extends Mapper<?,?,?,?>>) Class.forName(args[1]);
       job.setMapperClass(forName);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);

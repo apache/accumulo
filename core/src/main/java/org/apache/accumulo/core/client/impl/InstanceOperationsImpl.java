@@ -43,12 +43,15 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides a class for administering the accumulo instance
@@ -66,24 +69,42 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
-    MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
+    MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
         client.setSystemProperty(Tracer.traceInfo(), context.rpcCreds(), property, value);
       }
     });
+
+    checkLocalityGroups(property);
   }
 
   @Override
   public void removeProperty(final String property)
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(property != null, "property is null");
-    MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
+    MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
         client.removeSystemProperty(Tracer.traceInfo(), context.rpcCreds(), property);
       }
     });
+
+    checkLocalityGroups(property);
+  }
+
+  void checkLocalityGroups(String propChanged) throws AccumuloSecurityException, AccumuloException {
+    if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
+      try {
+        LocalityGroupUtil.checkLocalityGroups(getSystemConfiguration().entrySet());
+      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+        LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged
+            + "' resulted in bad locality group config. This may be a transient situation since "
+            + "the config spreads over multiple properties. Setting properties in a different "
+            + "order may help. Even though this warning was displayed, the property was updated. "
+            + "Please check your config to ensure consistency.", e);
+      }
+    }
   }
 
   @Override
@@ -205,8 +226,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     TTransport transport = null;
     try {
       transport = ThriftUtil.createTransport(AddressUtil.parseAddress(tserver, false), context);
-      TabletClientService.Client client = ThriftUtil
-          .createClient(new TabletClientService.Client.Factory(), transport);
+      TabletClientService.Client client =
+          ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
       client.getTabletServerStatus(Tracer.traceInfo(), context.rpcCreds());
     } catch (TTransportException e) {
       throw new AccumuloException(e);
@@ -224,7 +245,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public void waitForBalance() throws AccumuloException {
     try {
-      MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
+      MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
         @Override
         public void execute(MasterClientService.Client client) throws Exception {
           client.waitForBalance(Tracer.traceInfo());

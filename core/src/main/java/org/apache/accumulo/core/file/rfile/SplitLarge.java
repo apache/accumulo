@@ -60,8 +60,8 @@ public class SplitLarge {
     for (String file : opts.files) {
       AccumuloConfiguration aconf = DefaultConfiguration.getDefaultConfiguration();
       Path path = new Path(file);
-      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          aconf);
+      CachableBlockFile.Reader rdr =
+          new CachableBlockFile.Reader(fs, path, conf, null, null, aconf);
       try (Reader iter = new RFile.Reader(rdr)) {
 
         if (!file.endsWith(".rf")) {

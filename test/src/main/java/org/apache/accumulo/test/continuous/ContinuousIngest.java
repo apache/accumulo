@@ -19,6 +19,7 @@ package org.apache.accumulo.test.continuous;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,19 +58,23 @@ public class ContinuousIngest {
       return;
     }
 
-    visibilities = new ArrayList<>();
+    visibilities = readVisFromFile(opts.visFile);
+  }
 
-    FileSystem fs = FileSystem.get(new Configuration());
-    BufferedReader in = new BufferedReader(
-        new InputStreamReader(fs.open(new Path(opts.visFile)), UTF_8));
+  public static List<ColumnVisibility> readVisFromFile(String visFile) {
+    List<ColumnVisibility> vis = new ArrayList<>();
 
-    String line;
-
-    while ((line = in.readLine()) != null) {
-      visibilities.add(new ColumnVisibility(line));
+    try (BufferedReader in = new BufferedReader(new InputStreamReader(
+        FileSystem.get(new Configuration()).open(new Path(visFile)), UTF_8))) {
+      String line;
+      while ((line = in.readLine()) != null) {
+        vis.add(new ColumnVisibility(line));
+      }
+    } catch (IOException e) {
+      System.out.println("ERROR reading visFile " + visFile + ": ");
+      e.printStackTrace();
     }
-
-    in.close();
+    return vis;
   }
 
   private static ColumnVisibility getVisibility(Random rand) {
@@ -95,8 +100,8 @@ public class ContinuousIngest {
           "Consult the README and create the table before starting ingest.");
     }
 
-    BatchWriter bw = conn.createBatchWriter(clientOpts.getTableName(),
-        bwOpts.getBatchWriterConfig());
+    BatchWriter bw =
+        conn.createBatchWriter(clientOpts.getTableName(), bwOpts.getBatchWriterConfig());
     bw = Trace.wrapAll(bw, new CountSampler(1024));
 
     Random r = new Random();
@@ -136,8 +141,8 @@ public class ContinuousIngest {
         firstColFams[index] = cf;
         firstColQuals[index] = cq;
 
-        Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null, r,
-            opts.checksum);
+        Mutation m =
+            genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null, r, opts.checksum);
         count++;
         bw.addMutation(m);
       }
@@ -213,8 +218,12 @@ public class ContinuousIngest {
     Mutation m = new Mutation(new Text(rowString));
 
     m.put(new Text(cfString), new Text(cqString), cv,
-        createValue(ingestInstanceId, count, prevRow, cksum));
+        new Value(createValue(ingestInstanceId, count, prevRow, cksum)));
     return m;
+  }
+
+  public static byte[] genCol(int cfInt) {
+    return FastFormat.toZeroPaddedString(cfInt, 4, 16, EMPTY_BYTES);
   }
 
   public static final long genLong(long min, long max, Random r) {
@@ -229,8 +238,7 @@ public class ContinuousIngest {
     return FastFormat.toZeroPaddedString(rowLong, 16, 16, EMPTY_BYTES);
   }
 
-  private static Value createValue(byte[] ingestInstanceId, long count, byte[] prevRow,
-      Checksum cksum) {
+  static byte[] createValue(byte[] ingestInstanceId, long count, byte[] prevRow, Checksum cksum) {
     int dataLen = ingestInstanceId.length + 16 + (prevRow == null ? 0 : prevRow.length) + 3;
     if (cksum != null)
       dataLen += 8;
@@ -258,6 +266,6 @@ public class ContinuousIngest {
 
     // System.out.println("val "+new String(val));
 
-    return new Value(val);
+    return val;
   }
 }

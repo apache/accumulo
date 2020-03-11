@@ -17,10 +17,15 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Random;
 
-import junit.framework.TestCase;
+import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache.Options;
+import org.junit.Test;
 
 /**
  * Tests the concurrent LruBlockCache.
@@ -29,8 +34,9 @@ import junit.framework.TestCase;
  * Tests will ensure it grows and shrinks in size properly, evictions run when they're supposed to
  * and do what they should, and that cached blocks are accessible when expected to be.
  */
-public class TestLruBlockCache extends TestCase {
+public class TestLruBlockCache {
 
+  @Test
   public void testBackgroundEvictionThread() throws Exception {
 
     long maxSize = 100000;
@@ -55,6 +61,7 @@ public class TestLruBlockCache extends TestCase {
     assertEquals(cache.getEvictionCount(), 1);
   }
 
+  @Test
   public void testCacheSimple() throws Exception {
 
     long maxSize = 1000000;
@@ -104,12 +111,13 @@ public class TestLruBlockCache extends TestCase {
     // t.join();
   }
 
+  @Test
   public void testCacheEvictionSimple() throws Exception {
 
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false);
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, EnumSet.noneOf(Options.class));
 
     Block[] blocks = generateFixedBlocks(10, blockSize, "block");
 
@@ -141,12 +149,13 @@ public class TestLruBlockCache extends TestCase {
     }
   }
 
+  @Test
   public void testCacheEvictionTwoPriorities() throws Exception {
 
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, EnumSet.noneOf(Options.class),
         (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
         0.99f, // acceptable
@@ -203,12 +212,13 @@ public class TestLruBlockCache extends TestCase {
     }
   }
 
+  @Test
   public void testCacheEvictionThreePriorities() throws Exception {
 
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, EnumSet.noneOf(Options.class),
         (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
         0.99f, // acceptable
@@ -322,12 +332,13 @@ public class TestLruBlockCache extends TestCase {
   }
 
   // test scan resistance
+  @Test
   public void testScanResistance() throws Exception {
 
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, EnumSet.noneOf(Options.class),
         (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.66f, // min
         0.99f, // acceptable
@@ -382,12 +393,13 @@ public class TestLruBlockCache extends TestCase {
   }
 
   // test setMaxSize
+  @Test
   public void testResizeBlockCache() throws Exception {
 
     long maxSize = 300000;
     long blockSize = calculateBlockSize(maxSize, 31);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, EnumSet.noneOf(Options.class),
         (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
         0.99f, // acceptable

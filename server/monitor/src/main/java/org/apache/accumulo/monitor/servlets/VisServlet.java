@@ -28,8 +28,8 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 
 public class VisServlet extends BasicServlet {
-  private static final int concurrentScans = Monitor.getContext().getConfiguration()
-      .getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
+  private static final int concurrentScans =
+      Monitor.getContext().getConfiguration().getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
 
   private static final long serialVersionUID = 1L;
 

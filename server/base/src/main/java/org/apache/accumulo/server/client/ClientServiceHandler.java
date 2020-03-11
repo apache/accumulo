@@ -26,9 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -327,8 +325,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException, ThriftTableOperationException {
     String tableId = checkTableId(instance, tableName, null);
-    AccumuloConfiguration config = context.getServerConfigurationFactory()
-        .getTableConfiguration(tableId);
+    AccumuloConfiguration config =
+        context.getServerConfigurationFactory().getTableConfiguration(tableId);
     return conf(credentials, config);
   }
 
@@ -342,18 +340,13 @@ public class ClientServiceHandler implements ClientService.Iface {
             SecurityErrorCode.PERMISSION_DENIED);
       bulkImportStatus.updateBulkImportStatus(files, BulkImportState.INITIAL);
       log.debug("Got request to bulk import files to table(" + tableId + "): " + files);
-      return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid,
-          new Callable<List<String>>() {
-            @Override
-            public List<String> call() throws Exception {
-              bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
-              try {
-                return BulkImporter.bulkLoad(context, tid, tableId, files, errorDir, setTime);
-              } finally {
-                bulkImportStatus.removeBulkImportStatus(files);
-              }
-            }
-          });
+
+      bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
+      try {
+        return BulkImporter.bulkLoad(context, tid, tableId, files, errorDir, setTime);
+      } finally {
+        bulkImportStatus.removeBulkImportStatus(files);
+      }
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     } catch (Exception ex) {
@@ -408,8 +401,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      AccumuloConfiguration conf = context.getServerConfigurationFactory()
-          .getTableConfiguration(tableId);
+      AccumuloConfiguration conf =
+          context.getServerConfigurationFactory().getTableConfiguration(tableId);
 
       String context = conf.get(Property.TABLE_CLASSPATH);
 
@@ -444,8 +437,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      AccumuloConfiguration conf = context.getServerConfigurationFactory()
-          .getNamespaceConfiguration(namespaceId);
+      AccumuloConfiguration conf =
+          context.getServerConfigurationFactory().getNamespaceConfiguration(namespaceId);
 
       String context = conf.get(Property.TABLE_CLASSPATH);
 
@@ -483,9 +476,9 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
 
       // use the same set of tableIds that were validated above to avoid race conditions
-      Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(
-          context.getServerConfigurationFactory().getConfiguration(), tableIds, fs,
-          context.getConnector());
+      Map<TreeSet<String>,Long> diskUsage =
+          TableDiskUsage.getDiskUsage(context.getServerConfigurationFactory().getConfiguration(),
+              tableIds, fs, context.getConnector());
       List<TDiskUsage> retUsages = new ArrayList<>();
       for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
         retUsages.add(new TDiskUsage(new ArrayList<>(usageItem.getKey()), usageItem.getValue()));
@@ -514,8 +507,8 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new ThriftTableOperationException(null, ns, null,
           TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
-    AccumuloConfiguration config = context.getServerConfigurationFactory()
-        .getNamespaceConfiguration(namespaceId);
+    AccumuloConfiguration config =
+        context.getServerConfigurationFactory().getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
   }
 

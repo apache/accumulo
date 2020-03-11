@@ -74,8 +74,8 @@ public class SetScanIterCommand extends SetIterCommand {
 
     // initialize a scanner to ensure the new setting does not conflict with existing settings
     final String user = shellState.getConnector().whoami();
-    final Authorizations auths = shellState.getConnector().securityOperations()
-        .getUserAuthorizations(user);
+    final Authorizations auths =
+        shellState.getConnector().securityOperations().getUserAuthorizations(user);
     final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
     for (IteratorSetting s : tableScanIterators) {
       scanner.addScanIterator(s);

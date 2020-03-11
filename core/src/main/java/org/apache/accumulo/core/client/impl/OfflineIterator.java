@@ -162,8 +162,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.range = range;
 
     if (this.options.fetchedColumns.size() > 0) {
-      this.range = range.bound(this.options.fetchedColumns.first(),
-          this.options.fetchedColumns.last());
+      this.range =
+          range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
 
     this.tableId = table.toString();
@@ -220,8 +220,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       else
         startRow = new Text();
 
-      nextRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null,
-          false);
+      nextRange =
+          new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null, false);
     } else {
 
       if (currentExtent.getEndRow() == null) {
@@ -339,10 +339,10 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     readers.clear();
 
     SamplerConfiguration scannerSamplerConfig = options.getSamplerConfiguration();
-    SamplerConfigurationImpl scannerSamplerConfigImpl = scannerSamplerConfig == null ? null
-        : new SamplerConfigurationImpl(scannerSamplerConfig);
-    SamplerConfigurationImpl samplerConfImpl = SamplerConfigurationImpl
-        .newSamplerConfig(acuTableConf);
+    SamplerConfigurationImpl scannerSamplerConfigImpl =
+        scannerSamplerConfig == null ? null : new SamplerConfigurationImpl(scannerSamplerConfig);
+    SamplerConfigurationImpl samplerConfImpl =
+        SamplerConfigurationImpl.newSamplerConfig(acuTableConf);
 
     if (scannerSamplerConfigImpl != null
         && ((samplerConfImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl))
@@ -365,13 +365,13 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     MultiIterator multiIter = new MultiIterator(readers, extent);
 
-    OfflineIteratorEnvironment iterEnv = new OfflineIteratorEnvironment(authorizations,
-        acuTableConf, false,
-        samplerConfImpl == null ? null : samplerConfImpl.toSamplerConfiguration());
+    OfflineIteratorEnvironment iterEnv =
+        new OfflineIteratorEnvironment(authorizations, acuTableConf, false,
+            samplerConfImpl == null ? null : samplerConfImpl.toSamplerConfiguration());
 
     byte[] defaultSecurityLabel;
-    ColumnVisibility cv = new ColumnVisibility(
-        acuTableConf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
+    ColumnVisibility cv =
+        new ColumnVisibility(acuTableConf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
     defaultSecurityLabel = cv.getExpression();
 
     SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(multiIter,

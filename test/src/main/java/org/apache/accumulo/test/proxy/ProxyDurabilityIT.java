@@ -63,7 +63,7 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 120;
+    return 240;
   }
 
   @Override
@@ -124,8 +124,8 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
     ConditionalUpdates updates = new ConditionalUpdates();
     updates.addToConditions(new Condition(new Column(bytes("cf"), bytes("cq"), bytes(""))));
     updates.addToUpdates(column);
-    Map<ByteBuffer,ConditionalStatus> status = client.updateRowsConditionally(cwriter,
-        Collections.singletonMap(bytes("row"), updates));
+    Map<ByteBuffer,ConditionalStatus> status =
+        client.updateRowsConditionally(cwriter, Collections.singletonMap(bytes("row"), updates));
     assertEquals(ConditionalStatus.ACCEPTED, status.get(bytes("row")));
     assertEquals(1, count(tableName));
     restartTServer();

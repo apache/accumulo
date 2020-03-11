@@ -45,8 +45,8 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
 
   private static final String SECRET = "superSecret";
 
-  private static final Logger log = LoggerFactory
-      .getLogger(MiniAccumuloClusterExistingZooKeepersTest.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(MiniAccumuloClusterExistingZooKeepersTest.class);
   private TestingServer zooKeeper;
   private MiniAccumuloCluster accumulo;
 
@@ -100,8 +100,8 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
 
     String zkTablePath = String.format("/accumulo/%s/tables/%s/name", instance.getInstanceID(),
         tableIds.get(tableName));
-    try (CuratorFramework client = CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(),
-        new RetryOneTime(1))) {
+    try (CuratorFramework client =
+        CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(), new RetryOneTime(1))) {
       client.start();
       assertNotNull(client.checkExists().forPath(zkTablePath));
       assertEquals(tableName, new String(client.getData().forPath(zkTablePath)));

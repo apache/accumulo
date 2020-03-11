@@ -98,8 +98,8 @@ public class ChangeSecret {
   }
 
   private static void verifyAccumuloIsDown(Instance inst, String oldPassword) throws Exception {
-    ZooReader zooReader = new ZooReaderWriter(inst.getZooKeepers(),
-        inst.getZooKeepersSessionTimeOut(), oldPassword);
+    ZooReader zooReader =
+        new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPassword);
     String root = ZooUtil.getRoot(inst);
     final List<String> ephemerals = new ArrayList<>();
     recurse(zooReader, root, new Visitor() {
@@ -121,10 +121,10 @@ public class ChangeSecret {
 
   private static void rewriteZooKeeperInstance(final Instance inst, final String newInstanceId,
       String oldPass, String newPass) throws Exception {
-    final ZooReaderWriter orig = new ZooReaderWriter(inst.getZooKeepers(),
-        inst.getZooKeepersSessionTimeOut(), oldPass);
-    final IZooReaderWriter new_ = new ZooReaderWriter(inst.getZooKeepers(),
-        inst.getZooKeepersSessionTimeOut(), newPass);
+    final ZooReaderWriter orig =
+        new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPass);
+    final IZooReaderWriter new_ =
+        new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), newPass);
 
     String root = ZooUtil.getRoot(inst);
     recurse(orig, root, new Visitor() {

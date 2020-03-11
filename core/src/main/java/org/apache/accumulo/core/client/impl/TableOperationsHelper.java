@@ -86,8 +86,8 @@ public abstract class TableOperationsHelper implements TableOperations {
     String classname = null;
     Map<String,String> settings = new HashMap<>();
 
-    String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
-        scope.name().toLowerCase(), name);
+    String root =
+        String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
     String opt = root + ".opt.";
     for (Entry<String,String> property : this.getProperties(tableName)) {
       if (property.getKey().equals(root)) {
@@ -133,8 +133,8 @@ public abstract class TableOperationsHelper implements TableOperations {
     checkArgument(setting != null, "setting is null");
     checkArgument(scopes != null, "scopes is null");
     for (IteratorScope scope : scopes) {
-      String scopeStr = String.format("%s%s", Property.TABLE_ITERATOR_PREFIX,
-          scope.name().toLowerCase());
+      String scopeStr =
+          String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
       String nameStr = String.format("%s.%s", scopeStr, setting.getName());
       String optStr = String.format("%s.opt.", nameStr);
       Map<String,String> optionConflicts = new TreeMap<>();

@@ -84,8 +84,8 @@ public class InMemoryMapIT {
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @BeforeClass
   public static void ensureNativeLibrary() throws FileNotFoundException {
@@ -96,7 +96,7 @@ public class InMemoryMapIT {
       fail("Missing the native library from " + nativeMapLocation.getAbsolutePath()
           + "\nYou need to build the libaccumulo binary first. "
           + "\nTry running 'mvn clean verify -Dit.test=InMemoryMapIT -Dtest=foo"
-          + " -DfailIfNoTests=false -Dfindbugs.skip -Dcheckstyle.skip'");
+          + " -DfailIfNoTests=false -Dspotbugs.skip -Dcheckstyle.skip'");
     }
     log.debug("Native map loaded");
 
@@ -236,12 +236,14 @@ public class InMemoryMapIT {
       localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
           tempFolder.newFolder().getAbsolutePath());
 
-      defaultMap = new InMemoryMap(new ConfigurationCopy(defaultMapConfig));
-      nativeMapWrapper = new InMemoryMap(new ConfigurationCopy(nativeMapConfig));
+      defaultMap = new InMemoryMap(new ConfigurationCopy(defaultMapConfig), "--TEST--");
+      nativeMapWrapper = new InMemoryMap(new ConfigurationCopy(nativeMapConfig), "--TEST--");
       localityGroupMap = new InMemoryMap(
-          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)));
+          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)),
+          "--TEST--");
       localityGroupMapWithNative = new InMemoryMap(
-          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupNativeConfig)));
+          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupNativeConfig)),
+          "--TEST--");
     } catch (Exception e) {
       log.error("Error getting new InMemoryMap ", e);
       fail(e.getMessage());

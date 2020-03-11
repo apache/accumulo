@@ -17,13 +17,12 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
+while [[ -h "${SOURCE}" ]]; do # resolve $SOURCE until the file is no longer a symlink
    bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
    SOURCE="$(readlink "${SOURCE}")"
    [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-script=$( basename "${SOURCE}" )
 # Stop: Resolve Script Directory
 
 . "${bin}"/config.sh
@@ -35,12 +34,12 @@ START_JAR="${ACCUMULO_HOME}/lib/accumulo-start.jar"
 #
 locationByProgram()
 {
-   RESULT=$( which "$1" )
-   if [[ "$?" != 0 && -z "${RESULT}" ]]; then
+   RESULT=$(type -P "$1")
+   if [[ -z "${RESULT}" ]]; then
       echo "Cannot find '$1' and '$2' is not set in $ACCUMULO_CONF_DIR/accumulo-env.sh"
       exit 1
    fi
-   while [ -h "${RESULT}" ]; do # resolve $RESULT until the file is no longer a symlink
+   while [[ -h "${RESULT}" ]]; do # resolve $RESULT until the file is no longer a symlink
       DIR="$( cd -P "$( dirname "$RESULT" )" && pwd )"
       RESULT="$(readlink "${RESULT}")"
       [[ "${RESULT}" != /* ]] && RESULT="${DIR}/${RESULT}" # if $RESULT was a relative symlink, we need to resolve it relative to the path where the symlink file was located
@@ -55,19 +54,17 @@ test -z "${JAVA_HOME}"      && locationByProgram java JAVA_HOME
 test -z "${HADOOP_PREFIX}"  && locationByProgram hadoop HADOOP_PREFIX
 test -z "${ZOOKEEPER_HOME}" && locationByProgram zkCli.sh ZOOKEEPER_HOME
 
-DEFAULT_GENERAL_JAVA_OPTS=""
-
 #
 # ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
 # It also holds the JAR run with the jar command and, if possible, any items in the JAR manifest's Class-Path.
 #
-if [ "$1" = "-add" ] ; then
+if [[ "$1" = "-add" ]]; then
     export ACCUMULO_XTRAJARS="$2"
     shift 2
 else
     export ACCUMULO_XTRAJARS=""
 fi
-if [ "$1" = "jar" -a -f "$2" ] ; then
+if [[ "$1" = "jar" && -f "$2" ]]; then
     if [[ $2 =~ ^/ ]]; then
       jardir="$(dirname "$2")"
       jarfile="$2"
@@ -77,9 +74,9 @@ if [ "$1" = "jar" -a -f "$2" ] ; then
     fi
     if jar tf "$jarfile" | grep -q META-INF/MANIFEST.MF ; then
       cp="$(unzip -p "$jarfile" META-INF/MANIFEST.MF | grep ^Class-Path: | sed 's/^Class-Path: *//')"
-      if [[ -n "$cp" ]] ; then
+      if [[ -n "$cp" ]]; then
          for j in $cp; do
-            if [[ "$j" != "Class-Path:" ]] ; then
+            if [[ "$j" != "Class-Path:" ]]; then
                ACCUMULO_XTRAJARS="${jardir}/${j},$ACCUMULO_XTRAJARS"
             fi
          done
@@ -91,11 +88,11 @@ fi
 #
 # Set up -D switches for JAAS and Kerberos if env variables set
 #
-if [[ ! -z ${ACCUMULO_JAAS_CONF} ]]; then
+if [[ -n ${ACCUMULO_JAAS_CONF} ]]; then
   ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.auth.login.config=${ACCUMULO_JAAS_CONF}"
 fi
 
-if [[ ! -z ${ACCUMULO_KRB5_CONF} ]]; then
+if [[ -n ${ACCUMULO_KRB5_CONF} ]]; then
   ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.krb5.conf=${ACCUMULO_KRB5_CONF}"
 fi
 
@@ -112,27 +109,31 @@ shell)   export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_SHELL_OPTS}" 
 esac
 
 XML_FILES="${ACCUMULO_CONF_DIR}"
-LOG4J_JAR=$(find -H "${HADOOP_PREFIX}/lib" "${HADOOP_PREFIX}"/share/hadoop/common/lib -name 'log4j*.jar' -print 2>/dev/null | head -1)
+LOG4J_JAR=$(find -H "${HADOOP_PREFIX}/lib" "${HADOOP_PREFIX}"/share/hadoop/common/lib -regex '.*/log4j-[0-9.]*[.]jar$' -print 2>/dev/null | head -1)
 SLF4J_JARS="${ACCUMULO_HOME}/lib/slf4j-api.jar:${ACCUMULO_HOME}/lib/slf4j-log4j12.jar"
 
 # The `find` command could fail for environmental reasons or bad configuration
 # Avoid trying to run Accumulo when we can't find the jar
-if [ -z "${LOG4J_JAR}" -a -z "${CLASSPATH}" ]; then
+if [[ -z "${LOG4J_JAR}" && -z "${CLASSPATH}" ]]; then
    echo "Could not locate Log4j jar in Hadoop installation at ${HADOOP_PREFIX}"
    exit 1
 fi
 
-CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${LOG4J_JAR}:${CLASSPATH}"
+if [[ -n "$CLASSPATH" ]]; then
+  CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${LOG4J_JAR}:${CLASSPATH}"
+else
+  CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${LOG4J_JAR}"
+fi
 
-if [ -z "${JAVA_HOME}" -o ! -d "${JAVA_HOME}" ]; then
+if [[ -z "${JAVA_HOME}" || ! -d "${JAVA_HOME}" ]]; then
    echo "JAVA_HOME is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
    exit 1
 fi
-if [ -z "${HADOOP_PREFIX}" -o ! -d "${HADOOP_PREFIX}" ]; then
+if [[ -z "${HADOOP_PREFIX}" || ! -d "${HADOOP_PREFIX}" ]]; then
    echo "HADOOP_PREFIX is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
    exit 1
 fi
-if [ -z "${ZOOKEEPER_HOME}" -o ! -d "${ZOOKEEPER_HOME}" ]; then
+if [[ -z "${ZOOKEEPER_HOME}" || ! -d "${ZOOKEEPER_HOME}" ]]; then
    echo "ZOOKEEPER_HOME is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
    exit 1
 fi
@@ -142,7 +143,7 @@ fi
 #   explicitly in ${ACCUMULO_HOME}/conf/accumulo-env.sh
 #   usually something like:
 #     ${HADOOP_PREFIX}/lib/native/${PLATFORM}
-if [ -e "${HADOOP_PREFIX}/lib/native/libhadoop.so" ]; then
+if [[ -e "${HADOOP_PREFIX}/lib/native/libhadoop.so" ]]; then
    LIB_PATH="${HADOOP_PREFIX}/lib/native"
    LD_LIBRARY_PATH="${LIB_PATH}:${LD_LIBRARY_PATH}"     # For Linux
    DYLD_LIBRARY_PATH="${LIB_PATH}:${DYLD_LIBRARY_PATH}" # For Mac

@@ -34,7 +34,6 @@ import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
@@ -104,16 +103,10 @@ public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
   private static TreeMap<Key,Value> createOutputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
 
-    Iterable<Entry<Key,Value>> filtered = Iterables.filter(data.entrySet(),
-        new Predicate<Entry<Key,Value>>() {
-
-          @Override
-          public boolean apply(Entry<Key,Value> input) {
-            assertNotNull(input);
-            return NOW - input.getKey().getTimestamp() > TTL;
-          }
-
-        });
+    Iterable<Entry<Key,Value>> filtered = Iterables.filter(data.entrySet(), input -> {
+      assertNotNull(input);
+      return NOW - input.getKey().getTimestamp() > TTL;
+    });
 
     for (Entry<Key,Value> entry : filtered) {
       data.put(entry.getKey(), entry.getValue());

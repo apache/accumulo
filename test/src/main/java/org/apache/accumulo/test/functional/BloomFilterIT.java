@@ -202,8 +202,8 @@ public class BloomFilterIT extends AccumuloClusterHarness {
           break;
         case 3:
           acuKey = new Key(row, cf, key);
-          range = new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL),
-              false);
+          range =
+              new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), false);
           break;
       }
 

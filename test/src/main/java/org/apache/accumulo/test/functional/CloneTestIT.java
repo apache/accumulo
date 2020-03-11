@@ -17,7 +17,9 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,19 +33,24 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -53,7 +60,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
+import org.apache.thrift.TException;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -108,15 +115,20 @@ public class CloneTestIT extends AccumuloClusterHarness {
       tableProps.put(prop.getKey(), prop.getValue());
     }
 
-    Assert.assertEquals("500K", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey()));
-    Assert.assertEquals(Property.TABLE_FILE_MAX.getDefaultValue(),
+    assertEquals("500K", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey()));
+    assertEquals(Property.TABLE_FILE_MAX.getDefaultValue(),
         tableProps.get(Property.TABLE_FILE_MAX.getKey()));
-    Assert.assertEquals("2M",
-        tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()));
+    assertEquals("2M", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()));
 
     c.tableOperations().delete(table1);
     c.tableOperations().delete(table2);
 
+  }
+
+  private void assertTableState(String table, Connector c, TableState expected) throws TException {
+    String tableId = c.tableOperations().tableIdMap().get(table);
+    TableState tableState = Tables.getTableState(c.getInstance(), tableId);
+    assertEquals(expected, tableState);
   }
 
   private void checkData(String table2, Connector c) throws TableNotFoundException {
@@ -134,7 +146,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
       actual.put(entry.getKey().getRowData().toString() + ":"
           + entry.getKey().getColumnQualifierData().toString(), entry.getValue().toString());
 
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   private void checkMetadata(String table, Connector conn) throws Exception {
@@ -144,7 +156,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
     MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
     String tableId = conn.tableOperations().tableIdMap().get(table);
 
-    Assert.assertNotNull("Could not get table id for " + table, tableId);
+    assertNotNull("Could not get table id for " + table, tableId);
 
     s.setRange(Range.prefix(tableId));
 
@@ -160,24 +172,24 @@ public class CloneTestIT extends AccumuloClusterHarness {
       if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
         Path p = new Path(cq.toString());
         FileSystem fs = cluster.getFileSystem();
-        Assert.assertTrue("File does not exist: " + p, fs.exists(p));
+        assertTrue("File does not exist: " + p, fs.exists(p));
       } else if (cf.equals(
           MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
-        Assert.assertEquals("Saw unexpected cq",
+        assertEquals("Saw unexpected cq",
             MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(),
             cq);
         Path tabletDir = new Path(entry.getValue().toString());
         Path tableDir = tabletDir.getParent();
         Path tablesDir = tableDir.getParent();
 
-        Assert.assertEquals(ServerConstants.TABLE_DIR, tablesDir.getName());
+        assertEquals(ServerConstants.TABLE_DIR, tablesDir.getName());
       } else {
-        Assert.fail("Got unexpected key-value: " + entry);
+        fail("Got unexpected key-value: " + entry);
         throw new RuntimeException();
       }
     }
 
-    Assert.assertTrue("Expected to find metadata entries", itemsInspected > 0);
+    assertTrue("Expected to find metadata entries", itemsInspected > 0);
   }
 
   private BatchWriter writeData(String table1, Connector c)
@@ -246,6 +258,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     c.tableOperations().clone(table1, table2, true, props, exclude);
 
+    assertTableState(table2, c, TableState.ONLINE);
+
     Mutation m3 = new Mutation("009");
     m3.put("data", "x", "1");
     m3.put("data", "y", "2");
@@ -263,6 +277,36 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     c.tableOperations().delete(table2);
 
+  }
+
+  @Test
+  public void testOfflineClone() throws Exception {
+    String[] tableNames = getUniqueNames(3);
+    String table1 = tableNames[0];
+    String table2 = tableNames[1];
+
+    Connector c = getConnector();
+    AccumuloCluster cluster = getCluster();
+    Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
+
+    c.tableOperations().create(table1);
+
+    writeData(table1, c);
+
+    Map<String,String> props = new HashMap<>();
+    props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
+
+    Set<String> exclude = new HashSet<>();
+    exclude.add(Property.TABLE_FILE_MAX.getKey());
+
+    c.tableOperations().clone(table1, table2, CloneConfiguration.builder().setFlush(true)
+        .setPropertiesToSet(props).setPropertiesToExclude(exclude).setKeepOffline(true).build());
+
+    assertTableState(table2, c, TableState.OFFLINE);
+
+    // delete tables
+    c.tableOperations().delete(table1);
+    c.tableOperations().delete(table2);
   }
 
   @Test
@@ -298,7 +342,18 @@ public class CloneTestIT extends AccumuloClusterHarness {
       actualRows.add(entry.getKey().getRow().toString());
     }
 
-    Assert.assertEquals(rows, actualRows);
+    assertEquals(rows, actualRows);
   }
 
+  @Test(expected = AccumuloException.class)
+  public void testCloneRootTable() throws Exception {
+    Connector conn = getConnector();
+    conn.tableOperations().clone(RootTable.NAME, "rc1", true, null, null);
+  }
+
+  @Test(expected = AccumuloException.class)
+  public void testCloneMetadataTable() throws Exception {
+    Connector conn = getConnector();
+    conn.tableOperations().clone(MetadataTable.NAME, "mc1", true, null, null);
+  }
 }

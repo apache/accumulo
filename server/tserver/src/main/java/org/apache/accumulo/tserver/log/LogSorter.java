@@ -61,8 +61,8 @@ public class LogSorter {
   VolumeManager fs;
   AccumuloConfiguration conf;
 
-  private final Map<String,LogProcessor> currentWork = Collections
-      .synchronizedMap(new HashMap<String,LogProcessor>());
+  private final Map<String,LogProcessor> currentWork =
+      Collections.synchronizedMap(new HashMap<String,LogProcessor>());
 
   class LogProcessor implements Processor {
 
@@ -123,7 +123,7 @@ public class LogSorter {
             // Creating a 'finished' marker will cause recovery to proceed normally and the
             // empty file will be correctly ignored downstream.
             fs.mkdirs(new Path(destPath));
-            writeBuffer(destPath, Collections.<Pair<LogFileKey,LogFileValue>> emptyList(), part++);
+            writeBuffer(destPath, Collections.<Pair<LogFileKey,LogFileValue>>emptyList(), part++);
             fs.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
             return;
           }

@@ -16,10 +16,17 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -37,12 +44,9 @@ import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iterators.YieldingKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-import com.google.common.base.Optional;
-
-import junit.framework.TestCase;
-
-public class SourceSwitchingIteratorTest extends TestCase {
+public class SourceSwitchingIteratorTest {
 
   Key newKey(String row, String cf, String cq, long time) {
     return new Key(new Text(row), new Text(cf), new Text(cq), time);
@@ -119,6 +123,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     }
   }
 
+  @Test
   public void test1() throws Exception {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
@@ -136,6 +141,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     assertFalse(ssi.hasTop());
   }
 
+  @Test
   public void test2() throws Exception {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
@@ -163,6 +169,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     assertFalse(ssi.hasTop());
   }
 
+  @Test
   public void test3() throws Exception {
     // test switching after a row
 
@@ -200,6 +207,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
   }
 
+  @Test
   public void test4() throws Exception {
     // ensure switch is done on initial seek
     TreeMap<Key,Value> tm1 = new TreeMap<>();
@@ -225,6 +233,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
   }
 
+  @Test
   public void test5() throws Exception {
     // esnure switchNow() works w/ deepCopy()
     TreeMap<Key,Value> tm1 = new TreeMap<>();
@@ -256,6 +265,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     assertFalse(dc1.hasTop());
   }
 
+  @Test
   public void testSetInterrupt() throws Exception {
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();
@@ -297,6 +307,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     return r;
   }
 
+  @Test
   public void testYield() throws Exception {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
@@ -332,7 +343,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
   public class YieldingIterator extends WrappingIterator
       implements YieldingKeyValueIterator<Key,Value> {
-    private Optional<YieldCallback<Key>> yield = Optional.absent();
+    private Optional<YieldCallback<Key>> yield = Optional.empty();
 
     public YieldingIterator(SortedKeyValueIterator<Key,Value> source) {
       setSource(source);

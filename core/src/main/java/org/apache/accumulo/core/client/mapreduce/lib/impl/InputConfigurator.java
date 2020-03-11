@@ -26,6 +26,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -66,8 +67,8 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
@@ -234,7 +235,7 @@ public class InputConfigurator extends ConfiguratorBase {
       for (Range r : ranges) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         r.write(new DataOutputStream(baos));
-        rangeStrings.add(Base64.encodeBase64String(baos.toByteArray()));
+        rangeStrings.add(Base64.getEncoder().encodeToString(baos.toByteArray()));
       }
       conf.setStrings(enumToConfKey(implementingClass, ScanOpts.RANGES),
           rangeStrings.toArray(new String[0]));
@@ -259,12 +260,12 @@ public class InputConfigurator extends ConfiguratorBase {
   public static List<Range> getRanges(Class<?> implementingClass, Configuration conf)
       throws IOException {
 
-    Collection<String> encodedRanges = conf
-        .getStringCollection(enumToConfKey(implementingClass, ScanOpts.RANGES));
+    Collection<String> encodedRanges =
+        conf.getStringCollection(enumToConfKey(implementingClass, ScanOpts.RANGES));
     List<Range> ranges = new ArrayList<>();
     for (String rangeString : encodedRanges) {
-      ByteArrayInputStream bais = new ByteArrayInputStream(
-          Base64.decodeBase64(rangeString.getBytes(UTF_8)));
+      ByteArrayInputStream bais =
+          new ByteArrayInputStream(Base64.getDecoder().decode(rangeString.getBytes(UTF_8)));
       Range range = new Range();
       range.readFields(new DataInputStream(bais));
       ranges.add(range);
@@ -297,8 +298,8 @@ public class InputConfigurator extends ConfiguratorBase {
     try {
       while (tokens.hasMoreTokens()) {
         String itstring = tokens.nextToken();
-        ByteArrayInputStream bais = new ByteArrayInputStream(
-            Base64.decodeBase64(itstring.getBytes(UTF_8)));
+        ByteArrayInputStream bais =
+            new ByteArrayInputStream(Base64.getDecoder().decode(itstring.getBytes(UTF_8)));
         list.add(new IteratorSetting(new DataInputStream(bais)));
         bais.close();
       }
@@ -331,8 +332,8 @@ public class InputConfigurator extends ConfiguratorBase {
     conf.setStrings(enumToConfKey(implementingClass, ScanOpts.COLUMNS), columnStrings);
   }
 
-  public static String[] serializeColumns(
-      Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
+  public static String[]
+      serializeColumns(Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     checkArgument(columnFamilyColumnQualifierPairs != null,
         "columnFamilyColumnQualifierPairs is null");
     ArrayList<String> columnStrings = new ArrayList<>(columnFamilyColumnQualifierPairs.size());
@@ -341,9 +342,9 @@ public class InputConfigurator extends ConfiguratorBase {
       if (column.getFirst() == null)
         throw new IllegalArgumentException("Column family can not be null");
 
-      String col = Base64.encodeBase64String(TextUtil.getBytes(column.getFirst()));
+      String col = Base64.getEncoder().encodeToString(TextUtil.getBytes(column.getFirst()));
       if (column.getSecond() != null)
-        col += ":" + Base64.encodeBase64String(TextUtil.getBytes(column.getSecond()));
+        col += ":" + Base64.getEncoder().encodeToString(TextUtil.getBytes(column.getSecond()));
       columnStrings.add(col);
     }
 
@@ -384,10 +385,10 @@ public class InputConfigurator extends ConfiguratorBase {
 
     for (String col : serialized) {
       int idx = col.indexOf(":");
-      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(UTF_8))
-          : Base64.decodeBase64(col.substring(0, idx).getBytes(UTF_8)));
+      Text cf = new Text(idx < 0 ? Base64.getDecoder().decode(col.getBytes(UTF_8))
+          : Base64.getDecoder().decode(col.substring(0, idx).getBytes(UTF_8)));
       Text cq = idx < 0 ? null
-          : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(UTF_8)));
+          : new Text(Base64.getDecoder().decode(col.substring(idx + 1).getBytes(UTF_8)));
       columns.add(new Pair<>(cf, cq));
     }
     return columns;
@@ -412,7 +413,7 @@ public class InputConfigurator extends ConfiguratorBase {
     String newIter;
     try {
       cfg.write(new DataOutputStream(baos));
-      newIter = Base64.encodeBase64String(baos.toByteArray());
+      newIter = Base64.getEncoder().encodeToString(baos.toByteArray());
       baos.close();
     } catch (IOException e) {
       throw new IllegalArgumentException("unable to serialize IteratorSetting");
@@ -656,7 +657,7 @@ public class InputConfigurator extends ConfiguratorBase {
     }
 
     String confKey = enumToConfKey(implementingClass, ScanOpts.TABLE_CONFIGS);
-    conf.set(confKey, Base64.encodeBase64String(baos.toByteArray()));
+    conf.set(confKey, Base64.getEncoder().encodeToString(baos.toByteArray()));
   }
 
   /**
@@ -671,16 +672,34 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static Map<String,InputTableConfig> getInputTableConfigs(Class<?> implementingClass,
       Configuration conf) {
+    return getInputTableConfigs(implementingClass, conf,
+        getInputTableName(implementingClass, conf));
+  }
+
+  /**
+   * Returns all {@link InputTableConfig} objects associated with this job.
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param tableName
+   *          the table name for which to retrieve the configuration
+   * @return all of the table query configs for the job
+   * @since 1.6.0
+   */
+  private static Map<String,InputTableConfig> getInputTableConfigs(Class<?> implementingClass,
+      Configuration conf, String tableName) {
     Map<String,InputTableConfig> configs = new HashMap<>();
-    Map.Entry<String,InputTableConfig> defaultConfig = getDefaultInputTableConfig(implementingClass,
-        conf);
+    Map.Entry<String,InputTableConfig> defaultConfig =
+        getDefaultInputTableConfig(implementingClass, conf, tableName);
     if (defaultConfig != null)
       configs.put(defaultConfig.getKey(), defaultConfig.getValue());
     String configString = conf.get(enumToConfKey(implementingClass, ScanOpts.TABLE_CONFIGS));
     MapWritable mapWritable = new MapWritable();
     if (configString != null) {
       try {
-        byte[] bytes = Base64.decodeBase64(configString.getBytes(UTF_8));
+        byte[] bytes = Base64.getDecoder().decode(configString.getBytes(UTF_8));
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         mapWritable.readFields(new DataInputStream(bais));
         bais.close();
@@ -709,7 +728,8 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static InputTableConfig getInputTableConfig(Class<?> implementingClass, Configuration conf,
       String tableName) {
-    Map<String,InputTableConfig> queryConfigs = getInputTableConfigs(implementingClass, conf);
+    Map<String,InputTableConfig> queryConfigs =
+        getInputTableConfigs(implementingClass, conf, tableName);
     return queryConfigs.get(tableName);
   }
 
@@ -734,10 +754,9 @@ public class InputConfigurator extends ConfiguratorBase {
       return DeprecationUtil.makeMockLocator();
     Instance instance = getInstance(implementingClass, conf);
     ClientConfiguration clientConf = getClientConfiguration(implementingClass, conf);
-    ClientContext context = new ClientContext(instance,
-        new Credentials(getPrincipal(implementingClass, conf),
-            getAuthenticationToken(implementingClass, conf)),
-        clientConf);
+    ClientContext context =
+        new ClientContext(instance, new Credentials(getPrincipal(implementingClass, conf),
+            getAuthenticationToken(implementingClass, conf)), clientConf);
     return TabletLocator.getLocator(context, tableId);
   }
 
@@ -760,6 +779,15 @@ public class InputConfigurator extends ConfiguratorBase {
     return getInstance(implementingClass, conf);
   }
 
+  private static String extractNamespace(final String tableName) {
+    final int delimiterPos = tableName.indexOf('.');
+    if (delimiterPos < 1) {
+      return ""; // default namespace
+    } else {
+      return tableName.substring(0, delimiterPos);
+    }
+  }
+
   /**
    * Validates that the user has permissions on the requested tables
    *
@@ -778,10 +806,17 @@ public class InputConfigurator extends ConfiguratorBase {
       if (getInputTableConfigs(implementingClass, conf).size() == 0)
         throw new IOException("No table set.");
 
+      final String principal = getPrincipal(implementingClass, conf);
       for (Map.Entry<String,InputTableConfig> tableConfig : inputTableConfigs.entrySet()) {
-        if (!conn.securityOperations().hasTablePermission(getPrincipal(implementingClass, conf),
-            tableConfig.getKey(), TablePermission.READ))
+        final String tableName = tableConfig.getKey();
+        final String namespace = extractNamespace(tableName);
+        final boolean hasTableRead = conn.securityOperations().hasTablePermission(principal,
+            tableName, TablePermission.READ);
+        final boolean hasNamespaceRead = conn.securityOperations().hasNamespacePermission(principal,
+            namespace, NamespacePermission.READ);
+        if (!hasTableRead && !hasNamespaceRead) {
           throw new IOException("Unable to access table");
+        }
       }
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : inputTableConfigs.entrySet()) {
         InputTableConfig tableConfig = tableConfigEntry.getValue();
@@ -881,12 +916,13 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop instance for which to retrieve the configuration
+   * @param tableName
+   *          the table name for which to retrieve the configuration
    * @return the config object built from the single input table properties set on the job
    * @since 1.6.0
    */
-  protected static Map.Entry<String,InputTableConfig> getDefaultInputTableConfig(
-      Class<?> implementingClass, Configuration conf) {
-    String tableName = getInputTableName(implementingClass, conf);
+  protected static Map.Entry<String,InputTableConfig>
+      getDefaultInputTableConfig(Class<?> implementingClass, Configuration conf, String tableName) {
     if (tableName != null) {
       InputTableConfig queryConfig = new InputTableConfig();
       List<IteratorSetting> itrs = getIterators(implementingClass, conf);
@@ -939,8 +975,8 @@ public class InputConfigurator extends ConfiguratorBase {
       else
         startRow = new Text();
 
-      Range metadataRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(),
-          true, null, false);
+      Range metadataRange =
+          new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null, false);
       Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);
@@ -1025,11 +1061,11 @@ public class InputConfigurator extends ConfiguratorBase {
       throw new RuntimeException(e);
     }
 
-    return Base64.encodeBase64String(baos.toByteArray());
+    return Base64.getEncoder().encodeToString(baos.toByteArray());
   }
 
   private static <T extends Writable> T fromBase64(T writable, String enc) {
-    ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(enc));
+    ByteArrayInputStream bais = new ByteArrayInputStream(Base64.getDecoder().decode(enc));
     DataInputStream dis = new DataInputStream(bais);
     try {
       writable.readFields(dis);

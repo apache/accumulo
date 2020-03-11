@@ -16,9 +16,11 @@
  */
 package org.apache.accumulo.server.fs;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -27,74 +29,74 @@ import org.junit.Test;
 public class FileTypeTest {
   @Test
   public void testVolumeExtraction() {
-    Assert.assertEquals(new Path("file:/a/accumulo"),
+    assertEquals(new Path("file:/a/accumulo"),
         FileType.TABLE.getVolume(new Path("file:/a/accumulo/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("file:///a/accumulo"),
+    assertEquals(new Path("file:///a/accumulo"),
         FileType.TABLE.getVolume(new Path("file:/a/accumulo/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("file:///a/accumulo"),
+    assertEquals(new Path("file:///a/accumulo"),
         FileType.TABLE.getVolume(new Path("file:///a/accumulo/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("file:/a/accumulo"),
+    assertEquals(new Path("file:/a/accumulo"),
         FileType.TABLE.getVolume(new Path("file:///a/accumulo/tables/2b/t-001/C00.rf")));
 
     // Having an 'accumulo' directory is not a requirement
-    Assert.assertEquals(new Path("file:/a"),
+    assertEquals(new Path("file:/a"),
         FileType.TABLE.getVolume(new Path("file:/a/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("file:///a"),
+    assertEquals(new Path("file:///a"),
         FileType.TABLE.getVolume(new Path("file:/a/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("file:///a"),
+    assertEquals(new Path("file:///a"),
         FileType.TABLE.getVolume(new Path("file:///a/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("file:/a"),
+    assertEquals(new Path("file:/a"),
         FileType.TABLE.getVolume(new Path("file:///a/tables/2b/t-001/C00.rf")));
 
-    Assert.assertEquals(new Path("tables/2b/t-001/C00.rf"),
+    assertEquals(new Path("tables/2b/t-001/C00.rf"),
         FileType.TABLE.removeVolume(new Path("file:/a/accumulo/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("tables/2b/t-001/C00.rf"),
+    assertEquals(new Path("tables/2b/t-001/C00.rf"),
         FileType.TABLE.removeVolume(new Path("file:///a/accumulo/tables/2b/t-001/C00.rf")));
 
     // Having an 'accumulo' directory is not a requirement
-    Assert.assertEquals(new Path("tables/2b/t-001/C00.rf"),
+    assertEquals(new Path("tables/2b/t-001/C00.rf"),
         FileType.TABLE.removeVolume(new Path("file:/a/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("tables/2b/t-001/C00.rf"),
+    assertEquals(new Path("tables/2b/t-001/C00.rf"),
         FileType.TABLE.removeVolume(new Path("file:///a/tables/2b/t-001/C00.rf")));
 
-    Assert.assertEquals(new Path("file:/accumulo"),
+    assertEquals(new Path("file:/accumulo"),
         FileType.TABLE.getVolume(new Path("file:/accumulo/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("file:/accumulo"),
+    assertEquals(new Path("file:/accumulo"),
         FileType.TABLE.getVolume(new Path("file:///accumulo/tables/2b/t-001/C00.rf")));
 
     // Having an 'accumulo' directory is not a requirement
-    Assert.assertEquals(new Path("file:/"),
+    assertEquals(new Path("file:/"),
         FileType.TABLE.getVolume(new Path("file:/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("file:/"),
+    assertEquals(new Path("file:/"),
         FileType.TABLE.getVolume(new Path("file:///tables/2b/t-001/C00.rf")));
 
-    Assert.assertEquals(new Path("file:/a"),
+    assertEquals(new Path("file:/a"),
         FileType.WAL.getVolume(new Path("file:/a/wal/1.2.3.4/aaa-bbb-ccc-ddd")));
 
-    Assert.assertNull(FileType.WAL.getVolume(new Path("1.2.3.4/aaa-bbb-ccc-ddd")));
-    Assert.assertNull(FileType.TABLE.getVolume(new Path("../2b/t-001/C00.rf")));
-    Assert.assertNull(FileType.TABLE.getVolume(new Path("/t-001/C00.rf")));
+    assertNull(FileType.WAL.getVolume(new Path("1.2.3.4/aaa-bbb-ccc-ddd")));
+    assertNull(FileType.TABLE.getVolume(new Path("../2b/t-001/C00.rf")));
+    assertNull(FileType.TABLE.getVolume(new Path("/t-001/C00.rf")));
 
-    Assert.assertEquals(new Path("hdfs://nn1/accumulo"),
+    assertEquals(new Path("hdfs://nn1/accumulo"),
         FileType.TABLE.getVolume(new Path("hdfs://nn1/accumulo/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("hdfs://nn1/a/accumulo"),
+    assertEquals(new Path("hdfs://nn1/a/accumulo"),
         FileType.TABLE.getVolume(new Path("hdfs://nn1/a/accumulo/tables/2b/t-001/C00.rf")));
 
     // Having an 'accumulo' directory is not a requirement
-    Assert.assertEquals(new Path("hdfs://nn1/"),
+    assertEquals(new Path("hdfs://nn1/"),
         FileType.TABLE.getVolume(new Path("hdfs://nn1/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("hdfs://nn1/a"),
+    assertEquals(new Path("hdfs://nn1/a"),
         FileType.TABLE.getVolume(new Path("hdfs://nn1/a/tables/2b/t-001/C00.rf")));
 
-    Assert.assertEquals(new Path("tables/2b/t-001/C00.rf"),
+    assertEquals(new Path("tables/2b/t-001/C00.rf"),
         FileType.TABLE.removeVolume(new Path("hdfs://nn1/accumulo/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("tables/2b/t-001/C00.rf"),
+    assertEquals(new Path("tables/2b/t-001/C00.rf"),
         FileType.TABLE.removeVolume(new Path("hdfs://nn1/a/accumulo/tables/2b/t-001/C00.rf")));
 
     // Having an 'accumulo' directory is not a requirement
-    Assert.assertEquals(new Path("tables/2b/t-001/C00.rf"),
+    assertEquals(new Path("tables/2b/t-001/C00.rf"),
         FileType.TABLE.removeVolume(new Path("hdfs://nn1/tables/2b/t-001/C00.rf")));
-    Assert.assertEquals(new Path("tables/2b/t-001/C00.rf"),
+    assertEquals(new Path("tables/2b/t-001/C00.rf"),
         FileType.TABLE.removeVolume(new Path("hdfs://nn1/a/tables/2b/t-001/C00.rf")));
 
   }

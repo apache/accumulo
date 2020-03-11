@@ -263,7 +263,7 @@ public class UserImpersonation {
   }
 
   /**
-   * Parses all properties that start with {@link Property#INSTANCE_RPC_SASL_PROXYUSERS}. This
+   * Parses all properties that start with <code>instance.rpc.sasl.impersonation.</code>. This
    * approach was the original configuration method, but does not work with Ambari.
    *
    * @param configProperties
@@ -299,7 +299,7 @@ public class UserImpersonation {
             usersWithHosts.setUsers(users);
           }
           String[] userValues = StringUtils.split(userString, ',');
-          users.addAll(Arrays.<String> asList(userValues));
+          users.addAll(Arrays.<String>asList(userValues));
         }
       } else if (HOSTS.equals(usersOrHosts)) {
         String hostsString = entry.getValue().trim();
@@ -312,7 +312,7 @@ public class UserImpersonation {
             usersWithHosts.setHosts(hosts);
           }
           String[] hostValues = StringUtils.split(hostsString, ',');
-          hosts.addAll(Arrays.<String> asList(hostValues));
+          hosts.addAll(Arrays.<String>asList(hostValues));
         }
       } else {
         log.debug("Ignoring key " + aclKey);

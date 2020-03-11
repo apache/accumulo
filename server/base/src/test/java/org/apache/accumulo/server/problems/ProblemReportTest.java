@@ -86,16 +86,16 @@ public class ProblemReportTest {
     ProblemReport r2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertTrue(r.equals(r2));
     assertTrue(r2.equals(r));
-    ProblemReport rx1 = new ProblemReport(TABLE_ID + "x", ProblemType.FILE_READ, RESOURCE, SERVER,
-        null);
+    ProblemReport rx1 =
+        new ProblemReport(TABLE_ID + "x", ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertFalse(r.equals(rx1));
     ProblemReport rx2 = new ProblemReport(TABLE_ID, ProblemType.FILE_WRITE, RESOURCE, SERVER, null);
     assertFalse(r.equals(rx2));
-    ProblemReport rx3 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE + "x", SERVER,
-        null);
+    ProblemReport rx3 =
+        new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE + "x", SERVER, null);
     assertFalse(r.equals(rx3));
-    ProblemReport re1 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x",
-        null);
+    ProblemReport re1 =
+        new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x", null);
     assertTrue(r.equals(re1));
     ProblemReport re2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER,
         new IllegalArgumentException("yikes"));
@@ -113,8 +113,8 @@ public class ProblemReportTest {
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     ProblemReport r2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertEquals(r.hashCode(), r2.hashCode());
-    ProblemReport re1 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x",
-        null);
+    ProblemReport re1 =
+        new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x", null);
     assertEquals(r.hashCode(), re1.hashCode());
     ProblemReport re2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER,
         new IllegalArgumentException("yikes"));

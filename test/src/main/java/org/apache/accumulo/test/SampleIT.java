@@ -17,6 +17,9 @@
 
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,7 +62,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -67,15 +69,15 @@ import com.google.common.collect.Iterables;
 
 public class SampleIT extends AccumuloClusterHarness {
 
-  private static final Map<String,String> OPTIONS_1 = ImmutableMap.of("hasher", "murmur3_32",
-      "modulus", "1009");
-  private static final Map<String,String> OPTIONS_2 = ImmutableMap.of("hasher", "murmur3_32",
-      "modulus", "997");
+  private static final Map<String,String> OPTIONS_1 =
+      ImmutableMap.of("hasher", "murmur3_32", "modulus", "1009");
+  private static final Map<String,String> OPTIONS_2 =
+      ImmutableMap.of("hasher", "murmur3_32", "modulus", "997");
 
-  private static final SamplerConfiguration SC1 = new SamplerConfiguration(
-      RowSampler.class.getName()).setOptions(OPTIONS_1);
-  private static final SamplerConfiguration SC2 = new SamplerConfiguration(
-      RowSampler.class.getName()).setOptions(OPTIONS_2);
+  private static final SamplerConfiguration SC1 =
+      new SamplerConfiguration(RowSampler.class.getName()).setOptions(OPTIONS_1);
+  private static final SamplerConfiguration SC2 =
+      new SamplerConfiguration(RowSampler.class.getName()).setOptions(OPTIONS_2);
 
   public static class IteratorThatUsesSample extends WrappingIterator {
     private SortedKeyValueIterator<Key,Value> sampleDC;
@@ -131,12 +133,12 @@ public class SampleIT extends AccumuloClusterHarness {
 
     TreeMap<Key,Value> expected = new TreeMap<>();
     String someRow = writeData(bw, SC1, expected);
-    Assert.assertEquals(20, expected.size());
+    assertEquals(20, expected.size());
 
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     Scanner isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
-    Scanner csiScanner = new ClientSideIteratorScanner(
-        conn.createScanner(tableName, Authorizations.EMPTY));
+    Scanner csiScanner =
+        new ClientSideIteratorScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     scanner.setSamplerConfiguration(SC1);
     csiScanner.setSamplerConfiguration(SC1);
     isoScanner.setSamplerConfiguration(SC1);
@@ -156,7 +158,7 @@ public class SampleIT extends AccumuloClusterHarness {
     // ensure non sample data can be scanned after scanning sample data
     for (ScannerBase sb : Arrays.asList(scanner, bScanner, isoScanner, csiScanner, oScanner)) {
       sb.clearSamplerConfiguration();
-      Assert.assertEquals(20000, Iterables.size(sb));
+      assertEquals(20000, Iterables.size(sb));
       sb.setSamplerConfiguration(SC1);
     }
 
@@ -322,8 +324,8 @@ public class SampleIT extends AccumuloClusterHarness {
 
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     Scanner isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
-    ClientSideIteratorScanner csiScanner = new ClientSideIteratorScanner(
-        conn.createScanner(tableName, Authorizations.EMPTY));
+    ClientSideIteratorScanner csiScanner =
+        new ClientSideIteratorScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     BatchScanner bScanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
 
     csiScanner.setIteratorSamplerConfiguration(SC1);
@@ -337,7 +339,7 @@ public class SampleIT extends AccumuloClusterHarness {
     // the iterator should see less than 10 entries in sample data, and return data
     setRange(range1, scanners);
     for (ScannerBase s : scanners) {
-      Assert.assertEquals(2954, countEntries(s));
+      assertEquals(2954, countEntries(s));
     }
 
     Range range2 = new Range(keys.get(5), true, keys.get(18), true);
@@ -345,7 +347,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
     // the iterator should see more than 10 entries in sample data, and return no data
     for (ScannerBase s : scanners) {
-      Assert.assertEquals(0, countEntries(s));
+      assertEquals(0, countEntries(s));
     }
 
     // flush an rerun same test against files
@@ -357,12 +359,12 @@ public class SampleIT extends AccumuloClusterHarness {
 
     setRange(range1, scanners);
     for (ScannerBase s : scanners) {
-      Assert.assertEquals(2954, countEntries(s));
+      assertEquals(2954, countEntries(s));
     }
 
     setRange(range2, scanners);
     for (ScannerBase s : scanners) {
-      Assert.assertEquals(0, countEntries(s));
+      assertEquals(0, countEntries(s));
     }
 
     updateSamplingConfig(conn, tableName, SC2);
@@ -376,7 +378,7 @@ public class SampleIT extends AccumuloClusterHarness {
     for (ScannerBase s : scanners) {
       try {
         countEntries(s);
-        Assert.fail("Expected SampleNotPresentException, but it did not happen : "
+        fail("Expected SampleNotPresentException, but it did not happen : "
             + s.getClass().getSimpleName());
       } catch (SampleNotPresentException e) {
 
@@ -407,8 +409,8 @@ public class SampleIT extends AccumuloClusterHarness {
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     Scanner isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     isoScanner.setBatchSize(10);
-    Scanner csiScanner = new ClientSideIteratorScanner(
-        conn.createScanner(tableName, Authorizations.EMPTY));
+    Scanner csiScanner =
+        new ClientSideIteratorScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     BatchScanner bScanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
     bScanner.setRanges(Arrays.asList(new Range()));
 
@@ -479,7 +481,7 @@ public class SampleIT extends AccumuloClusterHarness {
           Entry<Key,Value> entry = i.next();
           entry.getKey();
         }
-        Assert.fail("Expected SampleNotPresentException, but it did not happen : "
+        fail("Expected SampleNotPresentException, but it did not happen : "
             + scanner.getClass().getSimpleName());
       } catch (SampleNotPresentException e) {
 
@@ -506,7 +508,7 @@ public class SampleIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : s) {
         actual.put(entry.getKey(), entry.getValue());
       }
-      Assert.assertEquals(String.format("Saw %d instead of %d entries using %s", actual.size(),
+      assertEquals(String.format("Saw %d instead of %d entries using %s", actual.size(),
           expected.size(), s.getClass().getSimpleName()), expected, actual);
     }
   }

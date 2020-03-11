@@ -185,8 +185,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             throw new RuntimeException(fatalException);
 
         if (queryThreadPool.isShutdown()) {
-          String shortMsg = "The BatchScanner was unexpectedly closed while this Iterator "
-              + "was still in use.";
+          String shortMsg =
+              "The BatchScanner was unexpectedly closed while this Iterator " + "was still in use.";
           log.error(shortMsg
               + " Ensure that a reference to the BatchScanner is retained so that it can be closed"
               + " when this Iterator is exhausted. Not retaining a reference to the BatchScanner"
@@ -486,8 +486,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     if (timedoutServers.size() > 0) {
       // go ahead and fail any timed out servers
-      for (Iterator<Entry<String,Map<KeyExtent,List<Range>>>> iterator = binnedRanges.entrySet()
-          .iterator(); iterator.hasNext();) {
+      for (Iterator<Entry<String,Map<KeyExtent,List<Range>>>> iterator =
+          binnedRanges.entrySet().iterator(); iterator.hasNext();) {
         Entry<String,Map<KeyExtent,List<Range>>> entry = iterator.next();
         if (timedoutServers.contains(entry.getKey())) {
           failures.putAll(entry.getValue());
@@ -514,16 +514,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         for (Entry<KeyExtent,List<Range>> entry : tabletsRanges.entrySet()) {
           tabletSubset.put(entry.getKey(), entry.getValue());
           if (tabletSubset.size() >= maxTabletsPerRequest) {
-            QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver,
-                columns);
+            QueryTask queryTask =
+                new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
             queryTasks.add(queryTask);
             tabletSubset = new HashMap<>();
           }
         }
 
         if (tabletSubset.size() > 0) {
-          QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver,
-              columns);
+          QueryTask queryTask =
+              new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
           queryTasks.add(queryTask);
         }
       }
@@ -548,8 +548,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     failures.putAll(retFailures);
 
     // translate full scans and remove them from unscanned
-    HashSet<KeyExtent> fullScans = new HashSet<>(
-        Translator.translate(scanResult.fullScans, Translators.TKET));
+    HashSet<KeyExtent> fullScans =
+        new HashSet<>(Translator.translate(scanResult.fullScans, Translators.TKET));
     unscanned.keySet().removeAll(fullScans);
 
     // remove partial scan from unscanned

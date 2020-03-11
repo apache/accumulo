@@ -75,8 +75,8 @@ import org.slf4j.LoggerFactory;
 public class ThriftScanner {
   private static final Logger log = LoggerFactory.getLogger(ThriftScanner.class);
 
-  public static final Map<TabletType,Set<String>> serversWaitedForWrites = new EnumMap<>(
-      TabletType.class);
+  public static final Map<TabletType,Set<String>> serversWaitedForWrites =
+      new EnumMap<>(TabletType.class);
 
   static {
     for (TabletType ttype : TabletType.values()) {
@@ -231,8 +231,8 @@ public class ThriftScanner {
     String error = null;
     int tooManyFilesCount = 0;
     long sleepMillis = 100;
-    final long maxSleepTime = context.getConfiguration()
-        .getTimeInMillis(Property.GENERAL_MAX_SCANNER_RETRY_PERIOD);
+    final long maxSleepTime =
+        context.getConfiguration().getTimeInMillis(Property.GENERAL_MAX_SCANNER_RETRY_PERIOD);
 
     List<KeyValue> results = null;
 
@@ -318,9 +318,9 @@ public class ThriftScanner {
         } catch (TApplicationException tae) {
           throw new AccumuloServerException(loc.tablet_location, tae);
         } catch (TSampleNotPresentException tsnpe) {
-          String message = "Table "
-              + Tables.getPrintableTableInfoFromId(instance, scanState.tableId)
-              + " does not have sampling configured or built";
+          String message =
+              "Table " + Tables.getPrintableTableInfoFromId(instance, scanState.tableId)
+                  + " does not have sampling configured or built";
           throw new SampleNotPresentException(message, tsnpe);
         } catch (NotServingTabletException e) {
           error = "Scan failed, not serving tablet " + loc;
@@ -450,14 +450,14 @@ public class ThriftScanner {
         TabletType ttype = TabletType.type(loc.tablet_extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
 
-        InitialScan is = client.startScan(tinfo, scanState.context.rpcCreds(),
-            loc.tablet_extent.toThrift(), scanState.range.toThrift(),
-            Translator.translate(scanState.columns, Translators.CT), scanState.size,
-            scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
-            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
-            scanState.readaheadThreshold,
-            SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
-            scanState.classLoaderContext);
+        InitialScan is =
+            client.startScan(tinfo, scanState.context.rpcCreds(), loc.tablet_extent.toThrift(),
+                scanState.range.toThrift(), Translator.translate(scanState.columns, Translators.CT),
+                scanState.size, scanState.serverSideIteratorList,
+                scanState.serverSideIteratorOptions, scanState.authorizations.getAuthorizationsBB(),
+                waitForWrites, scanState.isolated, scanState.readaheadThreshold,
+                SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
+                scanState.classLoaderContext);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
 
@@ -470,8 +470,8 @@ public class ThriftScanner {
 
       } else {
         // log.debug("Calling continue scan : "+scanState.range+" loc = "+loc);
-        String msg = "Continuing scan tserver=" + loc.tablet_location + " scanid="
-            + scanState.scanID;
+        String msg =
+            "Continuing scan tserver=" + loc.tablet_location + " scanid=" + scanState.scanID;
         Thread.currentThread().setName(msg);
 
         if (log.isTraceEnabled()) {

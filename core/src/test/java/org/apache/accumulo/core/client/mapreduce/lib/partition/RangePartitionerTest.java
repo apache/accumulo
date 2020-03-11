@@ -66,8 +66,8 @@ public class RangePartitionerTest {
     for (int i = 0; i < strings.length; ++i) {
       int endRange = rangeEnds[i];
       int startRange = endRange + 1 - numSubBins;
-      int part = prepPartitioner(numSubBins).findPartition(new Text(strings[i]), cutArray,
-          numSubBins);
+      int part =
+          prepPartitioner(numSubBins).findPartition(new Text(strings[i]), cutArray, numSubBins);
       assertTrue(part >= startRange);
       assertTrue(part <= endRange);
     }
@@ -76,8 +76,8 @@ public class RangePartitionerTest {
   private void checkExpectedBins(int numSubBins, String[] strings, int[] bins) throws IOException {
     assertTrue(strings.length == bins.length);
     for (int i = 0; i < strings.length; ++i) {
-      int bin = bins[i], part = prepPartitioner(numSubBins).findPartition(new Text(strings[i]),
-          cutArray, numSubBins);
+      int bin = bins[i], part =
+          prepPartitioner(numSubBins).findPartition(new Text(strings[i]), cutArray, numSubBins);
       assertTrue(bin == part);
     }
   }

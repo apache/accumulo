@@ -25,6 +25,7 @@ import java.io.OutputStream;
 import java.lang.ref.SoftReference;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.locks.Lock;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.file.blockfile.ABlockReader;
@@ -371,6 +372,7 @@ public class CachableBlockFile {
 
       BlockReader _currBlock;
 
+      Lock loadLock = null;
       if (cache != null) {
         CacheEntry cb = null;
         cb = cache.getBlock(_lookup);
@@ -379,18 +381,35 @@ public class CachableBlockFile {
           return new CachedBlockRead(cb, cb.getBuffer());
         }
 
+        loadLock = cache.getLoadLock(_lookup);
       }
-      /**
-       * grab the currBlock at this point the block is still in the data stream
-       *
-       */
-      _currBlock = loader.get();
 
-      /**
-       * If the block is bigger than the cache just return the stream
-       */
-      return cacheBlock(_lookup, cache, _currBlock, loader.getInfo());
+      try {
+        if (loadLock != null) {
+          loadLock.lock();
 
+          // check cache again after getting lock
+          CacheEntry cb = cache.getBlockNoStats(_lookup);
+
+          if (cb != null) {
+            return new CachedBlockRead(cb, cb.getBuffer());
+          }
+        }
+
+        /**
+         * grab the currBlock at this point the block is still in the data stream
+         *
+         */
+        _currBlock = loader.get();
+
+        /**
+         * If the block is bigger than the cache just return the stream
+         */
+        return cacheBlock(_lookup, cache, _currBlock, loader.getInfo());
+      } finally {
+        if (loadLock != null)
+          loadLock.unlock();
+      }
     }
 
     private BlockRead cacheBlock(String _lookup, BlockCache cache, BlockReader _currBlock,

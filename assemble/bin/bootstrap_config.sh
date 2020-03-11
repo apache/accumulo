@@ -140,6 +140,7 @@ _1GB_memoryMapMax="256M"
 native_1GB_nativeEnabled="true"
 _1GB_cacheDataSize="15M"
 _1GB_cacheIndexSize="40M"
+_1GB_mutQueueTotal="16M"
 _1GB_sortBufferSize="50M"
 _1GB_waLogMaxSize="256M"
 
@@ -155,6 +156,7 @@ _2GB_memoryMapMax="512M"
 native_2GB_nativeEnabled="true"
 _2GB_cacheDataSize="30M"
 _2GB_cacheIndexSize="80M"
+_2GB_mutQueueTotal="24M"
 _2GB_sortBufferSize="100M"
 _2GB_waLogMaxSize="512M"
 
@@ -170,6 +172,7 @@ _3GB_memoryMapMax="1G"
 native_3GB_nativeEnabled="true"
 _3GB_cacheDataSize="128M"
 _3GB_cacheIndexSize="128M"
+_3GB_mutQueueTotal="50M"
 _3GB_sortBufferSize="200M"
 _3GB_waLogMaxSize="1G"
 
@@ -185,6 +188,7 @@ _512MB_memoryMapMax="80M"
 native_512MB_nativeEnabled="true"
 _512MB_cacheDataSize="7M"
 _512MB_cacheIndexSize="16M"
+_512MB_mutQueueTotal="8M"
 _512MB_sortBufferSize="20M"
 _512MB_waLogMaxSize="100M"
 
@@ -290,6 +294,7 @@ MEMORY_MAP_MAX="_${SIZE}_memoryMapMax"
 NATIVE="${TYPE}_${SIZE}_nativeEnabled"
 CACHE_DATA_SIZE="_${SIZE}_cacheDataSize"
 CACHE_INDEX_SIZE="_${SIZE}_cacheIndexSize"
+MUT_QUEUE_TOTAL="_${SIZE}_mutQueueTotal"
 SORT_BUFFER_SIZE="_${SIZE}_sortBufferSize"
 WAL_MAX_SIZE="_${SIZE}_waLogMaxSize"
 
@@ -314,6 +319,7 @@ sed -e "s/\${memMapMax}/${!MEMORY_MAP_MAX}/" \
     -e "s/\${nativeEnabled}/${!NATIVE}/" \
     -e "s/\${cacheDataSize}/${!CACHE_DATA_SIZE}/" \
     -e "s/\${cacheIndexSize}/${!CACHE_INDEX_SIZE}/" \
+    -e "s/\${mutQueueTotal}/${!MUT_QUEUE_TOTAL}/" \
     -e "s/\${sortBufferSize}/${!SORT_BUFFER_SIZE}/" \
     -e "s/\${waLogMaxSize}/${!WAL_MAX_SIZE}/" \
     -e "s=\${traceUser}=${TRACE_USER}=" \

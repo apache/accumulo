@@ -123,16 +123,16 @@ public class KeyShortener {
       }
       return sanityCheck(prev, current, new Key(shortenedRow.toArray(), EMPTY, EMPTY, EMPTY, 0));
     } else if (prev.getColumnFamilyData().compareTo(current.getColumnFamilyData()) < 0) {
-      ByteSequence shortenedFam = shorten(prev.getColumnFamilyData(),
-          current.getColumnFamilyData());
+      ByteSequence shortenedFam =
+          shorten(prev.getColumnFamilyData(), current.getColumnFamilyData());
       if (shortenedFam == null) {
         return prev;
       }
       return sanityCheck(prev, current,
           new Key(prev.getRowData().toArray(), shortenedFam.toArray(), EMPTY, EMPTY, 0));
     } else if (prev.getColumnQualifierData().compareTo(current.getColumnQualifierData()) < 0) {
-      ByteSequence shortenedQual = shorten(prev.getColumnQualifierData(),
-          current.getColumnQualifierData());
+      ByteSequence shortenedQual =
+          shorten(prev.getColumnQualifierData(), current.getColumnQualifierData());
       if (shortenedQual == null) {
         return prev;
       }

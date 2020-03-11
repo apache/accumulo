@@ -89,8 +89,8 @@ public class UndefinedAnalyzer {
     }
 
     private void parseLog(File log) throws Exception {
-      BufferedReader reader = new BufferedReader(
-          new InputStreamReader(new FileInputStream(log), UTF_8));
+      BufferedReader reader =
+          new BufferedReader(new InputStreamReader(new FileInputStream(log), UTF_8));
       String line;
       TreeMap<Long,Long> tm = null;
       try {
@@ -183,8 +183,8 @@ public class UndefinedAnalyzer {
       if (masterLogs != null) {
         for (File masterLog : masterLogs) {
 
-          BufferedReader reader = new BufferedReader(
-              new InputStreamReader(new FileInputStream(masterLog), UTF_8));
+          BufferedReader reader =
+              new BufferedReader(new InputStreamReader(new FileInputStream(masterLog), UTF_8));
           String line;
           try {
             while ((line = reader.readLine()) != null) {
@@ -285,8 +285,8 @@ public class UndefinedAnalyzer {
     }
 
     Connector conn = opts.getConnector();
-    BatchScanner bscanner = conn.createBatchScanner(opts.getTableName(), opts.auths,
-        bsOpts.scanThreads);
+    BatchScanner bscanner =
+        conn.createBatchScanner(opts.getTableName(), opts.auths, bsOpts.scanThreads);
     bscanner.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
     List<Range> refs = new ArrayList<>();
 
@@ -311,8 +311,8 @@ public class UndefinedAnalyzer {
     bscanner.close();
 
     IngestInfo ingestInfo = new IngestInfo(opts.logDir);
-    TabletHistory tabletHistory = new TabletHistory(
-        Tables.getTableId(conn.getInstance(), opts.getTableName()), opts.logDir);
+    TabletHistory tabletHistory =
+        new TabletHistory(Tables.getTableId(conn.getInstance(), opts.getTableName()), opts.logDir);
 
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 

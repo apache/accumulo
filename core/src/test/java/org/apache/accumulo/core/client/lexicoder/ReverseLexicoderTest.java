@@ -27,6 +27,8 @@ import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 import org.junit.Test;
 
 public class ReverseLexicoderTest extends AbstractLexicoderTest {
+
+  @Test
   public void testSortOrder() {
     Comparator<Long> comp = Collections.reverseOrder();
     assertSortOrder(new ReverseLexicoder<>(new LongLexicoder()), comp,
@@ -67,6 +69,7 @@ public class ReverseLexicoderTest extends AbstractLexicoderTest {
 
   }
 
+  @Test
   public void testDecodes() {
     assertDecodes(new ReverseLexicoder<>(new LongLexicoder()), Long.MIN_VALUE);
     assertDecodes(new ReverseLexicoder<>(new LongLexicoder()), -1l);

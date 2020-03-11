@@ -195,8 +195,8 @@ public class TServerUtilsTest {
   }
 
   private static final TestInstance instance = new TestInstance();
-  private static final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(
-      instance);
+  private static final TestServerConfigurationFactory factory =
+      new TestServerConfigurationFactory(instance);
 
   @After
   public void resetProperty() {

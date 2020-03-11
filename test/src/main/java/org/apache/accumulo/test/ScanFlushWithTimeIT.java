@@ -45,7 +45,12 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ScanFlushWithTimeIT.class);
 
-  @Test(timeout = 30 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 30;
+  }
+
+  @Test
   public void test() throws Exception {
     log.info("Creating table");
     String tableName = getUniqueNames(1)[0];

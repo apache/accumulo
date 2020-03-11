@@ -31,6 +31,7 @@ class CloneInfo implements Serializable {
   String srcNamespaceId;
   Map<String,String> propertiesToSet;
   Set<String> propertiesToExclude;
+  boolean keepOffline;
 
   public String user;
 }

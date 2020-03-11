@@ -63,8 +63,9 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   private String TEST_TABLE;
   private String EMPTY_TABLE;
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -72,8 +73,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Before
   public void setup() throws Exception {
@@ -212,8 +213,9 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       Configuration conf = CachedConfiguration.getInstance();
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
       FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder()
-          .forFile(files[0].toString(), FileSystem.get(conf), conf).withTableConfiguration(acuconf)
-          .build().getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
+          .forFile(files[0].toString(), FileSystem.getLocal(conf), conf)
+          .withTableConfiguration(acuconf).build()
+          .getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
       assertNotNull(sample);
     } else {
       assertEquals(0, files.length);

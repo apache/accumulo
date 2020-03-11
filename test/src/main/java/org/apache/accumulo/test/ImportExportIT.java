@@ -16,7 +16,11 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -40,7 +44,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,7 +116,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
     // Make sure the distcp.txt file that exporttable creates is available
     Path distcp = new Path(exportDir, "distcp.txt");
-    Assert.assertTrue("Distcp file doesn't exist", fs.exists(distcp));
+    assertTrue("Distcp file doesn't exist", fs.exists(distcp));
     FSDataInputStream is = fs.open(distcp);
     BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 
@@ -121,10 +124,10 @@ public class ImportExportIT extends AccumuloClusterHarness {
     String line;
     while (null != (line = reader.readLine())) {
       Path p = new Path(line.substring(5));
-      Assert.assertTrue("File doesn't exist: " + p, fs.exists(p));
+      assertTrue("File doesn't exist: " + p, fs.exists(p));
 
       Path dest = new Path(importDir, p.getName());
-      Assert.assertFalse("Did not expect " + dest + " to exist", fs.exists(dest));
+      assertFalse("Did not expect " + dest + " to exist", fs.exists(dest));
       FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
     }
 
@@ -137,7 +140,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
     // Get the table ID for the table that the importtable command created
     final String tableId = conn.tableOperations().tableIdMap().get(destTable);
-    Assert.assertNotNull(tableId);
+    assertNotNull(tableId);
 
     // Get all `file` colfams from the metadata table for the new table
     log.info("Imported into table with ID: {}", tableId);
@@ -154,14 +157,14 @@ public class ImportExportIT extends AccumuloClusterHarness {
         // The file should be an absolute URI (file:///...), not a relative path
         // (/b-000.../I000001.rf)
         String fileUri = k.getColumnQualifier().toString();
-        Assert.assertFalse("Imported files should have absolute URIs, not relative: " + fileUri,
+        assertFalse("Imported files should have absolute URIs, not relative: " + fileUri,
             looksLikeRelativePath(fileUri));
       } else if (k.getColumnFamily()
           .equals(MetadataSchema.TabletsSection.ServerColumnFamily.NAME)) {
-        Assert.assertFalse("Server directory should have absolute URI, not relative: " + value,
+        assertFalse("Server directory should have absolute URI, not relative: " + value,
             looksLikeRelativePath(value));
       } else {
-        Assert.fail("Got expected pair: " + k + "=" + fileEntry.getValue());
+        fail("Got expected pair: " + k + "=" + fileEntry.getValue());
       }
     }
 
@@ -175,15 +178,15 @@ public class ImportExportIT extends AccumuloClusterHarness {
       throws Exception {
     Iterator<Entry<Key,Value>> src = conn.createScanner(srcTable, Authorizations.EMPTY).iterator(),
         dest = conn.createScanner(destTable, Authorizations.EMPTY).iterator();
-    Assert.assertTrue("Could not read any data from source table", src.hasNext());
-    Assert.assertTrue("Could not read any data from destination table", dest.hasNext());
+    assertTrue("Could not read any data from source table", src.hasNext());
+    assertTrue("Could not read any data from destination table", dest.hasNext());
     while (src.hasNext() && dest.hasNext()) {
       Entry<Key,Value> orig = src.next(), copy = dest.next();
-      Assert.assertEquals(orig.getKey(), copy.getKey());
-      Assert.assertEquals(orig.getValue(), copy.getValue());
+      assertEquals(orig.getKey(), copy.getKey());
+      assertEquals(orig.getValue(), copy.getValue());
     }
-    Assert.assertFalse("Source table had more data to read", src.hasNext());
-    Assert.assertFalse("Dest table had more data to read", dest.hasNext());
+    assertFalse("Source table had more data to read", src.hasNext());
+    assertFalse("Dest table had more data to read", dest.hasNext());
   }
 
   private boolean looksLikeRelativePath(String uri) {

@@ -45,7 +45,7 @@ public class MainTest {
   @Test
   public void testLoadClassFromJar_ExplicitMainClass() throws Exception {
     String[] args = {"the.jar", "main.class", "arg1", "arg2"};
-    EasyMock.<Class<?>> expect(cl.loadClass("main.class")).andReturn(MAIN_CLASS);
+    EasyMock.<Class<?>>expect(cl.loadClass("main.class")).andReturn(MAIN_CLASS);
     replay(cl);
     assertEquals(MAIN_CLASS, Main.loadClassFromJar(args, f, cl));
   }
@@ -54,7 +54,7 @@ public class MainTest {
   public void testLoadClassFromJar_ManifestMainClass() throws Exception {
     String[] args = {"the.jar", "arg1", "arg2"};
     expect(cl.loadClass("arg1")).andThrow(new ClassNotFoundException());
-    EasyMock.<Class<?>> expect(cl.loadClass(MAIN_CLASS_NAME)).andReturn(MAIN_CLASS);
+    EasyMock.<Class<?>>expect(cl.loadClass(MAIN_CLASS_NAME)).andReturn(MAIN_CLASS);
     replay(cl);
     mockManifestMainClass(f, MAIN_CLASS.getName());
     replay(f);

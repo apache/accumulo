@@ -18,6 +18,7 @@ package org.apache.accumulo.shell;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
+import static org.junit.Assert.assertTrue;
 import static org.powermock.api.easymock.PowerMock.createMock;
 import static org.powermock.api.easymock.PowerMock.expectLastCall;
 import static org.powermock.api.easymock.PowerMock.expectNew;
@@ -47,7 +48,6 @@ import org.apache.log4j.Level;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -60,7 +60,8 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import jline.console.ConsoleReader;
 
 @RunWith(PowerMockRunner.class)
-@PowerMockIgnore("javax.security.*")
+@PowerMockIgnore({"javax.security.*", "javax.xml.*", "org.xml.*", "com.sun.org.apache.xerces.*",
+    "org.w3c.dom.*", "org.apache.xerces.*"})
 @PrepareForTest({Shell.class, ZooUtil.class, ConfigSanityCheck.class})
 public class ShellSetInstanceTest {
   public static class TestOutputStream extends OutputStream {
@@ -130,8 +131,7 @@ public class ShellSetInstanceTest {
     replay(opts);
 
     shell.setInstance(opts);
-    Assert.assertTrue(
-        shell.getInstance() instanceof org.apache.accumulo.core.client.mock.MockInstance);
+    assertTrue(shell.getInstance() instanceof org.apache.accumulo.core.client.mock.MockInstance);
   }
 
   @Test
@@ -162,7 +162,7 @@ public class ShellSetInstanceTest {
     expect(opts.getClientConfiguration()).andReturn(clientConf);
     expect(opts.isHdfsZooInstance()).andReturn(explicitHdfs);
     if (!explicitHdfs) {
-      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String> emptyList());
+      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String>emptyList());
       if (onlyInstance) {
         expect(opts.getZooKeeperInstanceName()).andReturn("instance");
         expect(clientConf.withInstance("instance")).andReturn(clientConf);
@@ -183,7 +183,7 @@ public class ShellSetInstanceTest {
     }
 
     mockStatic(ConfigSanityCheck.class);
-    ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration> anyObject());
+    ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration>anyObject());
     expectLastCall().atLeastOnce();
     replay(ConfigSanityCheck.class);
 
@@ -266,7 +266,7 @@ public class ShellSetInstanceTest {
       expect(clientConf.withZkHosts("host3,host4")).andReturn(clientConf);
       expect(clientConf.getString(ClientProperty.INSTANCE_ZK_HOST.getKey()))
           .andReturn("host3,host4");
-      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String> emptyList());
+      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String>emptyList());
       expect(opts.getZooKeeperInstanceName()).andReturn("bar");
       expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
     }

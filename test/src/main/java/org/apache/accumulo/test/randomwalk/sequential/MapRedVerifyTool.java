@@ -95,8 +95,8 @@ public class MapRedVerifyTool extends Configured implements Tool {
       return 1;
     }
 
-    ClientConfiguration clientConf = ClientConfiguration.loadDefault().withInstance(args[3])
-        .withZkHosts(args[4]);
+    ClientConfiguration clientConf =
+        ClientConfiguration.loadDefault().withInstance(args[3]).withZkHosts(args[4]);
 
     AccumuloInputFormat.setInputTableName(job, args[2]);
     AccumuloInputFormat.setZooKeeperInstance(job, clientConf);
@@ -132,8 +132,8 @@ public class MapRedVerifyTool extends Configured implements Tool {
         }
 
         // Fetch a delegation token from Accumulo
-        AuthenticationToken dt = conn.securityOperations()
-            .getDelegationToken(new DelegationTokenConfig());
+        AuthenticationToken dt =
+            conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
 
         // Set the delegation token instead of the kerberos token
         AccumuloInputFormat.setConnectorInfo(job, newPrincipal, dt);

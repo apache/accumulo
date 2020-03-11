@@ -592,8 +592,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
                 .createScanner(baseSplit.getTableName(), authorizations);
           } else {
             ClientConfiguration clientConf = getClientConfiguration(job);
-            ClientContext context = new ClientContext(instance, new Credentials(principal, token),
-                clientConf);
+            ClientContext context =
+                new ClientContext(instance, new Credentials(principal, token), clientConf);
             scanner = new ScannerImpl(context, baseSplit.getTableId(), authorizations);
           }
           if (isIsolated) {
@@ -729,8 +729,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         throw new IllegalArgumentException(
             "AutoAdjustRanges must be enabled when using BatchScanner optimization");
 
-      List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges())
-          : tableConfig.getRanges();
+      List<Range> ranges =
+          autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
       if (ranges.isEmpty()) {
         ranges = new ArrayList<>(1);
         ranges.add(new Range());
@@ -797,8 +797,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             for (Range r : extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
 
-            BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
-                new String[] {location});
+            BatchInputSplit split =
+                new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
             SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
 
             splits.add(split);
@@ -807,8 +807,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             for (Range r : extentRanges.getValue()) {
               if (autoAdjust) {
                 // divide ranges into smaller ranges, based on the tablets
-                RangeInputSplit split = new RangeInputSplit(tableName, tableId, ke.clip(r),
-                    new String[] {location});
+                RangeInputSplit split =
+                    new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
                 SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths,
                     logLevel);
                 split.setOffline(tableConfig.isOfflineScan());

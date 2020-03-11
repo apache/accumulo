@@ -179,8 +179,8 @@ public class SamplerConfigurationImpl implements Writable {
       return;
     }
 
-    Map<String,String> sampleProps = new SamplerConfigurationImpl(samplerConfiguration)
-        .toTablePropertiesMap();
+    Map<String,String> sampleProps =
+        new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
 
     checkArgument(Collections.disjoint(props.keySet(), sampleProps.keySet()),
         "Properties and derived sampler properties are not disjoint");

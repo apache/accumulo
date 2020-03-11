@@ -18,6 +18,11 @@ package org.apache.accumulo.test.replication;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -95,12 +100,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -114,6 +118,7 @@ import com.google.protobuf.TextFormat;
  * MockReplicaSystem is used to "fake" the peer instance that we're replicating to. This lets us
  * test replication in a functional way without having to worry about two real systems.
  */
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class ReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationIT.class);
   private static final long MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS = 5000l;
@@ -147,16 +152,16 @@ public class ReplicationIT extends ConfigurableMacBase {
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     for (Entry<Key,Value> entry : scanner) {
-      TServerInstance key = new TServerInstance(entry.getValue(),
-          entry.getKey().getColumnQualifier());
+      TServerInstance key =
+          new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier());
       byte[] tableId = KeyExtent.tableOfMetadataRow(entry.getKey().getRow());
       serverToTableID.put(key, new String(tableId, UTF_8));
     }
     // Map of logs to tableId
     Multimap<String,String> logs = HashMultimap.create();
     Instance i = conn.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-        "");
+    ZooReaderWriter zk =
+        new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
     WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
     for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
       for (UUID id : entry.getValue()) {
@@ -210,8 +215,8 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void replicationTableCreated() throws AccumuloException, AccumuloSecurityException {
-    Assert.assertTrue(getConnector().tableOperations().exists(ReplicationTable.NAME));
-    Assert.assertEquals(ReplicationTable.ID,
+    assertTrue(getConnector().tableOperations().exists(ReplicationTable.NAME));
+    assertEquals(ReplicationTable.ID,
         getConnector().tableOperations().tableIdMap().get(ReplicationTable.NAME));
   }
 
@@ -222,23 +227,23 @@ public class ReplicationIT extends ConfigurableMacBase {
     Map<String,EnumSet<IteratorScope>> iterators = tops.listIterators(ReplicationTable.NAME);
 
     // verify combiners are only iterators (no versioning)
-    Assert.assertEquals(1, iterators.size());
+    assertEquals(1, iterators.size());
 
     // look for combiner
-    Assert.assertTrue(iterators.containsKey(ReplicationTable.COMBINER_NAME));
-    Assert.assertTrue(iterators.get(ReplicationTable.COMBINER_NAME)
+    assertTrue(iterators.containsKey(ReplicationTable.COMBINER_NAME));
+    assertTrue(iterators.get(ReplicationTable.COMBINER_NAME)
         .containsAll(EnumSet.allOf(IteratorScope.class)));
     for (IteratorScope scope : EnumSet.allOf(IteratorScope.class)) {
-      IteratorSetting is = tops.getIteratorSetting(ReplicationTable.NAME,
-          ReplicationTable.COMBINER_NAME, scope);
-      Assert.assertEquals(30, is.getPriority());
-      Assert.assertEquals(StatusCombiner.class.getName(), is.getIteratorClass());
-      Assert.assertEquals(1, is.getOptions().size());
-      Assert.assertTrue(is.getOptions().containsKey("columns"));
+      IteratorSetting is =
+          tops.getIteratorSetting(ReplicationTable.NAME, ReplicationTable.COMBINER_NAME, scope);
+      assertEquals(30, is.getPriority());
+      assertEquals(StatusCombiner.class.getName(), is.getIteratorClass());
+      assertEquals(1, is.getOptions().size());
+      assertTrue(is.getOptions().containsKey("columns"));
       String cols = is.getOptions().get("columns");
       Column statusSectionCol = new Column(StatusSection.NAME);
       Column workSectionCol = new Column(WorkSection.NAME);
-      Assert.assertEquals(ColumnSet.encodeColumns(statusSectionCol.getColumnFamily(),
+      assertEquals(ColumnSet.encodeColumns(statusSectionCol.getColumnFamily(),
           statusSectionCol.getColumnQualifier()) + ","
           + ColumnSet.encodeColumns(workSectionCol.getColumnFamily(),
               workSectionCol.getColumnQualifier()),
@@ -250,12 +255,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     boolean foundLocalityGroupDef2 = false;
     boolean foundFormatter = false;
     Joiner j = Joiner.on(",");
-    Function<Text,String> textToString = new Function<Text,String>() {
-      @Override
-      public String apply(Text text) {
-        return text.toString();
-      }
-    };
+
     for (Entry<String,String> p : tops.getProperties(ReplicationTable.NAME)) {
       String key = p.getKey();
       String val = p.getValue();
@@ -273,20 +273,20 @@ public class ReplicationIT extends ConfigurableMacBase {
         if (key
             .equals(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.STATUS_LG_NAME)
             && val.equals(
-                j.join(Iterables.transform(ReplicationTable.STATUS_LG_COLFAMS, textToString)))) {
+                j.join(Iterables.transform(ReplicationTable.STATUS_LG_COLFAMS, Text::toString)))) {
           foundLocalityGroupDef1 = true;
         } else if (key
             .equals(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.WORK_LG_NAME)
             && val.equals(
-                j.join(Iterables.transform(ReplicationTable.WORK_LG_COLFAMS, textToString)))) {
+                j.join(Iterables.transform(ReplicationTable.WORK_LG_COLFAMS, Text::toString)))) {
           foundLocalityGroupDef2 = true;
         }
       }
     }
-    Assert.assertTrue(foundLocalityGroups);
-    Assert.assertTrue(foundLocalityGroupDef1);
-    Assert.assertTrue(foundLocalityGroupDef2);
-    Assert.assertTrue(foundFormatter);
+    assertTrue(foundLocalityGroups);
+    assertTrue(foundLocalityGroupDef1);
+    assertTrue(foundLocalityGroupDef2);
+    assertTrue(foundFormatter);
   }
 
   @Test
@@ -310,7 +310,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     while (!ReplicationTable.isOnline(conn)) {
       sleepUninterruptibly(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS, TimeUnit.MILLISECONDS);
     }
-    Assert.assertTrue("Replication table did not exist", ReplicationTable.isOnline(conn));
+    assertTrue("Replication table did not exist", ReplicationTable.isOnline(conn));
 
     for (int i = 0; i < 5; i++) {
       if (conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME,
@@ -321,7 +321,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       Thread.sleep(2000);
     }
 
-    Assert.assertTrue("'root' user could not read the replication table", conn.securityOperations()
+    assertTrue("'root' user could not read the replication table", conn.securityOperations()
         .hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ));
 
     Set<String> replRows = new HashSet<>();
@@ -337,7 +337,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         try {
           new URI(fileUri);
         } catch (URISyntaxException e) {
-          Assert.fail("Expected a valid URI: " + fileUri);
+          fail("Expected a valid URI: " + fileUri);
         }
 
         replRows.add(fileUri);
@@ -347,8 +347,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     Set<String> wals = new HashSet<>();
     attempts = 5;
     Instance i = conn.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-        "");
+    ZooReaderWriter zk =
+        new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
     while (wals.isEmpty() && attempts > 0) {
       WalStateManager markers = new WalStateManager(i, zk);
       for (Entry<Path,WalState> entry : markers.getAllState().entrySet()) {
@@ -359,12 +359,12 @@ public class ReplicationIT extends ConfigurableMacBase {
 
     // We only have one file that should need replication (no trace table)
     // We should find an entry in tablet and in the repl row
-    Assert.assertEquals("Rows found: " + replRows, 1, replRows.size());
+    assertEquals("Rows found: " + replRows, 1, replRows.size());
 
     // There should only be one extra WALog that replication doesn't know about
     replRows.removeAll(wals);
-    Assert.assertEquals(2, wals.size());
-    Assert.assertEquals(0, replRows.size());
+    assertEquals(2, wals.size());
+    assertEquals(0, replRows.size());
   }
 
   @Test
@@ -373,7 +373,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     List<String> tables = new ArrayList<>();
 
     // replication shouldn't be online when we begin
-    Assert.assertFalse(ReplicationTable.isOnline(conn));
+    assertFalse(ReplicationTable.isOnline(conn));
 
     for (int i = 0; i < 5; i++) {
       String name = "table" + i;
@@ -382,28 +382,28 @@ public class ReplicationIT extends ConfigurableMacBase {
     }
 
     // nor after we create some tables (that aren't being replicated)
-    Assert.assertFalse(ReplicationTable.isOnline(conn));
+    assertFalse(ReplicationTable.isOnline(conn));
 
     for (String table : tables) {
       writeSomeData(conn, table, 5, 5);
     }
 
     // After writing data, still no replication table
-    Assert.assertFalse(ReplicationTable.isOnline(conn));
+    assertFalse(ReplicationTable.isOnline(conn));
 
     for (String table : tables) {
       conn.tableOperations().compact(table, null, null, true, true);
     }
 
     // After compacting data, still no replication table
-    Assert.assertFalse(ReplicationTable.isOnline(conn));
+    assertFalse(ReplicationTable.isOnline(conn));
 
     for (String table : tables) {
       conn.tableOperations().delete(table);
     }
 
     // After deleting tables, still no replication table
-    Assert.assertFalse(ReplicationTable.isOnline(conn));
+    assertFalse(ReplicationTable.isOnline(conn));
   }
 
   @Test
@@ -412,7 +412,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     String table1 = "table1", table2 = "table2";
 
     // replication shouldn't exist when we begin
-    Assert.assertFalse("Replication table already online at the beginning of the test",
+    assertFalse("Replication table already online at the beginning of the test",
         ReplicationTable.isOnline(conn));
 
     // Create two tables
@@ -428,7 +428,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
     // Despite having replication on, we shouldn't have any need to write a record to it (and bring
     // it online)
-    Assert.assertFalse(ReplicationTable.isOnline(conn));
+    assertFalse(ReplicationTable.isOnline(conn));
 
     // Write some data to table1
     writeSomeData(conn, table1, 50, 50);
@@ -442,7 +442,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     while (!ReplicationTable.isOnline(conn)) {
       sleepUninterruptibly(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS, TimeUnit.MILLISECONDS);
     }
-    Assert.assertTrue(ReplicationTable.isOnline(conn));
+    assertTrue(ReplicationTable.isOnline(conn));
 
     // Verify that we found a single replication record that's for table1
     Scanner s = ReplicationTable.getScanner(conn);
@@ -456,7 +456,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     Entry<Key,Value> entry = Iterators.getOnlyElement(s.iterator());
     // We should at least find one status record for this table, we might find a second if another
     // log was started from ingesting the data
-    Assert.assertEquals("Expected to find replication entry for " + table1,
+    assertEquals("Expected to find replication entry for " + table1,
         conn.tableOperations().tableIdMap().get(table1),
         entry.getKey().getColumnQualifier().toString());
     s.close();
@@ -485,17 +485,16 @@ public class ReplicationIT extends ConfigurableMacBase {
           metadata.getValue().toString());
     }
 
-    Assert.assertEquals("Expected to find 2 records, but actually found " + records, 2,
-        records.size());
+    assertEquals("Expected to find 2 records, but actually found " + records, 2, records.size());
 
     for (Entry<Key,Value> metadata : records) {
-      Assert.assertTrue(
+      assertTrue(
           "Expected record to be in metadata but wasn't " + metadata.getKey().toStringNoTruncate()
               + ", tableIds remaining " + tableIdsForMetadata,
           tableIdsForMetadata.remove(metadata.getKey().getColumnQualifier().toString()));
     }
 
-    Assert.assertTrue("Expected that we had removed all metadata entries " + tableIdsForMetadata,
+    assertTrue("Expected that we had removed all metadata entries " + tableIdsForMetadata,
         tableIdsForMetadata.isEmpty());
 
     // Should be creating these records in replication table from metadata table every second
@@ -505,16 +504,16 @@ public class ReplicationIT extends ConfigurableMacBase {
     s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
     Iterator<Entry<Key,Value>> iter = s.iterator();
-    Assert.assertTrue("Found no records in replication table", iter.hasNext());
+    assertTrue("Found no records in replication table", iter.hasNext());
     entry = iter.next();
-    Assert.assertTrue("Expected to find element in replication table",
+    assertTrue("Expected to find element in replication table",
         tableIds.remove(entry.getKey().getColumnQualifier().toString()));
-    Assert.assertTrue("Expected to find two elements in replication table, only found one ",
+    assertTrue("Expected to find two elements in replication table, only found one ",
         iter.hasNext());
     entry = iter.next();
-    Assert.assertTrue("Expected to find element in replication table",
+    assertTrue("Expected to find element in replication table",
         tableIds.remove(entry.getKey().getColumnQualifier().toString()));
-    Assert.assertFalse("Expected to only find two elements in replication table", iter.hasNext());
+    assertFalse("Expected to only find two elements in replication table", iter.hasNext());
   }
 
   private void writeSomeData(Connector conn, String table, int rows, int cols) throws Exception {
@@ -610,9 +609,9 @@ public class ReplicationIT extends ConfigurableMacBase {
 
     // We should have *some* reference to each log that was seen in the metadata table
     // They might not yet all be closed though (might be newfile)
-    Assert.assertTrue("Metadata log distribution: " + logs + "replFiles " + replFiles,
+    assertTrue("Metadata log distribution: " + logs + "replFiles " + replFiles,
         logs.keySet().containsAll(replFiles));
-    Assert.assertTrue("Difference between replication entries and current logs is bigger than one",
+    assertTrue("Difference between replication entries and current logs is bigger than one",
         logs.keySet().size() - replFiles.size() <= 1);
 
     final Configuration conf = new Configuration();
@@ -625,8 +624,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         log.info("Current references {}", currentSet);
         log.info("Looking for reference to {}", replFile);
         log.info("Contains? {}", currentSet.contains(replFile));
-        Assert.assertTrue(
-            "File does not exist anymore, it was likely incorrectly garbage collected: " + p,
+        assertTrue("File does not exist anymore, it was likely incorrectly garbage collected: " + p,
             !currentSet.contains(replFile));
       }
     }
@@ -656,8 +654,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     Status stat2 = StatusUtil.fileClosed();
 
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    Mutation m = new Mutation(
-        ReplicationSection.getRowPrefix() + "file:/accumulo/wals/tserver+port/uuid");
+    Mutation m =
+        new Mutation(ReplicationSection.getRowPrefix() + "file:/accumulo/wals/tserver+port/uuid");
     m.put(ReplicationSection.COLF, new Text("1"), ProtobufUtil.toValue(stat1));
     bw.addMutation(m);
     bw.close();
@@ -666,7 +664,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     s.setRange(ReplicationSection.getRange());
 
     Status actual = Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
-    Assert.assertEquals(stat1, actual);
+    assertEquals(stat1, actual);
 
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + "file:/accumulo/wals/tserver+port/uuid");
@@ -681,7 +679,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     Status expected = Status.newBuilder().setBegin(0).setEnd(0).setClosed(true).setInfiniteEnd(true)
         .setCreatedTime(100).build();
 
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   @Test
@@ -736,7 +734,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     conn.tableOperations().create(table);
     String tableId = conn.tableOperations().tableIdMap().get(table);
 
-    Assert.assertNotNull(tableId);
+    assertNotNull(tableId);
 
     conn.tableOperations().setProperty(table, Property.TABLE_REPLICATION.getKey(), "true");
     conn.tableOperations().setProperty(table,
@@ -835,7 +833,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
     }
 
-    Assert.fail("We had a file that was referenced but didn't get closed");
+    fail("We had a file that was referenced but didn't get closed");
   }
 
   @Test
@@ -849,7 +847,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     String table1 = "table1";
 
     // replication shouldn't be online when we begin
-    Assert.assertFalse(ReplicationTable.isOnline(conn));
+    assertFalse(ReplicationTable.isOnline(conn));
 
     // Create a table
     conn.tableOperations().create(table1);
@@ -884,7 +882,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     while (!ReplicationTable.isOnline(conn)) {
       sleepUninterruptibly(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS, TimeUnit.MILLISECONDS);
     }
-    Assert.assertTrue("Replication table was never created", ReplicationTable.isOnline(conn));
+    assertTrue("Replication table was never created", ReplicationTable.isOnline(conn));
 
     // ACCUMULO-2743 The Observer in the tserver has to be made aware of the change to get the
     // combiner (made by the master)
@@ -893,7 +891,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       sleepUninterruptibly(2, TimeUnit.SECONDS);
     }
 
-    Assert.assertTrue("Combiner was never set on replication table", conn.tableOperations()
+    assertTrue("Combiner was never set on replication table", conn.tableOperations()
         .listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME));
 
     // Trigger the minor compaction, waiting for it to finish.
@@ -933,9 +931,9 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
     }
 
-    Assert.assertNotNull("Could not find expected entry in replication table", entry);
+    assertNotNull("Could not find expected entry in replication table", entry);
     Status actual = Status.parseFrom(entry.getValue().get());
-    Assert.assertTrue("Expected to find a replication entry that is open with infinite length: "
+    assertTrue("Expected to find a replication entry that is open with infinite length: "
         + ProtobufUtil.toString(actual), !actual.getClosed() && actual.getInfiniteEnd());
 
     // Try a couple of times to watch for the work record to be created
@@ -945,7 +943,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       WorkSection.limit(s);
       int elementsFound = Iterables.size(s);
       if (0 < elementsFound) {
-        Assert.assertEquals(1, elementsFound);
+        assertEquals(1, elementsFound);
         notFound = false;
       }
       Thread.sleep(500);
@@ -957,7 +955,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       for (Entry<Key,Value> content : s) {
         log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
       }
-      Assert.assertFalse("Did not find the work entry for the status entry", notFound);
+      assertFalse("Did not find the work entry for the status entry", notFound);
     }
 
     // Write some more data so that we over-run the single WAL
@@ -981,7 +979,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           ProtobufUtil.toString(Status.parseFrom(e.getValue().get())));
     }
 
-    Assert.assertEquals(2, numRecords);
+    assertEquals(2, numRecords);
 
     // We should eventually get 2 work records recorded, need to account for a potential delay
     // though
@@ -1003,7 +1001,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       for (Entry<Key,Value> content : s) {
         log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
       }
-      Assert.assertFalse("Did not find the work entries for the status entries", notFound);
+      assertFalse("Did not find the work entries for the status entries", notFound);
     }
   }
 
@@ -1013,7 +1011,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     String table1 = "table1";
 
     // replication shouldn't be online when we begin
-    Assert.assertFalse(ReplicationTable.isOnline(conn));
+    assertFalse(ReplicationTable.isOnline(conn));
 
     // Create two tables
     conn.tableOperations().create(table1);
@@ -1041,20 +1039,20 @@ public class ReplicationIT extends ConfigurableMacBase {
     conn.tableOperations().flush(table1, null, null, true);
 
     String tableId = conn.tableOperations().tableIdMap().get(table1);
-    Assert.assertNotNull("Table ID was null", tableId);
+    assertNotNull("Table ID was null", tableId);
 
     // Make sure the replication table exists at this point
     while (!ReplicationTable.isOnline(conn)) {
       sleepUninterruptibly(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS, TimeUnit.MILLISECONDS);
     }
-    Assert.assertTrue("Replication table did not exist", ReplicationTable.isOnline(conn));
+    assertTrue("Replication table did not exist", ReplicationTable.isOnline(conn));
 
     for (int i = 0; i < 5 && !conn.securityOperations().hasTablePermission("root",
         ReplicationTable.NAME, TablePermission.READ); i++) {
       Thread.sleep(1000);
     }
 
-    Assert.assertTrue(conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME,
+    assertTrue(conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME,
         TablePermission.READ));
 
     boolean notFound = true;
@@ -1065,14 +1063,14 @@ public class ReplicationIT extends ConfigurableMacBase {
       try {
         Entry<Key,Value> e = Iterables.getOnlyElement(s);
         Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
-        Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
+        assertEquals(expectedColqual, e.getKey().getColumnQualifier());
         notFound = false;
       } catch (NoSuchElementException e) {} catch (IllegalArgumentException e) {
         s = ReplicationTable.getScanner(conn);
         for (Entry<Key,Value> content : s) {
           log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
         }
-        Assert.fail("Found more than one work section entry");
+        fail("Found more than one work section entry");
       }
 
       Thread.sleep(500);
@@ -1083,7 +1081,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       for (Entry<Key,Value> content : s) {
         log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
       }
-      Assert.assertFalse("Did not find the work entry for the status entry", notFound);
+      assertFalse("Did not find the work entry for the status entry", notFound);
     }
   }
 
@@ -1153,7 +1151,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     } finally {
       keepRunning.set(false);
       t.join(5000);
-      Assert.assertFalse(t.isAlive());
+      assertFalse(t.isAlive());
     }
 
     // Kill the tserver(s) and restart them
@@ -1213,7 +1211,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           log.info(entry.getKey().toStringNoTruncate() + " "
               + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
         }
-        Assert.fail("Expected all replication records in the metadata table to be closed");
+        fail("Expected all replication records in the metadata table to be closed");
       }
 
       for (int i = 0; i < 10; i++) {
@@ -1249,7 +1247,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           log.info(entry.getKey().toStringNoTruncate() + " "
               + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
         }
-        Assert.fail("Expected all replication records in the replication table to be closed");
+        fail("Expected all replication records in the replication table to be closed");
       }
 
     } finally {
@@ -1269,7 +1267,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     String table1 = "table1";
 
     // replication shouldn't be online when we begin
-    Assert.assertFalse(ReplicationTable.isOnline(conn));
+    assertFalse(ReplicationTable.isOnline(conn));
 
     // Create two tables
     conn.tableOperations().create(table1);
@@ -1296,7 +1294,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     }
 
     String tableId = conn.tableOperations().tableIdMap().get(table1);
-    Assert.assertNotNull("Could not determine table id for " + table1, tableId);
+    assertNotNull("Could not determine table id for " + table1, tableId);
 
     // Write some data to table1
     writeSomeData(conn, table1, 2000, 50);
@@ -1306,7 +1304,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     while (!ReplicationTable.isOnline(conn)) {
       sleepUninterruptibly(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS, TimeUnit.MILLISECONDS);
     }
-    Assert.assertTrue("Replication table did not exist", ReplicationTable.isOnline(conn));
+    assertTrue("Replication table did not exist", ReplicationTable.isOnline(conn));
 
     // Grant ourselves the write permission for later
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME,
@@ -1331,8 +1329,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       Thread.sleep(1000);
     }
 
-    Assert.assertFalse("Did not find any replication entries in the replication table",
-        entries.isEmpty());
+    assertFalse("Did not find any replication entries in the replication table", entries.isEmpty());
 
     // Find the WorkSection record that will be created for that data we ingested
     boolean notFound = true;
@@ -1343,7 +1340,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         Entry<Key,Value> e = Iterables.getOnlyElement(s);
         log.info("Found entry: " + e.getKey().toStringNoTruncate());
         Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
-        Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
+        assertEquals(expectedColqual, e.getKey().getColumnQualifier());
         notFound = false;
       } catch (NoSuchElementException e) {
 
@@ -1353,7 +1350,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         for (Entry<Key,Value> content : s) {
           log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
         }
-        Assert.fail("Found more than one work section entry");
+        fail("Found more than one work section entry");
       } catch (RuntimeException e) {
         // Catch a propagation issue, fail if it's not what we expect
         Throwable cause = e.getCause();
@@ -1381,7 +1378,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         log.info(content.getKey().toStringNoTruncate() + " => "
             + ProtobufUtil.toString(Status.parseFrom(content.getValue().get())));
       }
-      Assert.assertFalse("Did not find the work entry for the status entry", notFound);
+      assertFalse("Did not find the work entry for the status entry", notFound);
     }
 
     /**
@@ -1449,7 +1446,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       log.info("");
     }
 
-    Assert.assertTrue("Replication status messages were not cleaned up from metadata table",
+    assertTrue("Replication status messages were not cleaned up from metadata table",
         remaining.isEmpty());
 
     /**
@@ -1475,7 +1472,6 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
     }
 
-    Assert.assertTrue("Found unexpected replication records in the replication table",
-        recordsFound <= 2);
+    assertTrue("Found unexpected replication records in the replication table", recordsFound <= 2);
   }
 }

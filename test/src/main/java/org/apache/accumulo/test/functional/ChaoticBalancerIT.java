@@ -17,21 +17,22 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.master.balancer.ChaoticLoadBalancer;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class ChaoticBalancerIT extends AccumuloClusterHarness {
@@ -54,16 +55,14 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    String[] names = getUniqueNames(2);
-    String tableName = names[0], unused = names[1];
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    SortedSet<Text> splits = new TreeSet<>();
-    for (int i = 0; i < 100; i++) {
-      splits.add(new Text(String.format("%03d", i)));
-    }
-    c.tableOperations().create(unused);
-    c.tableOperations().addSplits(unused, splits);
+    String[] names = getUniqueNames(1);
+    String tableName = names[0];
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.setProperties(Stream
+        .of(new Pair<>(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K"),
+            new Pair<>(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K"))
+        .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond)));
+    c.tableOperations().create(tableName, ntc);
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.rows = opts.rows = 20000;

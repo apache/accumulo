@@ -65,6 +65,7 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -160,6 +161,7 @@ public class CertUtils {
           }
 
           @Override
+          @SuppressModernizer
           public void getProperties(Map<String,String> props, Predicate<String> filter) {
             for (Entry<String,String> entry : this)
               if (filter.apply(entry.getKey()))
@@ -318,8 +320,8 @@ public class CertUtils {
     endDate.add(Calendar.YEAR, 100);
 
     BigInteger serialNumber = BigInteger.valueOf((startDate.getTimeInMillis()));
-    X500Name issuer = new X500Name(
-        IETFUtils.rDNsFromString(issuerDirString, RFC4519Style.INSTANCE));
+    X500Name issuer =
+        new X500Name(IETFUtils.rDNsFromString(issuerDirString, RFC4519Style.INSTANCE));
     JcaX509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(issuer, serialNumber,
         startDate.getTime(), endDate.getTime(), issuer, kp.getPublic());
     JcaX509ExtensionUtils extensionUtils = new JcaX509ExtensionUtils();
@@ -331,8 +333,8 @@ public class CertUtils {
     if (isCertAuthority) {
       certGen.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign));
     }
-    X509CertificateHolder cert = certGen
-        .build(new JcaContentSignerBuilder(signingAlgorithm).build(signerPrivateKey));
+    X509CertificateHolder cert =
+        certGen.build(new JcaContentSignerBuilder(signingAlgorithm).build(signerPrivateKey));
     return new JcaX509CertificateConverter().getCertificate(cert);
   }
 

@@ -90,8 +90,8 @@ public class ServerConstants {
   // these are functions to delay loading the Accumulo configuration unless we must
   public static synchronized String[] getBaseUris() {
     if (baseUris == null) {
-      baseUris = checkBaseUris(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()),
-          false);
+      baseUris =
+          checkBaseUris(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), false);
     }
 
     return baseUris;
@@ -179,8 +179,8 @@ public class ServerConstants {
   public static synchronized List<Pair<Path,Path>> getVolumeReplacements() {
 
     if (replacementsList == null) {
-      String replacements = SiteConfiguration.getInstance()
-          .get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
+      String replacements =
+          SiteConfiguration.getInstance().get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
 
       replacements = replacements.trim();
 

@@ -133,8 +133,8 @@ public class CompareTables {
       conn.tableOperations().create(outputTableName);
 
       GenerateHashes genHashes = new GenerateHashes();
-      Collection<Range> ranges = genHashes.getRanges(opts.getConnector(), table,
-          opts.getSplitsFile());
+      Collection<Range> ranges =
+          genHashes.getRanges(opts.getConnector(), table, opts.getSplitsFile());
 
       try {
         genHashes.run(opts.getConnector(), table, table + "_merkle", opts.getHashName(),
@@ -145,8 +145,8 @@ public class CompareTables {
       }
 
       ComputeRootHash computeRootHash = new ComputeRootHash();
-      String hash = Hex
-          .encodeHexString(computeRootHash.getHash(conn, outputTableName, opts.getHashName()));
+      String hash =
+          Hex.encodeHexString(computeRootHash.getHash(conn, outputTableName, opts.getHashName()));
 
       hashesByTable.put(table, hash);
     }

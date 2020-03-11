@@ -51,8 +51,8 @@ public class FindOfflineTablets {
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
-    AccumuloServerContext context = new AccumuloServerContext(
-        new ServerConfigurationFactory(opts.getInstance()));
+    AccumuloServerContext context =
+        new AccumuloServerContext(new ServerConfigurationFactory(opts.getInstance()));
     findOffline(context, null);
   }
 
@@ -91,8 +91,8 @@ public class FindOfflineTablets {
       return 0;
 
     System.out.println("Scanning " + RootTable.NAME);
-    Iterator<TabletLocationState> rootScanner = new MetaDataTableScanner(context,
-        MetadataSchema.TabletsSection.getRange(), RootTable.NAME);
+    Iterator<TabletLocationState> rootScanner =
+        new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), RootTable.NAME);
     if ((offline = checkTablets(rootScanner, tservers)) > 0)
       return offline;
 
@@ -121,8 +121,9 @@ public class FindOfflineTablets {
     while (scanner.hasNext() && !System.out.checkError()) {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
-      if (state != null && state != TabletState.HOSTED && TableManager.getInstance()
-          .getTableState(locationState.extent.getTableId()) != TableState.OFFLINE) {
+      if (state != null && state != TabletState.HOSTED
+          && TableManager.getInstance().getTableState(locationState.extent.getTableId())
+              != TableState.OFFLINE) {
         System.out
             .println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
         offline++;

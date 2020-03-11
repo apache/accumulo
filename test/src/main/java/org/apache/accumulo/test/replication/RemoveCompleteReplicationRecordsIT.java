@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -43,12 +46,13 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   private MockRemoveCompleteReplicationRecords rcrr;
@@ -92,7 +96,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
     bw.close();
 
-    Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
 
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
     bs.setRanges(Collections.singleton(new Range()));
@@ -105,7 +109,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     rcrr.removeCompleteRecords(conn, bs, bw);
     bs.close();
 
-    Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
   }
 
   @Test
@@ -126,7 +130,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
     bw.close();
 
-    Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
 
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
     bs.setRanges(Collections.singleton(new Range()));
@@ -140,7 +144,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     rcrr.removeCompleteRecords(conn, bs, bw);
     bs.close();
 
-    Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
   }
 
   @Test
@@ -184,7 +188,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     replBw.flush();
 
     // Make sure that we have the expected number of records in both tables
-    Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
 
     // We should not remove any records because they're missing closed status
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
@@ -193,7 +197,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     bs.addScanIterator(cfg);
 
     try {
-      Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
+      assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
     } finally {
       bs.close();
       replBw.close();
@@ -268,7 +272,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     replBw.flush();
 
     // Make sure that we have the expected number of records in both tables
-    Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
 
     // We should remove the two fully completed records we inserted
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
@@ -279,7 +283,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     bs.addScanIterator(cfg);
 
     try {
-      Assert.assertEquals(4l, rcrr.removeCompleteRecords(conn, bs, replBw));
+      assertEquals(4l, rcrr.removeCompleteRecords(conn, bs, replBw));
     } finally {
       bs.close();
       replBw.close();
@@ -287,11 +291,11 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
     int actualRecords = 0;
     for (Entry<Key,Value> entry : ReplicationTable.getScanner(conn)) {
-      Assert.assertFalse(filesToRemove.contains(entry.getKey().getRow().toString()));
+      assertFalse(filesToRemove.contains(entry.getKey().getRow().toString()));
       actualRecords++;
     }
 
-    Assert.assertEquals(finalNumRecords, actualRecords);
+    assertEquals(finalNumRecords, actualRecords);
   }
 
   @Test
@@ -318,8 +322,8 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     Mutation m = new Mutation(fileToRemove);
     ReplicationTarget target = new ReplicationTarget("peer1", "5", "5");
-    Value value = ProtobufUtil
-        .toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
+    Value value =
+        ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
     StatusSection.add(m, "5", value);
     WorkSection.add(m, target.toText(), value);
     target = new ReplicationTarget("peer2", "5", "5");
@@ -333,7 +337,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     replBw.flush();
 
     // Make sure that we have the expected number of records in both tables
-    Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
 
     // We should remove the two fully completed records we inserted
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
@@ -342,7 +346,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     bs.addScanIterator(cfg);
 
     try {
-      Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
+      assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
     } finally {
       bs.close();
       replBw.close();

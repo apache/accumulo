@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.fail;
 
 import java.util.concurrent.TimeUnit;
 
@@ -38,7 +39,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -64,8 +64,8 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
   @Before
   public void alterConfig() throws Exception {
     Connector conn = getConnector();
-    majcDelay = conn.instanceOperations().getSystemConfiguration()
-        .get(Property.TSERV_MAJC_DELAY.getKey());
+    majcDelay =
+        conn.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
     if (!"1s".equals(majcDelay)) {
       conn.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -134,7 +134,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       ClientConfiguration clientConf = cluster.getClientConfig();
       opts.updateKerberosCredentials(clientConf);
     } else {
-      Assert.fail("Unknown token type");
+      fail("Unknown token type");
     }
 
     VerifyIngest.verifyIngest(c, opts, new ScannerOpts());

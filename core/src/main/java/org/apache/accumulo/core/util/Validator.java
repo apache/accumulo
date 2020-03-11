@@ -16,12 +16,15 @@
  */
 package org.apache.accumulo.core.util;
 
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
+
 import com.google.common.base.Predicate;
 
 /**
  * A class that validates arguments of a particular type. Implementations must implement
  * {@link #apply(Object)} and should override {@link #invalidMessage(Object)}.
  */
+@SuppressModernizer
 public abstract class Validator<T> implements Predicate<T> {
 
   /**

@@ -43,9 +43,9 @@ import org.slf4j.LoggerFactory;
 
 public class ZooUtil {
 
-  public static final RetryFactory DEFAULT_RETRY = Retry.builder().maxRetries(10)
-      .retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS).maxWait(5, TimeUnit.SECONDS)
-      .logInterval(3, TimeUnit.MINUTES).createFactory();
+  public static final RetryFactory DEFAULT_RETRY =
+      Retry.builder().maxRetries(10).retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS)
+          .maxWait(5, TimeUnit.SECONDS).logInterval(3, TimeUnit.MINUTES).createFactory();
 
   private static final Logger log = LoggerFactory.getLogger(ZooUtil.class);
 
@@ -545,12 +545,12 @@ public class ZooUtil {
     }
   }
 
-  public static List<ACL> getACL(ZooKeeperConnectionInfo info, String zPath, Stat stat)
+  public static List<ACL> getACL(ZooKeeper zk, String zPath, Stat stat)
       throws KeeperException, InterruptedException {
     final Retry retry = RETRY_FACTORY.createRetry();
     while (true) {
       try {
-        return getZooKeeper(info).getACL(zPath, stat);
+        return zk.getACL(zPath, stat);
       } catch (KeeperException e) {
         final Code c = e.code();
         if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {

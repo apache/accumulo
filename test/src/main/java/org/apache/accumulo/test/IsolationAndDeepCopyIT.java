@@ -17,6 +17,10 @@
 
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -33,7 +37,6 @@ import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
@@ -59,8 +62,8 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
     // its a bug when using rfiles, so flush
     conn.tableOperations().flush(table, null, null, true);
 
-    IteratorSetting iterCfg = new IteratorSetting(30, "ayeaye",
-        IntersectingIterator.class.getName());
+    IteratorSetting iterCfg =
+        new IteratorSetting(30, "ayeaye", IntersectingIterator.class.getName());
     IntersectingIterator.setColumnFamilies(iterCfg,
         new Text[] {new Text("the"), new Text("hamster")});
 
@@ -70,9 +73,9 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
 
     for (int i = 0; i < 100; i++) {
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      Assert.assertTrue(iter.hasNext());
-      Assert.assertEquals("000A", iter.next().getKey().getColumnQualifierData().toString());
-      Assert.assertFalse(iter.hasNext());
+      assertTrue(iter.hasNext());
+      assertEquals("000A", iter.next().getKey().getColumnQualifierData().toString());
+      assertFalse(iter.hasNext());
     }
   }
 

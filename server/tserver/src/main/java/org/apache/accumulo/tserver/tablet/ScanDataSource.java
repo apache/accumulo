@@ -167,36 +167,36 @@ class ScanDataSource implements DataSource {
       expectedDeletionCount = tablet.getDataSourceDeletions();
 
       memIters = tablet.getTabletMemory().getIterators(samplerConfig);
-      Pair<Long,Map<FileRef,DataFileValue>> reservation = tablet.getDatafileManager()
-          .reserveFilesForScan();
+      Pair<Long,Map<FileRef,DataFileValue>> reservation =
+          tablet.getDatafileManager().reserveFilesForScan();
       fileReservationId = reservation.getFirst();
       files = reservation.getSecond();
     }
 
-    Collection<InterruptibleIterator> mapfiles = fileManager.openFiles(files, options.isIsolated(),
-        samplerConfig);
+    Collection<InterruptibleIterator> mapfiles =
+        fileManager.openFiles(files, options.isIsolated(), samplerConfig);
 
     for (SortedKeyValueIterator<Key,Value> skvi : Iterables.concat(mapfiles, memIters))
       ((InterruptibleIterator) skvi).setInterruptFlag(interruptFlag);
 
-    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(
-        mapfiles.size() + memIters.size());
+    List<SortedKeyValueIterator<Key,Value>> iters =
+        new ArrayList<>(mapfiles.size() + memIters.size());
 
     iters.addAll(mapfiles);
     iters.addAll(memIters);
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
 
-    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(IteratorScope.scan,
-        tablet.getTableConfiguration(), fileManager, files, options.getAuthorizations(),
-        samplerConfig);
+    TabletIteratorEnvironment iterEnv =
+        new TabletIteratorEnvironment(IteratorScope.scan, tablet.getTableConfiguration(),
+            fileManager, files, options.getAuthorizations(), samplerConfig);
 
-    statsIterator = new StatsIterator(multiIter, TabletServer.seekCount,
-        tablet.getScannedCounter());
+    statsIterator =
+        new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter());
 
-    SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(
-        statsIterator, options.getColumnSet(), options.getAuthorizations(),
-        options.getDefaultLabels());
+    SortedKeyValueIterator<Key,Value> visFilter =
+        IteratorUtil.setupSystemScanIterators(statsIterator, options.getColumnSet(),
+            options.getAuthorizations(), options.getDefaultLabels());
 
     if (!loadIters) {
       return visFilter;
@@ -204,8 +204,8 @@ class ScanDataSource implements DataSource {
       List<IterInfo> iterInfos;
       Map<String,Map<String,String>> iterOpts;
 
-      ParsedIteratorConfig pic = tablet.getTableConfiguration()
-          .getParsedIteratorConfig(IteratorScope.scan);
+      ParsedIteratorConfig pic =
+          tablet.getTableConfiguration().getParsedIteratorConfig(IteratorScope.scan);
       if (options.getSsiList().size() == 0 && options.getSsio().size() == 0) {
         // No scan time iterator options were set, so can just use the pre-parsed table iterator
         // options.

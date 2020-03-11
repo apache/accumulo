@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Map.Entry;
 import java.util.UUID;
 
@@ -35,12 +37,13 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.master.replication.FinishedWorkUpdater;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   private Connector conn;
@@ -66,8 +69,8 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     ReplicationTable.setOnline(conn);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    Status stat = Status.newBuilder().setBegin(100).setEnd(200).setClosed(true)
-        .setInfiniteEnd(false).build();
+    Status stat =
+        Status.newBuilder().setBegin(100).setEnd(200).setClosed(true).setInfiniteEnd(false).build();
     ReplicationTarget target = new ReplicationTarget("peer", "table1", "1");
 
     // Create a single work record for a file to some peer
@@ -84,12 +87,12 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     StatusSection.limit(s);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
-    Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target.getSourceTableId());
+    assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+    assertEquals(entry.getKey().getColumnQualifier().toString(), target.getSourceTableId());
 
     // We should only rely on the correct begin attribute being returned
     Status actual = Status.parseFrom(entry.getValue().get());
-    Assert.assertEquals(stat.getBegin(), actual.getBegin());
+    assertEquals(stat.getBegin(), actual.getBegin());
   }
 
   @Test
@@ -105,8 +108,8 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
         .setInfiniteEnd(false).build();
     Status stat2 = Status.newBuilder().setBegin(500).setEnd(1000).setClosed(true)
         .setInfiniteEnd(false).build();
-    Status stat3 = Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true)
-        .setInfiniteEnd(false).build();
+    Status stat3 =
+        Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true).setInfiniteEnd(false).build();
     ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", "1");
     ReplicationTarget target2 = new ReplicationTarget("peer2", "table2", "1");
     ReplicationTarget target3 = new ReplicationTarget("peer3", "table3", "1");
@@ -127,12 +130,12 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     StatusSection.limit(s);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
-    Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
+    assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+    assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
 
     // We should only rely on the correct begin attribute being returned
     Status actual = Status.parseFrom(entry.getValue().get());
-    Assert.assertEquals(1, actual.getBegin());
+    assertEquals(1, actual.getBegin());
   }
 
   @Test
@@ -144,12 +147,12 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     ReplicationTable.setOnline(conn);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    Status stat1 = Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true)
-        .setInfiniteEnd(true).build();
-    Status stat2 = Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true).setInfiniteEnd(true)
-        .build();
-    Status stat3 = Status.newBuilder().setBegin(500).setEnd(1000).setClosed(true)
-        .setInfiniteEnd(true).build();
+    Status stat1 =
+        Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true).setInfiniteEnd(true).build();
+    Status stat2 =
+        Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true).setInfiniteEnd(true).build();
+    Status stat3 =
+        Status.newBuilder().setBegin(500).setEnd(1000).setClosed(true).setInfiniteEnd(true).build();
     ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", "1");
     ReplicationTarget target2 = new ReplicationTarget("peer2", "table2", "1");
     ReplicationTarget target3 = new ReplicationTarget("peer3", "table3", "1");
@@ -170,12 +173,12 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     StatusSection.limit(s);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
-    Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
+    assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+    assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
 
     // We should only rely on the correct begin attribute being returned
     Status actual = Status.parseFrom(entry.getValue().get());
-    Assert.assertEquals(1, actual.getBegin());
+    assertEquals(1, actual.getBegin());
   }
 
 }

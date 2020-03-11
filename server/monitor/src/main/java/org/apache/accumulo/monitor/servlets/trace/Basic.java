@@ -51,7 +51,7 @@ abstract class Basic extends BasicServlet {
 
   public static String getStringParameter(HttpServletRequest req, String name,
       String defaultValue) {
-    String result = req.getParameter(name).replaceAll("[^A-Za-z]", "");
+    final String result = req.getParameter(name);
     if (result == null) {
       return defaultValue;
     }
@@ -82,8 +82,8 @@ abstract class Basic extends BasicServlet {
     UserGroupInformation traceUgi = null;
     final String principal;
     final AuthenticationToken at;
-    Map<String,String> loginMap = conf
-        .getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+    Map<String,String> loginMap =
+        conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     // May be null
     String keytab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
     if (keytab == null || keytab.length() == 0) {
@@ -158,8 +158,8 @@ abstract class Basic extends BasicServlet {
       if (!conn.tableOperations().exists(table)) {
         return new NullScanner();
       }
-      Scanner scanner = conn.createScanner(table,
-          conn.securityOperations().getUserAuthorizations(principal));
+      Scanner scanner =
+          conn.createScanner(table, conn.securityOperations().getUserAuthorizations(principal));
       return scanner;
     } catch (AccumuloSecurityException ex) {
       sb.append("<h2>Unable to read trace table: check trace username "

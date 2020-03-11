@@ -193,8 +193,8 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     copy.keyPos = keyPos;
     copy.keys.addAll(keys);
     copy.seekRange = (seekRange == null) ? null : new Range(seekRange);
-    copy.seekColumnFamilies = (seekColumnFamilies == null) ? null
-        : new HashSet<>(seekColumnFamilies);
+    copy.seekColumnFamilies =
+        (seekColumnFamilies == null) ? null : new HashSet<>(seekColumnFamilies);
     copy.seekColumnFamiliesInclusive = seekColumnFamiliesInclusive;
 
     copy.ve = ve;
@@ -671,8 +671,8 @@ abstract public class TransformingIterator extends WrappingIterator implements O
    *          the column families that have been fetched at seek time
    * @return the untransformed column families that would transform info {@code columnFamilies}
    */
-  protected Collection<ByteSequence> untransformColumnFamilies(
-      Collection<ByteSequence> columnFamilies) {
+  protected Collection<ByteSequence>
+      untransformColumnFamilies(Collection<ByteSequence> columnFamilies) {
     return columnFamilies;
   }
 

@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -75,7 +76,6 @@ import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -336,12 +336,11 @@ public class KerberosProxyIT extends AccumuloITBase {
     ugiTransport.open();
 
     AccumuloProxy.Client.Factory factory = new AccumuloProxy.Client.Factory();
-    Client client = factory.getClient(new TCompactProtocol(ugiTransport),
-        new TCompactProtocol(ugiTransport));
+    Client client =
+        factory.getClient(new TCompactProtocol(ugiTransport), new TCompactProtocol(ugiTransport));
 
     // Will fail if the proxy can impersonate the client
-    ByteBuffer login = client.login(rootUser.getPrincipal(),
-        Collections.<String,String> emptyMap());
+    ByteBuffer login = client.login(rootUser.getPrincipal(), Collections.<String,String>emptyMap());
 
     // For all of the below actions, the proxy user doesn't have permission to do any of them, but
     // the client user does.
@@ -360,12 +359,12 @@ public class KerberosProxyIT extends AccumuloITBase {
         ByteBuffer.wrap("cq1".getBytes(UTF_8)));
     update.setValue(ByteBuffer.wrap("value1".getBytes(UTF_8)));
     updates.put(ByteBuffer.wrap("row1".getBytes(UTF_8)),
-        Collections.<ColumnUpdate> singletonList(update));
+        Collections.<ColumnUpdate>singletonList(update));
     update = new ColumnUpdate(ByteBuffer.wrap("cf2".getBytes(UTF_8)),
         ByteBuffer.wrap("cq2".getBytes(UTF_8)));
     update.setValue(ByteBuffer.wrap("value2".getBytes(UTF_8)));
     updates.put(ByteBuffer.wrap("row2".getBytes(UTF_8)),
-        Collections.<ColumnUpdate> singletonList(update));
+        Collections.<ColumnUpdate>singletonList(update));
     client.update(writer, updates);
 
     // Flush and close the writer
@@ -410,8 +409,8 @@ public class KerberosProxyIT extends AccumuloITBase {
     kdc.createPrincipal(keytab, user);
 
     // Login as the new user
-    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user,
-        keytab.getAbsolutePath());
+    UserGroupInformation ugi =
+        UserGroupInformation.loginUserFromKeytabAndReturnUGI(user, keytab.getAbsolutePath());
 
     log.info("Logged in as " + ugi);
 
@@ -442,12 +441,12 @@ public class KerberosProxyIT extends AccumuloITBase {
     ugiTransport.open();
 
     AccumuloProxy.Client.Factory factory = new AccumuloProxy.Client.Factory();
-    Client client = factory.getClient(new TCompactProtocol(ugiTransport),
-        new TCompactProtocol(ugiTransport));
+    Client client =
+        factory.getClient(new TCompactProtocol(ugiTransport), new TCompactProtocol(ugiTransport));
 
     // Will fail because the proxy can't impersonate this user (per the site configuration)
     try {
-      client.login(kdc.qualifyUser(user), Collections.<String,String> emptyMap());
+      client.login(kdc.qualifyUser(user), Collections.<String,String>emptyMap());
     } finally {
       if (null != ugiTransport) {
         ugiTransport.close();
@@ -469,8 +468,8 @@ public class KerberosProxyIT extends AccumuloITBase {
     kdc.createPrincipal(keytab, user);
 
     // Login as the new user
-    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user,
-        keytab.getAbsolutePath());
+    UserGroupInformation ugi =
+        UserGroupInformation.loginUserFromKeytabAndReturnUGI(user, keytab.getAbsolutePath());
 
     log.info("Logged in as " + ugi);
 
@@ -488,15 +487,15 @@ public class KerberosProxyIT extends AccumuloITBase {
     ugiTransport.open();
 
     AccumuloProxy.Client.Factory factory = new AccumuloProxy.Client.Factory();
-    Client client = factory.getClient(new TCompactProtocol(ugiTransport),
-        new TCompactProtocol(ugiTransport));
+    Client client =
+        factory.getClient(new TCompactProtocol(ugiTransport), new TCompactProtocol(ugiTransport));
 
     // The proxy needs to recognize that the requested principal isn't the same as the SASL
     // principal and fail
     // Accumulo should let this through -- we need to rely on the proxy to dump me before talking to
     // accumulo
     try {
-      client.login(rootUser.getPrincipal(), Collections.<String,String> emptyMap());
+      client.login(rootUser.getPrincipal(), Collections.<String,String>emptyMap());
     } finally {
       if (null != ugiTransport) {
         ugiTransport.close();
@@ -515,12 +514,12 @@ public class KerberosProxyIT extends AccumuloITBase {
     final String userWithoutCredentials1 = kdc.qualifyUser(PROXIED_USER1);
     final String userWithoutCredentials2 = kdc.qualifyUser(PROXIED_USER2);
     final String userWithoutCredentials3 = kdc.qualifyUser(PROXIED_USER3);
-    final UserGroupInformation proxyUser1 = UserGroupInformation
-        .createProxyUser(userWithoutCredentials1, realUgi);
-    final UserGroupInformation proxyUser2 = UserGroupInformation
-        .createProxyUser(userWithoutCredentials2, realUgi);
-    final UserGroupInformation proxyUser3 = UserGroupInformation
-        .createProxyUser(userWithoutCredentials3, realUgi);
+    final UserGroupInformation proxyUser1 =
+        UserGroupInformation.createProxyUser(userWithoutCredentials1, realUgi);
+    final UserGroupInformation proxyUser2 =
+        UserGroupInformation.createProxyUser(userWithoutCredentials2, realUgi);
+    final UserGroupInformation proxyUser3 =
+        UserGroupInformation.createProxyUser(userWithoutCredentials3, realUgi);
 
     // Create a table and user, grant permission to our user to read that table.
     rootUgi.doAs(new PrivilegedExceptionAction<Void>() {
@@ -548,10 +547,10 @@ public class KerberosProxyIT extends AccumuloITBase {
         try {
           Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
           s.iterator().hasNext();
-          Assert.fail("Expected to see an exception");
+          fail("Expected to see an exception");
         } catch (RuntimeException e) {
-          int numSecurityExceptionsSeen = Iterables
-              .size(Iterables.filter(Throwables.getCausalChain(e),
+          int numSecurityExceptionsSeen =
+              Iterables.size(Iterables.filter(Throwables.getCausalChain(e),
                   org.apache.accumulo.core.client.AccumuloSecurityException.class));
           assertTrue("Expected to see at least one AccumuloSecurityException, but saw: "
               + Throwables.getStackTraceAsString(e), numSecurityExceptionsSeen > 0);
@@ -564,8 +563,8 @@ public class KerberosProxyIT extends AccumuloITBase {
       @Override
       public Void run() throws Exception {
         ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
-        Connector conn = inst.getConnector(userWithoutCredentials1,
-            new KerberosToken(userWithoutCredentials1));
+        Connector conn =
+            inst.getConnector(userWithoutCredentials1, new KerberosToken(userWithoutCredentials1));
         Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
         assertFalse(s.iterator().hasNext());
         return null;
@@ -576,15 +575,15 @@ public class KerberosProxyIT extends AccumuloITBase {
       @Override
       public Void run() throws Exception {
         ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
-        Connector conn = inst.getConnector(userWithoutCredentials2,
-            new KerberosToken(userWithoutCredentials3));
+        Connector conn =
+            inst.getConnector(userWithoutCredentials2, new KerberosToken(userWithoutCredentials3));
         try {
           Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
           s.iterator().hasNext();
-          Assert.fail("Expected to see an exception");
+          fail("Expected to see an exception");
         } catch (RuntimeException e) {
-          int numSecurityExceptionsSeen = Iterables
-              .size(Iterables.filter(Throwables.getCausalChain(e),
+          int numSecurityExceptionsSeen =
+              Iterables.size(Iterables.filter(Throwables.getCausalChain(e),
                   org.apache.accumulo.core.client.AccumuloSecurityException.class));
           assertTrue("Expected to see at least one AccumuloSecurityException, but saw: "
               + Throwables.getStackTraceAsString(e), numSecurityExceptionsSeen > 0);
@@ -599,7 +598,7 @@ public class KerberosProxyIT extends AccumuloITBase {
         ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
         try {
           inst.getConnector(userWithoutCredentials3, new KerberosToken(userWithoutCredentials3));
-          Assert.fail("Should not be able to create a Connector as this user cannot be proxied");
+          fail("Should not be able to create a Connector as this user cannot be proxied");
         } catch (org.apache.accumulo.core.client.AccumuloSecurityException e) {
           // Expected, this user cannot be proxied
         }

@@ -80,8 +80,8 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
       // occasionally deep copy one of the existing iterators
       if (random.nextInt(3) == 0) {
         log.debug("Deep-copying and re-seeking an iterator");
-        SortedKeyValueIterator<Key,Value> newcopy = getRandomElement(iterators)
-            .deepCopy(new SimpleIteratorEnvironment());
+        SortedKeyValueIterator<Key,Value> newcopy =
+            getRandomElement(iterators).deepCopy(new SimpleIteratorEnvironment());
         newcopy.seek(
             new Range(getTopKey(iterators), true, range.getEndKey(), range.isEndKeyInclusive()),
             seekColumnFamilies, seekInclusive);

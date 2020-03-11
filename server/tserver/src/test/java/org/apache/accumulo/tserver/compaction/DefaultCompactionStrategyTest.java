@@ -199,8 +199,8 @@ public class DefaultCompactionStrategyTest {
     DefaultCompactionStrategy s = new DefaultCompactionStrategy();
 
     // do nothing
-    MajorCompactionRequest request = createRequest(MajorCompactionReason.IDLE, "file1", 10, "file2",
-        10);
+    MajorCompactionRequest request =
+        createRequest(MajorCompactionReason.IDLE, "file1", 10, "file2", 10);
     s.gatherInformation(request);
     CompactionPlan plan = s.getCompactionPlan(request);
     assertTrue(plan.inputFiles.isEmpty());

@@ -84,8 +84,8 @@ class ZooConfigurationFactory {
           propCache = zcf.getZooCache(parent.get(Property.INSTANCE_ZK_HOST),
               (int) parent.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), watcher);
         } else {
-          propCache = zcf.getZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(),
-              watcher);
+          propCache =
+              zcf.getZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), watcher);
         }
         config = new ZooConfiguration(instanceId, propCache, parent);
         instances.put(instanceId, config);

@@ -20,9 +20,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.util.Base64;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Level;
@@ -113,7 +113,7 @@ public class DumpZookeeper {
     for (int i = 0; i < data.length; i++) {
       // does this look like simple ascii?
       if (data[i] < ' ' || data[i] > '~')
-        return new Encoded("base64", Base64.encodeBase64String(data));
+        return new Encoded("base64", Base64.getEncoder().encodeToString(data));
     }
     return new Encoded(UTF_8.name(), new String(data, UTF_8));
   }

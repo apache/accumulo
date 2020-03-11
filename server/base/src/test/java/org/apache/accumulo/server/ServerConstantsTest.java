@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.server;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,7 +30,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -37,8 +39,8 @@ import org.junit.rules.TemporaryFolder;
  */
 public class ServerConstantsTest {
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Test
   public void testCheckBaseDirs() throws IOException {
@@ -66,18 +68,18 @@ public class ServerConstantsTest {
   }
 
   private void verifyAllPass(ArrayList<String> paths) {
-    Assert.assertEquals(paths, Arrays
+    assertEquals(paths, Arrays
         .asList(ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), true)));
-    Assert.assertEquals(paths, Arrays
+    assertEquals(paths, Arrays
         .asList(ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), false)));
   }
 
   private void verifySomePass(ArrayList<String> paths, int numExpected) {
-    Assert.assertEquals(paths.subList(0, 2), Arrays
+    assertEquals(paths.subList(0, 2), Arrays
         .asList(ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), true)));
     try {
       ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), false);
-      Assert.fail();
+      fail();
     } catch (Exception e) {
       // ignored
     }
@@ -86,14 +88,14 @@ public class ServerConstantsTest {
   private void verifyError(ArrayList<String> paths) {
     try {
       ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), true);
-      Assert.fail();
+      fail();
     } catch (Exception e) {
       // ignored
     }
 
     try {
       ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), false);
-      Assert.fail();
+      fail();
     } catch (Exception e) {
       // ignored
     }

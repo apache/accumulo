@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.gc;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -38,7 +41,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -146,10 +148,10 @@ public class GarbageCollectionTest {
 
   private void assertRemoved(TestGCE gce, String... refs) {
     for (String ref : refs) {
-      Assert.assertTrue(gce.deletes.remove(ref));
+      assertTrue(gce.deletes.remove(ref));
     }
 
-    Assert.assertEquals(0, gce.deletes.size());
+    assertEquals(0, gce.deletes.size());
   }
 
   @Test
@@ -559,8 +561,8 @@ public class GarbageCollectionTest {
     tids.add("5");
     tids.add("6");
 
-    Assert.assertEquals(tids.size(), gce.tablesDirsToDelete.size());
-    Assert.assertTrue(tids.containsAll(gce.tablesDirsToDelete));
+    assertEquals(tids.size(), gce.tablesDirsToDelete.size());
+    assertTrue(tids.containsAll(gce.tablesDirsToDelete));
 
   }
 
@@ -580,7 +582,7 @@ public class GarbageCollectionTest {
 
     // No refs to A000002.rf, and a closed, finished repl for A000001.rf should not preclude
     // it from being deleted
-    Assert.assertEquals(2, gce.deletes.size());
+    assertEquals(2, gce.deletes.size());
   }
 
   @Test
@@ -599,9 +601,8 @@ public class GarbageCollectionTest {
     gca.collect(gce);
 
     // We need to replicate that one file still, should not delete it.
-    Assert.assertEquals(1, gce.deletes.size());
-    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf",
-        gce.deletes.get(0));
+    assertEquals(1, gce.deletes.size());
+    assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
   }
 
   @Test
@@ -620,9 +621,8 @@ public class GarbageCollectionTest {
     gca.collect(gce);
 
     // We need to replicate that one file still, should not delete it.
-    Assert.assertEquals(1, gce.deletes.size());
-    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf",
-        gce.deletes.get(0));
+    assertEquals(1, gce.deletes.size());
+    assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
   }
 
   @Test
@@ -641,8 +641,7 @@ public class GarbageCollectionTest {
     gca.collect(gce);
 
     // We need to replicate that one file still, should not delete it.
-    Assert.assertEquals(1, gce.deletes.size());
-    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf",
-        gce.deletes.get(0));
+    assertEquals(1, gce.deletes.size());
+    assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
   }
 }

@@ -15,12 +15,12 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>1.9.2</version>
+    <version>1.9.4-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
@@ -45,6 +45,11 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>commons-configuration</groupId>
+      <artifactId>commons-configuration</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -331,7 +336,7 @@
         </property>
       </activation>
       <properties>
-        <artifactList>commons-math3,commons-vfs2,gson,guava,htrace-core,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</artifactList>
+        <artifactList>commons-configuration,commons-math3,commons-vfs2,gson,guava,htrace-core,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</artifactList>
         <assemblyDescriptor>src/main/assemblies/binary-release.xml</assemblyDescriptor>
         <hadoop.profile>2</hadoop.profile>
       </properties>
@@ -345,7 +350,7 @@
         </property>
       </activation>
       <properties>
-        <artifactList>commons-math3,commons-vfs2,gson,guava,htrace-core,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</artifactList>
+        <artifactList>commons-configuration,commons-math3,commons-vfs2,gson,guava,htrace-core,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</artifactList>
         <assemblyDescriptor>src/main/assemblies/binary-release.xml</assemblyDescriptor>
       </properties>
     </profile>
@@ -375,10 +380,6 @@
         <dependency>
           <groupId>commons-collections</groupId>
           <artifactId>commons-collections</artifactId>
-        </dependency>
-        <dependency>
-          <groupId>commons-configuration</groupId>
-          <artifactId>commons-configuration</artifactId>
         </dependency>
         <dependency>
           <groupId>commons-io</groupId>

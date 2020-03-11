@@ -113,7 +113,7 @@ public class TabletServerResourceManager {
     return tp;
   }
 
-  private ExecutorService addEs(final Property maxThreads, String name,
+  private ExecutorService addEs(final Property maxThreads, final String name,
       final ThreadPoolExecutor tp) {
     ExecutorService result = addEs(name, tp);
     SimpleTimer.getInstance(tserver.getConfiguration()).schedule(new Runnable() {
@@ -121,17 +121,26 @@ public class TabletServerResourceManager {
       public void run() {
         try {
           int max = tserver.getConfiguration().getCount(maxThreads);
-          if (tp.getMaximumPoolSize() != max) {
-            log.info("Changing " + maxThreads.getKey() + " to " + max);
-            tp.setCorePoolSize(max);
-            tp.setMaximumPoolSize(max);
+          int currentMax = tp.getMaximumPoolSize();
+          if (currentMax != max) {
+            log.info("Changing {} for {} from {} to {}", maxThreads.getKey(), name, currentMax,
+                max);
+            if (max > currentMax) {
+              // increasing, increase the max first, or the core will fail to be increased
+              tp.setMaximumPoolSize(max);
+              tp.setCorePoolSize(max);
+            } else {
+              // decreasing, lower the core size first, or the max will fail to be lowered
+              tp.setCorePoolSize(max);
+              tp.setMaximumPoolSize(max);
+            }
           }
         } catch (Throwable t) {
           log.error("Failed to change thread pool size", t);
         }
       }
 
-    }, 1000, 10 * 1000);
+    }, 1000, 10_000);
     return result;
   }
 
@@ -162,8 +171,8 @@ public class TabletServerResourceManager {
     final AccumuloConfiguration acuConf = conf.getConfiguration();
 
     long maxMemory = acuConf.getMemoryInBytes(Property.TSERV_MAXMEM);
-    boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED)
-        && NativeMap.isLoaded();
+    boolean usingNativeMap =
+        acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.isLoaded();
 
     long blockSize = acuConf.getMemoryInBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
     long dCacheSize = acuConf.getMemoryInBytes(Property.TSERV_DATACACHE_SIZE);
@@ -225,13 +234,13 @@ public class TabletServerResourceManager {
     activeAssignments = new ConcurrentHashMap<>();
 
     readAheadThreadPool = createEs(Property.TSERV_READ_AHEAD_MAXCONCURRENT, "tablet read ahead");
-    defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT,
-        "metadata tablets read ahead");
+    defaultReadAheadThreadPool =
+        createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT, "metadata tablets read ahead");
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
-    Cache<String,Long> fileLenCache = CacheBuilder.newBuilder()
-        .maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
+    Cache<String,Long> fileLenCache =
+        CacheBuilder.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
     fileManager = new FileManager(tserver, fs, maxOpenFiles, fileLenCache, _dCache, _iCache);
 
@@ -269,8 +278,8 @@ public class TabletServerResourceManager {
 
     @Override
     public void run() {
-      final long millisBeforeWarning = conf
-          .getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
+      final long millisBeforeWarning =
+          conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
       try {
         long now = System.currentTimeMillis();
         KeyExtent extent;
@@ -435,8 +444,8 @@ public class TabletServerResourceManager {
           synchronized (tabletReports) {
             tabletReportsCopy = new HashMap<>(tabletReports);
           }
-          ArrayList<TabletState> tabletStates = new ArrayList<TabletState>(
-              tabletReportsCopy.values());
+          ArrayList<TabletState> tabletStates =
+              new ArrayList<TabletState>(tabletReportsCopy.values());
           mma = memoryManager.getMemoryManagementActions(tabletStates);
 
         } catch (Throwable t) {

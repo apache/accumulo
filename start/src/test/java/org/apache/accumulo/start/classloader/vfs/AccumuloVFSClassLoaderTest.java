@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -26,7 +29,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -43,11 +45,11 @@ import org.powermock.reflect.Whitebox;
     "org.apache.log4j.LogManager"})
 @PowerMockIgnore({"org.apache.log4j.*", "org.apache.hadoop.log.metrics",
     "org.apache.commons.logging.*", "org.xml.*", "javax.xml.*", "org.w3c.dom.*",
-    "org.apache.hadoop.*"})
+    "org.apache.hadoop.*", "com.sun.org.apache.xerces.*"})
 public class AccumuloVFSClassLoaderTest {
 
-  private TemporaryFolder folder1 = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  private TemporaryFolder folder1 =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Before
   public void setup() throws IOException {
@@ -87,8 +89,8 @@ public class AccumuloVFSClassLoaderTest {
         conf.toURI().toURL().toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
-    Assert.assertTrue((acl instanceof VFSClassLoader));
-    Assert.assertTrue((acl.getParent() instanceof URLClassLoader));
+    assertTrue((acl instanceof VFSClassLoader));
+    assertTrue((acl.getParent() instanceof URLClassLoader));
   }
 
   /*
@@ -123,15 +125,15 @@ public class AccumuloVFSClassLoaderTest {
         conf.toURI().toURL().toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
-    Assert.assertTrue((acl instanceof VFSClassLoader));
-    Assert.assertTrue((acl.getParent() instanceof VFSClassLoader));
+    assertTrue((acl instanceof VFSClassLoader));
+    assertTrue((acl.getParent() instanceof VFSClassLoader));
     VFSClassLoader arvcl = (VFSClassLoader) acl.getParent();
-    Assert.assertEquals(1, arvcl.getFileObjects().length);
+    assertEquals(1, arvcl.getFileObjects().length);
     // We can't be sure what the authority/host will be due to FQDN mappings, so just check the path
-    Assert.assertTrue(arvcl.getFileObjects()[0].getURL().toString().contains("HelloWorld.jar"));
+    assertTrue(arvcl.getFileObjects()[0].getURL().toString().contains("HelloWorld.jar"));
     Class<?> clazz1 = arvcl.loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
-    Assert.assertEquals("Hello World!", o1.toString());
+    assertEquals("Hello World!", o1.toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
         (AccumuloReloadingVFSClassLoader) null);
   }
@@ -173,9 +175,9 @@ public class AccumuloVFSClassLoaderTest {
       javaIoTmpDir = javaIoTmpDir.substring(0, javaIoTmpDir.length() - File.separator.length());
     }
 
-    Assert.assertTrue(javaIoTmpDir.equals(tempDirParent));
-    Assert.assertTrue(tempDirName.startsWith("accumulo-vfs-cache-"));
-    Assert.assertTrue(tempDirName.endsWith(System.getProperty("user.name", "nouser")));
+    assertTrue(javaIoTmpDir.equals(tempDirParent));
+    assertTrue(tempDirName.startsWith("accumulo-vfs-cache-"));
+    assertTrue(tempDirName.endsWith(System.getProperty("user.name", "nouser")));
 
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
         (AccumuloReloadingVFSClassLoader) null);
@@ -212,9 +214,9 @@ public class AccumuloVFSClassLoaderTest {
     File tempDir = Whitebox.getInternalState(replicator, "tempDir");
     String tempDirParent = tempDir.getParent();
     String tempDirName = tempDir.getName();
-    Assert.assertTrue(cacheDir.equals(tempDirParent));
-    Assert.assertTrue(tempDirName.startsWith("accumulo-vfs-cache-"));
-    Assert.assertTrue(tempDirName.endsWith(System.getProperty("user.name", "nouser")));
+    assertTrue(cacheDir.equals(tempDirParent));
+    assertTrue(tempDirName.startsWith("accumulo-vfs-cache-"));
+    assertTrue(tempDirName.endsWith(System.getProperty("user.name", "nouser")));
 
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
         (AccumuloReloadingVFSClassLoader) null);

@@ -198,8 +198,8 @@ public class Proxy implements KeywordExecutable {
         properties.getProperty(THRIFT_THREAD_POOL_SIZE_KEY, THRIFT_THREAD_POOL_SIZE_DEFAULT));
     final long maxFrameSize = AccumuloConfiguration.getMemoryInBytes(
         properties.getProperty(THRIFT_MAX_FRAME_SIZE_KEY, THRIFT_MAX_FRAME_SIZE_DEFAULT));
-    final int simpleTimerThreadpoolSize = Integer
-        .parseInt(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
+    final int simpleTimerThreadpoolSize =
+        Integer.parseInt(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
     // How frequently to try to resize the thread pool
     final long threadpoolResizeInterval = 1000l * 5;
     // No timeout
@@ -212,15 +212,15 @@ public class Proxy implements KeywordExecutable {
     ProxyServer impl = new ProxyServer(properties);
 
     // Wrap the implementation -- translate some exceptions
-    AccumuloProxy.Iface wrappedImpl = RpcWrapper.service(impl,
-        new AccumuloProxy.Processor<AccumuloProxy.Iface>(impl));
+    AccumuloProxy.Iface wrappedImpl =
+        RpcWrapper.service(impl, new AccumuloProxy.Processor<AccumuloProxy.Iface>(impl));
 
     // Create the processor from the implementation
     TProcessor processor = new AccumuloProxy.Processor<>(wrappedImpl);
 
     // Get the type of thrift server to instantiate
-    final String serverTypeStr = properties.getProperty(THRIFT_SERVER_TYPE,
-        THRIFT_SERVER_TYPE_DEFAULT);
+    final String serverTypeStr =
+        properties.getProperty(THRIFT_SERVER_TYPE, THRIFT_SERVER_TYPE_DEFAULT);
     ThriftServerType serverType = DEFAULT_SERVER_TYPE;
     if (!THRIFT_SERVER_TYPE_DEFAULT.equals(serverTypeStr)) {
       serverType = ThriftServerType.get(serverTypeStr);
@@ -277,14 +277,14 @@ public class Proxy implements KeywordExecutable {
     }
 
     // Hook up support for tracing for thrift calls
-    TimedProcessor timedProcessor = new TimedProcessor(metricsFactory, processor, serverName,
-        threadName);
+    TimedProcessor timedProcessor =
+        new TimedProcessor(metricsFactory, processor, serverName, threadName);
 
     // Create the thrift server with our processor and properties
-    ServerAddress serverAddr = TServerUtils.startTServer(serverType, timedProcessor,
-        protocolFactory, serverName, threadName, numThreads, simpleTimerThreadpoolSize,
-        threadpoolResizeInterval, maxFrameSize, sslParams, saslParams, serverSocketTimeout,
-        address);
+    ServerAddress serverAddr =
+        TServerUtils.startTServer(serverType, timedProcessor, protocolFactory, serverName,
+            threadName, numThreads, simpleTimerThreadpoolSize, threadpoolResizeInterval,
+            maxFrameSize, sslParams, saslParams, serverSocketTimeout, address);
 
     return serverAddr;
   }

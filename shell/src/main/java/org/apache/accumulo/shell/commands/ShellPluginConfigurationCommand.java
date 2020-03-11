@@ -62,8 +62,8 @@ public abstract class ShellPluginConfigurationCommand extends Command {
       shellState.getReader().println("Removed " + pluginType + " on " + tableName);
     } else if (cl.hasOption(listPluginOption.getOpt())) {
       // Get the options for this table
-      final Iterator<Entry<String,String>> iter = shellState.getConnector().tableOperations()
-          .getProperties(tableName).iterator();
+      final Iterator<Entry<String,String>> iter =
+          shellState.getConnector().tableOperations().getProperties(tableName).iterator();
 
       while (iter.hasNext()) {
         Entry<String,String> ent = iter.next();
@@ -117,8 +117,8 @@ public abstract class ShellPluginConfigurationCommand extends Command {
           args[0] = "-t";
           args[1] = tableName;
           CommandLine cl = new BasicParser().parse(o, args);
-          pluginClazz = shellState.getClassLoader(cl, shellState).loadClass(ent.getValue())
-              .asSubclass(clazz);
+          pluginClazz =
+              shellState.getClassLoader(cl, shellState).loadClass(ent.getValue()).asSubclass(clazz);
         } catch (ClassNotFoundException e) {
           LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Class not found {}",
               e.getMessage());

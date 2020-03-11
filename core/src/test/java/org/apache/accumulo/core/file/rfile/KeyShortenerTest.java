@@ -17,8 +17,10 @@
 
 package org.apache.accumulo.core.file.rfile;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.accumulo.core.data.Key;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.primitives.Bytes;
@@ -29,8 +31,8 @@ public class KeyShortenerTest {
   private static final byte[] FF = new byte[] {(byte) 0xff};
 
   private void assertBetween(Key p, Key s, Key c) {
-    Assert.assertTrue(p.compareTo(s) < 0);
-    Assert.assertTrue(s.compareTo(c) < 0);
+    assertTrue(p.compareTo(s) < 0);
+    assertTrue(s.compareTo(c) < 0);
   }
 
   private void testKeys(Key prev, Key current, Key expected) {
@@ -147,13 +149,13 @@ public class KeyShortenerTest {
   @Test
   public void testSamePrefixAnd00() {
     Key prev = new Key("r3boot4", "f89222", "q90232e");
-    Assert.assertEquals(prev,
+    assertEquals(prev,
         KeyShortener.shorten(prev, newKey(append00("r3boot4"), "f89222", "q90232e", 8)));
     prev = new Key("r3boot4", "f892", "q90232e");
-    Assert.assertEquals(prev,
+    assertEquals(prev,
         KeyShortener.shorten(prev, newKey("r3boot4", append00("f892"), "q90232e", 8)));
     prev = new Key("r3boot4", "f89222", "q902");
-    Assert.assertEquals(prev,
+    assertEquals(prev,
         KeyShortener.shorten(prev, newKey("r3boot4", "f89222", append00("q902"), 8)));
   }
 
@@ -161,16 +163,16 @@ public class KeyShortenerTest {
   public void testSanityCheck1() {
     // prev and shortened equal
     Key prev = new Key("r001", "f002", "q006");
-    Assert.assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r002", "f002", "q006"),
+    assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r002", "f002", "q006"),
         new Key("r001", "f002", "q006")));
     // prev > shortened equal
-    Assert.assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r003", "f002", "q006"),
+    assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r003", "f002", "q006"),
         new Key("r001", "f002", "q006")));
     // current and shortened equal
-    Assert.assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r003", "f002", "q006"),
+    assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r003", "f002", "q006"),
         new Key("r003", "f002", "q006")));
     // shortened > current
-    Assert.assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r003", "f002", "q006"),
+    assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r003", "f002", "q006"),
         new Key("r004", "f002", "q006")));
   }
 }

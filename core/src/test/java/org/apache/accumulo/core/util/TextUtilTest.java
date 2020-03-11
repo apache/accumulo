@@ -16,18 +16,18 @@
  */
 package org.apache.accumulo.core.util;
 
-import org.apache.hadoop.io.Text;
+import static org.junit.Assert.assertTrue;
 
-import junit.framework.TestCase;
+import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
 /**
  * Test the TextUtil class.
  *
  */
-public class TextUtilTest extends TestCase {
-  /**
-   * co
-   */
+public class TextUtilTest {
+
+  @Test
   public void testGetBytes() {
     String longMessage = "This is some text";
     Text longMessageText = new Text(longMessage);

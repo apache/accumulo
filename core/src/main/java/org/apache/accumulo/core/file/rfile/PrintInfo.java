@@ -155,8 +155,8 @@ public class PrintInfo implements KeywordExecutable {
       System.out.println(
           "Reading file: " + path.makeQualified(fs.getUri(), fs.getWorkingDirectory()).toString());
 
-      CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          SiteConfiguration.getInstance());
+      CachableBlockFile.Reader _rdr =
+          new CachableBlockFile.Reader(fs, path, conf, null, null, SiteConfiguration.getInstance());
       Reader iter = new RFile.Reader(_rdr);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 

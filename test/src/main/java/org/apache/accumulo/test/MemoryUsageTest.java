@@ -47,8 +47,8 @@ abstract class MemoryUsageTest {
 
     System.gc();
 
-    long memSize = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-        - usedMem;
+    long memSize =
+        (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) - usedMem;
 
     double actualBytesPerEntry = memSize / (double) getNumPasses();
     double expectedBytesPerEntry = getEstimatedBytesPerEntry();

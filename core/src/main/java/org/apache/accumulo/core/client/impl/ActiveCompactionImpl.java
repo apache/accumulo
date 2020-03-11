@@ -109,8 +109,8 @@ public class ActiveCompactionImpl extends ActiveCompaction {
     ArrayList<IteratorSetting> ret = new ArrayList<>();
 
     for (IterInfo ii : tac.getSsiList()) {
-      IteratorSetting settings = new IteratorSetting(ii.getPriority(), ii.getIterName(),
-          ii.getClassName());
+      IteratorSetting settings =
+          new IteratorSetting(ii.getPriority(), ii.getIterName(), ii.getClassName());
       Map<String,String> options = tac.getSsio().get(ii.getIterName());
       settings.addOptions(options);
 

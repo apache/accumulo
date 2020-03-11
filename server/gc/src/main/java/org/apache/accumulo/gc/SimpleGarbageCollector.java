@@ -24,7 +24,6 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
@@ -44,6 +43,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -81,6 +81,8 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.gc.metrics.GcCycleMetrics;
+import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
@@ -92,6 +94,8 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.master.LiveTServerSet;
+import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.rpc.RpcWrapper;
@@ -112,7 +116,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
-import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -143,8 +146,10 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   private Opts opts = new Opts();
   private ZooLock lock;
 
-  private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(),
-      new GcCycleStats());
+  private GCStatus status =
+      new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
+
+  private GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
 
   public static void main(String[] args) throws UnknownHostException, IOException {
     final String app = "gc";
@@ -181,14 +186,33 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     this.opts = opts;
     this.fs = fs;
 
-    long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
-    log.info("start delay: " + getStartDelay() + " milliseconds");
-    log.info("time delay: " + gcDelay + " milliseconds");
-    log.info("safemode: " + opts.safeMode);
-    log.info("verbose: " + opts.verbose);
-    log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of "
-        + Runtime.getRuntime().maxMemory() + " bytes");
-    log.info("delete threads: " + getNumDeleteThreads());
+    final AccumuloConfiguration conf = getConfiguration();
+
+    GcMetrics gcMetrics = new GcMetrics(this, conf.getBoolean(Property.GC_METRICS_ENABLED));
+
+    try {
+      if (gcMetrics.isEnabled()) {
+        gcMetrics.register();
+        log.info("gc metrics: registered with metrics system");
+      } else {
+        log.info(
+            "gc metrics: disabled. Set GC_METRICS_ENABLED property to true for detailed gc metrics");
+      }
+    } catch (Exception ex) {
+      log.info("gc metrics: Failed to register gc metrics module", ex);
+    }
+
+    final long gcDelay = conf.getTimeInMillis(Property.GC_CYCLE_DELAY);
+    final String useFullCompaction = conf.get(Property.GC_USE_FULL_COMPACTION);
+
+    log.info("start delay: {} milliseconds", getStartDelay());
+    log.info("time delay: {} milliseconds", gcDelay);
+    log.info("safemode: {}", opts.safeMode);
+    log.info("verbose: {}", opts.verbose);
+    log.info("memory threshold: {} of {} bytes", CANDIDATE_MEMORY_PERCENTAGE,
+        Runtime.getRuntime().maxMemory());
+    log.info("delete threads: {}", getNumDeleteThreads());
+    log.info("gc post metadata action: {}", useFullCompaction);
   }
 
   /**
@@ -286,38 +310,28 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     public Iterator<String> getBlipIterator()
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
       @SuppressWarnings("resource")
-      IsolatedScanner scanner = new IsolatedScanner(
-          getConnector().createScanner(tableName, Authorizations.EMPTY));
+      IsolatedScanner scanner =
+          new IsolatedScanner(getConnector().createScanner(tableName, Authorizations.EMPTY));
 
       scanner.setRange(MetadataSchema.BlipSection.getRange());
 
-      return Iterators.transform(scanner.iterator(), new Function<Entry<Key,Value>,String>() {
-        @Override
-        public String apply(Entry<Key,Value> entry) {
-          return entry.getKey().getRow().toString()
-              .substring(MetadataSchema.BlipSection.getRowPrefix().length());
-        }
-      });
+      return Iterators.transform(scanner.iterator(), entry -> entry.getKey().getRow().toString()
+          .substring(MetadataSchema.BlipSection.getRowPrefix().length()));
     }
 
     @Override
     public Iterator<Entry<Key,Value>> getReferenceIterator()
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-      IsolatedScanner scanner = new IsolatedScanner(
-          getConnector().createScanner(tableName, Authorizations.EMPTY));
+      IsolatedScanner scanner =
+          new IsolatedScanner(getConnector().createScanner(tableName, Authorizations.EMPTY));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(ScanFileColumnFamily.NAME);
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
-      TabletIterator tabletIterator = new TabletIterator(scanner,
-          MetadataSchema.TabletsSection.getRange(), false, true);
+      TabletIterator tabletIterator =
+          new TabletIterator(scanner, MetadataSchema.TabletsSection.getRange(), false, true);
 
-      return Iterators.concat(Iterators.transform(tabletIterator,
-          new Function<Map<Key,Value>,Iterator<Entry<Key,Value>>>() {
-            @Override
-            public Iterator<Entry<Key,Value>> apply(Map<Key,Value> input) {
-              return input.entrySet().iterator();
-            }
-          }));
+      return Iterators
+          .concat(Iterators.transform(tabletIterator, input -> input.entrySet().iterator()));
     }
 
     @Override
@@ -374,8 +388,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
       final BatchWriter finalWriter = writer;
 
-      ExecutorService deleteThreadPool = Executors.newFixedThreadPool(getNumDeleteThreads(),
-          new NamingThreadFactory("deleting"));
+      ExecutorService deleteThreadPool =
+          Executors.newFixedThreadPool(getNumDeleteThreads(), new NamingThreadFactory("deleting"));
 
       final List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
 
@@ -425,7 +439,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
                 synchronized (SimpleGarbageCollector.this) {
                   ++status.current.errors;
                 }
-                String parts[] = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
+                String[] parts = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
                 if (parts.length > 2) {
                   String tableId = parts[1];
                   String tabletDir = parts[2];
@@ -460,7 +474,9 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       deleteThreadPool.shutdown();
 
       try {
-        while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {}
+        while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
+          // empty
+        }
       } catch (InterruptedException e1) {
         log.error("{}", e1.getMessage(), e1);
       }
@@ -479,7 +495,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       // if dir exist and is empty, then empty list is returned...
       // hadoop 2.0 will throw an exception if the file does not exist
       for (String dir : ServerConstants.getTablesDirs()) {
-        FileStatus[] tabletDirs = null;
+        FileStatus[] tabletDirs;
         try {
           tabletDirs = fs.listStatus(new Path(dir + "/" + tableID));
         } catch (FileNotFoundException ex) {
@@ -512,23 +528,17 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       try {
         Scanner s = ReplicationTable.getScanner(conn);
         StatusSection.limit(s);
-        return Iterators.transform(s.iterator(),
-            new Function<Entry<Key,Value>,Entry<String,Status>>() {
-
-              @Override
-              public Entry<String,Status> apply(Entry<Key,Value> input) {
-                String file = input.getKey().getRow().toString();
-                Status stat;
-                try {
-                  stat = Status.parseFrom(input.getValue().get());
-                } catch (InvalidProtocolBufferException e) {
-                  log.warn("Could not deserialize protobuf for: " + input.getKey());
-                  stat = null;
-                }
-                return Maps.immutableEntry(file, stat);
-              }
-
-            });
+        return Iterators.transform(s.iterator(), input -> {
+          String file = input.getKey().getRow().toString();
+          Status stat;
+          try {
+            stat = Status.parseFrom(input.getValue().get());
+          } catch (InvalidProtocolBufferException e) {
+            log.warn("Could not deserialize protobuf for: " + input.getKey());
+            stat = null;
+          }
+          return Maps.immutableEntry(file, stat);
+        });
       } catch (ReplicationTableOfflineException e) {
         // No elements that we need to preclude
         return Collections.emptyIterator();
@@ -538,7 +548,6 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   }
 
   private void run() {
-    long tStart, tStop;
 
     // Sleep for an initial period, giving the master time to start up and
     // old data files to be unused
@@ -561,14 +570,30 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       return;
     }
 
-    ProbabilitySampler sampler = new ProbabilitySampler(
-        getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
+    ProbabilitySampler sampler =
+        new ProbabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
+
+    // This is created outside of the run loop and passed to the walogCollector so that
+    // only a single timed task is created (internal to LiveTServerSet using SimpleTimer.
+    final LiveTServerSet liveTServerSet = new LiveTServerSet(this, new LiveTServerSet.Listener() {
+      @Override
+      public void update(LiveTServerSet current, Set<TServerInstance> deleted,
+          Set<TServerInstance> added) {
+
+        log.debug("Number of current servers {}, tservers added {}, removed {}",
+            current == null ? -1 : current.size(), added, deleted);
+
+        if (log.isTraceEnabled()) {
+          log.trace("Current servers: {}\nAdded: {}\n Removed: {}", current, added, deleted);
+        }
+      }
+    });
 
     while (true) {
       Trace.on("gc", sampler);
 
       Span gcSpan = Trace.start("loop");
-      tStart = System.currentTimeMillis();
+      final long tStart = System.nanoTime();
       try {
         System.gc(); // make room
 
@@ -584,14 +609,16 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
         status.current.finished = System.currentTimeMillis();
         status.last = status.current;
+        gcCycleMetrics.setLastCollect(status.current);
         status.current = new GcCycleStats();
 
       } catch (Exception e) {
         log.error("{}", e.getMessage(), e);
       }
 
-      tStop = System.currentTimeMillis();
-      log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
+      final long tStop = System.nanoTime();
+      log.info(String.format("Collect cycle took %.2f seconds",
+          (TimeUnit.NANOSECONDS.toMillis(tStop - tStart) / 1000.0)));
 
       // We want to prune references to fully-replicated WALs from the replication table which are
       // no longer referenced in the metadata table
@@ -607,11 +634,13 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       }
 
       Span waLogs = Trace.start("walogs");
+
       try {
-        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(this, fs,
-            isUsingTrash());
+        GarbageCollectWriteAheadLogs walogCollector =
+            new GarbageCollectWriteAheadLogs(this, fs, liveTServerSet, isUsingTrash());
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
+        gcCycleMetrics.setLastWalCollect(status.lastLog);
       } catch (Exception e) {
         log.error("{}", e.getMessage(), e);
       } finally {
@@ -619,17 +648,45 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       }
       gcSpan.stop();
 
-      // we just made a lot of metadata changes: flush them out
+      // We just made a lot of metadata changes. Flush them out.
+      // Either with flush and full compaction, or flush only and allow automatic triggering
+      // of any necessary compactions.
       try {
         Connector connector = getConnector();
-        connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
-        connector.tableOperations().compact(RootTable.NAME, null, null, true, true);
+
+        final long actionStart = System.nanoTime();
+
+        String action = getConfiguration().get(Property.GC_USE_FULL_COMPACTION);
+        log.debug("gc post action {} started", action);
+
+        switch (action) {
+          case "compact":
+            connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
+            connector.tableOperations().compact(RootTable.NAME, null, null, true, true);
+            break;
+          case "flush":
+            connector.tableOperations().flush(MetadataTable.NAME, null, null, true);
+            connector.tableOperations().flush(RootTable.NAME, null, null, true);
+            break;
+          default:
+            log.trace("'none - no gc post action' or invalid value provided: {}", action);
+        }
+
+        final long actionComplete = System.nanoTime();
+
+        gcCycleMetrics.setPostOpDurationNanos(actionComplete - actionStart);
+
+        log.info("gc post action {} completed in {} seconds", action, String.format("%.2f",
+            (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
+
       } catch (Exception e) {
         log.warn("{}", e.getMessage(), e);
       }
 
       Trace.off();
       try {
+        gcCycleMetrics.incrementRunCycleCount();
+        log.info("GC Cycle Metrics: {}", gcCycleMetrics);
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for " + gcDelay + " milliseconds");
         Thread.sleep(gcDelay);
@@ -759,7 +816,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    int port[] = getConfiguration().getPort(Property.GC_PORT);
+    int[] port = getConfiguration().getPort(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
     long maxMessageSize = getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
@@ -785,8 +842,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
    * @see #CANDIDATE_MEMORY_PERCENTAGE
    */
   static boolean almostOutOfMemory(Runtime runtime) {
-    return runtime.totalMemory() - runtime.freeMemory() > CANDIDATE_MEMORY_PERCENTAGE
-        * runtime.maxMemory();
+    return runtime.totalMemory() - runtime.freeMemory()
+        > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
   }
 
   private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer)
@@ -817,5 +874,9 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   @Override
   public GCStatus getStatus(TInfo info, TCredentials credentials) {
     return status;
+  }
+
+  public GcCycleMetrics getGcCycleMetrics() {
+    return gcCycleMetrics;
   }
 }

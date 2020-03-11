@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.rpc;
 
+import static org.junit.Assert.assertEquals;
+
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
@@ -31,7 +33,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -95,8 +96,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
         ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(principal);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
-    Assert.assertEquals(1, cache.size());
-    Assert.assertEquals(KerberosToken.class, cache.get(KerberosToken.CLASS_NAME));
+    assertEquals(1, cache.size());
+    assertEquals(KerberosToken.class, cache.get(KerberosToken.CLASS_NAME));
   }
 
   @Test(expected = ThriftSecurityException.class)

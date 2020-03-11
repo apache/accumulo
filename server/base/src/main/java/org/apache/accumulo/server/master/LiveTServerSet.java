@@ -93,15 +93,15 @@ public class LiveTServerSet implements Watcher {
         // see ACCUMULO-3597
         TTransport transport = ThriftUtil.createTransport(address, context);
         try {
-          TabletClientService.Client client = ThriftUtil
-              .createClient(new TabletClientService.Client.Factory(), transport);
+          TabletClientService.Client client =
+              ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
           loadTablet(client, lock, extent);
         } finally {
           transport.close();
         }
       } else {
-        TabletClientService.Client client = ThriftUtil
-            .getClient(new TabletClientService.Client.Factory(), address, context);
+        TabletClientService.Client client =
+            ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
         try {
           loadTablet(client, lock, extent);
         } finally {
@@ -112,8 +112,8 @@ public class LiveTServerSet implements Watcher {
 
     public void unloadTablet(ZooLock lock, KeyExtent extent, TUnloadTabletGoal goal,
         long requestTime) throws TException {
-      TabletClientService.Client client = ThriftUtil
-          .getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client =
+          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         client.unloadTablet(Tracer.traceInfo(), context.rpcCreds(), lockString(lock),
             extent.toThrift(), goal, requestTime);
@@ -133,10 +133,10 @@ public class LiveTServerSet implements Watcher {
       TTransport transport = ThriftUtil.createTransport(address, context);
 
       try {
-        TabletClientService.Client client = ThriftUtil
-            .createClient(new TabletClientService.Client.Factory(), transport);
-        TabletServerStatus status = client.getTabletServerStatus(Tracer.traceInfo(),
-            context.rpcCreds());
+        TabletClientService.Client client =
+            ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
+        TabletServerStatus status =
+            client.getTabletServerStatus(Tracer.traceInfo(), context.rpcCreds());
         if (status != null) {
           status.setResponseTime(System.currentTimeMillis() - start);
         }
@@ -148,8 +148,8 @@ public class LiveTServerSet implements Watcher {
     }
 
     public void halt(ZooLock lock) throws TException, ThriftSecurityException {
-      TabletClientService.Client client = ThriftUtil
-          .getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client =
+          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         client.halt(Tracer.traceInfo(), context.rpcCreds(), lockString(lock));
       } finally {
@@ -158,8 +158,8 @@ public class LiveTServerSet implements Watcher {
     }
 
     public void fastHalt(ZooLock lock) throws TException {
-      TabletClientService.Client client = ThriftUtil
-          .getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client =
+          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         client.fastHalt(Tracer.traceInfo(), context.rpcCreds(), lockString(lock));
       } finally {
@@ -169,8 +169,8 @@ public class LiveTServerSet implements Watcher {
 
     public void flush(ZooLock lock, String tableId, byte[] startRow, byte[] endRow)
         throws TException {
-      TabletClientService.Client client = ThriftUtil
-          .getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client =
+          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         client.flush(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), tableId,
             startRow == null ? null : ByteBuffer.wrap(startRow),
@@ -181,8 +181,8 @@ public class LiveTServerSet implements Watcher {
     }
 
     public void chop(ZooLock lock, KeyExtent extent) throws TException {
-      TabletClientService.Client client = ThriftUtil
-          .getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client =
+          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         client.chop(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift());
       } finally {
@@ -192,8 +192,8 @@ public class LiveTServerSet implements Watcher {
 
     public void splitTablet(ZooLock lock, KeyExtent extent, Text splitPoint)
         throws TException, ThriftSecurityException, NotServingTabletException {
-      TabletClientService.Client client = ThriftUtil
-          .getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client =
+          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         client.splitTablet(Tracer.traceInfo(), context.rpcCreds(), extent.toThrift(),
             ByteBuffer.wrap(splitPoint.getBytes(), 0, splitPoint.getLength()));
@@ -204,8 +204,8 @@ public class LiveTServerSet implements Watcher {
 
     public void compact(ZooLock lock, String tableId, byte[] startRow, byte[] endRow)
         throws TException {
-      TabletClientService.Client client = ThriftUtil
-          .getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client =
+          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         client.compact(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), tableId,
             startRow == null ? null : ByteBuffer.wrap(startRow),
@@ -216,8 +216,8 @@ public class LiveTServerSet implements Watcher {
     }
 
     public boolean isActive(long tid) throws TException {
-      TabletClientService.Client client = ThriftUtil
-          .getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client =
+          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         return client.isActive(Tracer.traceInfo(), tid);
       } finally {
@@ -283,8 +283,7 @@ public class LiveTServerSet implements Watcher {
       }
 
       // log.debug("Current: " + current.keySet());
-      if (!doomed.isEmpty() || !updates.isEmpty())
-        this.cback.update(this, doomed, updates);
+      this.cback.update(this, doomed, updates);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
     }
@@ -372,8 +371,7 @@ public class LiveTServerSet implements Watcher {
 
           try {
             checkServer(updates, doomed, path, server);
-            if (!doomed.isEmpty() || !updates.isEmpty())
-              this.cback.update(this, doomed, updates);
+            this.cback.update(this, doomed, updates);
           } catch (Exception ex) {
             log.error("Exception", ex);
           }

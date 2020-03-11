@@ -101,8 +101,8 @@ public class RootFiles {
       // check for incomplete major compaction, this should only occur
       // for root tablet
       if (filename.startsWith("delete+")) {
-        String expectedCompactedFile = path.substring(0, path.lastIndexOf("/delete+")) + "/"
-            + filename.split("\\+")[1];
+        String expectedCompactedFile =
+            path.substring(0, path.lastIndexOf("/delete+")) + "/" + filename.split("\\+")[1];
         if (fs.exists(new Path(expectedCompactedFile))) {
           // compaction finished, but did not finish deleting compacted files.. so delete it
           if (!fs.deleteRecursively(file.getPath()))

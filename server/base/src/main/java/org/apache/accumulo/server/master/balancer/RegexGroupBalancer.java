@@ -25,6 +25,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.hadoop.io.Text;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 
 import com.google.common.base.Function;
 
@@ -44,15 +45,15 @@ import com.google.common.base.Function;
  * metadata table, may want to set this higher for large tables.
  * </ul>
  */
-
+@SuppressModernizer
 public class RegexGroupBalancer extends GroupBalancer {
 
-  public static final String REGEX_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
-      + "balancer.group.regex.pattern";
-  public static final String DEFAUT_GROUP_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
-      + "balancer.group.regex.default";
-  public static final String WAIT_TIME_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
-      + "balancer.group.regex.wait.time";
+  public static final String REGEX_PROPERTY =
+      Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.group.regex.pattern";
+  public static final String DEFAUT_GROUP_PROPERTY =
+      Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.group.regex.default";
+  public static final String WAIT_TIME_PROPERTY =
+      Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.group.regex.wait.time";
 
   private final String tableId;
 

@@ -92,8 +92,8 @@ public class TestBinaryRows {
     final Text CF = new Text("cf"), CQ = new Text("cq");
     final byte[] CF_BYTES = "cf".getBytes(UTF_8), CQ_BYTES = "cq".getBytes(UTF_8);
     if (opts.mode.equals("ingest") || opts.mode.equals("delete")) {
-      BatchWriter bw = connector.createBatchWriter(opts.getTableName(),
-          bwOpts.getBatchWriterConfig());
+      BatchWriter bw =
+          connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
       boolean delete = opts.mode.equals("delete");
 
       for (long i = 0; i < opts.num; i++) {
@@ -113,10 +113,10 @@ public class TestBinaryRows {
     } else if (opts.mode.equals("verifyDeleted")) {
       Scanner s = connector.createScanner(opts.getTableName(), opts.auths);
       s.setBatchSize(scanOpts.scanBatchSize);
-      Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0],
-          Long.MAX_VALUE);
-      Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0],
-          0);
+      Key startKey =
+          new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
+      Key stopKey =
+          new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
       s.setBatchSize(50000);
       s.setRange(new Range(startKey, stopKey));
 
@@ -129,10 +129,10 @@ public class TestBinaryRows {
       long t1 = System.currentTimeMillis();
 
       Scanner s = connector.createScanner(opts.getTableName(), opts.auths);
-      Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0],
-          Long.MAX_VALUE);
-      Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0],
-          0);
+      Key startKey =
+          new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
+      Key stopKey =
+          new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
       s.setBatchSize(scanOpts.scanBatchSize);
       s.setRange(new Range(startKey, stopKey));
 

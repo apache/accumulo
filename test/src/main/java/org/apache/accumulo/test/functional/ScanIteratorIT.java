@@ -188,8 +188,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
   }
 
   private void setupIter(ScannerBase scanner) throws Exception {
-    IteratorSetting dropMod = new IteratorSetting(50, "dropMod",
-        "org.apache.accumulo.test.functional.DropModIter");
+    IteratorSetting dropMod =
+        new IteratorSetting(50, "dropMod", "org.apache.accumulo.test.functional.DropModIter");
     dropMod.addOption("mod", "2");
     dropMod.addOption("drop", "0");
     scanner.addScanIterator(dropMod);

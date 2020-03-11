@@ -51,8 +51,8 @@ import com.beust.jcommander.JCommander;
 public class TestClientOpts {
 
   @Rule
-  public TemporaryFolder tmpDir = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tmpDir =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Rule
   public TestName testName = new TestName();

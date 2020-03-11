@@ -49,15 +49,17 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class TableManager {
-  private static SecurityPermission TABLE_MANAGER_PERMISSION = new SecurityPermission(
-      "tableManagerPermission");
+  private static SecurityPermission TABLE_MANAGER_PERMISSION =
+      new SecurityPermission("tableManagerPermission");
 
   private static final Logger log = LoggerFactory.getLogger(TableManager.class);
-  private static final Set<TableObserver> observers = Collections
-      .synchronizedSet(new HashSet<TableObserver>());
-  private static final Map<String,TableState> tableStateCache = Collections
-      .synchronizedMap(new HashMap<String,TableState>());
+  private static final Set<TableObserver> observers =
+      Collections.synchronizedSet(new HashSet<TableObserver>());
+  private static final Map<String,TableState> tableStateCache =
+      Collections.synchronizedMap(new HashMap<String,TableState>());
   private static final byte[] ZERO_BYTE = new byte[] {'0'};
 
   private static TableManager tableManager = null;
@@ -141,8 +143,8 @@ public class TableManager {
       if (StringUtils.isNotEmpty(message))
         this.message = message;
       else {
-        String defaultMessage = "Error transitioning from " + oldState + " state to " + newState
-            + " state";
+        String defaultMessage =
+            "Error transitioning from " + oldState + " state to " + newState + " state";
         this.message = defaultMessage;
       }
     }
@@ -163,6 +165,7 @@ public class TableManager {
   }
 
   public synchronized void transitionTableState(final String tableId, final TableState newState) {
+    Preconditions.checkArgument(newState != TableState.UNKNOWN);
     String statePath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_STATE;
 
@@ -174,6 +177,11 @@ public class TableManager {
               TableState oldState = TableState.UNKNOWN;
               if (oldData != null)
                 oldState = TableState.valueOf(new String(oldData, UTF_8));
+
+              // this check makes the transition operation idempotent
+              if (oldState == newState)
+                return null; // already at desired state, so nothing to do
+
               boolean transition = true;
               // +--------+
               // v |
@@ -210,8 +218,9 @@ public class TableManager {
     synchronized (tableStateCache) {
       for (String tableId : zooStateCache
           .getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES))
-        if (zooStateCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId
-            + Constants.ZTABLE_STATE) != null)
+        if (zooStateCache.get(
+            ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE)
+            != null)
           updateTableStateCache(tableId);
     }
   }

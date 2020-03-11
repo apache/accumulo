@@ -52,7 +52,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,8 +59,8 @@ import com.google.common.collect.ImmutableMap;
 
 public class TransformingIteratorTest {
 
-  private static Authorizations authorizations = new Authorizations("vis0", "vis1", "vis2", "vis3",
-      "vis4");
+  private static Authorizations authorizations =
+      new Authorizations("vis0", "vis1", "vis2", "vis3", "vis4");
   private static final Map<String,String> EMPTY_OPTS = ImmutableMap.of();
   private TransformingIterator titer;
 
@@ -84,8 +83,8 @@ public class TransformingIteratorTest {
       boolean setupAuths) throws IOException {
     SortedMapIterator source = new SortedMapIterator(data);
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(source);
-    SortedKeyValueIterator<Key,Value> visFilter = VisibilityFilter.wrap(cfsi, authorizations,
-        new byte[0]);
+    SortedKeyValueIterator<Key,Value> visFilter =
+        VisibilityFilter.wrap(cfsi, authorizations, new byte[0]);
     ReuseIterator reuserIter = new ReuseIterator();
     reuserIter.init(visFilter, EMPTY_OPTS, null);
     try {
@@ -262,8 +261,8 @@ public class TransformingIteratorTest {
     newKey = it.replaceKeyParts(originalKey, new Text("testCQ"), new Text("testCV"));
     assertEquals(createDeleteKey("r", "cf", "testCQ", "testCV", 42), newKey);
 
-    newKey = it.replaceKeyParts(originalKey, new Text("testCF"), new Text("testCQ"),
-        new Text("testCV"));
+    newKey =
+        it.replaceKeyParts(originalKey, new Text("testCF"), new Text("testCQ"), new Text("testCV"));
     assertEquals(createDeleteKey("r", "testCF", "testCQ", "testCV", 42), newKey);
   }
 
@@ -397,29 +396,29 @@ public class TransformingIteratorTest {
   @Test
   public void testValidateOptions() {
     TransformingIterator ti = new ColFamReversingKeyTransformingIterator();
-    IteratorSetting is = new IteratorSetting(100, "cfrkt",
-        ColFamReversingKeyTransformingIterator.class);
+    IteratorSetting is =
+        new IteratorSetting(100, "cfrkt", ColFamReversingKeyTransformingIterator.class);
     TransformingIterator.setAuthorizations(is, new Authorizations("A", "B"));
     TransformingIterator.setMaxBufferSize(is, 10000000);
-    Assert.assertTrue(ti.validateOptions(is.getOptions()));
+    assertTrue(ti.validateOptions(is.getOptions()));
 
     Map<String,String> opts = new HashMap<>();
 
     opts.put(TransformingIterator.MAX_BUFFER_SIZE_OPT, "10M");
-    Assert.assertTrue(ti.validateOptions(is.getOptions()));
+    assertTrue(ti.validateOptions(is.getOptions()));
 
     opts.clear();
     opts.put(TransformingIterator.MAX_BUFFER_SIZE_OPT, "A,B");
     try {
       ti.validateOptions(opts);
-      Assert.assertFalse(true);
+      assertFalse(true);
     } catch (IllegalArgumentException e) {}
 
     opts.clear();
     opts.put(TransformingIterator.AUTH_OPT, Authorizations.HEADER + "~~~~");
     try {
       ti.validateOptions(opts);
-      Assert.assertFalse(true);
+      assertFalse(true);
     } catch (IllegalArgumentException e) {}
 
   }
@@ -602,8 +601,8 @@ public class TransformingIteratorTest {
     }
 
     @Override
-    protected Collection<ByteSequence> untransformColumnFamilies(
-        Collection<ByteSequence> columnFamilies) {
+    protected Collection<ByteSequence>
+        untransformColumnFamilies(Collection<ByteSequence> columnFamilies) {
       HashSet<ByteSequence> untransformed = new HashSet<>();
       for (ByteSequence cf : columnFamilies)
         untransformed.add(untransformColumnFamily(cf));

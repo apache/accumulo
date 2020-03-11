@@ -46,7 +46,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 10 * 60;
+    return 5 * 60;
   }
 
   private static final Logger log = LoggerFactory.getLogger(DeleteRowsIT.class);
@@ -67,7 +67,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
     ROWS.add("{");
   }
 
-  @Test(timeout = 5 * 60 * 1000)
+  @Test
   public void testDeleteAllRows() throws Exception {
     Connector c = getConnector();
     String[] tableNames = this.getUniqueNames(20);

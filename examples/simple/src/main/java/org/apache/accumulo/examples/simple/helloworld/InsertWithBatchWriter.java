@@ -42,8 +42,8 @@ public class InsertWithBatchWriter {
     opts.parseArgs(InsertWithBatchWriter.class.getName(), args, bwOpts);
 
     Connector connector = opts.getConnector();
-    MultiTableBatchWriter mtbw = connector
-        .createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
+    MultiTableBatchWriter mtbw =
+        connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
 
     if (!connector.tableOperations().exists(opts.getTableName()))
       connector.tableOperations().create(opts.getTableName());

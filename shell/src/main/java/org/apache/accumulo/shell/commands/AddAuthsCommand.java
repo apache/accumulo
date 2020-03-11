@@ -40,8 +40,8 @@ public class AddAuthsCommand extends Command {
       throws AccumuloException, AccumuloSecurityException {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
     final String scanOpts = cl.getOptionValue(scanOptAuths.getOpt());
-    Authorizations auths = shellState.getConnector().securityOperations()
-        .getUserAuthorizations(user);
+    Authorizations auths =
+        shellState.getConnector().securityOperations().getUserAuthorizations(user);
     StringBuilder userAuths = new StringBuilder();
     if (!auths.isEmpty()) {
       userAuths.append(auths.toString());

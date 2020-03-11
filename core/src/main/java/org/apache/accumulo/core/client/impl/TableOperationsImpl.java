@@ -66,6 +66,7 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
@@ -110,6 +111,7 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
@@ -150,8 +152,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       timer = new OpTimer().start();
     }
 
-    TreeSet<String> tableNames = new TreeSet<>(
-        Tables.getNameToIdMap(context.getInstance()).keySet());
+    TreeSet<String> tableNames =
+        new TreeSet<>(Tables.getNameToIdMap(context.getInstance()).keySet());
 
     if (timer != null) {
       timer.stop();
@@ -333,8 +335,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw new NamespaceNotFoundException(null, tableOrNamespaceName,
               "Target namespace does not exist");
         default:
-          String tableInfo = Tables.getPrintableTableInfoFromName(context.getInstance(),
-              tableOrNamespaceName);
+          String tableInfo =
+              Tables.getPrintableTableInfoFromName(context.getInstance(), tableOrNamespaceName);
           throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
       }
     } catch (ThriftTableOperationException e) {
@@ -438,8 +440,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     CountDownLatch latch = new CountDownLatch(splits.size());
     AtomicReference<Throwable> exception = new AtomicReference<>(null);
 
-    ExecutorService executor = Executors.newFixedThreadPool(16,
-        new NamingThreadFactory("addSplits"));
+    ExecutorService executor =
+        Executors.newFixedThreadPool(16, new NamingThreadFactory("addSplits"));
     try {
       executor.execute(
           new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
@@ -715,23 +717,35 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
+    clone(srcTableName, newTableName,
+        CloneConfiguration.builder().setFlush(flush).setPropertiesToSet(propertiesToSet)
+            .setPropertiesToExclude(propertiesToExclude).setKeepOffline(false).build());
+  }
+
+  @Override
+  public void clone(String srcTableName, String newTableName, CloneConfiguration config)
+      throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
+      TableExistsException {
 
     checkArgument(srcTableName != null, "srcTableName is null");
     checkArgument(newTableName != null, "newTableName is null");
 
     String srcTableId = Tables.getTableId(context.getInstance(), srcTableName);
 
-    if (flush)
+    if (config.isFlush())
       _flush(srcTableId, null, null, true);
 
+    Set<String> propertiesToExclude = config.getPropertiesToExclude();
     if (propertiesToExclude == null)
       propertiesToExclude = Collections.emptySet();
 
+    Map<String,String> propertiesToSet = config.getPropertiesToSet();
     if (propertiesToSet == null)
       propertiesToSet = Collections.emptyMap();
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.getBytes(UTF_8)),
-        ByteBuffer.wrap(newTableName.getBytes(UTF_8)));
+        ByteBuffer.wrap(newTableName.getBytes(UTF_8)),
+        ByteBuffer.wrap(Boolean.toString(config.isKeepOffline()).getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
     for (Entry<String,String> entry : propertiesToSet.entrySet()) {
       if (entry.getKey().startsWith(CLONE_EXCLUDE_PREFIX))
@@ -929,16 +943,23 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
     try {
-      MasterClient.executeTable(context, new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          client.setTableProperty(Tracer.traceInfo(), context.rpcCreds(), tableName, property,
-              value);
-        }
-      });
+      setPropertyNoChecks(tableName, property, value);
+
+      checkLocalityGroups(tableName, property);
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
     }
+  }
+
+  private void setPropertyNoChecks(final String tableName, final String property,
+      final String value)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    MasterClient.executeTable(context, new ClientExec<MasterClientService.Client>() {
+      @Override
+      public void execute(MasterClientService.Client client) throws Exception {
+        client.setTableProperty(Tracer.traceInfo(), context.rpcCreds(), tableName, property, value);
+      }
+    });
   }
 
   @Override
@@ -947,14 +968,38 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(property != null, "property is null");
     try {
-      MasterClient.executeTable(context, new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          client.removeTableProperty(Tracer.traceInfo(), context.rpcCreds(), tableName, property);
-        }
-      });
+      removePropertyNoChecks(tableName, property);
+
+      checkLocalityGroups(tableName, property);
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
+    }
+  }
+
+  private void removePropertyNoChecks(final String tableName, final String property)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    MasterClient.executeTable(context, new ClientExec<MasterClientService.Client>() {
+      @Override
+      public void execute(MasterClientService.Client client) throws Exception {
+        client.removeTableProperty(Tracer.traceInfo(), context.rpcCreds(), tableName, property);
+      }
+    });
+  }
+
+  void checkLocalityGroups(String tableName, String propChanged)
+      throws AccumuloException, TableNotFoundException {
+    if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
+      Iterable<Entry<String,String>> allProps = getProperties(tableName);
+      try {
+        LocalityGroupUtil.checkLocalityGroups(allProps);
+      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+        LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged + "' for table '"
+            + tableName
+            + "' resulted in bad locality group config.  This may be a transient situation since "
+            + "the config spreads over multiple properties.  Setting properties in a different "
+            + "order may help.  Even though this warning was displayed, the property was updated. "
+            + "Please check your config to ensure consistency.", e);
+      }
     }
   }
 
@@ -1000,17 +1045,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
             "Group " + entry.getKey() + " overlaps with another group");
       }
 
+      if (entry.getValue().isEmpty()) {
+        throw new IllegalArgumentException("Group " + entry.getKey() + " is empty");
+      }
+
       all.addAll(entry.getValue());
     }
 
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
       Set<Text> colFams = entry.getValue();
       String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
-      setProperty(tableName, Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
+      setPropertyNoChecks(tableName, Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
 
     try {
-      setProperty(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(),
+      setPropertyNoChecks(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(),
           Joiner.on(",").join(groups.keySet()));
     } catch (AccumuloException e) {
       if (e.getCause() instanceof TableNotFoundException)
@@ -1029,7 +1078,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         String group = parts[parts.length - 1];
 
         if (!groups.containsKey(group)) {
-          removeProperty(tableName, property);
+          removePropertyNoChecks(tableName, property);
         }
       }
     }
@@ -1126,8 +1175,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> props = context.getConnector().instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
 
-    FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf)
-        .getFileSystem();
+    FileSystem fs =
+        VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf).getFileSystem();
 
     if (dir.contains(":")) {
       ret = new Path(dir);
@@ -1384,8 +1433,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    TabletLocator tabLocator = TabletLocator.getLocator(context,
-        Tables.getTableId(context.getInstance(), tableName));
+    TabletLocator tabLocator =
+        TabletLocator.getLocator(context, Tables.getTableId(context.getInstance(), tableName));
     tabLocator.invalidateCache();
   }
 
@@ -1637,8 +1686,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     clearSamplerOptions(tableName);
 
-    List<Pair<String,String>> props = new SamplerConfigurationImpl(samplerConfiguration)
-        .toTableProperties();
+    List<Pair<String,String>> props =
+        new SamplerConfigurationImpl(samplerConfiguration).toTableProperties();
     for (Pair<String,String> pair : props) {
       setProperty(tableName, pair.getFirst(), pair.getSecond());
     }
@@ -1662,13 +1711,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return sci.toSamplerConfiguration();
   }
 
-  private static class LoctionsImpl implements Locations {
+  private static class LocationsImpl implements Locations {
 
     private Map<Range,List<TabletId>> groupedByRanges;
     private Map<TabletId,List<Range>> groupedByTablets;
     private Map<TabletId,String> tabletLocations;
 
-    public LoctionsImpl(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
+    public LocationsImpl(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
       groupedByTablets = new HashMap<>();
       groupedByRanges = null;
       tabletLocations = new HashMap<>();
@@ -1679,8 +1728,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         for (Entry<KeyExtent,List<Range>> entry2 : entry.getValue().entrySet()) {
           TabletIdImpl tabletId = new TabletIdImpl(entry2.getKey());
           tabletLocations.put(tabletId, location);
-          List<Range> prev = groupedByTablets.put(tabletId,
-              Collections.unmodifiableList(entry2.getValue()));
+          List<Range> prev =
+              groupedByTablets.put(tabletId, Collections.unmodifiableList(entry2.getValue()));
           if (prev != null) {
             throw new RuntimeException(
                 "Unexpected : tablet at multiple locations : " + location + " " + tabletId);
@@ -1772,6 +1821,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       locator.invalidateCache();
     }
 
-    return new LoctionsImpl(binnedRanges);
+    return new LocationsImpl(binnedRanges);
   }
 }

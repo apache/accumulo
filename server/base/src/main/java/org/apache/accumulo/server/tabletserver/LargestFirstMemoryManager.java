@@ -188,8 +188,8 @@ public class LargestFirstMemoryManager implements MemoryManager {
       final long timeMemoryLoad = timeMemoryLoad(memTabletSize, idleTime);
       ingestMemory += memTabletSize;
       if (minorCompactingSize == 0 && memTabletSize > 0) {
-        TabletInfo tabletInfo = new TabletInfo(ts.getExtent(), memTabletSize, idleTime,
-            timeMemoryLoad);
+        TabletInfo tabletInfo =
+            new TabletInfo(ts.getExtent(), memTabletSize, idleTime, timeMemoryLoad);
         try {
           // If the table was deleted, getMinCIdleThreshold will throw an exception
           if (idleTime > getMinCIdleThreshold(ts.getExtent())) {
@@ -242,8 +242,8 @@ public class LargestFirstMemoryManager implements MemoryManager {
 
     if (startMinC) {
       long toBeCompacted = compactionMemory;
-      outer: for (int i = numWaitingMincs; i < maxMinCs
-          && !largestMemTablets.isEmpty(); /* empty */) {
+      outer: for (int i = numWaitingMincs;
+          i < maxMinCs && !largestMemTablets.isEmpty(); /* empty */) {
         Entry<Long,List<TabletInfo>> lastEntry = largestMemTablets.lastEntry();
         for (TabletInfo largest : lastEntry.getValue()) {
           toBeCompacted += largest.memTableSize;

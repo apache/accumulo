@@ -48,7 +48,12 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 3 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     // not yet, please
     String tableName = getUniqueNames(1)[0];
@@ -68,8 +73,8 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
 
   private int countWALsInFS(MiniAccumuloClusterImpl cluster) throws Exception {
     FileSystem fs = cluster.getFileSystem();
-    RemoteIterator<LocatedFileStatus> iterator = fs
-        .listFiles(new Path(cluster.getConfig().getAccumuloDir() + "/wal"), true);
+    RemoteIterator<LocatedFileStatus> iterator =
+        fs.listFiles(new Path(cluster.getConfig().getAccumuloDir() + "/wal"), true);
     int result = 0;
     while (iterator.hasNext()) {
       LocatedFileStatus next = iterator.next();

@@ -17,10 +17,15 @@
 package org.apache.accumulo.core.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
-import org.junit.Assert;
+import org.apache.hadoop.io.WritableUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -38,7 +43,7 @@ public class UnsynchronizedBufferTest {
     UnsynchronizedBuffer.Reader ub = new UnsynchronizedBuffer.Reader(bb1);
     byte[] buf = new byte[10];
     ub.readBytes(buf);
-    Assert.assertEquals("0123456789", new String(buf, UTF_8));
+    assertEquals("0123456789", new String(buf, UTF_8));
 
     ByteBuffer bb2 = ByteBuffer.wrap(test, 3, 5);
 
@@ -46,11 +51,107 @@ public class UnsynchronizedBufferTest {
     buf = new byte[5];
     // should read data from offset 3 where the byte buffer starts
     ub.readBytes(buf);
-    Assert.assertEquals("34567", new String(buf, UTF_8));
+    assertEquals("34567", new String(buf, UTF_8));
 
     buf = new byte[6];
     // the byte buffer has the extra byte, but should not be able to read it...
     thrown.expect(ArrayIndexOutOfBoundsException.class);
     ub.readBytes(buf);
   }
+
+  @Test
+  public void testWriteVMethods() throws Exception {
+    // writeV methods use an extra byte for length, unless value is only one byte
+    // Integer.MAX_VALUE = 0x7fffffff
+    testInteger(0x7fffffff, 4 + 1);
+    testInteger(0x7fffff, 3 + 1);
+    testInteger(0x7fff, 2 + 1);
+    testInteger(0x7f, 1);
+
+    // Long.MAX_VALUE = 0x7fffffffffffffffL
+    testLong(0x7fffffffffffffffL, 8 + 1);
+    testLong(0x7fffffffffffffL, 7 + 1);
+    testLong(0x7fffffffffffL, 6 + 1);
+    testLong(0x7fffffffffL, 5 + 1);
+    testLong(0x7fffffffL, 4 + 1);
+    testLong(0x7fffffL, 3 + 1);
+    testLong(0x7fffL, 2 + 1);
+    testLong(0x7fL, 1);
+  }
+
+  private void testInteger(int value, int length) throws Exception {
+    byte[] integerBuffer = new byte[5];
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      UnsynchronizedBuffer.writeVInt(dos, integerBuffer, value);
+      dos.flush();
+      assertEquals(length, baos.toByteArray().length);
+    }
+  }
+
+  private void testLong(long value, int length) throws Exception {
+    byte[] longBuffer = new byte[9];
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      UnsynchronizedBuffer.writeVLong(dos, longBuffer, value);
+      dos.flush();
+      assertEquals(length, baos.toByteArray().length);
+    }
+  }
+
+  @Test
+  public void compareWithWritableUtils() throws Exception {
+    byte[] hadoopBytes;
+    byte[] accumuloBytes;
+    int oneByteInt = 0x7f;
+    int threeByteInt = 0x7fff;
+    long sixByteLong = 0x7fffffffffL;
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      WritableUtils.writeVInt(dos, oneByteInt);
+      WritableUtils.writeVInt(dos, threeByteInt);
+      WritableUtils.writeVLong(dos, sixByteLong);
+      dos.flush();
+      hadoopBytes = baos.toByteArray();
+    }
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      UnsynchronizedBuffer.writeVInt(dos, new byte[5], oneByteInt);
+      UnsynchronizedBuffer.writeVInt(dos, new byte[5], threeByteInt);
+      UnsynchronizedBuffer.writeVLong(dos, new byte[9], sixByteLong);
+      dos.flush();
+      accumuloBytes = baos.toByteArray();
+    }
+    assertTrue("The byte array written to by UnsynchronizedBuffer is not equal to WritableUtils",
+        Arrays.equals(hadoopBytes, accumuloBytes));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testNextArraySizeNegative() {
+    UnsynchronizedBuffer.nextArraySize(-1);
+  }
+
+  @Test
+  public void testNextArraySize() {
+    // 0 <= size <= 2^0
+    assertEquals(1, UnsynchronizedBuffer.nextArraySize(0));
+    assertEquals(1, UnsynchronizedBuffer.nextArraySize(1));
+
+    // 2^0 < size <= 2^1
+    assertEquals(2, UnsynchronizedBuffer.nextArraySize(2));
+
+    // 2^1 < size <= 2^30
+    for (int exp = 1; exp < 30; ++exp) {
+      // 2^exp < size <= 2^(exp+1) (for all exp: [1,29])
+      int nextExp = exp + 1;
+      assertEquals(1 << nextExp, UnsynchronizedBuffer.nextArraySize((1 << exp) + 1));
+      assertEquals(1 << nextExp, UnsynchronizedBuffer.nextArraySize(1 << nextExp));
+    }
+    // 2^30 < size < Integer.MAX_VALUE
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize((1 << 30) + 1));
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE - 9));
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE - 8));
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE));
+  }
+
 }

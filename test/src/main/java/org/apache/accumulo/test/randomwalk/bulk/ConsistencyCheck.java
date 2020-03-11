@@ -38,8 +38,8 @@ public class ConsistencyCheck extends SelectiveBulkTest {
     log.info("Checking " + row);
     String user = env.getConnector().whoami();
     Authorizations auths = env.getConnector().securityOperations().getUserAuthorizations(user);
-    try (Scanner scanner = new IsolatedScanner(
-        env.getConnector().createScanner(Setup.getTableName(), auths))) {
+    try (Scanner scanner =
+        new IsolatedScanner(env.getConnector().createScanner(Setup.getTableName(), auths))) {
       scanner.setRange(new Range(row));
       scanner.fetchColumnFamily(BulkPlusOne.CHECK_COLUMN_FAMILY);
       Value v = null;

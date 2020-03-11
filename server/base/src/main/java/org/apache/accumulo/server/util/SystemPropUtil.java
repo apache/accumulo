@@ -36,8 +36,8 @@ public class SystemPropUtil {
   public static boolean setSystemProperty(String property, String value)
       throws KeeperException, InterruptedException {
     if (!Property.isValidZooPropertyKey(property)) {
-      IllegalArgumentException iae = new IllegalArgumentException(
-          "Zookeeper property is not mutable: " + property);
+      IllegalArgumentException iae =
+          new IllegalArgumentException("Zookeeper property is not mutable: " + property);
       log.debug("Attempted to set zookeeper property.  It is not mutable", iae);
       throw iae;
     }
@@ -61,8 +61,8 @@ public class SystemPropUtil {
     }
 
     // create the zk node for this property and set it's data to the specified value
-    String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/"
-        + property;
+    String zPath =
+        ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/" + property;
     boolean result = ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8),
         NodeExistsPolicy.OVERWRITE);
 
@@ -71,8 +71,8 @@ public class SystemPropUtil {
 
   public static void removeSystemProperty(String property)
       throws InterruptedException, KeeperException {
-    String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/"
-        + property;
+    String zPath =
+        ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/" + property;
     ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
   }
 }

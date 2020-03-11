@@ -17,6 +17,10 @@
 
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -49,7 +53,6 @@ import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -84,19 +87,19 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     writeFlush(c, tableName, "d");
 
     // drop files that start with A
-    CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-        TestCompactionStrategy.class.getName());
+    CompactionStrategyConfig csConfig =
+        new CompactionStrategyConfig(TestCompactionStrategy.class.getName());
     csConfig.setOptions(ImmutableMap.of("dropPrefix", "A", "inputPrefix", "F"));
     c.tableOperations().compact(tableName,
         new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-    Assert.assertEquals(ImmutableSet.of("c", "d"), getRows(c, tableName));
+    assertEquals(ImmutableSet.of("c", "d"), getRows(c, tableName));
 
     // this compaction should not drop files starting with A
     c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
     c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-    Assert.assertEquals(ImmutableSet.of("c", "d"), getRows(c, tableName));
+    assertEquals(ImmutableSet.of("c", "d"), getRows(c, tableName));
   }
 
   private void testDropNone(Map<String,String> options) throws Exception {
@@ -109,13 +112,13 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     writeFlush(c, tableName, "a");
     writeFlush(c, tableName, "b");
 
-    CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-        TestCompactionStrategy.class.getName());
+    CompactionStrategyConfig csConfig =
+        new CompactionStrategyConfig(TestCompactionStrategy.class.getName());
     csConfig.setOptions(options);
     c.tableOperations().compact(tableName,
         new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-    Assert.assertEquals(ImmutableSet.of("a", "b"), getRows(c, tableName));
+    assertEquals(ImmutableSet.of("a", "b"), getRows(c, tableName));
   }
 
   @Test
@@ -145,7 +148,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
     File target = new File(System.getProperty("user.dir"), "target");
-    Assert.assertTrue(target.mkdirs() || target.isDirectory());
+    assertTrue(target.mkdirs() || target.isDirectory());
     File destFile = installJar(target, "/TestCompactionStrat.jar");
     c.tableOperations().create(tableName);
     c.instanceOperations().setProperty(
@@ -160,20 +163,20 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     writeFlush(c, tableName, "h");
     writeFlush(c, tableName, "i");
 
-    Assert.assertEquals(4, FunctionalTestUtils.countRFiles(c, tableName));
+    assertEquals(4, FunctionalTestUtils.countRFiles(c, tableName));
 
     // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
     // compacted.
-    CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-        "org.apache.accumulo.test.EfgCompactionStrat");
+    CompactionStrategyConfig csConfig =
+        new CompactionStrategyConfig("org.apache.accumulo.test.EfgCompactionStrat");
     c.tableOperations().compact(tableName,
         new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-    Assert.assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
+    assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
 
     c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-    Assert.assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
+    assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
   }
 
   private static File installJar(File destDir, String jarFile) throws IOException {
@@ -200,11 +203,11 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     writeFlush(c, tableName, "c");
     writeFlush(c, tableName, "d");
 
-    Assert.assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
+    assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
 
     // drop files that start with A
-    CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-        TestCompactionStrategy.class.getName());
+    CompactionStrategyConfig csConfig =
+        new CompactionStrategyConfig(TestCompactionStrategy.class.getName());
     csConfig.setOptions(ImmutableMap.of("inputPrefix", "F"));
 
     IteratorSetting iterConf = new IteratorSetting(21, "myregex", RegExFilter.class);
@@ -215,16 +218,16 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
     // compaction strategy should only be applied to one file. If its applied to both, then row 'b'
     // would be dropped by filter.
-    Assert.assertEquals(ImmutableSet.of("a", "b", "c"), getRows(c, tableName));
+    assertEquals(ImmutableSet.of("a", "b", "c"), getRows(c, tableName));
 
-    Assert.assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
+    assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
 
     c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
     // ensure that iterator is not applied
-    Assert.assertEquals(ImmutableSet.of("a", "b", "c"), getRows(c, tableName));
+    assertEquals(ImmutableSet.of("a", "b", "c"), getRows(c, tableName));
 
-    Assert.assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
+    assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
   }
 
   @Test
@@ -242,22 +245,22 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     writeRandomValue(c, tableName, 1 << 7);
     writeRandomValue(c, tableName, 1 << 6);
 
-    Assert.assertEquals(5, FunctionalTestUtils.countRFiles(c, tableName));
+    assertEquals(5, FunctionalTestUtils.countRFiles(c, tableName));
 
-    CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-        SizeCompactionStrategy.class.getName());
+    CompactionStrategyConfig csConfig =
+        new CompactionStrategyConfig(SizeCompactionStrategy.class.getName());
     csConfig.setOptions(ImmutableMap.of("size", "" + (1 << 15)));
     c.tableOperations().compact(tableName,
         new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-    Assert.assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
+    assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
 
     csConfig = new CompactionStrategyConfig(SizeCompactionStrategy.class.getName());
     csConfig.setOptions(ImmutableMap.of("size", "" + (1 << 17)));
     c.tableOperations().compact(tableName,
         new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-    Assert.assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
+    assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
 
   }
 
@@ -277,7 +280,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     c.tableOperations().compact(tableName, new CompactionConfig().setWait(false));
     c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-    Assert.assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
+    assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
 
     writeRandomValue(c, tableName, 1 << 16);
 
@@ -291,8 +294,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       // this compaction should fail because previous one set iterators
       c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
       if (System.currentTimeMillis() - t1 < 2000)
-        Assert.fail(
-            "Expected compaction to fail because another concurrent compaction set iterators");
+        fail("Expected compaction to fail because another concurrent compaction set iterators");
     } catch (AccumuloException e) {}
   }
 

@@ -51,8 +51,8 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setCompressionType(job, e);
     AccumuloFileOutputFormat.setSampler(job, samplerConfig);
 
-    AccumuloConfiguration acuconf = FileOutputConfigurator
-        .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
+    AccumuloConfiguration acuconf =
+        FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 
     assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));

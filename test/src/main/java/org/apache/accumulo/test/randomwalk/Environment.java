@@ -216,11 +216,9 @@ public class Environment {
    * @return multitable batch writer
    * @throws NumberFormatException
    *           if any of the numeric batch writer configuration properties cannot be parsed
-   * @throws NumberFormatException
-   *           if any configuration property cannot be parsed
    */
   public MultiTableBatchWriter getMultiTableBatchWriter()
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException, NumberFormatException {
     if (mtbw == null) {
       long maxMem = Long.parseLong(p.getProperty(KEY_MAX_MEM));
       long maxLatency = Long.parseLong(p.getProperty(KEY_MAX_LATENCY));

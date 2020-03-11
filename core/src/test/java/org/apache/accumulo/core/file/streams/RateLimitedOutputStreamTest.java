@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.core.file.streams;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.util.Random;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.io.ByteStreams;
@@ -33,16 +34,16 @@ public class RateLimitedOutputStreamTest {
     Random randGen = new Random();
     MockRateLimiter rateLimiter = new MockRateLimiter();
     long bytesWritten = 0;
-    try (RateLimitedOutputStream os = new RateLimitedOutputStream(new NullOutputStream(),
-        rateLimiter)) {
+    try (RateLimitedOutputStream os =
+        new RateLimitedOutputStream(new NullOutputStream(), rateLimiter)) {
       for (int i = 0; i < 100; ++i) {
         byte[] bytes = new byte[Math.abs(randGen.nextInt() % 65536)];
         os.write(bytes);
         bytesWritten += bytes.length;
       }
-      Assert.assertEquals(bytesWritten, os.position());
+      assertEquals(bytesWritten, os.position());
     }
-    Assert.assertEquals(bytesWritten, rateLimiter.getPermitsAcquired());
+    assertEquals(bytesWritten, rateLimiter.getPermitsAcquired());
   }
 
   public static class NullOutputStream extends FilterOutputStream implements PositionedOutput {

@@ -368,8 +368,8 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   protected File getConfDir() {
-    String confPath = null == clientAccumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR")
-        : clientAccumuloConfDir;
+    String confPath =
+        null == clientAccumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : clientAccumuloConfDir;
     File confDir;
     if (null == confPath) {
       String homePath = null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome;

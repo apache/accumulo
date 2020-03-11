@@ -19,7 +19,6 @@ package org.apache.accumulo.maven.plugin;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl.LogWriter;
-import org.apache.http.annotation.ThreadSafe;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -28,7 +27,6 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 /**
  * Goal which stops all instances of {@link MiniAccumuloCluster} started with the start mojo.
  */
-@ThreadSafe
 @Mojo(name = "stop", defaultPhase = LifecyclePhase.POST_INTEGRATION_TEST,
     requiresDependencyResolution = ResolutionScope.TEST)
 public class StopMojo extends AbstractAccumuloMojo {

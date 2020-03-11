@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -24,9 +26,7 @@ import java.util.List;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
-import junit.framework.TestCase;
-
-public abstract class LexicoderTest extends TestCase {
+public abstract class LexicoderTest {
 
   protected void assertEqualsB(byte[] ba1, byte[] ba2) {
     assertEquals(new Text(ba2), new Text(ba1));

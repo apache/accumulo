@@ -157,8 +157,8 @@ public class GenerateHashes {
 
   public void run(GenerateHashesOpts opts) throws TableNotFoundException, AccumuloSecurityException,
       AccumuloException, NoSuchAlgorithmException, FileNotFoundException {
-    Collection<Range> ranges = getRanges(opts.getConnector(), opts.getTableName(),
-        opts.getSplitsFile());
+    Collection<Range> ranges =
+        getRanges(opts.getConnector(), opts.getTableName(), opts.getSplitsFile());
 
     run(opts.getConnector(), opts.getTableName(), opts.getOutputTableName(), opts.getHashName(),
         opts.getNumThreads(), opts.isIteratorPushdown(), ranges);

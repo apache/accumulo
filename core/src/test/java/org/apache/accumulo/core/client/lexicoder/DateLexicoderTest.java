@@ -19,9 +19,11 @@ package org.apache.accumulo.core.client.lexicoder;
 import java.util.Date;
 
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.junit.Test;
 
 public class DateLexicoderTest extends AbstractLexicoderTest {
 
+  @Test
   public void testDecode() throws Exception {
     assertDecodes(new DateLexicoder(), new Date());
     assertDecodes(new DateLexicoder(), new Date(0));

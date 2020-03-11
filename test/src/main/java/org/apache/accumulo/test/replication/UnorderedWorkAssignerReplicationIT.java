@@ -17,6 +17,12 @@
 package org.apache.accumulo.test.replication;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -61,17 +67,18 @@ import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
-  private static final Logger log = LoggerFactory
-      .getLogger(UnorderedWorkAssignerReplicationIT.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(UnorderedWorkAssignerReplicationIT.class);
 
   private ExecutorService executor;
   private int timeoutFactor = 1;
@@ -86,7 +93,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       log.warn("Could not parse timeout.factor, not increasing timeout.");
     }
 
-    Assert.assertTrue("The timeout factor must be a positive, non-zero value", timeoutFactor > 0);
+    assertTrue("The timeout factor must be a positive, non-zero value", timeoutFactor > 0);
   }
 
   @After
@@ -129,10 +136,10 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       Map<String,String> peerSiteConfig = new HashMap<>();
       peerSiteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
       String keystorePath = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey());
-      Assert.assertNotNull("Keystore Path was null", keystorePath);
+      assertNotNull("Keystore Path was null", keystorePath);
       peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), keystorePath);
       String truststorePath = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PATH.getKey());
-      Assert.assertNotNull("Truststore Path was null", truststorePath);
+      assertNotNull("Truststore Path was null", truststorePath);
       peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), truststorePath);
 
       // Passwords might be stored in CredentialProvider
@@ -140,8 +147,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       if (null != keystorePassword) {
         peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
       }
-      String truststorePassword = primarySiteConfig
-          .get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+      String truststorePassword =
+          primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
       if (null != truststorePassword) {
         peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
       }
@@ -151,8 +158,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
     }
 
     // Use the CredentialProvider if the primary also uses one
-    String credProvider = primarySiteConfig
-        .get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    String credProvider =
+        primarySiteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
     if (null != credProvider) {
       Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
       peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(),
@@ -202,11 +209,11 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       connMaster.tableOperations().create(masterTable);
       String masterTableId = connMaster.tableOperations().tableIdMap().get(masterTable);
-      Assert.assertNotNull(masterTableId);
+      assertNotNull(masterTableId);
 
       connPeer.tableOperations().create(peerTable);
       String peerTableId = connPeer.tableOperations().tableIdMap().get(peerTable);
-      Assert.assertNotNull(peerTableId);
+      assertNotNull(peerTableId);
 
       connPeer.securityOperations().grantTablePermission(peerUserName, peerTable,
           TablePermission.WRITE);
@@ -235,8 +242,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       log.info("Wrote all data to master cluster");
 
-      final Set<String> filesNeedingReplication = connMaster.replicationOperations()
-          .referencedFiles(masterTable);
+      final Set<String> filesNeedingReplication =
+          connMaster.replicationOperations().referencedFiles(masterTable);
 
       for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
         cluster.killProcess(ServerType.TABLET_SERVER, proc);
@@ -282,7 +289,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         future.get(timeoutSeconds, TimeUnit.SECONDS);
       } catch (TimeoutException e) {
         future.cancel(true);
-        Assert.fail("Drain did not finish within " + timeoutSeconds + " seconds");
+        fail("Drain did not finish within " + timeoutSeconds + " seconds");
       }
 
       log.info("drain completed");
@@ -313,17 +320,17 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       while (masterIter.hasNext() && peerIter.hasNext()) {
         masterEntry = masterIter.next();
         peerEntry = peerIter.next();
-        Assert.assertEquals(masterEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+        assertEquals(masterEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
             masterEntry.getKey().compareTo(peerEntry.getKey(),
                 PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-        Assert.assertEquals(masterEntry.getValue(), peerEntry.getValue());
+        assertEquals(masterEntry.getValue(), peerEntry.getValue());
       }
 
       log.info("Last master entry: " + masterEntry);
       log.info("Last peer entry: " + peerEntry);
 
-      Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
-      Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
+      assertFalse("Had more data to read from the master", masterIter.hasNext());
+      assertFalse("Had more data to read from the peer", peerIter.hasNext());
     } finally {
       peerCluster.stop();
     }
@@ -370,19 +377,19 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       // Create tables
       connMaster.tableOperations().create(masterTable1);
       String masterTableId1 = connMaster.tableOperations().tableIdMap().get(masterTable1);
-      Assert.assertNotNull(masterTableId1);
+      assertNotNull(masterTableId1);
 
       connMaster.tableOperations().create(masterTable2);
       String masterTableId2 = connMaster.tableOperations().tableIdMap().get(masterTable2);
-      Assert.assertNotNull(masterTableId2);
+      assertNotNull(masterTableId2);
 
       connPeer.tableOperations().create(peerTable1);
       String peerTableId1 = connPeer.tableOperations().tableIdMap().get(peerTable1);
-      Assert.assertNotNull(peerTableId1);
+      assertNotNull(peerTableId1);
 
       connPeer.tableOperations().create(peerTable2);
       String peerTableId2 = connPeer.tableOperations().tableIdMap().get(peerTable2);
-      Assert.assertNotNull(peerTableId2);
+      assertNotNull(peerTableId2);
 
       // Grant write permission
       connPeer.securityOperations().grantTablePermission(peerUserName, peerTable1,
@@ -466,7 +473,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         countTable = 0l;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
-          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
               + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable1));
         }
 
@@ -478,13 +485,13 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      Assert.assertEquals(masterTable1Records, countTable);
+      assertEquals(masterTable1Records, countTable);
 
       for (int i = 0; i < 5; i++) {
         countTable = 0l;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;
-          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
               + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable2));
         }
 
@@ -496,7 +503,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      Assert.assertEquals(masterTable2Records, countTable);
+      assertEquals(masterTable2Records, countTable);
 
     } finally {
       peer1Cluster.stop();
@@ -544,11 +551,11 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     connMaster.tableOperations().create(masterTable);
     String masterTableId = connMaster.tableOperations().tableIdMap().get(masterTable);
-    Assert.assertNotNull(masterTableId);
+    assertNotNull(masterTableId);
 
     connPeer.tableOperations().create(peerTable);
     String peerTableId = connPeer.tableOperations().tableIdMap().get(peerTable);
-    Assert.assertNotNull(peerTableId);
+    assertNotNull(peerTableId);
 
     // Give our replication user the ability to write to the table
     connPeer.securityOperations().grantTablePermission(peerUserName, peerTable,
@@ -599,17 +606,17 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
     Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY),
         peer = connPeer.createScanner(peerTable, Authorizations.EMPTY);
     Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
-    Assert.assertTrue("No data in master table", masterIter.hasNext());
-    Assert.assertTrue("No data in peer table", peerIter.hasNext());
+    assertTrue("No data in master table", masterIter.hasNext());
+    assertTrue("No data in peer table", peerIter.hasNext());
     while (masterIter.hasNext() && peerIter.hasNext()) {
       Entry<Key,Value> masterEntry = masterIter.next(), peerEntry = peerIter.next();
-      Assert.assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+      assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
           masterEntry.getKey().compareTo(peerEntry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-      Assert.assertEquals(masterEntry.getValue(), peerEntry.getValue());
+      assertEquals(masterEntry.getValue(), peerEntry.getValue());
     }
 
-    Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
-    Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
+    assertFalse("Had more data to read from the master", masterIter.hasNext());
+    assertFalse("Had more data to read from the peer", peerIter.hasNext());
 
     peerCluster.stop();
   }
@@ -658,19 +665,19 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       connMaster.tableOperations().create(masterTable1);
       String masterTableId1 = connMaster.tableOperations().tableIdMap().get(masterTable1);
-      Assert.assertNotNull(masterTableId1);
+      assertNotNull(masterTableId1);
 
       connMaster.tableOperations().create(masterTable2);
       String masterTableId2 = connMaster.tableOperations().tableIdMap().get(masterTable2);
-      Assert.assertNotNull(masterTableId2);
+      assertNotNull(masterTableId2);
 
       connPeer.tableOperations().create(peerTable1);
       String peerTableId1 = connPeer.tableOperations().tableIdMap().get(peerTable1);
-      Assert.assertNotNull(peerTableId1);
+      assertNotNull(peerTableId1);
 
       connPeer.tableOperations().create(peerTable2);
       String peerTableId2 = connPeer.tableOperations().tableIdMap().get(peerTable2);
-      Assert.assertNotNull(peerTableId2);
+      assertNotNull(peerTableId2);
 
       // Give our replication user the ability to write to the tables
       connPeer.securityOperations().grantTablePermission(peerUserName, peerTable1,
@@ -745,7 +752,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      Assert.assertNotEquals(0, fullyReplicated);
+      assertNotEquals(0, fullyReplicated);
 
       long countTable = 0l;
 
@@ -754,7 +761,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         countTable = 0l;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
-          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
               + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable1));
         }
         log.info("Found {} records in {}", countTable, peerTable1);
@@ -764,13 +771,13 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         Thread.sleep(2000);
       }
 
-      Assert.assertTrue("Did not find any records in " + peerTable1 + " on peer", countTable > 0);
+      assertTrue("Did not find any records in " + peerTable1 + " on peer", countTable > 0);
 
       for (int i = 0; i < 10; i++) {
         countTable = 0l;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;
-          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
               + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable2));
         }
 
@@ -780,7 +787,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         }
         Thread.sleep(2000);
       }
-      Assert.assertTrue("Did not find any records in " + peerTable2 + " on peer", countTable > 0);
+      assertTrue("Did not find any records in " + peerTable2 + " on peer", countTable > 0);
 
     } finally {
       peer1Cluster.stop();

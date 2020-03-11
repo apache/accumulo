@@ -300,11 +300,11 @@ public class KeyExtentTest {
     results = KeyExtent.getKeyExtentsForRange(null, null, null);
     assertTrue("Non-empty set returned from no extents", results.isEmpty());
 
-    results = KeyExtent.getKeyExtentsForRange(null, null, Collections.<KeyExtent> emptySet());
+    results = KeyExtent.getKeyExtentsForRange(null, null, Collections.<KeyExtent>emptySet());
     assertTrue("Non-empty set returned from no extents", results.isEmpty());
 
     KeyExtent t = nke("t", null, null);
-    results = KeyExtent.getKeyExtentsForRange(null, null, Collections.<KeyExtent> singleton(t));
+    results = KeyExtent.getKeyExtentsForRange(null, null, Collections.<KeyExtent>singleton(t));
     assertEquals("Single tablet should always be returned", 1, results.size());
     assertEquals(t, results.iterator().next());
   }

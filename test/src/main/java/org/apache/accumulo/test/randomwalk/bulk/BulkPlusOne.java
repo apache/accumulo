@@ -60,8 +60,8 @@ public class BulkPlusOne extends BulkImportTest {
   static void bulkLoadLots(Logger log, State state, Environment env, Value value) throws Exception {
     final Path dir = new Path("/tmp", "bulk_" + UUID.randomUUID().toString());
     final Path fail = new Path(dir.toString() + "_fail");
-    final DefaultConfiguration defaultConfiguration = AccumuloConfiguration
-        .getDefaultConfiguration();
+    final DefaultConfiguration defaultConfiguration =
+        AccumuloConfiguration.getDefaultConfiguration();
     final Random rand = (Random) state.get("rand");
     final FileSystem fs = (FileSystem) state.get("fs");
     fs.mkdirs(fail);

@@ -35,8 +35,8 @@ import com.google.common.base.Strings;
  * Example usage:
  *
  * <pre>
- * HostAndPort hp = HostAndPort.fromString(&quot;[2001:db8::1]&quot;).withDefaultPort(80)
- *     .requireBracketsForIPv6();
+ * HostAndPort hp =
+ *     HostAndPort.fromString(&quot;[2001:db8::1]&quot;).withDefaultPort(80).requireBracketsForIPv6();
  * hp.getHost(); // returns &quot;2001:db8::1&quot;
  * hp.getPort(); // returns 80
  * hp.toString(); // returns &quot;[2001:db8::1]:80&quot;

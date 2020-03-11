@@ -15,16 +15,16 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>19</version>
+    <version>21</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
-  <version>1.9.2</version>
+  <version>1.9.4-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Accumulo Project</name>
   <description>Apache Accumulo is a sorted, distributed key/value store based
@@ -101,7 +101,7 @@
   <scm>
     <connection>scm:git:https://gitbox.apache.org/repos/asf/accumulo.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/accumulo.git</developerConnection>
-    <tag>rel/1.9.2</tag>
+    <tag>HEAD</tag>
     <url>https://gitbox.apache.org/repos/asf?p=accumulo.git</url>
   </scm>
   <issueManagement>
@@ -116,7 +116,7 @@
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.59</bouncycastle.version>
+    <bouncycastle.version>1.62</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>2.11.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
@@ -125,33 +125,33 @@
     <extraReleaseArguments />
     <failsafe.excludedGroups />
     <failsafe.groups />
-    <findbugs.version>3.0.5</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
-    <hadoop.version>2.6.4</hadoop.version>
+    <hadoop.version>2.6.5</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
-    <httpclient.version>3.1</httpclient.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <!-- jetty 9.2 is the last version to support jdk less than 1.8 -->
-    <jetty.version>9.2.17.v20160517</jetty.version>
-    <maven.compiler.source>1.7</maven.compiler.source>
-    <maven.compiler.target>1.7</maven.compiler.target>
+    <jetty.version>9.2.26.v20180806</jetty.version>
+    <maven.compiler.release>8</maven.compiler.release>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
     <maven.plugin-version>3.0.5</maven.plugin-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>1.6.6</powermock.version>
+    <powermock.version>2.0.2</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
-    <slf4j.version>1.7.21</slf4j.version>
+    <slf4j.version>1.7.25</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <surefire.groups />
+    <surefire.version>3.0.0-M3</surefire.version>
     <!-- Thrift version -->
-    <thrift.version>0.9.3</thrift.version>
+    <thrift.version>0.9.3-1</thrift.version>
     <!-- ZooKeeper version -->
-    <zookeeper.version>3.4.6</zookeeper.version>
+    <zookeeper.version>3.4.14</zookeeper.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -163,18 +163,18 @@
       <dependency>
         <groupId>com.google.auto.service</groupId>
         <artifactId>auto-service</artifactId>
-        <version>1.0-rc2</version>
+        <!-- rc4 and higher require Java 8 -->
+        <version>1.0-rc3</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
         <version>2.7</version>
       </dependency>
-      <!-- Hadoop-2.4.0 MiniDFSCluster uses classes dropped in Guava 15 -->
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <!-- Hadoop-2.4.0 MiniDFSCluster uses classes from <Guava-15.0; fixed in 2.6.0 and later -->
+        <!-- version known to work on at least some Hadoop versions -->
         <version>14.0.1</version>
       </dependency>
       <dependency>
@@ -201,11 +201,6 @@
         <groupId>commons-configuration</groupId>
         <artifactId>commons-configuration</artifactId>
         <version>1.6</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-httpclient</groupId>
-        <artifactId>commons-httpclient</artifactId>
-        <version>${httpclient.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
@@ -374,7 +369,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-vfs2</artifactId>
-        <version>2.2</version>
+        <version>2.3</version>
       </dependency>
       <dependency>
         <groupId>org.apache.curator</groupId>
@@ -419,12 +414,8 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-minikdc</artifactId>
-        <!-- Specifically depend on this version of minikdc to avoid having
-           to increase out normal hadoop dependency; minikdc not available prior
-           to 2.3.0 -->
-        <?SORTPOM IGNORE?>
-        <version>2.3.0</version><!--$NO-MVN-MAN-VER$-->
-        <?SORTPOM RESUME?>
+        <!-- this version works better with java 11 than Hadoop 2 versions -->
+        <version>3.0.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -440,11 +431,6 @@
         <groupId>org.apache.htrace</groupId>
         <artifactId>htrace-core4</artifactId>
         <version>${htrace.hadoop.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpclient</artifactId>
-        <version>4.3.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
@@ -469,22 +455,12 @@
       <dependency>
         <groupId>org.apache.maven.plugin-tools</groupId>
         <artifactId>maven-plugin-annotations</artifactId>
-        <version>3.2</version>
+        <version>3.5.2</version>
       </dependency>
       <dependency>
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
         <version>${thrift.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpcore</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.zookeeper</groupId>
@@ -504,7 +480,7 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>3.4</version>
+        <version>4.0.2</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
@@ -535,6 +511,11 @@
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-util</artifactId>
         <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.gaul</groupId>
+        <artifactId>modernizer-maven-annotations</artifactId>
+        <version>1.8.0</version>
       </dependency>
       <dependency>
         <groupId>org.powermock</groupId>
@@ -573,6 +554,13 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.gaul</groupId>
+      <artifactId>modernizer-maven-annotations</artifactId>
+      <optional>true</optional>
+    </dependency>
+  </dependencies>
   <build>
     <pluginManagement>
       <plugins>
@@ -580,20 +568,20 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.5</version>
+          <version>2.7</version>
         </plugin>
         <plugin>
           <groupId>org.gaul</groupId>
           <artifactId>modernizer-maven-plugin</artifactId>
-          <version>1.6.0</version>
+          <version>1.8.0</version>
           <configuration>
             <javaVersion>${maven.compiler.target}</javaVersion>
           </configuration>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>findbugs-maven-plugin</artifactId>
-          <version>${findbugs.version}</version>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>3.1.12.1</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -604,13 +592,18 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-invoker-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>3.0.0</version>
+          <version>3.1.0</version>
         </plugin>
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
-          <version>2.8.0</version>
+          <version>2.10.0</version>
           <configuration>
             <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             <createBackupFile>false</createBackupFile>
@@ -625,28 +618,9 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>0.8.2</version>
+          <version>0.9.4</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>native-maven-plugin</artifactId>
-          <version>1.0-alpha-8</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-changes-plugin</artifactId>
-          <version>2.12.1</version>
-          <configuration>
-            <issueManagementSystems>
-              <issueManagementSystem>JIRA</issueManagementSystem>
-            </issueManagementSystems>
-            <onlyCurrentVersion>true</onlyCurrentVersion>
-            <statusIds>Closed,Resolved</statusIds>
-            <maxEntries>10000</maxEntries>
-            <useJql>true</useJql>
           </configuration>
         </plugin>
         <plugin>
@@ -667,6 +641,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.8.1</version>
           <configuration>
             <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
@@ -694,10 +669,11 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
+          <version>3.1.1</version>
           <configuration>
             <quiet>true</quiet>
-            <javadocVersion>${maven.compiler.target}</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>
+            <doclint>all,-missing</doclint>
           </configuration>
         </plugin>
         <plugin>
@@ -725,6 +701,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
+          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
@@ -737,40 +714,25 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
+            <trimStackTrace>false</trimStackTrace>
           </configuration>
         </plugin>
         <plugin>
           <groupId>org.asciidoctor</groupId>
           <artifactId>asciidoctor-maven-plugin</artifactId>
-          <version>1.5.6</version>
+          <version>1.6.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
           <version>3.0.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>cobertura-maven-plugin</artifactId>
-          <version>2.7</version>
-          <configuration>
-            <aggregate>true</aggregate>
-            <formats>
-              <format>xml</format>
-              <format>html</format>
-            </formats>
-            <instrumentation>
-              <excludes>
-                <exclude>**/thrift/*.class</exclude>
-              </excludes>
-            </instrumentation>
-          </configuration>
         </plugin>
         <plugin>
           <!-- version 1.6.0 is broken; see https://github.com/mojohaus/exec-maven-plugin/issues/75 -->
@@ -779,31 +741,10 @@
           <version>1.5.0</version>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-enforcer-plugin</artifactId>
-          <configuration>
-            <rules>
-              <requireJavaVersion>
-                <version>[${maven.compiler.target},)</version>
-              </requireJavaVersion>
-              <requireMavenVersion>
-                <version>[3.0.5,)</version>
-              </requireMavenVersion>
-            </rules>
-          </configuration>
-          <dependencies>
-            <dependency>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>animal-sniffer-enforcer-rule</artifactId>
-              <version>1.16</version>
-            </dependency>
-          </dependencies>
-        </plugin>
-        <plugin>
           <!-- Allows us to get the apache-ds bundle artifacts -->
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>3.5.0</version>
+          <version>4.2.0</version>
         </plugin>
         <plugin>
           <groupId>net.revelc.code</groupId>
@@ -811,22 +752,9 @@
           <version>1.2.0</version>
         </plugin>
         <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
-          <configuration>
-            <excludes combine.children="append">
-              <exclude>src/main/resources/META-INF/services/*</exclude>
-              <exclude>nbproject/**</exclude>
-              <exclude>nb-configuration.xml</exclude>
-              <exclude>nbactions.xml</exclude>
-            </excludes>
-          </configuration>
-        </plugin>
-        <plugin>
-          <!-- this plugin requires java 1.8 and should only be used in a jdk8 profile -->
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.7.4</version>
+          <version>2.10.0</version>
           <configuration>
             <configFile>${eclipseFormatterStyle}</configFile>
             <compilerCompliance>${maven.compiler.source}</compilerCompliance>
@@ -846,10 +774,26 @@
           </configuration>
         </plugin>
         <plugin>
-          <!-- this plugin requires java 1.8 and should only be used in a jdk8 profile -->
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <configuration>
+            <excludes combine.children="append">
+              <exclude>src/main/resources/META-INF/services/*</exclude>
+              <exclude>nbproject/**</exclude>
+              <exclude>nb-configuration.xml</exclude>
+              <exclude>nbactions.xml</exclude>
+            </excludes>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>net.revelc.code</groupId>
+          <artifactId>warbucks-maven-plugin</artifactId>
+          <version>1.1.2</version>
+        </plugin>
+        <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>impsort-maven-plugin</artifactId>
-          <version>1.2.0</version>
+          <version>1.3.0</version>
           <configuration>
             <removeUnused>true</removeUnused>
             <groups>java.,javax.,org.,com.</groups>
@@ -857,12 +801,6 @@
               <exclude>**/thrift/*.java</exclude>
             </excludes>
           </configuration>
-        </plugin>
-        <plugin>
-          <!-- this plugin requires java 1.8 and should only be used in a jdk8 profile -->
-          <groupId>net.revelc.code</groupId>
-          <artifactId>warbucks-maven-plugin</artifactId>
-          <version>1.0.0</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -880,35 +818,39 @@
         </executions>
       </plugin>
       <plugin>
+        <!-- verify before compile; should be sorted already -->
+        <groupId>com.github.ekryd.sortpom</groupId>
+        <artifactId>sortpom-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>verify-sorted-pom</id>
+            <goals>
+              <goal>verify</goal>
+            </goals>
+            <phase>process-resources</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
         <executions>
           <execution>
-            <id>enforce-basic-rules</id>
+            <!-- must be same id as in the apache parent pom, to override the version -->
+            <id>enforce-maven-version</id>
             <goals>
               <goal>enforce</goal>
             </goals>
             <phase>validate</phase>
-          </execution>
-          <execution>
-            <id>enforce-java-signatures</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <phase>process-test-classes</phase>
             <configuration>
               <rules>
-                <checkSignatureRule implementation="org.codehaus.mojo.animal_sniffer.enforcer.CheckSignatureRule">
-                  <signature>
-                    <groupId>org.codehaus.mojo.signature</groupId>
-                    <artifactId>java17</artifactId>
-                    <version>1.0</version>
-                  </signature>
-                  <ignores>
-                    <ignore>org.apache.hadoop.conf.Configuration</ignore>
-                    <ignore>org.apache.hadoop.fs.FileSystem</ignore>
-                  </ignores>
-                </checkSignatureRule>
+                <requireMavenVersion>
+                  <!-- org.apache.felix:maven-bundle-plugin declares that it needs 3.5.0 -->
+                  <version>[3.5.0,)</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>[11,)</version>
+                </requireJavaVersion>
               </rules>
             </configuration>
           </execution>
@@ -952,9 +894,7 @@
               <property name="severity" value="warning" />
               <!-- Checks for whitespace                               -->
               <!-- See http://checkstyle.sf.net/config_whitespace.html -->
-              <module name="FileTabCharacter">
-                <property name="eachLine" value="true" />
-              </module>
+              <module name="FileTabCharacter" />
               <module name="TreeWalker">
                 <module name="OneTopLevelClass" />
                 <module name="RegexpSinglelineJava">
@@ -973,23 +913,21 @@
                   <property name="format" value="org[.]apache[.]commons[.]math[.]" />
                   <property name="message" value="Use commons-math3 (org.apache.commons.math3.*)" />
                 </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="junit[.]framework[.]TestCase" />
+                  <property name="message" value="Use JUnit4+ @Test annotation instead of TestCase" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="import org[.]junit[.]Assert;" />
+                  <property name="message" value="Use static imports for Assert.* methods for consistency" />
+                </module>
                 <module name="OuterTypeFilename" />
-                <module name="LineLength">
-                  <property name="max" value="100" />
-                  <property name="ignorePattern" value="^[ ]*[*].*@(link|see) |Map.* = new .*Map|a href=|http://|https://|ftp://" />
-                </module>
                 <module name="AvoidStarImport" />
-                <module name="UnusedImports">
-                  <property name="processJavadoc" value="true" />
-                </module>
                 <module name="NoLineWrap" />
-                <module name="LeftCurly">
-                  <property name="maxLineLength" value="160" />
-                </module>
-                <module name="RightCurly" />
+                <module name="LeftCurly" />
                 <module name="RightCurly">
                   <property name="option" value="alone" />
-                  <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT" />
+                  <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT, INSTANCE_INIT" />
                 </module>
                 <module name="SeparatorWrap">
                   <property name="tokens" value="DOT" />
@@ -1005,20 +943,7 @@
                 <module name="MethodTypeParameterName">
                   <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
                 </module>
-                <module name="MethodParamPad" />
-                <module name="OperatorWrap">
-                  <property name="option" value="NL" />
-                  <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
-                </module>
-                <module name="AnnotationLocation">
-                  <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
-                </module>
-                <module name="AnnotationLocation">
-                  <property name="tokens" value="VARIABLE_DEF" />
-                  <property name="allowSamelineMultipleAnnotations" value="true" />
-                </module>
                 <module name="NonEmptyAtclauseDescription" />
-                <module name="JavadocTagContinuationIndentation" />
                 <module name="JavadocMethod">
                   <property name="allowMissingJavadoc" value="true" />
                   <property name="allowMissingParamTags" value="true" />
@@ -1027,9 +952,7 @@
                   <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
                   <property name="allowThrowsTagsForSubclasses" value="true" />
                 </module>
-                <module name="SingleLineJavadoc" />
                 <module name="MissingOverrideCheck" />
-                <module name="AnnotationLocation" />
               </module>
             </module>
           </checkstyleRules>
@@ -1039,10 +962,9 @@
         </configuration>
         <dependencies>
           <dependency>
-            <!-- this is the last version which supports java 7 -->
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>6.19</version>
+            <version>8.18</version>
           </dependency>
         </dependencies>
         <executions>
@@ -1081,11 +1003,11 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>run-findbugs</id>
+            <id>run-spotbugs</id>
             <goals>
               <goal>check</goal>
             </goals>
@@ -1105,6 +1027,28 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>net.revelc.code</groupId>
+        <artifactId>warbucks-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>check-junit-categories-on-its</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <includeMainClasses>true</includeMainClasses>
+                  <includeTestClasses>true</includeTestClasses>
+                  <classPattern>.*IT</classPattern>
+                  <classAnnotationPattern>org[.]junit[.]experimental[.]categories[.]Category</classAnnotationPattern>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <!-- Allows us to get the apache-ds bundle artifacts -->
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
@@ -1114,6 +1058,27 @@
     </plugins>
   </build>
   <profiles>
+    <profile>
+      <!-- This profile skips all Quality Assurance checks  -->
+      <id>skipQA</id>
+      <properties>
+        <accumulo.skip>true</accumulo.skip>
+        <apilyzer.skip>true</apilyzer.skip>
+        <checkstyle.skip>true</checkstyle.skip>
+        <enforcer.skip>true</enforcer.skip>
+        <formatter.skip>true</formatter.skip>
+        <impsort.skip>true</impsort.skip>
+        <maven.plugin.skip>true</maven.plugin.skip>
+        <mdep.analyze.skip>true</mdep.analyze.skip>
+        <modernizer.skip>true</modernizer.skip>
+        <rat.skip>true</rat.skip>
+        <skipITs>true</skipITs>
+        <skipTests>true</skipTests>
+        <sort.skip>true</sort.skip>
+        <spotbugs.skip>true</spotbugs.skip>
+        <warbucks.skip>true</warbucks.skip>
+      </properties>
+    </profile>
     <profile>
       <id>m2e</id>
       <activation>
@@ -1214,23 +1179,6 @@
                     <pluginExecution>
                       <pluginExecutionFilter>
                         <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>native-maven-plugin</artifactId>
-                        <versionRange>[0,)</versionRange>
-                        <goals>
-                          <goal>compile</goal>
-                          <goal>initialize</goal>
-                          <goal>javah</goal>
-                          <goal>link</goal>
-                          <goal>unzipinc</goal>
-                        </goals>
-                      </pluginExecutionFilter>
-                      <action>
-                        <ignore />
-                      </action>
-                    </pluginExecution>
-                    <pluginExecution>
-                      <pluginExecutionFilter>
-                        <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
                         <versionRange>[0,)</versionRange>
                         <goals>
@@ -1294,19 +1242,6 @@
                         <ignore />
                       </action>
                     </pluginExecution>
-                    <pluginExecution>
-                      <pluginExecutionFilter>
-                        <groupId>net.revelc.code</groupId>
-                        <artifactId>warbucks-maven-plugin</artifactId>
-                        <versionRange>[0,)</versionRange>
-                        <goals>
-                          <goal>check</goal>
-                        </goals>
-                      </pluginExecutionFilter>
-                      <action>
-                        <ignore />
-                      </action>
-                    </pluginExecution>
                   </pluginExecutions>
                 </lifecycleMappingMetadata>
               </configuration>
@@ -1320,9 +1255,9 @@
       <properties>
         <!-- some properties to make the release build a bit faster -->
         <checkstyle.skip>true</checkstyle.skip>
-        <findbugs.skip>true</findbugs.skip>
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
+        <spotbugs.skip>true</spotbugs.skip>
       </properties>
     </profile>
     <profile>
@@ -1346,11 +1281,9 @@
       </build>
     </profile>
     <profile>
-      <!-- this profile requires jdk8 -->
       <!-- on by default, but disable with '-P !autoformat' or '-DskipFormat' -->
       <id>autoformat</id>
       <activation>
-        <jdk>[1.8,1.9)</jdk>
         <property>
           <name>!skipFormat</name>
         </property>
@@ -1405,66 +1338,6 @@
       </properties>
     </profile>
     <profile>
-      <id>jdk8</id>
-      <activation>
-        <jdk>[1.8,1.9)</jdk>
-      </activation>
-      <build>
-        <pluginManagement>
-          <plugins>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-javadoc-plugin</artifactId>
-              <configuration>
-                <quiet>true</quiet>
-                <javadocVersion>1.8</javadocVersion>
-                <additionalJOption>-J-Xmx512m</additionalJOption>
-                <additionalparam>-Xdoclint:all,-Xdoclint:-missing</additionalparam>
-              </configuration>
-            </plugin>
-          </plugins>
-        </pluginManagement>
-        <plugins>
-          <plugin>
-            <!-- verify before compile; should be sorted already -->
-            <groupId>com.github.ekryd.sortpom</groupId>
-            <artifactId>sortpom-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>verify-sorted-pom</id>
-                <goals>
-                  <goal>verify</goal>
-                </goals>
-                <phase>process-resources</phase>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>net.revelc.code</groupId>
-            <artifactId>warbucks-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>check-junit-categories-on-its</id>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-                <configuration>
-                  <rules>
-                    <rule>
-                      <includeMainClasses>true</includeMainClasses>
-                      <includeTestClasses>true</includeTestClasses>
-                      <classPattern>.*IT</classPattern>
-                      <classAnnotationPattern>org[.]junit[.]experimental[.]categories[.]Category</classAnnotationPattern>
-                    </rule>
-                  </rules>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
       <id>aggregate-javadocs</id>
       <build>
         <pluginManagement>
@@ -1491,14 +1364,14 @@
       </build>
     </profile>
     <profile>
-      <id>add-findbugs-excludes</id>
+      <id>add-spotbugs-excludes</id>
       <activation>
         <file>
-          <exists>src/main/findbugs/exclude-filter.xml</exists>
+          <exists>src/main/spotbugs/exclude-filter.xml</exists>
         </file>
       </activation>
       <properties>
-        <findbugs.excludeFilterFile>src/main/findbugs/exclude-filter.xml</findbugs.excludeFilterFile>
+        <spotbugs.excludeFilterFile>src/main/spotbugs/exclude-filter.xml</spotbugs.excludeFilterFile>
       </properties>
     </profile>
     <!-- Active by default, build against Hadoop 2 -->

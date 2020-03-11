@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -34,8 +35,6 @@ import org.apache.accumulo.core.iterators.YieldingKeyValueIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
-
 /**
  * This iterator which implements yielding will yield after every other next and every other seek
  * call.
@@ -50,7 +49,7 @@ public class YieldingIterator extends WrappingIterator
   private static final AtomicBoolean yieldNextKey = new AtomicBoolean(false);
   private static final AtomicBoolean yieldSeekKey = new AtomicBoolean(false);
 
-  private Optional<YieldCallback<Key>> yield = Optional.absent();
+  private Optional<YieldCallback<Key>> yield = Optional.empty();
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {

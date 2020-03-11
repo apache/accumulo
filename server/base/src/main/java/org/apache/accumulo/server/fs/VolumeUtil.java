@@ -46,6 +46,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -167,8 +168,8 @@ public class VolumeUtil {
   }
 
   public static String switchRootTableVolume(String location) throws IOException {
-    String newLocation = switchVolume(location, FileType.TABLE,
-        ServerConstants.getVolumeReplacements());
+    String newLocation =
+        switchVolume(location, FileType.TABLE, ServerConstants.getVolumeReplacements());
     if (newLocation != null) {
       MetadataTableUtil.setRootTabletDir(newLocation);
       log.info("Volume replaced: " + location + " -> " + newLocation);
@@ -186,6 +187,7 @@ public class VolumeUtil {
       VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
       throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
+
     log.trace("Using volume replacements: " + replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();
@@ -264,6 +266,7 @@ public class VolumeUtil {
     return ret;
   }
 
+  @SuppressModernizer
   private static String decommisionedTabletDir(AccumuloServerContext context, ZooLock zooLock,
       VolumeManager vm, KeyExtent extent, String metaDir) throws IOException {
     Path dir = new Path(metaDir);
@@ -274,10 +277,10 @@ public class VolumeUtil {
       throw new IllegalArgumentException("Unexpected table dir " + dir);
     }
 
-    Path newDir = new Path(
-        vm.choose(Optional.of(extent.getTableId()), ServerConstants.getBaseUris()) + Path.SEPARATOR
-            + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName()
-            + Path.SEPARATOR + dir.getName());
+    Path newDir =
+        new Path(vm.choose(Optional.of(extent.getTableId()), ServerConstants.getBaseUris())
+            + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
+            + dir.getParent().getName() + Path.SEPARATOR + dir.getName());
 
     log.info("Updating directory for " + extent + " from " + dir + " to " + newDir);
     if (extent.isRootTablet()) {

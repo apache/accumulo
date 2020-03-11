@@ -19,6 +19,9 @@ package org.apache.accumulo.test.master;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,7 +65,6 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -80,6 +82,11 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   public static final int TSERVERS = 5;
   public static final long SUSPEND_DURATION = MILLISECONDS.convert(30, SECONDS);
   public static final int TABLETS = 100;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
@@ -105,8 +112,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       @Override
       public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
           throws Exception {
-        List<ProcessReference> procs = new ArrayList<>(
-            getCluster().getProcesses().get(ServerType.TABLET_SERVER));
+        List<ProcessReference> procs =
+            new ArrayList<>(getCluster().getProcesses().get(ServerType.TABLET_SERVER));
         Collections.shuffle(procs);
 
         for (int i = 0; i < count; ++i) {
@@ -137,7 +144,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
         for (int i = 0; i < count; ++i) {
           final String tserverName = tserversList.get(i).toString();
-          MasterClient.execute(ctx, new ClientExec<MasterClientService.Client>() {
+          MasterClient.executeVoid(ctx, new ClientExec<MasterClientService.Client>() {
             @Override
             public void execute(MasterClientService.Client client) throws Exception {
               log.info("Sending shutdown command to {} via MasterClientService", tserverName);
@@ -198,8 +205,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // Wait for all of the tablets to hosted ...
     log.info("Waiting on hosting and balance");
     TabletLocations ds;
-    for (ds = TabletLocations.retrieve(ctx,
-        tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
+    for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS;
+        ds = TabletLocations.retrieve(ctx, tableName)) {
       Thread.sleep(1000);
     }
 
@@ -212,7 +219,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     } while (ds.hostedCount != TABLETS);
 
     // Pray all of our tservers have at least 1 tablet.
-    Assert.assertEquals(TSERVERS, ds.hosted.keySet().size());
+    assertEquals(TSERVERS, ds.hosted.keySet().size());
 
     // Kill two tablet servers hosting our tablets. This should put tablets into suspended state,
     // and thus halt balancing.
@@ -239,9 +246,9 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // "belong" to the dead tablet servers, and should be in exactly the same place as before any
     // tserver death.
     for (HostAndPort server : deadTabletsByServer.keySet()) {
-      Assert.assertEquals(deadTabletsByServer.get(server), beforeDeathState.hosted.get(server));
+      assertEquals(deadTabletsByServer.get(server), beforeDeathState.hosted.get(server));
     }
-    Assert.assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
+    assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
 
     // Restart the first tablet server, making sure it ends up on the same port
     HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
@@ -253,26 +260,26 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
     // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
     log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
-    for (ds = TabletLocations.retrieve(ctx, tableName); ds.suspended.containsKey(restartedServer)
-        || ds.assignedCount != 0; ds = TabletLocations.retrieve(ctx, tableName)) {
+    for (ds = TabletLocations.retrieve(ctx, tableName);
+        ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0;
+        ds = TabletLocations.retrieve(ctx, tableName)) {
       Thread.sleep(1000);
     }
-    Assert.assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
+    assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
 
     // Finally, after much longer, remaining suspended tablets should be reassigned.
     log.info("Awaiting tablet reassignment for remaining tablets");
-    for (ds = TabletLocations.retrieve(ctx,
-        tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
+    for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS;
+        ds = TabletLocations.retrieve(ctx, tableName)) {
       Thread.sleep(1000);
     }
 
     long recoverTime = System.nanoTime();
-    Assert
-        .assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
+    assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
   }
 
-  private static interface TServerKiller {
-    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+  private interface TServerKiller {
+    void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
         throws Exception;
   }
 
@@ -329,7 +336,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         Thread.sleep(sleepTime);
         --remainingAttempts;
         if (remainingAttempts == 0) {
-          Assert.fail("Scanning of metadata failed, aborting");
+          fail("Scanning of metadata failed, aborting");
         }
       }
     }

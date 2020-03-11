@@ -85,8 +85,8 @@ public class RenameTable extends MasterRepo {
       final String newName = qualifiedNewTableName.getSecond();
       final String oldName = qualifiedOldTableName.getSecond();
 
-      final String tap = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId
-          + Constants.ZTABLE_NAME;
+      final String tap =
+          ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
 
       zoo.mutate(tap, null, null, new Mutator() {
         @Override

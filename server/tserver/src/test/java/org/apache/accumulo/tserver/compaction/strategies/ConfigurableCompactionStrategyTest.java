@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.tserver.compaction.strategies;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,7 +30,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ConfigurableCompactionStrategyTest {
@@ -53,11 +54,11 @@ public class ConfigurableCompactionStrategyTest {
 
     CompactionPlan plan = ccs.getCompactionPlan(mcr);
 
-    Assert.assertEquals(0, plan.writeParameters.getBlockSize());
-    Assert.assertEquals(0, plan.writeParameters.getHdfsBlockSize());
-    Assert.assertEquals(0, plan.writeParameters.getIndexBlockSize());
-    Assert.assertEquals(0, plan.writeParameters.getReplication());
-    Assert.assertEquals(null, plan.writeParameters.getCompressType());
+    assertEquals(0, plan.writeParameters.getBlockSize());
+    assertEquals(0, plan.writeParameters.getHdfsBlockSize());
+    assertEquals(0, plan.writeParameters.getIndexBlockSize());
+    assertEquals(0, plan.writeParameters.getReplication());
+    assertEquals(null, plan.writeParameters.getCompressType());
 
     // test setting all output options
     ccs = new ConfigurableCompactionStrategy();
@@ -72,14 +73,14 @@ public class ConfigurableCompactionStrategyTest {
 
     plan = ccs.getCompactionPlan(mcr);
 
-    Assert.assertEquals(AccumuloConfiguration.getMemoryInBytes("64K"),
+    assertEquals(AccumuloConfiguration.getMemoryInBytes("64K"),
         plan.writeParameters.getBlockSize());
-    Assert.assertEquals(AccumuloConfiguration.getMemoryInBytes("256M"),
+    assertEquals(AccumuloConfiguration.getMemoryInBytes("256M"),
         plan.writeParameters.getHdfsBlockSize());
-    Assert.assertEquals(AccumuloConfiguration.getMemoryInBytes("32K"),
+    assertEquals(AccumuloConfiguration.getMemoryInBytes("32K"),
         plan.writeParameters.getIndexBlockSize());
-    Assert.assertEquals(5, plan.writeParameters.getReplication());
-    Assert.assertEquals("snappy", plan.writeParameters.getCompressType());
+    assertEquals(5, plan.writeParameters.getReplication());
+    assertEquals("snappy", plan.writeParameters.getCompressType());
 
   }
 }

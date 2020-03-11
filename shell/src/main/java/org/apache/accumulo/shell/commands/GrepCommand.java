@@ -58,8 +58,8 @@ public class GrepCommand extends ScanCommand {
         numThreads = Integer.parseInt(cl.getOptionValue(numThreadsOpt.getOpt()));
       }
       final Authorizations auths = getAuths(cl, shellState);
-      final BatchScanner scanner = shellState.getConnector().createBatchScanner(tableName, auths,
-          numThreads);
+      final BatchScanner scanner =
+          shellState.getConnector().createBatchScanner(tableName, auths, numThreads);
       scanner.setRanges(Collections.singletonList(getRange(cl, interpeter)));
 
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);

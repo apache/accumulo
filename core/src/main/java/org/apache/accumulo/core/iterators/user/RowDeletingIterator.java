@@ -96,8 +96,9 @@ public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     this.source = source;
-    this.propogateDeletes = (env.getIteratorScope() == IteratorScope.majc
-        && !env.isFullMajorCompaction()) || env.getIteratorScope() == IteratorScope.minc;
+    this.propogateDeletes =
+        (env.getIteratorScope() == IteratorScope.majc && !env.isFullMajorCompaction())
+            || env.getIteratorScope() == IteratorScope.minc;
   }
 
   @Override

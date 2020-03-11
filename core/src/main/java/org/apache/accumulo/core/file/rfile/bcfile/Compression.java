@@ -156,8 +156,8 @@ public final class Compression {
 
       @Override
       CompressionCodec createNewCodec(int bufferSize) {
-        String extClazz = (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS)
-            : null);
+        String extClazz =
+            (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS) : null);
         String clazz = (extClazz != null) ? extClazz : defaultClazz;
         try {
           LOG.info("Trying to load Lzo codec class: " + clazz);
@@ -210,8 +210,8 @@ public final class Compression {
           bos1 = downStream;
         }
         CompressionOutputStream cos = codec.createOutputStream(bos1, compressor);
-        BufferedOutputStream bos2 = new BufferedOutputStream(
-            new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
+        BufferedOutputStream bos2 =
+            new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
       }
 
@@ -290,8 +290,8 @@ public final class Compression {
         }
         // always uses the default buffer size
         CompressionOutputStream cos = codec.createOutputStream(bos1, compressor);
-        BufferedOutputStream bos2 = new BufferedOutputStream(
-            new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
+        BufferedOutputStream bos2 =
+            new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
       }
 
@@ -319,7 +319,7 @@ public final class Compression {
       @Override
       public void initializeDefaultCodec() {
 
-    }
+      }
 
       @Override
       protected CompressionCodec createNewCodec(final int bufferSize) {
@@ -384,9 +384,8 @@ public final class Compression {
       @Override
       protected CompressionCodec createNewCodec(final int bufferSize) {
 
-        String extClazz = (conf.get(CONF_SNAPPY_CLASS) == null
-            ? System.getProperty(CONF_SNAPPY_CLASS)
-            : null);
+        String extClazz =
+            (conf.get(CONF_SNAPPY_CLASS) == null ? System.getProperty(CONF_SNAPPY_CLASS) : null);
         String clazz = (extClazz != null) ? extClazz : defaultClazz;
         try {
           LOG.info("Trying to load snappy codec class: " + clazz);
@@ -422,8 +421,8 @@ public final class Compression {
         }
         // use the default codec
         CompressionOutputStream cos = snappyCodec.createOutputStream(bos1, compressor);
-        BufferedOutputStream bos2 = new BufferedOutputStream(
-            new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
+        BufferedOutputStream bos2 =
+            new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
       }
 
@@ -483,14 +482,14 @@ public final class Compression {
     /**
      * Guava cache to have a limited factory pattern defined in the Algorithm enum.
      */
-    private static LoadingCache<Entry<Algorithm,Integer>,CompressionCodec> codecCache = CacheBuilder
-        .newBuilder().maximumSize(25)
-        .build(new CacheLoader<Entry<Algorithm,Integer>,CompressionCodec>() {
-          @Override
-          public CompressionCodec load(Entry<Algorithm,Integer> key) {
-            return key.getKey().createNewCodec(key.getValue());
-          }
-        });
+    private static LoadingCache<Entry<Algorithm,Integer>,CompressionCodec> codecCache =
+        CacheBuilder.newBuilder().maximumSize(25)
+            .build(new CacheLoader<Entry<Algorithm,Integer>,CompressionCodec>() {
+              @Override
+              public CompressionCodec load(Entry<Algorithm,Integer> key) {
+                return key.getKey().createNewCodec(key.getValue());
+              }
+            });
 
     // We require that all compression related settings are configured
     // statically in the Configuration object.

@@ -56,15 +56,16 @@ public class GarbageCollectWriteAheadLogsTest {
   private final TServerInstance server1 = new TServerInstance("localhost:1234[SESSION]");
   private final TServerInstance server2 = new TServerInstance("localhost:1234[OTHERSESS]");
   private final UUID id = UUID.randomUUID();
-  private final Map<TServerInstance,List<UUID>> markers = Collections.singletonMap(server1,
-      Collections.singletonList(id));
-  private final Map<TServerInstance,List<UUID>> markers2 = Collections.singletonMap(server2,
-      Collections.singletonList(id));
+  private final Map<TServerInstance,List<UUID>> markers =
+      Collections.singletonMap(server1, Collections.singletonList(id));
+  private final Map<TServerInstance,List<UUID>> markers2 =
+      Collections.singletonMap(server2, Collections.singletonList(id));
   private final Path path = new Path("hdfs://localhost:9000/accumulo/wal/localhost+1234/" + id);
   private final KeyExtent extent = new KeyExtent(new Text("1<"), new Text(new byte[] {0}));
   private final Collection<Collection<String>> walogs = Collections.emptyList();
   private final TabletLocationState tabletAssignedToServer1;
   private final TabletLocationState tabletAssignedToServer2;
+
   {
     try {
       tabletAssignedToServer1 = new TabletLocationState(extent, (TServerInstance) null, server1,
@@ -75,10 +76,11 @@ public class GarbageCollectWriteAheadLogsTest {
       throw new RuntimeException(ex);
     }
   }
-  private final Iterable<TabletLocationState> tabletOnServer1List = Collections
-      .singletonList(tabletAssignedToServer1);
-  private final Iterable<TabletLocationState> tabletOnServer2List = Collections
-      .singletonList(tabletAssignedToServer2);
+
+  private final Iterable<TabletLocationState> tabletOnServer1List =
+      Collections.singletonList(tabletAssignedToServer1);
+  private final Iterable<TabletLocationState> tabletOnServer2List =
+      Collections.singletonList(tabletAssignedToServer2);
   private final List<Entry<Key,Value>> emptyList = Collections.emptyList();
   private final Iterator<Entry<Key,Value>> emptyKV = emptyList.iterator();
 
@@ -91,6 +93,8 @@ public class GarbageCollectWriteAheadLogsTest {
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
+    tserverSet.scanServers();
+    EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
 
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
@@ -125,7 +129,10 @@ public class GarbageCollectWriteAheadLogsTest {
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
+    tserverSet.scanServers();
+    EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
+
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
     EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.CLOSED, path));
     EasyMock.replay(context, marker, tserverSet, fs);
@@ -157,7 +164,11 @@ public class GarbageCollectWriteAheadLogsTest {
     Scanner rscanner = EasyMock.createMock(Scanner.class);
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
+
+    tserverSet.scanServers();
+    EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
+
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
     EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
     EasyMock.expect(context.getConnector()).andReturn(conn);
@@ -203,7 +214,11 @@ public class GarbageCollectWriteAheadLogsTest {
     Scanner rscanner = EasyMock.createMock(Scanner.class);
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
+
+    tserverSet.scanServers();
+    EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
+
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
     EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
     EasyMock.expect(context.getConnector()).andReturn(conn);
@@ -245,12 +260,15 @@ public class GarbageCollectWriteAheadLogsTest {
     String row = MetadataSchema.ReplicationSection.getRowPrefix() + path.toString();
     String colf = MetadataSchema.ReplicationSection.COLF.toString();
     String colq = "1";
-    Map<Key,Value> replicationWork = Collections.singletonMap(new Key(row, colf, colq),
-        new Value(new byte[0]));
+    Map<Key,Value> replicationWork =
+        Collections.singletonMap(new Key(row, colf, colq), new Value(new byte[0]));
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
+    tserverSet.scanServers();
+    EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
+
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
     EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.UNREFERENCED, path));
     EasyMock.expect(context.getConnector()).andReturn(conn);

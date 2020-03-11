@@ -20,6 +20,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -33,7 +34,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -90,8 +90,8 @@ public class SequentialWorkAssignerTest {
 
     verify(workQueue, zooCache, conn, inst);
 
-    Assert.assertEquals(1, cluster1Work.size());
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2",
+    assertEquals(1, cluster1Work.size());
+    assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2",
         new ReplicationTarget("cluster1", "2", "2")), cluster1Work.get("2"));
   }
 }

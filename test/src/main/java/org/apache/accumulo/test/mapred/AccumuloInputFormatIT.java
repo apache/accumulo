@@ -51,7 +51,6 @@ import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Level;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -172,8 +171,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     assertNull(e2);
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
@@ -191,18 +191,18 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     bw.close();
 
     MRTester.main(TEST_TABLE_3, "False", "True");
-    Assert.assertEquals(38, e1Count);
-    Assert.assertEquals(1, e2Count);
+    assertEquals(38, e1Count);
+    assertEquals(1, e2Count);
 
     e2Count = e1Count = 0;
     MRTester.main(TEST_TABLE_3, "False", "False");
-    Assert.assertEquals(0, e1Count);
-    Assert.assertEquals(0, e2Count);
+    assertEquals(0, e1Count);
+    assertEquals(0, e2Count);
 
     e2Count = e1Count = 0;
     MRTester.main(TEST_TABLE_3, "True", "True");
-    Assert.assertEquals(38, e1Count);
-    Assert.assertEquals(1, e2Count);
+    assertEquals(38, e1Count);
+    assertEquals(1, e2Count);
 
   }
 
@@ -212,8 +212,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections
-        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
@@ -233,22 +233,22 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     InputSplit[] splits = aif.getSplits(job, 1);
 
-    Assert.assertEquals(1, splits.length);
+    assertEquals(1, splits.length);
 
     InputSplit split = splits[0];
 
-    Assert.assertEquals(RangeInputSplit.class, split.getClass());
+    assertEquals(RangeInputSplit.class, split.getClass());
 
     RangeInputSplit risplit = (RangeInputSplit) split;
 
-    Assert.assertEquals(getAdminPrincipal(), risplit.getPrincipal());
-    Assert.assertEquals(table, risplit.getTableName());
-    Assert.assertEquals(getAdminToken(), risplit.getToken());
-    Assert.assertEquals(auths, risplit.getAuths());
-    Assert.assertEquals(getConnector().getInstance().getInstanceName(), risplit.getInstanceName());
-    Assert.assertEquals(isolated, risplit.isIsolatedScan());
-    Assert.assertEquals(localIters, risplit.usesLocalIterators());
-    Assert.assertEquals(fetchColumns, risplit.getFetchedColumns());
-    Assert.assertEquals(level, risplit.getLogLevel());
+    assertEquals(getAdminPrincipal(), risplit.getPrincipal());
+    assertEquals(table, risplit.getTableName());
+    assertEquals(getAdminToken(), risplit.getToken());
+    assertEquals(auths, risplit.getAuths());
+    assertEquals(getConnector().getInstance().getInstanceName(), risplit.getInstanceName());
+    assertEquals(isolated, risplit.isIsolatedScan());
+    assertEquals(localIters, risplit.usesLocalIterators());
+    assertEquals(fetchColumns, risplit.getFetchedColumns());
+    assertEquals(level, risplit.getLogLevel());
   }
 }

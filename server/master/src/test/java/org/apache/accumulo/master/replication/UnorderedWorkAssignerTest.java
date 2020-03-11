@@ -21,6 +21,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -39,7 +41,6 @@ import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHe
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -66,10 +67,10 @@ public class UnorderedWorkAssignerTest {
 
     Path p = new Path("/accumulo/wal/tserver+port/" + UUID.randomUUID());
 
-    String expectedQueueKey = p.getName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getSourceTableId();
+    String expectedQueueKey =
+        p.getName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getPeerName()
+            + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier()
+            + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();
 
     workQueue.addWork(expectedQueueKey, p.toString());
     expectLastCall().once();
@@ -78,16 +79,16 @@ public class UnorderedWorkAssignerTest {
 
     assigner.queueWork(p, target);
 
-    Assert.assertEquals(1, queuedWork.size());
-    Assert.assertEquals(expectedQueueKey, queuedWork.iterator().next());
+    assertEquals(1, queuedWork.size());
+    assertEquals(expectedQueueKey, queuedWork.iterator().next());
   }
 
   @Test
   public void existingWorkIsReQueued() throws Exception {
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
 
-    List<String> existingWork = Arrays.asList("/accumulo/wal/tserver+port/wal1",
-        "/accumulo/wal/tserver+port/wal2");
+    List<String> existingWork =
+        Arrays.asList("/accumulo/wal/tserver+port/wal1", "/accumulo/wal/tserver+port/wal2");
     expect(workQueue.getWorkQueued()).andReturn(existingWork);
 
     replay(workQueue);
@@ -98,10 +99,9 @@ public class UnorderedWorkAssignerTest {
     verify(workQueue);
 
     Set<String> queuedWork = assigner.getQueuedWork();
-    Assert.assertEquals("Expected existing work and queued work to be the same size",
-        existingWork.size(), queuedWork.size());
-    Assert.assertTrue("Expected all existing work to be queued",
-        queuedWork.containsAll(existingWork));
+    assertEquals("Expected existing work and queued work to be the same size", existingWork.size(),
+        queuedWork.size());
+    assertTrue("Expected all existing work to be queued", queuedWork.containsAll(existingWork));
   }
 
   @Test
@@ -125,7 +125,7 @@ public class UnorderedWorkAssignerTest {
     assigner.cleanupFinishedWork();
 
     verify(cache, inst, conn);
-    Assert.assertTrue("Queued work was not emptied", queuedWork.isEmpty());
+    assertTrue("Queued work was not emptied", queuedWork.isEmpty());
   }
 
 }

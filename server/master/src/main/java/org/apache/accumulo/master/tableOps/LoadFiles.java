@@ -135,8 +135,8 @@ class LoadFiles extends MasterRepo {
       // Use the threadpool to assign files one-at-a-time to the server
       final List<String> loaded = Collections.synchronizedList(new ArrayList<String>());
       final Random random = new Random();
-      final TServerInstance[] servers = master.onlineTabletServers()
-          .toArray(new TServerInstance[0]);
+      final TServerInstance[] servers =
+          master.onlineTabletServers().toArray(new TServerInstance[0]);
       for (final String file : filesToLoad) {
         results.add(executor.submit(new Callable<List<String>>() {
           @Override
@@ -149,8 +149,8 @@ class LoadFiles extends MasterRepo {
               // because
               // this is running on the master and there are lots of connections to tablet servers
               // serving the metadata tablets
-              long timeInMillis = master.getConfiguration()
-                  .getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
+              long timeInMillis =
+                  master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
               // Pair<String,Client> pair = ServerClient.getConnection(master, false, timeInMillis);
               server = servers[random.nextInt(servers.length)].getLocation();
               client = ThriftUtil.getTServerClient(server, master, timeInMillis);

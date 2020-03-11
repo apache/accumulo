@@ -155,7 +155,7 @@ public abstract class TabletBalancer {
    * OutstandingMigrations is not thread safe.
    */
   protected static class OutstandingMigrations extends BalancerProblem {
-    public Set<KeyExtent> migrations = Collections.<KeyExtent> emptySet();
+    public Set<KeyExtent> migrations = Collections.<KeyExtent>emptySet();
 
     public OutstandingMigrations(Logger logger) {
       super(logger);

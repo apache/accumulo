@@ -22,12 +22,12 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Before;
 import org.junit.Rule;
@@ -51,13 +51,13 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testSetIterator() throws IOException {
-    IteratorSetting is = new IteratorSetting(1, "WholeRow",
-        "org.apache.accumulo.core.iterators.WholeRowIterator");
+    IteratorSetting is =
+        new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator");
     AccumuloInputFormat.addIterator(job, is);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     is.write(new DataOutputStream(baos));
     String iterators = job.get("AccumuloInputFormat.ScanOpts.Iterators");
-    assertEquals(Base64.encodeBase64String(baos.toByteArray()), iterators);
+    assertEquals(Base64.getEncoder().encodeToString(baos.toByteArray()), iterators);
   }
 
   @Test
@@ -66,8 +66,8 @@ public class AccumuloInputFormatTest {
         new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions",
         "org.apache.accumulo.core.iterators.VersioningIterator"));
-    IteratorSetting iter = new IteratorSetting(3, "Count",
-        "org.apache.accumulo.core.iterators.CountingIterator");
+    IteratorSetting iter =
+        new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator");
     iter.addOption("v1", "1");
     iter.addOption("junk", "\0omg:!\\xyzzy");
     AccumuloInputFormat.addIterator(job, iter);

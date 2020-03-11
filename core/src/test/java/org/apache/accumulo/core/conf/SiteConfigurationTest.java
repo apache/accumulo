@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
@@ -23,12 +26,8 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 
 public class SiteConfigurationTest {
   private static boolean isCredentialProviderAvailable;
@@ -58,7 +57,7 @@ public class SiteConfigurationTest {
     // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
     // 'general.rpc.timeout'=>'timeout'}
     URL keystore = SiteConfigurationTest.class.getResource("/site-cfg.jceks");
-    Assert.assertNotNull(keystore);
+    assertNotNull(keystore);
     String keystorePath = new File(keystore.getFile()).getAbsolutePath();
 
     Configuration hadoopConf = new Configuration();
@@ -70,12 +69,11 @@ public class SiteConfigurationTest {
     EasyMock.replay(siteCfg);
 
     Map<String,String> props = new HashMap<>();
-    Predicate<String> all = Predicates.alwaysTrue();
-    siteCfg.getProperties(props, all);
+    siteCfg.getProperties(props, all -> true);
 
-    Assert.assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
-    Assert.assertEquals(null, props.get("ignored.property"));
-    Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
+    assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
+    assertEquals(null, props.get("ignored.property"));
+    assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
         props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
   }
 

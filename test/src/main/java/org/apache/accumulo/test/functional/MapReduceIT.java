@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Map.Entry;
 
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.examples.simple.mapreduce.RowHash;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.io.Text;
@@ -50,8 +50,8 @@ public class MapReduceIT extends ConfigurableMacBase {
     return 60;
   }
 
-  public static final String hadoopTmpDirArg = "-Dhadoop.tmp.dir=" + System.getProperty("user.dir")
-      + "/target/hadoop-tmp";
+  public static final String hadoopTmpDirArg =
+      "-Dhadoop.tmp.dir=" + System.getProperty("user.dir") + "/target/hadoop-tmp";
 
   static final String tablename = "mapredf";
   static final String input_cf = "cf-HASHTYPE";
@@ -86,7 +86,7 @@ public class MapReduceIT extends ConfigurableMacBase {
     int i = 0;
     for (Entry<Key,Value> entry : s) {
       MessageDigest md = MessageDigest.getInstance("MD5");
-      byte[] check = Base64.encodeBase64(md.digest(("row" + i).getBytes()));
+      byte[] check = Base64.getEncoder().encode(md.digest(("row" + i).getBytes()));
       assertEquals(entry.getValue().toString(), new String(check));
       i++;
     }

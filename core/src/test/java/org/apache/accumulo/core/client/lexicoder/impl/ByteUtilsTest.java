@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.core.client.lexicoder.impl;
 
-import org.junit.Assert;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
 
 public class ByteUtilsTest {
@@ -31,17 +33,17 @@ public class ByteUtilsTest {
 
     // always returns the original array itself
     result = ByteUtils.split(empty);
-    Assert.assertEquals(1, result.length);
-    Assert.assertArrayEquals(empty, result[0]);
+    assertEquals(1, result.length);
+    assertArrayEquals(empty, result[0]);
 
     result = ByteUtils.split(noSplits);
-    Assert.assertEquals(1, result.length);
-    Assert.assertArrayEquals(noSplits, result[0]);
+    assertEquals(1, result.length);
+    assertArrayEquals(noSplits, result[0]);
 
     result = ByteUtils.split(splitAt5);
-    Assert.assertEquals(2, result.length);
-    Assert.assertArrayEquals("1234".getBytes(), result[0]);
-    Assert.assertArrayEquals("56789".getBytes(), result[1]);
+    assertEquals(2, result.length);
+    assertArrayEquals("1234".getBytes(), result[0]);
+    assertArrayEquals("56789".getBytes(), result[1]);
   }
 
   public void testSplitWithOffset() {
@@ -51,21 +53,21 @@ public class ByteUtilsTest {
     // still see both splits
     offset = 4;
     result = ByteUtils.split(splitAt5, offset, splitAt5.length - offset);
-    Assert.assertEquals(2, result.length);
-    Assert.assertArrayEquals(empty, result[0]);
-    Assert.assertArrayEquals("56789".getBytes(), result[1]);
+    assertEquals(2, result.length);
+    assertArrayEquals(empty, result[0]);
+    assertArrayEquals("56789".getBytes(), result[1]);
 
     // should only see 1 split at this offset
     offset = 5;
     result = ByteUtils.split(splitAt5, offset, splitAt5.length - offset);
-    Assert.assertEquals(1, result.length);
-    Assert.assertArrayEquals("56789".getBytes(), result[0]);
+    assertEquals(1, result.length);
+    assertArrayEquals("56789".getBytes(), result[0]);
 
     // still one split, but smaller ending
     offset = 5;
     int len = splitAt5.length - offset - 1;
     result = ByteUtils.split(splitAt5, offset, len);
-    Assert.assertEquals(1, result.length);
-    Assert.assertArrayEquals("5678".getBytes(), result[0]);
+    assertEquals(1, result.length);
+    assertArrayEquals("5678".getBytes(), result[0]);
   }
 }

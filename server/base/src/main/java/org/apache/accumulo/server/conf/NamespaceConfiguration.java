@@ -30,6 +30,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,6 +106,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     return getPropCacheAccessor().get(property, getPath(), getParent);
   }
 
+  @SuppressModernizer
   private class SystemNamespaceFilter implements Predicate<String> {
 
     private Predicate<String> userFilter;
@@ -123,6 +125,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   }
 
   @Override
+  @SuppressModernizer
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     Predicate<String> parentFilter = filter;
     // exclude system iterators/constraints from the system namespace

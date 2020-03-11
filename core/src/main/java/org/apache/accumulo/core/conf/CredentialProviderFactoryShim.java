@@ -42,25 +42,23 @@ import org.slf4j.LoggerFactory;
 public class CredentialProviderFactoryShim {
   private static final Logger log = LoggerFactory.getLogger(CredentialProviderFactoryShim.class);
 
-  // @formatter:off
   public static final String HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME =
-    "org.apache.hadoop.security.alias.JavaKeyStoreProvider$Factory";
+      "org.apache.hadoop.security.alias.JavaKeyStoreProvider$Factory";
   public static final String HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME =
-    "getProviders";
+      "getProviders";
 
   public static final String HADOOP_CRED_PROVIDER_CLASS_NAME =
-    "org.apache.hadoop.security.alias.CredentialProvider";
+      "org.apache.hadoop.security.alias.CredentialProvider";
   public static final String HADOOP_CRED_PROVIDER_GET_CREDENTIAL_ENTRY_METHOD_NAME =
-    "getCredentialEntry";
+      "getCredentialEntry";
   public static final String HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME = "getAliases";
   public static final String HADOOP_CRED_PROVIDER_CREATE_CREDENTIAL_ENTRY_METHOD_NAME =
-    "createCredentialEntry";
+      "createCredentialEntry";
   public static final String HADOOP_CRED_PROVIDER_FLUSH_METHOD_NAME = "flush";
 
   public static final String HADOOP_CRED_ENTRY_CLASS_NAME =
-    "org.apache.hadoop.security.alias.CredentialProvider$CredentialEntry";
+      "org.apache.hadoop.security.alias.CredentialProvider$CredentialEntry";
   public static final String HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME = "getCredential";
-  // @formatter:on
 
   public static final String CREDENTIAL_PROVIDER_PATH = "hadoop.security.credential.provider.path";
 
@@ -75,7 +73,8 @@ public class CredentialProviderFactoryShim {
 
   // access to cachedProviders should be synchronized when necessary (for example see
   // getCredentialProviders)
-  private static final ConcurrentHashMap<String,List<Object>> cachedProviders = new ConcurrentHashMap<>();
+  private static final ConcurrentHashMap<String,List<Object>> cachedProviders =
+      new ConcurrentHashMap<>();
 
   /**
    * Determine if we can load the necessary CredentialProvider classes. Only loaded the first time,
@@ -161,8 +160,8 @@ public class CredentialProviderFactoryShim {
 
     // Load Hadoop CredentialProvider.getAliases()
     try {
-      getAliasesMethod = hadoopCredProviderClz
-          .getMethod(HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME);
+      getAliasesMethod =
+          hadoopCredProviderClz.getMethod(HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME);
     } catch (SecurityException e) {
       log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME,
           HADOOP_CRED_PROVIDER_CLASS_NAME, e);
@@ -213,8 +212,8 @@ public class CredentialProviderFactoryShim {
 
     // Load Hadoop CredentialEntry.getCredential()
     try {
-      getCredentialMethod = hadoopCredentialEntryClz
-          .getMethod(HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME);
+      getCredentialMethod =
+          hadoopCredentialEntryClz.getMethod(HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME);
     } catch (SecurityException e) {
       log.trace("Could not find {} method on {}", HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME,
           HADOOP_CRED_ENTRY_CLASS_NAME, e);

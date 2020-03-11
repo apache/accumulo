@@ -90,8 +90,8 @@ public class MockScannerTest {
 
   @Test
   public void testEnvironment() throws Exception {
-    MockScannerBase.MockIteratorEnvironment env = new MockScannerBase.MockIteratorEnvironment(
-        Authorizations.EMPTY);
+    MockScannerBase.MockIteratorEnvironment env =
+        new MockScannerBase.MockIteratorEnvironment(Authorizations.EMPTY);
     assertFalse(env.isSamplingEnabled());
     assertNull(env.getSamplerConfiguration());
     try {

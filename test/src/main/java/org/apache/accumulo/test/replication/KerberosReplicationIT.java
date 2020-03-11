@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.security.PrivilegedExceptionAction;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -52,9 +56,9 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
@@ -65,6 +69,7 @@ import com.google.common.collect.Iterators;
 /**
  * Ensure that replication occurs using keytabs instead of password (not to mention SASL)
  */
+@Ignore("Replication ITs are not stable and not currently maintained")
 @Category(MiniClusterOnlyTests.class)
 public class KerberosReplicationIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosIT.class);
@@ -189,11 +194,11 @@ public class KerberosReplicationIT extends AccumuloITBase {
         // Create tables
         primaryConn.tableOperations().create(primaryTable1);
         String masterTableId1 = primaryConn.tableOperations().tableIdMap().get(primaryTable1);
-        Assert.assertNotNull(masterTableId1);
+        assertNotNull(masterTableId1);
 
         peerConn.tableOperations().create(peerTable1);
         String peerTableId1 = peerConn.tableOperations().tableIdMap().get(peerTable1);
-        Assert.assertNotNull(peerTableId1);
+        assertNotNull(peerTableId1);
 
         // Grant write permission
         peerConn.securityOperations().grantTablePermission(replicationUser.getPrincipal(),
@@ -242,12 +247,12 @@ public class KerberosReplicationIT extends AccumuloITBase {
         long countTable = 0l;
         for (Entry<Key,Value> entry : peerConn.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
-          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
               + entry.getValue(), entry.getKey().getRow().toString().startsWith(primaryTable1));
         }
 
         log.info("Found {} records in {}", countTable, peerTable1);
-        Assert.assertEquals(masterTable1Records, countTable);
+        assertEquals(masterTable1Records, countTable);
 
         return null;
       }

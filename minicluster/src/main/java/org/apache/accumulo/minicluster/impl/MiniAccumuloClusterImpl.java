@@ -109,7 +109,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -268,8 +267,20 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               append(classpathBuilder, f.getURL());
             }
           } else {
-            throw new IllegalArgumentException(
-                "Unknown classloader type : " + classLoader.getClass().getName());
+            if (classLoader.getClass().getName()
+                .equals("jdk.internal.loader.ClassLoaders$AppClassLoader")) {
+              log.debug("Detected Java 11 classloader: {}", classLoader.getClass().getName());
+            } else {
+              log.debug("Detected unknown classloader: {}", classLoader.getClass().getName());
+            }
+            String javaClassPath = System.getProperty("java.class.path");
+            if (javaClassPath == null) {
+              throw new IllegalStateException("java.class.path is not set");
+            } else {
+              log.debug("Using classpath set by java.class.path system property: {}",
+                  javaClassPath);
+            }
+            classpathBuilder.append(File.pathSeparator).append(javaClassPath);
           }
         }
       } else {
@@ -446,13 +457,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     File clientConfFile = config.getClientConfFile();
     // Write only the properties that correspond to ClientConfiguration properties
-    writeConfigProperties(clientConfFile,
-        Maps.filterEntries(config.getSiteConfig(), new Predicate<Entry<String,String>>() {
-          @Override
-          public boolean apply(Entry<String,String> v) {
-            return ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null;
-          }
-        }));
+    writeConfigProperties(clientConfFile, Maps.filterEntries(config.getSiteConfig(),
+        v -> ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null));
 
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
     writeConfig(siteFile, config.getSiteConfig().entrySet());
@@ -498,8 +504,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     fileWriter.append("<configuration>\n");
 
     for (Entry<String,String> entry : settings) {
-      String value = entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">",
-          "&gt;");
+      String value =
+          entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
       fileWriter.append(
           "<property><name>" + entry.getKey() + "</name><value>" + value + "</value></property>\n");
     }
@@ -623,8 +629,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         args.add("--clear-instance-name");
 
         // If we aren't using SASL, add in the root password
-        final String saslEnabled = config.getSiteConfig()
-            .get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
+        final String saslEnabled =
+            config.getSiteConfig().get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
         if (null == saslEnabled || !Boolean.parseBoolean(saslEnabled)) {
           args.add("--password");
           args.add(config.getRootPassword());

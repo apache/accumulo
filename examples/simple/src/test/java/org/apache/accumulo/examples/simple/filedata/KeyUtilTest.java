@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.examples.simple.filedata;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class KeyUtilTest extends TestCase {
+public class KeyUtilTest {
   public static void checkSeps(String... s) {
     Text t = KeyUtil.buildNullSepText(s);
     String[] rets = KeyUtil.splitNullSepText(t);
@@ -34,6 +35,7 @@ public class KeyUtilTest extends TestCase {
       assertEquals(s[i], rets[i]);
   }
 
+  @Test
   public void testNullSep() {
     checkSeps("abc", "d", "", "efgh");
     checkSeps("ab", "");

@@ -14,7 +14,6 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
 namespace java org.apache.accumulo.core.replication.thrift
 namespace cpp org.apache.accumulo.core.replication.thrift
 
@@ -22,11 +21,11 @@ include "data.thrift"
 include "security.thrift"
 
 struct WalEdits {
-    1:list<binary> edits
+  1:list<binary> edits
 }
 
 struct KeyValues {
-    1:list<data.TKeyValue> keyValues
+  1:list<data.TKeyValue> keyValues
 }
 
 enum RemoteReplicationErrorCode {
@@ -44,20 +43,42 @@ enum ReplicationCoordinatorErrorCode {
 }
 
 exception ReplicationCoordinatorException {
-    1:ReplicationCoordinatorErrorCode code,
-    2:string reason
+  1:ReplicationCoordinatorErrorCode code
+  2:string reason
 }
 
 exception RemoteReplicationException {
-    1:RemoteReplicationErrorCode code,
-    2:string reason
+  1:RemoteReplicationErrorCode code
+  2:string reason
 }
 
 service ReplicationCoordinator {
-	string getServicerAddress(1:string remoteTableId, 2:security.TCredentials credentials) throws (1:ReplicationCoordinatorException e),
+
+  string getServicerAddress(
+    1:string remoteTableId
+    2:security.TCredentials credentials
+  ) throws (
+    1:ReplicationCoordinatorException e
+  )
+
 }
 
 service ReplicationServicer {
-    i64 replicateLog(1:string remoteTableId, 2:WalEdits data, 3:security.TCredentials credentials) throws (1:RemoteReplicationException e),
-    i64 replicateKeyValues(1:string remoteTableId, 2:KeyValues data, 3:security.TCredentials credentials) throws (1:RemoteReplicationException e)
+
+  i64 replicateLog(
+    1:string remoteTableId
+    2:WalEdits data
+    3:security.TCredentials credentials
+  ) throws (
+    1:RemoteReplicationException e
+  )
+
+  i64 replicateKeyValues(
+    1:string remoteTableId
+    2:KeyValues data
+    3:security.TCredentials credentials
+  ) throws (
+    1:RemoteReplicationException e
+  )
+
 }

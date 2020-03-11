@@ -33,8 +33,8 @@ public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLoc
   public static void main(String args[]) throws InterruptedException, KeeperException {
     ZooQueueLock lock = new ZooQueueLock("/lock", true);
     DistributedReadWriteLock rlocker = new DistributedReadWriteLock(lock, "reader".getBytes(UTF_8));
-    DistributedReadWriteLock wlocker = new DistributedReadWriteLock(lock,
-        "wlocker".getBytes(UTF_8));
+    DistributedReadWriteLock wlocker =
+        new DistributedReadWriteLock(lock, "wlocker".getBytes(UTF_8));
     final Lock readLock = rlocker.readLock();
     readLock.lock();
     final Lock readLock2 = rlocker.readLock();

@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -28,7 +31,6 @@ import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -36,8 +38,8 @@ import org.junit.rules.TemporaryFolder;
 
 public class AccumuloReloadingVFSClassLoaderTest {
 
-  private TemporaryFolder folder1 = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  private TemporaryFolder folder1 =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
   String folderPath;
   private FileSystemManager vfs;
 
@@ -71,8 +73,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
-        new ReloadingClassLoader() {
+    AccumuloReloadingVFSClassLoader arvcl =
+        new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
           @Override
           public ClassLoader getClassLoader() {
             return ClassLoader.getSystemClassLoader();
@@ -82,7 +84,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     VFSClassLoader cl = (VFSClassLoader) arvcl.getClassLoader();
 
     FileObject[] files = cl.getFileObjects();
-    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    assertArrayEquals(createFileSystems(dirContents), files);
 
     arvcl.close();
   }
@@ -92,8 +94,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
-        new ReloadingClassLoader() {
+    AccumuloReloadingVFSClassLoader arvcl =
+        new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
           @Override
           public ClassLoader getClassLoader() {
             return ClassLoader.getSystemClassLoader();
@@ -101,15 +103,15 @@ public class AccumuloReloadingVFSClassLoaderTest {
         }, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
-    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    assertArrayEquals(createFileSystems(dirContents), files);
 
     Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
-    Assert.assertEquals("Hello World!", o1.toString());
+    assertEquals("Hello World!", o1.toString());
 
     // Check that the class is the same before the update
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-    Assert.assertEquals(clazz1, clazz1_5);
+    assertEquals(clazz1, clazz1_5);
 
     assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
 
@@ -126,11 +128,11 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
-    Assert.assertEquals("Hello World!", o2.toString());
+    assertEquals("Hello World!", o2.toString());
 
     // This is false because they are loaded by a different classloader
-    Assert.assertFalse(clazz1.equals(clazz2));
-    Assert.assertFalse(o1.equals(o2));
+    assertFalse(clazz1.equals(clazz2));
+    assertFalse(o1.equals(o2));
 
     arvcl.close();
   }
@@ -147,8 +149,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
-        new ReloadingClassLoader() {
+    AccumuloReloadingVFSClassLoader arvcl =
+        new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
 
           @Override
           public ClassLoader getClassLoader() {
@@ -157,15 +159,15 @@ public class AccumuloReloadingVFSClassLoaderTest {
         }, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
-    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    assertArrayEquals(createFileSystems(dirContents), files);
 
     Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
-    Assert.assertEquals("Hello World!", o1.toString());
+    assertEquals("Hello World!", o1.toString());
 
     // Check that the class is the same before the update
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-    Assert.assertEquals(clazz1, clazz1_5);
+    assertEquals(clazz1, clazz1_5);
 
     assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
 
@@ -179,11 +181,11 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
-    Assert.assertEquals("Hello World!", o2.toString());
+    assertEquals("Hello World!", o2.toString());
 
     // This is false because they are loaded by a different classloader
-    Assert.assertFalse(clazz1.equals(clazz2));
-    Assert.assertFalse(o1.equals(o2));
+    assertFalse(clazz1.equals(clazz2));
+    assertFalse(o1.equals(o2));
 
     arvcl.close();
   }
@@ -195,8 +197,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
-        new ReloadingClassLoader() {
+    AccumuloReloadingVFSClassLoader arvcl =
+        new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
           @Override
           public ClassLoader getClassLoader() {
             return ClassLoader.getSystemClassLoader();
@@ -204,16 +206,16 @@ public class AccumuloReloadingVFSClassLoaderTest {
         }, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
-    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    assertArrayEquals(createFileSystems(dirContents), files);
 
     ClassLoader loader1 = arvcl.getClassLoader();
     Class<?> clazz1 = loader1.loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
-    Assert.assertEquals("Hello World!", o1.toString());
+    assertEquals("Hello World!", o1.toString());
 
     // Check that the class is the same before the update
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-    Assert.assertEquals(clazz1, clazz1_5);
+    assertEquals(clazz1, clazz1_5);
 
     // java does aggressive caching of jar files. When using java code to read jar files that are
     // created in the same second, it will only see the first jar
@@ -232,15 +234,15 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
-    Assert.assertEquals("Hallo Welt", o2.toString());
+    assertEquals("Hallo Welt", o2.toString());
 
     // This is false because they are loaded by a different classloader
-    Assert.assertFalse(clazz1.equals(clazz2));
-    Assert.assertFalse(o1.equals(o2));
+    assertFalse(clazz1.equals(clazz2));
+    assertFalse(o1.equals(o2));
 
     Class<?> clazz3 = loader1.loadClass("test.HelloWorld");
     Object o3 = clazz3.newInstance();
-    Assert.assertEquals("Hello World!", o3.toString());
+    assertEquals("Hello World!", o3.toString());
 
     arvcl.close();
   }

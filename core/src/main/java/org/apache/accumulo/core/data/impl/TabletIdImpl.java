@@ -20,43 +20,38 @@ package org.apache.accumulo.core.data.impl;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.hadoop.io.Text;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 
 import com.google.common.base.Function;
 
+@SuppressModernizer
 public class TabletIdImpl implements TabletId {
 
   private KeyExtent ke;
 
   @SuppressWarnings("deprecation")
-  // @formatter:off
   public static final Function<org.apache.accumulo.core.data.KeyExtent,TabletId> KE_2_TID_OLD =
-    new Function<org.apache.accumulo.core.data.KeyExtent,TabletId>() {
-    @Override
-    public TabletId apply(org.apache.accumulo.core.data.KeyExtent input) {
-      // the following if null check is to appease findbugs... grumble grumble spent a good part of
-      // my morning looking into this
-      // http://sourceforge.net/p/findbugs/bugs/1139/
-      // https://code.google.com/p/guava-libraries/issues/detail?id=920
-      if (input == null)
-        return null;
-      return new TabletIdImpl(input);
-    }
-  };
-  // @formatter:on
+      new Function<org.apache.accumulo.core.data.KeyExtent,TabletId>() {
+        @Override
+        public TabletId apply(org.apache.accumulo.core.data.KeyExtent input) {
+          // Ensure parameter isn't null; see also:
+          // http://sourceforge.net/p/findbugs/bugs/1139/
+          // https://code.google.com/p/guava-libraries/issues/detail?id=920
+          return input == null ? null : new TabletIdImpl(input);
+        }
+      };
 
   @SuppressWarnings("deprecation")
-  // @formatter:off
   public static final Function<TabletId,org.apache.accumulo.core.data.KeyExtent> TID_2_KE_OLD =
-    new Function<TabletId,org.apache.accumulo.core.data.KeyExtent>() {
-    @Override
-    public org.apache.accumulo.core.data.KeyExtent apply(TabletId input) {
-      if (input == null)
-        return null;
-      return new org.apache.accumulo.core.data.KeyExtent(input.getTableId(), input.getEndRow(),
-          input.getPrevEndRow());
-    }
-  };
-  // @formatter:on
+      new Function<TabletId,org.apache.accumulo.core.data.KeyExtent>() {
+        @Override
+        public org.apache.accumulo.core.data.KeyExtent apply(TabletId input) {
+          if (input == null)
+            return null;
+          return new org.apache.accumulo.core.data.KeyExtent(input.getTableId(), input.getEndRow(),
+              input.getPrevEndRow());
+        }
+      };
 
   @Deprecated
   public TabletIdImpl(org.apache.accumulo.core.data.KeyExtent ke) {

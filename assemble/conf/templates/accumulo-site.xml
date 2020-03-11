@@ -64,6 +64,11 @@
   </property>
 
   <property>
+    <name>tserver.total.mutation.queue.max</name>
+    <value>${mutQueueTotal}</value>
+  </property>
+
+  <property>
     <name>trace.token.property.password</name>
     <!-- change this to the root user's password, and/or change the user below -->
     <value>secret</value>
@@ -134,6 +139,7 @@ ${mvnProjBaseDir}
       $ACCUMULO_HOME/lib/[^.].*.jar,
       <!-- ZooKeeper requirements -->
       $ZOOKEEPER_HOME/zookeeper[^.].*.jar,
+      $ZOOKEEPER_HOME/lib/zookeeper[^.].*.jar,
       <!-- Common Hadoop requirements -->
       $HADOOP_CONF_DIR,
       <!-- Hadoop 2 requirements -->

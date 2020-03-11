@@ -17,6 +17,10 @@
 package org.apache.accumulo.core.client.security.tokens;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +28,6 @@ import java.net.URL;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -45,7 +48,7 @@ public class CredentialProviderTokenTest {
     }
 
     URL keystoreUrl = CredentialProviderTokenTest.class.getResource("/passwords.jceks");
-    Assert.assertNotNull(keystoreUrl);
+    assertNotNull(keystoreUrl);
     keystorePath = "jceks://file/" + new File(keystoreUrl.getFile()).getAbsolutePath();
   }
 
@@ -56,10 +59,10 @@ public class CredentialProviderTokenTest {
     }
 
     CredentialProviderToken token = new CredentialProviderToken("root.password", keystorePath);
-    Assert.assertArrayEquals("password".getBytes(UTF_8), token.getPassword());
+    assertArrayEquals("password".getBytes(UTF_8), token.getPassword());
 
     token = new CredentialProviderToken("bob.password", keystorePath);
-    Assert.assertArrayEquals("bob".getBytes(UTF_8), token.getPassword());
+    assertArrayEquals("bob".getBytes(UTF_8), token.getPassword());
   }
 
   @Test
@@ -76,7 +79,7 @@ public class CredentialProviderTokenTest {
     props.put(CredentialProviderToken.CREDENTIAL_PROVIDERS_PROPERTY, keystorePath);
     uninitializedToken.init(props);
 
-    Assert.assertArrayEquals(token.getPassword(), uninitializedToken.getPassword());
+    assertArrayEquals(token.getPassword(), uninitializedToken.getPassword());
   }
 
   @Test
@@ -87,7 +90,7 @@ public class CredentialProviderTokenTest {
 
     try {
       new CredentialProviderToken("root.password", keystorePath);
-      Assert.fail("Should fail to create CredentialProviderToken when classes are not available");
+      fail("Should fail to create CredentialProviderToken when classes are not available");
     } catch (IOException e) {
       // pass
     }
@@ -102,8 +105,8 @@ public class CredentialProviderTokenTest {
     CredentialProviderToken token = new CredentialProviderToken("root.password", keystorePath);
     CredentialProviderToken clone = token.clone();
 
-    Assert.assertEquals(token, clone);
-    Assert.assertArrayEquals(token.getPassword(), clone.getPassword());
+    assertEquals(token, clone);
+    assertArrayEquals(token.getPassword(), clone.getPassword());
   }
 
   @Test(expected = IllegalArgumentException.class)

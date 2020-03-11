@@ -54,10 +54,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSortedMap;
 
 public class FileUtil {
 
@@ -81,9 +83,10 @@ public class FileUtil {
 
   private static final Logger log = LoggerFactory.getLogger(FileUtil.class);
 
+  @SuppressModernizer
   private static Path createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs)
       throws IOException {
-    String accumuloDir = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris());
+    String accumuloDir = fs.choose(Optional.<String>absent(), ServerConstants.getBaseUris());
 
     Path result = null;
     while (result == null) {
@@ -220,8 +223,8 @@ public class FileUtil {
             + prevEndRow + ", reducing in tmpDir = " + tmpDir);
 
         long t1 = System.currentTimeMillis();
-        mapFiles = reduceFiles(acuconf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir,
-            0);
+        mapFiles =
+            reduceFiles(acuconf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
         log.debug("Finished reducing indexes for " + endRow + " " + prevEndRow + " in "
@@ -241,10 +244,8 @@ public class FileUtil {
         return .5;
       }
 
-      // @formatter:off
       List<SortedKeyValueIterator<Key,Value>> iters =
-        new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
-      // @formatter:on
+          new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
 
       // skip the prevendrow
@@ -306,8 +307,8 @@ public class FileUtil {
             + prevEndRow + ", reducing in tmpDir = " + tmpDir);
 
         long t1 = System.currentTimeMillis();
-        mapFiles = reduceFiles(acuConf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir,
-            0);
+        mapFiles =
+            reduceFiles(acuConf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
         log.debug("Finished reducing indexes for " + endRow + " " + prevEndRow + " in "
@@ -332,14 +333,11 @@ public class FileUtil {
           // need to pass original map files, not possibly reduced indexes
           return findMidPoint(fs, acuConf, prevEndRow, endRow, origMapFiles, minSplit, false);
         }
-        throw new IOException("Failed to find mid point, no entries between " + prevEndRow + " and "
-            + endRow + " for " + mapFiles);
+        return ImmutableSortedMap.of();
       }
 
-      // @formatter:off
       List<SortedKeyValueIterator<Key,Value>> iters =
-        new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
-      // @formatter:on
+          new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
 
       // skip the prevendrow
@@ -384,8 +382,8 @@ public class FileUtil {
 
       // sanity check
       for (Key key : ret.values()) {
-        boolean inRange = (key.compareRow(prevEndRow) > 0
-            && (endRow == null || key.compareRow(endRow) < 1));
+        boolean inRange =
+            (key.compareRow(prevEndRow) > 0 && (endRow == null || key.compareRow(endRow) < 1));
         if (!inRange) {
           throw new IOException("Found mid point is not in range " + key + " " + prevEndRow + " "
               + endRow + " " + mapFiles);
@@ -525,9 +523,9 @@ public class FileUtil {
     for (FileRef ref : mapFiles) {
       Path path = ref.path();
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
-      FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(path.toString(), ns, ns.getConf()).withTableConfiguration(acuConf)
-          .seekToBeginning().build();
+      FileSKVIterator reader =
+          FileOperations.getInstance().newReaderBuilder().forFile(path.toString(), ns, ns.getConf())
+              .withTableConfiguration(acuConf).seekToBeginning().build();
 
       try {
         if (!reader.hasTop())

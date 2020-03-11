@@ -86,8 +86,8 @@ public class LocalityGroupUtilTest {
     in2.add(new ArrayByteSequence(test1));
     in.add(new Text(test2));
     in2.add(new ArrayByteSequence(test2));
-    Set<ByteSequence> out = LocalityGroupUtil
-        .decodeColumnFamilies(LocalityGroupUtil.encodeColumnFamilies(in));
+    Set<ByteSequence> out =
+        LocalityGroupUtil.decodeColumnFamilies(LocalityGroupUtil.encodeColumnFamilies(in));
 
     assertEquals(in2, out);
   }

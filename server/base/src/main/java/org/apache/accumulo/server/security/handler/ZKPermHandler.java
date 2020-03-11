@@ -171,8 +171,8 @@ public class ZKPermHandler implements PermissionHandler {
   @Override
   public boolean hasCachedNamespacePermission(String user, String namespace,
       NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException {
-    byte[] serializedPerms = zooCache
-        .get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
+    byte[] serializedPerms =
+        zooCache.get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
     if (serializedPerms != null) {
       return ZKSecurityTool.convertNamespacePermissions(serializedPerms).contains(permission);
     }
@@ -239,8 +239,8 @@ public class ZKPermHandler implements PermissionHandler {
   public void grantNamespacePermission(String user, String namespace,
       NamespacePermission permission) throws AccumuloSecurityException {
     Set<NamespacePermission> namespacePerms;
-    byte[] serializedPerms = zooCache
-        .get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
+    byte[] serializedPerms =
+        zooCache.get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
     if (serializedPerms != null)
       namespacePerms = ZKSecurityTool.convertNamespacePermissions(serializedPerms);
     else
@@ -326,15 +326,15 @@ public class ZKPermHandler implements PermissionHandler {
   @Override
   public void revokeNamespacePermission(String user, String namespace,
       NamespacePermission permission) throws AccumuloSecurityException {
-    byte[] serializedPerms = zooCache
-        .get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
+    byte[] serializedPerms =
+        zooCache.get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
 
     // User had no namespace permission, nothing to revoke.
     if (serializedPerms == null)
       return;
 
-    Set<NamespacePermission> namespacePerms = ZKSecurityTool
-        .convertNamespacePermissions(serializedPerms);
+    Set<NamespacePermission> namespacePerms =
+        ZKSecurityTool.convertNamespacePermissions(serializedPerms);
     try {
       if (namespacePerms.remove(permission)) {
         zooCache.clear();

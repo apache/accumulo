@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -37,7 +39,6 @@ import org.apache.accumulo.test.functional.YieldingIterator;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,7 +92,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
 
       // verify we got the expected key
       char expected = (char) (START_ROW + keyCount);
-      Assert.assertEquals("Unexpected row", Character.toString(expected),
+      assertEquals("Unexpected row", Character.toString(expected),
           next.getKey().getRow().toString());
 
       // determine whether we yielded on a next and seek
@@ -100,16 +101,14 @@ public class YieldScannersIT extends AccumuloClusterHarness {
         yieldSeekCount++;
       }
       String[] value = StringUtils.split(next.getValue().toString(), ',');
-      Assert.assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount),
-          value[0]);
-      Assert.assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount),
-          value[1]);
-      Assert.assertEquals("Unexpected rebuild count",
-          Integer.toString(yieldNextCount + yieldSeekCount), value[2]);
+      assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount), value[0]);
+      assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount), value[1]);
+      assertEquals("Unexpected rebuild count", Integer.toString(yieldNextCount + yieldSeekCount),
+          value[2]);
 
       keyCount++;
     }
-    Assert.assertEquals("Did not get the expected number of results", 10, keyCount);
+    assertEquals("Did not get the expected number of results", 10, keyCount);
   }
 
   @Test
@@ -147,7 +146,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
 
       // verify we got the expected key
       char expected = (char) (START_ROW + keyCount);
-      Assert.assertEquals("Unexpected row", Character.toString(expected),
+      assertEquals("Unexpected row", Character.toString(expected),
           next.getKey().getRow().toString());
 
       // determine whether we yielded on a next and seek
@@ -156,16 +155,14 @@ public class YieldScannersIT extends AccumuloClusterHarness {
         yieldSeekCount++;
       }
       String[] value = StringUtils.split(next.getValue().toString(), ',');
-      Assert.assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount),
-          value[0]);
-      Assert.assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount),
-          value[1]);
-      Assert.assertEquals("Unexpected rebuild count",
-          Integer.toString(yieldNextCount + yieldSeekCount), value[2]);
+      assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount), value[0]);
+      assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount), value[1]);
+      assertEquals("Unexpected rebuild count", Integer.toString(yieldNextCount + yieldSeekCount),
+          value[2]);
 
       keyCount++;
     }
-    Assert.assertEquals("Did not get the expected number of results", 10, keyCount);
+    assertEquals("Did not get the expected number of results", 10, keyCount);
   }
 
 }

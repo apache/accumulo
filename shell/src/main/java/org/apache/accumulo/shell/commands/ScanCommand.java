@@ -71,8 +71,8 @@ public class ScanCommand extends Command {
       ScannerBase scanner)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     if (getUseSample(cl)) {
-      SamplerConfiguration samplerConfig = shellState.getConnector().tableOperations()
-          .getSamplerConfiguration(tableName);
+      SamplerConfiguration samplerConfig =
+          shellState.getConnector().tableOperations().getSamplerConfiguration(tableName);
       if (samplerConfig == null) {
         throw new SampleNotPresentException(
             "Table " + tableName + " does not have sampling configured");
@@ -298,8 +298,8 @@ public class ScanCommand extends Command {
   protected Authorizations getAuths(final CommandLine cl, final Shell shellState)
       throws AccumuloSecurityException, AccumuloException {
     final String user = shellState.getConnector().whoami();
-    Authorizations auths = shellState.getConnector().securityOperations()
-        .getUserAuthorizations(user);
+    Authorizations auths =
+        shellState.getConnector().securityOperations().getUserAuthorizations(user);
     if (cl.hasOption(scanOptAuths.getOpt())) {
       auths = ScanCommand.parseAuthorizations(cl.getOptionValue(scanOptAuths.getOpt()));
     }
@@ -335,8 +335,8 @@ public class ScanCommand extends Command {
     timestampOpt = new Option("st", "show-timestamps", false, "display timestamps");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     showFewOpt = new Option("f", "show-few", true, "show only a specified number of characters");
-    formatterOpt = new Option("fm", "formatter", true,
-        "fully qualified name of the formatter class to use");
+    formatterOpt =
+        new Option("fm", "formatter", true, "fully qualified name of the formatter class to use");
     interpreterOpt = new Option("i", "interpreter", true,
         "fully qualified name of the interpreter class to use");
     formatterInterpeterOpt = new Option("fi", "fmt-interpreter", true,
@@ -364,8 +364,8 @@ public class ScanCommand extends Command {
 
     o.addOption(scanOptAuths);
     o.addOption(scanOptRow);
-    optStartRowInclusive = new Option(OptUtil.START_ROW_OPT, "begin-row", true,
-        "begin row (inclusive)");
+    optStartRowInclusive =
+        new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
     optStartRowInclusive.setArgName("begin-row");
     o.addOption(optStartRowInclusive);
     o.addOption(OptUtil.endRowOpt());

@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.examples.simple.filedata;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,10 +37,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.junit.Before;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class ChunkCombinerTest extends TestCase {
+public class ChunkCombinerTest {
 
   public static class MapIterator implements SortedKeyValueIterator<Key,Value> {
     private Iterator<Entry<Key,Value>> iter;
@@ -136,8 +140,8 @@ public class ChunkCombinerTest extends TestCase {
 
   private TreeMap<Key,Value> badrow;
 
-  @Override
-  protected void setUp() {
+  @Before
+  public void setUp() {
     row1 = new TreeMap<>();
     row2 = new TreeMap<>();
     row3 = new TreeMap<>();
@@ -225,6 +229,7 @@ public class ChunkCombinerTest extends TestCase {
 
   private static final Collection<ByteSequence> emptyColfs = new HashSet<>();
 
+  @Test
   public void test1() throws IOException {
     runTest(false, allRows, allCRows, emptyColfs);
     runTest(true, allRows, allCRows, emptyColfs);
@@ -235,7 +240,7 @@ public class ChunkCombinerTest extends TestCase {
       runTest(true, badrow, null, emptyColfs);
       assertNotNull(null);
     } catch (RuntimeException e) {
-      assertNull(null);
+      // expected
     }
   }
 

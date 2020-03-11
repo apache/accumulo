@@ -69,8 +69,8 @@ public class RowColumnSampler extends AbstractHashSampler {
   private boolean qualifier = true;
   private boolean visibility = true;
 
-  private static final Set<String> VALID_OPTIONS = ImmutableSet.of("row", "family", "qualifier",
-      "visibility");
+  private static final Set<String> VALID_OPTIONS =
+      ImmutableSet.of("row", "family", "qualifier", "visibility");
 
   private boolean hashField(SamplerConfiguration config, String field) {
     String optValue = config.getOptions().get(field);

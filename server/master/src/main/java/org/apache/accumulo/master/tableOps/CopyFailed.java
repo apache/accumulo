@@ -113,8 +113,8 @@ class CopyFailed extends MasterRepo {
 
     // determine which failed files were loaded
     Connector conn = master.getConnector();
-    try (Scanner mscanner = new IsolatedScanner(
-        conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
+    try (Scanner mscanner =
+        new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
 
@@ -138,9 +138,9 @@ class CopyFailed extends MasterRepo {
     }
 
     if (loadedFailures.size() > 0) {
-      DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/"
-          + master.getInstance().getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
-          master.getConfiguration());
+      DistributedWorkQueue bifCopyQueue =
+          new DistributedWorkQueue(Constants.ZROOT + "/" + master.getInstance().getInstanceID()
+              + Constants.ZBULK_FAILED_COPYQ, master.getConfiguration());
 
       HashSet<String> workIds = new HashSet<>();
 

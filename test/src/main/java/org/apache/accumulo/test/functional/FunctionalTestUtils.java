@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import java.io.FileInputStream;
@@ -59,7 +60,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
-import org.junit.Assert;
 
 import com.google.common.collect.Iterators;
 
@@ -204,9 +204,9 @@ public class FunctionalTestUtils {
 
   public static void assertNoDanglingFateLocks(Instance instance, AccumuloCluster cluster) {
     FateStatus fateStatus = getFateStatus(instance, cluster);
-    Assert.assertEquals("Dangling FATE locks : " + fateStatus.getDanglingHeldLocks(), 0,
+    assertEquals("Dangling FATE locks : " + fateStatus.getDanglingHeldLocks(), 0,
         fateStatus.getDanglingHeldLocks().size());
-    Assert.assertEquals("Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks(), 0,
+    assertEquals("Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks(), 0,
         fateStatus.getDanglingWaitingLocks().size());
   }
 
@@ -217,8 +217,8 @@ public class FunctionalTestUtils {
       IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
           instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
-      FateStatus fateStatus = admin.getStatus(zs, zk,
-          ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, null, null);
+      FateStatus fateStatus =
+          admin.getStatus(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, null, null);
       return fateStatus;
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);

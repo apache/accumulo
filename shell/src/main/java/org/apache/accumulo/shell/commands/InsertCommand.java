@@ -81,9 +81,9 @@ public class InsertCommand extends Command {
     else
       m.put(colf, colq, val);
 
-    final BatchWriterConfig cfg = new BatchWriterConfig()
-        .setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024)).setMaxWriteThreads(1)
-        .setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
+    final BatchWriterConfig cfg =
+        new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024))
+            .setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
     if (cl.hasOption(durabilityOption.getOpt())) {
       String userDurability = cl.getOptionValue(durabilityOption.getOpt());
       switch (userDurability) {
@@ -103,8 +103,8 @@ public class InsertCommand extends Command {
           throw new IllegalArgumentException("Unknown durability: " + userDurability);
       }
     }
-    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(),
-        cfg);
+    final BatchWriter bw =
+        shellState.getConnector().createBatchWriter(shellState.getTableName(), cfg);
     bw.addMutation(m);
     try {
       bw.close();

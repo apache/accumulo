@@ -17,6 +17,9 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -40,7 +43,6 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,8 +59,13 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     cfg.setSiteConfig(siteConfig);
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
   // User added split
-  @Test(timeout = 60 * 1000)
+  @Test
   public void userAddedSplit() throws Exception {
 
     log.info("User added split");
@@ -88,7 +95,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     // try to add the split point that is too large, if the split point is created the test fails.
     try {
       conn.tableOperations().addSplits(tableName, partitionKeys);
-      Assert.fail();
+      fail();
     } catch (AccumuloServerException e) {}
 
     // Make sure that the information that was written to the table before we tried to add the split
@@ -98,14 +105,14 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     for (Entry<Key,Value> entry : scanner) {
       counter++;
       Key k = entry.getKey();
-      Assert.assertEquals("Row", k.getRow().toString());
-      Assert.assertEquals("cf", k.getColumnFamily().toString());
-      Assert.assertEquals("cq", k.getColumnQualifier().toString());
-      Assert.assertEquals("value", entry.getValue().toString());
+      assertEquals("Row", k.getRow().toString());
+      assertEquals("cf", k.getColumnFamily().toString());
+      assertEquals("cq", k.getColumnQualifier().toString());
+      assertEquals("value", entry.getValue().toString());
 
     }
     // Make sure there is only one line in the table
-    Assert.assertEquals(1, counter);
+    assertEquals(1, counter);
   }
 
   // Test tablet server split with 250 entries with all the same prefix
@@ -154,16 +161,16 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       Key k = entry.getKey();
       data[data.length - 1] = (byte) count;
       String expected = new String(data, UTF_8);
-      Assert.assertEquals(expected, k.getRow().toString());
-      Assert.assertEquals("cf", k.getColumnFamily().toString());
-      Assert.assertEquals("cq", k.getColumnQualifier().toString());
-      Assert.assertEquals("value", entry.getValue().toString());
+      assertEquals(expected, k.getRow().toString());
+      assertEquals("cf", k.getColumnFamily().toString());
+      assertEquals("cq", k.getColumnQualifier().toString());
+      assertEquals("value", entry.getValue().toString());
       count++;
     }
-    Assert.assertEquals(250, count);
+    assertEquals(250, count);
 
     // Make sure no splits occurred in the table
-    Assert.assertEquals(0, conn.tableOperations().listSplits(tableName).size());
+    assertEquals(0, conn.tableOperations().listSplits(tableName).size());
   }
 
   // 10 0's; 10 2's; 10 4's... 10 30's etc
@@ -228,7 +235,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       Thread.sleep(250);
     }
 
-    Assert.assertTrue(0 < conn.tableOperations().listSplits(tableName).size());
+    assertTrue(0 < conn.tableOperations().listSplits(tableName).size());
   }
 
   private void automaticSplit(int max, int spacing) throws Exception {
@@ -285,17 +292,17 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       Key k = entry.getKey();
       data[data.length - 1] = (byte) extra;
       String expected = new String(data, UTF_8);
-      Assert.assertEquals(expected, k.getRow().toString());
-      Assert.assertEquals("cf", k.getColumnFamily().toString());
-      Assert.assertEquals("cq", k.getColumnQualifier().toString());
-      Assert.assertEquals("value", entry.getValue().toString());
+      assertEquals(expected, k.getRow().toString());
+      assertEquals("cf", k.getColumnFamily().toString());
+      assertEquals("cq", k.getColumnQualifier().toString());
+      assertEquals("value", entry.getValue().toString());
       extra++;
     }
-    Assert.assertEquals(10, extra);
-    Assert.assertEquals(max, count);
+    assertEquals(10, extra);
+    assertEquals(max, count);
 
     // Make sure no splits occured in the table
-    Assert.assertEquals(0, conn.tableOperations().listSplits(tableName).size());
+    assertEquals(0, conn.tableOperations().listSplits(tableName).size());
 
   }
 

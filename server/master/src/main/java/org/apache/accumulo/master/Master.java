@@ -83,6 +83,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
+import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -122,7 +123,6 @@ import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
-import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.RpcWrapper;
@@ -160,16 +160,18 @@ import org.apache.zookeeper.KeeperException.NoAuthException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
- *
+ * <p>
  * The master will also coordinate log recoveries and reports general status.
  */
 public class Master extends AccumuloServerContext
@@ -179,6 +181,8 @@ public class Master extends AccumuloServerContext
 
   final static int ONE_SECOND = 1000;
   final static long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
+  // made this less than TIME_TO_WAIT_BETWEEN_SCANS, so that the cache is cleared between cycles
+  final static long TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE = TIME_TO_WAIT_BETWEEN_SCANS / 4;
   final private static long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   final static long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   final private static long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
@@ -186,6 +190,7 @@ public class Master extends AccumuloServerContext
   final private static int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = ONE_SECOND;
   final static int MAX_TSERVER_WORK_CHUNK = 5000;
   final private static int MAX_BAD_STATUS_COUNT = 3;
+  final private static double MAX_SHUTDOWNS_PER_SEC = 10D / 60D;
 
   final VolumeManager fs;
   final private String hostname;
@@ -195,10 +200,10 @@ public class Master extends AccumuloServerContext
   final SecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers = Collections
       .synchronizedMap(new DefaultMap<TServerInstance,AtomicInteger>(new AtomicInteger()));
-  final Set<TServerInstance> serversToShutdown = Collections
-      .synchronizedSet(new HashSet<TServerInstance>());
-  final SortedMap<KeyExtent,TServerInstance> migrations = Collections
-      .synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
+  final Set<TServerInstance> serversToShutdown =
+      Collections.synchronizedSet(new HashSet<TServerInstance>());
+  final SortedMap<KeyExtent,TServerInstance> migrations =
+      Collections.synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
   final EventCoordinator nextEvent = new EventCoordinator();
   final private Object mergeLock = new Object();
   private ReplicationDriver replicationWorkDriver;
@@ -219,8 +224,8 @@ public class Master extends AccumuloServerContext
 
   Fate<Master> fate;
 
-  volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections
-      .unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
+  volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus =
+      Collections.unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   @Override
@@ -277,6 +282,7 @@ public class Master extends AccumuloServerContext
     }
   }
 
+  @SuppressModernizer
   private void moveRootTabletToRootTable(IZooReaderWriter zoo) throws Exception {
     String dirZPath = ZooUtil.getRoot(getInstance()) + RootTable.ZROOT_TABLET_PATH;
 
@@ -430,9 +436,9 @@ public class Master extends AccumuloServerContext
         // put existing tables in the correct namespaces
         String tables = ZooUtil.getRoot(getInstance()) + Constants.ZTABLES;
         for (String tableId : zoo.getChildren(tables)) {
-          String targetNamespace = (MetadataTable.ID.equals(tableId)
-              || RootTable.ID.equals(tableId)) ? Namespaces.ACCUMULO_NAMESPACE_ID
-                  : Namespaces.DEFAULT_NAMESPACE_ID;
+          String targetNamespace =
+              (MetadataTable.ID.equals(tableId) || RootTable.ID.equals(tableId))
+                  ? Namespaces.ACCUMULO_NAMESPACE_ID : Namespaces.DEFAULT_NAMESPACE_ID;
           log.debug("Upgrade moving table "
               + new String(zoo.getData(tables + "/" + tableId + Constants.ZTABLE_NAME, null), UTF_8)
               + " (ID: " + tableId + ") into namespace with ID " + targetNamespace);
@@ -450,6 +456,12 @@ public class Master extends AccumuloServerContext
         moveRootTabletToRootTable(zoo);
 
         // add system namespace permissions to existing users
+        // N.B. this section is ignoring the configured PermissionHandler
+        // under the assumption that these details are in zk and we can
+        // modify the structure so long as we pass back in whatever we read.
+        // This is true for any permission handler, including KerberosPermissionHandler,
+        // that uses the ZKPermHandler for permissions storage so long
+        // as the PermHandler only overrides the user name, and we don't care what the user name is.
         ZKPermHandler perm = new ZKPermHandler();
         perm.initialize(getInstance().getInstanceID(), true);
         String users = ZooUtil.getRoot(getInstance()) + "/users";
@@ -459,8 +471,14 @@ public class Master extends AccumuloServerContext
           perm.grantNamespacePermission(user, Namespaces.ACCUMULO_NAMESPACE_ID,
               NamespacePermission.READ);
         }
-        perm.grantNamespacePermission("root", Namespaces.ACCUMULO_NAMESPACE_ID,
-            NamespacePermission.ALTER_TABLE);
+        // because we need to refer to the root username, we can't use the
+        // ZKPermHandler directly since that violates our earlier assumption that we don't
+        // care about contents of the username. When using a PermissionHandler that needs to
+        // encode the username in some way, i.e. the KerberosPermissionHandler, things would
+        // fail. Instead we should be able to use the security object since
+        // the loop above should have made the needed structure in ZK.
+        security.grantNamespacePermission(rpcCreds(), security.getRootUsername(),
+            Namespaces.ACCUMULO_NAMESPACE_ID, NamespacePermission.ALTER_TABLE);
 
         // add the currlog location for root tablet current logs
         zoo.putPersistentData(ZooUtil.getRoot(getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS,
@@ -676,8 +694,8 @@ public class Master extends AccumuloServerContext
       // SASL is enabled, create the key distributor (ZooKeeper) and manager (generates/rolls secret
       // keys)
       log.info("SASL is enabled, creating delegation token key manager and distributor");
-      final long tokenUpdateInterval = aconf
-          .getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
+      final long tokenUpdateInterval =
+          aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
       keyDistributor = new ZooAuthenticationKeyDistributor(ZooReaderWriter.getInstance(),
           ZooUtil.getRoot(getInstance()) + Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(getSecretManager(),
@@ -807,7 +825,9 @@ public class Master extends AccumuloServerContext
       this.unloadGoal = unloadGoal;
     }
 
-    /** The purpose of unloading this tablet. */
+    /**
+     * The purpose of unloading this tablet.
+     */
     public TUnloadTabletGoal howUnload() {
       return unloadGoal;
     }
@@ -861,8 +881,11 @@ public class Master extends AccumuloServerContext
       }
       // Handle merge transitions
       if (mergeInfo.getExtent() != null) {
-        log.debug("mergeInfo overlaps: " + extent + " " + mergeInfo.overlaps(extent));
-        if (mergeInfo.overlaps(extent)) {
+
+        final boolean overlaps = mergeInfo.overlaps(extent);
+
+        if (overlaps) {
+          log.debug("mergeInfo overlaps: {} true", extent);
           switch (mergeInfo.getState()) {
             case NONE:
             case COMPLETE:
@@ -884,6 +907,8 @@ public class Master extends AccumuloServerContext
             case MERGING:
               return TabletGoalState.UNASSIGNED;
           }
+        } else {
+          log.trace("mergeInfo overlaps: {} false", extent);
         }
       }
 
@@ -1146,14 +1171,15 @@ public class Master extends AccumuloServerContext
 
   }
 
-  private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
-      Set<TServerInstance> currentServers) {
+  private SortedMap<TServerInstance,TabletServerStatus>
+      gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE);
-    ExecutorService tp = threads == 0 ? Executors.newCachedThreadPool()
-        : Executors.newFixedThreadPool(threads);
+    ExecutorService tp =
+        threads == 0 ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
+    final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {
@@ -1181,17 +1207,25 @@ public class Master extends AccumuloServerContext
           } catch (Exception ex) {
             log.error("unable to get tablet server status " + server + " " + ex.toString());
             log.debug("unable to get tablet server status " + server, ex);
+            // Attempt to shutdown server only if able to acquire. If unable, this tablet server
+            // will be removed from the badServers set below and status will be reattempted again
+            // MAX_BAD_STATUS_COUNT times
             if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
-              log.warn("attempting to stop " + server);
-              try {
-                TServerConnection connection = tserverSet.getConnection(server);
-                if (connection != null) {
-                  connection.halt(masterLock);
+              if (shutdownServerRateLimiter.tryAcquire()) {
+                log.warn("attempting to stop " + server);
+                try {
+                  TServerConnection connection = tserverSet.getConnection(server);
+                  if (connection != null) {
+                    connection.halt(masterLock);
+                  }
+                } catch (TTransportException e) {
+                  // ignore: it's probably down
+                } catch (Exception e) {
+                  log.info("error talking to troublesome tablet server ", e);
                 }
-              } catch (TTransportException e) {
-                // ignore: it's probably down
-              } catch (Exception e) {
-                log.info("error talking to troublesome tablet server ", e);
+              } else {
+                log.warn("Unable to shutdown {} as over the shutdown limit of {} per minute",
+                    server, MAX_SHUTDOWNS_PER_SEC * 60);
               }
               badServers.remove(server);
             }
@@ -1226,7 +1260,7 @@ public class Master extends AccumuloServerContext
 
     getMasterLock(zroot + Constants.ZMASTER_LOCK);
 
-    recoveryManager = new RecoveryManager(this);
+    recoveryManager = new RecoveryManager(this, TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE);
 
     TableManager.getInstance().addObserver(this);
 
@@ -1237,6 +1271,8 @@ public class Master extends AccumuloServerContext
     migrationCleanupThread.start();
 
     tserverSet.startListeningForTabletServerChanges();
+
+    blockForTservers();
 
     ZooReaderWriter zReaderWriter = ZooReaderWriter.getInstance();
 
@@ -1370,17 +1406,14 @@ public class Master extends AccumuloServerContext
 
     // Start the replication coordinator which assigns tservers to service replication requests
     MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
-    // @formatter:off
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
-      new ReplicationCoordinator.Processor<>(
-    // @formatter:on
-            RpcWrapper.service(impl,
-                new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(impl)));
-    ServerAddress replAddress = TServerUtils.startServer(this, hostname,
-        Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
-        "Master Replication Coordinator", "Replication Coordinator", null,
-        Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
-        Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+        new ReplicationCoordinator.Processor<>(RpcWrapper.service(impl,
+            new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(impl)));
+    ServerAddress replAddress =
+        TServerUtils.startServer(this, hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT,
+            replicationCoordinatorProcessor, "Master Replication Coordinator",
+            "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
+            Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
 
     log.info("Started replication coordinator service at " + replAddress.address);
 
@@ -1389,13 +1422,15 @@ public class Master extends AccumuloServerContext
         ZooUtil.getRoot(getInstance()) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
         replAddress.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
 
-    // Register replication metrics
+    // Register metrics modules
     MasterMetricsFactory factory = new MasterMetricsFactory(getConfiguration(), this);
-    Metrics replicationMetrics = factory.createReplicationMetrics();
-    try {
-      replicationMetrics.register();
-    } catch (Exception e) {
-      log.error("Failed to register replication metrics", e);
+
+    int failureCount = factory.register();
+
+    if (failureCount > 0) {
+      log.info("Failed to register {} metrics modules", failureCount);
+    } else {
+      log.info("All metrics modules registered");
     }
 
     while (clientService.isServing()) {
@@ -1424,6 +1459,90 @@ public class Master extends AccumuloServerContext
       watcher.join(remaining(deadline));
     }
     log.info("exiting");
+  }
+
+  /**
+   * Allows property configuration to block master start-up waiting for a minimum number of tservers
+   * to register in zookeeper. It also accepts a maximum time to wait - if the time expires, the
+   * start-up will continue with any tservers available. This check is only performed at master
+   * initialization, when the master acquires the lock. The following properties are used to control
+   * the behaviour:
+   * <ul>
+   * <li>MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT - when set to 0 or less, no blocking occurs (default
+   * behaviour) otherwise will block until the number of tservers are available.</li>
+   * <li>MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT - time to wait in milliseconds. When set to 0 or
+   * less, will block indefinitely.</li>
+   * </ul>
+   *
+   * @throws InterruptedException
+   *           if interrupted while blocking, propagated for caller to handle.
+   */
+  private void blockForTservers() throws InterruptedException {
+
+    long waitStart = System.currentTimeMillis();
+
+    AccumuloConfiguration accConfig = serverConfig.getConfiguration();
+    long minTserverCount = accConfig.getCount(Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT);
+
+    if (minTserverCount <= 0) {
+      log.info(
+          "tserver availability check disabled, continuing with-{} servers." + "To enable, set {}",
+          tserverSet.size(), Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
+      return;
+    }
+
+    long maxWait = accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT);
+
+    if (maxWait <= 0) {
+      log.info("tserver availability check set to block indefinitely, To change, set {} > 0.",
+          Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT.getKey());
+      maxWait = Long.MAX_VALUE;
+    }
+
+    // honor Retry condition that initial wait < max wait, otherwise use small value to allow thread
+    // yield to happen
+    long initialWait = Math.min(50, maxWait / 2);
+
+    Retry tserverRetry =
+        Retry.builder().infiniteRetries().retryAfter(initialWait, TimeUnit.MILLISECONDS)
+            .incrementBy(15_000, TimeUnit.MILLISECONDS).maxWait(maxWait, TimeUnit.MILLISECONDS)
+            .logInterval(30_000, TimeUnit.MILLISECONDS).createRetry();
+
+    log.info("Checking for tserver availability - need to reach {} servers. Have {}",
+        minTserverCount, tserverSet.size());
+
+    boolean needTservers = tserverSet.size() < minTserverCount;
+
+    while (needTservers && tserverRetry.canRetry()) {
+
+      tserverRetry.waitForNextAttempt();
+
+      needTservers = tserverSet.size() < minTserverCount;
+
+      // suppress last message once threshold reached.
+      if (needTservers) {
+        log.info(
+            "Blocking for tserver availability - need to reach {} servers. Have {}"
+                + " Time spent blocking {} sec.",
+            minTserverCount, tserverSet.size(),
+            TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+      }
+    }
+
+    if (tserverSet.size() < minTserverCount) {
+      log.warn(
+          "tserver availability check time expired - continuing. Requested {}, have {} tservers on line. "
+              + " Time waiting {} ms",
+          tserverSet.size(), minTserverCount,
+          TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+
+    } else {
+      log.info(
+          "tserver availability check completed. Requested {}, have {} tservers on line. "
+              + " Time waiting {} ms",
+          tserverSet.size(), minTserverCount,
+          TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+    }
   }
 
   private long remaining(long deadline) {
@@ -1499,8 +1618,8 @@ public class Master extends AccumuloServerContext
   private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
     log.info("trying to get master lock");
 
-    final String masterClientAddress = hostname + ":"
-        + getConfiguration().getPort(Property.MASTER_CLIENTPORT)[0];
+    final String masterClientAddress =
+        hostname + ":" + getConfiguration().getPort(Property.MASTER_CLIENTPORT)[0];
 
     while (true) {
 
@@ -1535,8 +1654,8 @@ public class Master extends AccumuloServerContext
       ServerOpts opts = new ServerOpts();
       opts.parseArgs(app, args);
       String hostname = opts.getAddress();
-      ServerConfigurationFactory conf = new ServerConfigurationFactory(
-          HdfsZooInstance.getInstance());
+      ServerConfigurationFactory conf =
+          new ServerConfigurationFactory(HdfsZooInstance.getInstance());
       VolumeManager fs = VolumeManagerImpl.get();
       MetricsSystemHelper.configure(Master.class.getSimpleName());
       Accumulo.init(fs, conf, app);
@@ -1554,49 +1673,57 @@ public class Master extends AccumuloServerContext
   @Override
   public void update(LiveTServerSet current, Set<TServerInstance> deleted,
       Set<TServerInstance> added) {
-    DeadServerList obit = new DeadServerList(
-        ZooUtil.getRoot(getInstance()) + Constants.ZDEADTSERVERS);
-    if (added.size() > 0) {
-      log.info("New servers: " + added);
-      for (TServerInstance up : added)
-        obit.delete(up.hostPort());
-    }
-    for (TServerInstance dead : deleted) {
-      String cause = "unexpected failure";
-      if (serversToShutdown.contains(dead))
-        cause = "clean shutdown"; // maybe an incorrect assumption
-      if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP))
-        obit.post(dead.hostPort(), cause);
-    }
-
-    Set<TServerInstance> unexpected = new HashSet<>(deleted);
-    unexpected.removeAll(this.serversToShutdown);
-    if (unexpected.size() > 0) {
-      if (stillMaster() && !getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
-        log.warn("Lost servers " + unexpected);
+    // if we have deleted or added tservers, then adjust our dead server list
+    if (!deleted.isEmpty() || !added.isEmpty()) {
+      DeadServerList obit =
+          new DeadServerList(ZooUtil.getRoot(getInstance()) + Constants.ZDEADTSERVERS);
+      if (added.size() > 0) {
+        log.info("New servers: " + added);
+        for (TServerInstance up : added)
+          obit.delete(up.hostPort());
       }
-    }
-    serversToShutdown.removeAll(deleted);
-    badServers.keySet().removeAll(deleted);
-    // clear out any bad server with the same host/port as a new server
-    synchronized (badServers) {
-      cleanListByHostAndPort(badServers.keySet(), deleted, added);
-    }
-    synchronized (serversToShutdown) {
-      cleanListByHostAndPort(serversToShutdown, deleted, added);
-    }
+      for (TServerInstance dead : deleted) {
+        String cause = "unexpected failure";
+        if (serversToShutdown.contains(dead))
+          cause = "clean shutdown"; // maybe an incorrect assumption
+        if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP))
+          obit.post(dead.hostPort(), cause);
+      }
 
-    synchronized (migrations) {
-      Iterator<Entry<KeyExtent,TServerInstance>> iter = migrations.entrySet().iterator();
-      while (iter.hasNext()) {
-        Entry<KeyExtent,TServerInstance> entry = iter.next();
-        if (deleted.contains(entry.getValue())) {
-          log.info("Canceling migration of " + entry.getKey() + " to " + entry.getValue());
-          iter.remove();
+      Set<TServerInstance> unexpected = new HashSet<>(deleted);
+      unexpected.removeAll(this.serversToShutdown);
+      if (unexpected.size() > 0) {
+        if (stillMaster() && !getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
+          log.warn("Lost servers " + unexpected);
         }
       }
+      serversToShutdown.removeAll(deleted);
+      badServers.keySet().removeAll(deleted);
+      // clear out any bad server with the same host/port as a new server
+      synchronized (badServers) {
+        cleanListByHostAndPort(badServers.keySet(), deleted, added);
+      }
+      synchronized (serversToShutdown) {
+        cleanListByHostAndPort(serversToShutdown, deleted, added);
+      }
+
+      synchronized (migrations) {
+        Iterator<Entry<KeyExtent,TServerInstance>> iter = migrations.entrySet().iterator();
+        while (iter.hasNext()) {
+          Entry<KeyExtent,TServerInstance> entry = iter.next();
+          if (deleted.contains(entry.getValue())) {
+            log.info("Canceling migration of " + entry.getKey() + " to " + entry.getValue());
+            iter.remove();
+          }
+        }
+      }
+      nextEvent.event("There are now %d tablet servers", current.size());
     }
-    nextEvent.event("There are now %d tablet servers", current.size());
+
+    // clear out any servers that are no longer current
+    // this is needed when we are using a fate operation to shutdown a tserver as it
+    // will continue to add the server to the serversToShutdown (ACCUMULO-4410)
+    serversToShutdown.retainAll(current.getCurrentServers());
   }
 
   private static void cleanListByHostAndPort(Collection<TServerInstance> badServers,
@@ -1742,8 +1869,8 @@ public class Master extends AccumuloServerContext
       for (TServerInstance server : serversToShutdown)
         result.serversShuttingDown.add(server.hostPort());
     }
-    DeadServerList obit = new DeadServerList(
-        ZooUtil.getRoot(getInstance()) + Constants.ZDEADTSERVERS);
+    DeadServerList obit =
+        new DeadServerList(ZooUtil.getRoot(getInstance()) + Constants.ZDEADTSERVERS);
     result.deadTabletServers = obit.getList();
     result.bulkImports = bulkImportStatus.getBulkLoadStatus();
     return result;

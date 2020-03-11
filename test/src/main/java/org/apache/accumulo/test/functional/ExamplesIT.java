@@ -21,6 +21,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -98,7 +99,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.Tool;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -146,7 +146,7 @@ public class ExamplesIT extends AccumuloClusterHarness {
       passwd = new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8);
       saslEnabled = false;
     } else {
-      Assert.fail("Unknown token type: " + token);
+      fail("Unknown token type: " + token);
     }
     fs = getCluster().getFileSystem();
     instance = c.getInstance().getInstanceName();
@@ -183,12 +183,12 @@ public class ExamplesIT extends AccumuloClusterHarness {
       args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-C",
           "-D", "-c"};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-C", "-D",
-          "-c"};
+      args =
+          new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-C", "-D", "-c"};
     }
-    Entry<Integer,String> pair = cluster.getClusterControl().execWithStdout(TracingExample.class,
-        args);
-    Assert.assertEquals("Expected return code of zero. STDOUT=" + pair.getValue(), 0,
+    Entry<Integer,String> pair =
+        cluster.getClusterControl().execWithStdout(TracingExample.class, args);
+    assertEquals("Expected return code of zero. STDOUT=" + pair.getValue(), 0,
         pair.getKey().intValue());
     String result = pair.getValue();
     Pattern pattern = Pattern.compile("TraceID: ([0-9a-f]+)");
@@ -214,8 +214,8 @@ public class ExamplesIT extends AccumuloClusterHarness {
 
   @Test
   public void testClasspath() throws Exception {
-    Entry<Integer,String> entry = getCluster().getClusterControl().execWithStdout(Main.class,
-        new String[] {"classpath"});
+    Entry<Integer,String> entry =
+        getCluster().getClusterControl().execWithStdout(Main.class, new String[] {"classpath"});
     assertEquals(0, entry.getKey().intValue());
     String result = entry.getValue();
     int level1 = result.indexOf("Level 1");
@@ -239,8 +239,8 @@ public class ExamplesIT extends AccumuloClusterHarness {
     String dirListDirectory;
     switch (getClusterType()) {
       case MINI:
-        dirListDirectory = ((MiniAccumuloClusterImpl) getCluster()).getConfig().getDir()
-            .getAbsolutePath();
+        dirListDirectory =
+            ((MiniAccumuloClusterImpl) getCluster()).getConfig().getDir().getAbsolutePath();
         break;
       case STANDALONE:
         dirListDirectory = ((StandaloneAccumuloCluster) getCluster()).getAccumuloHome();
@@ -588,8 +588,8 @@ public class ExamplesIT extends AccumuloClusterHarness {
       args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t",
           tableName};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t",
-          tableName};
+      args =
+          new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName};
     }
     goodExec(InsertWithBatchWriter.class, args);
     goodExec(ReadData.class, args);
@@ -723,6 +723,6 @@ public class ExamplesIT extends AccumuloClusterHarness {
       // to error message.
       pair = getClusterControl().execWithStdout(theClass, args);
     }
-    Assert.assertEquals("stdout=" + pair.getValue(), 0, pair.getKey().intValue());
+    assertEquals("stdout=" + pair.getValue(), 0, pair.getKey().intValue());
   }
 }

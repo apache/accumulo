@@ -39,8 +39,8 @@ import org.slf4j.LoggerFactory;
 //TODO ACCUMULO-2530 Update properties to use a URI instead of a relative path to secret key
 public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
 
-  private static final Logger log = LoggerFactory
-      .getLogger(NonCachingSecretKeyEncryptionStrategy.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(NonCachingSecretKeyEncryptionStrategy.class);
 
   private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params,
       String pathToKeyName, Path pathToKey, FileSystem fs) throws IOException {
@@ -138,8 +138,8 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
 
   @SuppressWarnings("deprecation")
   private String getFullPathToKey(CryptoModuleParameters params) {
-    String pathToKeyName = params.getAllOptions()
-        .get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
+    String pathToKeyName =
+        params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
     String instanceDirectory = params.getAllOptions().get(Property.INSTANCE_DFS_DIR.getKey());
 
     if (pathToKeyName == null) {

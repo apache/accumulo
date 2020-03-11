@@ -55,6 +55,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -70,7 +71,6 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Level;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -301,8 +301,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       assertionErrors.put(table + "_cleanup", new AssertionError("Dummy_cleanup"));
 
       @SuppressWarnings("unchecked")
-      Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class
-          .forName(inputFormatClassName);
+      Class<? extends InputFormat<?,?>> inputFormatClass =
+          (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
 
       Job job = Job.getInstance(getConf(),
           this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
@@ -354,14 +354,15 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0,
+    assertEquals(0,
         MRTester.main(new String[] {TEST_TABLE_1, AccumuloInputFormat.class.getName()}));
     assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_map").size());
     assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_cleanup").size());
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
@@ -378,19 +379,19 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester
+    assertEquals(0, MRTester
         .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "True"}));
     assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
     assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
 
     assertionErrors.clear();
-    Assert.assertEquals(0, MRTester
+    assertEquals(0, MRTester
         .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "False"}));
     assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_map").size());
     assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
 
     assertionErrors.clear();
-    Assert.assertEquals(0, MRTester
+    assertEquals(0, MRTester
         .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "True", "True"}));
     assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
     assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
@@ -410,7 +411,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester
+    assertEquals(0, MRTester
         .main(new String[] {TEST_TABLE_2, AccumuloInputFormat.class.getName(), "True", "False"}));
     assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_map").size());
     assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_cleanup").size());
@@ -422,8 +423,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections
-        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
@@ -444,23 +445,96 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     List<InputSplit> splits = aif.getSplits(job);
 
-    Assert.assertEquals(1, splits.size());
+    assertEquals(1, splits.size());
 
     InputSplit split = splits.get(0);
 
-    Assert.assertEquals(RangeInputSplit.class, split.getClass());
+    assertEquals(RangeInputSplit.class, split.getClass());
 
     RangeInputSplit risplit = (RangeInputSplit) split;
 
-    Assert.assertEquals(getAdminPrincipal(), risplit.getPrincipal());
-    Assert.assertEquals(table, risplit.getTableName());
-    Assert.assertEquals(getAdminToken(), risplit.getToken());
-    Assert.assertEquals(auths, risplit.getAuths());
-    Assert.assertEquals(getConnector().getInstance().getInstanceName(), risplit.getInstanceName());
-    Assert.assertEquals(isolated, risplit.isIsolatedScan());
-    Assert.assertEquals(localIters, risplit.usesLocalIterators());
-    Assert.assertEquals(fetchColumns, risplit.getFetchedColumns());
-    Assert.assertEquals(level, risplit.getLogLevel());
+    assertEquals(getAdminPrincipal(), risplit.getPrincipal());
+    assertEquals(table, risplit.getTableName());
+    assertEquals(getAdminToken(), risplit.getToken());
+    assertEquals(auths, risplit.getAuths());
+    assertEquals(getConnector().getInstance().getInstanceName(), risplit.getInstanceName());
+    assertEquals(isolated, risplit.isIsolatedScan());
+    assertEquals(localIters, risplit.usesLocalIterators());
+    assertEquals(fetchColumns, risplit.getFetchedColumns());
+    assertEquals(level, risplit.getLogLevel());
+  }
+
+  @Test(expected = IOException.class)
+  public void testGetSplitsNoReadPermission() throws Exception {
+    Job job = Job.getInstance();
+
+    String table = getUniqueNames(1)[0];
+    Authorizations auths = new Authorizations("foo");
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    boolean isolated = true, localIters = true;
+    Level level = Level.WARN;
+
+    Connector connector = getConnector();
+    connector.tableOperations().create(table);
+    connector.securityOperations().revokeTablePermission(connector.whoami(), table,
+        TablePermission.READ);
+
+    AccumuloInputFormat.setZooKeeperInstance(job, cluster.getClientConfig());
+    AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
+
+    AccumuloInputFormat.setInputTableName(job, table);
+    AccumuloInputFormat.setScanAuthorizations(job, auths);
+    AccumuloInputFormat.setScanIsolation(job, isolated);
+    AccumuloInputFormat.setLocalIterators(job, localIters);
+    AccumuloInputFormat.fetchColumns(job, fetchColumns);
+    AccumuloInputFormat.setLogLevel(job, level);
+
+    AccumuloInputFormat aif = new AccumuloInputFormat();
+
+    aif.getSplits(job);
+  }
+
+  /*
+   * This tests the case where we do not have Table.READ permission, but we do have Namespace.READ.
+   * See issue #1370.
+   */
+  @Test
+  public void testGetSplitsWithNamespaceReadPermission() throws Exception {
+    Job job = Job.getInstance();
+
+    final String[] namespaceAndTable = getUniqueNames(2);
+    final String namespace = namespaceAndTable[0];
+    final String tableSimpleName = namespaceAndTable[1];
+    final String table = namespace + "." + tableSimpleName;
+    Authorizations auths = new Authorizations("foo");
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    final boolean isolated = true;
+    final boolean localIters = true;
+    Level level = Level.WARN;
+
+    Connector connector = getConnector();
+    connector.namespaceOperations().create(namespace); // creating namespace implies Namespace.READ
+    connector.tableOperations().create(table);
+    connector.securityOperations().revokeTablePermission(connector.whoami(), table,
+        TablePermission.READ);
+
+    AccumuloInputFormat.setZooKeeperInstance(job, cluster.getClientConfig());
+    AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
+
+    AccumuloInputFormat.setInputTableName(job, table);
+    AccumuloInputFormat.setScanAuthorizations(job, auths);
+    AccumuloInputFormat.setScanIsolation(job, isolated);
+    AccumuloInputFormat.setLocalIterators(job, localIters);
+    AccumuloInputFormat.fetchColumns(job, fetchColumns);
+    AccumuloInputFormat.setLogLevel(job, level);
+
+    AccumuloInputFormat aif = new AccumuloInputFormat();
+
+    List<InputSplit> splits = aif.getSplits(job);
+
+    assertEquals(1, splits.size());
   }
 
   @Test
@@ -476,7 +550,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0,
+    assertEquals(0,
         MRTester.main(new String[] {table, EmptySplitsAccumuloInputFormat.class.getName()}));
     assertEquals(1, assertionErrors.get(table + "_map").size());
     assertEquals(1, assertionErrors.get(table + "_cleanup").size());
@@ -495,7 +569,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(1,
+    assertEquals(1,
         MRTester.main(new String[] {table, BadPasswordSplitsAccumuloInputFormat.class.getName()}));
     assertEquals(1, assertionErrors.get(table + "_map").size());
     // We should fail when the RecordReader fails to get the next key/value pair, because the record
@@ -514,10 +588,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       List<InputSplit> splits = super.getSplits(context);
 
       for (InputSplit split : splits) {
-        // @formatter:off
         org.apache.accumulo.core.client.mapreduce.RangeInputSplit rangeSplit =
-          (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
-        // @formatter:on
+            (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
         rangeSplit.setToken(new PasswordToken("anythingelse"));
       }
 
@@ -537,11 +609,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // Copy only the necessary information
       for (InputSplit oldSplit : oldSplits) {
-        // @formatter:off
         org.apache.accumulo.core.client.mapreduce.RangeInputSplit newSplit =
-          new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
-            (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
-        // @formatter:on
+            new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
+                (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
         newSplits.add(newSplit);
       }
 

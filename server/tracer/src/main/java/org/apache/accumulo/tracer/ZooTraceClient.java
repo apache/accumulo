@@ -95,8 +95,8 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
 
   protected void setInitialTraceHosts() {
     // Make a single thread pool with a daemon thread
-    final ScheduledExecutorService svc = Executors.newScheduledThreadPool(1,
-        new ThreadFactoryBuilder().setDaemon(true).build());
+    final ScheduledExecutorService svc =
+        Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setDaemon(true).build());
     final Runnable task = new Runnable() {
       @Override
       public void run() {

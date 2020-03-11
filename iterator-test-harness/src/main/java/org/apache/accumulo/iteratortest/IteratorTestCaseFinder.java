@@ -48,8 +48,8 @@ public class IteratorTestCaseFinder {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    ImmutableSet<ClassInfo> classes = cp
-        .getTopLevelClasses(IteratorTestCase.class.getPackage().getName());
+    ImmutableSet<ClassInfo> classes =
+        cp.getTopLevelClasses(IteratorTestCase.class.getPackage().getName());
 
     final List<IteratorTestCase> testCases = new ArrayList<>();
     // final Set<Class<? extends IteratorTestCase>> classes =

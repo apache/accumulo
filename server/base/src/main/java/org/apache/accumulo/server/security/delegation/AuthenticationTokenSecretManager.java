@@ -151,8 +151,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
    *          A configuration object for obtaining the delegation token
    * @return A delegation token for {@code username} created using the {@link #currentKey}.
    */
-  public Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> generateToken(
-      String username, DelegationTokenConfig cfg) throws AccumuloException {
+  public Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier>
+      generateToken(String username, DelegationTokenConfig cfg) throws AccumuloException {
     requireNonNull(username);
     requireNonNull(cfg);
 
@@ -172,8 +172,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     }
     // The use of the ServiceLoader inside Token doesn't work to automatically get the Identifier
     // Explicitly returning the identifier also saves an extra deserialization
-    Token<AuthenticationTokenIdentifier> token = new Token<>(id.getBytes(), password, id.getKind(),
-        new Text(svcName.toString()));
+    Token<AuthenticationTokenIdentifier> token =
+        new Token<>(id.getBytes(), password, id.getKind(), new Text(svcName.toString()));
     return Maps.immutableEntry(token, id);
   }
 

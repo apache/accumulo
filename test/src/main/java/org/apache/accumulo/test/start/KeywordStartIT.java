@@ -123,10 +123,10 @@ public class KeywordStartIT {
     expectSet.put("version", Version.class);
     expectSet.put("zookeeper", ZooKeeperMain.class);
 
-    Iterator<Entry<String,Class<? extends KeywordExecutable>>> expectIter = expectSet.entrySet()
-        .iterator();
-    TreeMap<String,KeywordExecutable> actualSet = new TreeMap<>(
-        Main.getExecutables(getClass().getClassLoader()));
+    Iterator<Entry<String,Class<? extends KeywordExecutable>>> expectIter =
+        expectSet.entrySet().iterator();
+    TreeMap<String,KeywordExecutable> actualSet =
+        new TreeMap<>(Main.getExecutables(getClass().getClassLoader()));
     Iterator<Entry<String,KeywordExecutable>> actualIter = actualSet.entrySet().iterator();
     Entry<String,Class<? extends KeywordExecutable>> expected;
     Entry<String,KeywordExecutable> actual;

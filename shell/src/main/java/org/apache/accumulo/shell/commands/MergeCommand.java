@@ -96,8 +96,8 @@ public class MergeCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
     verboseOpt = new Option("v", "verbose", false, "verbose output during merge");
-    sizeOpt = new Option("s", "size", true,
-        "merge tablets to the given size over the entire table");
+    sizeOpt =
+        new Option("s", "size", true, "merge tablets to the given size over the entire table");
     forceOpt = new Option("f", "force", false,
         "merge small tablets to large tablets, even if it goes over the given size");
     allOpt = new Option("", "all", false,

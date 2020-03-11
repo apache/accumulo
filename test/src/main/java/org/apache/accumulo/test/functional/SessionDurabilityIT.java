@@ -49,7 +49,12 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 3 * 60;
+  }
+
+  @Test
   public void nondurableTableHasDurableWrites() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
@@ -66,7 +71,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     assertEquals(10, count(tableName));
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void durableTableLosesNonDurableWrites() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
@@ -97,7 +102,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     bw.close();
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void testConditionDurability() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
@@ -115,7 +120,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     assertEquals(0, count(tableName));
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void testConditionDurability2() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
@@ -138,8 +143,8 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     Connector c = getConnector();
     ConditionalWriter cw = c.createConditionalWriter(tableName, cfg);
     for (int i = 0; i < n; i++) {
-      ConditionalMutation m = new ConditionalMutation((CharSequence) (i + ""),
-          new Condition("", ""));
+      ConditionalMutation m =
+          new ConditionalMutation((CharSequence) (i + ""), new Condition("", ""));
       m.put("", "", "X");
       assertEquals(Status.ACCEPTED, cw.write(m).getStatus());
     }

@@ -12,25 +12,22 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
+# requiring sudo forces Travis to build in an environment with more RAM
+sudo: required
 language: java
-notifications:
-  irc:
-    channels:
-      - "chat.freenode.net#accumulo"
-    use_notice: true
-    on_success: change
-    on_failure: always
-    template:
-      - "%{result} %{repository_slug} %{branch} (%{build_url}): %{message}"
-# speed up builds; don't use with default install step
+# speed up builds; don't use cache with default install step
 cache:
   directories:
     - $HOME/.m2
 install: echo NOOP Skipping pre-fetch of Maven dependencies
 jdk:
-  - oraclejdk8
+  - openjdk11
+before_script:
+  - unset _JAVA_OPTIONS
 env:
-  - HADOOP_PROFILE=
-  - HADOOP_PROFILE=-Dhadoop.profile=3
+  - BUILD_CMD="mvn clean verify javadoc:jar -DskipITs"  # main build of unit tests and javadoc
+  - BUILD_CMD="mvn clean verify javadoc:jar -DskipITs -Dhadoop.profile=3"
+# suppress download logs which cause travis to exceed the 4MB build log output limit
 script:
-  - mvn clean verify javadoc:jar -DskipITs $HADOOP_PROFILE
+  - $BUILD_CMD -B -Dstyle.color=always -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn

@@ -82,10 +82,10 @@ public class CreateEmpty {
     for (String arg : opts.files) {
       Path path = new Path(arg);
       log.info("Writing to file '" + path + "'");
-      FileSKVWriter writer = (new RFileOperations()).newWriterBuilder()
-          .forFile(arg, path.getFileSystem(conf), conf)
-          .withTableConfiguration(DefaultConfiguration.getDefaultConfiguration())
-          .withCompression(opts.codec).build();
+      FileSKVWriter writer =
+          (new RFileOperations()).newWriterBuilder().forFile(arg, path.getFileSystem(conf), conf)
+              .withTableConfiguration(DefaultConfiguration.getDefaultConfiguration())
+              .withCompression(opts.codec).build();
       writer.close();
     }
   }

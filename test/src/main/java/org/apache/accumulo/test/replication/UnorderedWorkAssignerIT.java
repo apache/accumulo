@@ -44,8 +44,10 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
   private Connector conn;
@@ -123,9 +125,10 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1"),
         target2 = new ReplicationTarget("cluster1", "table2", "2");
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
-    String keyTarget1 = target1.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target1.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target1.getSourceTableId(),
+    String keyTarget1 =
+        target1.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+            + target1.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+            + target1.getSourceTableId(),
         keyTarget2 = target2.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
             + target2.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
             + target2.getSourceTableId();

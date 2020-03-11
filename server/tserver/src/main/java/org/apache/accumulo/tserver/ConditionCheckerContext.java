@@ -90,8 +90,8 @@ public class ConditionCheckerContext {
       IterConfig ic = compressedIters.decompress(tc.iterators);
 
       List<IterInfo> mergedIters = new ArrayList<>(tableIters.size() + ic.ssiList.size());
-      Map<String,Map<String,String>> mergedItersOpts = new HashMap<>(
-          tableIterOpts.size() + ic.ssio.size());
+      Map<String,Map<String,String>> mergedItersOpts =
+          new HashMap<>(tableIterOpts.size() + ic.ssio.size());
 
       IteratorUtil.mergeIteratorConfig(mergedIters, mergedItersOpts, tableIters, tableIterOpts,
           ic.ssiList, ic.ssio);

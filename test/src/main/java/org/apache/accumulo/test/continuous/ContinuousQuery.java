@@ -48,8 +48,8 @@ public class ContinuousQuery {
     clientOpts.parseArgs(ContinuousQuery.class.getName(), args, scanOpts, opts);
 
     Connector conn = clientOpts.getConnector();
-    Scanner scanner = ContinuousUtil.createScanner(conn, clientOpts.getTableName(),
-        clientOpts.auths);
+    Scanner scanner =
+        ContinuousUtil.createScanner(conn, clientOpts.getTableName(), clientOpts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
 
     Random r = new Random();

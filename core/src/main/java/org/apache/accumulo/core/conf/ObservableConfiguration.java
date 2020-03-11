@@ -22,10 +22,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A configuration that can be observed. Handling of observers is thread-safe.
  */
 public abstract class ObservableConfiguration extends AccumuloConfiguration {
+
+  private static final Logger log = LoggerFactory.getLogger(ObservableConfiguration.class);
 
   private Set<ConfigurationObserver> observers;
 
@@ -69,8 +74,8 @@ public abstract class ObservableConfiguration extends AccumuloConfiguration {
     return snapshot(observers);
   }
 
-  private static Collection<ConfigurationObserver> snapshot(
-      Collection<ConfigurationObserver> observers) {
+  private static Collection<ConfigurationObserver>
+      snapshot(Collection<ConfigurationObserver> observers) {
     Collection<ConfigurationObserver> c = new java.util.ArrayList<>();
     synchronized (observers) {
       c.addAll(observers);
@@ -83,6 +88,7 @@ public abstract class ObservableConfiguration extends AccumuloConfiguration {
    */
   public void expireAllObservers() {
     Collection<ConfigurationObserver> copy = snapshot(observers);
+    log.info("Expiring {} observers", copy.size());
     for (ConfigurationObserver co : copy)
       co.sessionExpired();
   }

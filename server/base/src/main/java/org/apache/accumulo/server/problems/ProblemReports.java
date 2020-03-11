@@ -206,8 +206,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
             try {
               List<String> children;
               if (table == null || isMeta(table)) {
-                children = zoo
-                    .getChildren(ZooUtil.getRoot(context.getInstance()) + Constants.ZPROBLEMS);
+                children =
+                    zoo.getChildren(ZooUtil.getRoot(context.getInstance()) + Constants.ZPROBLEMS);
               } else {
                 children = Collections.emptyList();
               }

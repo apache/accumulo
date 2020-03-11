@@ -139,8 +139,8 @@ public class MutationsRejectedException extends AccumuloException {
     Map<String,Set<SecurityErrorCode>> result = new HashMap<>();
 
     for (Entry<TabletId,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
-      String tableInfo = Tables.getPrintableTableInfoFromId(instance,
-          entry.getKey().getTableId().toString());
+      String tableInfo =
+          Tables.getPrintableTableInfoFromId(instance, entry.getKey().getTableId().toString());
 
       if (!result.containsKey(tableInfo)) {
         result.put(tableInfo, new HashSet<SecurityErrorCode>());
@@ -174,12 +174,10 @@ public class MutationsRejectedException extends AccumuloException {
    * @deprecated since 1.7.0 see {@link #getSecurityErrorCodes()}
    */
   @Deprecated
-  // @formatter:off
   public Map<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>>
-    getAuthorizationFailuresMap() {
+      getAuthorizationFailuresMap() {
     return transformKeys(af, TabletIdImpl.TID_2_KE_OLD);
   }
-  // @formatter:on
 
   /**
    * @return the internal mapping of TabletID to SecurityErrorCodes

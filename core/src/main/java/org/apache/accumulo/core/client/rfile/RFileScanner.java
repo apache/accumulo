@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client.rfile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -45,6 +47,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
 import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache.Options;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
@@ -75,6 +78,14 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
   private static final long CACHE_BLOCK_SIZE = AccumuloConfiguration.getDefaultConfiguration()
       .getMemoryInBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
+
+  private static final EnumSet<Options> CACHE_OPTS;
+
+  static {
+    EnumSet<Options> cacheOpts = EnumSet.allOf(Options.class);
+    cacheOpts.remove(Options.ENABLE_LOCKS);
+    CACHE_OPTS = cacheOpts;
+  }
 
   static class Opts {
     InputArgs in;
@@ -110,8 +121,18 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     @Override
+    public CacheEntry getBlockNoStats(String blockName) {
+      return null;
+    }
+
+    @Override
     public long getMaxSize() {
       return Integer.MAX_VALUE;
+    }
+
+    @Override
+    public Lock getLoadLock(String blockName) {
+      return null;
     }
   }
 
@@ -123,13 +144,13 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
     this.opts = opts;
     if (opts.indexCacheSize > 0) {
-      this.indexCache = new LruBlockCache(opts.indexCacheSize, CACHE_BLOCK_SIZE);
+      this.indexCache = new LruBlockCache(opts.indexCacheSize, CACHE_BLOCK_SIZE, CACHE_OPTS);
     } else {
       this.indexCache = new NoopCache();
     }
 
     if (opts.dataCacheSize > 0) {
-      this.dataCache = new LruBlockCache(opts.dataCacheSize, CACHE_BLOCK_SIZE);
+      this.dataCache = new LruBlockCache(opts.dataCacheSize, CACHE_BLOCK_SIZE, CACHE_OPTS);
     } else {
       this.dataCache = new NoopCache();
     }
@@ -295,8 +316,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
       if (opts.useSystemIterators) {
         SortedSet<Column> cols = this.getFetchedColumns();
         families = LocalityGroupUtil.families(cols);
-        iterator = IteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(),
-            EMPTY_BYTES);
+        iterator =
+            IteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(), EMPTY_BYTES);
       }
 
       try {

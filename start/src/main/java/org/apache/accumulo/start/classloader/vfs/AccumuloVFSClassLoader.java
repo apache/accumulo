@@ -80,8 +80,8 @@ public class AccumuloVFSClassLoader {
 
   }
 
-  private static List<WeakReference<DefaultFileSystemManager>> vfsInstances = Collections
-      .synchronizedList(new ArrayList<WeakReference<DefaultFileSystemManager>>());
+  private static List<WeakReference<DefaultFileSystemManager>> vfsInstances =
+      Collections.synchronizedList(new ArrayList<WeakReference<DefaultFileSystemManager>>());
 
   public static final String DYNAMIC_CLASSPATH_PROPERTY_NAME = "general.dynamic.classpaths";
 
@@ -298,8 +298,8 @@ public class AccumuloVFSClassLoader {
   }
 
   private static File computeTopCacheDir() {
-    String cacheDirPath = AccumuloClassLoader.getAccumuloString(VFS_CACHE_DIR,
-        System.getProperty("java.io.tmpdir"));
+    String cacheDirPath =
+        AccumuloClassLoader.getAccumuloString(VFS_CACHE_DIR, System.getProperty("java.io.tmpdir"));
     String procName = ManagementFactory.getRuntimeMXBean().getName();
     return new File(cacheDirPath,
         "accumulo-vfs-cache-" + procName + "-" + System.getProperty("user.name", "nouser"));
@@ -341,16 +341,16 @@ public class AccumuloVFSClassLoader {
 
         switch (level) {
           case 1:
-            classLoaderDescription = level
-                + ": Java System Classloader (loads Java system resources)";
+            classLoaderDescription =
+                level + ": Java System Classloader (loads Java system resources)";
             break;
           case 2:
-            classLoaderDescription = level
-                + ": Java Classloader (loads everything defined by java classpath)";
+            classLoaderDescription =
+                level + ": Java Classloader (loads everything defined by java classpath)";
             break;
           case 3:
-            classLoaderDescription = level
-                + ": Accumulo Classloader (loads everything defined by general.classpaths)";
+            classLoaderDescription =
+                level + ": Accumulo Classloader (loads everything defined by general.classpaths)";
             break;
           case 4:
             classLoaderDescription = level + ": Accumulo Dynamic Classloader "
@@ -363,7 +363,10 @@ public class AccumuloVFSClassLoader {
             break;
         }
 
-        if (classLoader instanceof URLClassLoader) {
+        if (classLoader.getClass().getName().startsWith("jdk.internal")) {
+          out.print("Level " + classLoaderDescription + " " + classLoader.getClass().getName()
+              + " configuration not inspectable.");
+        } else if (classLoader instanceof URLClassLoader) {
           // If VFS class loader enabled, but no contexts defined.
           out.print("Level " + classLoaderDescription + " URL classpath items are:");
 

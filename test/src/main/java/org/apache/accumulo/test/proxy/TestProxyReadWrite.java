@@ -86,16 +86,16 @@ public class TestProxyReadWrite {
 
   private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row,
       String cf, String cq, String value) {
-    ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()),
-        ByteBuffer.wrap(cq.getBytes()));
+    ColumnUpdate update =
+        new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
     update.setValue(value.getBytes());
     mutations.put(ByteBuffer.wrap(row.getBytes()), Collections.singletonList(update));
   }
 
   private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row,
       String cf, String cq, String vis, String value) {
-    ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()),
-        ByteBuffer.wrap(cq.getBytes()));
+    ColumnUpdate update =
+        new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
     update.setValue(value.getBytes());
     update.setColVisibility(vis.getBytes());
     mutations.put(ByteBuffer.wrap(row.getBytes()), Collections.singletonList(update));
@@ -239,10 +239,8 @@ public class TestProxyReadWrite {
 
     String regex = ".*[02468]";
 
-    // @formatter:off
     org.apache.accumulo.core.client.IteratorSetting is =
-      new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
-    // @formatter:on
+        new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
 
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
@@ -320,10 +318,8 @@ public class TestProxyReadWrite {
 
     String regex = ".*[02468]";
 
-    // @formatter:off
     org.apache.accumulo.core.client.IteratorSetting is =
-      new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
-    // @formatter:on
+        new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
 
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
@@ -407,10 +403,8 @@ public class TestProxyReadWrite {
 
     String regex = ".*[02468]";
 
-    // @formatter:off
     org.apache.accumulo.core.client.IteratorSetting is =
-      new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
-    // @formatter:on
+        new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
 
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);

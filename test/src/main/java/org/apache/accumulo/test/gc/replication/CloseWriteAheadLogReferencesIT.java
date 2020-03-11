@@ -19,6 +19,8 @@ package org.apache.accumulo.test.gc.replication;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,12 +56,13 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
-import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
   private WrappedCloseWriteAheadLogReferences refs;
@@ -133,8 +136,8 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   public void unclosedWalsLeaveStatusOpen() throws Exception {
     Set<String> wals = Collections.emptySet();
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    Mutation m = new Mutation(
-        ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
+    Mutation m =
+        new Mutation(ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
     m.put(ReplicationSection.COLF, new Text("1"),
         StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     bw.addMutation(m);
@@ -146,7 +149,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     s.fetchColumnFamily(ReplicationSection.COLF);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Status status = Status.parseFrom(entry.getValue().get());
-    Assert.assertFalse(status.getClosed());
+    assertFalse(status.getClosed());
   }
 
   @Test
@@ -166,7 +169,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     s.fetchColumnFamily(ReplicationSection.COLF);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Status status = Status.parseFrom(entry.getValue().get());
-    Assert.assertTrue(status.getClosed());
+    assertTrue(status.getClosed());
   }
 
   @Test
@@ -184,7 +187,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     Scanner s = ReplicationTable.getScanner(conn);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Status status = Status.parseFrom(entry.getValue().get());
-    Assert.assertFalse(status.getClosed());
+    assertFalse(status.getClosed());
   }
 
 }

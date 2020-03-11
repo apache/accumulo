@@ -172,8 +172,8 @@ public class Accumulo {
 
     // Set up polling log4j updates and log-forwarding using information advertised in zookeeper by
     // the monitor
-    MonitorLog4jWatcher logConfigWatcher = new MonitorLog4jWatcher(instance.getInstanceID(),
-        logConfigFile);
+    MonitorLog4jWatcher logConfigWatcher =
+        new MonitorLog4jWatcher(instance.getInstanceID(), logConfigFile);
     logConfigWatcher.setDelay(5000L);
     logConfigWatcher.start();
 
@@ -343,8 +343,10 @@ public class Accumulo {
       if (!(fate.list().isEmpty())) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."
-            + " Please see the README document for instructions on what to do under"
-            + " your previous version.");
+            + " You can start the tservers and then use the shell to delete completed "
+            + " transactions. If there are uncomplete transactions, you will need to roll"
+            + " back and fix those issues. Please see the Accumulo User manual, "
+            + " Troubleshooting, Upgrade Issues for more information. ");
       }
     } catch (Exception exception) {
       log.fatal("Problem verifying Fate readiness", exception);

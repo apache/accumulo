@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
@@ -32,7 +33,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyRepo;
@@ -84,7 +84,7 @@ public class FateCommand extends Command {
 
     ByteArrayContainer(byte[] ba) {
       asUtf8 = new String(ba, StandardCharsets.UTF_8);
-      asBase64 = Base64.encodeBase64URLSafeString(ba);
+      asBase64 = Base64.getUrlEncoder().encodeToString(ba);
     }
   }
 
@@ -126,8 +126,8 @@ public class FateCommand extends Command {
 
     String path = ZooUtil.getRoot(instance) + Constants.ZFATE;
     String masterPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK;
-    IZooReaderWriter zk = getZooReaderWriter(shellState.getInstance(),
-        cl.getOptionValue(secretOption.getOpt()));
+    IZooReaderWriter zk =
+        getZooReaderWriter(shellState.getInstance(), cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
 
     if ("fail".equals(cmd)) {
@@ -203,11 +203,11 @@ public class FateCommand extends Command {
         }
       }
 
-      Gson gson = new GsonBuilder()
-          .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
-          .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
-          .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
-          .create();
+      Gson gson =
+          new GsonBuilder().registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
+              .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
+              .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
+              .create();
 
       List<FateStack> txStacks = new ArrayList<>();
 
@@ -257,8 +257,8 @@ public class FateCommand extends Command {
     statusOption.setArgs(Option.UNLIMITED_VALUES);
     statusOption.setOptionalArg(false);
     o.addOption(statusOption);
-    disablePaginationOpt = new Option("np", "no-pagination", false,
-        "disables pagination of output");
+    disablePaginationOpt =
+        new Option("np", "no-pagination", false, "disables pagination of output");
     o.addOption(disablePaginationOpt);
     return o;
   }

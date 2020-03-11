@@ -18,9 +18,11 @@ package org.apache.accumulo.core.client.lexicoder;
 
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
 public class TextLexicoderTest extends AbstractLexicoderTest {
 
+  @Test
   public void testDecode() throws Exception {
     assertDecodes(new TextLexicoder(), new Text(""));
     assertDecodes(new TextLexicoder(), new Text("accumulo"));

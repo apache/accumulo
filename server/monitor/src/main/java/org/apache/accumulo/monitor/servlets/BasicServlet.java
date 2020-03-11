@@ -17,6 +17,7 @@
 package org.apache.accumulo.monitor.servlets;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.lang.StringEscapeUtils.escapeHtml;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -57,8 +58,8 @@ abstract public class BasicServlet extends HttpServlet {
     StringBuilder sb = new StringBuilder();
     try {
       Monitor.fetchData();
-      bannerText = sanitize(
-          Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_TEXT));
+      bannerText =
+          sanitize(Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_TEXT));
       bannerColor = Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_COLOR)
           .replace("'", "&#39;");
       bannerBackground = Monitor.getContext().getConfiguration()
@@ -133,8 +134,8 @@ abstract public class BasicServlet extends HttpServlet {
 
     // BEGIN HEADER
     sb.append("<head>\n");
-    sb.append("<title>").append(getTitle(req)).append(" - Accumulo ").append(Constants.VERSION)
-        .append("</title>\n");
+    sb.append("<title>").append(escapeHtml(getTitle(req))).append(" - Accumulo ")
+        .append(Constants.VERSION).append("</title>\n");
     if ((refresh > 0) && (req.getRequestURI().startsWith("/vis") == false)
         && (req.getRequestURI().startsWith("/shell") == false))
       sb.append("<meta http-equiv='refresh' content='" + refresh + "' />\n");

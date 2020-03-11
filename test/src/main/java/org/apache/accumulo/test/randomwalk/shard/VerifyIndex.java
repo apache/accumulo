@@ -38,8 +38,8 @@ public class VerifyIndex extends Test {
     String tmpIndexTableName = indexTableName + "_tmp";
 
     // scan new and old index and verify identical
-    Scanner indexScanner1 = env.getConnector().createScanner(tmpIndexTableName,
-        Authorizations.EMPTY);
+    Scanner indexScanner1 =
+        env.getConnector().createScanner(tmpIndexTableName, Authorizations.EMPTY);
     Scanner indexScanner2 = env.getConnector().createScanner(indexTableName, Authorizations.EMPTY);
 
     Iterator<Entry<Key,Value>> iter = indexScanner2.iterator();

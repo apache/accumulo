@@ -56,8 +56,8 @@ import com.beust.jcommander.Parameter;
 
 public class SendLogToChainsaw extends XMLLayout {
 
-  private static Pattern logPattern = Pattern
-      .compile("^(\\d\\d)\\s(\\d\\d):(\\d\\d):(\\d\\d),(\\d\\d\\d)\\s\\[(.*)\\]\\s"
+  private static Pattern logPattern =
+      Pattern.compile("^(\\d\\d)\\s(\\d\\d):(\\d\\d):(\\d\\d),(\\d\\d\\d)\\s\\[(.*)\\]\\s"
           + "(TRACE|DEBUG|INFO|WARN|FATAL|ERROR)\\s*?:(.*)$", Pattern.UNIX_LINES);
 
   private File[] logFiles = null;

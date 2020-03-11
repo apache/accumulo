@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+
 import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
@@ -25,12 +29,8 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.Property;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 
 public class ClientContextTest {
 
@@ -53,7 +53,7 @@ public class ClientContextTest {
     if (isCredentialProviderAvailable) {
       URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
 
-      Assert.assertNotNull("Could not find " + keystoreName, keystoreUrl);
+      assertNotNull("Could not find " + keystoreName, keystoreUrl);
 
       keystore = new File(keystoreUrl.getFile());
     }
@@ -74,7 +74,7 @@ public class ClientContextTest {
         .with(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
-    Assert.assertEquals("mysecret", accClientConf.get(Property.INSTANCE_SECRET));
+    assertEquals("mysecret", accClientConf.get(Property.INSTANCE_SECRET));
   }
 
   @Test
@@ -86,7 +86,7 @@ public class ClientContextTest {
     ClientConfiguration clientConf = ClientConfiguration.create();
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
-    Assert.assertEquals(Property.INSTANCE_SECRET.getDefaultValue(),
+    assertEquals(Property.INSTANCE_SECRET.getDefaultValue(),
         accClientConf.get(Property.INSTANCE_SECRET));
   }
 
@@ -102,14 +102,13 @@ public class ClientContextTest {
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Map<String,String> props = new HashMap<>();
-    Predicate<String> all = Predicates.alwaysTrue();
-    accClientConf.getProperties(props, all);
+    accClientConf.getProperties(props, all -> true);
 
     // Only sensitive properties are added
-    Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
+    assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
         props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
     // Only known properties are added
-    Assert.assertFalse(props.containsKey("ignored.property"));
-    Assert.assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
+    assertFalse(props.containsKey("ignored.property"));
+    assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
   }
 }

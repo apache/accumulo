@@ -48,10 +48,10 @@ public class FileDataIngest {
   public static final Text REFS_CF = new Text("refs");
   public static final String REFS_ORIG_FILE = "name";
   public static final String REFS_FILE_EXT = "filext";
-  public static final ByteSequence CHUNK_CF_BS = new ArrayByteSequence(CHUNK_CF.getBytes(), 0,
-      CHUNK_CF.getLength());
-  public static final ByteSequence REFS_CF_BS = new ArrayByteSequence(REFS_CF.getBytes(), 0,
-      REFS_CF.getLength());
+  public static final ByteSequence CHUNK_CF_BS =
+      new ArrayByteSequence(CHUNK_CF.getBytes(), 0, CHUNK_CF.getLength());
+  public static final ByteSequence REFS_CF_BS =
+      new ArrayByteSequence(REFS_CF.getBytes(), 0, REFS_CF.getLength());
 
   int chunkSize;
   byte[] chunkSizeBytes;

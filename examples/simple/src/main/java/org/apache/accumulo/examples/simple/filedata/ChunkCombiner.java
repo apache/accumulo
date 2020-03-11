@@ -58,8 +58,8 @@ public class ChunkCombiner implements SortedKeyValueIterator<Key,Value> {
 
   private SortedKeyValueIterator<Key,Value> source;
   private SortedKeyValueIterator<Key,Value> refsSource;
-  private static final Collection<ByteSequence> refsColf = Collections
-      .singleton(FileDataIngest.REFS_CF_BS);
+  private static final Collection<ByteSequence> refsColf =
+      Collections.singleton(FileDataIngest.REFS_CF_BS);
   private Map<Text,byte[]> lastRowVC = Collections.emptyMap();
 
   private Key topKey = null;

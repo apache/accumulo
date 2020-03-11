@@ -219,8 +219,8 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   protected static final Table BAZ = new Table("baz", "3");
 
   protected final TestInstance instance = new TestInstance();
-  protected final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(
-      instance);
+  protected final TestServerConfigurationFactory factory =
+      new TestServerConfigurationFactory(instance);
   protected final Map<String,String> servers = new HashMap<>(15);
   protected final SortedMap<TServerInstance,TabletServerStatus> allTabletServers = new TreeMap<>();
   protected final Map<String,List<KeyExtent>> tableExtents = new HashMap<>(3);
@@ -333,7 +333,8 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   @Override
   protected TableOperations getTableOperations() {
-    return new TableOperationsImpl(EasyMock.createMock(ClientContext.class)) {
+    ClientContext clientContext = EasyMock.createMock(ClientContext.class);
+    return new TableOperationsImpl(clientContext) {
       @Override
       public Map<String,String> tableIdMap() {
         HashMap<String,String> tables = new HashMap<>();

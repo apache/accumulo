@@ -65,7 +65,12 @@ public class UnusedWALIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.namenode.fs-limits.min-block-size", Long.toString(logSize));
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     // don't want this bad boy cleaning up walog entries
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);

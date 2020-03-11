@@ -48,8 +48,8 @@ public class Main {
       ClassLoader loader = getClassLoader();
       Class<?> confClass = null;
       try {
-        confClass = AccumuloClassLoader.getClassLoader()
-            .loadClass("org.apache.hadoop.conf.Configuration");
+        confClass =
+            AccumuloClassLoader.getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
       } catch (ClassNotFoundException e) {
         log.error("Unable to find Hadoop Configuration class on classpath, check configuration.",
             e);
@@ -63,8 +63,8 @@ public class Main {
         System.exit(1);
       }
       try {
-        Method getClassByNameOrNullMethod = conf.getClass().getMethod("getClassByNameOrNull",
-            String.class);
+        Method getClassByNameOrNullMethod =
+            conf.getClass().getMethod("getClassByNameOrNull", String.class);
         getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
         getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
       } catch (Exception e) {
@@ -97,8 +97,8 @@ public class Main {
   public static synchronized ClassLoader getClassLoader() {
     if (classLoader == null) {
       try {
-        ClassLoader clTmp = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader")
-            .invoke(null);
+        ClassLoader clTmp =
+            (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
         classLoader = clTmp;
         Thread.currentThread().setContextClassLoader(classLoader);
       } catch (ClassNotFoundException | IOException | IllegalAccessException
@@ -230,8 +230,8 @@ public class Main {
     return servicesMap;
   }
 
-  public static Map<String,KeywordExecutable> checkDuplicates(
-      final Iterable<? extends KeywordExecutable> services) {
+  public static Map<String,KeywordExecutable>
+      checkDuplicates(final Iterable<? extends KeywordExecutable> services) {
     TreeSet<String> blacklist = new TreeSet<>();
     TreeMap<String,KeywordExecutable> results = new TreeMap<>();
     for (KeywordExecutable service : services) {

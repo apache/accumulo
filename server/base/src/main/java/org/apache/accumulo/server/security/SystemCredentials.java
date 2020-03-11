@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecurityPermission;
+import java.util.Base64;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.io.Writable;
 
@@ -46,8 +46,8 @@ import org.apache.hadoop.io.Writable;
  */
 public final class SystemCredentials extends Credentials {
 
-  private static final SecurityPermission SYSTEM_CREDENTIALS_PERMISSION = new SecurityPermission(
-      "systemCredentialsPermission");
+  private static final SecurityPermission SYSTEM_CREDENTIALS_PERMISSION =
+      new SecurityPermission("systemCredentialsPermission");
 
   private static final String SYSTEM_PRINCIPAL = "!SYSTEM";
 
@@ -143,7 +143,7 @@ public final class SystemCredentials extends Credentials {
         // this is impossible with ByteArrayOutputStream; crash hard if this happens
         throw new RuntimeException(e);
       }
-      return new SystemToken(Base64.encodeBase64(bytes.toByteArray()));
+      return new SystemToken(Base64.getEncoder().encode(bytes.toByteArray()));
     }
   }
 

@@ -211,8 +211,8 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   @Override
   public ClusterUser getUser(int offset) {
     if (null == krb) {
-      String user = SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_"
-          + offset;
+      String user =
+          SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_" + offset;
       // Password is the username
       return new ClusterUser(user, user);
     } else {

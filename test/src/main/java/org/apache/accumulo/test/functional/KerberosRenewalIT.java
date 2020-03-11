@@ -81,8 +81,8 @@ public class KerberosRenewalIT extends AccumuloITBase {
   @BeforeClass
   public static void startKdc() throws Exception {
     // 30s renewal time window
-    kdc = new TestingKdc(TestingKdc.computeKdcDir(), TestingKdc.computeKeytabDir(),
-        TICKET_LIFETIME);
+    kdc =
+        new TestingKdc(TestingKdc.computeKdcDir(), TestingKdc.computeKeytabDir(), TICKET_LIFETIME);
     kdc.start();
     krbEnabledForITs = System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION);
     if (null == krbEnabledForITs || !Boolean.parseBoolean(krbEnabledForITs)) {

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -24,14 +26,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteArraySet;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import junit.framework.TestCase;
-
-public class ZKAuthenticatorTest extends TestCase {
+public class ZKAuthenticatorTest {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthenticatorTest.class);
 
+  @Test
   public void testPermissionIdConversions() {
     for (SystemPermission s : SystemPermission.values())
       assertTrue(s.equals(SystemPermission.getPermissionById(s.getId())));
@@ -40,6 +42,7 @@ public class ZKAuthenticatorTest extends TestCase {
       assertTrue(s.equals(TablePermission.getPermissionById(s.getId())));
   }
 
+  @Test
   public void testAuthorizationConversion() {
     ByteArraySet auths = new ByteArraySet();
     for (int i = 0; i < 300; i += 3)
@@ -54,30 +57,33 @@ public class ZKAuthenticatorTest extends TestCase {
     }
   }
 
+  @Test
   public void testSystemConversion() {
     Set<SystemPermission> perms = new TreeSet<>();
     for (SystemPermission s : SystemPermission.values())
       perms.add(s);
 
-    Set<SystemPermission> converted = ZKSecurityTool
-        .convertSystemPermissions(ZKSecurityTool.convertSystemPermissions(perms));
+    Set<SystemPermission> converted =
+        ZKSecurityTool.convertSystemPermissions(ZKSecurityTool.convertSystemPermissions(perms));
     assertTrue(perms.size() == converted.size());
     for (SystemPermission s : perms)
       assertTrue(converted.contains(s));
   }
 
+  @Test
   public void testTableConversion() {
     Set<TablePermission> perms = new TreeSet<>();
     for (TablePermission s : TablePermission.values())
       perms.add(s);
 
-    Set<TablePermission> converted = ZKSecurityTool
-        .convertTablePermissions(ZKSecurityTool.convertTablePermissions(perms));
+    Set<TablePermission> converted =
+        ZKSecurityTool.convertTablePermissions(ZKSecurityTool.convertTablePermissions(perms));
     assertTrue(perms.size() == converted.size());
     for (TablePermission s : perms)
       assertTrue(converted.contains(s));
   }
 
+  @Test
   public void testEncryption() {
     byte[] rawPass = "myPassword".getBytes();
     byte[] storedBytes;

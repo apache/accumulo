@@ -501,8 +501,8 @@ public class Module extends Node {
 
     // set the schema
     SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-    Schema moduleSchema = sf
-        .newSchema(this.getClass().getClassLoader().getResource("randomwalk/module.xsd"));
+    Schema moduleSchema =
+        sf.newSchema(this.getClass().getClassLoader().getResource("randomwalk/module.xsd"));
     dbf.setSchema(moduleSchema);
 
     // parse the document

@@ -204,8 +204,8 @@ public class InputConfigurator extends ConfiguratorBase {
    * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    */
   @Deprecated
-  public static String[] serializeColumns(
-      Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
+  public static String[]
+      serializeColumns(Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
         .serializeColumns(columnFamilyColumnQualifierPairs);
   }

@@ -86,8 +86,8 @@ public class SaslServerConnectionParamsTest {
         assertEquals(SaslMechanism.GSSAPI, saslParams.getMechanism());
         assertNull(saslParams.getCallbackHandler());
 
-        final QualityOfProtection defaultQop = QualityOfProtection
-            .get(Property.RPC_SASL_QOP.getDefaultValue());
+        final QualityOfProtection defaultQop =
+            QualityOfProtection.get(Property.RPC_SASL_QOP.getDefaultValue());
         assertEquals(defaultQop, saslParams.getQualityOfProtection());
 
         Map<String,String> properties = saslParams.getSaslProperties();

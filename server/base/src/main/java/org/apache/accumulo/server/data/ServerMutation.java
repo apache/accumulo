@@ -23,6 +23,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.thrift.TMutation;
+import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
 
@@ -57,8 +58,9 @@ public class ServerMutation extends Mutation {
 
   @Override
   public void write(DataOutput out) throws IOException {
+    final byte[] timeBuffer = new byte[9];
     super.write(out);
-    WritableUtils.writeVLong(out, systemTime);
+    UnsynchronizedBuffer.writeVLong(out, timeBuffer, systemTime);
   }
 
   public void setSystemTimestamp(long v) {

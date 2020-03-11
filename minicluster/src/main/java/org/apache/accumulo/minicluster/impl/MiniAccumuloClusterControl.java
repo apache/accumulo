@@ -134,7 +134,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   @Override
   public synchronized void start(ServerType server, String hostname) throws IOException {
-    start(server, hostname, Collections.<String,String> emptyMap(), Integer.MAX_VALUE);
+    start(server, hostname, Collections.<String,String>emptyMap(), Integer.MAX_VALUE);
   }
 
   public synchronized void start(ServerType server, String hostname,
@@ -147,8 +147,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
           int count = 0;
-          for (int i = tabletServerProcesses.size(); count < limit
-              && i < cluster.getConfig().getNumTservers(); i++, ++count) {
+          for (int i = tabletServerProcesses.size();
+              count < limit && i < cluster.getConfig().getNumTservers(); i++, ++count) {
             tabletServerProcesses.add(cluster._exec(TabletServer.class, server, configOverrides));
           }
         }

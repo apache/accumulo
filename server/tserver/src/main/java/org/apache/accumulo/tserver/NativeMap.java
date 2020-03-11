@@ -72,8 +72,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   // Load native library
   static {
     // Check standard directories
-    List<File> directories = new ArrayList<>(
-        Arrays.asList(new File[] {new File("/usr/lib64"), new File("/usr/lib")}));
+    List<File> directories =
+        new ArrayList<>(Arrays.asList(new File[] {new File("/usr/lib64"), new File("/usr/lib")}));
     // Check in ACCUMULO_HOME location, too
     String envAccumuloHome = System.getenv("ACCUMULO_HOME");
     if (envAccumuloHome != null) {
@@ -316,8 +316,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       // as we keep filling, increase the read ahead buffer
       if (nextEntries.length < MAX_READ_AHEAD_ENTRIES)
-        nextEntries = new PreAllocatedArray<>(
-            Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
+        nextEntries =
+            new PreAllocatedArray<>(Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
 
       while (source.hasNext() && end < nextEntries.length) {
         Entry<Key,Value> ne = source.next();

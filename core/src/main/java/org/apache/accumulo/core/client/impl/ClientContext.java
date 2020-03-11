@@ -39,6 +39,7 @@ import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.commons.configuration.Configuration;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +56,7 @@ import com.google.common.base.Suppliers;
  * to this object for later retrieval, rather than as a separate parameter. Any state in this object
  * should be available at the time of its construction.
  */
+@SuppressModernizer
 public class ClientContext {
 
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
@@ -237,8 +239,8 @@ public class ClientContext {
           org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
           if (null != hadoopConf) {
             try {
-              char[] value = CredentialProviderFactoryShim
-                  .getValueFromCredentialProvider(hadoopConf, key);
+              char[] value =
+                  CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
               if (null != value) {
                 log.trace("Loaded sensitive value for {} from CredentialProvider", key);
                 return new String(value);
@@ -269,6 +271,7 @@ public class ClientContext {
       }
 
       @Override
+      @SuppressModernizer
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         defaults.getProperties(props, filter);
 
@@ -283,8 +286,8 @@ public class ClientContext {
         // the Kerberos instance from the principle, but servers do
         // Automatically reconstruct the server property when converting a client config.
         if (props.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
-          final String serverPrimary = props
-              .remove(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
+          final String serverPrimary =
+              props.remove(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
           if (filter.apply(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
             // Use the _HOST expansion. It should be unnecessary in "client land".
             props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(),
@@ -302,8 +305,8 @@ public class ClientContext {
               }
 
               if (filter.apply(key)) {
-                char[] value = CredentialProviderFactoryShim
-                    .getValueFromCredentialProvider(hadoopConf, key);
+                char[] value =
+                    CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
                 if (null != value) {
                   props.put(key, new String(value));
                 }
@@ -317,8 +320,8 @@ public class ClientContext {
       }
 
       private org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
-        String credProviderPaths = config
-            .getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+        String credProviderPaths =
+            config.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
         if (null != credProviderPaths && !credProviderPaths.isEmpty()) {
           org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
           hConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPaths);

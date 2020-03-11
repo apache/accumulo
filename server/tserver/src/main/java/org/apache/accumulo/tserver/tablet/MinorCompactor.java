@@ -22,13 +22,17 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
@@ -82,18 +86,24 @@ public class MinorCompactor extends Compactor {
           public RateLimiter getWriteLimiter() {
             return null;
           }
-        }, Collections.<IteratorSetting> emptyList(), mincReason.ordinal(), tableConfig);
+        }, Collections.<IteratorSetting>emptyList(), mincReason.ordinal(), tableConfig);
     this.tabletServer = tabletServer;
   }
 
   private boolean isTableDeleting() {
     try {
-      return Tables.getTableState(tabletServer.getInstance(),
-          extent.getTableId()) == TableState.DELETING;
+      return Tables.getTableState(tabletServer.getInstance(), extent.getTableId())
+          == TableState.DELETING;
     } catch (Exception e) {
       log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
       return false; // can not get positive confirmation that its deleting.
     }
+  }
+
+  @Override
+  protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)
+      throws IOException {
+    return LocalityGroupUtil.getLocalityGroupsIgnoringErrors(acuTableConf, extent.getTableId());
   }
 
   @Override
@@ -123,7 +133,7 @@ public class MinorCompactor extends Compactor {
           }
 
           return ret;
-        } catch (IOException e) {
+        } catch (IOException | UnsatisfiedLinkError e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
           ProblemReports.getInstance(tabletServer).report(new ProblemReport(
               getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));

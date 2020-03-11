@@ -21,6 +21,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -56,7 +58,6 @@ import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalClientEx
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalReplication;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class AccumuloReplicaSystemTest {
@@ -87,7 +88,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -110,7 +111,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("badrow")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("badrow")));
 
     key.write(dos);
     value.write(dos);
@@ -142,7 +143,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tabletId = 3;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -156,18 +157,18 @@ public class AccumuloReplicaSystemTest {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ars.setConf(conf);
 
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
         new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(9, repl.entriesConsumed);
-    Assert.assertEquals(2, repl.walEdits.getEditsSize());
-    Assert.assertEquals(2, repl.sizeInRecords);
-    Assert.assertNotEquals(0, repl.sizeInBytes);
+    assertEquals(9, repl.entriesConsumed);
+    assertEquals(2, repl.walEdits.getEditsSize());
+    assertEquals(2, repl.sizeInRecords);
+    assertNotEquals(0, repl.sizeInBytes);
   }
 
   @Test
@@ -196,7 +197,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -219,7 +220,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("badrow")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("badrow")));
 
     key.write(dos);
     value.write(dos);
@@ -251,7 +252,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tabletId = 3;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -268,18 +269,18 @@ public class AccumuloReplicaSystemTest {
     // Setting the file to be closed with the infinite end implies that we need to bump the begin up
     // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
         new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
-    Assert.assertEquals(2, repl.walEdits.getEditsSize());
-    Assert.assertEquals(2, repl.sizeInRecords);
-    Assert.assertNotEquals(0, repl.sizeInBytes);
+    assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
+    assertEquals(2, repl.walEdits.getEditsSize());
+    assertEquals(2, repl.sizeInRecords);
+    assertNotEquals(0, repl.sizeInBytes);
   }
 
   @Test
@@ -315,14 +316,14 @@ public class AccumuloReplicaSystemTest {
     DataInputStream in = new DataInputStream(bais);
 
     int numMutations = in.readInt();
-    Assert.assertEquals(1, numMutations);
+    assertEquals(1, numMutations);
 
     m = new Mutation();
     m.readFields(in);
 
-    Assert.assertEquals("row", new String(m.getRow()));
-    Assert.assertEquals(1, m.getReplicationSources().size());
-    Assert.assertTrue("Expected source cluster to be listed in mutation replication source",
+    assertEquals("row", new String(m.getRow()));
+    assertEquals(1, m.getReplicationSources().size());
+    assertTrue("Expected source cluster to be listed in mutation replication source",
         m.getReplicationSources().contains("source"));
   }
 
@@ -338,18 +339,18 @@ public class AccumuloReplicaSystemTest {
     // Setting the file to be closed with the infinite end implies that we need to bump the begin up
     // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
         new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
-    Assert.assertEquals(0, repl.walEdits.getEditsSize());
-    Assert.assertEquals(0, repl.sizeInRecords);
-    Assert.assertEquals(0, repl.sizeInBytes);
+    assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
+    assertEquals(0, repl.walEdits.getEditsSize());
+    assertEquals(0, repl.sizeInRecords);
+    assertEquals(0, repl.sizeInBytes);
   }
 
   @Test
@@ -364,18 +365,18 @@ public class AccumuloReplicaSystemTest {
     // Setting the file to be closed with the infinite end implies that we need to bump the begin up
     // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true)
-        .setClosed(false).build();
+    Status status =
+        Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
         new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(0, repl.entriesConsumed);
-    Assert.assertEquals(0, repl.walEdits.getEditsSize());
-    Assert.assertEquals(0, repl.sizeInRecords);
-    Assert.assertEquals(0, repl.sizeInBytes);
+    assertEquals(0, repl.entriesConsumed);
+    assertEquals(0, repl.walEdits.getEditsSize());
+    assertEquals(0, repl.sizeInRecords);
+    assertEquals(0, repl.sizeInBytes);
   }
 
   @Test
@@ -404,7 +405,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -413,7 +414,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tabletId = 1;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -427,8 +428,8 @@ public class AccumuloReplicaSystemTest {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ars.setConf(conf);
 
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
 
     HashSet<Integer> tids = new HashSet<>();
@@ -438,10 +439,10 @@ public class AccumuloReplicaSystemTest {
         new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(2, repl.entriesConsumed);
-    Assert.assertEquals(1, repl.walEdits.getEditsSize());
-    Assert.assertEquals(1, repl.sizeInRecords);
-    Assert.assertNotEquals(0, repl.sizeInBytes);
+    assertEquals(2, repl.entriesConsumed);
+    assertEquals(1, repl.walEdits.getEditsSize());
+    assertEquals(1, repl.sizeInRecords);
+    assertNotEquals(0, repl.sizeInBytes);
 
     status = Status.newBuilder(status).setBegin(2).build();
 
@@ -450,17 +451,17 @@ public class AccumuloReplicaSystemTest {
         new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(1, repl.entriesConsumed);
-    Assert.assertEquals(1, repl.walEdits.getEditsSize());
-    Assert.assertEquals(1, repl.sizeInRecords);
-    Assert.assertNotEquals(0, repl.sizeInBytes);
+    assertEquals(1, repl.entriesConsumed);
+    assertEquals(1, repl.walEdits.getEditsSize());
+    assertEquals(1, repl.sizeInRecords);
+    assertNotEquals(0, repl.sizeInBytes);
   }
 
   @Test
   public void dontSendEmptyDataToPeer() throws Exception {
     Client replClient = createMock(Client.class);
     AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
-    WalEdits edits = new WalEdits(Collections.<ByteBuffer> emptyList());
+    WalEdits edits = new WalEdits(Collections.<ByteBuffer>emptyList());
     WalReplication walReplication = new WalReplication(edits, 0, 0, 0);
 
     ReplicationTarget target = new ReplicationTarget("peer", "2", "1");
@@ -483,14 +484,14 @@ public class AccumuloReplicaSystemTest {
 
     verify(replClient, ars);
 
-    Assert.assertEquals(new ReplicationStats(0l, 0l, 0l), stats);
+    assertEquals(new ReplicationStats(0l, 0l, 0l), stats);
   }
 
   @Test
   public void consumedButNotSentDataShouldBeRecorded() throws Exception {
     Client replClient = createMock(Client.class);
     AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
-    WalEdits edits = new WalEdits(Collections.<ByteBuffer> emptyList());
+    WalEdits edits = new WalEdits(Collections.<ByteBuffer>emptyList());
     WalReplication walReplication = new WalReplication(edits, 0, 5, 0);
 
     ReplicationTarget target = new ReplicationTarget("peer", "2", "1");
@@ -513,7 +514,7 @@ public class AccumuloReplicaSystemTest {
 
     verify(replClient, ars);
 
-    Assert.assertEquals(new ReplicationStats(0l, 0l, 5l), stats);
+    assertEquals(new ReplicationStats(0l, 0l, 5l), stats);
   }
 
   @Test

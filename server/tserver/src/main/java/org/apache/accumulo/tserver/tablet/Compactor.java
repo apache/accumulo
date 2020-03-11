@@ -130,8 +130,8 @@ public class Compactor implements Callable<CompactionStats> {
     entriesWritten.set(0);
   }
 
-  protected static final Set<Compactor> runningCompactions = Collections
-      .synchronizedSet(new HashSet<Compactor>());
+  protected static final Set<Compactor> runningCompactions =
+      Collections.synchronizedSet(new HashSet<Compactor>());
 
   public static List<CompactionInfo> getRunningCompactions() {
     ArrayList<CompactionInfo> compactions = new ArrayList<>();
@@ -179,6 +179,15 @@ public class Compactor implements Callable<CompactionStats> {
     return MajorCompactionReason.values()[reason];
   }
 
+  protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)
+      throws IOException {
+    try {
+      return LocalityGroupUtil.getLocalityGroups(acuTableConf);
+    } catch (LocalityGroupConfigurationError e) {
+      throw new IOException(e);
+    }
+  }
+
   @Override
   public CompactionStats call() throws IOException, CompactionCanceledException {
 
@@ -203,12 +212,7 @@ public class Compactor implements Callable<CompactionStats> {
       mfw = fileFactory.newWriterBuilder().forFile(outputFilePathName, ns, ns.getConf())
           .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter()).build();
 
-      Map<String,Set<ByteSequence>> lGroups;
-      try {
-        lGroups = LocalityGroupUtil.getLocalityGroups(acuTableConf);
-      } catch (LocalityGroupConfigurationError e) {
-        throw new IOException(e);
-      }
+      Map<String,Set<ByteSequence>> lGroups = getLocalityGroups(acuTableConf);
 
       long t1 = System.currentTimeMillis();
 
@@ -347,8 +351,8 @@ public class Compactor implements Callable<CompactionStats> {
         iters.add(imm.compactionIterator());
       }
 
-      CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()),
-          entriesRead);
+      CountingIterator citr =
+          new CountingIterator(new MultiIterator(iters, extent.toDataRange()), entriesRead);
       DeletingIterator delIter = new DeletingIterator(citr, propogateDeletes);
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
 
@@ -356,8 +360,8 @@ public class Compactor implements Callable<CompactionStats> {
 
       TabletIteratorEnvironment iterEnv;
       if (env.getIteratorScope() == IteratorScope.majc)
-        iterEnv = new TabletIteratorEnvironment(IteratorScope.majc, !propogateDeletes,
-            acuTableConf);
+        iterEnv =
+            new TabletIteratorEnvironment(IteratorScope.majc, !propogateDeletes, acuTableConf);
       else if (env.getIteratorScope() == IteratorScope.minc)
         iterEnv = new TabletIteratorEnvironment(IteratorScope.minc, acuTableConf);
       else

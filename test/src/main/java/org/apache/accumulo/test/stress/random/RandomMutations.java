@@ -33,8 +33,8 @@ public class RandomMutations extends Stream<Mutation> {
     this.column_qualifiers = column_qualifiers;
     this.values = values;
     this.row_widths = row_widths;
-    this.max_cells_per_mutation = (max_cells_per_mutation > 0 ? max_cells_per_mutation
-        : Integer.MAX_VALUE);
+    this.max_cells_per_mutation =
+        (max_cells_per_mutation > 0 ? max_cells_per_mutation : Integer.MAX_VALUE);
 
     current_row = null;
     cells_remaining_in_row = 0;

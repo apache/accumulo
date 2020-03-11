@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.Callable;
@@ -33,7 +36,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,12 +77,12 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     }
 
     svc.shutdown();
-    Assert.assertTrue(svc.awaitTermination(60, TimeUnit.MINUTES));
+    assertTrue(svc.awaitTermination(60, TimeUnit.MINUTES));
 
     for (Future<Exception> fut : futures) {
       Exception e = fut.get();
       if (null != e) {
-        Assert.fail("Thread failed with exception " + e);
+        fail("Thread failed with exception " + e);
       }
     }
 

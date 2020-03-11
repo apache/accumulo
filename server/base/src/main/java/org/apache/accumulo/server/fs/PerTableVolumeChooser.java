@@ -33,7 +33,8 @@ public class PerTableVolumeChooser implements VolumeChooser {
   private final VolumeChooser fallbackVolumeChooser = new RandomVolumeChooser();
   // TODO Add hint of expected size to construction, see ACCUMULO-3410
   /* Track VolumeChooser instances so they can keep state. */
-  private final ConcurrentHashMap<String,VolumeChooser> tableSpecificChooser = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String,VolumeChooser> tableSpecificChooser =
+      new ConcurrentHashMap<>();
   // TODO has to be lazily initialized currently because of the reliance on HdfsZooInstance. see
   // ACCUMULO-3411
   private volatile ServerConfigurationFactory serverConfs;

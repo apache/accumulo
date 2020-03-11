@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.start.classloader.vfs.providers;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.net.URL;
 
 import org.apache.accumulo.start.test.AccumuloDFSBase;
@@ -27,7 +30,6 @@ import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,7 +63,7 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
   public void testGetClass() throws Exception {
     Class<?> helloWorldClass = this.cl.loadClass("test.HelloWorld");
     Object o = helloWorldClass.newInstance();
-    Assert.assertEquals("Hello World!", o.toString());
+    assertEquals("Hello World!", o.toString());
   }
 
   @Test
@@ -81,7 +83,7 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
 
     // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
-    Assert.assertTrue(listener.isFileCreated());
+    assertTrue(listener.isFileCreated());
 
     // Update the jar
     jarPath = this.getClass().getResource("/HelloWorld.jar");
@@ -91,12 +93,12 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
 
     // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
-    Assert.assertTrue(listener.isFileChanged());
+    assertTrue(listener.isFileChanged());
 
     this.hdfs.delete(dst, false);
     // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
-    Assert.assertTrue(listener.isFileDeleted());
+    assertTrue(listener.isFileDeleted());
 
     monitor.stop();
 

@@ -21,8 +21,11 @@ import java.util.Arrays;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.junit.Test;
 
 public class UUIDLexicoderTest extends AbstractLexicoderTest {
+
+  @Test
   public void testSortOrder() {
 
     assertSortOrder(new UUIDLexicoder(), Arrays.asList(UUID.randomUUID(), UUID.randomUUID(),
@@ -39,6 +42,7 @@ public class UUIDLexicoderTest extends AbstractLexicoderTest {
     assertSortOrder(new UUIDLexicoder(), uuids);
   }
 
+  @Test
   public void testDecodes() {
     assertDecodes(new UUIDLexicoder(), UUID.randomUUID());
 

@@ -542,8 +542,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
             "< must come at end of Metadata row  " + flattenedExtent);
       }
 
-      String tableId = new String(flattenedExtent.getBytes(), 0, flattenedExtent.getLength() - 1,
-          UTF_8);
+      String tableId =
+          new String(flattenedExtent.getBytes(), 0, flattenedExtent.getLength() - 1, UTF_8);
       this.setTableId(tableId);
       this.setEndRow(null, false, false);
     } else {

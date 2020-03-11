@@ -34,19 +34,18 @@ final class CompactionRunner implements Runnable, Comparable<CompactionRunner> {
 
   @Override
   public void run() {
-    if (tablet.getTabletServer().isMajorCompactionDisabled()) {
-      // this will make compaction tasks that were queued when shutdown was
-      // initiated exit
-      tablet.removeMajorCompactionQueuedReason(reason);
-      return;
-    }
+    CompactionStats stats = tablet.majorCompact(reason, queued);
 
-    tablet.majorCompact(reason, queued);
-
-    // if there is more work to be done, queue another major compaction
-    synchronized (tablet) {
-      if (reason == MajorCompactionReason.NORMAL && tablet.needsMajorCompaction(reason))
-        tablet.initiateMajorCompaction(reason);
+    // Some compaction strategies may always return true for shouldCompact() because they need to
+    // make blocking calls to gather information. Without the following check these strategies would
+    // endlessly requeue. So only check if a subsequent compaction is needed if the previous
+    // compaction actually did something.
+    if (stats != null && stats.getEntriesRead() > 0) {
+      // if there is more work to be done, queue another major compaction
+      synchronized (tablet) {
+        if (reason == MajorCompactionReason.NORMAL && tablet.needsMajorCompaction(reason))
+          tablet.initiateMajorCompaction(reason);
+      }
     }
   }
 

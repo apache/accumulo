@@ -42,8 +42,8 @@ public class Validate extends Test {
     Connector conn = env.getConnector();
 
     boolean tableExists = WalkingSecurity.get(state, env).getTableExists();
-    boolean cloudTableExists = conn.tableOperations().list()
-        .contains(WalkingSecurity.get(state, env).getTableName());
+    boolean cloudTableExists =
+        conn.tableOperations().list().contains(WalkingSecurity.get(state, env).getTableName());
     if (tableExists != cloudTableExists)
       throw new AccumuloException("Table existance out of sync");
 
@@ -121,7 +121,6 @@ public class Validate extends Test {
       accuAuths = conn.securityOperations()
           .getUserAuthorizations(WalkingSecurity.get(state, env).getTabUserName());
     } catch (ThriftSecurityException ae) {
-      // @formatter:off
       if (ae.getCode()
           == org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.USER_DOESNT_EXIST) {
         if (tableUserExists)
@@ -129,7 +128,6 @@ public class Validate extends Test {
         else
           return;
       }
-      // @formatter:on
       throw new AccumuloException("Unexpected exception!", ae);
     }
     if (!auths.equals(accuAuths))

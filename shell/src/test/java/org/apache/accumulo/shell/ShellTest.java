@@ -323,8 +323,8 @@ public class ShellTest {
     exec("createtable t", true);
     exec("insert r f q v -ts 0", true);
     @SuppressWarnings("deprecation")
-    DateFormat dateFormat = new SimpleDateFormat(
-        org.apache.accumulo.core.util.format.DateStringFormatter.DATE_FORMAT);
+    DateFormat dateFormat =
+        new SimpleDateFormat(org.apache.accumulo.core.util.format.DateStringFormatter.DATE_FORMAT);
     String expected = String.format("r f:q [] %s    v", dateFormat.format(new Date(0)));
     // historically, showing few did not pertain to ColVis or Timestamp
     String expectedFew = expected;

@@ -95,11 +95,9 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     public static AuthenticationToken deserialize(String tokenClassName, byte[] tokenBytes) {
       Class<? extends AuthenticationToken> tokenType = null;
       try {
-        // @formatter:off
         @SuppressWarnings("unchecked")
         Class<? extends AuthenticationToken> tmpTokenType =
-          (Class<? extends AuthenticationToken>) Class.forName(tokenClassName);
-        // @formatter:on
+            (Class<? extends AuthenticationToken>) Class.forName(tokenClassName);
         tokenType = tmpTokenType;
       } catch (ClassNotFoundException e) {
         throw new IllegalArgumentException("Class not available " + tokenClassName, e);

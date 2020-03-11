@@ -359,8 +359,8 @@ public class FilterTest {
     }
     assertTrue(tm.size() == 1000);
 
-    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm),
-        hsc);
+    SortedKeyValueIterator<Key,Value> a =
+        ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 1000);
 
@@ -397,8 +397,8 @@ public class FilterTest {
     }
     assertTrue(tm.size() == 1000);
 
-    SortedKeyValueIterator<Key,Value> a = VisibilityFilter.wrap(new SortedMapIterator(tm), auths,
-        le2.getExpression());
+    SortedKeyValueIterator<Key,Value> a =
+        VisibilityFilter.wrap(new SortedMapIterator(tm), auths, le2.getExpression());
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
     assertTrue("size was " + size, size == 750);
@@ -412,8 +412,8 @@ public class FilterTest {
       hsc.add(column);
     }
 
-    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm),
-        hsc);
+    SortedKeyValueIterator<Key,Value> a =
+        ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     return a;
   }

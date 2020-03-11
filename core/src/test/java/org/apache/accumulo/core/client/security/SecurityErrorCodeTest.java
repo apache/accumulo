@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.core.client.security;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashSet;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -34,13 +35,10 @@ public class SecurityErrorCodeTest {
     for (SecurityErrorCode sec : SecurityErrorCode.values())
       secNames1.add(sec.name());
 
-    // @formatter:off
-    for (org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode sec :
-        org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode
+    for (org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode sec : org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode
         .values())
       secNames2.add(sec.name());
-    // @formatter:on
 
-    Assert.assertEquals(secNames1, secNames2);
+    assertEquals(secNames1, secNames2);
   }
 }

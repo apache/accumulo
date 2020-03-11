@@ -55,8 +55,8 @@ public class BloomFilterLayerLookupTest {
   public TestName testName = new TestName();
 
   @Rule
-  public TemporaryFolder tempDir = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempDir =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Test
   public void test() throws IOException {
@@ -68,8 +68,8 @@ public class BloomFilterLayerLookupTest {
     ArrayList<Integer> vals = new ArrayList<>(valsSet);
     Collections.sort(vals);
 
-    ConfigurationCopy acuconf = new ConfigurationCopy(
-        AccumuloConfiguration.getDefaultConfiguration());
+    ConfigurationCopy acuconf =
+        new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
     acuconf.set(Property.TABLE_BLOOM_ENABLED, "true");
     acuconf.set(Property.TABLE_BLOOM_KEY_FUNCTOR, ColumnFamilyFunctor.class.getName());
     acuconf.set(Property.TABLE_FILE_TYPE, RFile.EXTENSION);

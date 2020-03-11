@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -32,7 +33,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -43,8 +43,8 @@ import org.junit.rules.TemporaryFolder;
 public class RootFilesTest {
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private class TestWrapper {
     File rootTabletDir;
@@ -92,14 +92,14 @@ public class RootFilesTest {
     }
 
     public Collection<String> cleanupReplacement(String... expectedFiles) throws IOException {
-      Collection<String> ret = RootFiles.cleanupReplacement(vm,
-          vm.listStatus(new Path(rootTabletDir.toURI())), true);
+      Collection<String> ret =
+          RootFiles.cleanupReplacement(vm, vm.listStatus(new Path(rootTabletDir.toURI())), true);
 
       HashSet<String> expected = new HashSet<>();
       for (String efile : expectedFiles)
         expected.add(new File(rootTabletDir, efile).toURI().toString());
 
-      Assert.assertEquals(expected, new HashSet<>(ret));
+      assertEquals(expected, new HashSet<>(ret));
 
       return ret;
     }
@@ -116,7 +116,7 @@ public class RootFilesTest {
       HashSet<String> expected = new HashSet<>();
       expected.addAll(Arrays.asList(files));
 
-      Assert.assertEquals(expected, actual);
+      assertEquals(expected, actual);
     }
   }
 

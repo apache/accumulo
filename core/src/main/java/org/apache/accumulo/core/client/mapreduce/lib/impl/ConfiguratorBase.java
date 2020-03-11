@@ -25,6 +25,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Base64;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.impl.DelegationTokenStub;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -162,7 +162,7 @@ public class ConfiguratorBase {
     } else {
       conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
           TokenSource.INLINE.prefix() + token.getClass().getName() + ":"
-              + Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
+              + Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(token)));
     }
   }
 
@@ -258,7 +258,7 @@ public class ConfiguratorBase {
       String[] args = token.substring(TokenSource.INLINE.prefix().length()).split(":", 2);
       if (args.length == 2)
         return AuthenticationTokenSerializer.deserialize(args[0],
-            Base64.decodeBase64(args[1].getBytes(UTF_8)));
+            Base64.getDecoder().decode(args[1].getBytes(UTF_8)));
     } else if (token.startsWith(TokenSource.FILE.prefix())) {
       String tokenFileName = token.substring(TokenSource.FILE.prefix().length());
       return getTokenFromFile(conf, getPrincipal(implementingClass, conf), tokenFileName);
@@ -407,8 +407,8 @@ public class ConfiguratorBase {
    */
   public static ClientConfiguration getClientConfiguration(Class<?> implementingClass,
       Configuration conf) {
-    String clientConfigString = conf
-        .get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
+    String clientConfigString =
+        conf.get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
     if (null != clientConfigString) {
       return ClientConfiguration.deserialize(clientConfigString);
     }
@@ -497,8 +497,8 @@ public class ConfiguratorBase {
     requireNonNull(token);
     if (token instanceof DelegationTokenStub) {
       DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
-      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials()
-          .getToken(new Text(delTokenStub.getServiceName()));
+      Token<? extends TokenIdentifier> hadoopToken =
+          job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
       try {
         identifier
@@ -527,8 +527,8 @@ public class ConfiguratorBase {
     requireNonNull(token);
     if (token instanceof DelegationTokenStub) {
       DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
-      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials()
-          .getToken(new Text(delTokenStub.getServiceName()));
+      Token<? extends TokenIdentifier> hadoopToken =
+          job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
       try {
         identifier

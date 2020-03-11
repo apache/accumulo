@@ -102,8 +102,8 @@ public class ZombieTServer {
   public static void main(String[] args) throws Exception {
     Random random = new Random(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
-    AccumuloServerContext context = new AccumuloServerContext(
-        new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
+    AccumuloServerContext context =
+        new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
 
     TransactionWatcher watcher = new TransactionWatcher();
     final ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
@@ -113,8 +113,8 @@ public class ZombieTServer {
         10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
 
     String addressString = serverPort.address.toString();
-    String zPath = ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS + "/"
-        + addressString;
+    String zPath =
+        ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS + "/" + addressString;
     ZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
 
@@ -142,8 +142,8 @@ public class ZombieTServer {
       }
     };
 
-    byte[] lockContent = new ServerServices(addressString, Service.TSERV_CLIENT).toString()
-        .getBytes(UTF_8);
+    byte[] lockContent =
+        new ServerServices(addressString, Service.TSERV_CLIENT).toString().getBytes(UTF_8);
     if (zlock.tryLock(lw, lockContent)) {
       log.debug("Obtained tablet server lock " + zlock.getLockPath());
     }

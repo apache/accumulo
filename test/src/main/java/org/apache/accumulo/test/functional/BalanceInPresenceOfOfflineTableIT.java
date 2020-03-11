@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedSet;
@@ -48,7 +50,6 @@ import org.apache.commons.lang.math.NumberUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -201,7 +202,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       balancingWorked = true;
     }
 
-    Assert.assertTrue("did not properly balance", balancingWorked);
+    assertTrue("did not properly balance", balancingWorked);
   }
 
 }
