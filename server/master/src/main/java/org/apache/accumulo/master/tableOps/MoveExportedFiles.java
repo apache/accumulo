@@ -21,9 +21,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.Sets;
 
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
@@ -31,11 +30,12 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Sets;
 
 class MoveExportedFiles extends MasterRepo {
   private static final Logger log = LoggerFactory.getLogger(MoveExportedFiles.class);
@@ -58,22 +58,27 @@ class MoveExportedFiles extends MasterRepo {
       FileStatus[] exportedFiles = fs.listStatus(new Path(tableInfo.exportDir));
       FileStatus[] importedFiles = fs.listStatus(new Path(tableInfo.importDir));
 
-      Set<String> importing = Arrays.stream(exportedFiles).map(fstat -> fstat.getPath().getName())
-        .map(fileNameMappings::get).collect(Collectors.toSet());
+      Function<FileStatus,String> fileStatusName = fstat -> fstat.getPath().getName();
 
-      Set<String> imported = Arrays.stream(importedFiles).map(fstat -> fstat.getPath().getName())
-        .collect(Collectors.toSet());
-      log.debug("Files already present in imported (target) directory: {}",
-        StringUtils.join(imported.toArray(), ","));
+      Set<String> importing = Arrays.stream(exportedFiles).map(fileStatusName)
+          .map(fileNameMappings::get).collect(Collectors.toSet());
+
+      Set<String> imported =
+          Arrays.stream(importedFiles).map(fileStatusName).collect(Collectors.toSet());
+
+      if (log.isDebugEnabled()) {
+        log.debug("Files already present in imported (target) directory: {}",
+            imported.stream().collect(Collectors.joining(",")));
+      }
 
       Set<String> missingFiles = Sets.difference(new HashSet<String>(fileNameMappings.values()),
-        new HashSet<String>(Sets.union(importing, imported)));
+          new HashSet<String>(Sets.union(importing, imported)));
 
-      if (!missingFiles.isEmpty())
-      {
+      if (!missingFiles.isEmpty()) {
         throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName,
-        TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-        "Missing source files corresponding to files " + StringUtils.join(missingFiles, ","));
+            TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+            "Missing source files corresponding to files "
+                + missingFiles.stream().collect(Collectors.joining(",")));
       }
 
       for (FileStatus fileStatus : exportedFiles) {
