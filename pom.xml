@@ -115,9 +115,9 @@
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.62</bouncycastle.version>
+    <bouncycastle.version>1.64</bouncycastle.version>
     <!-- Curator version -->
-    <curator.version>4.2.0</curator.version>
+    <curator.version>4.3.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <!-- extra release args for testing -->
@@ -126,27 +126,26 @@
     <failsafe.groups />
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
-    <hadoop.version>3.1.2</hadoop.version>
-    <hk2.version>2.5.0</hk2.version>
+    <hadoop.version>3.2.1</hadoop.version>
+    <hk2.version>2.6.1</hk2.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.2.0-incubating</htrace.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
-    <jackson.version>2.10.0</jackson.version>
+    <jackson.version>2.10.3</jackson.version>
     <javax.el.version>3.0.1-b06</javax.el.version>
     <jaxb.version>2.3.0.1</jaxb.version>
-    <jersey.version>2.28</jersey.version>
-    <jetty.version>9.4.19.v20190610</jetty.version>
+    <jersey.version>2.30.1</jersey.version>
+    <jetty.version>9.4.27.v20200227</jetty.version>
     <maven.compiler.release>11</maven.compiler.release>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>2.0.2</powermock.version>
+    <powermock.version>2.0.5</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
-    <slf4j.version>1.7.26</slf4j.version>
+    <slf4j.version>1.7.30</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
-    <spotbugs.version>3.1.12</spotbugs.version>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <surefire.groups />
@@ -162,12 +161,12 @@
       <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
-        <version>1.72</version>
+        <version>1.78</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml</groupId>
         <artifactId>classmate</artifactId>
-        <version>1.5.0</version>
+        <version>1.5.1</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
@@ -202,22 +201,22 @@
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
-        <version>2.7.0</version>
+        <version>2.8.1</version>
       </dependency>
       <dependency>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-annotations</artifactId>
-        <version>${spotbugs.version}</version>
+        <version>4.0.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.auto.service</groupId>
         <artifactId>auto-service</artifactId>
-        <version>1.0-rc5</version>
+        <version>1.0-rc6</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
-        <version>2.8.5</version>
+        <version>2.8.6</version>
       </dependency>
       <dependency>
         <!-- this is a runtime dependency of guava, no longer included with guava as of 27.1 -->
@@ -228,7 +227,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>28.0-jre</version>
+        <version>28.2-jre</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
@@ -248,7 +247,7 @@
       <dependency>
         <groupId>commons-beanutils</groupId>
         <artifactId>commons-beanutils</artifactId>
-        <version>1.9.3</version>
+        <version>1.9.4</version>
       </dependency>
       <dependency>
         <groupId>commons-cli</groupId>
@@ -258,7 +257,7 @@
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.12</version>
+        <version>1.14</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
@@ -318,7 +317,7 @@
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.12</version>
+        <version>4.13</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -394,12 +393,12 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
-        <version>4.3</version>
+        <version>4.4</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-configuration2</artifactId>
-        <version>2.5</version>
+        <version>2.7</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -424,12 +423,12 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
-        <version>1.6</version>
+        <version>1.8</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-vfs2</artifactId>
-        <version>2.3</version>
+        <version>2.6.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.curator</groupId>
@@ -470,6 +469,11 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-distcp</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-hdfs-client</artifactId>
         <version>${hadoop.version}</version>
       </dependency>
       <dependency>
@@ -554,7 +558,7 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>4.0.2</version>
+        <version>4.2</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
@@ -594,7 +598,7 @@
       <dependency>
         <groupId>org.freemarker</groupId>
         <artifactId>freemarker</artifactId>
-        <version>2.3.28</version>
+        <version>2.3.30</version>
       </dependency>
       <dependency>
         <groupId>org.glassfish.hk2</groupId>
@@ -722,29 +726,19 @@
         <version>2.2.6</version>
       </dependency>
       <dependency>
-        <groupId>org.hamcrest</groupId>
-        <artifactId>hamcrest</artifactId>
-        <version>2.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.hamcrest</groupId>
-        <artifactId>hamcrest-core</artifactId>
-        <version>2.1</version>
-      </dependency>
-      <dependency>
         <groupId>org.hibernate.validator</groupId>
         <artifactId>hibernate-validator</artifactId>
-        <version>6.1.0.Final</version>
+        <version>6.1.2.Final</version>
       </dependency>
       <dependency>
         <groupId>org.javassist</groupId>
         <artifactId>javassist</artifactId>
-        <version>3.25.0-GA</version>
+        <version>3.26.0-GA</version>
       </dependency>
       <dependency>
         <groupId>org.jboss.logging</groupId>
         <artifactId>jboss-logging</artifactId>
-        <version>3.4.0.Final</version>
+        <version>3.4.1.Final</version>
       </dependency>
       <dependency>
         <groupId>org.powermock</groupId>
@@ -774,7 +768,7 @@
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
-        <version>2.13.0</version>
+        <version>2.13.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -833,7 +827,7 @@
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>${spotbugs.version}.1</version>
+          <version>3.1.12.1</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -910,6 +904,11 @@
               <arg>5</arg>
             </compilerArgs>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.1.2</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -1062,14 +1061,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <dependencies>
-          <dependency>
-            <!-- needed for Java 11 until maven-dependency-plugin 3.1.2 is released -->
-            <groupId>org.apache.maven.shared</groupId>
-            <artifactId>maven-dependency-analyzer</artifactId>
-            <version>1.11.1</version>
-          </dependency>
-        </dependencies>
         <executions>
           <execution>
             <id>analyze</id>
@@ -1083,6 +1074,7 @@
                 <usedUndeclaredDependency>org.apache.curator:curator-client:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.apache.hadoop:hadoop-common:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.apache.hadoop:hadoop-hdfs:*:*</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.hadoop:hadoop-hdfs-client:*:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.apache.hadoop:hadoop-mapreduce-client-core:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.apache.hadoop:hadoop-auth:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.apache.httpcomponents:httpcore:jar:*</usedUndeclaredDependency>
@@ -1266,7 +1258,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>8.29</version>
+            <version>8.30</version>
           </dependency>
         </dependencies>
         <executions>

@@ -24,7 +24,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -33,9 +33,7 @@ import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class PerTableVolumeChooserTest {
 
@@ -53,9 +51,6 @@ public class PerTableVolumeChooserTest {
   public static class MockChooser1 extends RandomVolumeChooser {}
 
   public static class MockChooser2 extends RandomVolumeChooser {}
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void before() {
@@ -126,9 +121,7 @@ public class PerTableVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    getTableDelegate();
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> getTableDelegate());
   }
 
   @Test
@@ -140,9 +133,7 @@ public class PerTableVolumeChooserTest {
         VolumeChooser.class)).andThrow(new RuntimeException());
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    getTableDelegate();
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> getTableDelegate());
   }
 
   @Test
@@ -179,9 +170,7 @@ public class PerTableVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    getDelegate(ChooserScope.LOGGER);
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> getDelegate(ChooserScope.LOGGER));
   }
 
   @Test
@@ -194,9 +183,7 @@ public class PerTableVolumeChooserTest {
         .andThrow(new RuntimeException());
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    getDelegate(ChooserScope.LOGGER);
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> getDelegate(ChooserScope.LOGGER));
   }
 
   @Test

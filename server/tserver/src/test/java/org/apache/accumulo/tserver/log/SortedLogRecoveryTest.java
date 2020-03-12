@@ -24,6 +24,7 @@ import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MUTATION;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -57,7 +58,6 @@ import org.apache.hadoop.io.MapFile.Writer;
 import org.apache.hadoop.io.Text;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -73,9 +73,6 @@ public class SortedLogRecoveryTest {
   @Rule
   public TemporaryFolder tempFolder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   static class KeyValue implements Comparable<KeyValue> {
     public final LogFileKey key;
@@ -874,9 +871,8 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries1", entries1);
 
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("consecutive " + LogEvents.COMPACTION_FINISH.name());
-    recover(logs, extent);
+    var e = assertThrows(IllegalStateException.class, () -> recover(logs, extent));
+    assertTrue(e.getMessage().contains("consecutive " + LogEvents.COMPACTION_FINISH.name()));
   }
 
   @Test
@@ -996,8 +992,7 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries1", entries1);
 
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("not " + LogEvents.OPEN);
-    recover(logs, extent);
+    var e = assertThrows(IllegalStateException.class, () -> recover(logs, extent));
+    assertTrue(e.getMessage().contains("not " + LogEvents.OPEN));
   }
 }
