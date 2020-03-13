@@ -279,22 +279,27 @@ public class CryptoTest {
         () -> cs.init(aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
   }
 
-  @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is being tested")
   @Test
   public void testAESKeyUtilsGeneratesKey() throws NoSuchAlgorithmException,
       NoSuchProviderException, NoSuchPaddingException, InvalidKeyException {
     SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
-    java.security.Key key;
-    key = AESKeyUtils.generateKey(sr, 16);
+    // verify valid key sizes (corresponds to 128, 192, and 256 bits)
+    for (int i : new int[] {16, 24, 32}) {
+      verifyKeySizeForCBC(sr, i);
+    }
+    // verify invalid key sizes
+    for (int i : new int[] {1, 2, 8, 11, 15, 64, 128}) {
+      assertThrows(InvalidKeyException.class, () -> verifyKeySizeForCBC(sr, i));
+    }
+  }
+
+  // this has to be a separate method, for spotbugs, because spotbugs annotation doesn't seem to
+  // apply to the lambda inline
+  @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is being tested")
+  private void verifyKeySizeForCBC(SecureRandom sr, int sizeInBytes)
+      throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
+    java.security.Key key = AESKeyUtils.generateKey(sr, sizeInBytes);
     Cipher.getInstance("AES/CBC/NoPadding").init(Cipher.ENCRYPT_MODE, key);
-
-    key = AESKeyUtils.generateKey(sr, 24);
-    key = AESKeyUtils.generateKey(sr, 32);
-    key = AESKeyUtils.generateKey(sr, 11);
-
-    final java.security.Key key2 = key;
-    assertThrows(InvalidKeyException.class,
-        () -> Cipher.getInstance("AES/CBC/NoPadding").init(Cipher.ENCRYPT_MODE, key2));
   }
 
   @Test
