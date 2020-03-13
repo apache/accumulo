@@ -20,8 +20,8 @@ package org.apache.accumulo.start.classloader.vfs;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -171,9 +171,13 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Object o2 = clazz2.getDeclaredConstructor().newInstance();
     assertEquals("Hello World!", o2.toString());
 
-    // This is true because they are loaded by the same classloader due to the new retry
-    assertTrue(clazz1.equals(clazz2));
-    assertFalse(o1.equals(o2));
+    // This is false because even though it's the same class, it's loaded from a different jar
+    // this is a change in behavior from previous versions of vfs2 where it would load the same
+    // class from different jars as though it was from the first jar
+    assertNotEquals(clazz1, clazz2);
+    assertNotSame(o1, o2);
+    assertEquals(clazz1.getName(), clazz2.getName());
+    assertEquals(o1.toString(), o2.toString());
 
     arvcl.close();
   }
