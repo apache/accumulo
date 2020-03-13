@@ -59,11 +59,28 @@ public class ThriftTransportPool {
   private long killTime = 1000 * 3;
 
   private static class CachedConnections {
+    /*
+     * Items are added and removed from this queue in such a way that the queue is ordered from most
+     * recently used to least recently used. The first position being the most recently used and the
+     * last position being the least recently used. This is done in the following way.
+     *
+     * - Newly unreserved connections are be added using addFirst(). When a connection is added, its
+     * lastReturnTime is set.
+     *
+     * - When an unreserved connection is needed, its taken off using pollFirst().
+     *
+     * - Unreserved connections that haven been idle too long are removed using removeLast()
+     *
+     * The purpose of maintaining this ordering it to allow efficient removal of idle connection.
+     * The efficiency comes from avoiding a linear search for idle connection. Since this search is
+     * done by a background thread holding a lock, thats good for any thread attempting to reserve a
+     * connection.
+     */
     Deque<CachedConnection> unreserved = new ArrayDeque<>(); // stack - LIFO
     Map<CachedTTransport,CachedConnection> reserved = new HashMap<>();
 
     public CachedConnection reserveAny() {
-      CachedConnection cachedConnection = unreserved.poll(); // safe pop
+      CachedConnection cachedConnection = unreserved.pollFirst(); // safe pop
       if (cachedConnection != null) {
         cachedConnection.reserve();
         reserved.put(cachedConnection.transport, cachedConnection);
@@ -324,7 +341,7 @@ public class ThriftTransportPool {
       // set size that the idle times at the end of the list grow. The connections with
       // large idle times will be cleaned up. Using a FIFO could continually reset the idle
       // times of all connections, even when there are more than the working set size.
-      connections.unreserved.push(connection);
+      connections.unreserved.addFirst(connection);
     }
 
     List<CachedConnection> removeExpiredConnections(final long killTime) {
