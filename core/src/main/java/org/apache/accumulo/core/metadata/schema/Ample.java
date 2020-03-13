@@ -29,6 +29,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
@@ -119,6 +120,10 @@ public interface Ample {
    */
   TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch);
 
+  // BEGIN new methods
+  TableOptions readTablets();
+
+  // END new methods
   /**
    * Initiates mutating a single tablets persistent metadata. No data is persisted until the
    * {@code mutate()} method is called on the returned object. If updating multiple tablets,

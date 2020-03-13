@@ -30,10 +30,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.*;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
@@ -52,6 +51,12 @@ public class RootTabletStateStoreTest {
     public TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {
       Preconditions.checkArgument(extent.equals(RootTable.EXTENT));
       return RootTabletMetadata.fromJson(json).convertToTabletMetadata();
+    }
+
+    @Override
+    public TableOptions readTablets() {
+      TabletsMetadata.TableOptions builder = TabletsMetadata.builder();
+      return builder;
     }
 
     @Override

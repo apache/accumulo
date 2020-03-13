@@ -22,6 +22,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.Options;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 
 import com.google.common.collect.Iterables;
 
@@ -41,5 +42,10 @@ public class AmpleImpl implements Ample {
     try (TabletsMetadata tablets = builder.build(client)) {
       return Iterables.getOnlyElement(tablets);
     }
+  }
+
+  public TableOptions readTablets() {
+    TableOptions builder = TabletsMetadata.builder();
+    return builder;
   }
 }
