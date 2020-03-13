@@ -249,7 +249,7 @@ public class PrintInfo implements KeywordExecutable {
         if (opts.formatterClazz != null) {
           final Class<? extends BiFunction<Key,Value,String>> formatterClass =
               getFormatter(opts.formatterClazz);
-          formatter = formatterClass.newInstance();
+          formatter = formatterClass.getConstructor().newInstance();
         } else if (opts.fullKeys) {
           formatter = (key, value) -> key.toStringNoTruncate() + " -> " + value;
         } else if (opts.dump) {
