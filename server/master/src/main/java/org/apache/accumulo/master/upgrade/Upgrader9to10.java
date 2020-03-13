@@ -639,7 +639,8 @@ public class Upgrader9to10 implements Upgrader {
     Path pathNoVolume = VolumeManager.FileType.TABLE.removeVolume(new Path(oldDelete));
     Path pathToCheck = new Path(oldDelete);
 
-    // if the volume was removed properly, the path is absolute so return
+    // if the volume was removed properly, the path is absolute so return, otherwise
+    // it is a relative path so proceed with more checks
     if (pathNoVolume != null)
       return pathToCheck;
 
