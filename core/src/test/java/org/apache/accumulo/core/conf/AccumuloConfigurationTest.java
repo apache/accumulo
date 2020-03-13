@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
@@ -32,14 +33,9 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class AccumuloConfigurationTest {
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testGetPropertyByString() {
@@ -196,8 +192,7 @@ public class AccumuloConfigurationTest {
     expected1.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a2", "asg34");
     assertEquals(expected1, pm1);
 
-    thrown.expect(UnsupportedOperationException.class);
-    pm1.put("k9", "v3");
+    assertThrows(UnsupportedOperationException.class, () -> pm1.put("k9", "v3"));
   }
 
   @Test

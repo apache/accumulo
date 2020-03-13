@@ -19,6 +19,7 @@
 package org.apache.accumulo.hadoop.mapreduce;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
@@ -42,13 +43,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class AccumuloInputFormatTest {
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   static Properties clientProperties;
 
@@ -71,8 +68,8 @@ public class AccumuloInputFormatTest {
   public void testMissingTable() throws Exception {
     Properties clientProps =
         org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest.setupClientProperties();
-    exception.expect(IllegalArgumentException.class);
-    AccumuloInputFormat.configure().clientProperties(clientProps).store(Job.getInstance());
+    assertThrows(IllegalArgumentException.class, () -> AccumuloInputFormat.configure()
+        .clientProperties(clientProps).store(Job.getInstance()));
   }
 
   /**

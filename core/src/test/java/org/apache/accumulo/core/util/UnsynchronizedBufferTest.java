@@ -20,6 +20,7 @@ package org.apache.accumulo.core.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -28,14 +29,9 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import org.apache.hadoop.io.WritableUtils;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class UnsynchronizedBufferTest {
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testByteBufferConstructor() {
@@ -57,8 +53,9 @@ public class UnsynchronizedBufferTest {
 
     buf = new byte[6];
     // the byte buffer has the extra byte, but should not be able to read it...
-    thrown.expect(ArrayIndexOutOfBoundsException.class);
-    ub.readBytes(buf);
+    final UnsynchronizedBuffer.Reader ub2 = ub;
+    final byte[] buf2 = buf;
+    assertThrows(ArrayIndexOutOfBoundsException.class, () -> ub2.readBytes(buf2));
   }
 
   @Test

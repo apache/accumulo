@@ -24,7 +24,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.util.Set;
 
@@ -35,9 +35,7 @@ import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class PreferredVolumeChooserTest {
 
@@ -53,9 +51,6 @@ public class PreferredVolumeChooserTest {
   private Configuration tableConf;
   private Configuration systemConf;
   private PreferredVolumeChooser chooser;
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void before() {
@@ -118,9 +113,7 @@ public class PreferredVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    chooseForTable();
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> chooseForTable());
   }
 
   @Test
@@ -128,9 +121,7 @@ public class PreferredVolumeChooserTest {
     expect(tableConf.getTableCustom(TABLE_CUSTOM_SUFFIX)).andReturn(",").once();
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    chooseForTable();
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> chooseForTable());
   }
 
   @Test
@@ -140,9 +131,7 @@ public class PreferredVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    chooseForTable();
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> chooseForTable());
   }
 
   @Test
@@ -171,9 +160,7 @@ public class PreferredVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    choose(ChooserScope.LOGGER);
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> choose(ChooserScope.LOGGER));
   }
 
   @Test
@@ -182,9 +169,7 @@ public class PreferredVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    choose(ChooserScope.LOGGER);
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> choose(ChooserScope.LOGGER));
   }
 
   @Test
@@ -195,9 +180,7 @@ public class PreferredVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    choose(ChooserScope.LOGGER);
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> choose(ChooserScope.LOGGER));
   }
 
   @Test

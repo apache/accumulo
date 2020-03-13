@@ -19,6 +19,8 @@
 package org.apache.accumulo.test.rpc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.concurrent.TimeUnit;
@@ -27,13 +29,11 @@ import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.rpc.thrift.SimpleThriftService;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.hamcrest.core.IsInstanceOf;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 
@@ -45,9 +45,6 @@ public class ThriftBehaviorIT {
 
   @Rule
   public TestName testName = new TestName();
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   private SimpleThriftService.Client client;
   private SimpleThriftServiceHandler handler;
@@ -85,9 +82,8 @@ public class ThriftBehaviorIT {
 
   @Test
   public void echoFailHandler() throws TException {
-    exception.expect(TException.class);
-    exception.expectCause(IsInstanceOf.instanceOf(UnsupportedOperationException.class));
-    handler.echoFail(KITTY_MSG);
+    var e = assertThrows(TException.class, () -> handler.echoFail(KITTY_MSG));
+    assertTrue(e.getCause() instanceof UnsupportedOperationException);
   }
 
   @Test
@@ -104,8 +100,7 @@ public class ThriftBehaviorIT {
 
   @Test
   public void echoRuntimeFailHandler() {
-    exception.expect(UnsupportedOperationException.class);
-    handler.echoRuntimeFail(KITTY_MSG);
+    assertThrows(UnsupportedOperationException.class, () -> handler.echoRuntimeFail(KITTY_MSG));
   }
 
   @Test
@@ -132,9 +127,8 @@ public class ThriftBehaviorIT {
 
   @Test
   public void onewayFailHandler() throws TException {
-    exception.expect(TException.class);
-    exception.expectCause(IsInstanceOf.instanceOf(UnsupportedOperationException.class));
-    handler.onewayFail(KITTY_MSG);
+    var e = assertThrows(TException.class, () -> handler.onewayFail(KITTY_MSG));
+    assertTrue(e.getCause() instanceof UnsupportedOperationException);
   }
 
   @Test
@@ -146,8 +140,7 @@ public class ThriftBehaviorIT {
 
   @Test
   public void onewayRuntimeFailHandler() {
-    exception.expect(UnsupportedOperationException.class);
-    handler.onewayRuntimeFail(KITTY_MSG);
+    assertThrows(UnsupportedOperationException.class, () -> handler.onewayRuntimeFail(KITTY_MSG));
   }
 
   @Test
