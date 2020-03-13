@@ -637,14 +637,14 @@ public class Upgrader9to10 implements Upgrader {
    */
   static Path resolveRelativeDelete(String oldDelete, String upgradeProperty) {
     Path pathNoVolume = VolumeManager.FileType.TABLE.removeVolume(new Path(oldDelete));
+    Path pathToCheck = new Path(oldDelete);
 
-    // removeVolume will return null if path doesn't have a volume aka is a relative path
+    // if the volume was removed properly, the path is absolute so return
     if (pathNoVolume != null)
-      return pathNoVolume;
+      return pathToCheck;
 
     // A relative path directory of the form "/tableId/tabletDir" will have depth == 2
     // A relative path file of the form "/tableId/tabletDir/file" will have depth == 3
-    Path pathToCheck = new Path(oldDelete);
     Preconditions.checkState(
         oldDelete.startsWith("/") && (pathToCheck.depth() == 2 || pathToCheck.depth() == 3),
         "Unrecognized relative delete marker {}", oldDelete);

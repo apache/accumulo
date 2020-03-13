@@ -90,14 +90,20 @@ public class Upgrader9to10Test {
 
   @Test
   public void testSwitchAllVolumes() {
+    Path resolved = Upgrader9to10
+        .resolveRelativeDelete("hdfs://localhost:9000/accumulo/tables/5a/t-0005", VOL_PROP);
     assertEquals(GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5a"), "t-0005"),
-        Upgrader9to10
-            .switchToAllVolumes(new Path("hdfs://localhost:9000/accumulo/tables/5a/t-0005")));
+        Upgrader9to10.switchToAllVolumes(resolved));
+
+    resolved = Upgrader9to10.resolveRelativeDelete(
+        "hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005", VOL_PROP);
     assertEquals("hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005",
-        Upgrader9to10.switchToAllVolumes(
-            new Path("hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005")));
-    assertEquals("hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf", Upgrader9to10
-        .switchToAllVolumes(new Path("hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf")));
+        Upgrader9to10.switchToAllVolumes(resolved));
+
+    resolved = Upgrader9to10.resolveRelativeDelete(
+        "hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf", VOL_PROP);
+    assertEquals("hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf",
+        Upgrader9to10.switchToAllVolumes(resolved));
   }
 
   @Test
