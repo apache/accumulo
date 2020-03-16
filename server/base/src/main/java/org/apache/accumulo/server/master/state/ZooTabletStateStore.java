@@ -130,6 +130,10 @@ class ZooTabletStateStore implements TabletStateStore {
     tabletMutator.putLocation(assignment.server, LocationType.LAST);
     tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
 
+    if (prevLastLoc != null && !prevLastLoc.equals(assignment.server)) {
+      tabletMutator.deleteLocation(prevLastLoc, LocationType.LAST);
+    }
+
     tabletMutator.mutate();
   }
 

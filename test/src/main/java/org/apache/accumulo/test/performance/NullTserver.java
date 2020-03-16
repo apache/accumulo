@@ -321,11 +321,11 @@ public class NullTserver {
         TabletLocationState next = s.next();
         assignments.add(new Assignment(next.extent, instance));
       }
-    }
-    // point them to this server
-    TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
-    store.setLocations(assignments, null);
 
+      // point them to this server
+      TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
+      store.setLocations(assignments, instance);
+    }
     while (true) {
       sleepUninterruptibly(10, TimeUnit.SECONDS);
     }

@@ -91,12 +91,12 @@ public class RootTabletStateStoreTest {
       count++;
     }
     assertEquals(count, 1);
-    // tstore.setLocations(assignment, prevLastLoc);
+    tstore.setLocations(assignments, server);
     count = 0;
     for (TabletLocationState location : tstore) {
       assertEquals(location.extent, root);
-      // assertNull(location.future);
-      // assertEquals(location.current, server);
+      assertNull(location.future);
+      assertEquals(location.current, server);
       count++;
     }
     assertEquals(count, 1);

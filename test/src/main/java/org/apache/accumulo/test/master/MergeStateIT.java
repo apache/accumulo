@@ -183,7 +183,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
       TabletMetadata tabletMetadata = context.getAmple().readTablet(tablet);
       update(accumuloClient, m);
-      TServerInstance tServerInstance = new TServerInstance(tabletMetadata.getLocation());
+      TServerInstance tServerInstance = new TServerInstance(tabletMetadata.getLast());
       metaDataStateStore.setLocations(
           Collections.singletonList(new Assignment(tablet, state.someTServer)), tServerInstance);
 
