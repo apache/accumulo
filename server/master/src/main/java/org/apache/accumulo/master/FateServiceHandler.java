@@ -209,7 +209,7 @@ class FateServiceHandler implements FateService.Iface {
             validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String newTableName =
 
-            validateNewTableNameArgument(arguments.get(1), tableOp, new Validator<String>() {
+            validateNewTableNameArgument(arguments.get(1), tableOp, new Validator<>() {
 
               @Override
               public boolean test(String argument) {
