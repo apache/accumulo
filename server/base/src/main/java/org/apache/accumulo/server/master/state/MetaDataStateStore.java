@@ -68,30 +68,6 @@ class MetaDataStateStore implements TabletStateStore {
         targetTableName);
   }
 
-  // @Override
-  // public void setLocations(Collection<Assignment> assignments, Location prevLastLoc)
-  // throws DistributedStoreException {
-  // BatchWriter writer = createBatchWriter();
-  // try {
-  // for (Assignment assignment : assignments) {
-  // Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-  // assignment.server.putLocation(m);
-  // assignment.server.clearLastLocation(m);
-  // assignment.server.putLastLocation(m);
-  // assignment.server.clearFutureLocation(m);
-  // SuspendingTServer.clearSuspension(m);
-  // writer.addMutation(m);
-  // }
-  // } catch (Exception ex) {
-  // throw new DistributedStoreException(ex);
-  // } finally {
-  // try {
-  // writer.close();
-  // } catch (MutationsRejectedException e) {
-  // throw new DistributedStoreException(e);
-  // }
-  // }
-  // }
   @Override
   public void setLocations(Collection<Assignment> assignments, TServerInstance prevLastLoc) {
 
