@@ -700,7 +700,7 @@ class FateServiceHandler implements FateService.Iface {
     }
   }
 
-  // Verify older table name arguments are valid, and match any additional restrictions
+  // Verify existing table's name argument is valid, and match any additional restrictions
   private String validateTableNameArgument(ByteBuffer tableNameArg, TableOperation op,
       Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
