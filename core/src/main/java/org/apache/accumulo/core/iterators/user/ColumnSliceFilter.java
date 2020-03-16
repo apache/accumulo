@@ -52,11 +52,7 @@ public class ColumnSliceFilter extends Filter {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    if (options.containsKey(START_BOUND)) {
-      startBound = options.get(START_BOUND);
-    } else {
-      startBound = null;
-    }
+    startBound = options.getOrDefault(START_BOUND, null);
 
     if (options.containsKey(START_INCLUSIVE)) {
       startInclusive = Boolean.parseBoolean(options.get(START_INCLUSIVE));
@@ -64,11 +60,7 @@ public class ColumnSliceFilter extends Filter {
       startInclusive = true;
     }
 
-    if (options.containsKey(END_BOUND)) {
-      endBound = options.get(END_BOUND);
-    } else {
-      endBound = null;
-    }
+    endBound = options.getOrDefault(END_BOUND, null);
 
     if (options.containsKey(END_INCLUSIVE)) {
       endInclusive = Boolean.parseBoolean(options.get(END_INCLUSIVE));

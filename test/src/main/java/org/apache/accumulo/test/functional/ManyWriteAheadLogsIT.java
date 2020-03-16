@@ -213,7 +213,8 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           allWalsSeen.add(entry.getKey());
           foundWal = true;
         } else {
-          log.debug("The WalState for {} is {}", entry.getKey(), entry.getValue()); // CLOSED or UNREFERENCED
+          log.debug("The WalState for {} is {}", entry.getKey(), entry.getValue()); // CLOSED or
+                                                                                    // UNREFERENCED
         }
       }
 

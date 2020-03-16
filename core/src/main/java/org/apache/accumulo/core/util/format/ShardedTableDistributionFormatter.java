@@ -53,8 +53,7 @@ public class ShardedTableDistributionFormatter extends AggregatingFormatter {
       } else
         day = "NULL    ";
       String server = entry.getValue().toString();
-      if (countsByDay.get(day) == null)
-        countsByDay.put(day, new HashSet<>());
+      countsByDay.computeIfAbsent(day, k -> new HashSet<>());
       countsByDay.get(day).add(server);
     }
   }

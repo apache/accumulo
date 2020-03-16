@@ -43,11 +43,8 @@ public class ColumnQualifierFilter extends ServerFilter {
     for (Column col : columns) {
       if (col.columnQualifier != null) {
         ArrayByteSequence cq = new ArrayByteSequence(col.columnQualifier);
-        HashSet<ByteSequence> cfset = this.columnsQualifiers.get(cq);
-        if (cfset == null) {
-          cfset = new HashSet<>();
-          this.columnsQualifiers.put(cq, cfset);
-        }
+        HashSet<ByteSequence> cfset =
+            this.columnsQualifiers.computeIfAbsent(cq, k -> new HashSet<>());
 
         cfset.add(new ArrayByteSequence(col.columnFamily));
       } else {

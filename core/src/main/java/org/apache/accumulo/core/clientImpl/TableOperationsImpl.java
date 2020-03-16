@@ -1716,13 +1716,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       if (groupedByRanges == null) {
         Map<Range,List<TabletId>> tmp = new HashMap<>();
 
-        for (Entry<TabletId,List<Range>> entry : groupedByTablets.entrySet()) {
+        for (var entry : groupedByTablets.entrySet()) {
           for (Range range : entry.getValue()) {
-            List<TabletId> tablets = tmp.get(range);
-            if (tablets == null) {
-              tablets = new ArrayList<>();
-              tmp.put(range, tablets);
-            }
+            List<TabletId> tablets = tmp.computeIfAbsent(range, k -> new ArrayList<>());
 
             tablets.add(entry.getKey());
           }

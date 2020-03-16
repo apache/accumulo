@@ -892,17 +892,10 @@ public class InputConfigurator extends ConfiguratorBase {
           throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
         }
 
-        Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
-        if (tabletRanges == null) {
-          tabletRanges = new HashMap<>();
-          binnedRanges.put(last, tabletRanges);
-        }
+        Map<KeyExtent,List<Range>> tabletRanges =
+            binnedRanges.computeIfAbsent(last, k -> new HashMap<>());
 
-        List<Range> rangeList = tabletRanges.get(extent);
-        if (rangeList == null) {
-          rangeList = new ArrayList<>();
-          tabletRanges.put(extent, rangeList);
-        }
+        List<Range> rangeList = tabletRanges.computeIfAbsent(extent, k -> new ArrayList<>());
 
         rangeList.add(range);
 

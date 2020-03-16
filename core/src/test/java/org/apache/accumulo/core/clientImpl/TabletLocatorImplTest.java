@@ -296,17 +296,9 @@ public class TabletLocatorImplTest {
       String server = (String) ol[1];
       KeyExtent ke = (KeyExtent) ol[2];
 
-      Map<KeyExtent,List<String>> tb = emb.get(server);
-      if (tb == null) {
-        tb = new HashMap<>();
-        emb.put(server, tb);
-      }
+      Map<KeyExtent,List<String>> tb = emb.computeIfAbsent(server, k -> new HashMap<>());
 
-      List<String> rl = tb.get(ke);
-      if (rl == null) {
-        rl = new ArrayList<>();
-        tb.put(ke, rl);
-      }
+      List<String> rl = tb.computeIfAbsent(ke, k -> new ArrayList<>());
 
       rl.add(row);
     }
@@ -527,11 +519,8 @@ public class TabletLocatorImplTest {
   }
 
   static void createEmptyTablet(TServers tservers, String server, KeyExtent tablet) {
-    Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
-    if (tablets == null) {
-      tablets = new HashMap<>();
-      tservers.tservers.put(server, tablets);
-    }
+    Map<KeyExtent,SortedMap<Key,Value>> tablets =
+        tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
 
     SortedMap<Key,Value> tabletData = tablets.get(tablet);
     if (tabletData == null) {
@@ -562,17 +551,10 @@ public class TabletLocatorImplTest {
 
   static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke,
       String location, String instance) {
-    Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
-    if (tablets == null) {
-      tablets = new HashMap<>();
-      tservers.tservers.put(server, tablets);
-    }
+    Map<KeyExtent,SortedMap<Key,Value>> tablets =
+        tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
 
-    SortedMap<Key,Value> tabletData = tablets.get(tablet);
-    if (tabletData == null) {
-      tabletData = new TreeMap<>();
-      tablets.put(tablet, tabletData);
-    }
+    SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
 
     Text mr = ke.getMetadataEntry();
     Value per = KeyExtent.encodePrevEndRow(ke.getPrevEndRow());

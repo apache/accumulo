@@ -116,11 +116,7 @@ public class IterConfigUtil {
         String iterName = suffixSplit[0];
         String optName = suffixSplit[2];
 
-        Map<String,String> options = allOptions.get(iterName);
-        if (options == null) {
-          options = new HashMap<>();
-          allOptions.put(iterName, options);
-        }
+        Map<String,String> options = allOptions.computeIfAbsent(iterName, k -> new HashMap<>());
 
         options.put(optName, entry.getValue());
 

@@ -465,12 +465,8 @@ public class BulkImporter {
         List<PathSize> mapFiles = assignmentsPerTablet.get(ke);
         synchronized (assignmentFailures) {
           for (PathSize pathSize : mapFiles) {
-            List<KeyExtent> existingFailures = assignmentFailures.get(pathSize.path);
-            if (existingFailures == null) {
-              existingFailures = new ArrayList<>();
-              assignmentFailures.put(pathSize.path, existingFailures);
-            }
-
+            List<KeyExtent> existingFailures =
+                assignmentFailures.computeIfAbsent(pathSize.path, k -> new ArrayList<>());
             existingFailures.add(ke);
           }
         }
@@ -525,12 +521,8 @@ public class BulkImporter {
       List<AssignmentInfo> tabletsToAssignMapFileTo = entry.getValue();
 
       for (AssignmentInfo ai : tabletsToAssignMapFileTo) {
-        List<PathSize> mapFiles = assignmentsPerTablet.get(ai.ke);
-        if (mapFiles == null) {
-          mapFiles = new ArrayList<>();
-          assignmentsPerTablet.put(ai.ke, mapFiles);
-        }
-
+        List<PathSize> mapFiles =
+            assignmentsPerTablet.computeIfAbsent(ai.ke, k -> new ArrayList<>());
         mapFiles.add(new PathSize(mapFile, ai.estSize));
       }
     }
@@ -548,12 +540,8 @@ public class BulkImporter {
       if (location == null) {
         for (PathSize pathSize : entry.getValue()) {
           synchronized (assignmentFailures) {
-            List<KeyExtent> failures = assignmentFailures.get(pathSize.path);
-            if (failures == null) {
-              failures = new ArrayList<>();
-              assignmentFailures.put(pathSize.path, failures);
-            }
-
+            List<KeyExtent> failures =
+                assignmentFailures.computeIfAbsent(pathSize.path, k -> new ArrayList<>());
             failures.add(ke);
           }
         }
@@ -565,12 +553,8 @@ public class BulkImporter {
         continue;
       }
 
-      Map<KeyExtent,List<PathSize>> apt = assignmentsPerTabletServer.get(location);
-      if (apt == null) {
-        apt = new TreeMap<>();
-        assignmentsPerTabletServer.put(location, apt);
-      }
-
+      Map<KeyExtent,List<PathSize>> apt =
+          assignmentsPerTabletServer.computeIfAbsent(location, k -> new TreeMap<>());
       apt.put(entry.getKey(), entry.getValue());
     }
 

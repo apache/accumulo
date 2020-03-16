@@ -301,11 +301,8 @@ public class AdminUtil<T> {
               }
             }
 
-            List<String> tables = locks.get(Long.parseLong(lda[1], 16));
-            if (tables == null) {
-              tables = new ArrayList<>();
-              locks.put(Long.parseLong(lda[1], 16), tables);
-            }
+            List<String> tables =
+                locks.computeIfAbsent(Long.parseLong(lda[1], 16), k -> new ArrayList<>());
 
             tables.add(lda[0].charAt(0) + ":" + id);
 

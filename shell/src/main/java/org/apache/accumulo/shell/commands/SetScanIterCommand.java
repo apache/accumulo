@@ -59,11 +59,8 @@ public class SetScanIterCommand extends SetIterCommand {
 
     options.values().removeIf(v -> v == null || v.isEmpty());
 
-    List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
-    if (tableScanIterators == null) {
-      tableScanIterators = new ArrayList<>();
-      shellState.scanIteratorOptions.put(tableName, tableScanIterators);
-    }
+    List<IteratorSetting> tableScanIterators =
+        shellState.scanIteratorOptions.computeIfAbsent(tableName, k -> new ArrayList<>());
     final IteratorSetting setting = new IteratorSetting(priority, name, classname);
     setting.addOptions(options);
 

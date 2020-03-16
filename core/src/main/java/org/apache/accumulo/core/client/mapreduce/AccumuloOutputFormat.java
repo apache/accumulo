@@ -21,7 +21,6 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -47,7 +46,6 @@ import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -553,13 +551,9 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       } catch (MutationsRejectedException e) {
         if (!e.getSecurityErrorCodes().isEmpty()) {
           HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<>();
-          for (Entry<TabletId,Set<SecurityErrorCode>> ke : e.getSecurityErrorCodes().entrySet()) {
+          for (var ke : e.getSecurityErrorCodes().entrySet()) {
             String tableId = ke.getKey().getTableId().toString();
-            Set<SecurityErrorCode> secCodes = tables.get(tableId);
-            if (secCodes == null) {
-              secCodes = new HashSet<>();
-              tables.put(tableId, secCodes);
-            }
+            Set<SecurityErrorCode> secCodes = tables.computeIfAbsent(tableId, k -> new HashSet<>());
             secCodes.addAll(ke.getValue());
           }
 

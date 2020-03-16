@@ -144,12 +144,8 @@ public class SortedLogRecovery {
     for (Path wal : recoveryLogs) {
       int tabletId = findMaxTabletId(extent, Collections.singletonList(wal));
       if (tabletId != -1) {
-        List<Path> perIdList = logsThatDefineTablet.get(tabletId);
-        if (perIdList == null) {
-          perIdList = new ArrayList<>();
-          logsThatDefineTablet.put(tabletId, perIdList);
-
-        }
+        List<Path> perIdList =
+            logsThatDefineTablet.computeIfAbsent(tabletId, k -> new ArrayList<>());
         perIdList.add(wal);
         log.debug("Found tablet {} with id {} in recovery log {}", extent, tabletId, wal.getName());
       } else {

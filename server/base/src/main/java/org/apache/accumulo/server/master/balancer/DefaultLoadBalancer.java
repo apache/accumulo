@@ -223,10 +223,9 @@ public class DefaultLoadBalancer extends TabletBalancer {
         // look for an uneven table count
         int biggestDifference = 0;
         TableId biggestDifferenceTable = null;
-        for (Entry<TableId,Integer> tableEntry : tooMuchMap.entrySet()) {
+        for (var tableEntry : tooMuchMap.entrySet()) {
           TableId tableID = tableEntry.getKey();
-          if (tooLittleMap.get(tableID) == null)
-            tooLittleMap.put(tableID, 0);
+          tooLittleMap.putIfAbsent(tableID, 0);
           int diff = tableEntry.getValue() - tooLittleMap.get(tableID);
           if (diff > biggestDifference) {
             biggestDifference = diff;
