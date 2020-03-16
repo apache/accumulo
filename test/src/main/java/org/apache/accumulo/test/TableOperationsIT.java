@@ -198,12 +198,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       tableNameBuilder.append('a');
     }
     String tableName = tableNameBuilder.toString();
-    try {
-      accumuloClient.tableOperations().create(tableName);
-      fail("IllegalArgumentException was not thrown");
-    } catch (IllegalArgumentException exc) {
-      assertTrue(!accumuloClient.tableOperations().exists(tableName));
-    }
+    assertThrows(IllegalArgumentException.class, () -> accumuloClient.tableOperations().create(tableName));
+    assertFalse(accumuloClient.tableOperations().exists(tableName));
   }
 
   @Test
