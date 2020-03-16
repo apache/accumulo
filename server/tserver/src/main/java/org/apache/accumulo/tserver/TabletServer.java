@@ -2508,7 +2508,7 @@ public class TabletServer extends AbstractServer {
           throw new RuntimeException("Minor compaction after recovery fails for " + extent);
         }
         Assignment assignment = new Assignment(extent, getTabletSession());
-        TabletStateStore.setLocation(getContext(), assignment);
+        TabletStateStore.setLocation(getContext(), assignment, data.getLastLocation());
 
         synchronized (openingTablets) {
           synchronized (onlineTablets) {

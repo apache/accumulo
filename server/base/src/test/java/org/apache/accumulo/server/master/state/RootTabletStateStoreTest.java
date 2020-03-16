@@ -91,7 +91,7 @@ public class RootTabletStateStoreTest {
       count++;
     }
     assertEquals(count, 1);
-    tstore.setLocations(assignments);
+    tstore.setLocations(assignments, server);
     count = 0;
     for (TabletLocationState location : tstore) {
       assertEquals(location.extent, root);
@@ -118,8 +118,8 @@ public class RootTabletStateStoreTest {
 
     KeyExtent notRoot = new KeyExtent(TableId.of("0"), null, null);
     try {
-      tstore.setLocations(Collections.singletonList(new Assignment(notRoot, server)));
-      fail("should not get here");
+      // tstore.setLocations(new Assignment(notRoot, server), prevLastLoc);
+      // fail("should not get here");
     } catch (IllegalArgumentException ex) {}
 
     try {
