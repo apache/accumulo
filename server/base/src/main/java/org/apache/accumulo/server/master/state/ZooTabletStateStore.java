@@ -117,7 +117,8 @@ class ZooTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
+  public void setLocations(Collection<Assignment> assignments, TServerInstance prevLastLoc)
+      throws DistributedStoreException {
     if (assignments.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     Assignment assignment = assignments.iterator().next();
@@ -126,6 +127,7 @@ class ZooTabletStateStore implements TabletStateStore {
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
     tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
+    tabletMutator.putLocation(assignment.server, LocationType.LAST);
     tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
 
     tabletMutator.mutate();

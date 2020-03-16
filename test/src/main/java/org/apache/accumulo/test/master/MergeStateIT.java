@@ -41,6 +41,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -180,9 +181,11 @@ public class MergeStateIT extends ConfigurableMacBase {
       KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
       m = tablet.getPrevRowUpdateMutation();
       TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
+      TabletMetadata tabletMetadata = context.getAmple().readTablet(tablet);
       update(accumuloClient, m);
-      metaDataStateStore
-          .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
+      TServerInstance tServerInstance = new TServerInstance(tabletMetadata.getLocation());
+      metaDataStateStore.setLocations(
+          Collections.singletonList(new Assignment(tablet, state.someTServer)), tServerInstance);
 
       // onos... there's a new tablet online
       stats = scan(state, metaDataStateStore);

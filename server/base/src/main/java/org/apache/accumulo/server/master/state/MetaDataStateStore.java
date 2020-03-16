@@ -29,9 +29,14 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class MetaDataStateStore implements TabletStateStore {
 
@@ -42,15 +47,19 @@ class MetaDataStateStore implements TabletStateStore {
   protected final ClientContext context;
   protected final CurrentState state;
   private final String targetTableName;
+  private final Ample ample;
+  private static final Logger log = LoggerFactory.getLogger(MetaDataStateStore.class);
 
-  protected MetaDataStateStore(ClientContext context, CurrentState state, String targetTableName) {
+  protected MetaDataStateStore(ClientContext context, CurrentState state, Ample ample,
+      String targetTableName) {
     this.context = context;
     this.state = state;
+    this.ample = ample;
     this.targetTableName = targetTableName;
   }
 
-  MetaDataStateStore(ClientContext context, CurrentState state) {
-    this(context, state, MetadataTable.NAME);
+  MetaDataStateStore(ClientContext context, CurrentState state, Ample ample) {
+    this(context, state, ample, MetadataTable.NAME);
   }
 
   @Override
@@ -59,28 +68,49 @@ class MetaDataStateStore implements TabletStateStore {
         targetTableName);
   }
 
+  // @Override
+  // public void setLocations(Collection<Assignment> assignments, Location prevLastLoc)
+  // throws DistributedStoreException {
+  // BatchWriter writer = createBatchWriter();
+  // try {
+  // for (Assignment assignment : assignments) {
+  // Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
+  // assignment.server.putLocation(m);
+  // assignment.server.clearLastLocation(m);
+  // assignment.server.putLastLocation(m);
+  // assignment.server.clearFutureLocation(m);
+  // SuspendingTServer.clearSuspension(m);
+  // writer.addMutation(m);
+  // }
+  // } catch (Exception ex) {
+  // throw new DistributedStoreException(ex);
+  // } finally {
+  // try {
+  // writer.close();
+  // } catch (MutationsRejectedException e) {
+  // throw new DistributedStoreException(e);
+  // }
+  // }
+  // }
   @Override
-  public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
-    BatchWriter writer = createBatchWriter();
-    try {
-      for (Assignment assignment : assignments) {
-        Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-        assignment.server.putLocation(m);
-        assignment.server.clearLastLocation(m);
-        assignment.server.putLastLocation(m);
-        assignment.server.clearFutureLocation(m);
-        SuspendingTServer.clearSuspension(m);
-        writer.addMutation(m);
+  public void setLocations(Collection<Assignment> assignments, TServerInstance prevLastLoc) {
+
+    for (Assignment assignment : assignments) {
+      TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
+      tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
+      tabletMutator.putLocation(assignment.server, LocationType.LAST);
+      tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
+
+      // TServerInstance lastLocInstance =
+      // new TServerInstance(prevLas, prevLastLoc.getSession());
+
+      if (prevLastLoc != null && !prevLastLoc.equals(assignment.server)) {
+        tabletMutator.deleteLocation(prevLastLoc, LocationType.LAST);
       }
-    } catch (Exception ex) {
-      throw new DistributedStoreException(ex);
-    } finally {
-      try {
-        writer.close();
-      } catch (MutationsRejectedException e) {
-        throw new DistributedStoreException(e);
-      }
+
+      tabletMutator.mutate();
     }
+
   }
 
   BatchWriter createBatchWriter() {
