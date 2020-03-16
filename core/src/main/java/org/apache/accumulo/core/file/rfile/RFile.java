@@ -1161,8 +1161,7 @@ public class RFile {
     public Reader(CachableBlockFile.Reader rdr) throws IOException {
       this.reader = rdr;
 
-      CachableBlockFile.CachedBlockRead mb = reader.getMetaBlock("RFile.index");
-      try {
+      try (CachableBlockFile.CachedBlockRead mb = reader.getMetaBlock("RFile.index")) {
         int magic = mb.readInt();
         int ver = mb.readInt();
         rfileVersion = ver;
@@ -1205,8 +1204,6 @@ public class RFile {
           samplerConfig = null;
         }
 
-      } finally {
-        mb.close();
       }
 
       lgContext = new LocalityGroupContext(currentReaders);

@@ -36,13 +36,9 @@ public class TabletFileUtil {
   }
 
   public static Path validate(Path path) {
-    check(path);
-    return path;
-  }
-
-  private static void check(Path p) {
-    if (p.toUri().getScheme() == null) {
-      throw new IllegalArgumentException("Invalid path provided, no scheme in " + p);
+    if (path.toUri().getScheme() == null) {
+      throw new IllegalArgumentException("Invalid path provided, no scheme in " + path);
     }
+    return path;
   }
 }

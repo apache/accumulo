@@ -18,17 +18,14 @@
  */
 package org.apache.accumulo.tserver.compaction;
 
+import static org.junit.Assert.assertThrows;
+
 import java.util.Set;
 
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class CompactionPlanTest {
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   @Test
   public void testOverlappingInputAndDelete() {
@@ -44,8 +41,7 @@ public class CompactionPlanTest {
 
     Set<StoredTabletFile> allFiles = Set.of(fr1, fr2);
 
-    exception.expect(IllegalStateException.class);
-    cp1.validate(allFiles);
+    assertThrows(IllegalStateException.class, () -> cp1.validate(allFiles));
   }
 
   @Test
@@ -62,8 +58,7 @@ public class CompactionPlanTest {
 
     Set<StoredTabletFile> allFiles = Set.of(fr1, fr2);
 
-    exception.expect(IllegalStateException.class);
-    cp1.validate(allFiles);
+    assertThrows(IllegalStateException.class, () -> cp1.validate(allFiles));
   }
 
   @Test
@@ -80,8 +75,7 @@ public class CompactionPlanTest {
 
     Set<StoredTabletFile> allFiles = Set.of(fr1, fr2);
 
-    exception.expect(IllegalStateException.class);
-    cp1.validate(allFiles);
+    assertThrows(IllegalStateException.class, () -> cp1.validate(allFiles));
   }
 
 }

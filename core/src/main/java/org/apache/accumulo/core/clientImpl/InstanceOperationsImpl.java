@@ -40,7 +40,6 @@ import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -188,17 +187,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public void ping(String tserver) throws AccumuloException {
-    TTransport transport = null;
-    try {
-      transport = createTransport(AddressUtil.parseAddress(tserver, false), context);
-      var client = createClient(new TabletClientService.Client.Factory(), transport);
+    try (
+        TTransport transport = createTransport(AddressUtil.parseAddress(tserver, false), context)) {
+      var client = createClient(new Client.Factory(), transport);
       client.getTabletServerStatus(TraceUtil.traceInfo(), context.rpcCreds());
     } catch (TException e) {
       throw new AccumuloException(e);
-    } finally {
-      if (transport != null) {
-        transport.close();
-      }
     }
   }
 

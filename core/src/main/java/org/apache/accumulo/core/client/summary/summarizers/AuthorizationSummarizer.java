@@ -65,7 +65,7 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
 
     final int MAX_ENTRIES = 1000;
     private Map<ByteSequence,Set<ByteSequence>> cache =
-        new LinkedHashMap<ByteSequence,Set<ByteSequence>>(MAX_ENTRIES + 1, .75F, true) {
+        new LinkedHashMap<>(MAX_ENTRIES + 1, .75F, true) {
           private static final long serialVersionUID = 1L;
 
           // This method is called just after a new entry has been added

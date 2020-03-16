@@ -23,10 +23,12 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -75,50 +77,45 @@ public class ServerConstantsTest {
         Arrays.asList(ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION, null)));
   }
 
-  private void verifyAllPass(ArrayList<String> paths) {
-    assertEquals(paths, Arrays.asList(ServerConstants.checkBaseUris(conf, hadoopConf,
-        paths.toArray(new String[paths.size()]), true)));
-    assertEquals(paths, Arrays.asList(ServerConstants.checkBaseUris(conf, hadoopConf,
-        paths.toArray(new String[paths.size()]), false)));
+  private void verifyAllPass(Set<String> paths) {
+    assertEquals(paths, ServerConstants.checkBaseUris(conf, hadoopConf, paths, true));
+    assertEquals(paths, ServerConstants.checkBaseUris(conf, hadoopConf, paths, false));
   }
 
-  private void verifySomePass(ArrayList<String> paths) {
-    assertEquals(paths.subList(0, 2), Arrays.asList(ServerConstants.checkBaseUris(conf, hadoopConf,
-        paths.toArray(new String[paths.size()]), true)));
+  private void verifySomePass(Set<String> paths) {
+    Set<String> subset = paths.stream().limit(2).collect(Collectors.toSet());
+    assertEquals(subset, ServerConstants.checkBaseUris(conf, hadoopConf, paths, true));
     try {
-      ServerConstants.checkBaseUris(conf, hadoopConf, paths.toArray(new String[paths.size()]),
-          false);
+      ServerConstants.checkBaseUris(conf, hadoopConf, paths, false);
       fail();
     } catch (Exception e) {
       // ignored
     }
   }
 
-  private void verifyError(ArrayList<String> paths) {
+  private void verifyError(Set<String> paths) {
     try {
-      ServerConstants.checkBaseUris(conf, hadoopConf, paths.toArray(new String[paths.size()]),
-          true);
+      ServerConstants.checkBaseUris(conf, hadoopConf, paths, true);
       fail();
     } catch (Exception e) {
       // ignored
     }
 
     try {
-      ServerConstants.checkBaseUris(conf, hadoopConf, paths.toArray(new String[paths.size()]),
-          false);
+      ServerConstants.checkBaseUris(conf, hadoopConf, paths, false);
       fail();
     } catch (Exception e) {
       // ignored
     }
   }
 
-  private ArrayList<String> init(File newFile, List<String> uuids, List<Integer> dataVersions)
+  private Set<String> init(File newFile, List<String> uuids, List<Integer> dataVersions)
       throws IllegalArgumentException, IOException {
     String base = newFile.toURI().toString();
 
     LocalFileSystem fs = FileSystem.getLocal(new Configuration());
 
-    ArrayList<String> accumuloPaths = new ArrayList<>();
+    LinkedHashSet<String> accumuloPaths = new LinkedHashSet<>();
 
     for (int i = 0; i < uuids.size(); i++) {
       String volume = "v" + i;

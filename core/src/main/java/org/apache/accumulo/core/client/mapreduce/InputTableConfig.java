@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -377,39 +378,17 @@ public class InputTableConfig implements Writable {
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
-
     InputTableConfig that = (InputTableConfig) o;
-
-    if (autoAdjustRanges != that.autoAdjustRanges)
-      return false;
-    if (offlineScan != that.offlineScan)
-      return false;
-    if (useIsolatedScanners != that.useIsolatedScanners)
-      return false;
-    if (useLocalIterators != that.useLocalIterators)
-      return false;
-    if (columns != null ? !columns.equals(that.columns) : that.columns != null)
-      return false;
-    if (iterators != null ? !iterators.equals(that.iterators) : that.iterators != null)
-      return false;
-    if (ranges != null ? !ranges.equals(that.ranges) : that.ranges != null)
-      return false;
-    if (samplerConfig != null ? !samplerConfig.equals(that.samplerConfig)
-        : that.samplerConfig != null)
-      return false;
-    return true;
+    return autoAdjustRanges == that.autoAdjustRanges && useLocalIterators == that.useLocalIterators
+        && useIsolatedScanners == that.useIsolatedScanners && offlineScan == that.offlineScan
+        && Objects.equals(iterators, that.iterators) && Objects.equals(ranges, that.ranges)
+        && Objects.equals(columns, that.columns)
+        && Objects.equals(samplerConfig, that.samplerConfig);
   }
 
   @Override
   public int hashCode() {
-    int result = 31 * (iterators != null ? iterators.hashCode() : 0);
-    result = 31 * result + (ranges != null ? ranges.hashCode() : 0);
-    result = 31 * result + (columns != null ? columns.hashCode() : 0);
-    result = 31 * result + (autoAdjustRanges ? 1 : 0);
-    result = 31 * result + (useLocalIterators ? 1 : 0);
-    result = 31 * result + (useIsolatedScanners ? 1 : 0);
-    result = 31 * result + (offlineScan ? 1 : 0);
-    result = 31 * result + (samplerConfig == null ? 0 : samplerConfig.hashCode());
-    return result;
+    return Objects.hash(iterators, ranges, columns, autoAdjustRanges, useLocalIterators,
+        useIsolatedScanners, offlineScan, samplerConfig);
   }
 }

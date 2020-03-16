@@ -74,7 +74,9 @@ public class FileTypeTest {
 
     assertNull(FileType.WAL.getVolume(new Path("1.2.3.4/aaa-bbb-ccc-ddd")));
     assertNull(FileType.TABLE.getVolume(new Path("../2b/t-001/C00.rf")));
+    assertNull(FileType.TABLE.removeVolume(new Path("../2b/t-001/C00.rf")));
     assertNull(FileType.TABLE.getVolume(new Path("/t-001/C00.rf")));
+    assertNull(FileType.TABLE.removeVolume(new Path("/t-001/C00.rf")));
 
     assertEquals(new Path("hdfs://nn1/accumulo"),
         FileType.TABLE.getVolume(new Path("hdfs://nn1/accumulo/tables/2b/t-001/C00.rf")));

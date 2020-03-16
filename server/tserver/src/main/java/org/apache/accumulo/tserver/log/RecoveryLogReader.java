@@ -133,7 +133,7 @@ public class RecoveryLogReader implements CloseableIterator<Entry<LogFileKey,Log
       if (SortedLogState.FAILED.getMarker().equals(child.getPath().getName())) {
         continue;
       }
-      FileSystem ns = fs.getVolumeByPath(child.getPath()).getFileSystem();
+      FileSystem ns = fs.getFileSystemByPath(child.getPath());
       heap.add(new Index(new Reader(ns.makeQualified(child.getPath()), ns.getConf())));
     }
     if (!foundFinish)

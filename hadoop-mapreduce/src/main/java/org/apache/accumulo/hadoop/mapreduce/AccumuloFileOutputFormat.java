@@ -71,7 +71,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     final Path file = this.getDefaultWorkFile(context, "." + extension);
     final int visCacheSize = ConfiguratorBase.getVisibilityCacheSize(conf);
 
-    return new RecordWriter<Key,Value>() {
+    return new RecordWriter<>() {
       RFileWriter out = null;
 
       @Override

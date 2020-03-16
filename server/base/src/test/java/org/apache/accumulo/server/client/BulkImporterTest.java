@@ -42,7 +42,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -146,30 +145,31 @@ public class BulkImporterTest {
     writer.append(new Key("iterator", "cf", "cq5"), empty);
     writer.append(new Key("xyzzy", "cf", "cq"), empty);
     writer.close();
-    VolumeManager vm = VolumeManagerImpl.get(context.getConfiguration(), new Configuration());
-    List<TabletLocation> overlaps =
-        BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file));
-    assertEquals(5, overlaps.size());
-    Collections.sort(overlaps);
-    assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).tablet_extent);
-    assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
-        overlaps.get(1).tablet_extent);
-    assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
-        overlaps.get(2).tablet_extent);
-    assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
-        overlaps.get(3).tablet_extent);
-    assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
+    try (var vm = VolumeManagerImpl.get(context.getConfiguration(), new Configuration())) {
+      List<TabletLocation> overlaps =
+          BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file));
+      assertEquals(5, overlaps.size());
+      Collections.sort(overlaps);
+      assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).tablet_extent);
+      assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
+          overlaps.get(1).tablet_extent);
+      assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
+          overlaps.get(2).tablet_extent);
+      assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
+          overlaps.get(3).tablet_extent);
+      assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
 
-    List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator,
-        new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")));
-    assertEquals(3, overlaps2.size());
-    assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
-        overlaps2.get(0).tablet_extent);
-    assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
-        overlaps2.get(1).tablet_extent);
-    assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
-        overlaps2.get(2).tablet_extent);
-    assertEquals(locator.invalidated, 1);
+      List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator,
+          new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")));
+      assertEquals(3, overlaps2.size());
+      assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
+          overlaps2.get(0).tablet_extent);
+      assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
+          overlaps2.get(1).tablet_extent);
+      assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
+          overlaps2.get(2).tablet_extent);
+      assertEquals(locator.invalidated, 1);
+    }
   }
 
   @Test

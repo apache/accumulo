@@ -89,7 +89,7 @@ public class BulkImporter {
 
   private StopWatch<Timers> timer;
 
-  private static enum Timers {
+  private enum Timers {
     EXAMINE_MAP_FILES, QUERY_METADATA, IMPORT_MAP_FILES, SLEEP, TOTAL
   }
 
@@ -344,7 +344,7 @@ public class BulkImporter {
 
     try {
       for (Path path : paths) {
-        FileSystem fs = vm.getVolumeByPath(path).getFileSystem();
+        FileSystem fs = vm.getFileSystemByPath(path);
         mapFileSizes.put(path, fs.getContentSummary(path).getLength());
       }
     } catch (IOException e) {
@@ -667,7 +667,7 @@ public class BulkImporter {
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
     String filename = file.toString();
     // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
-    FileSystem fs = vm.getVolumeByPath(file).getFileSystem();
+    FileSystem fs = vm.getFileSystemByPath(file);
     try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
         .forFile(filename, fs, fs.getConf(), context.getCryptoService())
         .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {

@@ -19,10 +19,9 @@
 package org.apache.accumulo.server.fs;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.NavigableMap;
 import java.util.Random;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -48,24 +47,21 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
 
   // Default time to wait in ms. Defaults to 5 min
   private long defaultComputationCacheDuration = 300000;
-  private LoadingCache<List<String>,WeightedRandomCollection> choiceCache = null;
+  private LoadingCache<Set<String>,WeightedRandomCollection> choiceCache = null;
 
   private static final Logger log = LoggerFactory.getLogger(SpaceAwareVolumeChooser.class);
 
   @Override
-  public String choose(VolumeChooserEnvironment env, String[] options)
+  public String choose(VolumeChooserEnvironment env, Set<String> options)
       throws VolumeChooserException {
-
-    options = getPreferredVolumes(env, options);
-
     try {
-      return getCache(env).get(Arrays.asList(options)).next();
+      return getCache(env).get(getPreferredVolumes(env, options)).next();
     } catch (ExecutionException e) {
       throw new IllegalStateException("Execution exception when attempting to cache choice", e);
     }
   }
 
-  private synchronized LoadingCache<List<String>,WeightedRandomCollection>
+  private synchronized LoadingCache<Set<String>,WeightedRandomCollection>
       getCache(VolumeChooserEnvironment env) {
 
     if (choiceCache == null) {
@@ -76,9 +72,9 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
 
       choiceCache = CacheBuilder.newBuilder()
           .expireAfterWrite(computationCacheDuration, TimeUnit.MILLISECONDS)
-          .build(new CacheLoader<List<String>,WeightedRandomCollection>() {
+          .build(new CacheLoader<>() {
             @Override
-            public WeightedRandomCollection load(List<String> key) {
+            public WeightedRandomCollection load(Set<String> key) {
               return new WeightedRandomCollection(key, env, random);
             }
           });
@@ -92,7 +88,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
     private final Random random;
     private double total = 0;
 
-    public WeightedRandomCollection(List<String> options, VolumeChooserEnvironment env,
+    public WeightedRandomCollection(Set<String> options, VolumeChooserEnvironment env,
         Random random) {
       this.random = random;
 

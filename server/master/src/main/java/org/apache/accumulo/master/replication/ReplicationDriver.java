@@ -67,7 +67,7 @@ public class ReplicationDriver extends Daemon {
     while (master.stillMaster()) {
       if (workMaker == null) {
         client = master.getContext();
-        statusMaker = new StatusMaker(client, master.getFileSystem());
+        statusMaker = new StatusMaker(client, master.getVolumeManager());
         workMaker = new WorkMaker(master.getContext(), client);
         finishedWorkUpdater = new FinishedWorkUpdater(client);
         rcrr = new RemoveCompleteReplicationRecords(client);

@@ -92,7 +92,7 @@ public class ImportTable extends MasterRepo {
     Integer exportVersion = null;
     Integer dataVersion = null;
 
-    try (ZipInputStream zis = new ZipInputStream(env.getFileSystem().open(path))) {
+    try (ZipInputStream zis = new ZipInputStream(env.getVolumeManager().open(path))) {
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_INFO_FILE)) {

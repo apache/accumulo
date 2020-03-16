@@ -75,7 +75,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
       throws IOException {
     log.setLevel(getLogLevel(job));
     InputFormatBase.RecordReaderBase<Key,Value> recordReader =
-        new InputFormatBase.RecordReaderBase<Key,Value>() {
+        new InputFormatBase.RecordReaderBase<>() {
 
           @Override
           public boolean next(Key key, Value value) throws IOException {

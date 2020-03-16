@@ -64,7 +64,7 @@ public abstract class Validator<T> implements Predicate<T> {
     if (other == null)
       return this;
     final Validator<T> mine = this;
-    return new Validator<T>() {
+    return new Validator<>() {
 
       @Override
       public boolean test(T argument) {
@@ -91,7 +91,7 @@ public abstract class Validator<T> implements Predicate<T> {
     if (other == null)
       return this;
     final Validator<T> mine = this;
-    return new Validator<T>() {
+    return new Validator<>() {
 
       @Override
       public boolean test(T argument) {
@@ -114,7 +114,7 @@ public abstract class Validator<T> implements Predicate<T> {
    */
   public final Validator<T> not() {
     final Validator<T> mine = this;
-    return new Validator<T>() {
+    return new Validator<>() {
 
       @Override
       public boolean test(T argument) {

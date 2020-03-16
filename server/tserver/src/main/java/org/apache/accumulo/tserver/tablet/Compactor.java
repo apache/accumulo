@@ -208,7 +208,7 @@ public class Compactor implements Callable<CompactionStats> {
     thread = Thread.currentThread();
     try {
       FileOperations fileFactory = FileOperations.getInstance();
-      FileSystem ns = this.fs.getVolumeByPath(outputFile.getPath()).getFileSystem();
+      FileSystem ns = this.fs.getFileSystemByPath(outputFile.getPath());
       mfw = fileFactory.newWriterBuilder()
           .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter()).build();
@@ -291,7 +291,7 @@ public class Compactor implements Callable<CompactionStats> {
       try {
 
         FileOperations fileFactory = FileOperations.getInstance();
-        FileSystem fs = this.fs.getVolumeByPath(mapFile.getPath()).getFileSystem();
+        FileSystem fs = this.fs.getFileSystemByPath(mapFile.getPath());
         FileSKVIterator reader;
 
         reader = fileFactory.newReaderBuilder()

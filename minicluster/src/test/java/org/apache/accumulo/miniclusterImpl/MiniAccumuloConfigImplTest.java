@@ -22,15 +22,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -42,13 +40,9 @@ public class MiniAccumuloConfigImplTest {
   @SuppressWarnings("deprecation")
   private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
 
-  static TemporaryFolder tempFolder =
+  @Rule
+  public TemporaryFolder tempFolder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-
-  @BeforeClass
-  public static void setUp() throws IOException {
-    tempFolder.create();
-  }
 
   @Test
   public void testZookeeperPort() {
@@ -98,8 +92,4 @@ public class MiniAccumuloConfigImplTest {
     assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.TABLET_SERVER));
   }
 
-  @AfterClass
-  public static void tearDown() {
-    tempFolder.delete();
-  }
 }

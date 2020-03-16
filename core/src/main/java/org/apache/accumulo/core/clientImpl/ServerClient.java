@@ -90,7 +90,7 @@ public class ServerClient {
       CT client = null;
       String server = null;
       try {
-        Pair<String,CT> pair = ServerClient.getConnection(context, factory);
+        Pair<String,CT> pair = ServerClient.getConnection(context, factory, true);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -112,7 +112,8 @@ public class ServerClient {
       ClientService.Client client = null;
       String server = null;
       try {
-        Pair<String,Client> pair = ServerClient.getConnection(context);
+        Pair<String,Client> pair =
+            ServerClient.getConnection(context, new ClientService.Client.Factory(), true);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);
@@ -131,31 +132,11 @@ public class ServerClient {
 
   static volatile boolean warnedAboutTServersBeingDown = false;
 
-  public static Pair<String,ClientService.Client> getConnection(ClientContext context)
-      throws TTransportException {
-    return getConnection(context, true);
-  }
-
   public static <CT extends TServiceClient> Pair<String,CT> getConnection(ClientContext context,
-      TServiceClientFactory<CT> factory) throws TTransportException {
-    return getConnection(context, factory, true, context.getClientTimeoutInMillis());
-  }
-
-  public static Pair<String,ClientService.Client> getConnection(ClientContext context,
-      boolean preferCachedConnections) throws TTransportException {
-    return getConnection(context, preferCachedConnections, context.getClientTimeoutInMillis());
-  }
-
-  public static Pair<String,ClientService.Client> getConnection(ClientContext context,
-      boolean preferCachedConnections, long rpcTimeout) throws TTransportException {
-    return getConnection(context, new ClientService.Client.Factory(), preferCachedConnections,
-        rpcTimeout);
-  }
-
-  public static <CT extends TServiceClient> Pair<String,CT> getConnection(ClientContext context,
-      TServiceClientFactory<CT> factory, boolean preferCachedConnections, long rpcTimeout)
+      TServiceClientFactory<CT> factory, boolean preferCachedConnections)
       throws TTransportException {
     checkArgument(context != null, "context is null");
+    long rpcTimeout = context.getClientTimeoutInMillis();
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<>();
 
