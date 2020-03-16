@@ -2509,7 +2509,6 @@ public class TabletServer extends AbstractServer {
         }
         Assignment assignment = new Assignment(extent, getTabletSession());
         TabletStateStore.setLocation(getContext(), assignment, data.getLastLocation());
-        log.info("Data get Last Location: {}", data.getLastLocation());
 
         synchronized (openingTablets) {
           synchronized (onlineTablets) {

@@ -77,8 +77,8 @@ class MetaDataStateStore implements TabletStateStore {
       tabletMutator.putLocation(assignment.server, LocationType.LAST);
       tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
 
+      //remove the old location
       if (prevLastLoc != null && !prevLastLoc.equals(assignment.server)) {
-        log.info("Deleteing Previous Last Location {}", prevLastLoc);
         tabletMutator.deleteLocation(prevLastLoc, LocationType.LAST);
       }
 
