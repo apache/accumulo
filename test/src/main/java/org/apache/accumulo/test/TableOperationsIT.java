@@ -66,6 +66,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
@@ -191,14 +192,18 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   @Test
   public void createTableWithTableNameLengthLimit()
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    StringBuilder tableNameBuilder = new StringBuilder();
-    for (int i = 0; i <= MAX_TABLE_NAME_LEN; i++) {
-      tableNameBuilder.append('a');
-    }
-    String tableName = tableNameBuilder.toString();
-    assertThrows(IllegalArgumentException.class,
-        () -> accumuloClient.tableOperations().create(tableName));
-    assertFalse(accumuloClient.tableOperations().exists(tableName));
+    TableOperations tableOps = accumuloClient.tableOperations();
+    String t0 = StringUtils.repeat('a', MAX_TABLE_NAME_LEN - 1);
+    tableOps.create(t0);
+    assertTrue(tableOps.exists(t0));
+
+    String t1 = StringUtils.repeat('b', MAX_TABLE_NAME_LEN);
+    tableOps.create(t1);
+    assertTrue(tableOps.exists(t1));
+
+    String t2 = StringUtils.repeat('c', MAX_TABLE_NAME_LEN + 1);
+    assertThrows(IllegalArgumentException.class, () -> tableOps.create(t2));
+    assertFalse(tableOps.exists(t2));
   }
 
   @Test
