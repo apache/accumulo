@@ -719,7 +719,7 @@ class FateServiceHandler implements FateService.Iface {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
     if ((tableName != null) && (tableName.length() > MAX_TABLE_NAME_LEN)) {
       throw new ThriftTableOperationException(null, tableName, op,
-          TableOperationExceptionType.OTHER,
+          TableOperationExceptionType.INVALID_NAME,
           "Table names must be less than or equal to " + MAX_TABLE_NAME_LEN + " characters. " + "'"
               + tableName + "' is " + tableName.length() + " characters long.");
     }
@@ -753,7 +753,7 @@ class FateServiceHandler implements FateService.Iface {
     String namespace = namespaceArg == null ? null : ByteBufferUtil.toString(namespaceArg);
     if ((namespace != null) && (namespace.length() > MAX_NAMESPACE_LEN)) {
       throw new ThriftTableOperationException(null, namespace, op,
-          TableOperationExceptionType.OTHER,
+          TableOperationExceptionType.INVALID_NAME,
           "Namespaces must be less than or equal to " + MAX_NAMESPACE_LEN + " characters. " + "'"
               + namespace + "' is " + namespace.length() + " characters long.");
     }
