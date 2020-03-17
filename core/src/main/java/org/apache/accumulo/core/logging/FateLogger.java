@@ -43,7 +43,7 @@ public class FateLogger {
   public static <T> TStore<T> wrap(TStore<T> store, Function<Repo<T>,String> toLogString) {
 
     // only logging operations that change the persisted data, not operations that only read data
-    return new TStore<T>() {
+    return new TStore<>() {
 
       @Override
       public long reserve() {

@@ -61,7 +61,7 @@ public class AccumuloRowInputFormat
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> createRecordReader(InputSplit split,
       TaskAttemptContext context) throws IOException, InterruptedException {
     log.setLevel(getLogLevel(context));
-    return new RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
+    return new RecordReaderBase<>() {
       RowIterator rowIterator;
 
       @Override

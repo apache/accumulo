@@ -123,7 +123,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final AtomicBoolean monitorInitialized = new AtomicBoolean(false);
 
   private static <T> List<Pair<Long,T>> newMaxList() {
-    return Collections.synchronizedList(new LinkedList<Pair<Long,T>>() {
+    return Collections.synchronizedList(new LinkedList<>() {
 
       private static final long serialVersionUID = 1L;
       private final long maxDelta = 60 * 60 * 1000;

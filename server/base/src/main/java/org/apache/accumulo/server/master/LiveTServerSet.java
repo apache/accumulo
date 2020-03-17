@@ -127,9 +127,7 @@ public class LiveTServerSet implements Watcher {
 
       long start = System.currentTimeMillis();
 
-      TTransport transport = ThriftUtil.createTransport(address, context);
-
-      try {
+      try (TTransport transport = ThriftUtil.createTransport(address, context)) {
         TabletClientService.Client client =
             ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
         TabletServerStatus status =
@@ -138,9 +136,6 @@ public class LiveTServerSet implements Watcher {
           status.setResponseTime(System.currentTimeMillis() - start);
         }
         return status;
-      } finally {
-        if (transport != null)
-          transport.close();
       }
     }
 

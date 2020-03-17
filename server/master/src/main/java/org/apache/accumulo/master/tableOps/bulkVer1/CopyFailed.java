@@ -95,7 +95,7 @@ class CopyFailed extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     // This needs to execute after the arbiter is stopped
     master.updateBulkImportStatus(source, BulkImportState.COPY_FILES);
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
 
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);

@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.volume.Volume;
@@ -27,7 +28,6 @@ import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -45,9 +45,9 @@ public class TabletServerSyncCheckTest {
     conf.set(DFS_SUPPORT_APPEND, "false");
 
     FileSystem fs = new TestFileSystem(conf);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(Map.of("foo", new VolumeImpl(fs, "/")));
-
-    vm.ensureSyncIsEnabled();
+    try (var vm = new TestVolumeManagerImpl(Map.of("foo", new VolumeImpl(fs, "/")))) {
+      vm.ensureSyncIsEnabled();
+    }
   }
 
   private class TestFileSystem extends DistributedFileSystem {
@@ -87,7 +87,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public FSDataOutputStream create(Path path, boolean b) {
+    public FSDataOutputStream overwrite(Path path) {
       return null;
     }
 
@@ -128,12 +128,12 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public Volume getVolumeByPath(Path path) {
+    public FileSystem getFileSystemByPath(Path path) {
       return null;
     }
 
     @Override
-    public Path matchingFileSystem(Path source, String[] options) {
+    public Path matchingFileSystem(Path source, Set<String> options) {
       return null;
     }
 
@@ -178,12 +178,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public ContentSummary getContentSummary(Path dir) {
-      return null;
-    }
-
-    @Override
-    public String choose(VolumeChooserEnvironment env, String[] options) {
+    public String choose(VolumeChooserEnvironment env, Set<String> options) {
       return null;
     }
 

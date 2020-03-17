@@ -292,7 +292,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         return;
       }
 
-      List<String> processedDeletes = Collections.synchronizedList(new ArrayList<String>());
+      List<String> processedDeletes = Collections.synchronizedList(new ArrayList<>());
 
       minimizeDeletes(confirmedDeletes, processedDeletes, fs);
 
@@ -703,7 +703,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   @VisibleForTesting
   static void minimizeDeletes(SortedMap<String,String> confirmedDeletes,
       List<String> processedDeletes, VolumeManager fs) {
-    Set<Path> seenVolumes = new HashSet<Path>();
+    Set<Path> seenVolumes = new HashSet<>();
     Collection<Volume> volumes = fs.getVolumes();
 
     // when deleting a dir and all files in that dir, only need to delete the dir

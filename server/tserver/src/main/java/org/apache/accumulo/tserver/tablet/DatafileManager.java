@@ -500,12 +500,13 @@ class DatafileManager {
       throw new IllegalStateException("Target map file already exist " + newDatafile);
     }
 
-    // rename before putting in metadata table, so files in metadata table should
-    // always exist
-    rename(tablet.getTabletServer().getFileSystem(), tmpDatafile.getPath(), newDatafile.getPath());
-
     if (dfv.getNumEntries() == 0) {
-      tablet.getTabletServer().getFileSystem().deleteRecursively(newDatafile.getPath());
+      tablet.getTabletServer().getFileSystem().deleteRecursively(tmpDatafile.getPath());
+    } else {
+      // rename before putting in metadata table, so files in metadata table should
+      // always exist
+      rename(tablet.getTabletServer().getFileSystem(), tmpDatafile.getPath(),
+          newDatafile.getPath());
     }
 
     TServerInstance lastLocation = null;
@@ -525,16 +526,14 @@ class DatafileManager {
         majorCompactingFiles.remove(oldDatafile);
       }
 
-      if (datafileSizes.containsKey(newFile)) {
-        log.error("Adding file that is already in set {}", newFile);
-      }
-
       if (dfv.getNumEntries() > 0) {
+        if (datafileSizes.containsKey(newFile)) {
+          log.error("Adding file that is already in set {}", newFile);
+        }
         datafileSizes.put(newFile, dfv);
+        // could be used by a follow on compaction in a multipass compaction
+        majorCompactingFiles.add(newFile);
       }
-
-      // could be used by a follow on compaction in a multipass compaction
-      majorCompactingFiles.add(newFile);
 
       tablet.computeNumEntries();
 

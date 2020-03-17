@@ -64,9 +64,9 @@ public class ReplicationMetricsTest {
     // First call will initialize the map of paths to modification time
     EasyMock.expect(master.getContext()).andReturn(context).anyTimes();
     EasyMock.expect(util.getPendingReplicationPaths()).andReturn(Set.of(path1, path2));
-    EasyMock.expect(master.getFileSystem()).andReturn(fileSystem);
+    EasyMock.expect(master.getVolumeManager()).andReturn(fileSystem);
     EasyMock.expect(fileSystem.getFileStatus(path1)).andReturn(createStatus(100));
-    EasyMock.expect(master.getFileSystem()).andReturn(fileSystem);
+    EasyMock.expect(master.getVolumeManager()).andReturn(fileSystem);
     EasyMock.expect(fileSystem.getFileStatus(path2)).andReturn(createStatus(200));
 
     // Second call will recognize the missing path1 and add the latency stat

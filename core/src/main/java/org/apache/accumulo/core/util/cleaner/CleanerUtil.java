@@ -111,12 +111,10 @@ public class CleanerUtil {
     requireNonNull(bw);
     requireNonNull(client);
     return CLEANER.register(o, () -> {
-      try {
+      try (client) {
         bw.close();
       } catch (MutationsRejectedException e) {
         log.error("Failed to close BatchWriter; some mutations may not be applied", e);
-      } finally {
-        client.close();
       }
     });
   }

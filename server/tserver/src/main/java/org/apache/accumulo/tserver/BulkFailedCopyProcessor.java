@@ -60,15 +60,15 @@ public class BulkFailedCopyProcessor implements Processor {
 
     VolumeManager vm = context.getVolumeManager();
     try {
-      FileSystem origFs = vm.getVolumeByPath(orig).getFileSystem();
-      FileSystem destFs = vm.getVolumeByPath(dest).getFileSystem();
+      FileSystem origFs = vm.getFileSystemByPath(orig);
+      FileSystem destFs = vm.getFileSystemByPath(dest);
 
       FileUtil.copy(origFs, orig, destFs, tmp, false, true, context.getHadoopConf());
       destFs.rename(tmp, dest);
       log.debug("copied {} to {}", orig, dest);
     } catch (IOException ex) {
       try {
-        FileSystem destFs = vm.getVolumeByPath(dest).getFileSystem();
+        FileSystem destFs = vm.getFileSystemByPath(dest);
         destFs.create(dest).close();
         log.warn(" marked " + dest + " failed", ex);
       } catch (IOException e) {

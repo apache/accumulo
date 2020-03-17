@@ -103,7 +103,7 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
 
   @Override
   public FileSystem getFileSystem(String option) {
-    return context.getVolumeManager().getVolumeByPath(new Path(option)).getFileSystem();
+    return context.getVolumeManager().getFileSystemByPath(new Path(option));
   }
 
   @Override

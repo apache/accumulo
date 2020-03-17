@@ -163,19 +163,13 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           master = startProcess(cluster, ServerType.MASTER, freePort);
 
           while (true) {
-            Socket s = null;
-            try {
-              s = new Socket("localhost", freePort);
+            try (Socket s = new Socket("localhost", freePort)) {
               if (s.isConnected()) {
                 // Pass
                 return;
               }
             } catch (Exception e) {
               LOG.debug("Caught exception trying to connect to Master", e);
-            } finally {
-              if (s != null) {
-                s.close();
-              }
             }
             // Wait before trying again
             Thread.sleep(1000);
@@ -231,19 +225,13 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
 
           while (true) {
-            Socket s = null;
-            try {
-              s = new Socket("localhost", freePort);
+            try (Socket s = new Socket("localhost", freePort)) {
               if (s.isConnected()) {
                 // Pass
                 return;
               }
             } catch (Exception e) {
               LOG.debug("Caught exception trying to connect to GC", e);
-            } finally {
-              if (s != null) {
-                s.close();
-              }
             }
             // Wait before trying again
             Thread.sleep(1000);

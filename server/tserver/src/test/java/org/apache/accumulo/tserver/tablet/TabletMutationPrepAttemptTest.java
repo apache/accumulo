@@ -65,9 +65,9 @@ public class TabletMutationPrepAttemptTest {
 
   public void testTabletOpen() {
     CommitSession cs = mock(CommitSession.class);
-    List<Mutation> nonViolators = new ArrayList<Mutation>();
+    List<Mutation> nonViolators = new ArrayList<>();
     Violations violations = new Violations();
-    Set<Mutation> violators = new HashSet<Mutation>();
+    Set<Mutation> violators = new HashSet<>();
 
     PreparedMutations prepared = new PreparedMutations(cs, nonViolators, violations, violators);
 

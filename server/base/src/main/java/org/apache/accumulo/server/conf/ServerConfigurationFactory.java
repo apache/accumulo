@@ -55,18 +55,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
   }
 
-  static boolean removeCachedTableConfiguration(String instanceId, TableId tableId) {
-    synchronized (tableConfigs) {
-      return tableConfigs.get(instanceId).remove(tableId) != null;
-    }
-  }
-
-  static boolean removeCachedNamespaceConfiguration(String instanceId, NamespaceId namespaceId) {
-    synchronized (namespaceConfigs) {
-      return namespaceConfigs.get(instanceId).remove(namespaceId) != null;
-    }
-  }
-
   static void clearCachedConfigurations() {
     synchronized (tableConfigs) {
       tableConfigs.clear();

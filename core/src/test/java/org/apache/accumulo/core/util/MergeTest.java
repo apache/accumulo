@@ -59,7 +59,7 @@ public class MergeTest {
     protected Iterator<Size> getSizeIterator(AccumuloClient client, String tablename,
         final Text start, final Text end) throws MergeException {
       final Iterator<Size> impl = tablets.iterator();
-      return new Iterator<Size>() {
+      return new Iterator<>() {
         Size next = skip();
 
         @Override

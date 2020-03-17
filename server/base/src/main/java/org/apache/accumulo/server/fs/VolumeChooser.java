@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.fs;
 
+import java.util.Set;
+
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.volume.Volume;
 
@@ -43,16 +45,42 @@ public interface VolumeChooser {
    * @throws VolumeChooserException
    *           if there is an error choosing (this is a RuntimeException); this does not preclude
    *           other RuntimeExceptions from occurring
+   * @deprecated since 2.1.0; override {@link #choose(VolumeChooserEnvironment, Set)} instead. This
+   *             method will be removed in 3.0
    */
-  String choose(VolumeChooserEnvironment env, String[] options) throws VolumeChooserException;
+  @Deprecated
+  default String choose(VolumeChooserEnvironment env, String[] options)
+      throws VolumeChooserException {
+    throw new UnsupportedOperationException("This method will be removed in 3.0");
+  }
 
   /**
-   * Return the subset of volume options that could possibly be chosen by this chooser.
+   * Choose a volume from the provided options.
    *
    * @param env
    *          the server environment provided by the calling framework
    * @param options
    *          the list of volumes to choose from
+   * @return one of the options
+   * @throws VolumeChooserException
+   *           if there is an error choosing (this is a RuntimeException); this does not preclude
+   *           other RuntimeExceptions from occurring
+   */
+  default String choose(VolumeChooserEnvironment env, Set<String> options)
+      throws VolumeChooserException {
+    InterfaceEvolutionWarner.warnOnce(getClass(), VolumeChooser.class,
+        "choose(VolumeChooserEnvironment,Set)", "3.0");
+    return choose(env, options.toArray(new String[0]));
+  }
+
+  /**
+   * Return the subset of volumes that could possibly be chosen by this chooser across all
+   * invocations of {@link #choose(VolumeChooserEnvironment, Set)}.
+   *
+   * @param env
+   *          the server environment provided by the calling framework
+   * @param options
+   *          the subset of volumes to choose from
    * @return array of valid options
    * @throws VolumeChooserException
    *           if there is an error choosing (this is a RuntimeException); this does not preclude
@@ -60,10 +88,10 @@ public interface VolumeChooser {
    *
    * @since 2.1.0
    */
-  default String[] choosable(VolumeChooserEnvironment env, String[] options)
+  default Set<String> choosable(VolumeChooserEnvironment env, Set<String> options)
       throws VolumeChooserException {
-    throw new UnsupportedOperationException("This volume chooser does not support a new "
-        + "method added in 2.1.0.  Please let the author of the chooser know.");
+    // assume that all options are possible to be chosen by this chooser
+    return options;
   }
 
   class VolumeChooserException extends RuntimeException {
