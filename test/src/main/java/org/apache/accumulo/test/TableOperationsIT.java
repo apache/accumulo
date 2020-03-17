@@ -18,8 +18,11 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -77,7 +80,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   @Override
   public int defaultTimeoutSeconds() {
-    return 30;
+    return 90;
   }
 
   @Before
@@ -104,16 +107,12 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
     accumuloClient.securityOperations().revokeTablePermission(getAdminPrincipal(), tableName,
         TablePermission.READ);
-    try {
-      accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName));
-      fail("Should throw securityexception");
-    } catch (AccumuloSecurityException e) {}
+    assertThrows(AccumuloSecurityException.class,
+        () -> accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName)));
 
     accumuloClient.tableOperations().delete(tableName);
-    try {
-      accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName));
-      fail("Should throw tablenotfound");
-    } catch (TableNotFoundException e) {}
+    assertThrows(TableNotFoundException.class,
+        () -> accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName)));
   }
 
   @Test
@@ -187,6 +186,19 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     accumuloClient.tableOperations().delete(tableName);
+  }
+
+  @Test
+  public void createTableWithTableNameLengthLimit()
+      throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    StringBuilder tableNameBuilder = new StringBuilder();
+    for (int i = 0; i <= MAX_TABLE_NAME_LEN; i++) {
+      tableNameBuilder.append('a');
+    }
+    String tableName = tableNameBuilder.toString();
+    assertThrows(IllegalArgumentException.class,
+        () -> accumuloClient.tableOperations().create(tableName));
+    assertFalse(accumuloClient.tableOperations().exists(tableName));
   }
 
   @Test
