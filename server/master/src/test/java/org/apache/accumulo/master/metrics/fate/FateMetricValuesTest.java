@@ -46,30 +46,5 @@ public class FateMetricValuesTest {
     assertEquals(2, v.getZkFateChildOpsTotal());
     assertEquals(3, v.getZkConnectionErrors());
 
-    FateMetricValues.Builder builder2 = builder.copy(v);
-
-    FateMetricValues v2 = builder2.withCurrentFateOps(11).build();
-
-    assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(2, v2.getZkFateChildOpsTotal());
-    assertEquals(3, v2.getZkConnectionErrors());
-
-    v2 = builder2.withZkFateChildOpsTotal(22).build();
-
-    assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(22, v2.getZkFateChildOpsTotal());
-    assertEquals(3, v2.getZkConnectionErrors());
-
-    v2 = builder2.withZkConnectionErrors(33).build();
-
-    assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(22, v2.getZkFateChildOpsTotal());
-    assertEquals(33, v2.getZkConnectionErrors());
-
-    v2 = builder2.incrZkConnectionErrors().build();
-
-    assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(22, v2.getZkFateChildOpsTotal());
-    assertEquals(34, v2.getZkConnectionErrors());
   }
 }

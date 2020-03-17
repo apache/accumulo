@@ -23,15 +23,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.net.URLClassLoader;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -54,18 +52,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
     "org.apache.hadoop.*", "com.sun.org.apache.xerces.*"})
 public class AccumuloVFSClassLoaderTest {
 
-  private TemporaryFolder folder1 =
+  @Rule
+  public TemporaryFolder folder1 =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-
-  @Before
-  public void setup() throws IOException {
-    folder1.create();
-  }
-
-  @After
-  public void tearDown() {
-    folder1.delete();
-  }
 
   /*
    * Test that the default (empty dynamic class paths) does not create the 2nd level loader

@@ -44,7 +44,7 @@ class FinishImportTable extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
 
-    env.getFileSystem().deleteRecursively(new Path(tableInfo.importDir, "mappings.txt"));
+    env.getVolumeManager().deleteRecursively(new Path(tableInfo.importDir, "mappings.txt"));
 
     env.getTableManager().transitionTableState(tableInfo.tableId, TableState.ONLINE);
 

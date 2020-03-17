@@ -61,7 +61,7 @@ class ImportPopulateZookeeper extends MasterRepo {
     Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
 
     try {
-      FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+      FileSystem ns = fs.getFileSystemByPath(path);
       return TableOperationsImpl.getExportedProps(ns, path);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
@@ -90,7 +90,7 @@ class ImportPopulateZookeeper extends MasterRepo {
       Utils.getTableNameLock().unlock();
     }
 
-    for (Entry<String,String> entry : getExportedProps(env.getFileSystem()).entrySet())
+    for (Entry<String,String> entry : getExportedProps(env.getVolumeManager()).entrySet())
       if (!TablePropUtil.setTableProperty(env.getContext(), tableInfo.tableId, entry.getKey(),
           entry.getValue())) {
         throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),

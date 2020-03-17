@@ -32,12 +32,12 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -63,7 +63,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -175,7 +174,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
         }
         workQueue.drainTo(work);
 
-        Method durabilityMethod = null;
+        Optional<Boolean> shouldHSync = Optional.empty();
         loop: for (LogWork logWork : work) {
           switch (logWork.durability) {
             case DEFAULT:
@@ -184,11 +183,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
               // shouldn't make it to the work queue
               throw new IllegalArgumentException("unexpected durability " + logWork.durability);
             case SYNC:
-              durabilityMethod = sync;
+              shouldHSync = Optional.of(Boolean.TRUE);
               break loop;
             case FLUSH:
-              if (durabilityMethod == null) {
-                durabilityMethod = flush;
+              if (shouldHSync.isEmpty()) {
+                shouldHSync = Optional.of(Boolean.FALSE);
               }
               break;
           }
@@ -196,15 +195,16 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
         long start = System.currentTimeMillis();
         try {
-          if (durabilityMethod != null) {
-            durabilityMethod.invoke(logFile);
-            if (durabilityMethod == sync) {
+          if (shouldHSync.isPresent()) {
+            if (shouldHSync.get()) {
+              logFile.hsync();
               syncCounter.incrementAndGet();
             } else {
+              logFile.hflush();
               flushCounter.incrementAndGet();
             }
           }
-        } catch (Exception ex) {
+        } catch (IOException | RuntimeException ex) {
           fail(work, ex, "synching");
         }
         long duration = System.currentTimeMillis() - start;
@@ -322,8 +322,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private final ServerResources conf;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
-  private Method sync;
-  private Method flush;
   private String logPath;
   private Daemon syncThread;
 
@@ -425,8 +423,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
 
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(ChooserScope.LOGGER, context);
+    var chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.LOGGER, context);
     logPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context)) + Path.SEPARATOR
         + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
 
@@ -442,8 +439,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
         logFile = fs.createSyncable(logfilePath, 0, replication, blockSize);
       else
         logFile = fs.create(logfilePath, true, 0, replication, blockSize);
-      sync = logFile.getClass().getMethod("hsync");
-      flush = logFile.getClass().getMethod("hflush");
 
       // check again that logfile can be sync'd
       if (!fs.canSyncAndFlush(logfilePath)) {

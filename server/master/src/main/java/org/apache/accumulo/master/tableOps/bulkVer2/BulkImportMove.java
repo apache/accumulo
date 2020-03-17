@@ -81,7 +81,7 @@ class BulkImportMove extends MasterRepo {
 
     log.debug("{} sourceDir {}", fmtTid, sourceDir);
 
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
 
     if (bulkInfo.tableState == TableState.ONLINE) {
       ZooArbitrator.start(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);

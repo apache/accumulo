@@ -157,7 +157,7 @@ public class PrepBulkImport extends MasterRepo {
 
   private void checkForMerge(final Master master) throws Exception {
 
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
     try (LoadMappingIterator lmi =
         BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, p -> fs.open(p))) {
@@ -178,7 +178,7 @@ public class PrepBulkImport extends MasterRepo {
 
     bulkInfo.tableState = Tables.getTableState(master.getContext(), bulkInfo.tableId);
 
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
     final UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
     Path sourceDir = new Path(bulkInfo.sourceDir);
     List<FileStatus> files = BulkImport.filterInvalid(fs.listStatus(sourceDir));

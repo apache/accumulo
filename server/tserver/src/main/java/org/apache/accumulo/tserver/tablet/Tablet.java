@@ -1610,7 +1610,7 @@ public class Tablet {
     final VolumeManager fs = getTabletServer().getFileSystem();
     for (Entry<StoredTabletFile,DataFileValue> entry : allFiles.entrySet()) {
       StoredTabletFile file = entry.getKey();
-      FileSystem ns = fs.getVolumeByPath(file.getPath()).getFileSystem();
+      FileSystem ns = fs.getFileSystemByPath(file.getPath());
       try (FileSKVIterator openReader = fileFactory.newReaderBuilder()
           .forFile(file.getPathStr(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(this.getTableConfiguration()).seekToBeginning().build()) {

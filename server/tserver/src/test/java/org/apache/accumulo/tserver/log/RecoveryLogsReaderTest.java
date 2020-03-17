@@ -43,6 +43,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapFile.Writer;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -51,18 +52,23 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class RecoveryLogsReaderTest {
 
-  VolumeManager fs;
-  TemporaryFolder root = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  private VolumeManager fs;
+  private File workDir;
+
+  @Rule
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Before
   public void setUp() throws Exception {
-    root.create();
-    String path = root.getRoot().getAbsolutePath() + "/manyMaps";
-    fs = VolumeManagerImpl.getLocal(path);
+    workDir = tempFolder.newFolder();
+    String path = workDir.getAbsolutePath();
+    assertTrue(workDir.delete());
+    fs = VolumeManagerImpl.getLocalForTesting(path);
     Path root = new Path("file://" + path);
     fs.mkdirs(root);
     fs.create(new Path(root, "finished")).close();
-    FileSystem ns = fs.getVolumeByPath(root).getFileSystem();
+    FileSystem ns = fs.getFileSystemByPath(root);
 
     Writer oddWriter = new Writer(ns.getConf(), ns.makeQualified(new Path(root, "odd")),
         Writer.keyClass(IntWritable.class), Writer.valueClass(BytesWritable.class));
@@ -84,7 +90,7 @@ public class RecoveryLogsReaderTest {
 
   @After
   public void tearDown() throws Exception {
-    root.create();
+    fs.close();
   }
 
   private void scan(RecoveryLogReader reader, int start) throws IOException {
@@ -111,7 +117,7 @@ public class RecoveryLogsReaderTest {
 
   @Test
   public void testMultiReader() throws IOException {
-    Path manyMaps = new Path("file://" + root.getRoot().getAbsolutePath() + "/manyMaps");
+    Path manyMaps = new Path("file://" + workDir.getAbsolutePath());
     RecoveryLogReader reader = new RecoveryLogReader(fs, manyMaps);
     IntWritable key = new IntWritable();
     BytesWritable value = new BytesWritable();
@@ -189,7 +195,7 @@ public class RecoveryLogsReaderTest {
    */
   @Test
   public void testFailed() throws Exception {
-    Path manyMaps = new Path("file://" + root.getRoot().getAbsolutePath() + "/manyMaps");
+    Path manyMaps = new Path("file://" + workDir.getAbsolutePath());
     fs.create(new Path(manyMaps, SortedLogState.FAILED.getMarker())).close();
 
     RecoveryLogReader reader = new RecoveryLogReader(fs, manyMaps);

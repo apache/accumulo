@@ -798,7 +798,7 @@ class FateServiceHandler implements FateService.Iface {
    * failure and/or FateServiceHandler retries.
    */
   private void removeAndCreateTempFile(String path) throws IOException {
-    FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
+    FileSystem fs = master.getVolumeManager().getDefaultVolume().getFileSystem();
     if (fs.exists(new Path(path)))
       fs.delete(new Path(path), true);
     fs.create(new Path(path));
@@ -834,7 +834,7 @@ class FateServiceHandler implements FateService.Iface {
    * Get full path to location where initial splits are stored on file system.
    */
   private String getSplitPath(String relPath) {
-    Volume defaultVolume = master.getFileSystem().getDefaultVolume();
+    Volume defaultVolume = master.getVolumeManager().getDefaultVolume();
     String uri = defaultVolume.getFileSystem().getUri().toString();
     String basePath = defaultVolume.getBasePath();
     return uri + basePath + relPath;
