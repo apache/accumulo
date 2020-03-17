@@ -221,13 +221,7 @@ public class FileManager {
   }
 
   private static <T> List<T> getFileList(String file, Map<String,List<T>> files) {
-    List<T> ofl = files.get(file);
-    if (ofl == null) {
-      ofl = new ArrayList<>();
-      files.put(file, ofl);
-    }
-
-    return ofl;
+    return files.computeIfAbsent(file, k -> new ArrayList<>());
   }
 
   private void closeReaders(Collection<FileSKVIterator> filesToClose) {
@@ -594,17 +588,9 @@ public class FileManager {
 
       Map<FileSKVIterator,String> newlyReservedReaders = openFiles(files);
       Map<String,List<FileSKVIterator>> map = new HashMap<>();
-      for (Entry<FileSKVIterator,String> entry : newlyReservedReaders.entrySet()) {
-        FileSKVIterator reader = entry.getKey();
-        String fileName = entry.getValue();
-        List<FileSKVIterator> list = map.get(fileName);
-        if (list == null) {
-          list = new LinkedList<>();
-          map.put(fileName, list);
-        }
-
-        list.add(reader);
-      }
+      newlyReservedReaders.forEach((reader, fileName) -> {
+        map.computeIfAbsent(fileName, k -> new LinkedList<>()).add(reader);
+      });
 
       for (FileDataSource fds : dataSources) {
         FileSKVIterator source = map.get(fds.file).remove(0);

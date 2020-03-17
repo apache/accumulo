@@ -730,19 +730,8 @@ public class TabletLocatorImpl extends TabletLocator {
 
   protected static void addRange(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
       String location, KeyExtent ke, Range range) {
-    Map<KeyExtent,List<Range>> tablets = binnedRanges.get(location);
-    if (tablets == null) {
-      tablets = new HashMap<>();
-      binnedRanges.put(location, tablets);
-    }
-
-    List<Range> tabletsRanges = tablets.get(ke);
-    if (tabletsRanges == null) {
-      tabletsRanges = new ArrayList<>();
-      tablets.put(ke, tabletsRanges);
-    }
-
-    tabletsRanges.add(range);
+    binnedRanges.computeIfAbsent(location, k -> new HashMap<>())
+        .computeIfAbsent(ke, k -> new ArrayList<>()).add(range);
   }
 
 }

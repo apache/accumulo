@@ -41,7 +41,7 @@ class SetupNamespacePermissions extends MasterRepo {
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all namespace permissions to the creator
     SecurityOperation security = AuditedSecurityOperation.getInstance(env.getContext());
-    for (NamespacePermission permission : NamespacePermission.values()) {
+    for (var permission : NamespacePermission.values()) {
       try {
         security.grantNamespacePermission(env.getContext().rpcCreds(), namespaceInfo.user,
             namespaceInfo.namespaceId, permission);
