@@ -363,52 +363,53 @@ public class Initialize implements KeywordExecutable {
     // the actual disk locations of the root table and tablets
     Set<String> configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
     String instanceName = instanceNamePath.substring(getInstanceNamePrefix().length());
-    ServerContext serverContext = new ServerContext(siteConfig, instanceName, uuid.toString());
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(ChooserScope.INIT, RootTable.ID, null, serverContext);
-    String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
-    String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
-    String rootTabletFileUri = new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR
-        + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + Path.SEPARATOR
-        + rootTabletDirName + Path.SEPARATOR + "00000_00000." + ext).toString();
 
-    try {
-      initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDirName, rootTabletFileUri);
-    } catch (Exception e) {
-      log.error("FATAL: Failed to initialize zookeeper", e);
-      return false;
-    }
+    try (ServerContext context =
+        ServerContext.initialize(siteConfig, instanceName, uuid.toString())) {
+      VolumeChooserEnvironment chooserEnv =
+          new VolumeChooserEnvironmentImpl(ChooserScope.INIT, RootTable.ID, null, context);
+      String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
+      String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
+      String rootTabletFileUri = new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR
+          + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + Path.SEPARATOR
+          + rootTabletDirName + Path.SEPARATOR + "00000_00000." + ext).toString();
 
-    try {
-      initFileSystem(siteConfig, hadoopConf, fs, uuid,
-          new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR
-              + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + rootTabletDirName)
-                  .toString(),
-          rootTabletFileUri, serverContext);
-    } catch (Exception e) {
-      log.error("FATAL Failed to initialize filesystem", e);
-
-      if (siteConfig.get(Property.INSTANCE_VOLUMES).trim().equals("")) {
-
-        final String defaultFsUri = "file:///";
-        String fsDefaultName = hadoopConf.get("fs.default.name", defaultFsUri),
-            fsDefaultFS = hadoopConf.get("fs.defaultFS", defaultFsUri);
-
-        // Try to determine when we couldn't find an appropriate core-site.xml on the classpath
-        if (defaultFsUri.equals(fsDefaultName) && defaultFsUri.equals(fsDefaultFS)) {
-          log.error(
-              "FATAL: Default filesystem value ('fs.defaultFS' or"
-                  + " 'fs.default.name') of '{}' was found in the Hadoop configuration",
-              defaultFsUri);
-          log.error("FATAL: Please ensure that the Hadoop core-site.xml is on"
-              + " the classpath using 'general.classpaths' in accumulo.properties");
-        }
+      try {
+        initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDirName,
+            rootTabletFileUri);
+      } catch (Exception e) {
+        log.error("FATAL: Failed to initialize zookeeper", e);
+        return false;
       }
 
-      return false;
-    }
+      try {
+        initFileSystem(siteConfig, hadoopConf, fs, uuid,
+            new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR
+                + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + rootTabletDirName)
+                    .toString(),
+            rootTabletFileUri, context);
+      } catch (Exception e) {
+        log.error("FATAL Failed to initialize filesystem", e);
 
-    try (ServerContext context = new ServerContext(siteConfig)) {
+        if (siteConfig.get(Property.INSTANCE_VOLUMES).trim().equals("")) {
+
+          final String defaultFsUri = "file:///";
+          String fsDefaultName = hadoopConf.get("fs.default.name", defaultFsUri),
+              fsDefaultFS = hadoopConf.get("fs.defaultFS", defaultFsUri);
+
+          // Try to determine when we couldn't find an appropriate core-site.xml on the classpath
+          if (defaultFsUri.equals(fsDefaultName) && defaultFsUri.equals(fsDefaultFS)) {
+            log.error(
+                "FATAL: Default filesystem value ('fs.defaultFS' or"
+                    + " 'fs.default.name') of '{}' was found in the Hadoop configuration",
+                defaultFsUri);
+            log.error("FATAL: Please ensure that the Hadoop core-site.xml is on"
+                + " the classpath using 'general.classpaths' in accumulo.properties");
+          }
+        }
+
+        return false;
+      }
 
       // When we're using Kerberos authentication, we need valid credentials to perform
       // initialization. If the user provided some, use them.

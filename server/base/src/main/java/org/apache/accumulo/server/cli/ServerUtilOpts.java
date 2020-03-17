@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.cli;
 
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
 
@@ -31,7 +32,9 @@ public class ServerUtilOpts extends ClientOpts {
       if (getClientConfigFile() == null) {
         context = new ServerContext(SiteConfiguration.auto());
       } else {
-        context = new ServerContext(SiteConfiguration.auto(), getClientProps());
+        ClientInfo info = ClientInfo.from(getClientProps());
+        context = ServerContext.override(SiteConfiguration.auto(), info.getInstanceName(),
+            info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       }
     }
     return context;

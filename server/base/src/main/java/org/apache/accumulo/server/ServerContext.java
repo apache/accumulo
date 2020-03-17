@@ -21,10 +21,8 @@ package org.apache.accumulo.server;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
-import java.util.Properties;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -63,28 +61,27 @@ public class ServerContext extends ClientContext {
     this(new ServerInfo(siteConfig));
   }
 
-  public ServerContext(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
-      int zooKeepersSessionTimeOut) {
-    this(new ServerInfo(siteConfig, instanceName, zooKeepers, zooKeepersSessionTimeOut));
-  }
-
-  public ServerContext(SiteConfiguration siteConfig, String instanceName, String instanceID) {
-    this(new ServerInfo(siteConfig, instanceName, instanceID));
-  }
-
-  public ServerContext(SiteConfiguration siteConfig, Properties clientProps) {
-    this(siteConfig, ClientInfo.from(clientProps));
-  }
-
-  private ServerContext(SiteConfiguration siteConfig, ClientInfo info) {
-    this(new ServerInfo(siteConfig, info.getInstanceName(), info.getZooKeepers(),
-        info.getZooKeepersSessionTimeOut()));
-  }
-
   private ServerContext(ServerInfo info) {
     super(info, info.getSiteConfiguration());
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
+  }
+
+  /**
+   * Used during initialization to set the instance name and ID.
+   */
+  public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
+      String instanceID) {
+    return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID));
+  }
+
+  /**
+   * Override properties for testing
+   */
+  public static ServerContext override(SiteConfiguration siteConfig, String instanceName,
+      String zooKeepers, int zkSessionTimeOut) {
+    return new ServerContext(
+        new ServerInfo(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
   }
 
   @Override
