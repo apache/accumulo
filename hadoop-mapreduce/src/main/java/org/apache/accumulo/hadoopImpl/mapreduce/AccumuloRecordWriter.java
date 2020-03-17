@@ -189,8 +189,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<>();
         for (var ke : e.getSecurityErrorCodes().entrySet()) {
           String tableId = ke.getKey().getTableId().toString();
-          Set<SecurityErrorCode> secCodes = tables.computeIfAbsent(tableId, k -> new HashSet<>());
-          secCodes.addAll(ke.getValue());
+          tables.computeIfAbsent(tableId, k -> new HashSet<>()).addAll(ke.getValue());
         }
 
         log.error("Not authorized to write to tables : " + tables);

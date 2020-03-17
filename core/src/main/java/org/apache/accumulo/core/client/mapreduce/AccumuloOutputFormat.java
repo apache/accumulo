@@ -550,13 +550,11 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
         mtbw.close();
       } catch (MutationsRejectedException e) {
         if (!e.getSecurityErrorCodes().isEmpty()) {
-          HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<>();
-          for (var ke : e.getSecurityErrorCodes().entrySet()) {
-            String tableId = ke.getKey().getTableId().toString();
-            Set<SecurityErrorCode> secCodes = tables.computeIfAbsent(tableId, k -> new HashSet<>());
-            secCodes.addAll(ke.getValue());
-          }
-
+          var tables = new HashMap<String,Set<SecurityErrorCode>>();
+          e.getSecurityErrorCodes().forEach((tabletId, secSet) -> {
+            var tableId = tabletId.getTableId().toString();
+            tables.computeIfAbsent(tableId, p -> new HashSet<>()).addAll(secSet);
+          });
           log.error("Not authorized to write to tables : " + tables);
         }
 

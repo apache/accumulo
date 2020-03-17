@@ -1716,13 +1716,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
       if (groupedByRanges == null) {
         Map<Range,List<TabletId>> tmp = new HashMap<>();
 
-        for (var entry : groupedByTablets.entrySet()) {
-          for (Range range : entry.getValue()) {
-            List<TabletId> tablets = tmp.computeIfAbsent(range, k -> new ArrayList<>());
-
-            tablets.add(entry.getKey());
+        groupedByTablets.forEach((table, rangeList) -> {
+          for (Range range : rangeList) {
+            tmp.computeIfAbsent(range, k -> new ArrayList<>()).add(table);
           }
-        }
+        });
 
         Map<Range,List<TabletId>> tmp2 = new HashMap<>();
         for (Entry<Range,List<TabletId>> entry : tmp.entrySet()) {

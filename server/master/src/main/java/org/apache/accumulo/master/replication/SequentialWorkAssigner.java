@@ -104,10 +104,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
       log.debug("In progress replication of {} from table with ID {} to peer {}", filename,
           sourceTableId, peerName);
 
-      Map<TableId,String> replicationForPeer =
-          queuedWorkByPeerName.computeIfAbsent(peerName, k -> new HashMap<>());
-
-      replicationForPeer.put(sourceTableId, work);
+      queuedWorkByPeerName.computeIfAbsent(peerName, k -> new HashMap<>()).put(sourceTableId, work);
     }
   }
 

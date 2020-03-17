@@ -296,11 +296,8 @@ public class TabletLocatorImplTest {
       String server = (String) ol[1];
       KeyExtent ke = (KeyExtent) ol[2];
 
-      Map<KeyExtent,List<String>> tb = emb.computeIfAbsent(server, k -> new HashMap<>());
-
-      List<String> rl = tb.computeIfAbsent(ke, k -> new ArrayList<>());
-
-      rl.add(row);
+      emb.computeIfAbsent(server, k -> new HashMap<>()).computeIfAbsent(ke, k -> new ArrayList<>())
+          .add(row);
     }
 
     return emb;

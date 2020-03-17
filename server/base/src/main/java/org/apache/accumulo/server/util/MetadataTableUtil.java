@@ -717,9 +717,7 @@ public class MetadataTableUtil {
 
       Text row = entry.getKey().getRow();
 
-      SortedMap<ColumnFQ,Value> colVals = tabletEntries.computeIfAbsent(row, k -> new TreeMap<>());
-
-      colVals.put(currentKey, entry.getValue());
+      tabletEntries.computeIfAbsent(row, k -> new TreeMap<>()).put(currentKey, entry.getValue());
     }
 
     return tabletEntries;

@@ -54,19 +54,13 @@ public class ColumnSliceFilter extends Filter {
     super.init(source, options, env);
     startBound = options.getOrDefault(START_BOUND, null);
 
-    if (options.containsKey(START_INCLUSIVE)) {
-      startInclusive = Boolean.parseBoolean(options.get(START_INCLUSIVE));
-    } else {
-      startInclusive = true;
-    }
+    startInclusive = options.containsKey(START_INCLUSIVE)
+        ? Boolean.parseBoolean(options.get(START_INCLUSIVE)) : true;
 
     endBound = options.getOrDefault(END_BOUND, null);
 
-    if (options.containsKey(END_INCLUSIVE)) {
-      endInclusive = Boolean.parseBoolean(options.get(END_INCLUSIVE));
-    } else {
-      endInclusive = false;
-    }
+    endInclusive = options.containsKey(END_INCLUSIVE)
+        ? Boolean.parseBoolean(options.get(END_INCLUSIVE)) : false;
   }
 
   @Override

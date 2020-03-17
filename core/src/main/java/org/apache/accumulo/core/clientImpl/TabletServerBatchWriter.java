@@ -517,10 +517,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   private void mergeAuthorizationFailures(Map<KeyExtent,Set<SecurityErrorCode>> source,
       Map<KeyExtent,SecurityErrorCode> addition) {
-    for (var entry : addition.entrySet()) {
-      Set<SecurityErrorCode> secs = source.computeIfAbsent(entry.getKey(), k -> new HashSet<>());
-      secs.add(entry.getValue());
-    }
+    addition.forEach((ke, sec) -> {
+      source.computeIfAbsent(ke, p -> new HashSet<>()).add(sec);
+    });
   }
 
   private synchronized void updateServerErrors(String server, Exception e) {
@@ -1006,10 +1005,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
 
     void addMutation(TableId table, Mutation mutation) {
-      List<Mutation> tabMutList = mutations.computeIfAbsent(table, k -> new ArrayList<>());
-
-      tabMutList.add(mutation);
-
+      mutations.computeIfAbsent(table, k -> new ArrayList<>()).add(mutation);
       memoryUsed += mutation.estimatedMemoryUsed();
     }
 

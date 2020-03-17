@@ -40,18 +40,16 @@ public class ColumnQualifierFilter extends ServerFilter {
     this.columnFamilies = new HashSet<>();
     this.columnsQualifiers = new HashMap<>();
 
-    for (Column col : columns) {
+    columns.forEach(col -> {
       if (col.columnQualifier != null) {
-        ArrayByteSequence cq = new ArrayByteSequence(col.columnQualifier);
-        HashSet<ByteSequence> cfset =
-            this.columnsQualifiers.computeIfAbsent(cq, k -> new HashSet<>());
-
-        cfset.add(new ArrayByteSequence(col.columnFamily));
+        this.columnsQualifiers
+            .computeIfAbsent(new ArrayByteSequence(col.columnQualifier), k -> new HashSet<>())
+            .add(new ArrayByteSequence(col.columnFamily));
       } else {
         // this whole column family should pass
         columnFamilies.add(new ArrayByteSequence(col.columnFamily));
       }
-    }
+    });
   }
 
   private ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator,
