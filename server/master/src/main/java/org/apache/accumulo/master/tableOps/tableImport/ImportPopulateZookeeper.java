@@ -90,7 +90,8 @@ class ImportPopulateZookeeper extends MasterRepo {
       Utils.getTableNameLock().unlock();
     }
 
-    for (Entry<String,String> entry : getExportedProps(env.getVolumeManager()).entrySet())
+    VolumeManager volMan = env.getVolumeManager();
+    for (Entry<String,String> entry : getExportedProps(volMan).entrySet())
       if (!TablePropUtil.setTableProperty(env.getContext(), tableInfo.tableId, entry.getKey(),
           entry.getValue())) {
         throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),

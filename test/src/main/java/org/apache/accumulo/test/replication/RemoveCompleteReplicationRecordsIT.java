@@ -295,9 +295,11 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
       }
 
       int actualRecords = 0;
-      for (Entry<Key,Value> entry : ReplicationTable.getScanner(client)) {
-        assertFalse(filesToRemove.contains(entry.getKey().getRow().toString()));
-        actualRecords++;
+      try (var scanner = ReplicationTable.getScanner(client)) {
+        for (Entry<Key,Value> entry : scanner) {
+          assertFalse(filesToRemove.contains(entry.getKey().getRow().toString()));
+          actualRecords++;
+        }
       }
 
       assertEquals(finalNumRecords, actualRecords);

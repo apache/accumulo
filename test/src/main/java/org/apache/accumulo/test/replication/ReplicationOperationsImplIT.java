@@ -393,8 +393,10 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.close();
 
     log.info("Reading metadata first time");
-    for (Entry<Key,Value> e : client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      log.info("{}", e.getKey());
+    try (var scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> e : scanner) {
+        log.info("{}", e.getKey());
+      }
     }
 
     final AtomicBoolean done = new AtomicBoolean(false);
@@ -427,8 +429,10 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.close();
 
     log.info("Reading metadata second time");
-    for (Entry<Key,Value> e : client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      log.info("{}", e.getKey());
+    try (var scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> e : scanner) {
+        log.info("{}", e.getKey());
+      }
     }
 
     bw = ReplicationTable.getBatchWriter(client);
