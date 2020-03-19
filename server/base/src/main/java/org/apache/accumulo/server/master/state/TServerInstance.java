@@ -89,14 +89,6 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
     m.put(TabletsSection.FutureLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
   }
 
-  public void putLastLocation(Mutation m) {
-    m.put(TabletsSection.LastLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
-  }
-
-  public void clearLastLocation(Mutation m) {
-    m.putDelete(TabletsSection.LastLocationColumnFamily.NAME, asColumnQualifier());
-  }
-
   public void clearFutureLocation(Mutation m) {
     m.putDelete(TabletsSection.FutureLocationColumnFamily.NAME, asColumnQualifier());
   }
