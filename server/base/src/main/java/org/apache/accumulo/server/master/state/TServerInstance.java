@@ -81,10 +81,6 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
     this(location.getHostAndPort(), location.getSession());
   }
 
-  public void putLocation(Mutation m) {
-    m.put(TabletsSection.CurrentLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
-  }
-
   public void putFutureLocation(Mutation m) {
     m.put(TabletsSection.FutureLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
   }
