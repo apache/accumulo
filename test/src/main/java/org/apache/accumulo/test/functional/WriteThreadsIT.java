@@ -18,8 +18,6 @@
         */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.conf.Property.TSERV_MAX_WRITETHREADS;
-
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -41,15 +39,12 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
 
   ThreadPoolExecutor tpe;
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchWriter.class);
-  private int i;
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    // this function runs before test()
-
     // sets the thread limit on the SERVER SIDE
     // default value is 0. when set to 0, there is no limit
-    cfg.setProperty(TSERV_MAX_WRITETHREADS.getKey(), "0");
+    // cfg.setProperty(TSERV_MAX_WRITETHREADS.getKey(), "1");
   }
 
   @Test
@@ -72,6 +67,7 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
       tpe = new ThreadPoolExecutor(threads, threads, 0, TimeUnit.SECONDS,
           new ArrayBlockingQueue<>(threads));
 
+      int i;
       for (i = 0; i < threads; i++) {
 
         log.info("iteration: " + i);
@@ -83,7 +79,6 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
 
             client.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
 
-
             log.info("START OF RUNNABLE");
 
             // Data is written to a mutation object
@@ -93,7 +88,6 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
             Mutation mutation4 = new Mutation("row4");
             Mutation mutation5 = new Mutation("row5");
 
-
             mutation1.at().family("myColFam").qualifier("myColQual").visibility("public")
                 .put("myValue1");
             mutation1.at().family("myColFam").qualifier("myColQual").visibility("public")
@@ -103,18 +97,17 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
             mutation2.at().family("myColFam").qualifier("myColQual").visibility("public")
                 .put("myValue2");
             mutation3.at().family("myColFam").qualifier("myColQual").visibility("public")
-                    .put("myValue1");
+                .put("myValue1");
             mutation3.at().family("myColFam").qualifier("myColQual").visibility("public")
-                    .put("myValue2");
+                .put("myValue2");
             mutation4.at().family("myColFam").qualifier("myColQual").visibility("public")
-                    .put("myValue1");
+                .put("myValue1");
             mutation4.at().family("myColFam").qualifier("myColQual").visibility("public")
-                    .put("myValue2");
+                .put("myValue2");
             mutation5.at().family("myColFam").qualifier("myColQual").visibility("public")
-                    .put("myValue1");
+                .put("myValue1");
             mutation5.at().family("myColFam").qualifier("myColQual").visibility("public")
-                    .put("myValue2");
-
+                .put("myValue2");
 
             log.info("AFTER MUTATIONS PUT TO TABLE");
 
