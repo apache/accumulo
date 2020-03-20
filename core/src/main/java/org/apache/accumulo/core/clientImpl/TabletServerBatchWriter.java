@@ -72,6 +72,7 @@ import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -989,7 +990,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       } catch (ThriftSecurityException e) {
         updateAuthorizationFailures(tabMuts.keySet(), e.code);
         throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (Throwable e) {
+      } catch (TException e) {
         throw new IOException(e);
       }
     }
