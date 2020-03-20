@@ -100,15 +100,45 @@ function get_ip() {
   echo "$ip_addr"
 }
 
+function set_last_instance_id() {
+  if [[ "$service" == "tserver" ]]; then
+    last_instance_id=${NUM_TSERVERS:-1}
+  else
+    last_instance_id=1
+  fi
+}
+
+function set_service_instance_if_needed() {
+  if [[ "$service" == "tserver" && ${NUM_TSERVERS:-1} > 1 ]]; then
+    export ACCUMULO_SERVICE_INSTANCE=$inst_id
+    service_instance_cmd="export ACCUMULO_SERVICE_INSTANCE=${inst_id};"
+  else
+    export ACCUMULO_SERVICE_INSTANCE=
+    service_instance_cmd=
+  fi
+}
+
+function control_service() {
+  set_last_instance_id
+
+  for (( inst_id=1; inst_id<=last_instance_id; inst_id++ ))
+  do
+    set_service_instance_if_needed
+
+    if [[ $host == localhost || $host = "$(hostname -s)" || $host = "$(hostname -f)" || $host = $(get_ip) ]] ; then
+      "${bin}/accumulo-service" "$service" "$control_cmd"
+    else
+      $SSH "$host" "bash -c '${service_instance_cmd} ${bin}/accumulo-service \"$service\" \"$control_cmd\"'"
+    fi
+  done
+}
+
 function start_service() {
   host="$1"
   service="$2"
+  control_cmd="start"
 
-  if [[ $host == "localhost" || $host == $(hostname -f) || $host == $(hostname -s) || $host == $(get_ip) ]]; then
-    "${bin}/accumulo-service" "$service" start
-  else
-    $SSH "$host" "bash -c '${bin}/accumulo-service \"$service\" start'"
-  fi
+  control_service
 }
 
 function start_tservers() {
@@ -190,12 +220,9 @@ function start_here() {
 function end_service() {
   host="$1"
   service="$2"
-  end_cmd="$3"
-  if [[ $host == localhost || $host = "$(hostname -s)" || $host = "$(hostname -f)" || $host = $(get_ip) ]] ; then
-    "${bin}/accumulo-service" "$service" "$end_cmd"
-  else
-    $SSH "$host" "bash -c '${bin}/accumulo-service \"$service\" \"$end_cmd\"'"
-  fi
+  control_cmd="$3"
+
+  control_service
 }
 
 function stop_service() {
