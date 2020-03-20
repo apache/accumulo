@@ -34,6 +34,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import static org.apache.accumulo.core.conf.Property.TSERV_MAX_WRITETHREADS;
 
 public class WriteThreadsIT extends AccumuloClusterHarness {
 
@@ -44,7 +45,7 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // sets the thread limit on the SERVER SIDE
     // default value is 0. when set to 0, there is no limit
-    // cfg.setProperty(TSERV_MAX_WRITETHREADS.getKey(), "1");
+    cfg.setProperty(TSERV_MAX_WRITETHREADS.getKey(), "1");
   }
 
   @Test
