@@ -25,7 +25,6 @@ public class TabletServerUpdateMetrics extends TServerMetrics {
   private final MutableCounterLong permissionErrorsCounter;
   private final MutableCounterLong unknownTabletErrorsCounter;
   private final MutableCounterLong constraintViolationsCounter;
-  private final MutableCounterLong maxThreadLimitExceededCounter;
 
   private final MutableStat commitPrepStat;
   private final MutableStat walogWriteTimeStat;
@@ -41,8 +40,6 @@ public class TabletServerUpdateMetrics extends TServerMetrics {
         registry.newCounter("unknownTabletErrors", "Unknown Tablet Errors", 0L);
     constraintViolationsCounter =
         registry.newCounter("constraintViolations", "Table Constraint Violations", 0L);
-    maxThreadLimitExceededCounter =
-        registry.newCounter("maxThreadLimitExceeded", "Max write threads limit exceeded", 0L);
 
     commitPrepStat =
         registry.newStat("commitPrep", "preparing to commit mutations", "Ops", "Time", true);
@@ -59,10 +56,6 @@ public class TabletServerUpdateMetrics extends TServerMetrics {
 
   public void addUnknownTabletErrors(long value) {
     unknownTabletErrorsCounter.incr(value);
-  }
-
-  public void addMaxThreadLimitExceeded(long value) {
-    maxThreadLimitExceededCounter.incr(value);
   }
 
   public void addMutationArraySize(long value) {
