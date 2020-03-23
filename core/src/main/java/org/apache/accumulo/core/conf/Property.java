@@ -251,6 +251,9 @@ public enum Property {
   MASTER_BULK_RENAME_THREADS("master.bulk.rename.threadpool.size", "20", PropertyType.COUNT,
       "The number of threads to use when moving user files to bulk ingest "
           + "directories under accumulo control"),
+  MASTER_IMPORTTABLE_RENAME_THREADS("master.importtable.rename.threadpool.size", "20",
+      PropertyType.COUNT,
+      "The number of threads to use when renaming user files when importing a table."),
   MASTER_BULK_TSERVER_REGEX("master.bulk.tserver.regex", "", PropertyType.STRING,
       "Regular expression that defines the set of Tablet Servers that will perform bulk imports"),
   MASTER_MINTHREADS("master.server.threads.minimum", "20", PropertyType.COUNT,
