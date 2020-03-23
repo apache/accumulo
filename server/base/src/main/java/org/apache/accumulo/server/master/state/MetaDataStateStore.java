@@ -69,21 +69,19 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setLocations(Collection<Assignment> assignments, TServerInstance prevLastLoc) {
+  public void setLocations(Assignment assignment, TServerInstance prevLastLoc) {
 
-    for (Assignment assignment : assignments) {
-      TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-      tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
-      tabletMutator.putLocation(assignment.server, LocationType.LAST);
-      tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
+    TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
+    tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
+    tabletMutator.putLocation(assignment.server, LocationType.LAST);
+    tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
 
-      // remove the old location
-      if (prevLastLoc != null && !prevLastLoc.equals(assignment.server)) {
-        tabletMutator.deleteLocation(prevLastLoc, LocationType.LAST);
-      }
-
-      tabletMutator.mutate();
+    // remove the old location
+    if (prevLastLoc != null && !prevLastLoc.equals(assignment.server)) {
+      tabletMutator.deleteLocation(prevLastLoc, LocationType.LAST);
     }
+
+    tabletMutator.mutate();
 
   }
 

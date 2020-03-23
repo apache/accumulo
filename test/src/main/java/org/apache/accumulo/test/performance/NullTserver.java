@@ -324,7 +324,8 @@ public class NullTserver {
 
       // point them to this server
       TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
-      store.setLocations(assignments, instance);
+      for (Assignment assignment : assignments)
+        store.setLocations(assignment, instance);
     }
     while (true) {
       sleepUninterruptibly(10, TimeUnit.SECONDS);

@@ -55,8 +55,7 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
    */
   // void setLocations(Collection<Assignment> assignments) throws DistributedStoreException;
 
-  void setLocations(Collection<Assignment> assignments, TServerInstance prevLastLoc)
-      throws DistributedStoreException;
+  void setLocations(Assignment assignment, TServerInstance prevLastLoc);
 
   /**
    * Mark the tablets as having no known or future location.
@@ -96,9 +95,8 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
   }
 
   public static void setLocation(ServerContext context, Assignment assignment,
-      TServerInstance prevLastLoc) throws DistributedStoreException {
-    getStoreForTablet(assignment.tablet, context)
-        .setLocations(Collections.singletonList(assignment), prevLastLoc);
+      TServerInstance prevLastLoc) {
+    getStoreForTablet(assignment.tablet, context).setLocations(assignment, prevLastLoc);
   }
 
   static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {

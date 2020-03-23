@@ -184,8 +184,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       TabletMetadata tabletMetadata = context.getAmple().readTablet(tablet);
       update(accumuloClient, m);
       TServerInstance tServerInstance = new TServerInstance(tabletMetadata.getLast());
-      metaDataStateStore.setLocations(
-          Collections.singletonList(new Assignment(tablet, state.someTServer)), tServerInstance);
+      metaDataStateStore.setLocations(new Assignment(tablet, state.someTServer), tServerInstance);
 
       // onos... there's a new tablet online
       stats = scan(state, metaDataStateStore);

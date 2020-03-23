@@ -82,6 +82,7 @@ public class RootTabletStateStoreTest {
     TServerInstance server =
         new TServerInstance(HostAndPort.fromParts("127.0.0.1", 10000), sessionId);
     List<Assignment> assignments = Collections.singletonList(new Assignment(root, server));
+    Assignment assignment = new Assignment(root, server);
     tstore.setFutureLocations(assignments);
     int count = 0;
     for (TabletLocationState location : tstore) {
@@ -91,7 +92,7 @@ public class RootTabletStateStoreTest {
       count++;
     }
     assertEquals(count, 1);
-    tstore.setLocations(assignments, server);
+    tstore.setLocations(assignment, server);
     count = 0;
     for (TabletLocationState location : tstore) {
       assertEquals(location.extent, root);
