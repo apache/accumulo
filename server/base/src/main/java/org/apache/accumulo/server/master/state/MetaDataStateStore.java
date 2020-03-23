@@ -96,16 +96,13 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
-      throws DistributedStoreException {
+  public void setFutureLocations(Assignment assignment) throws DistributedStoreException {
     BatchWriter writer = createBatchWriter();
     try {
-      for (Assignment assignment : assignments) {
-        Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-        SuspendingTServer.clearSuspension(m);
-        assignment.server.putFutureLocation(m);
-        writer.addMutation(m);
-      }
+      Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
+      SuspendingTServer.clearSuspension(m);
+      assignment.server.putFutureLocation(m);
+      writer.addMutation(m);
     } catch (Exception ex) {
       throw new DistributedStoreException(ex);
     } finally {

@@ -24,7 +24,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.util.Collections;
-import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -81,9 +80,8 @@ public class RootTabletStateStoreTest {
     String sessionId = "this is my unique session data";
     TServerInstance server =
         new TServerInstance(HostAndPort.fromParts("127.0.0.1", 10000), sessionId);
-    List<Assignment> assignments = Collections.singletonList(new Assignment(root, server));
     Assignment assignment = new Assignment(root, server);
-    tstore.setFutureLocations(assignments);
+    tstore.setFutureLocations(assignment);
     int count = 0;
     for (TabletLocationState location : tstore) {
       assertEquals(location.extent, root);
@@ -119,12 +117,12 @@ public class RootTabletStateStoreTest {
 
     KeyExtent notRoot = new KeyExtent(TableId.of("0"), null, null);
     try {
-      // tstore.setLocations(new Assignment(notRoot, server), prevLastLoc);
-      // fail("should not get here");
+      tstore.setLocations(new Assignment(notRoot, server), assigned.last);
+      fail("should not get here");
     } catch (IllegalArgumentException ex) {}
 
     try {
-      tstore.setFutureLocations(Collections.singletonList(new Assignment(notRoot, server)));
+      tstore.setFutureLocations(new Assignment(notRoot, server));
       fail("should not get here");
     } catch (IllegalArgumentException ex) {}
 
