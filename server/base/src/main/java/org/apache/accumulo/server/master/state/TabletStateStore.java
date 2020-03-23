@@ -48,7 +48,7 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
   /**
    * Store the assigned locations in the data store.
    */
-  void setFutureLocations(Assignment assignment) throws DistributedStoreException;
+  void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException;
 
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online
