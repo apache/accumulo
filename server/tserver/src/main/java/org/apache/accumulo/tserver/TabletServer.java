@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -353,9 +352,10 @@ public class TabletServer extends AbstractServer {
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
 
-  private int maxThreads;
-  private int maxThreadPermits;
-  private Semaphore sem;
+  private int maxThreads =
+      getServerConfig().getConfiguration().getCount(Property.TSERV_MAX_WRITETHREADS);
+  private int maxThreadPermits = maxThreads == 0 ? Integer.MAX_VALUE : maxThreads;
+  private Semaphore sem = new Semaphore(maxThreadPermits);
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
@@ -1027,15 +1027,10 @@ public class TabletServer extends AbstractServer {
       boolean allowWriteThreadSemaphore = false;
       try {
         KeyExtent keyExtent = new KeyExtent(tkeyExtent);
-        maxThreads = getServerConfig().getConfiguration().getCount(Property.TSERV_MAX_WRITETHREADS);
-        maxThreadPermits = maxThreads == 0 ? Integer.MAX_VALUE : maxThreads;
-        sem = new Semaphore(maxThreadPermits);
 
         if (TabletType.type(keyExtent) == TabletType.USER) {
           if (!sem.tryAcquire()) {
-            us.failures.put(keyExtent, 0L);
-            updateMetrics.addUnknownTabletErrors(0);
-            log.error("Mutation failed - No more threads available for mutations at " + new Date());
+            throw new TException("Mutation failed. No threads available.");
           } else {
             allowWriteThreadSemaphore = true;
             log.info("Available permits: {}", sem.availablePermits());
