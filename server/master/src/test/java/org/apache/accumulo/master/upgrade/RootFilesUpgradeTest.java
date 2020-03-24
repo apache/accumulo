@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.upgrade;
 
@@ -165,31 +167,31 @@ public class RootFilesUpgradeTest {
     conf.set(Property.INSTANCE_DFS_DIR, "/");
     conf.set(Property.GENERAL_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
-    VolumeManager vm = VolumeManagerImpl.get(conf, new Configuration());
+    try (var vm = VolumeManagerImpl.get(conf, new Configuration())) {
 
-    TestWrapper wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
-    wrapper.prepareReplacement();
-    wrapper.renameReplacement();
-    wrapper.finishReplacement();
-    wrapper.assertFiles("A00004.rf");
+      TestWrapper wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      wrapper.prepareReplacement();
+      wrapper.renameReplacement();
+      wrapper.finishReplacement();
+      wrapper.assertFiles("A00004.rf");
 
-    wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
-    wrapper.prepareReplacement();
-    wrapper.cleanupReplacement("A00002.rf", "F00003.rf");
-    wrapper.assertFiles("A00002.rf", "F00003.rf");
+      wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      wrapper.prepareReplacement();
+      wrapper.cleanupReplacement("A00002.rf", "F00003.rf");
+      wrapper.assertFiles("A00002.rf", "F00003.rf");
 
-    wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
-    wrapper.prepareReplacement();
-    wrapper.renameReplacement();
-    wrapper.cleanupReplacement("A00004.rf");
-    wrapper.assertFiles("A00004.rf");
+      wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      wrapper.prepareReplacement();
+      wrapper.renameReplacement();
+      wrapper.cleanupReplacement("A00004.rf");
+      wrapper.assertFiles("A00004.rf");
 
-    wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
-    wrapper.prepareReplacement();
-    wrapper.renameReplacement();
-    wrapper.finishReplacement();
-    wrapper.cleanupReplacement("A00004.rf");
-    wrapper.assertFiles("A00004.rf");
-
+      wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      wrapper.prepareReplacement();
+      wrapper.renameReplacement();
+      wrapper.finishReplacement();
+      wrapper.cleanupReplacement("A00004.rf");
+      wrapper.assertFiles("A00004.rf");
+    }
   }
 }

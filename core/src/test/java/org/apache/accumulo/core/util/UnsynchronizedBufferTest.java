@@ -1,23 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -26,14 +29,9 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import org.apache.hadoop.io.WritableUtils;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class UnsynchronizedBufferTest {
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testByteBufferConstructor() {
@@ -55,8 +53,9 @@ public class UnsynchronizedBufferTest {
 
     buf = new byte[6];
     // the byte buffer has the extra byte, but should not be able to read it...
-    thrown.expect(ArrayIndexOutOfBoundsException.class);
-    ub.readBytes(buf);
+    final UnsynchronizedBuffer.Reader ub2 = ub;
+    final byte[] buf2 = buf;
+    assertThrows(ArrayIndexOutOfBoundsException.class, () -> ub2.readBytes(buf2));
   }
 
   @Test
@@ -125,4 +124,33 @@ public class UnsynchronizedBufferTest {
     assertTrue("The byte array written to by UnsynchronizedBuffer is not equal to WritableUtils",
         Arrays.equals(hadoopBytes, accumuloBytes));
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testNextArraySizeNegative() {
+    UnsynchronizedBuffer.nextArraySize(-1);
+  }
+
+  @Test
+  public void testNextArraySize() {
+    // 0 <= size <= 2^0
+    assertEquals(1, UnsynchronizedBuffer.nextArraySize(0));
+    assertEquals(1, UnsynchronizedBuffer.nextArraySize(1));
+
+    // 2^0 < size <= 2^1
+    assertEquals(2, UnsynchronizedBuffer.nextArraySize(2));
+
+    // 2^1 < size <= 2^30
+    for (int exp = 1; exp < 30; ++exp) {
+      // 2^exp < size <= 2^(exp+1) (for all exp: [1,29])
+      int nextExp = exp + 1;
+      assertEquals(1 << nextExp, UnsynchronizedBuffer.nextArraySize((1 << exp) + 1));
+      assertEquals(1 << nextExp, UnsynchronizedBuffer.nextArraySize(1 << nextExp));
+    }
+    // 2^30 < size < Integer.MAX_VALUE
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize((1 << 30) + 1));
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE - 9));
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE - 8));
+    assertEquals(Integer.MAX_VALUE - 8, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE));
+  }
+
 }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.compaction;
 
@@ -24,18 +26,20 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy.SizeWindow;
 import org.junit.Test;
 
 public class SizeWindowTest {
 
   static class TestSizeWindow extends SizeWindow {
-    private static Map<FileRef,DataFileValue> convert(Map<String,Integer> testData) {
-      Map<FileRef,DataFileValue> files = new HashMap<>();
+    private static Map<StoredTabletFile,DataFileValue> convert(Map<String,Integer> testData) {
+      Map<StoredTabletFile,DataFileValue> files = new HashMap<>();
       testData.forEach((k, v) -> {
-        files.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + k), new DataFileValue(v, 0));
+        files.put(new StoredTabletFile("hdfs://nn1/accumulo/tables/5/t-0001/" + k),
+            new DataFileValue(v, 0));
       });
       return files;
     }
@@ -49,7 +53,7 @@ public class SizeWindowTest {
   }
 
   static Collection<String> getFileNames(SizeWindow sw) {
-    return sw.getFiles().stream().map(fr -> fr.path().getName()).collect(Collectors.toSet());
+    return sw.getFiles().stream().map(TabletFile::getFileName).collect(Collectors.toSet());
   }
 
   static Map<String,Integer> genTestData(int start, int end) {

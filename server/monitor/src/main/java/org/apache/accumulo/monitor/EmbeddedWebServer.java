@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor;
 
@@ -34,14 +36,21 @@ import org.slf4j.LoggerFactory;
 public class EmbeddedWebServer {
   private static final Logger LOG = LoggerFactory.getLogger(EmbeddedWebServer.class);
 
+  private static final EnumSet<Property> requireForSecure =
+      EnumSet.of(Property.MONITOR_SSL_KEYSTORE, Property.MONITOR_SSL_KEYSTOREPASS,
+          Property.MONITOR_SSL_TRUSTSTORE, Property.MONITOR_SSL_TRUSTSTOREPASS);
+
   private final Server server;
   private final ServerConnector connector;
   private final ServletContextHandler handler;
+  private final boolean secure;
 
   public EmbeddedWebServer(Monitor monitor, int port) {
     server = new Server();
     final AccumuloConfiguration conf = monitor.getContext().getConfiguration();
-    connector = new ServerConnector(server, getConnectionFactories(conf));
+    secure = requireForSecure.stream().map(conf::get).allMatch(s -> s != null && !s.isEmpty());
+
+    connector = new ServerConnector(server, getConnectionFactories(conf, secure));
     connector.setHost(monitor.getHostname());
     connector.setPort(port);
 
@@ -51,13 +60,10 @@ public class EmbeddedWebServer {
     handler.setContextPath("/");
   }
 
-  private static AbstractConnectionFactory[] getConnectionFactories(AccumuloConfiguration conf) {
+  private static AbstractConnectionFactory[] getConnectionFactories(AccumuloConfiguration conf,
+      boolean secure) {
     HttpConnectionFactory httpFactory = new HttpConnectionFactory();
-    EnumSet<Property> requireForSecure =
-        EnumSet.of(Property.MONITOR_SSL_KEYSTORE, Property.MONITOR_SSL_KEYSTOREPASS,
-            Property.MONITOR_SSL_TRUSTSTORE, Property.MONITOR_SSL_TRUSTSTOREPASS);
-
-    if (requireForSecure.stream().map(p -> conf.get(p)).anyMatch(s -> s == null || s.isEmpty())) {
+    if (!secure) {
       LOG.debug("Not configuring Jetty to use TLS");
       return new AbstractConnectionFactory[] {httpFactory};
     } else {
@@ -104,6 +110,10 @@ public class EmbeddedWebServer {
 
   public int getPort() {
     return connector.getLocalPort();
+  }
+
+  public boolean isSecure() {
+    return secure;
   }
 
   public void start() {

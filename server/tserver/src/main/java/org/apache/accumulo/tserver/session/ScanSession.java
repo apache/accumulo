@@ -1,37 +1,37 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.session;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.common.IteratorConfiguration;
 import org.apache.accumulo.core.spi.common.Stats;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.util.Stat;
+import org.apache.accumulo.tserver.scan.ScanParameters;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -69,20 +69,13 @@ public abstract class ScanSession extends Session implements ScanInfo {
   private Stat idleStats = new Stat();
   public Stat runStats = new Stat();
 
-  public final HashSet<Column> columnSet;
-  public final List<IterInfo> ssiList;
-  public final Map<String,Map<String,String>> ssio;
-  public final Authorizations auths;
+  public final ScanParameters scanParams;
   private Map<String,String> executionHints;
 
-  ScanSession(TCredentials credentials, HashSet<Column> cols, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, Authorizations auths,
+  ScanSession(TCredentials credentials, ScanParameters scanParams,
       Map<String,String> executionHints) {
     super(credentials);
-    this.columnSet = cols;
-    this.ssiList = ssiList;
-    this.ssio = ssio;
-    this.auths = auths;
+    this.scanParams = scanParams;
     if (executionHints == null) {
       this.executionHints = Collections.emptyMap();
     } else {
@@ -121,7 +114,7 @@ public abstract class ScanSession extends Session implements ScanInfo {
 
   @Override
   public Set<Column> getFetchedColumns() {
-    return Collections.unmodifiableSet(columnSet);
+    return Collections.unmodifiableSet(scanParams.getColumnSet());
   }
 
   private class IterConfImpl implements IteratorConfiguration {
@@ -149,7 +142,7 @@ public abstract class ScanSession extends Session implements ScanInfo {
 
     @Override
     public Map<String,String> getOptions() {
-      Map<String,String> opts = ssio.get(ii.iterName);
+      Map<String,String> opts = scanParams.getSsio().get(ii.iterName);
       return opts == null || opts.isEmpty() ? Collections.emptyMap()
           : Collections.unmodifiableMap(opts);
     }
@@ -157,7 +150,7 @@ public abstract class ScanSession extends Session implements ScanInfo {
 
   @Override
   public Collection<IteratorConfiguration> getClientScanIterators() {
-    return Lists.transform(ssiList, IterConfImpl::new);
+    return Lists.transform(scanParams.getSsiList(), IterConfImpl::new);
   }
 
   @Override

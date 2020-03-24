@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.tablet;
 
@@ -25,9 +27,10 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.FileRef;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,10 +43,10 @@ public class DatafileManagerTest {
   private KeyExtent extent;
   private TableConfiguration tableConf;
 
-  private SortedMap<FileRef,DataFileValue> createFileMap(String... sa) {
-    SortedMap<FileRef,DataFileValue> ret = new TreeMap<>();
+  private SortedMap<StoredTabletFile,DataFileValue> createFileMap(String... sa) {
+    SortedMap<StoredTabletFile,DataFileValue> ret = new TreeMap<>();
     for (int i = 0; i < sa.length; i += 2) {
-      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]),
+      ret.put(new StoredTabletFile("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]),
           new DataFileValue(ConfigurationTypeHelper.getFixedMemoryAsBytes(sa[i + 1]), 1));
     }
     return ret;
@@ -72,11 +75,11 @@ public class DatafileManagerTest {
         .andReturn(maxMergeFileSize);
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("largefile", "10M", "file2", "100M",
-        "file3", "100M", "file4", "100M", "file5", "100M");
+    SortedMap<StoredTabletFile,DataFileValue> testFiles = createFileMap("largefile", "10M", "file2",
+        "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
-    FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
+    TabletFile mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
 
@@ -90,11 +93,11 @@ public class DatafileManagerTest {
   public void testReserveMergingMinorCompactionFile_MaxFilesNotReached() {
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles =
+    SortedMap<StoredTabletFile,DataFileValue> testFiles =
         createFileMap("smallfile", "100B", "file2", "100M", "file3", "100M", "file4", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
-    FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
+    TabletFile mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
 
@@ -112,15 +115,15 @@ public class DatafileManagerTest {
         .andReturn(maxMergeFileSize);
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M",
-        "file3", "100M", "file4", "100M", "file5", "100M");
+    SortedMap<StoredTabletFile,DataFileValue> testFiles = createFileMap("smallfile", "100B",
+        "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
-    FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
+    TabletFile mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
 
-    assertEquals("smallfile", mergeFile.path().getName());
+    assertEquals("smallfile", mergeFile.getFileName());
   }
 
   /*
@@ -134,15 +137,15 @@ public class DatafileManagerTest {
         .andReturn(maxMergeFileSize);
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallishfile", "10M", "file2",
-        "100M", "file3", "100M", "file4", "100M", "file5", "100M");
+    SortedMap<StoredTabletFile,DataFileValue> testFiles = createFileMap("smallishfile", "10M",
+        "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
-    FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
+    TabletFile mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
 
-    assertEquals("smallishfile", mergeFile.path().getName());
+    assertEquals("smallishfile", mergeFile.getFileName());
   }
 
 }

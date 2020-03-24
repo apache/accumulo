@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.create;
 
@@ -57,7 +59,7 @@ class ChooseDir extends MasterRepo {
 
   @Override
   public void undo(long tid, Master master) throws Exception {
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
     fs.deleteRecursively(new Path(tableInfo.getSplitDirsFile()));
   }
 
@@ -93,7 +95,7 @@ class ChooseDir extends MasterRepo {
    */
   private void writeTabletDirectoriesToFileSystem(Master master, SortedSet<Text> dirs)
       throws IOException {
-    FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
+    FileSystem fs = master.getVolumeManager().getDefaultVolume().getFileSystem();
     if (fs.exists(new Path(tableInfo.getSplitDirsFile())))
       fs.delete(new Path(tableInfo.getSplitDirsFile()), true);
     try (FSDataOutputStream stream = master.getOutputStream(tableInfo.getSplitDirsFile())) {

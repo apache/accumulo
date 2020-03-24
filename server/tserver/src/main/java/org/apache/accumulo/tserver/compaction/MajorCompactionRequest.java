@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.compaction;
 
@@ -38,6 +40,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.summary.Gatherer;
@@ -45,7 +49,6 @@ import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy;
 import org.apache.hadoop.conf.Configuration;
@@ -64,7 +67,7 @@ public class MajorCompactionRequest implements Cloneable {
   private final AccumuloConfiguration tableConfig;
   private final BlockCache indexCache;
   private final BlockCache summaryCache;
-  private Map<FileRef,DataFileValue> files;
+  private Map<StoredTabletFile,DataFileValue> files;
   private final ServerContext context;
   private final Cache<String,Long> fileLenCache;
 
@@ -103,7 +106,7 @@ public class MajorCompactionRequest implements Cloneable {
     return reason;
   }
 
-  public Map<FileRef,DataFileValue> getFiles() {
+  public Map<StoredTabletFile,DataFileValue> getFiles() {
     return files;
   }
 
@@ -147,18 +150,18 @@ public class MajorCompactionRequest implements Cloneable {
    * @see TableOperations#addSummarizers(String, SummarizerConfiguration...)
    * @see WriterOptions#withSummarizers(SummarizerConfiguration...)
    */
-  public List<Summary> getSummaries(Collection<FileRef> files,
+  public List<Summary> getSummaries(Collection<StoredTabletFile> files,
       Predicate<SummarizerConfiguration> summarySelector) {
     Objects.requireNonNull(volumeManager,
         "Getting summaries is not  supported at this time. It's only supported when "
             + "CompactionStrategy.gatherInformation() is called.");
     SummaryCollection sc = new SummaryCollection();
     SummarizerFactory factory = new SummarizerFactory(tableConfig);
-    for (FileRef file : files) {
-      FileSystem fs = volumeManager.getVolumeByPath(file.path()).getFileSystem();
+    for (TabletFile file : files) {
+      FileSystem fs = volumeManager.getFileSystemByPath(file.getPath());
       Configuration conf = context.getHadoopConf();
       SummaryCollection fsc = SummaryReader
-          .load(fs, conf, factory, file.path(), summarySelector, summaryCache, indexCache,
+          .load(fs, conf, factory, file.getPath(), summarySelector, summaryCache, indexCache,
               fileLenCache, context.getCryptoService())
           .getSummaries(Collections.singletonList(new Gatherer.RowRange(extent)));
       sc.merge(fsc, factory);
@@ -167,20 +170,20 @@ public class MajorCompactionRequest implements Cloneable {
     return sc.getSummaries();
   }
 
-  public void setFiles(Map<FileRef,DataFileValue> update) {
+  public void setFiles(Map<StoredTabletFile,DataFileValue> update) {
     this.files = Collections.unmodifiableMap(update);
   }
 
-  public FileSKVIterator openReader(FileRef ref) throws IOException {
+  public FileSKVIterator openReader(TabletFile tabletFile) throws IOException {
     Objects.requireNonNull(volumeManager,
         "Opening files is not supported at this time. It's only supported when "
             + "CompactionStrategy.gatherInformation() is called.");
     // @TODO verify the file isn't some random file in HDFS
     // @TODO ensure these files are always closed?
     FileOperations fileFactory = FileOperations.getInstance();
-    FileSystem ns = volumeManager.getVolumeByPath(ref.path()).getFileSystem();
+    FileSystem ns = volumeManager.getFileSystemByPath(tabletFile.getPath());
     return fileFactory.newReaderBuilder()
-        .forFile(ref.path().toString(), ns, ns.getConf(), context.getCryptoService())
+        .forFile(tabletFile.getPathStr(), ns, ns.getConf(), context.getCryptoService())
         .withTableConfiguration(tableConfig).seekToBeginning().build();
   }
 

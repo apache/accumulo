@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.master;
 
@@ -36,6 +38,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -47,9 +50,9 @@ import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
-import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -122,15 +125,15 @@ public class MergeStateIT extends ConfigurableMacBase {
         Text split = new Text(s);
         Mutation prevRow = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, split, pr));
         prevRow.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"),
-            new Value("127.0.0.1:1234".getBytes()));
-        ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow, new Value("junk".getBytes()));
+            new Value("127.0.0.1:1234"));
+        ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow, new Value("junk"));
         bw.addMutation(prevRow);
         pr = split;
       }
       // Add the default tablet
       Mutation defaultTablet = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, null, pr));
       defaultTablet.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"),
-          new Value("127.0.0.1:1234".getBytes()));
+          new Value("127.0.0.1:1234"));
       bw.addMutation(defaultTablet);
       bw.close();
 
@@ -140,7 +143,8 @@ public class MergeStateIT extends ConfigurableMacBase {
               MergeInfo.Operation.MERGE));
 
       // Verify the tablet state: hosted, and count
-      MetaDataStateStore metaDataStateStore = new MetaDataStateStore(context, state);
+      TabletStateStore metaDataStateStore =
+          TabletStateStore.getStoreForLevel(DataLevel.USER, context, state);
       int count = 0;
       for (TabletLocationState tss : metaDataStateStore) {
         if (tss != null)
@@ -151,7 +155,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       // Create the hole
       // Split the tablet at one end of the range
       Mutation m = new KeyExtent(tableId, new Text("t"), new Text("p")).getPrevRowUpdateMutation();
-      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
+      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
       TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
           KeyExtent.encodePrevEndRow(new Text("o")));
       update(accumuloClient, m);
@@ -175,7 +179,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       // finish the split
       KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
       m = tablet.getPrevRowUpdateMutation();
-      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
+      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
       update(accumuloClient, m);
       metaDataStateStore
           .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
@@ -186,7 +190,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
       // chop it
       m = tablet.getPrevRowUpdateMutation();
-      ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("junk".getBytes()));
+      ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("junk"));
       update(accumuloClient, m);
 
       stats = scan(state, metaDataStateStore);
@@ -206,7 +210,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     }
   }
 
-  private MergeStats scan(MockCurrentState state, MetaDataStateStore metaDataStateStore) {
+  private MergeStats scan(MockCurrentState state, TabletStateStore metaDataStateStore) {
     MergeStats stats = new MergeStats(state.mergeInfo);
     stats.getMergeInfo().setState(MergeState.WAITING_FOR_OFFLINE);
     for (TabletLocationState tss : metaDataStateStore) {

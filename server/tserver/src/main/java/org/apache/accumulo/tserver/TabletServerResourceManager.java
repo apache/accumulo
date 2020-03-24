@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver;
 
@@ -51,13 +53,16 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
+import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.scan.ScanDirectives;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
-import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters;
+import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
 import org.apache.accumulo.core.spi.scan.ScanExecutor;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
@@ -67,7 +72,6 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
 import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
 import org.apache.accumulo.server.tabletserver.MemoryManager;
@@ -169,18 +173,17 @@ public class TabletServerResourceManager {
     return result;
   }
 
-  private ExecutorService createIdlingEs(Property max, String name, long timeout,
-      TimeUnit timeUnit) {
+  private ExecutorService createIdlingEs(Property max, String name) {
     LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     int maxThreads = context.getConfiguration().getCount(max);
-    ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, timeout, timeUnit, queue,
-        new NamingThreadFactory(name));
+    ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 60, TimeUnit.SECONDS,
+        queue, new NamingThreadFactory(name));
     tp.allowCoreThreadTimeOut(true);
     return addEs(() -> context.getConfiguration().getCount(max), name, tp);
   }
 
-  private ExecutorService createEs(int max, String name) {
-    return addEs(name, Executors.newFixedThreadPool(max, new NamingThreadFactory(name)));
+  private ExecutorService createEs() {
+    return addEs("splitter", Executors.newFixedThreadPool(1, new NamingThreadFactory("splitter")));
   }
 
   private ExecutorService createEs(Property max, String name) {
@@ -247,8 +250,8 @@ public class TabletServerResourceManager {
     return createEs(maxThreadsSupplier, name, queue, OptionalInt.empty());
   }
 
-  private ExecutorService createEs(int min, int max, int timeout, String name) {
-    return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS,
+  private ExecutorService createEs(int timeout, String name) {
+    return addEs(name, new ThreadPoolExecutor(0, 1, timeout, TimeUnit.SECONDS,
         new LinkedBlockingQueue<>(), new NamingThreadFactory(name)));
   }
 
@@ -386,13 +389,13 @@ public class TabletServerResourceManager {
     // files first!
     majorCompactionThreadPool = createEs(Property.TSERV_MAJC_MAXCONCURRENT, "major compactor",
         new CompactionQueue().asBlockingQueueOfRunnable());
-    rootMajorCompactionThreadPool = createEs(0, 1, 300, "md root major compactor");
-    defaultMajorCompactionThreadPool = createEs(0, 1, 300, "md major compactor");
+    rootMajorCompactionThreadPool = createEs(300, "md root major compactor");
+    defaultMajorCompactionThreadPool = createEs(300, "md major compactor");
 
-    splitThreadPool = createEs(1, "splitter");
-    defaultSplitThreadPool = createEs(0, 1, 60, "md splitter");
+    splitThreadPool = createEs();
+    defaultSplitThreadPool = createEs(60, "md splitter");
 
-    defaultMigrationPool = createEs(0, 1, 60, "metadata tablet migration");
+    defaultMigrationPool = createEs(60, "metadata tablet migration");
     migrationPool = createEs(Property.TSERV_MIGRATE_MAXCONCURRENT, "tablet migration");
 
     // not sure if concurrent assignments can run safely... even if they could there is probably no
@@ -402,16 +405,15 @@ public class TabletServerResourceManager {
     // concurrent assignments would put more load on the metadata table at startup
     assignmentPool = createEs(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "tablet assignment");
 
-    assignMetaDataPool = createEs(0, 1, 60, "metadata tablet assignment");
+    assignMetaDataPool = createEs(60, "metadata tablet assignment");
 
     activeAssignments = new ConcurrentHashMap<>();
 
-    summaryRetrievalPool = createIdlingEs(Property.TSERV_SUMMARY_RETRIEVAL_THREADS,
-        "summary file retriever", 60, TimeUnit.SECONDS);
-    summaryRemotePool = createIdlingEs(Property.TSERV_SUMMARY_REMOTE_THREADS, "summary remote", 60,
-        TimeUnit.SECONDS);
-    summaryParitionPool = createIdlingEs(Property.TSERV_SUMMARY_PARTITION_THREADS,
-        "summary partition", 60, TimeUnit.SECONDS);
+    summaryRetrievalPool =
+        createIdlingEs(Property.TSERV_SUMMARY_RETRIEVAL_THREADS, "summary file retriever");
+    summaryRemotePool = createIdlingEs(Property.TSERV_SUMMARY_REMOTE_THREADS, "summary remote");
+    summaryParitionPool =
+        createIdlingEs(Property.TSERV_SUMMARY_PARTITION_THREADS, "summary partition");
 
     Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors();
     Map<String,Queue<?>> scanExecQueues = new HashMap<>();
@@ -423,8 +425,7 @@ public class TabletServerResourceManager {
     fileLenCache =
         CacheBuilder.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
-    fileManager = new FileManager(context, context.getVolumeManager(), maxOpenFiles, fileLenCache,
-        _dCache, _iCache);
+    fileManager = new FileManager(context, context.getVolumeManager(), maxOpenFiles, fileLenCache);
 
     memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT,
         MemoryManager.class, new LargestFirstMemoryManager());
@@ -766,11 +767,13 @@ public class TabletServerResourceManager {
       lastReportedCommitTime = System.currentTimeMillis();
     }
 
-    public synchronized ScanFileManager newScanFileManager() {
+    public synchronized ScanFileManager newScanFileManager(ScanDirectives scanDirectives) {
       if (closed) {
         throw new IllegalStateException("closed");
       }
-      return fileManager.newScanFileManager(extent);
+
+      return fileManager.newScanFileManager(extent,
+          new ScanCacheProvider(tableConf, scanDirectives, _iCache, _dCache));
     }
 
     // END methods that Tablets call to manage their set of open map files
@@ -821,7 +824,7 @@ public class TabletServerResourceManager {
     // BEGIN methods that Tablets call to make decisions about major compaction
     // when too many files are open, we may want tablets to compact down
     // to one map file
-    public boolean needsMajorCompaction(SortedMap<FileRef,DataFileValue> tabletFiles,
+    public boolean needsMajorCompaction(SortedMap<StoredTabletFile,DataFileValue> tabletFiles,
         MajorCompactionReason reason) {
       if (closed) {
         return false;// throw new IOException("closed");
@@ -922,17 +925,27 @@ public class TabletServerResourceManager {
     }
   }
 
+  @SuppressWarnings("deprecation")
+  private static abstract class DispatchParamsImpl implements DispatchParameters,
+      org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters {
+
+  }
+
   public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession scanInfo,
       Runnable task) {
 
     task = ScanSession.wrap(scanInfo, task);
 
     if (tablet.isRootTablet()) {
+      // TODO make meta dispatch??
+      scanInfo.scanParams.setScanDirectives(ScanDirectives.builder().build());
       task.run();
     } else if (tablet.isMeta()) {
+      // TODO make meta dispatch??
+      scanInfo.scanParams.setScanDirectives(ScanDirectives.builder().build());
       scanExecutors.get("meta").execute(task);
     } else {
-      String scanExecutorName = dispatcher.dispatch(new DispatchParmaters() {
+      DispatchParameters params = new DispatchParamsImpl() {
         @Override
         public ScanInfo getScanInfo() {
           return scanInfo;
@@ -947,14 +960,18 @@ public class TabletServerResourceManager {
         public ServiceEnvironment getServiceEnv() {
           return new ServiceEnvironmentImpl(context);
         }
-      });
-      ExecutorService executor = scanExecutors.get(scanExecutorName);
+      };
+
+      ScanDirectives prefs = dispatcher.dispatch(params);
+      scanInfo.scanParams.setScanDirectives(prefs);
+
+      ExecutorService executor = scanExecutors.get(prefs.getExecutorName());
       if (executor == null) {
         log.warn(
             "For table id {}, {} dispatched to non-existant executor {} Using default executor.",
-            tablet.getTableId(), dispatcher.getClass().getName(), scanExecutorName);
+            tablet.getTableId(), dispatcher.getClass().getName(), prefs.getExecutorName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
-      } else if ("meta".equals(scanExecutorName)) {
+      } else if ("meta".equals(prefs.getExecutorName())) {
         log.warn("For table id {}, {} dispatched to meta executor. Using default executor.",
             tablet.getTableId(), dispatcher.getClass().getName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);

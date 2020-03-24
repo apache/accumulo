@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.tablet;
 
@@ -31,11 +33,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -50,9 +53,10 @@ public class MinorCompactor extends Compactor {
 
   private static final Logger log = LoggerFactory.getLogger(MinorCompactor.class);
 
-  private static final Map<FileRef,DataFileValue> EMPTY_MAP = Collections.emptyMap();
+  private static final Map<StoredTabletFile,DataFileValue> EMPTY_MAP = Collections.emptyMap();
 
-  private static Map<FileRef,DataFileValue> toFileMap(FileRef mergeFile, DataFileValue dfv) {
+  private static Map<StoredTabletFile,DataFileValue> toFileMap(StoredTabletFile mergeFile,
+      DataFileValue dfv) {
     if (mergeFile == null)
       return EMPTY_MAP;
 
@@ -62,8 +66,8 @@ public class MinorCompactor extends Compactor {
   private final TabletServer tabletServer;
 
   public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
-      FileRef mergeFile, DataFileValue dfv, FileRef outputFile, MinorCompactionReason mincReason,
-      TableConfiguration tableConfig) {
+      StoredTabletFile mergeFile, DataFileValue dfv, TabletFile outputFile,
+      MinorCompactionReason mincReason, TableConfiguration tableConfig) {
     super(tabletServer.getContext(), tablet, toFileMap(mergeFile, dfv), imm, outputFile, true,
         new CompactionEnv() {
 
@@ -109,7 +113,7 @@ public class MinorCompactor extends Compactor {
   @Override
   public CompactionStats call() {
     final String outputFileName = getOutputFile();
-    log.debug("Begin minor compaction {} {}", outputFileName, getExtent());
+    log.trace("Begin minor compaction {} {}", outputFileName, getExtent());
 
     // output to new MapFile with a temporary name
     int sleepTime = 100;

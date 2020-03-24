@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master;
 
@@ -50,11 +52,13 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -70,7 +74,6 @@ import org.apache.accumulo.master.state.MergeStats;
 import org.apache.accumulo.master.state.TableCounts;
 import org.apache.accumulo.master.state.TableStats;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -97,8 +100,6 @@ import com.google.common.collect.Iterators;
 
 abstract class TabletGroupWatcher extends Daemon {
   // Constants used to make sure assignment logging isn't excessive in quantity or size
-  private static final String ASSIGNMENT_BUFFER_SEPARATOR = ", ";
-  private static final int ASSIGNMENT_BUFFER_MAX_LENGTH = 4096;
 
   private final Master master;
   private final TabletStateStore store;
@@ -192,17 +193,9 @@ abstract class TabletGroupWatcher extends Daemon {
             continue;
           }
 
-          // this can get spammy during merges
-          if (currentMerges.isEmpty()) {
-            Master.log.debug("{} location State: {}", store.name(), tls);
-          }
-
           // ignore entries for tables that do not exist in zookeeper
           if (master.getTableManager().getTableState(tls.extent.getTableId()) == null)
             continue;
-
-          if (Master.log.isTraceEnabled())
-            Master.log.trace("{} walogs {}", tls, tls.walogs.size());
 
           // Don't overwhelm the tablet servers with work
           if (unassigned.size() + unloaded
@@ -232,9 +225,10 @@ abstract class TabletGroupWatcher extends Daemon {
           TabletGoalState goal = this.master.getGoalState(tls, mergeStats.getMergeInfo());
           TServerInstance server = tls.getServer();
           TabletState state = tls.getState(currentTServers.keySet());
-          if (Master.log.isTraceEnabled()) {
-            Master.log.trace("Goal state {} current {} for {}", goal, state, tls.extent);
-          }
+
+          TabletLogger.missassigned(tls.extent, goal.toString(), state.toString(), tls.future,
+              tls.current, tls.walogs.size());
+
           stats.update(tableId, state);
           mergeStats.update(tls.extent, state, tls.chopped, !tls.walogs.isEmpty());
           sendChopRequest(mergeStats.getMergeInfo(), state, tls);
@@ -608,11 +602,11 @@ abstract class TabletGroupWatcher extends Daemon {
       TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-      Set<FileRef> datafiles = new TreeSet<>();
+      Set<String> datafiles = new TreeSet<>();
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-          datafiles.add(new FileRef(this.master.fs, key));
+          datafiles.add(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
           if (datafiles.size() > 1000) {
             MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
             datafiles.clear();
@@ -625,7 +619,7 @@ abstract class TabletGroupWatcher extends Daemon {
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           String path = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(extent.getTableId(),
               entry.getValue().toString());
-          datafiles.add(new FileRef(path));
+          datafiles.add(path);
           if (datafiles.size() > 1000) {
             MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
             datafiles.clear();
@@ -712,8 +706,7 @@ abstract class TabletGroupWatcher extends Daemon {
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           String uri =
               GcVolumeUtil.getDeleteTabletOnAllVolumesUri(range.getTableId(), value.toString());
-          bw.addMutation(
-              ServerAmpleImpl.createDeleteMutation(master.getContext(), range.getTableId(), uri));
+          bw.addMutation(ServerAmpleImpl.createDeleteMutation(uri));
         }
       }
 
@@ -852,7 +845,6 @@ abstract class TabletGroupWatcher extends Daemon {
 
     if (!currentTServers.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
-      final StringBuilder builder = new StringBuilder(64);
       this.master.tabletBalancer.getAssignments(Collections.unmodifiableSortedMap(currentTServers),
           Collections.unmodifiableMap(unassigned), assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
@@ -865,19 +857,6 @@ abstract class TabletGroupWatcher extends Daemon {
               continue;
             }
 
-            if (builder.length() > 0) {
-              builder.append(ASSIGNMENT_BUFFER_SEPARATOR);
-            }
-
-            builder.append(assignment);
-
-            // Don't let the log message get too gigantic
-            if (builder.length() > ASSIGNMENT_BUFFER_MAX_LENGTH) {
-              builder.append("]");
-              Master.log.debug("{} assigning tablets: [{}", store.name(), builder);
-              builder.setLength(0);
-            }
-
             assignments.add(new Assignment(assignment.getKey(), assignment.getValue()));
           }
         } else {
@@ -885,12 +864,6 @@ abstract class TabletGroupWatcher extends Daemon {
               "{} load balancer assigning tablet that was not nominated for assignment {}",
               store.name(), assignment.getKey());
         }
-      }
-
-      if (builder.length() > 0) {
-        // Make sure to log any leftover assignments
-        builder.append("]");
-        Master.log.debug("{} assigning tablets: [{}", store.name(), builder);
       }
 
       if (!unassigned.isEmpty() && assignedOut.isEmpty())

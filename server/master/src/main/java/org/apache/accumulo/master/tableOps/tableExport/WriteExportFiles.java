@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.tableExport;
 
@@ -48,6 +50,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
@@ -126,7 +129,7 @@ class WriteExportFiles extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     try {
-      exportTable(master.getFileSystem(), master.getContext(), tableInfo.tableName,
+      exportTable(master.getVolumeManager(), master.getContext(), tableInfo.tableName,
           tableInfo.tableID, tableInfo.exportDir);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonical(),
@@ -149,10 +152,10 @@ class WriteExportFiles extends MasterRepo {
       TableId tableID, String exportDir) throws Exception {
 
     fs.mkdirs(new Path(exportDir));
-    Path exportMetaFilePath = fs.getVolumeByPath(new Path(exportDir)).getFileSystem()
+    Path exportMetaFilePath = fs.getFileSystemByPath(new Path(exportDir))
         .makeQualified(new Path(exportDir, Constants.EXPORT_FILE));
 
-    FSDataOutputStream fileOut = fs.create(exportMetaFilePath, false);
+    FSDataOutputStream fileOut = fs.create(exportMetaFilePath);
     ZipOutputStream zipOut = new ZipOutputStream(fileOut);
     BufferedOutputStream bufOut = new BufferedOutputStream(zipOut);
     DataOutputStream dataOut = new DataOutputStream(bufOut);
@@ -191,7 +194,7 @@ class WriteExportFiles extends MasterRepo {
   private static void createDistcpFile(VolumeManager fs, String exportDir, Path exportMetaFilePath,
       Map<String,String> uniqueFiles) throws IOException {
     BufferedWriter distcpOut = new BufferedWriter(
-        new OutputStreamWriter(fs.create(new Path(exportDir, "distcp.txt"), false), UTF_8));
+        new OutputStreamWriter(fs.create(new Path(exportDir, "distcp.txt")), UTF_8));
 
     try {
       for (String file : uniqueFiles.values()) {
@@ -229,7 +232,7 @@ class WriteExportFiles extends MasterRepo {
       entry.getValue().write(dataOut);
 
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        String path = fs.getFullPath(entry.getKey()).toString();
+        String path = TabletFileUtil.validate(entry.getKey().getColumnQualifierData().toString());
         String[] tokens = path.split("/");
         if (tokens.length < 1) {
           throw new RuntimeException("Illegal path " + path);

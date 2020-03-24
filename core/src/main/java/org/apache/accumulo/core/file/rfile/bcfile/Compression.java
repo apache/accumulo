@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
@@ -524,7 +526,7 @@ public final class Compression {
             // Somebody returns the compressor to CodecPool but is still using it.
             log.warn("Compressor obtained from CodecPool already finished()");
           } else {
-            log.debug("Got a compressor: {}", compressor.hashCode());
+            log.trace("Got a compressor: {}", compressor.hashCode());
           }
           // The following statement is necessary to get around bugs in 0.18 where a compressor is
           // referenced after it's
@@ -538,7 +540,7 @@ public final class Compression {
 
     public void returnCompressor(final Compressor compressor) {
       if (compressor != null) {
-        log.debug("Return a compressor: {}", compressor.hashCode());
+        log.trace("Return a compressor: {}", compressor.hashCode());
         CodecPool.returnCompressor(compressor);
       }
     }
@@ -552,7 +554,7 @@ public final class Compression {
             // Somebody returns the decompressor to CodecPool but is still using it.
             log.warn("Decompressor obtained from CodecPool already finished()");
           } else {
-            log.debug("Got a decompressor: {}", decompressor.hashCode());
+            log.trace("Got a decompressor: {}", decompressor.hashCode());
           }
           // The following statement is necessary to get around bugs in 0.18 where a decompressor is
           // referenced after
@@ -569,7 +571,7 @@ public final class Compression {
      */
     public void returnDecompressor(final Decompressor decompressor) {
       if (decompressor != null) {
-        log.debug("Returned a decompressor: {}", decompressor.hashCode());
+        log.trace("Returned a decompressor: {}", decompressor.hashCode());
         CodecPool.returnDecompressor(decompressor);
       }
     }

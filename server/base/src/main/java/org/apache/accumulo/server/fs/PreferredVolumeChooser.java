@@ -1,22 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.fs;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,7 +48,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
       getCustomPropertySuffix(ChooserScope.DEFAULT);
 
   @Override
-  public String choose(VolumeChooserEnvironment env, String[] options)
+  public String choose(VolumeChooserEnvironment env, Set<String> options)
       throws VolumeChooserException {
     log.trace("{}.choose", getClass().getSimpleName());
     // Randomly choose the volume from the preferred volumes
@@ -54,22 +57,22 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     return choice;
   }
 
-  // visible (not private) for testing
-  String[] getPreferredVolumes(VolumeChooserEnvironment env, String[] options) {
-    switch (env.getScope()) {
-      case INIT:
-        // TODO should be possible to read from SiteConfiguration during init
-        log.warn("Not possible to determine preferred volumes at '{}' scope. Using all volumes.",
-            ChooserScope.INIT);
-        return options;
-      case TABLE:
-        return getPreferredVolumesForTable(env, options);
-      default:
-        return getPreferredVolumesForScope(env, options);
-    }
+  @Override
+  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options)
+      throws VolumeChooserException {
+    return getPreferredVolumes(env, options);
   }
 
-  private String[] getPreferredVolumesForTable(VolumeChooserEnvironment env, String[] options) {
+  // visible (not private) for testing
+  Set<String> getPreferredVolumes(VolumeChooserEnvironment env, Set<String> options) {
+    if (env.getScope() == ChooserScope.TABLE) {
+      return getPreferredVolumesForTable(env, options);
+    }
+    return getPreferredVolumesForScope(env, options);
+  }
+
+  private Set<String> getPreferredVolumesForTable(VolumeChooserEnvironment env,
+      Set<String> options) {
     log.trace("Looking up property {} + for Table id: {}", TABLE_CUSTOM_SUFFIX, env.getTableId());
 
     String preferredVolumes =
@@ -85,15 +88,15 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     // throw an error if volumes not specified or empty
     if (preferredVolumes == null || preferredVolumes.isEmpty()) {
       String msg = "Property " + TABLE_CUSTOM_SUFFIX + " or " + DEFAULT_SCOPED_PREFERRED_VOLUMES
-          + " must be a subset of " + Arrays.toString(options) + " to use the "
-          + getClass().getSimpleName();
+          + " must be a subset of " + options + " to use the " + getClass().getSimpleName();
       throw new VolumeChooserException(msg);
     }
 
     return parsePreferred(TABLE_CUSTOM_SUFFIX, preferredVolumes, options);
   }
 
-  private String[] getPreferredVolumesForScope(VolumeChooserEnvironment env, String[] options) {
+  private Set<String> getPreferredVolumesForScope(VolumeChooserEnvironment env,
+      Set<String> options) {
     ChooserScope scope = env.getScope();
     String property = getCustomPropertySuffix(scope);
     log.trace("Looking up property {} for scope: {}", property, scope);
@@ -111,8 +114,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
       // volumes
       if (preferredVolumes == null || preferredVolumes.isEmpty()) {
         String msg = "Property " + property + " or " + DEFAULT_SCOPED_PREFERRED_VOLUMES
-            + " must be a subset of " + Arrays.toString(options) + " to use the "
-            + getClass().getSimpleName();
+            + " must be a subset of " + options + " to use the " + getClass().getSimpleName();
         throw new VolumeChooserException(msg);
       }
 
@@ -122,7 +124,8 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     return parsePreferred(property, preferredVolumes, options);
   }
 
-  private String[] parsePreferred(String property, String preferredVolumes, String[] options) {
+  private Set<String> parsePreferred(String property, String preferredVolumes,
+      Set<String> options) {
     log.trace("Found {} = {}", property, preferredVolumes);
 
     Set<String> preferred =
@@ -134,12 +137,11 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     }
     // preferred volumes should also exist in the original options (typically, from
     // instance.volumes)
-    Set<String> optionsList = Arrays.stream(options).collect(Collectors.toSet());
-    if (!preferred.stream().allMatch(optionsList::contains)) {
-      String msg = "Some volumes in " + preferred + " are not valid volumes from " + optionsList;
+    if (Collections.disjoint(preferred, options)) {
+      String msg = "Some volumes in " + preferred + " are not valid volumes from " + options;
       throw new VolumeChooserException(msg);
     }
 
-    return preferred.toArray(new String[preferred.size()]);
+    return preferred;
   }
 }

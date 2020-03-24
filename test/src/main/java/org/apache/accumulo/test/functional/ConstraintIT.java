@@ -1,22 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.HashMap;
@@ -93,7 +94,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
     BatchWriter bw = client.createBatchWriter(tableName);
 
     Mutation mut1 = new Mutation(new Text("r1"));
-    mut1.put(new Text("cf1"), new Text("cq1"), new Value("123".getBytes(UTF_8)));
+    mut1.put("cf1", "cq1", "123");
 
     bw.addMutation(mut1);
 
@@ -104,7 +105,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
     // create a mutation with a non numeric value
     Mutation mut2 = new Mutation(new Text("r1"));
-    mut2.put(new Text("cf1"), new Text("cq1"), new Value("123a".getBytes(UTF_8)));
+    mut2.put("cf1", "cq1", "123a");
 
     bw.addMutation(mut2);
 
@@ -149,7 +150,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
-          || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("123"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -175,7 +176,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
-          || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("123a"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -194,7 +195,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       bw = client.createBatchWriter(tableName);
 
       Mutation mut3 = new Mutation(new Text("r1"));
-      mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
+      mut3.put("cf1", "cq1", "foo");
 
       bw.addMutation(mut3);
 
@@ -219,7 +220,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
-          || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("123a"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -245,7 +246,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
-          || !entry.getValue().equals(new Value("foo".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("foo"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -259,7 +260,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
   private Mutation newMut(String row, String cf, String cq, String val) {
     Mutation mut1 = new Mutation(new Text(row));
-    mut1.put(new Text(cf), new Text(cq), new Value(val.getBytes(UTF_8)));
+    mut1.put(cf, cq, val);
     return mut1;
   }
 
@@ -335,7 +336,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
-          || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("123"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -344,7 +345,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq4"))
-          || !entry.getValue().equals(new Value("789".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("789"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
