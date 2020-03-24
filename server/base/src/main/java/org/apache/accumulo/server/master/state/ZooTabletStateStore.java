@@ -103,8 +103,7 @@ class ZooTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
-      throws DistributedStoreException {
+  public void setFutureLocations(Collection<Assignment> assignments) {
     if (assignments.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     Assignment assignment = assignments.iterator().next();
@@ -132,7 +131,7 @@ class ZooTabletStateStore implements TabletStateStore {
 
   @Override
   public void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
+      Map<TServerInstance,List<Path>> logsForDeadServers) {
     if (tablets.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     TabletLocationState tls = tablets.iterator().next();
@@ -161,8 +160,7 @@ class ZooTabletStateStore implements TabletStateStore {
 
   @Override
   public void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
-      throws DistributedStoreException {
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp) {
     // No support for suspending root tablet.
     unassign(tablets, logsForDeadServers);
   }

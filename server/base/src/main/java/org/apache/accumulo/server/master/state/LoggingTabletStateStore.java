@@ -48,8 +48,7 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
-      throws DistributedStoreException {
+  public void setFutureLocations(Collection<Assignment> assignments) {
     wrapped.setFutureLocations(assignments);
     assignments.forEach(assignment -> TabletLogger.assigned(assignment.tablet, assignment.server));
   }
@@ -62,7 +61,7 @@ class LoggingTabletStateStore implements TabletStateStore {
 
   @Override
   public void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
+      Map<TServerInstance,List<Path>> logsForDeadServers) {
     wrapped.unassign(tablets, logsForDeadServers);
 
     if (logsForDeadServers == null)
@@ -75,8 +74,7 @@ class LoggingTabletStateStore implements TabletStateStore {
 
   @Override
   public void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
-      throws DistributedStoreException {
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp) {
     wrapped.suspend(tablets, logsForDeadServers, suspensionTimestamp);
 
     if (logsForDeadServers == null)
@@ -89,7 +87,7 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException {
+  public void unsuspend(Collection<TabletLocationState> tablets) {
     wrapped.unsuspend(tablets);
     for (TabletLocationState tls : tablets) {
       TabletLogger.unsuspended(tls.extent);

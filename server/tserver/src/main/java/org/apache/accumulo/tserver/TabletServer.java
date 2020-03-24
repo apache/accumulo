@@ -2364,8 +2364,6 @@ public class TabletServer extends AbstractServer {
           TabletStateStore.suspend(getContext(), tls, null,
               requestTimeSkew + MILLISECONDS.convert(System.nanoTime(), NANOSECONDS));
         }
-      } catch (DistributedStoreException ex) {
-        log.warn("Unable to update storage", ex);
       } catch (KeeperException e) {
         log.warn("Unable determine our zookeeper session information", e);
       } catch (InterruptedException e) {

@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -220,6 +221,10 @@ public interface Ample {
     public TabletMutator deleteBulkFile(Ample.FileMeta bulkref);
 
     public TabletMutator putChopped();
+
+    public TabletMutator putSuspension(TServer tserver, long suspensionTime);
+
+    public TabletMutator deleteSuspension();
 
     /**
      * This method persist (or queues for persisting) previous put and deletes against this object.
