@@ -18,6 +18,8 @@
         */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.conf.Property.TSERV_MAX_WRITETHREADS;
+
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +36,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static org.apache.accumulo.core.conf.Property.TSERV_MAX_WRITETHREADS;
 
 public class WriteThreadsIT extends AccumuloClusterHarness {
 
@@ -55,8 +56,8 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
 
   public void write() throws Exception {
     // each thread create a batch writer, add a mutation, and then flush.
-    int threads = 100;
-    int max = 100;
+    int threads = 1000;
+    int max = 1000;
 
     // Reads and writes from Accumulo
     BatchWriterConfig config = new BatchWriterConfig();
@@ -77,8 +78,6 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
 
         Runnable r = () -> {
           try (BatchWriter writer = client.createBatchWriter(tableName)) {
-
-            client.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
 
             log.info("START OF RUNNABLE");
 
