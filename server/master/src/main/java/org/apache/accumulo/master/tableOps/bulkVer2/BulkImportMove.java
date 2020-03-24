@@ -129,14 +129,14 @@ class BulkImportMove extends MasterRepo {
           }
 
           log.debug(
-              "Ingoring rename exception because destination already exists. {} orig: {} new: {}",
+              "Ignoring rename exception because destination already exists. {} orig: {} new: {}",
               fmtTid, originalPath, newPath, e);
           success = true;
         }
 
         if (!success && fs.exists(newPath) && !fs.exists(originalPath)) {
           log.debug(
-              "Ingoring rename failure because destination already exists. {} orig: {} new: {}",
+              "Ignoring rename failure because destination already exists. {} orig: {} new: {}",
               fmtTid, originalPath, newPath);
           success = true;
         }
