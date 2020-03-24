@@ -30,6 +30,7 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
+import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -62,7 +63,7 @@ public class ServerContext extends ClientContext {
   }
 
   private ServerContext(ServerInfo info) {
-    super(info, info.getSiteConfiguration());
+    super(SingletonReservation.noop(), info, info.getSiteConfiguration());
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
   }
