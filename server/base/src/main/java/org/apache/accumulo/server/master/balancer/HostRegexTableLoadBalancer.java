@@ -329,15 +329,13 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   public void init(ServerContext context) {
     super.init(context);
 
-    this.hrtlbConf =
-        context.getServerConfFactory().getSystemConfiguration().newDeriver(HrtlbConf::new);
+    this.hrtlbConf = context.getConfiguration().newDeriver(HrtlbConf::new);
 
     tablesRegExCache =
         CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build(new CacheLoader<>() {
           @Override
           public Deriver<Map<String,String>> load(TableId key) throws Exception {
-            return context.getServerConfFactory().getTableConfiguration(key)
-                .newDeriver(conf -> getRegexes(conf));
+            return context.getTableConfiguration(key).newDeriver(conf -> getRegexes(conf));
           }
         });
 

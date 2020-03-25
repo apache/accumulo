@@ -124,7 +124,7 @@ public class ReplicationUtil {
         continue;
       }
 
-      TableConfiguration tableConf = context.getServerConfFactory().getTableConfiguration(localId);
+      TableConfiguration tableConf = context.getTableConfiguration(localId);
       if (tableConf == null) {
         log.trace("Could not get configuration for table {} (it no longer exists)", table);
         continue;

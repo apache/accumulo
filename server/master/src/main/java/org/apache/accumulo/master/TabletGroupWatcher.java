@@ -211,8 +211,7 @@ abstract class TabletGroupWatcher extends Daemon {
             eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
           }
           TableId tableId = tls.extent.getTableId();
-          TableConfiguration tableConf =
-              this.master.getConfigurationFactory().getTableConfiguration(tableId);
+          TableConfiguration tableConf = this.master.getContext().getTableConfiguration(tableId);
 
           MergeStats mergeStats = mergeStatsCache.get(tableId);
           if (mergeStats == null) {

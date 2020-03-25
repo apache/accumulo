@@ -416,13 +416,12 @@ public class Initialize implements KeywordExecutable {
       // If they did not, fall back to the credentials present in accumulo.properties that the
       // servers will use themselves.
       try {
-        final var siteConf = context.getServerConfFactory().getSiteConfiguration();
-        if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        if (siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
           final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
           // We don't have any valid creds to talk to HDFS
           if (!ugi.hasKerberosCredentials()) {
-            final String accumuloKeytab = siteConf.get(Property.GENERAL_KERBEROS_KEYTAB),
-                accumuloPrincipal = siteConf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
+            final String accumuloKeytab = siteConfig.get(Property.GENERAL_KERBEROS_KEYTAB),
+                accumuloPrincipal = siteConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL);
 
             // Fail if the site configuration doesn't contain appropriate credentials to login as
             // servers

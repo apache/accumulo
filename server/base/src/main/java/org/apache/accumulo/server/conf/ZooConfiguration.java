@@ -46,8 +46,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
   private final Map<String,String> fixedProps = Collections.synchronizedMap(new HashMap<>());
   private final String propPathPrefix;
 
-  protected ZooConfiguration(ServerContext context, ZooCache propCache,
-      AccumuloConfiguration parent) {
+  public ZooConfiguration(ServerContext context, ZooCache propCache, AccumuloConfiguration parent) {
     this.context = context;
     this.propCache = propCache;
     this.parent = parent;

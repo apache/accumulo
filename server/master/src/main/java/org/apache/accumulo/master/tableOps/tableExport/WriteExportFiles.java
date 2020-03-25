@@ -262,7 +262,7 @@ class WriteExportFiles extends MasterRepo {
     Map<String,String> siteConfig = context.instanceOperations().getSiteConfiguration();
     Map<String,String> systemConfig = context.instanceOperations().getSystemConfiguration();
 
-    TableConfiguration tableConfig = context.getServerConfFactory().getTableConfiguration(tableID);
+    TableConfiguration tableConfig = context.getTableConfiguration(tableID);
 
     OutputStreamWriter osw = new OutputStreamWriter(dataOut, UTF_8);
 

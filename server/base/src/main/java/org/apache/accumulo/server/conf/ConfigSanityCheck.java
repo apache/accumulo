@@ -29,7 +29,7 @@ public class ConfigSanityCheck implements KeywordExecutable {
 
   public static void main(String[] args) {
     try (var context = new ServerContext(SiteConfiguration.auto())) {
-      context.getServerConfFactory().getSystemConfiguration();
+      context.getConfiguration();
     }
   }
 

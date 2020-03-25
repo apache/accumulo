@@ -317,8 +317,7 @@ public class FileManager {
         // log.debug("Opening "+file + " path " + path);
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(
-                context.getServerConfFactory().getTableConfiguration(tablet.getTableId()))
+            .withTableConfiguration(context.getTableConfiguration(tablet.getTableId()))
             .withCacheProvider(cacheProvider).withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
@@ -480,7 +479,7 @@ public class FileManager {
       this.tablet = tablet;
       this.cacheProvider = cacheProvider;
 
-      continueOnFailure = context.getServerConfFactory().getTableConfiguration(tablet.getTableId())
+      continueOnFailure = context.getTableConfiguration(tablet.getTableId())
           .getBoolean(Property.TABLE_FAILURES_IGNORE);
 
       if (tablet.isMeta()) {
