@@ -47,11 +47,13 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
@@ -66,6 +68,7 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -198,11 +201,11 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
     MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, context, zl);
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
-    Writer writer = MetadataTableUtil.getMetadataTable(context);
     Assignment assignment = new Assignment(high, instance);
-    Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-    assignment.server.putFutureLocation(m);
-    writer.update(m);
+
+    TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
+    tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
+    tabletMutator.mutate();
 
     if (steps >= 1) {
       Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, extent);

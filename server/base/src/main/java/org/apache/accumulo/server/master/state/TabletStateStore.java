@@ -81,13 +81,13 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
   void unsuspend(Collection<TabletLocationState> tablets);
 
   public static void unassign(ServerContext context, TabletLocationState tls,
-      Map<TServerInstance,List<Path>> logsForDeadServers){
+      Map<TServerInstance,List<Path>> logsForDeadServers) {
     getStoreForTablet(tls.extent, context).unassign(Collections.singletonList(tls),
         logsForDeadServers);
   }
 
   public static void suspend(ServerContext context, TabletLocationState tls,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp){
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp) {
     getStoreForTablet(tls.extent, context).suspend(Collections.singletonList(tls),
         logsForDeadServers, suspensionTimestamp);
   }
