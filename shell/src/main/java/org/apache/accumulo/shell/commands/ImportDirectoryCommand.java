@@ -50,33 +50,40 @@ public class ImportDirectoryCommand extends Command {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     String[] args = cl.getArgs();
-    String dir = args[0];
     boolean setTime;
+    String dir = args.length > 0 ? args[0] : "";
+    int status = 0;
 
-    // new bulk import only takes 2 args
-    if (args.length == 2) {
-      setTime = Boolean.parseBoolean(cl.getArgs()[1]);
-      shellState.getAccumuloClient().tableOperations().importDirectory(dir).to(tableName)
-          .tableTime(setTime).load();
-    } else if (args.length == 3) {
-      // warn using deprecated bulk import
-      Shell.log.warn(
-          "Deprecated since 2.0.0. New bulk import technique does not take a failure directory "
-              + "as an argument.");
-      String failureDir = args[1];
-      setTime = Boolean.parseBoolean(cl.getArgs()[2]);
-      shellState.getAccumuloClient().tableOperations().importDirectory(tableName, dir, failureDir,
-          setTime);
-      return 0;
-    } else {
-      shellState.printException(
-          new IllegalArgumentException(String.format("Expected 2 or 3 arguments. There %s %d.",
-              args.length == 1 ? "was" : "were", args.length)));
-      printHelp(shellState);
-      return 1;
+    switch (args.length) {
+      case 2: {
+        // new bulk import only takes 2 args
+        setTime = Boolean.parseBoolean(cl.getArgs()[1]);
+        shellState.getAccumuloClient().tableOperations().importDirectory(dir).to(tableName)
+            .tableTime(setTime).load();
+        break;
+      }
+      case 3: {
+        // warn using deprecated bulk import
+        Shell.log.warn(
+            "Deprecated since 2.0.0. New bulk import technique does not take a failure directory "
+                + "as an argument.");
+        String failureDir = args[1];
+        setTime = Boolean.parseBoolean(cl.getArgs()[2]);
+        shellState.getAccumuloClient().tableOperations().importDirectory(tableName, dir, failureDir,
+            setTime);
+        break;
+      }
+      default: {
+        shellState.printException(
+            new IllegalArgumentException(String.format("Expected 2 or 3 arguments. There %s %d.",
+                args.length == 1 ? "was" : "were", args.length)));
+        printHelp(shellState);
+        status = 1;
+        break;
+      }
     }
 
-    return 0;
+    return status;
   }
 
   @Override
