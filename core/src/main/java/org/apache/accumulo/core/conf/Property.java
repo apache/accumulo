@@ -248,8 +248,12 @@ public enum Property {
       "The number of threads to use when coordinating a bulk import."),
   MASTER_BULK_TIMEOUT("master.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request"),
+  MASTER_RENAME_THREADS("master.rename.threadpool.size", "20", PropertyType.COUNT,
+      "The number of threads to use when renaming user files during table import or bulk ingest."),
+  @Deprecated
+  @ReplacedBy(property = MASTER_RENAME_THREADS)
   MASTER_BULK_RENAME_THREADS("master.bulk.rename.threadpool.size", "20", PropertyType.COUNT,
-      "The number of threads to use when moving user files to bulk ingest "
+      "This property is deprecated since 2.1.0. The number of threads to use when moving user files to bulk ingest "
           + "directories under accumulo control"),
   MASTER_BULK_TSERVER_REGEX("master.bulk.tserver.regex", "", PropertyType.STRING,
       "Regular expression that defines the set of Tablet Servers that will perform bulk imports"),
