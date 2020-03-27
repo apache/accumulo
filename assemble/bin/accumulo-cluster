@@ -100,45 +100,29 @@ function get_ip() {
   echo "$ip_addr"
 }
 
-function set_last_instance_id() {
-  if [[ "$service" == "tserver" ]]; then
-    last_instance_id=${NUM_TSERVERS:-1}
-  else
-    last_instance_id=1
-  fi
-}
-
-function set_service_instance_if_needed() {
-  if [[ "$service" == "tserver" && ${NUM_TSERVERS:-1} > 1 ]]; then
-    export ACCUMULO_SERVICE_INSTANCE=$inst_id
-    service_instance_cmd="export ACCUMULO_SERVICE_INSTANCE=${inst_id};"
-  else
-    export ACCUMULO_SERVICE_INSTANCE=
-    service_instance_cmd=
-  fi
-}
-
 function control_service() {
-  set_last_instance_id
+  host="$1"
+  service="$2"
+  control_cmd="$3"
+
+  local last_instance_id; last_instance_id=1
+  [[ "$service" == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1}
 
   for (( inst_id=1; inst_id<=last_instance_id; inst_id++ ))
   do
-    set_service_instance_if_needed
+    ACCUMULO_SERVICE_INSTANCE=""
+    [[ "$service" == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
 
-    if [[ $host == localhost || $host = "$(hostname -s)" || $host = "$(hostname -f)" || $host = $(get_ip) ]] ; then
-      "${bin}/accumulo-service" "$service" "$control_cmd"
+    if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || $host == $(get_ip) ]] ; then
+      ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd"
     else
-      $SSH "$host" "bash -c '${service_instance_cmd} ${bin}/accumulo-service \"$service\" \"$control_cmd\"'"
+      $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\"'"
     fi
   done
 }
 
 function start_service() {
-  host="$1"
-  service="$2"
-  control_cmd="start"
-
-  control_service
+  control_service "$@" start
 }
 
 function start_tservers() {
@@ -218,11 +202,7 @@ function start_here() {
 }
 
 function end_service() {
-  host="$1"
-  service="$2"
-  control_cmd="$3"
-
-  control_service
+  control_service "$@"
 }
 
 function stop_service() {
