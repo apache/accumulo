@@ -71,8 +71,8 @@ function start_service() {
     "${bin}/accumulo" org.apache.accumulo.master.state.SetGoalState NORMAL
   fi
 
-  outfile="${ACCUMULO_LOG_DIR}/${service}_${host}.out"
-  errfile="${ACCUMULO_LOG_DIR}/${service}_${host}.err"
+  outfile="${ACCUMULO_LOG_DIR}/${service}${ACCUMULO_SERVICE_INSTANCE}_${host}.out"
+  errfile="${ACCUMULO_LOG_DIR}/${service}${ACCUMULO_SERVICE_INSTANCE}_${host}.err"
   rotate_log "$outfile"
   rotate_log "$errfile"
 
@@ -137,7 +137,7 @@ function main() {
     host=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
   fi 
   service="$1"
-  pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}.pid"
+  pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${ACCUMULO_SERVICE_INSTANCE}.pid"
   case "$service" in
     gc|master|monitor|tserver|tracer)
       if [[ -z $2 ]]; then
