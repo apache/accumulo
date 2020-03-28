@@ -26,6 +26,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,6 +37,7 @@ import javax.net.ssl.SSLServerSocket;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
@@ -155,7 +157,8 @@ public class TServerUtils {
       processor = updateSaslProcessor(serverType, processor);
     }
 
-    // create the TimedProcessor outside the port search loop so we don't try to register the same
+    // create the TimedProcessor outside the port search loop so we don't try to
+    // register the same
     // metrics mbean more than once
     TimedProcessor timedProcessor =
         new TimedProcessor(metricsSystem, config, processor, serverName, threadName);
@@ -168,10 +171,33 @@ public class TServerUtils {
           addresses);
     } catch (TTransportException e) {
       if (portSearch) {
+        // Build a list of reserved ports - as identified by properties of type PropertyType.PORT
+        ArrayList<Integer> restrictedPorts = new ArrayList<Integer>();
+        for (Property p : Property.values()) {
+          if (p.getType().equals(PropertyType.PORT)) {
+            for (int element : config.getPort(p)) {
+              restrictedPorts.add(element);
+              if (log.isDebugEnabled()) {
+                log.debug("Adding port {} to list of restricted ports", element);
+              }
+            }
+          }
+        }
+
         HostAndPort last = addresses[addresses.length - 1];
         // Attempt to allocate a port outside of the specified port property
         // Search sequentially over the next 1000 ports
         for (int port = last.getPort() + 1; port < last.getPort() + 1001; port++) {
+          if (restrictedPorts.contains(port)) {
+            if (log.isDebugEnabled()) {
+              log.debug(
+                  "During port search, skipping port {} as it is reserved for another service",
+                  port);
+            }
+
+            continue;
+          }
+
           if (port > 65535) {
             break;
           }
