@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 
@@ -225,6 +226,72 @@ public class TServerUtilsTest {
       server = address.getServer();
       assertNotNull(server);
       assertEquals(port[1], address.getAddress().getPort());
+    } finally {
+      if (null != server) {
+        TServerUtils.stopTServer(server);
+      }
+
+    }
+  }
+
+  @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
+  @Test
+  public void testStartServerNonDefaultPorts() throws Exception {
+    TServer server = null;
+
+    // This test finds 6 free ports in more-or-less a contiguous way and then
+    // uses those port numbers to Accumulo services in the below (ascending) sequence
+    // 0. TServer default client port (this test binds to this port to force a port search)
+    // 1. GC
+    // 2. Master
+    // 3. Monitor
+    // 4. Master Replication Coordinator
+    // 5. One free port - this is the one that we expect the TServer to finally use
+    int[] ports = findTwoFreeSequentialPorts(1024);
+    int tserverDefaultPort = ports[0];
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT,
+        Integer.toString(tserverDefaultPort));
+    int gcPort = ports[1];
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.GC_PORT,
+        Integer.toString(gcPort));
+
+    ports = findTwoFreeSequentialPorts(gcPort + 1);
+    int masterPort = ports[0];
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.MASTER_CLIENTPORT,
+        Integer.toString(masterPort));
+    int monitorPort = ports[1];
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.MONITOR_PORT,
+        Integer.toString(monitorPort));
+
+    ports = findTwoFreeSequentialPorts(monitorPort + 1);
+    int masterReplCoordPort = ports[0];
+    ((ConfigurationCopy) factory.getSystemConfiguration())
+        .set(Property.MASTER_REPLICATION_COORDINATOR_PORT, Integer.toString(masterReplCoordPort));
+    int tserverFinalPort = ports[1];
+
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_PORTSEARCH, "true");
+
+    // Ensure that the TServer client port we set above is NOT in the reserved ports
+    Map<Integer,Property> reservedPorts =
+        TServerUtils.getReservedPorts(factory.getSystemConfiguration());
+    assertTrue(!reservedPorts.keySet().contains(tserverDefaultPort));
+
+    // Ensure that all the ports we assigned (GC, Master, Monitor) are included in the reserved
+    // ports as returned by TServerUtils
+    assertTrue(reservedPorts.keySet().contains(gcPort));
+    assertTrue(reservedPorts.keySet().contains(masterPort));
+    assertTrue(reservedPorts.keySet().contains(monitorPort));
+    assertTrue(reservedPorts.keySet().contains(masterReplCoordPort));
+
+    InetAddress addr = InetAddress.getByName("localhost");
+    try (ServerSocket s = new ServerSocket(tserverDefaultPort, 50, addr)) {
+      ServerAddress address = startServer();
+      assertNotNull(address);
+      server = address.getServer();
+      assertNotNull(server);
+
+      // Finally ensure that the TServer is using the last port (i.e. port search worked)
+      assertTrue(address.getAddress().getPort() == tserverFinalPort);
     } finally {
       if (null != server) {
         TServerUtils.stopTServer(server);

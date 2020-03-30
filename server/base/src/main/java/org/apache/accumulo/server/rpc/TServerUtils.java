@@ -26,12 +26,14 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLServerSocket;
 
@@ -43,6 +45,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerContext;
@@ -93,6 +96,21 @@ public class TServerUtils {
       addresses[i] = HostAndPort.fromParts(hostname, ports[i]);
     }
     return addresses;
+  }
+
+  /**
+   *
+   * @param config
+   *          Accumulo configuration
+   * @return A Map object with reserved port numbers as keys and Property objects as values
+   */
+
+  public static Map<Integer,Property> getReservedPorts(AccumuloConfiguration config) {
+    return EnumSet.allOf(Property.class).stream()
+        .filter(p -> p.getType() == PropertyType.PORT && p != Property.TSERV_CLIENTPORT)
+        .flatMap(rp -> {
+          return Arrays.stream(config.getPort(rp)).mapToObj(portNum -> new Pair<>(portNum, rp));
+        }).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
   }
 
   /**
@@ -172,28 +190,15 @@ public class TServerUtils {
     } catch (TTransportException e) {
       if (portSearch) {
         // Build a list of reserved ports - as identified by properties of type PropertyType.PORT
-        ArrayList<Integer> restrictedPorts = new ArrayList<Integer>();
-        for (Property p : Property.values()) {
-          if (p.getType().equals(PropertyType.PORT)) {
-            for (int element : config.getPort(p)) {
-              restrictedPorts.add(element);
-              if (log.isDebugEnabled()) {
-                log.debug("Adding port {} to list of restricted ports", element);
-              }
-            }
-          }
-        }
+        Map<Integer,Property> reservedPorts = getReservedPorts(config);
 
         HostAndPort last = addresses[addresses.length - 1];
         // Attempt to allocate a port outside of the specified port property
         // Search sequentially over the next 1000 ports
         for (int port = last.getPort() + 1; port < last.getPort() + 1001; port++) {
-          if (restrictedPorts.contains(port)) {
-            if (log.isDebugEnabled()) {
-              log.debug(
-                  "During port search, skipping port {} as it is reserved for another service",
-                  port);
-            }
+          if (reservedPorts.keySet().contains(port)) {
+            log.debug("During port search, skipping reserved port {} - property {} ({})", port,
+                reservedPorts.get(port).getKey(), reservedPorts.get(port).getDescription());
 
             continue;
           }
