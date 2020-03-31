@@ -81,14 +81,13 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments) {
+  public void setFutureLocations(Assignment assignment) {
 
-    for (Assignment assignment : assignments) {
-      TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-      tabletMutator.deleteSuspension();
-      tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
-      tabletMutator.mutate();
-    }
+    TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
+    tabletMutator.deleteSuspension();
+    tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
+    tabletMutator.mutate();
+
   }
 
   @Override

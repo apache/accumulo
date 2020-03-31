@@ -48,9 +48,10 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments) {
-    wrapped.setFutureLocations(assignments);
-    assignments.forEach(assignment -> TabletLogger.assigned(assignment.tablet, assignment.server));
+  public void setFutureLocations(Assignment assignment) {
+    wrapped.setFutureLocations(assignment);
+    TabletLogger.assigned(assignment.tablet, assignment.server);
+
   }
 
   @Override
