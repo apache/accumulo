@@ -492,10 +492,13 @@ public class TabletServer extends AbstractServer {
     return Constants.VERSION;
   }
 
-  //synchronized method to control simultaneous access
-  synchronized private Semaphore getSemaphore() {
+  private Semaphore getSemaphore() {
     if (sem == null) {
-      sem = new Semaphore(maxThreadPermits);
+      synchronized (this) {
+        if (sem == null) {
+          sem = new Semaphore(maxThreadPermits);
+        }
+      }
     }
     return sem;
   }
@@ -1032,7 +1035,7 @@ public class TabletServer extends AbstractServer {
       }
 
       boolean reserved = true;
-      boolean allowWriteThreadSemaphore = false;
+      boolean semaphoreAcquired = false;
       try {
         KeyExtent keyExtent = new KeyExtent(tkeyExtent);
 
@@ -1040,7 +1043,7 @@ public class TabletServer extends AbstractServer {
           if (!getSemaphore().tryAcquire()) {
             throw new TException("Mutation failed. No threads available.");
           } else {
-            allowWriteThreadSemaphore = true;
+            semaphoreAcquired = true;
             log.info("Available permits: {}", getSemaphore().availablePermits());
             log.info("Write Threads Limit: {}", maxThreadPermits);
           }
@@ -1074,7 +1077,7 @@ public class TabletServer extends AbstractServer {
           }
         }
       } finally {
-        if (allowWriteThreadSemaphore)
+        if (semaphoreAcquired)
           getSemaphore().release();
         if (reserved) {
           sessionManager.unreserveSession(us);
