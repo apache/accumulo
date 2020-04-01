@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.gc;
 
@@ -53,6 +55,7 @@ import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -255,7 +258,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
       Stream<Reference> refStream = tabletStream.flatMap(tm -> {
         Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
-            .map(f -> new Reference(tm.getTableId(), f, false));
+            .map(f -> new Reference(tm.getTableId(), f.getMetaUpdateDelete(), false));
         if (tm.getDirName() != null) {
           refs =
               Stream.concat(refs, Stream.of(new Reference(tm.getTableId(), tm.getDirName(), true)));
@@ -289,7 +292,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         return;
       }
 
-      List<String> processedDeletes = Collections.synchronizedList(new ArrayList<String>());
+      List<String> processedDeletes = Collections.synchronizedList(new ArrayList<>());
 
       minimizeDeletes(confirmedDeletes, processedDeletes, fs);
 
@@ -306,7 +309,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
           try {
             Path fullPath;
-            String switchedDelete = VolumeUtil.switchVolume(delete, FileType.TABLE, replacements);
+            Path switchedDelete = VolumeUtil.switchVolume(delete, FileType.TABLE, replacements);
             if (switchedDelete != null) {
               // actually replacing the volumes in the metadata table would be tricky because the
               // entries would be different rows. So it could not be
@@ -317,9 +320,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               // of deleting something that should not be deleted. Must not change value of delete
               // variable because thats whats stored in metadata table.
               log.debug("Volume replaced {} -> {}", delete, switchedDelete);
-              fullPath = fs.getFullPath(FileType.TABLE, switchedDelete);
+              fullPath = TabletFileUtil.validate(switchedDelete);
             } else {
-              fullPath = fs.getFullPath(FileType.TABLE, delete);
+              fullPath = new Path(TabletFileUtil.validate(delete));
             }
 
             for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
@@ -700,7 +703,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   @VisibleForTesting
   static void minimizeDeletes(SortedMap<String,String> confirmedDeletes,
       List<String> processedDeletes, VolumeManager fs) {
-    Set<Path> seenVolumes = new HashSet<Path>();
+    Set<Path> seenVolumes = new HashSet<>();
     Collection<Volume> volumes = fs.getVolumes();
 
     // when deleting a dir and all files in that dir, only need to delete the dir
@@ -713,7 +716,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     while (cdIter.hasNext()) {
       Entry<String,String> entry = cdIter.next();
       String relPath = entry.getKey();
-      Path absPath = fs.getFullPath(FileType.TABLE, entry.getValue());
+      Path absPath = new Path(entry.getValue());
 
       if (isDir(relPath)) {
         lastDirRel = relPath;

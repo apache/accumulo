@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -46,8 +48,8 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
-import org.apache.accumulo.core.iterators.system.VisibilityFilter;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
@@ -293,7 +295,7 @@ public class TransformingIteratorTest {
 
     data.clear();
 
-    Value ev = new Value("".getBytes());
+    Value ev = new Value("");
 
     data.put(new Key("shard001", "foo", "doc02", vis1, 78), ev);
     data.put(new Key("shard001", "dog", "doc02", vis3, 78), ev);
@@ -359,7 +361,7 @@ public class TransformingIteratorTest {
             String cv = "badvis";
             long ts = 100 * cfID + 10 * cqID + cvID;
             String val = "val" + ts;
-            expected.put(new Key(row, cf, cq, cv, ts), new Value(val.getBytes()));
+            expected.put(new Key(row, cf, cq, cv, ts), new Value(val));
           }
         }
       }
@@ -495,7 +497,7 @@ public class TransformingIteratorTest {
       }
     }
 
-    expected.put(new Key(row, cf, cq, cv, ts), new Value(val.getBytes()));
+    expected.put(new Key(row, cf, cq, cv, ts), new Value(val));
   }
 
   private static Text transform(Text val) {
@@ -520,7 +522,7 @@ public class TransformingIteratorTest {
           String val = "val" + ts;
 
           Key k = new Key(row, cf, cq, cv, ts);
-          Value v = new Value(val.getBytes());
+          Value v = new Value(val);
           data.put(k, v);
         }
       }

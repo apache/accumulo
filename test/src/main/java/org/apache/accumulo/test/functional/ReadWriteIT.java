@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
@@ -144,14 +146,12 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           Thread.sleep(2000);
         }
       }
-      String scheme = "http://";
       if (getCluster() instanceof StandaloneAccumuloCluster) {
         String monitorSslKeystore =
             getCluster().getSiteConfiguration().get(Property.MONITOR_SSL_KEYSTORE.getKey());
         if (monitorSslKeystore != null && !monitorSslKeystore.isEmpty()) {
           log.info(
               "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");
-          scheme = "https://";
           SSLContext ctx = SSLContext.getInstance("TLSv1.2");
           TrustManager[] tm = {new TestTrustManager()};
           ctx.init(new KeyManager[0], tm, new SecureRandom());
@@ -160,7 +160,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
         }
       }
-      URL url = new URL(scheme + monitorLocation);
+      URL url = new URL(monitorLocation);
       log.debug("Fetching web page {}", url);
       String result = FunctionalTestUtils.readAll(url.openStream());
       assertTrue(result.length() > 100);
@@ -307,7 +307,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   public static Mutation m(String row, String cf, String cq, String value) {
     Mutation m = new Mutation(t(row));
-    m.put(t(cf), t(cq), new Value(value.getBytes()));
+    m.put(t(cf), t(cq), new Value(value));
     return m;
   }
 

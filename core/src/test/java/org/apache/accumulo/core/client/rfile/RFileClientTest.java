@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.client.rfile;
 
 import static org.junit.Assert.assertEquals;
@@ -110,7 +111,7 @@ public class RFileClientTest {
           String qual = colStr(q);
           for (String v : vis) {
             Key k = new Key(row, fam, qual, v);
-            testData.put(k, new Value((k.hashCode() + "").getBytes()));
+            testData.put(k, new Value(k.hashCode() + ""));
           }
         }
       }
@@ -324,9 +325,9 @@ public class RFileClientTest {
     Key k2 = new Key("r1", "f1", "q2", "A");
     Key k3 = new Key("r1", "f1", "q3");
 
-    Value v1 = new Value("p".getBytes());
-    Value v2 = new Value("c".getBytes());
-    Value v3 = new Value("t".getBytes());
+    Value v1 = new Value("p");
+    Value v2 = new Value("c");
+    Value v3 = new Value("t");
 
     writer.append(k1, v1);
     writer.append(k2, v2);
@@ -365,8 +366,8 @@ public class RFileClientTest {
     k2.setTimestamp(6);
     k2.setDeleted(true);
 
-    Value v1 = new Value("p".getBytes());
-    Value v2 = new Value("".getBytes());
+    Value v1 = new Value("p");
+    Value v2 = new Value("");
 
     writer.append(k2, v2);
     writer.append(k1, v1);
@@ -430,8 +431,8 @@ public class RFileClientTest {
     Key k2 = new Key("r1", "f1", "q1");
     k2.setTimestamp(6);
 
-    Value v1 = new Value("p".getBytes());
-    Value v2 = new Value("q".getBytes());
+    Value v1 = new Value("p");
+    Value v2 = new Value("q");
 
     writer.append(k2, v2);
     writer.append(k1, v1);
@@ -693,10 +694,10 @@ public class RFileClientTest {
   public void testOutOfOrder() throws Exception {
     // test that exception declared in API is thrown
     Key k1 = new Key("r1", "f1", "q1");
-    Value v1 = new Value("1".getBytes());
+    Value v1 = new Value("1");
 
     Key k2 = new Key("r2", "f1", "q1");
-    Value v2 = new Value("2".getBytes());
+    Value v2 = new Value("2");
 
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
@@ -710,10 +711,10 @@ public class RFileClientTest {
   public void testOutOfOrderIterable() throws Exception {
     // test that exception declared in API is thrown
     Key k1 = new Key("r1", "f1", "q1");
-    Value v1 = new Value("1".getBytes());
+    Value v1 = new Value("1");
 
     Key k2 = new Key("r2", "f1", "q1");
-    Value v2 = new Value("2".getBytes());
+    Value v2 = new Value("2");
 
     ArrayList<Entry<Key,Value>> data = new ArrayList<>();
     data.add(new AbstractMap.SimpleEntry<>(k2, v2));
@@ -735,7 +736,7 @@ public class RFileClientTest {
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startDefaultLocalityGroup();
       Key k1 = new Key("r1", "f1", "q1", "(A&(B");
-      writer.append(k1, new Value("".getBytes()));
+      writer.append(k1, new Value(""));
     }
   }
 
@@ -747,7 +748,7 @@ public class RFileClientTest {
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startDefaultLocalityGroup();
       Key k1 = new Key("r1", "f1", "q1", "(A&(B");
-      Entry<Key,Value> entry = new AbstractMap.SimpleEntry<>(k1, new Value("".getBytes()));
+      Entry<Key,Value> entry = new AbstractMap.SimpleEntry<>(k1, new Value(""));
       writer.append(Collections.singletonList(entry));
     }
   }
@@ -767,7 +768,7 @@ public class RFileClientTest {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
-      writer.append(new Key("r1", "f1", "q1"), new Value("1".getBytes()));
+      writer.append(new Key("r1", "f1", "q1"), new Value("1"));
       writer.startDefaultLocalityGroup();
     }
   }
@@ -778,7 +779,7 @@ public class RFileClientTest {
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       Key k1 = new Key("r1", "f1", "q1");
-      writer.append(k1, new Value("".getBytes()));
+      writer.append(k1, new Value(""));
       writer.startNewLocalityGroup("lg1", "fam1");
     }
   }
@@ -791,7 +792,7 @@ public class RFileClientTest {
       writer.startNewLocalityGroup("lg1", "fam1");
       Key k1 = new Key("r1", "f1", "q1");
       // should not be able to append the column family f1
-      writer.append(k1, new Value("".getBytes()));
+      writer.append(k1, new Value(""));
     }
   }
 
@@ -802,11 +803,11 @@ public class RFileClientTest {
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startNewLocalityGroup("lg1", "fam1");
       Key k1 = new Key("r1", "fam1", "q1");
-      writer.append(k1, new Value("".getBytes()));
+      writer.append(k1, new Value(""));
       writer.startDefaultLocalityGroup();
       // should not be able to append the column family fam1 to default locality group
       Key k2 = new Key("r1", "fam1", "q2");
-      writer.append(k2, new Value("".getBytes()));
+      writer.append(k2, new Value(""));
     }
   }
 

@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Collection;
@@ -24,6 +25,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -94,6 +97,16 @@ public interface Ample {
         throw new UnsupportedOperationException();
       return id;
     }
+
+    public static DataLevel of(TableId tableId) {
+      if (tableId.equals(RootTable.ID)) {
+        return DataLevel.ROOT;
+      } else if (tableId.equals(MetadataTable.ID)) {
+        return DataLevel.METADATA;
+      } else {
+        return DataLevel.USER;
+      }
+    }
   }
 
   /**
@@ -127,7 +140,7 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
-  default void putGcCandidates(TableId tableId, Collection<? extends Ample.FileMeta> candidates) {
+  default void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
     throw new UnsupportedOperationException();
   }
 
@@ -175,13 +188,13 @@ public interface Ample {
   interface TabletMutator {
     public TabletMutator putPrevEndRow(Text per);
 
-    public TabletMutator putFile(FileMeta path, DataFileValue dfv);
+    public TabletMutator putFile(TabletFile path, DataFileValue dfv);
 
-    public TabletMutator deleteFile(FileMeta path);
+    public TabletMutator deleteFile(StoredTabletFile path);
 
-    public TabletMutator putScan(FileMeta path);
+    public TabletMutator putScan(TabletFile path);
 
-    public TabletMutator deleteScan(FileMeta path);
+    public TabletMutator deleteScan(StoredTabletFile path);
 
     public TabletMutator putCompactionId(long compactionId);
 
@@ -203,7 +216,7 @@ public interface Ample {
 
     public TabletMutator putTime(MetadataTime time);
 
-    public TabletMutator putBulkFile(Ample.FileMeta bulkref, long tid);
+    public TabletMutator putBulkFile(TabletFile bulkref, long tid);
 
     public TabletMutator deleteBulkFile(Ample.FileMeta bulkref);
 

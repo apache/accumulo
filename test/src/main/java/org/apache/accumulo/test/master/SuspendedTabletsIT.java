@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.master;
 
@@ -74,13 +76,18 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   private static final Random RANDOM = new SecureRandom();
   private static ExecutorService THREAD_POOL;
 
-  public static final int TSERVERS = 5;
-  public static final long SUSPEND_DURATION = MILLISECONDS.convert(30, SECONDS);
-  public static final int TABLETS = 100;
+  public static final int TSERVERS = 3;
+  public static final long SUSPEND_DURATION = 20;
+  public static final int TABLETS = 30;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "ms");
+    cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "s");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setNumTservers(TSERVERS);
@@ -229,22 +236,21 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
       // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
       log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
-      for (ds = TabletLocations.retrieve(ctx, tableName);
-          ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0;
-          ds = TabletLocations.retrieve(ctx, tableName)) {
+      while (ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0) {
         Thread.sleep(1000);
+        ds = TabletLocations.retrieve(ctx, tableName);
       }
       assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
 
       // Finally, after much longer, remaining suspended tablets should be reassigned.
       log.info("Awaiting tablet reassignment for remaining tablets");
-      for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS;
-          ds = TabletLocations.retrieve(ctx, tableName)) {
+      while (ds.hostedCount != TABLETS) {
         Thread.sleep(1000);
+        ds = TabletLocations.retrieve(ctx, tableName);
       }
 
       long recoverTime = System.nanoTime();
-      assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
+      assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, SECONDS));
     }
   }
 

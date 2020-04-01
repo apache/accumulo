@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -226,7 +228,7 @@ public class TabletLocatorImplTest {
       String[] cvp = element.split("=");
       String[] cols = cvp[0].split(":");
 
-      mut.put(new Text(cols[0]), new Text(cols[1]), new Value(cvp[1].getBytes()));
+      mut.put(cols[0], cols[1], cvp[1]);
     }
 
     return mut;
@@ -294,19 +296,8 @@ public class TabletLocatorImplTest {
       String server = (String) ol[1];
       KeyExtent ke = (KeyExtent) ol[2];
 
-      Map<KeyExtent,List<String>> tb = emb.get(server);
-      if (tb == null) {
-        tb = new HashMap<>();
-        emb.put(server, tb);
-      }
-
-      List<String> rl = tb.get(ke);
-      if (rl == null) {
-        rl = new ArrayList<>();
-        tb.put(ke, rl);
-      }
-
-      rl.add(row);
+      emb.computeIfAbsent(server, k -> new HashMap<>()).computeIfAbsent(ke, k -> new ArrayList<>())
+          .add(row);
     }
 
     return emb;
@@ -525,11 +516,8 @@ public class TabletLocatorImplTest {
   }
 
   static void createEmptyTablet(TServers tservers, String server, KeyExtent tablet) {
-    Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
-    if (tablets == null) {
-      tablets = new HashMap<>();
-      tservers.tservers.put(server, tablets);
-    }
+    Map<KeyExtent,SortedMap<Key,Value>> tablets =
+        tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
 
     SortedMap<Key,Value> tabletData = tablets.get(tablet);
     if (tabletData == null) {
@@ -560,17 +548,10 @@ public class TabletLocatorImplTest {
 
   static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke,
       String location, String instance) {
-    Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
-    if (tablets == null) {
-      tablets = new HashMap<>();
-      tservers.tservers.put(server, tablets);
-    }
+    Map<KeyExtent,SortedMap<Key,Value>> tablets =
+        tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
 
-    SortedMap<Key,Value> tabletData = tablets.get(tablet);
-    if (tabletData == null) {
-      tabletData = new TreeMap<>();
-      tablets.put(tablet, tabletData);
-    }
+    SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
 
     Text mr = ke.getMetadataEntry();
     Value per = KeyExtent.encodePrevEndRow(ke.getPrevEndRow());
@@ -579,7 +560,7 @@ public class TabletLocatorImplTest {
       if (instance == null)
         instance = "";
       Key lk = new Key(mr, TabletsSection.CurrentLocationColumnFamily.NAME, new Text(instance));
-      tabletData.put(lk, new Value(location.getBytes()));
+      tabletData.put(lk, new Value(location));
     }
 
     Key pk = new Key(mr, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),

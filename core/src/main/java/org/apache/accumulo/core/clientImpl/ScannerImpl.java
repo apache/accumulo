@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -69,16 +71,15 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   // and does not read all of the data. For this case do not want iterator tracking to consume too
   // much memory. Also it would be best to avoid an RPC storm of close methods for thousands
   // sessions that may have timed out.
-  private Map<ScannerIterator,Long> iters =
-      new LinkedHashMap<ScannerIterator,Long>(MAX_ENTRIES + 1, .75F, true) {
-        private static final long serialVersionUID = 1L;
+  private Map<ScannerIterator,Long> iters = new LinkedHashMap<>(MAX_ENTRIES + 1, .75F, true) {
+    private static final long serialVersionUID = 1L;
 
-        // This method is called just after a new entry has been added
-        @Override
-        public boolean removeEldestEntry(Map.Entry<ScannerIterator,Long> eldest) {
-          return size() > MAX_ENTRIES;
-        }
-      };
+    // This method is called just after a new entry has been added
+    @Override
+    public boolean removeEldestEntry(Map.Entry<ScannerIterator,Long> eldest) {
+      return size() > MAX_ENTRIES;
+    }
+  };
 
   /**
    * This is used for ScannerIterators to report their activity back to the scanner that created

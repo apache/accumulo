@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -24,13 +26,12 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -53,8 +54,11 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -62,7 +66,6 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.SystemIteratorUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -260,27 +263,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       throw new AccumuloException(
           " " + currentExtent + " is not previous extent " + tablet.getExtent());
 
-    // Old property is only used to resolve relative paths into absolute paths. For systems upgraded
-    // with relative paths, it's assumed that correct instance.dfs.{uri,dir} is still correct in the
-    // configuration
-    @SuppressWarnings("deprecation")
-    String tablesDir = config.get(Property.INSTANCE_DFS_DIR) + Constants.HDFS_TABLES_DIR;
-
-    List<String> absFiles = new ArrayList<>();
-    for (String relPath : tablet.getFiles()) {
-      if (relPath.contains(":")) {
-        absFiles.add(relPath);
-      } else {
-        // handle old-style relative paths
-        if (relPath.startsWith("..")) {
-          absFiles.add(tablesDir + relPath.substring(2));
-        } else {
-          absFiles.add(tablesDir + "/" + tableId + relPath);
-        }
-      }
-    }
-
-    iter = createIterator(tablet.getExtent(), absFiles);
+    iter = createIterator(tablet.getExtent(), tablet.getFiles());
     iter.seek(range, LocalityGroupUtil.families(options.fetchedColumns),
         options.fetchedColumns.size() != 0);
     currentExtent = tablet.getExtent();
@@ -294,7 +277,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
   }
 
-  private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent, List<String> absFiles)
+  private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent,
+      Collection<StoredTabletFile> absFiles)
       throws TableNotFoundException, AccumuloException, IOException {
 
     // TODO share code w/ tablet - ACCUMULO-1303
@@ -325,10 +309,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
 
     // TODO need to close files - ACCUMULO-1303
-    for (String file : absFiles) {
-      FileSystem fs = VolumeConfiguration.getVolume(file, conf, config).getFileSystem();
+    for (TabletFile file : absFiles) {
+      FileSystem fs =
+          VolumeConfiguration.getVolume(file.getPathStr(), conf, config).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file, fs, conf, CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getPathStr(), fs, conf, CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(acuTableConf).build();
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);

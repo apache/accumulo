@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile;
 
@@ -68,12 +70,13 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguratio
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -308,7 +311,7 @@ public class RFileTest {
       LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
       CachableBuilder cb = new CachableBuilder().cacheId("source-1").input(in).length(fileLength)
-          .conf(conf).data(dataCache).index(indexCache).cryptoService(
+          .conf(conf).cacheProvider(new BasicCacheProvider(indexCache, dataCache)).cryptoService(
               CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
       reader = new RFile.Reader(cb);
       if (cfsi)
@@ -335,7 +338,7 @@ public class RFileTest {
   }
 
   static Value newValue(String val) {
-    return new Value(val.getBytes());
+    return new Value(val);
   }
 
   static String formatString(String prefix, int i) {
@@ -1746,7 +1749,8 @@ public class RFileTest {
     manager.start(new BlockCacheConfiguration(aconf));
     CachableBuilder cb = new CachableBuilder().input(in2).length(data.length).conf(hadoopConf)
         .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA))
-        .index(manager.getBlockCache(CacheType.INDEX)).data(manager.getBlockCache(CacheType.DATA));
+        .cacheProvider(new BasicCacheProvider(manager.getBlockCache(CacheType.INDEX),
+            manager.getBlockCache(CacheType.DATA)));
     Reader reader = new RFile.Reader(cb);
     checkIndex(reader);
 
@@ -1957,9 +1961,9 @@ public class RFileTest {
   private Value newValue(int r, int c) {
     switch (c) {
       case 0:
-        return new Value(("123" + r + " west st").getBytes());
+        return new Value("123" + r + " west st");
       case 1:
-        return new Value(("bob" + r).getBytes());
+        return new Value("bob" + r);
       default:
         throw new IllegalArgumentException();
     }
@@ -2169,9 +2173,9 @@ public class RFileTest {
           Key k2 = new Key(row, "metaB", "q8", 7);
           Key k3 = new Key(row, "metaB", "qA", 7);
 
-          Value v1 = new Value(("" + r).getBytes());
-          Value v2 = new Value(("" + r * 93).getBytes());
-          Value v3 = new Value(("" + r * 113).getBytes());
+          Value v1 = new Value("" + r);
+          Value v2 = new Value("" + r * 93);
+          Value v3 = new Value("" + r * 113);
 
           if (sampler.accept(k1)) {
             sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<>(k1, v1));
@@ -2190,7 +2194,7 @@ public class RFileTest {
           String row = String.format("r%06d", r);
           Key k1 = new Key(row, "dataA", "q9", 7);
 
-          Value v1 = new Value(("" + r).getBytes());
+          Value v1 = new Value("" + r);
 
           if (sampler.accept(k1)) {
             sampleDataLG2.add(new AbstractMap.SimpleImmutableEntry<>(k1, v1));
@@ -2264,7 +2268,7 @@ public class RFileTest {
     trf.openWriter();
 
     for (Key k : keys) {
-      trf.writer.append(k, new Value((k.hashCode() + "").getBytes()));
+      trf.writer.append(k, new Value(k.hashCode() + ""));
     }
 
     trf.writer.close();
@@ -2284,7 +2288,7 @@ public class RFileTest {
       trf.reader.seek(new Range(key, null), EMPTY_COL_FAMS, false);
       assertTrue(trf.reader.hasTop());
       assertEquals(key, trf.reader.getTopKey());
-      assertEquals(new Value((key.hashCode() + "").getBytes()), trf.reader.getTopValue());
+      assertEquals(new Value(key.hashCode() + ""), trf.reader.getTopValue());
     }
   }
 
@@ -2339,13 +2343,13 @@ public class RFileTest {
     Key tableDirKey =
         new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
             TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableDirKey, new Value(/* TABLE_TABLETS_TABLET_DIR */"/table_info".getBytes()));
+    mfw.append(tableDirKey, new Value(/* TABLE_TABLETS_TABLET_DIR */"/table_info"));
 
     // table tablet time
     Key tableTimeKey =
         new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
             TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
+    mfw.append(tableTimeKey, new Value(/* TabletTime.LOGICAL_TIME_ID */'L' + "0"));
 
     // table tablet's prevRow
     Key tablePrevRowKey =
@@ -2360,13 +2364,13 @@ public class RFileTest {
     Key defaultDirKey =
         new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
             TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultDirKey, new Value(ServerColumnFamily.DEFAULT_TABLET_DIR_NAME.getBytes()));
+    mfw.append(defaultDirKey, new Value(ServerColumnFamily.DEFAULT_TABLET_DIR_NAME));
 
     // default's time
     Key defaultTimeKey =
         new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
             TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
+    mfw.append(defaultTimeKey, new Value(/* TabletTime.LOGICAL_TIME_ID */'L' + "0"));
 
     // default's prevRow
     Key defaultPrevRowKey =

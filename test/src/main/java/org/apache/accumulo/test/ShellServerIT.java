@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.newBufferedReader;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
@@ -34,7 +37,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
@@ -862,6 +864,29 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", true, "value", true);
     ts.exec("clonetable " + table + " " + clone);
     // verify constraint, config, and splits were cloned
+    ts.exec("table " + clone);
+    ts.exec("scan", true, "value", true);
+    ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
+    ts.exec("config -t " + clone + " -np", true, "123M", true);
+    ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
+    ts.exec("deletetable -f " + table);
+    ts.exec("deletetable -f " + clone);
+  }
+
+  @Test
+  public void clonetableOffline() throws Exception {
+    final String table = name.getMethodName(), clone = table + "_clone";
+
+    // clonetable
+    ts.exec("createtable " + table + " -evc");
+    ts.exec("config -t " + table + " -s table.split.threshold=123M", true);
+    ts.exec("addsplits -t " + table + " a b c", true);
+    ts.exec("insert a b c value");
+    ts.exec("scan", true, "value", true);
+    ts.exec("clonetable " + table + " " + clone + " -o");
+    // verify constraint, config, and splits were cloned
+    ts.exec("table " + clone);
+    ts.exec("scan", false, "TableOfflineException", true);
     ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
     ts.exec("config -t " + clone + " -np", true, "123M", true);
     ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
@@ -1381,7 +1406,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  // @Test(timeout = 45000)
+  @Test
   public void history() throws Exception {
     final String table = name.getMethodName();
 
@@ -1418,7 +1443,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");
     Text cq = new Text("cq");
-    Value value = new Value("value".getBytes());
+    Value value = new Value("value");
     for (int i = 0; i < 100; i += 2) {
       Key key = new Key(new Text(String.format("%8d", i)), cf, cq, timestamp);
       evenWriter.append(key, value);
@@ -2768,7 +2793,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     if (sort)
       sortedSplits = new TreeSet<>(randomSplits);
 
-    try (BufferedWriter writer = Files.newBufferedWriter(splitsPath, Charset.forName("UTF-8"))) {
+    try (BufferedWriter writer = Files.newBufferedWriter(splitsPath, UTF_8)) {
       int cnt = 0;
       Collection<Text> splits;
       if (sort)

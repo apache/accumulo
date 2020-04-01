@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to you under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.iterator;
 
@@ -99,7 +101,7 @@ public class SummingCombinerTest extends BaseJUnit4IteratorTest {
       } else {
         if (0 != lastKey.compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
           // Different key, store the running sum.
-          data.put(lastKey, new Value(Long.toString(sum).getBytes(UTF_8)));
+          data.put(lastKey, new Value(Long.toString(sum)));
           // Reset lastKey and the sum
           lastKey = entry.getKey();
           sum = 0;
@@ -109,7 +111,7 @@ public class SummingCombinerTest extends BaseJUnit4IteratorTest {
       }
     }
 
-    data.put(lastKey, new Value(Long.toString(sum).getBytes(UTF_8)));
+    data.put(lastKey, new Value(Long.toString(sum)));
 
     return data;
   }

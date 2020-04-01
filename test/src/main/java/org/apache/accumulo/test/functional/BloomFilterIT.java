@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
@@ -97,7 +99,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         // test inserting an empty key
         try (BatchWriter bw = c.createBatchWriter(tables[3])) {
           Mutation m = new Mutation(new Text(""));
-          m.put(new Text(""), new Text(""), new Value("foo1".getBytes()));
+          m.put("", "", "foo1");
           bw.addMutation(m);
         }
         c.tableOperations().flush(tables[3], null, null, true);
@@ -244,15 +246,15 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         switch (depth) {
           case 1:
             m = new Mutation(new Text(key));
-            m.put(new Text("cf"), new Text("cq"), new Value(("" + i).getBytes()));
+            m.put("cf", "cq", "" + i);
             break;
           case 2:
             m = new Mutation(new Text("row"));
-            m.put(new Text(key), new Text("cq"), new Value(("" + i).getBytes()));
+            m.put(key, "cq", "" + i);
             break;
           case 3:
             m = new Mutation(new Text("row"));
-            m.put(new Text("cf"), new Text(key), new Value(("" + i).getBytes()));
+            m.put("cf", key, "" + i);
             break;
         }
         bw.addMutation(m);

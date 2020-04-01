@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile;
 
@@ -21,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -38,6 +41,7 @@ import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -59,6 +63,12 @@ public class PrintInfo implements KeywordExecutable {
   static class Opts extends ConfigOpts {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
     boolean dump = false;
+    @Parameter(names = {"--fullKeys"},
+        description = "dump full keys regardless of length, do no truncate, implies --dump")
+    boolean fullKeys = false;
+    @Parameter(names = {"--formatter"},
+        description = "specify a BiFunction<Key, Value, String> class to apply to rfile contents, implies --dump")
+    String formatterClazz = null;
     @Parameter(names = {"-v", "--vis"}, description = "show visibility metrics")
     boolean vis = false;
     @Parameter(names = {"--visHash"}, description = "show visibilities as hashes, implies -v")
@@ -136,6 +146,15 @@ public class PrintInfo implements KeywordExecutable {
     return "Prints rfile info";
   }
 
+  protected Class<? extends BiFunction<Key,Value,String>> getFormatter(String formatterClazz)
+      throws ClassNotFoundException {
+    @SuppressWarnings("unchecked")
+    Class<? extends BiFunction<Key,Value,String>> clazz =
+        (Class<? extends BiFunction<Key,Value,String>>) this.getClass().getClassLoader()
+            .loadClass(formatterClazz).asSubclass(BiFunction.class);
+    return clazz;
+  }
+
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "System.exit is fine here because it's a utility class executed by a main()")
   @Override
@@ -146,6 +165,13 @@ public class PrintInfo implements KeywordExecutable {
       System.err.println("No files were given");
       System.exit(1);
     }
+
+    if ((opts.fullKeys || opts.dump) && opts.formatterClazz != null) {
+      System.err.println(
+          "--formatter argument is incompatible with --dump or --fullKeys, specify either, not both.");
+      System.exit(1);
+    }
+
     var siteConfig = opts.getSiteConfiguration();
 
     Configuration conf = new Configuration();
@@ -195,7 +221,8 @@ public class PrintInfo implements KeywordExecutable {
 
       Map<String,ArrayList<ByteSequence>> localityGroupCF = null;
 
-      if (opts.histogram || opts.dump || opts.vis || opts.hash || opts.keyStats) {
+      if (opts.histogram || opts.dump || opts.vis || opts.hash || opts.keyStats || opts.fullKeys
+          || !StringUtils.isEmpty(opts.formatterClazz)) {
         localityGroupCF = iter.getLocalityGroupCF();
 
         FileSKVIterator dataIter;
@@ -218,23 +245,36 @@ public class PrintInfo implements KeywordExecutable {
           }
         }
 
+        BiFunction<Key,Value,String> formatter = null;
+        if (opts.formatterClazz != null) {
+          final Class<? extends BiFunction<Key,Value,String>> formatterClass =
+              getFormatter(opts.formatterClazz);
+          formatter = formatterClass.getConstructor().newInstance();
+        } else if (opts.fullKeys) {
+          formatter = (key, value) -> key.toStringNoTruncate() + " -> " + value;
+        } else if (opts.dump) {
+          formatter = (key, value) -> key + " -> " + value;
+        }
+
         for (String lgName : localityGroupCF.keySet()) {
           LocalityGroupUtil.seek(dataIter, new Range(), lgName, localityGroupCF);
+
           while (dataIter.hasTop()) {
             Key key = dataIter.getTopKey();
             Value value = dataIter.getTopValue();
-            if (opts.dump) {
-              System.out.println(key + " -> " + value);
-              if (System.out.checkError()) {
+            if (formatter != null) {
+              System.out.println(formatter.apply(key, value));
+              if (System.out.checkError())
                 return;
-              }
             }
+
             if (opts.histogram) {
               kvHistogram.add(key.getSize() + value.getSize());
             }
             if (opts.keyStats) {
               dataKeyStats.add(key);
             }
+
             dataIter.next();
           }
         }
