@@ -48,14 +48,12 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
   /**
    * Store the assigned locations in the data store.
    */
-  void setFutureLocations(Assignment assignment);
+  void setFutureLocation(Assignment assignment);
 
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online
    */
-  // void setLocations(Collection<Assignment> assignments) throws DistributedStoreException;
-
-  void setLocations(Assignment assignment, TServerInstance prevLastLoc);
+  void setLocation(Assignment assignment, TServerInstance prevLastLoc);
 
   /**
    * Mark the tablets as having no known or future location.
@@ -94,7 +92,7 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
 
   public static void setLocation(ServerContext context, Assignment assignment,
       TServerInstance prevLastLoc) {
-    getStoreForTablet(assignment.tablet, context).setLocations(assignment, prevLastLoc);
+    getStoreForTablet(assignment.tablet, context).setLocation(assignment, prevLastLoc);
   }
 
   static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {
@@ -114,10 +112,10 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
         tss = new ZooTabletStateStore(context.getAmple());
         break;
       case METADATA:
-        tss = new RootTabletStateStore(context, state, context.getAmple());
+        tss = new RootTabletStateStore(context, state);
         break;
       case USER:
-        tss = new MetaDataStateStore(context, state, context.getAmple());
+        tss = new MetaDataStateStore(context, state);
         break;
       default:
         throw new IllegalArgumentException("Unknown level " + level);

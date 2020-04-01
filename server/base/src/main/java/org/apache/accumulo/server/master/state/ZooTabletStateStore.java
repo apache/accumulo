@@ -103,7 +103,7 @@ class ZooTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Assignment assignment) {
+  public void setFutureLocation(Assignment assignment) {
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
     tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
@@ -111,7 +111,7 @@ class ZooTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setLocations(Assignment assignment, TServerInstance prevLastLoc) {
+  public void setLocation(Assignment assignment, TServerInstance prevLastLoc) {
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
     tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
     tabletMutator.putLocation(assignment.server, LocationType.LAST);

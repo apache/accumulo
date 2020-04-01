@@ -45,16 +45,15 @@ class MetaDataStateStore implements TabletStateStore {
   private final Ample ample;
   private static final Logger log = LoggerFactory.getLogger(MetaDataStateStore.class);
 
-  protected MetaDataStateStore(ClientContext context, CurrentState state, Ample ample,
-      String targetTableName) {
+  protected MetaDataStateStore(ClientContext context, CurrentState state, String targetTableName) {
     this.context = context;
     this.state = state;
-    this.ample = ample;
+    this.ample = context.getAmple();
     this.targetTableName = targetTableName;
   }
 
-  MetaDataStateStore(ClientContext context, CurrentState state, Ample ample) {
-    this(context, state, ample, MetadataTable.NAME);
+  MetaDataStateStore(ClientContext context, CurrentState state) {
+    this(context, state, MetadataTable.NAME);
   }
 
   @Override
@@ -64,7 +63,7 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setLocations(Assignment assignment, TServerInstance prevLastLoc) {
+  public void setLocation(Assignment assignment, TServerInstance prevLastLoc) {
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
     tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
@@ -81,7 +80,7 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Assignment assignment) {
+  public void setFutureLocation(Assignment assignment) {
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
     tabletMutator.deleteSuspension();
@@ -104,43 +103,48 @@ class MetaDataStateStore implements TabletStateStore {
 
   private void unassign(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp) {
-    for (TabletLocationState tls : tablets) {
-      TabletMutator tabletMutator = ample.mutateTablet(tls.extent);
-      if (tls.current != null) {
-        tabletMutator.deleteLocation(tls.current, LocationType.CURRENT);
-        if (logsForDeadServers != null) {
-          List<Path> logs = logsForDeadServers.get(tls.current);
-          if (logs != null) {
-            for (Path log : logs) {
-              LogEntry entry = new LogEntry(tls.extent, 0, tls.current.hostPort(), log.toString());
-              tabletMutator.putWal(entry);
+    try (var tabletsMutator = ample.mutateTablets()) {
+      for (TabletLocationState tls : tablets) {
+        TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
+        if (tls.current != null) {
+          tabletMutator.deleteLocation(tls.current, LocationType.CURRENT);
+          if (logsForDeadServers != null) {
+            List<Path> logs = logsForDeadServers.get(tls.current);
+            if (logs != null) {
+              for (Path log : logs) {
+                LogEntry entry =
+                    new LogEntry(tls.extent, 0, tls.current.hostPort(), log.toString());
+                tabletMutator.putWal(entry);
+              }
             }
           }
+          if (suspensionTimestamp >= 0) {
+            tabletMutator.putSuspension(tls.current, suspensionTimestamp);
+          }
         }
-        if (suspensionTimestamp >= 0) {
-          tabletMutator.putSuspension(tls.current, suspensionTimestamp);
+        if (tls.suspend != null && suspensionTimestamp < 0) {
+          tabletMutator.deleteSuspension();
         }
+        if (tls.future != null) {
+          tabletMutator.deleteLocation(tls.future, LocationType.FUTURE);
+        }
+        tabletMutator.mutate();
       }
-      if (tls.suspend != null && suspensionTimestamp < 0) {
-        tabletMutator.deleteSuspension();
-      }
-      if (tls.future != null) {
-        tabletMutator.deleteLocation(tls.future, LocationType.FUTURE);
-      }
-      tabletMutator.mutate();
     }
   }
 
   @Override
   public void unsuspend(Collection<TabletLocationState> tablets) {
 
-    for (TabletLocationState tls : tablets) {
-      if (tls.suspend != null) {
-        continue;
+    try (var tabletsMutator = ample.mutateTablets()) {
+      for (TabletLocationState tls : tablets) {
+        if (tls.suspend != null) {
+          continue;
+        }
+        TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
+        tabletMutator.deleteSuspension();
+        tabletMutator.mutate();
       }
-      TabletMutator tabletMutator = ample.mutateTablet(tls.extent);
-      tabletMutator.deleteSuspension();
-      tabletMutator.mutate();
     }
   }
 
