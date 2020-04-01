@@ -502,12 +502,13 @@ public class TabletServer extends AbstractServer {
     return (long) ((1. + (r.nextDouble() / 10)) * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 
-    private Semaphore getSemaphore() {
-    if (sem == null) {
+  private Semaphore getSemaphore() {
+    int writeThreads = getServerConfig().getConfiguration().getCount(Property.TSERV_MAX_WRITETHREADS);
+    if (writeThreads == 0) writeThreads = Integer.MAX_VALUE;
+    if (sem == null || maxThreadPermits != writeThreads) {
       synchronized (this) {
-        if (sem == null) {
-          sem = new Semaphore(maxThreadPermits);
-        }
+        maxThreadPermits = writeThreads;
+        sem = new Semaphore(maxThreadPermits);
       }
     }
     return sem;
@@ -1040,17 +1041,18 @@ public class TabletServer extends AbstractServer {
         return;
       }
 
+      Semaphore semaphoreCopy = getSemaphore();
       boolean reserved = true;
       boolean semaphoreAcquired = false;
       try {
         KeyExtent keyExtent = new KeyExtent(tkeyExtent);
 
         if (TabletType.type(keyExtent) == TabletType.USER) {
-          if (!getSemaphore().tryAcquire()) {
+          if (!semaphoreCopy.tryAcquire()) {
             throw new TException("Mutation failed. No threads available.");
           } else {
             semaphoreAcquired = true;
-            log.info("Available permits: {}", getSemaphore().availablePermits());
+            log.info("Available permits: {}", semaphoreCopy.availablePermits());
             log.info("Write Threads Limit: {}", maxThreadPermits);
           }
         }
@@ -1084,7 +1086,7 @@ public class TabletServer extends AbstractServer {
         }
       } finally {
         if (semaphoreAcquired)
-          getSemaphore().release();
+          semaphoreCopy.release();
         if (reserved) {
           sessionManager.unreserveSession(us);
         }
