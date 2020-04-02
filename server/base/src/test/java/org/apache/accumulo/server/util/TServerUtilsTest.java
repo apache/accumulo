@@ -274,14 +274,14 @@ public class TServerUtilsTest {
     // Ensure that the TServer client port we set above is NOT in the reserved ports
     Map<Integer,Property> reservedPorts =
         TServerUtils.getReservedPorts(factory.getSystemConfiguration());
-    assertTrue(!reservedPorts.keySet().contains(tserverDefaultPort));
+    assertTrue(!reservedPorts.containsKey(tserverDefaultPort));
 
     // Ensure that all the ports we assigned (GC, Master, Monitor) are included in the reserved
     // ports as returned by TServerUtils
-    assertTrue(reservedPorts.keySet().contains(gcPort));
-    assertTrue(reservedPorts.keySet().contains(masterPort));
-    assertTrue(reservedPorts.keySet().contains(monitorPort));
-    assertTrue(reservedPorts.keySet().contains(masterReplCoordPort));
+    assertTrue(reservedPorts.containsKey(gcPort));
+    assertTrue(reservedPorts.containsKey(masterPort));
+    assertTrue(reservedPorts.containsKey(monitorPort));
+    assertTrue(reservedPorts.containsKey(masterReplCoordPort));
 
     InetAddress addr = InetAddress.getByName("localhost");
     try (ServerSocket s = new ServerSocket(tserverDefaultPort, 50, addr)) {

@@ -196,7 +196,7 @@ public class TServerUtils {
         // Attempt to allocate a port outside of the specified port property
         // Search sequentially over the next 1000 ports
         for (int port = last.getPort() + 1; port < last.getPort() + 1001; port++) {
-          if (reservedPorts.keySet().contains(port)) {
+          if (reservedPorts.containsKey(port)) {
             log.debug("During port search, skipping reserved port {} - property {} ({})", port,
                 reservedPorts.get(port).getKey(), reservedPorts.get(port).getDescription());
 

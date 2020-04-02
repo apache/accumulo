@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.conf.Property;
@@ -488,16 +489,7 @@ public class FileManager {
       }
     }
 
-    private Map<FileSKVIterator,String> openFileRefs(Collection<TabletFile> files)
-        throws TooManyFilesException, IOException {
-      List<String> strings = new ArrayList<>(files.size());
-      for (TabletFile file : files) {
-        strings.add(file.getPathStr());
-      }
-      return openFiles(strings);
-    }
-
-    private Map<FileSKVIterator,String> openFiles(Collection<String> files)
+    private Map<FileSKVIterator,String> openFiles(List<String> files)
         throws TooManyFilesException, IOException {
       // one tablet can not open more than maxOpen files, otherwise it could get stuck
       // forever waiting on itself to release files
@@ -519,7 +511,8 @@ public class FileManager {
     public synchronized List<InterruptibleIterator> openFiles(Map<TabletFile,DataFileValue> files,
         boolean detachable, SamplerConfigurationImpl samplerConfig) throws IOException {
 
-      Map<FileSKVIterator,String> newlyReservedReaders = openFileRefs(files.keySet());
+      Map<FileSKVIterator,String> newlyReservedReaders = openFiles(
+          files.keySet().stream().map(TabletFile::getPathStr).collect(Collectors.toList()));
 
       ArrayList<InterruptibleIterator> iters = new ArrayList<>();
 
@@ -582,10 +575,7 @@ public class FileManager {
       if (tabletReservedReaders.size() != 0)
         throw new IllegalStateException();
 
-      Collection<String> files = new ArrayList<>();
-      for (FileDataSource fds : dataSources)
-        files.add(fds.file);
-
+      List<String> files = dataSources.stream().map(x -> x.file).collect(Collectors.toList());
       Map<FileSKVIterator,String> newlyReservedReaders = openFiles(files);
       Map<String,List<FileSKVIterator>> map = new HashMap<>();
       newlyReservedReaders.forEach((reader, fileName) -> {
