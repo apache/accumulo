@@ -26,6 +26,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -97,8 +98,8 @@ public class ImportTable extends MasterRepo {
   @SuppressFBWarnings(value = "OS_OPEN_STREAM",
       justification = "closing intermediate readers would close the ZipInputStream")
   public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
-    String[] exportDirs =
-        tableInfo.directories.stream().map(dm -> dm.exportDir).toArray(String[]::new);
+    List<String> exportDirs =
+        tableInfo.directories.stream().map(dm -> dm.exportDir).collect(Collectors.toList());
 
     log.debug("Searching for export file in {}", exportDirs);
 

@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,7 +27,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
@@ -55,7 +52,6 @@ import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,17 +161,6 @@ public class MasterMetadataUtil {
 
         return new KeyExtent(metadataEntry, KeyExtent.encodePrevEndRow(metadataPrevEndRow));
       }
-    }
-  }
-
-  private static TServerInstance getTServerInstance(String address, ZooLock zooLock) {
-    while (true) {
-      try {
-        return new TServerInstance(address, zooLock.getSessionId());
-      } catch (KeeperException | InterruptedException e) {
-        log.error("{}", e.getMessage(), e);
-      }
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }
 

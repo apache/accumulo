@@ -447,8 +447,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         if (splits.size() <= 2) {
           addSplits(env.tableName, new TreeSet<>(splits), env.tableId);
-          for (int i = 0; i < splits.size(); i++)
-            env.latch.countDown();
+          splits.forEach(s -> env.latch.countDown());
           return;
         }
 
@@ -1492,7 +1491,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    *           if zero or more than one copy of the exportMetadata.zip file are found in the
    *           directories provided.
    */
-  public static Path findExportFile(ClientContext context, String[] importDirs)
+  public static Path findExportFile(ClientContext context, List<String> importDirs)
       throws AccumuloException {
     LinkedHashSet<Path> exportFiles = new LinkedHashSet<>();
     for (String importDir : importDirs) {
@@ -1550,15 +1549,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName.length() <= MAX_TABLE_NAME_LEN,
         "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
 
-    String[] importDirs = importDir.split(",");
-    try {
-      for (int i = 0; i < importDirs.length; i++) {
-        importDirs[i] = checkPath(importDirs[i], "Table", "").toString();
+    List<String> importDirs = new ArrayList<>();
+    for (String dir : importDir.split(",")) {
+      try {
+        importDirs.add(checkPath(dir, "Table", "").toString());
+      } catch (IOException e) {
+        throw new AccumuloException(e);
       }
-    } catch (IOException e) {
-      throw new AccumuloException(e);
     }
-    String normedImportDir = StringUtils.join(importDirs, ",");
 
     try {
       Path exportFilePath = findExportFile(context, importDirs);
@@ -1580,7 +1578,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(normedImportDir.getBytes(UTF_8)));
+        ByteBuffer.wrap(StringUtils.join(importDirs, ",").getBytes(UTF_8)));
 
     Map<String,String> opts = Collections.emptyMap();
 

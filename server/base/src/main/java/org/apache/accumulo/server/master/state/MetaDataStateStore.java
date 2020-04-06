@@ -30,20 +30,13 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class MetaDataStateStore implements TabletStateStore {
-
-  private static final int THREADS = 4;
-  private static final int LATENCY = 1000;
-  private static final int MAX_MEMORY = 200 * 1024 * 1024;
 
   protected final ClientContext context;
   protected final CurrentState state;
   private final String targetTableName;
   private final Ample ample;
-  private static final Logger log = LoggerFactory.getLogger(MetaDataStateStore.class);
 
   protected MetaDataStateStore(ClientContext context, CurrentState state, String targetTableName) {
     this.context = context;

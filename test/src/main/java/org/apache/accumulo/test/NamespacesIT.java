@@ -978,6 +978,8 @@ public class NamespacesIT extends SharedMiniClusterBase {
     ops.create("a");
     assertAccumuloExceptionNoNamespace(
         () -> ops.clone("a", tableName, true, Collections.emptyMap(), Collections.emptySet()));
+    ops.offline("a", true);
+    ops.exportTable("a", System.getProperty("user.dir") + "/target");
     assertAccumuloExceptionNoNamespace(
         () -> ops.importTable(tableName, System.getProperty("user.dir") + "/target"));
 
