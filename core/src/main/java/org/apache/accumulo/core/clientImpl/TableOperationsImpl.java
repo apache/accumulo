@@ -1485,13 +1485,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @param context
    *          used to obtain filesystem based on configuration
    * @param importDirs
-   *          the list of directories to search.
+   *          the set of directories to search.
    * @return the Path representing the location of the file.
    * @throws AccumuloException
    *           if zero or more than one copy of the exportMetadata.zip file are found in the
    *           directories provided.
    */
-  public static Path findExportFile(ClientContext context, List<String> importDirs)
+  public static Path findExportFile(ClientContext context, Set<String> importDirs)
       throws AccumuloException {
     LinkedHashSet<Path> exportFiles = new LinkedHashSet<>();
     for (String importDir : importDirs) {
@@ -1542,24 +1542,24 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void importTable(String tableName, String importDir)
+  public void importTable(String tableName, Set<String> importDirs)
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
-    checkArgument(importDir != null, "importDir is null");
+    checkArgument(importDirs != null, "importDir is null");
     checkArgument(tableName.length() <= MAX_TABLE_NAME_LEN,
         "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
 
-    List<String> importDirs = new ArrayList<>();
-    for (String dir : importDir.split(",")) {
-      try {
-        importDirs.add(checkPath(dir, "Table", "").toString());
-      } catch (IOException e) {
-        throw new AccumuloException(e);
+    Set<String> checkedImportDirs = new HashSet<String>();
+    try {
+      for (String s : importDirs) {
+        checkedImportDirs.add(checkPath(s, "Table", "").toString());
       }
+    } catch (IOException e) {
+      throw new AccumuloException(e);
     }
 
     try {
-      Path exportFilePath = findExportFile(context, importDirs);
+      Path exportFilePath = findExportFile(context, checkedImportDirs);
       FileSystem fs = exportFilePath.getFileSystem(context.getHadoopConf());
       Map<String,String> props = getExportedProps(fs, exportFilePath);
 
@@ -1578,7 +1578,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(StringUtils.join(importDirs, ",").getBytes(UTF_8)));
+        ByteBuffer.wrap(StringUtils.join(checkedImportDirs, ",").getBytes(UTF_8)));
 
     Map<String,String> opts = Collections.emptyMap();
 

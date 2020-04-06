@@ -19,13 +19,14 @@
 package org.apache.accumulo.master.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.function.Predicate.not;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -53,16 +54,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ImportTable extends MasterRepo {
   private static final Logger log = LoggerFactory.getLogger(ImportTable.class);
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 2L;
 
   private ImportedTableInfo tableInfo;
 
-  public ImportTable(String user, String tableName, String exportDir, NamespaceId namespaceId) {
+  public ImportTable(String user, String tableName, Set<String> exportDirs,
+      NamespaceId namespaceId) {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
     tableInfo.namespaceId = namespaceId;
-    tableInfo.directories = parseExportDir(exportDir);
+    tableInfo.directories = parseExportDir(exportDirs);
   }
 
   @Override
@@ -98,8 +100,8 @@ public class ImportTable extends MasterRepo {
   @SuppressFBWarnings(value = "OS_OPEN_STREAM",
       justification = "closing intermediate readers would close the ZipInputStream")
   public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
-    List<String> exportDirs =
-        tableInfo.directories.stream().map(dm -> dm.exportDir).collect(Collectors.toList());
+    Set<String> exportDirs =
+        tableInfo.directories.stream().map(dm -> dm.exportDir).collect(Collectors.toSet());
 
     log.debug("Searching for export file in {}", exportDirs);
 
@@ -155,19 +157,12 @@ public class ImportTable extends MasterRepo {
     Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
   }
 
-  static List<ImportedTableInfo.DirectoryMapping> parseExportDir(String exportDir) {
-    if (exportDir == null || exportDir.isEmpty()) {
+  static List<ImportedTableInfo.DirectoryMapping> parseExportDir(Set<String> exportDirs) {
+    if (exportDirs == null || exportDirs.isEmpty()) {
       return Collections.emptyList();
     }
 
-    String[] exportDirs = exportDir.split(",");
-    List<ImportedTableInfo.DirectoryMapping> dirs = new ArrayList<>(exportDirs.length);
-    for (String ed : exportDirs) {
-      log.info("Extracted import directory: {}", ed);
-      ImportedTableInfo.DirectoryMapping dir = new ImportedTableInfo.DirectoryMapping();
-      dir.exportDir = ed;
-      dirs.add(dir);
-    }
-    return dirs;
+    return exportDirs.stream().filter(not(String::isEmpty))
+        .map(ImportedTableInfo.DirectoryMapping::new).collect(Collectors.toList());
   }
 }

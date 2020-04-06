@@ -30,6 +30,7 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -115,11 +116,12 @@ public class ImportExportIT extends AccumuloClusterHarness {
         assertTrue("Failed to create " + baseDir, fs.mkdirs(p));
       }
 
-      String importDirDlm = importDirA + "," + importDirB;
+      Set<String> importDirs = Set.of(importDirA.toString(), importDirB.toString());
+
       Path[] importDirAry = new Path[] {importDirA, importDirB};
 
       log.info("Exporting table to {}", exportDir);
-      log.info("Importing table from {}", importDirDlm);
+      log.info("Importing table from {}", importDirs);
 
       // Offline the table
       client.tableOperations().offline(srcTable, true);
@@ -151,7 +153,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       log.info("Import dir B: {}", Arrays.toString(fs.listStatus(importDirB)));
 
       // Import the exported data into a new table
-      client.tableOperations().importTable(destTable, importDirDlm);
+      client.tableOperations().importTable(destTable, importDirs);
 
       // Get the table ID for the table that the importtable command created
       final String tableId = client.tableOperations().tableIdMap().get(destTable);

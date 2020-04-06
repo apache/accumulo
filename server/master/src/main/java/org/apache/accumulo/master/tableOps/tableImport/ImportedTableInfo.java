@@ -38,7 +38,11 @@ class ImportedTableInfo implements Serializable {
   static class DirectoryMapping implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    public String exportDir;
+    public DirectoryMapping(String exportDir) {
+      this.exportDir = exportDir;
+    }
+
+    public final String exportDir;
     public String importDir;
   }
 }
