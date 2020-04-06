@@ -2684,9 +2684,9 @@ public class Tablet {
         persistedTime = maxCommittedTime;
       }
 
-     return MasterMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent, newDatafile,
-          absMergeFile, dfv, tabletTime.getMetadataTime(persistedTime), filesInUseByScans,
-          tabletServer.getLock(), unusedWalLogs, flushId);
+      return MasterMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
+          newDatafile, absMergeFile, dfv, tabletTime.getMetadataTime(persistedTime),
+          filesInUseByScans, tabletServer.getLock(), unusedWalLogs, flushId);
     }
 
   }
