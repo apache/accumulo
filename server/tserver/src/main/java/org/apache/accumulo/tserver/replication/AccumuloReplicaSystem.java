@@ -59,11 +59,10 @@ import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.replication.ReplicaSystem;
 import org.apache.accumulo.server.replication.ReplicaSystemHelper;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -91,7 +90,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
   private String instanceName, zookeepers;
   private AccumuloConfiguration conf;
-  private VolumeManager fs;
+  private ServerContext context;
 
   protected void setConf(AccumuloConfiguration conf) {
     this.conf = conf;
@@ -122,13 +121,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     instanceName = configuration.substring(0, index);
     zookeepers = configuration.substring(index + 1);
     conf = context.getConfiguration();
-
-    try {
-      fs = VolumeManagerImpl.get(conf, context.getHadoopConf());
-    } catch (IOException e) {
-      log.error("Could not connect to filesystem", e);
-      throw new RuntimeException(e);
-    }
+    this.context = context;
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by admin")
@@ -329,7 +322,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     log.debug("Replication WAL to peer tserver");
     final Set<Integer> tids;
-    try (final FSDataInputStream fsinput = fs.open(p);
+    try (final FSDataInputStream fsinput = context.getVolumeManager().open(p);
         final DataInputStream input = getWalStream(p, fsinput)) {
       log.debug("Skipping unwanted data in WAL");
       try (TraceScope span = Trace.startSpan("Consume WAL prefix")) {
@@ -593,7 +586,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
     ClientProperty.setAuthenticationToken(properties, token);
 
-    return new ClientContext(ClientInfo.from(properties, token), localConf);
+    return new ClientContext(SingletonReservation.noop(), ClientInfo.from(properties, token),
+        localConf);
   }
 
   protected Set<Integer> consumeWalPrefix(ReplicationTarget target, DataInputStream wal,

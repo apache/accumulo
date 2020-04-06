@@ -24,6 +24,7 @@ import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MUTATION;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -45,7 +46,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.data.ServerMutation;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
@@ -58,7 +58,6 @@ import org.apache.hadoop.io.MapFile.Writer;
 import org.apache.hadoop.io.Text;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -72,7 +71,8 @@ public class SortedLogRecoveryTest {
   static final Value value = new Value("value");
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   static class KeyValue implements Comparable<KeyValue> {
     public final LogFileKey key;
@@ -137,25 +137,20 @@ public class SortedLogRecoveryTest {
     }
   }
 
-  private static List<Mutation> recover(Map<String,KeyValue[]> logs, KeyExtent extent)
-      throws IOException {
+  private List<Mutation> recover(Map<String,KeyValue[]> logs, KeyExtent extent) throws IOException {
     return recover(logs, new HashSet<>(), extent);
   }
 
-  private static List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files,
-      KeyExtent extent) throws IOException {
-    TemporaryFolder root =
-        new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-    root.create();
-    final String workdir = root.getRoot().getAbsolutePath() + "/workdir";
-    VolumeManager fs = VolumeManagerImpl.getLocal(workdir);
-    final Path workdirPath = new Path("file://" + workdir);
-    fs.deleteRecursively(workdirPath);
-    ArrayList<Path> dirs = new ArrayList<>();
-    try {
+  private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent)
+      throws IOException {
+    final String workdir = tempFolder.newFolder().getAbsolutePath();
+    try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
+      final Path workdirPath = new Path("file://" + workdir);
+      fs.deleteRecursively(workdirPath);
+      ArrayList<Path> dirs = new ArrayList<>();
       for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
         String path = workdir + "/" + entry.getKey();
-        FileSystem ns = fs.getVolumeByPath(new Path(path)).getFileSystem();
+        FileSystem ns = fs.getFileSystemByPath(new Path(path));
         @SuppressWarnings("deprecation")
         Writer map = new MapFile.Writer(ns.getConf(), ns, path + "/log1", LogFileKey.class,
             LogFileValue.class);
@@ -171,8 +166,6 @@ public class SortedLogRecoveryTest {
       CaptureMutations capture = new CaptureMutations();
       recovery.recover(extent, dirs, files, capture);
       return capture.result;
-    } finally {
-      root.delete();
     }
   }
 
@@ -878,9 +871,8 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries1", entries1);
 
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("consecutive " + LogEvents.COMPACTION_FINISH.name());
-    recover(logs, extent);
+    var e = assertThrows(IllegalStateException.class, () -> recover(logs, extent));
+    assertTrue(e.getMessage().contains("consecutive " + LogEvents.COMPACTION_FINISH.name()));
   }
 
   @Test
@@ -1000,8 +992,7 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries1", entries1);
 
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("not " + LogEvents.OPEN);
-    recover(logs, extent);
+    var e = assertThrows(IllegalStateException.class, () -> recover(logs, extent));
+    assertTrue(e.getMessage().contains("not " + LogEvents.OPEN));
   }
 }

@@ -57,6 +57,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -277,7 +278,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   }
 
   private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent,
-      Collection<TabletFile> absFiles)
+      Collection<StoredTabletFile> absFiles)
       throws TableNotFoundException, AccumuloException, IOException {
 
     // TODO share code w/ tablet - ACCUMULO-1303
@@ -310,9 +311,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     // TODO need to close files - ACCUMULO-1303
     for (TabletFile file : absFiles) {
       FileSystem fs =
-          VolumeConfiguration.getVolume(file.getMetadataEntry(), conf, config).getFileSystem();
+          VolumeConfiguration.getVolume(file.getPathStr(), conf, config).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getMetadataEntry(), fs, conf, CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getPathStr(), fs, conf, CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(acuTableConf).build();
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);

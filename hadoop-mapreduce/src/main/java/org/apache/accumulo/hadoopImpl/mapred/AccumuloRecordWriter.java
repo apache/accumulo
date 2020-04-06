@@ -21,7 +21,6 @@ package org.apache.accumulo.hadoopImpl.mapred;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -35,7 +34,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.hadoop.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
@@ -187,16 +185,11 @@ public class AccumuloRecordWriter implements RecordWriter<Text,Mutation> {
       mtbw.close();
     } catch (MutationsRejectedException e) {
       if (!e.getSecurityErrorCodes().isEmpty()) {
-        HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<>();
-        for (Map.Entry<TabletId,Set<SecurityErrorCode>> ke : e.getSecurityErrorCodes().entrySet()) {
-          String tableId = ke.getKey().getTableId().toString();
-          Set<SecurityErrorCode> secCodes = tables.get(tableId);
-          if (secCodes == null) {
-            secCodes = new HashSet<>();
-            tables.put(tableId, secCodes);
-          }
-          secCodes.addAll(ke.getValue());
-        }
+        var tables = new HashMap<String,Set<SecurityErrorCode>>();
+        e.getSecurityErrorCodes().forEach((tabletId, secSet) -> {
+          String tableId = tabletId.getTableId().toString();
+          tables.computeIfAbsent(tableId, p -> new HashSet<>()).addAll(secSet);
+        });
 
         log.error("Not authorized to write to tables : " + tables);
       }

@@ -20,15 +20,11 @@ package org.apache.accumulo.core.clientImpl.lexicoder;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ByteUtilsTest {
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   private final byte[] empty = new byte[0];
   private final byte[] noSplits = "nosplits".getBytes();
@@ -93,8 +89,7 @@ public class ByteUtilsTest {
   @Test
   public void testIllegalArgument() {
     // incomplete bytes would cause an ArrayIndexOutOfBounds in the past
-    exception.expect(IllegalArgumentException.class);
     byte[] errorBytes = {0x01};
-    ByteUtils.unescape(errorBytes);
+    assertThrows(IllegalArgumentException.class, () -> ByteUtils.unescape(errorBytes));
   }
 }

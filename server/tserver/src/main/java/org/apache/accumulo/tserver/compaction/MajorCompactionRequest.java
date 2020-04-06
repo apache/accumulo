@@ -40,6 +40,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.cache.BlockCache;
@@ -66,7 +67,7 @@ public class MajorCompactionRequest implements Cloneable {
   private final AccumuloConfiguration tableConfig;
   private final BlockCache indexCache;
   private final BlockCache summaryCache;
-  private Map<TabletFile,DataFileValue> files;
+  private Map<StoredTabletFile,DataFileValue> files;
   private final ServerContext context;
   private final Cache<String,Long> fileLenCache;
 
@@ -105,7 +106,7 @@ public class MajorCompactionRequest implements Cloneable {
     return reason;
   }
 
-  public Map<TabletFile,DataFileValue> getFiles() {
+  public Map<StoredTabletFile,DataFileValue> getFiles() {
     return files;
   }
 
@@ -149,7 +150,7 @@ public class MajorCompactionRequest implements Cloneable {
    * @see TableOperations#addSummarizers(String, SummarizerConfiguration...)
    * @see WriterOptions#withSummarizers(SummarizerConfiguration...)
    */
-  public List<Summary> getSummaries(Collection<TabletFile> files,
+  public List<Summary> getSummaries(Collection<StoredTabletFile> files,
       Predicate<SummarizerConfiguration> summarySelector) {
     Objects.requireNonNull(volumeManager,
         "Getting summaries is not  supported at this time. It's only supported when "
@@ -157,7 +158,7 @@ public class MajorCompactionRequest implements Cloneable {
     SummaryCollection sc = new SummaryCollection();
     SummarizerFactory factory = new SummarizerFactory(tableConfig);
     for (TabletFile file : files) {
-      FileSystem fs = volumeManager.getVolumeByPath(file.getPath()).getFileSystem();
+      FileSystem fs = volumeManager.getFileSystemByPath(file.getPath());
       Configuration conf = context.getHadoopConf();
       SummaryCollection fsc = SummaryReader
           .load(fs, conf, factory, file.getPath(), summarySelector, summaryCache, indexCache,
@@ -169,7 +170,7 @@ public class MajorCompactionRequest implements Cloneable {
     return sc.getSummaries();
   }
 
-  public void setFiles(Map<TabletFile,DataFileValue> update) {
+  public void setFiles(Map<StoredTabletFile,DataFileValue> update) {
     this.files = Collections.unmodifiableMap(update);
   }
 
@@ -180,9 +181,9 @@ public class MajorCompactionRequest implements Cloneable {
     // @TODO verify the file isn't some random file in HDFS
     // @TODO ensure these files are always closed?
     FileOperations fileFactory = FileOperations.getInstance();
-    FileSystem ns = volumeManager.getVolumeByPath(tabletFile.getPath()).getFileSystem();
+    FileSystem ns = volumeManager.getFileSystemByPath(tabletFile.getPath());
     return fileFactory.newReaderBuilder()
-        .forFile(tabletFile.getNormalizedPath(), ns, ns.getConf(), context.getCryptoService())
+        .forFile(tabletFile.getPathStr(), ns, ns.getConf(), context.getCryptoService())
         .withTableConfiguration(tableConfig).seekToBeginning().build();
   }
 

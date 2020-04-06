@@ -61,7 +61,7 @@ public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> getRecordReader(InputSplit split,
       JobConf job, Reporter reporter) throws IOException {
     AccumuloRecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader =
-        new AccumuloRecordReader<Text,PeekingIterator<Entry<Key,Value>>>(CLASS) {
+        new AccumuloRecordReader<>(CLASS) {
           RowIterator rowIterator;
 
           @Override

@@ -45,8 +45,7 @@ public class Main {
   public static void main(final String[] args) {
     try {
       // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when
-      // using
-      // the VFSClassLoader with jars in HDFS.
+      // using the VFSClassLoader with jars in HDFS.
       ClassLoader loader = getClassLoader();
       Class<?> confClass = null;
       try {

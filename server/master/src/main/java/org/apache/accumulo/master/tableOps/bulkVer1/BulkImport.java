@@ -32,6 +32,7 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.file.FileOperations;
@@ -118,7 +119,7 @@ public class BulkImport extends MasterRepo {
     Utils.getReadLock(master, tableId, tid).lock();
 
     // check that the error directory exists and is empty
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
 
     Path errorPath = new Path(errorDir);
     FileStatus errorStatus = null;
@@ -201,7 +202,10 @@ public class BulkImport extends MasterRepo {
 
     final UniqueNameAllocator namer = master.getUniqueNameAllocator();
 
-    int workerCount = master.getConfiguration().getCount(Property.MASTER_BULK_RENAME_THREADS);
+    AccumuloConfiguration serverConfig = master.getConfiguration();
+    @SuppressWarnings("deprecation")
+    int workerCount = serverConfig.getCount(
+        serverConfig.resolve(Property.MASTER_RENAME_THREADS, Property.MASTER_BULK_RENAME_THREADS));
     SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulk move");
     List<Future<Exception>> results = new ArrayList<>();
 

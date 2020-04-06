@@ -92,14 +92,8 @@ public class ScannerOptions implements ScannerBase {
     if (serverSideIteratorOptions.size() == 0) {
       serverSideIteratorOptions = new HashMap<>();
     }
-
-    Map<String,String> opts = serverSideIteratorOptions.get(si.getName());
-
-    if (opts == null) {
-      opts = new HashMap<>();
-      serverSideIteratorOptions.put(si.getName(), opts);
-    }
-    opts.putAll(si.getOptions());
+    serverSideIteratorOptions.computeIfAbsent(si.getName(), k -> new HashMap<>())
+        .putAll(si.getOptions());
   }
 
   @Override
@@ -128,14 +122,7 @@ public class ScannerOptions implements ScannerBase {
     if (serverSideIteratorOptions.size() == 0) {
       serverSideIteratorOptions = new HashMap<>();
     }
-
-    Map<String,String> opts = serverSideIteratorOptions.get(iteratorName);
-
-    if (opts == null) {
-      opts = new HashMap<>();
-      serverSideIteratorOptions.put(iteratorName, opts);
-    }
-    opts.put(key, value);
+    serverSideIteratorOptions.computeIfAbsent(iteratorName, k -> new HashMap<>()).put(key, value);
   }
 
   @Override

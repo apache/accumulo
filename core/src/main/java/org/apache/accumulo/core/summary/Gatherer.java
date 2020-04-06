@@ -214,9 +214,9 @@ public class Gatherer {
 
         // When no location, the approach below will consistently choose the same tserver for the
         // same file (as long as the set of tservers is stable).
-        int idx = Math
-            .abs(Hashing.murmur3_32().hashString(entry.getKey().getNormalizedPath(), UTF_8).asInt())
-            % tservers.size();
+        int idx =
+            Math.abs(Hashing.murmur3_32().hashString(entry.getKey().getPathStr(), UTF_8).asInt())
+                % tservers.size();
         location = tservers.get(idx);
       }
 
@@ -245,7 +245,7 @@ public class Gatherer {
     return () -> {
       Iterator<Entry<K,V>> esi = map.entrySet().iterator();
 
-      return new Iterator<Map<K,V>>() {
+      return new Iterator<>() {
         @Override
         public boolean hasNext() {
           return esi.hasNext();
@@ -368,9 +368,9 @@ public class Gatherer {
 
     private synchronized void initiateProcessing(ProcessedFiles previousWork) {
       try {
-        Predicate<TabletFile> fileSelector = file -> Math
-            .abs(Hashing.murmur3_32().hashString(file.getNormalizedPath(), UTF_8).asInt()) % modulus
-            == remainder;
+        Predicate<TabletFile> fileSelector =
+            file -> Math.abs(Hashing.murmur3_32().hashString(file.getPathStr(), UTF_8).asInt())
+                % modulus == remainder;
         if (previousWork != null) {
           fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }

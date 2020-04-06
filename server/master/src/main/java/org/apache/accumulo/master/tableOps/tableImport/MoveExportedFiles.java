@@ -18,12 +18,25 @@
  */
 package org.apache.accumulo.master.tableOps.tableImport;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -32,6 +45,8 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Sets;
 
 class MoveExportedFiles extends MasterRepo {
   private static final Logger log = LoggerFactory.getLogger(MoveExportedFiles.class);
@@ -46,34 +61,89 @@ class MoveExportedFiles extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    try {
-      VolumeManager fs = master.getFileSystem();
+    String fmtTid = FateTxId.formatTid(tid);
 
-      Map<String,String> fileNameMappings = PopulateMetadataTable.readMappingFile(fs, tableInfo);
+    int workerCount = master.getConfiguration().getCount(Property.MASTER_RENAME_THREADS);
+    SimpleThreadPool workers = new SimpleThreadPool(workerCount, "importtable rename");
+    List<Future<Boolean>> results = new ArrayList<>();
 
-      for (String oldFileName : fileNameMappings.keySet()) {
-        if (!fs.exists(new Path(tableInfo.exportDir, oldFileName))) {
-          throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
-              tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-              "File referenced by exported table does not exists " + oldFileName);
-        }
+    VolumeManager fs = master.getVolumeManager();
+
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      Map<String,String> fileNameMappings = new HashMap<>();
+      PopulateMetadataTable.readMappingFile(fs, tableInfo, dm.importDir, fileNameMappings);
+
+      FileStatus[] exportedFiles = fs.listStatus(new Path(dm.exportDir));
+      FileStatus[] importedFiles = fs.listStatus(new Path(dm.importDir));
+
+      Function<FileStatus,String> fileStatusName = fstat -> fstat.getPath().getName();
+
+      Set<String> importing = Arrays.stream(exportedFiles).map(fileStatusName)
+          .map(fileNameMappings::get).collect(Collectors.toSet());
+
+      Set<String> imported =
+          Arrays.stream(importedFiles).map(fileStatusName).collect(Collectors.toSet());
+
+      if (log.isDebugEnabled()) {
+        log.debug("{} files already present in imported (target) directory: {}", fmtTid,
+            String.join(",", imported));
       }
 
-      FileStatus[] files = fs.listStatus(new Path(tableInfo.exportDir));
+      Set<String> missingFiles = Sets.difference(new HashSet<>(fileNameMappings.values()),
+          new HashSet<>(Sets.union(importing, imported)));
 
-      for (FileStatus fileStatus : files) {
-        String newName = fileNameMappings.get(fileStatus.getPath().getName());
-
-        if (newName != null)
-          fs.rename(fileStatus.getPath(), new Path(tableInfo.importDir, newName));
+      if (!missingFiles.isEmpty()) {
+        throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
+            tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+            "Missing source files corresponding to files " + String.join(",", missingFiles));
       }
 
-      return new FinishImportTable(tableInfo);
-    } catch (IOException ioe) {
-      log.warn("{}", ioe.getMessage(), ioe);
-      throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
-          tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Error renaming files " + ioe.getMessage());
+      for (FileStatus fileStatus : exportedFiles) {
+        Path originalPath = fileStatus.getPath();
+        String newName = fileNameMappings.get(originalPath.getName());
+
+        results.add(workers.submit(() -> {
+          boolean success = true;
+
+          // Need to exclude any other files which may be present in the exported directory
+          if (newName != null) {
+            Path newPath = new Path(dm.importDir, newName);
+
+            // No try-catch here, as we do not expect any "benign" exceptions. Prior code already
+            // accounts for files which were already moved. So anything returned by the rename
+            // operation would be truly unexpected
+            success = fs.rename(originalPath, newPath);
+
+            if (!success) {
+              log.error("{} rename operation returned false. orig: {} new: {}", fmtTid,
+                  originalPath, newPath);
+            } else if (log.isTraceEnabled()) {
+              log.trace("{} moved {} to {}", fmtTid, originalPath, newPath);
+            }
+          } else {
+            log.debug("{} not moving (unmapped) file {}", fmtTid, originalPath);
+          }
+
+          return success;
+        }));
+      }
     }
+
+    workers.shutdown();
+    while (!workers.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {}
+
+    for (Future<Boolean> future : results) {
+      try {
+        if (!future.get()) {
+          throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
+              TableOperation.IMPORT, TableOperationExceptionType.OTHER, "Failed to import files");
+        }
+      } catch (ExecutionException ee) {
+        throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
+            TableOperation.IMPORT, TableOperationExceptionType.OTHER, ee.getCause().getMessage());
+      }
+    }
+
+    return new FinishImportTable(tableInfo);
   }
 }

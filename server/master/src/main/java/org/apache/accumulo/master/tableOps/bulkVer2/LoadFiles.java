@@ -94,7 +94,7 @@ class LoadFiles extends MasterRepo {
           + FateTxId.formatTid(tid) + ")");
       return 100;
     }
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     try (LoadMappingIterator lmi = BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(),
         bulkInfo.tableId, p -> fs.open(p))) {
@@ -220,7 +220,7 @@ class LoadFiles extends MasterRepo {
 
         for (final Bulk.FileInfo fileInfo : files) {
           Path fullPath = new Path(bulkDir, fileInfo.getFileName());
-          TabletFile bulkFile = new TabletFile(fullPath, fullPath.toString());
+          TabletFile bulkFile = new TabletFile(fullPath);
 
           if (!loadedFiles.contains(bulkFile)) {
             thriftImports.put(fileInfo.getFileName(), new MapFileInfo(fileInfo.getEstFileSize()));

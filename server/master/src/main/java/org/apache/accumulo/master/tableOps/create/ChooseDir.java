@@ -59,7 +59,7 @@ class ChooseDir extends MasterRepo {
 
   @Override
   public void undo(long tid, Master master) throws Exception {
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
     fs.deleteRecursively(new Path(tableInfo.getSplitDirsFile()));
   }
 
@@ -95,7 +95,7 @@ class ChooseDir extends MasterRepo {
    */
   private void writeTabletDirectoriesToFileSystem(Master master, SortedSet<Text> dirs)
       throws IOException {
-    FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
+    FileSystem fs = master.getVolumeManager().getDefaultVolume().getFileSystem();
     if (fs.exists(new Path(tableInfo.getSplitDirsFile())))
       fs.delete(new Path(tableInfo.getSplitDirsFile()), true);
     try (FSDataOutputStream stream = master.getOutputStream(tableInfo.getSplitDirsFile())) {

@@ -25,8 +25,8 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.concurrent.TimeUnit;
 
@@ -38,9 +38,7 @@ import org.apache.accumulo.fate.util.Retry.NeedsTimeIncrement;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.easymock.EasyMock;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 
 public class RetryTest {
@@ -53,9 +51,6 @@ public class RetryTest {
   private static final long LOG_INTERVAL = 1000;
   private Retry unlimitedRetry;
   private static final TimeUnit MS = MILLISECONDS;
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   @Before
   public void setup() {
@@ -103,9 +98,7 @@ public class RetryTest {
     assertFalse(retry.canRetry());
 
     // Calling useRetry when canRetry returns false throws an exception
-    exception.expect(IllegalStateException.class);
-    retry.useRetry();
-    fail("previous command should have thrown IllegalStateException");
+    assertThrows(IllegalStateException.class, () -> retry.useRetry());
   }
 
   @Test
@@ -245,9 +238,8 @@ public class RetryTest {
     NeedsRetries builder = Retry.builder();
     builder.maxRetries(10);
     builder.maxRetries(0);
-    exception.expect(IllegalArgumentException.class);
-    builder.maxRetries(-1);
-    fail("Should not allow negative retries");
+    assertThrows("Should not allow negative retries", IllegalArgumentException.class,
+        () -> builder.maxRetries(-1));
   }
 
   @Test
@@ -260,9 +252,8 @@ public class RetryTest {
     builder.retryAfter(0, MILLISECONDS);
     builder.retryAfter(0, DAYS);
 
-    exception.expect(IllegalArgumentException.class);
-    builder.retryAfter(-1, NANOSECONDS);
-    fail("Should not allow negative wait times");
+    assertThrows("Should not allow negative wait times", IllegalArgumentException.class,
+        () -> builder.retryAfter(-1, NANOSECONDS));
   }
 
   @Test
@@ -275,9 +266,8 @@ public class RetryTest {
     builder.incrementBy(0, HOURS);
     builder.incrementBy(0, NANOSECONDS);
 
-    exception.expect(IllegalArgumentException.class);
-    builder.incrementBy(-1, NANOSECONDS);
-    fail("Should not allow negative increments");
+    assertThrows("Should not allow negative increments", IllegalArgumentException.class,
+        () -> builder.incrementBy(-1, NANOSECONDS));
   }
 
   @Test
@@ -287,9 +277,8 @@ public class RetryTest {
     builder.maxWait(15, MILLISECONDS);
     builder.maxWait(16, MILLISECONDS);
 
-    exception.expect(IllegalArgumentException.class);
-    builder.maxWait(14, MILLISECONDS);
-    fail("Max wait time should be greater than or equal to initial wait time");
+    assertThrows("Max wait time should be greater than or equal to initial wait time",
+        IllegalArgumentException.class, () -> builder.maxWait(14, MILLISECONDS));
   }
 
   @Test
@@ -303,9 +292,8 @@ public class RetryTest {
     builder.logInterval(0, HOURS);
     builder.logInterval(0, NANOSECONDS);
 
-    exception.expect(IllegalArgumentException.class);
-    builder.logInterval(-1, NANOSECONDS);
-    fail("Log interval must not be negative");
+    assertThrows("Log interval must not be negative", IllegalArgumentException.class,
+        () -> builder.logInterval(-1, NANOSECONDS));
   }
 
   @Test

@@ -41,7 +41,7 @@ public class Namespaces {
   private static final Logger log = LoggerFactory.getLogger(Namespaces.class);
 
   public static final String VALID_NAME_REGEX = "^\\w*$";
-  public static final Validator<String> VALID_NAME = new Validator<String>() {
+  public static final Validator<String> VALID_NAME = new Validator<>() {
     @Override
     public boolean test(String namespace) {
       return namespace != null && namespace.matches(VALID_NAME_REGEX);
@@ -56,7 +56,7 @@ public class Namespaces {
     }
   };
 
-  public static final Validator<String> NOT_DEFAULT = new Validator<String>() {
+  public static final Validator<String> NOT_DEFAULT = new Validator<>() {
     @Override
     public boolean test(String namespace) {
       return !Namespace.DEFAULT.name().equals(namespace);
@@ -68,7 +68,7 @@ public class Namespaces {
     }
   };
 
-  public static final Validator<String> NOT_ACCUMULO = new Validator<String>() {
+  public static final Validator<String> NOT_ACCUMULO = new Validator<>() {
     @Override
     public boolean test(String namespace) {
       return !Namespace.ACCUMULO.name().equals(namespace);

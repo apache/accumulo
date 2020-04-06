@@ -65,46 +65,48 @@ class PopulateMetadataTable extends MasterRepo {
     this.tableInfo = ti;
   }
 
-  static Map<String,String> readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo)
-      throws Exception {
-
+  static void readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo, String importDir,
+      Map<String,String> fileNameMappings) throws Exception {
     try (BufferedReader in = new BufferedReader(
-        new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt")), UTF_8))) {
-      Map<String,String> map = new HashMap<>();
-
-      String line = null;
+        new InputStreamReader(fs.open(new Path(importDir, "mappings.txt")), UTF_8))) {
+      String line, prev;
       while ((line = in.readLine()) != null) {
         String[] sa = line.split(":", 2);
-        map.put(sa[0], sa[1]);
+        prev = fileNameMappings.put(sa[0], importDir + "/" + sa[1]);
+
+        if (prev != null) {
+          String msg = "File exists in multiple import directories: '"
+              + sa[0].replaceAll("[\r\n]", "") + "'";
+          log.warn(msg);
+          throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
+              tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER, msg);
+        }
       }
-
-      return map;
     }
-
   }
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
 
-    Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
+    Path path = new Path(tableInfo.exportFile);
 
     BatchWriter mbw = null;
     ZipInputStream zis = null;
 
     try {
-      VolumeManager fs = master.getFileSystem();
+      VolumeManager fs = master.getVolumeManager();
 
       mbw = master.getContext().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
       zis = new ZipInputStream(fs.open(path));
 
-      Map<String,String> fileNameMappings = readMappingFile(fs, tableInfo);
-
-      log.info("importDir is " + tableInfo.importDir);
-
-      // This is a directory already prefixed with proper volume information e.g.
-      // hdfs://localhost:8020/path/to/accumulo/tables/...
-      final String bulkDir = tableInfo.importDir;
+      Map<String,String> fileNameMappings = new HashMap<>();
+      for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+        log.info("importDir is " + dm.importDir);
+        // mappings are prefixed with the proper volume information, e.g:
+        // hdfs://localhost:8020/path/to/accumulo/tables/...
+        readMappingFile(fs, tableInfo, dm.importDir, fileNameMappings);
+      }
 
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
@@ -137,7 +139,7 @@ class PopulateMetadataTable extends MasterRepo {
                     "File " + oldName + " does not exist in import dir");
               }
 
-              cq = new Text(bulkDir + "/" + newName);
+              cq = new Text(newName);
             } else {
               cq = key.getColumnQualifier();
             }

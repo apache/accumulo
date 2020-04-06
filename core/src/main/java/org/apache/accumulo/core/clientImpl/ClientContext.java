@@ -128,22 +128,12 @@ public class ClientContext implements AccumuloClient {
     return () -> Suppliers.memoizeWithExpiration(s::get, 100, TimeUnit.MILLISECONDS).get();
   }
 
-  public ClientContext(Properties clientProperties) {
-    this(ClientInfo.from(clientProperties));
-  }
-
-  public ClientContext(SingletonReservation reservation, ClientInfo info) {
-    this(reservation, info, ClientConfConverter.toAccumuloConf(info.getProperties()));
-  }
-
-  public ClientContext(ClientInfo info) {
-    this(info, ClientConfConverter.toAccumuloConf(info.getProperties()));
-  }
-
-  public ClientContext(ClientInfo info, AccumuloConfiguration serverConf) {
-    this(SingletonReservation.noop(), info, serverConf);
-  }
-
+  /**
+   * Create a client context with the provided configuration. Legacy client code must provide a
+   * no-op SingletonReservation to preserve behavior prior to 2.x. Clients since 2.x should call
+   * Accumulo.newClient() builder, which will create a client reservation in
+   * {@link ClientBuilderImpl#buildClient}
+   */
   public ClientContext(SingletonReservation reservation, ClientInfo info,
       AccumuloConfiguration serverConf) {
     this.info = info;
@@ -684,7 +674,9 @@ public class ClientContext implements AccumuloClient {
       SingletonReservation reservation = SingletonManager.getClientReservation();
       try {
         // ClientContext closes reservation unless a RuntimeException is thrown
-        return new ClientContext(reservation, cbi.getClientInfo());
+        ClientInfo info = cbi.getClientInfo();
+        AccumuloConfiguration config = ClientConfConverter.toAccumuloConf(info.getProperties());
+        return new ClientContext(reservation, info, config);
       } catch (RuntimeException e) {
         reservation.close();
         throw e;

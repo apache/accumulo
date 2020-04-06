@@ -912,12 +912,12 @@ public class ReplicationIT extends ConfigurableMacBase {
       // ACCUMULO-2743 The Observer in the tserver has to be made aware of the change to get the
       // combiner (made by the master)
       for (int i = 0; i < 10 && !client.tableOperations().listIterators(ReplicationTable.NAME)
-          .keySet().contains(ReplicationTable.COMBINER_NAME); i++) {
+          .containsKey(ReplicationTable.COMBINER_NAME); i++) {
         sleepUninterruptibly(2, TimeUnit.SECONDS);
       }
 
       assertTrue("Combiner was never set on replication table", client.tableOperations()
-          .listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME));
+          .listIterators(ReplicationTable.NAME).containsKey(ReplicationTable.COMBINER_NAME));
 
       // Trigger the minor compaction, waiting for it to finish.
       // This should write the entry to metadata that the file has data

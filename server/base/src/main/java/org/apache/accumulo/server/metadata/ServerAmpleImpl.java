@@ -40,7 +40,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
@@ -109,7 +109,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void putGcCandidates(TableId tableId, Collection<TabletFile> candidates) {
+  public void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
       mutateRootGcCandidates(rgcc -> rgcc.add(candidates));
@@ -117,7 +117,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
 
     try (BatchWriter writer = createWriter(tableId)) {
-      for (TabletFile file : candidates) {
+      for (StoredTabletFile file : candidates) {
         writer.addMutation(createDeleteMutation(file));
       }
     } catch (MutationsRejectedException e) {
@@ -198,8 +198,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     return createDelMutation(path);
   }
 
-  public static Mutation createDeleteMutation(TabletFile pathToRemove) {
-    return createDelMutation(pathToRemove.getMetadataEntry());
+  public static Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
+    return createDelMutation(pathToRemove.getMetaUpdateDelete());
   }
 
   private static Mutation createDelMutation(String path) {

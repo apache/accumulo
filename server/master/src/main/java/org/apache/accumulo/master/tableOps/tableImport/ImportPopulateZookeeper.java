@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
@@ -58,10 +57,10 @@ class ImportPopulateZookeeper extends MasterRepo {
 
   private Map<String,String> getExportedProps(VolumeManager fs) throws Exception {
 
-    Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
+    Path path = new Path(tableInfo.exportFile);
 
     try {
-      FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+      FileSystem ns = fs.getFileSystemByPath(path);
       return TableOperationsImpl.getExportedProps(ns, path);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
@@ -90,7 +89,8 @@ class ImportPopulateZookeeper extends MasterRepo {
       Utils.getTableNameLock().unlock();
     }
 
-    for (Entry<String,String> entry : getExportedProps(env.getFileSystem()).entrySet())
+    VolumeManager volMan = env.getVolumeManager();
+    for (Entry<String,String> entry : getExportedProps(volMan).entrySet())
       if (!TablePropUtil.setTableProperty(env.getContext(), tableInfo.tableId, entry.getKey(),
           entry.getValue())) {
         throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),

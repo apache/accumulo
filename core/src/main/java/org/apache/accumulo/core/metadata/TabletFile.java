@@ -29,9 +29,11 @@ import org.apache.hadoop.io.Text;
 import com.google.common.base.Preconditions;
 
 /**
- * Object representing a tablet file entry in the metadata table. Keeps a string of the exact entry
- * of what is in the metadata table for the column qualifier of the
- * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily}
+ * Object representing a tablet file that may exist in the metadata table. This class is used for
+ * reading and opening tablet files. It is also used when inserting new tablet files. When a new
+ * file is inserted, the {@link #insert()} method is called and returns a {@link StoredTabletFile}
+ * For situations where a tablet file needs to be updated or deleted in the metadata, a
+ * {@link StoredTabletFile} is required.
  * <p>
  * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
  * in Upgrader9to10.upgradeRelativePaths()
@@ -42,18 +44,16 @@ public class TabletFile implements Comparable<TabletFile> {
   private final TableId tableId; // 2a
   private final String tabletDir; // t-0003
   private final String fileName; // C0004.rf
-  private final String metadataEntry;
-  private final Path metaPath;
+  protected final Path metaPath;
   private final String normalizedPath;
 
   /**
-   * Construct a tablet file using a Path object already created. Used in the case where we had to
-   * use Path object to qualify an absolute path.
+   * Construct new tablet file using a Path. Used in the case where we had to use Path object to
+   * qualify an absolute path or create a new file.
    */
-  public TabletFile(Path metaPath, String originalMetaEntry) {
-    this.metadataEntry = Objects.requireNonNull(originalMetaEntry);
+  public TabletFile(Path metaPath) {
     this.metaPath = Objects.requireNonNull(metaPath);
-    String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metadataEntry;
+    String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
 
     // use Path object to step backwards from the filename through all the parts
     this.fileName = metaPath.getName();
@@ -79,14 +79,6 @@ public class TabletFile implements Comparable<TabletFile> {
         + tabletDir + "/" + fileName;
   }
 
-  /**
-   * Construct a tablet file using the string read from the metadata. Preserve the exact string so
-   * the entry can be deleted.
-   */
-  public TabletFile(String metadataEntry) {
-    this(new Path(metadataEntry), metadataEntry);
-  }
-
   public String getVolume() {
     return volume;
   }
@@ -104,21 +96,32 @@ public class TabletFile implements Comparable<TabletFile> {
   }
 
   /**
-   * Exact string that is stored in the metadata table
+   * Return a string for opening and reading the tablet file. Doesn't have to be exact string in
+   * metadata.
    */
-  public String getMetadataEntry() {
-    return metadataEntry;
+  public String getPathStr() {
+    return normalizedPath;
   }
 
   /**
-   * Exact string that is stored in the metadata table but as a Text object
+   * Return a string for inserting a new tablet file.
    */
-  public Text getMetadataText() {
-    return new Text(metadataEntry);
+  public String getMetaInsert() {
+    return normalizedPath;
   }
 
-  public String getNormalizedPath() {
-    return normalizedPath;
+  /**
+   * Return a new Text object of {@link #getMetaInsert()}
+   */
+  public Text getMetaInsertText() {
+    return new Text(getMetaInsert());
+  }
+
+  /**
+   * New file was written to metadata so return a StoredTabletFile
+   */
+  public StoredTabletFile insert() {
+    return new StoredTabletFile(normalizedPath);
   }
 
   public Path getPath() {
@@ -130,7 +133,7 @@ public class TabletFile implements Comparable<TabletFile> {
     if (equals(o)) {
       return 0;
     } else {
-      return normalizedPath.compareTo(o.getNormalizedPath());
+      return normalizedPath.compareTo(o.normalizedPath);
     }
   }
 
@@ -138,7 +141,7 @@ public class TabletFile implements Comparable<TabletFile> {
   public boolean equals(Object obj) {
     if (obj instanceof TabletFile) {
       TabletFile that = (TabletFile) obj;
-      return normalizedPath.equals(that.getNormalizedPath());
+      return normalizedPath.equals(that.normalizedPath);
     }
     return false;
   }

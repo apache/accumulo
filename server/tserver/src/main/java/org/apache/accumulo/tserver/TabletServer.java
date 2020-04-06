@@ -319,9 +319,9 @@ public class TabletServer extends AbstractServer {
 
   private final OnlineTablets onlineTablets = new OnlineTablets();
   private final SortedSet<KeyExtent> unopenedTablets =
-      Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
+      Collections.synchronizedSortedSet(new TreeSet<>());
   private final SortedSet<KeyExtent> openingTablets =
-      Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
+      Collections.synchronizedSortedSet(new TreeSet<>());
   private final Map<KeyExtent,Long> recentlyUnloadedCache =
       Collections.synchronizedMap(new LRUMap<>(1000));
 
@@ -534,9 +534,9 @@ public class TabletServer extends AbstractServer {
             Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
             for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
               Path path = new Path(mapping.getKey());
-              FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+              FileSystem ns = fs.getFileSystemByPath(path);
               path = ns.makeQualified(path);
-              fileRefMap.put(new TabletFile(path.toString()), mapping.getValue());
+              fileRefMap.put(new TabletFile(path), mapping.getValue());
             }
 
             Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
@@ -573,19 +573,19 @@ public class TabletServer extends AbstractServer {
 
       watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
         tabletImports.forEach((tke, fileMap) -> {
-          Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
+          Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
           for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
             Path path = new Path(dir, mapping.getKey());
-            FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+            FileSystem ns = fs.getFileSystemByPath(path);
             path = ns.makeQualified(path);
-            fileRefMap.put(new TabletFile(path, path.toString()), mapping.getValue());
+            newFileMap.put(new TabletFile(path), mapping.getValue());
           }
 
           Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
 
           if (importTablet != null) {
             try {
-              importTablet.importMapFiles(tid, fileRefMap, setTime);
+              importTablet.importMapFiles(tid, newFileMap, setTime);
             } catch (IOException ioe) {
               log.debug("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke),
                   ioe.getMessage());
@@ -841,7 +841,7 @@ public class TabletServer extends AbstractServer {
       }
 
       Set<Column> columnSet = tcolumns.isEmpty() ? Collections.emptySet()
-          : new HashSet<Column>(Collections2.transform(tcolumns, Column::new));
+          : new HashSet<>(Collections2.transform(tcolumns, Column::new));
 
       ScanParameters scanParams =
           new ScanParameters(-1, new Authorizations(authorizations), columnSet, ssiList, ssio,
@@ -2114,7 +2114,7 @@ public class TabletServer extends AbstractServer {
       BlockCache summaryCache = resourceManager.getSummaryCache();
       BlockCache indexCache = resourceManager.getIndexCache();
       Cache<String,Long> fileLenCache = resourceManager.getFileLenCache();
-      FileSystemResolver volMgr = p -> fs.getVolumeByPath(p).getFileSystem();
+      FileSystemResolver volMgr = p -> fs.getFileSystemByPath(p);
       Future<SummaryCollection> future =
           new Gatherer(getContext(), request, tableCfg, getContext().getCryptoService())
               .processFiles(volMgr, files, summaryCache, indexCache, fileLenCache, srp);
@@ -3003,11 +3003,11 @@ public class TabletServer extends AbstractServer {
   private void checkWalCanSync(ServerContext context) {
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.ChooserScope.LOGGER, context);
-    String[] prefixes;
+    Set<String> prefixes;
     var options = ServerConstants.getBaseUris(context);
     try {
       prefixes = fs.choosable(chooserEnv, options);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       log.warn("Unable to determine if WAL directories ({}) support sync or flush. "
           + "Data loss may occur.", Arrays.asList(options), e);
       return;

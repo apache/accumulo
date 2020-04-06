@@ -213,10 +213,8 @@ package org.apache.accumulo.server.replication.proto;
               org.apache.accumulo.server.replication.proto.Replication.Status.class, org.apache.accumulo.server.replication.proto.Replication.Status.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<Status> PARSER =
-        new com.google.protobuf.AbstractParser<Status>() {
-      public Status parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
+    public static final com.google.protobuf.Parser<Status> PARSER = new com.google.protobuf.AbstractParser<>() {
+      public Status parsePartialFrom(com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
         return new Status(input, extensionRegistry);

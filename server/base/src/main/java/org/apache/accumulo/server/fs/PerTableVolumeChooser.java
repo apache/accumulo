@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.fs;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.data.TableId;
@@ -52,14 +53,14 @@ public class PerTableVolumeChooser implements VolumeChooser {
       getCustomPropertySuffix(ChooserScope.DEFAULT);
 
   @Override
-  public String choose(VolumeChooserEnvironment env, String[] options)
+  public String choose(VolumeChooserEnvironment env, Set<String> options)
       throws VolumeChooserException {
     log.trace("{}.choose", getClass().getSimpleName());
     return getDelegateChooser(env).choose(env, options);
   }
 
   @Override
-  public String[] choosable(VolumeChooserEnvironment env, String[] options)
+  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options)
       throws VolumeChooserException {
     return getDelegateChooser(env).choosable(env, options);
   }

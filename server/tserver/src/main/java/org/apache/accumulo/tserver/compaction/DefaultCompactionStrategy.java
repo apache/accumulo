@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 
@@ -50,9 +51,9 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
 
     SizeWindow() {}
 
-    SizeWindow(Map<TabletFile,DataFileValue> allFiles) {
+    SizeWindow(Map<StoredTabletFile,DataFileValue> allFiles) {
       files = new ArrayList<>();
-      for (Entry<TabletFile,DataFileValue> entry : allFiles.entrySet()) {
+      for (Entry<StoredTabletFile,DataFileValue> entry : allFiles.entrySet()) {
         files.add(new CompactionFile(entry.getKey(), entry.getValue().getSize()));
       }
 
@@ -117,8 +118,8 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
       return (last - first);
     }
 
-    public List<TabletFile> getFiles() {
-      List<TabletFile> windowFiles = new ArrayList<>(size());
+    public List<StoredTabletFile> getFiles() {
+      List<StoredTabletFile> windowFiles = new ArrayList<>(size());
       for (int i = first; i < last; i++) {
         windowFiles.add(files.get(i).file);
       }
@@ -142,7 +143,7 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
   public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
     CompactionPlan result = new CompactionPlan();
 
-    List<TabletFile> toCompact = findMapFilesToCompact(request);
+    List<StoredTabletFile> toCompact = findMapFilesToCompact(request);
     if (toCompact == null || toCompact.isEmpty())
       return result;
     result.inputFiles.addAll(toCompact);
@@ -150,10 +151,10 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
   }
 
   private static class CompactionFile {
-    public TabletFile file;
+    public StoredTabletFile file;
     public long size;
 
-    public CompactionFile(TabletFile file, long size) {
+    public CompactionFile(StoredTabletFile file, long size) {
       super();
       this.file = file;
       this.size = size;
@@ -168,7 +169,7 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
     }
   }
 
-  private List<TabletFile> findMapFilesToCompact(MajorCompactionRequest request) {
+  private List<StoredTabletFile> findMapFilesToCompact(MajorCompactionRequest request) {
     MajorCompactionReason reason = request.getReason();
     if (reason == MajorCompactionReason.USER) {
       return new ArrayList<>(request.getFiles().keySet());
@@ -195,7 +196,7 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
 
     SizeWindow all = new SizeWindow(request.getFiles());
 
-    List<TabletFile> files = null;
+    List<StoredTabletFile> files = null;
 
     // Within a window of size maxFilesToCompact containing the smallest files check to see if any
     // files meet the compaction ratio criteria.

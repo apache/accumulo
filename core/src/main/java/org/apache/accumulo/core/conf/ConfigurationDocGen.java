@@ -155,7 +155,9 @@ class ConfigurationDocGen {
    */
   public static void main(String[] args) throws IOException {
     if (args.length == 2 && args[0].equals("--generate-markdown")) {
-      new ConfigurationDocGen(new PrintStream(args[1], UTF_8)).generate();
+      try (var printStream = new PrintStream(args[1], UTF_8)) {
+        new ConfigurationDocGen(printStream).generate();
+      }
     } else {
       throw new IllegalArgumentException(
           "Usage: " + ConfigurationDocGen.class.getName() + " --generate-markdown <filename>");

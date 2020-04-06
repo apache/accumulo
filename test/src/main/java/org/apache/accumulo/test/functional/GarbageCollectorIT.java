@@ -147,7 +147,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     log.info("Filling metadata table with bogus delete flags");
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       addEntries(c);
-      cluster.getConfig().setDefaultMemory(16, MemoryUnit.MEGABYTE);
+      cluster.getConfig().setDefaultMemory(32, MemoryUnit.MEGABYTE);
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       sleepUninterruptibly(20, TimeUnit.SECONDS);
       String output = "";

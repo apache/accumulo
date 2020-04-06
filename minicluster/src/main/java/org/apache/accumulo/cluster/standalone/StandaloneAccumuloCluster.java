@@ -135,7 +135,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public synchronized ServerContext getServerContext() {
     if (context == null) {
-      context = new ServerContext(siteConfig, getClientProperties());
+      context = ServerContext.override(siteConfig, info.getInstanceName(), info.getZooKeepers(),
+          info.getZooKeepersSessionTimeOut());
     }
     return context;
   }

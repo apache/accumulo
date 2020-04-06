@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -76,8 +77,8 @@ public class TabletMetadata {
   private boolean sawOldPrevEndRow = false;
   private Text endRow;
   private Location location;
-  private Map<TabletFile,DataFileValue> files;
-  private List<TabletFile> scans;
+  private Map<StoredTabletFile,DataFileValue> files;
+  private List<StoredTabletFile> scans;
   private Map<TabletFile,Long> loadedFiles;
   private EnumSet<ColumnType> fetchedCols;
   private KeyExtent extent;
@@ -215,12 +216,12 @@ public class TabletMetadata {
     return last;
   }
 
-  public Collection<TabletFile> getFiles() {
+  public Collection<StoredTabletFile> getFiles() {
     ensureFetched(ColumnType.FILES);
     return files.keySet();
   }
 
-  public Map<TabletFile,DataFileValue> getFilesMap() {
+  public Map<StoredTabletFile,DataFileValue> getFilesMap() {
     ensureFetched(ColumnType.FILES);
     return files;
   }
@@ -230,7 +231,7 @@ public class TabletMetadata {
     return logs;
   }
 
-  public List<TabletFile> getScans() {
+  public List<StoredTabletFile> getScans() {
     ensureFetched(ColumnType.SCANS);
     return scans;
   }
@@ -281,8 +282,8 @@ public class TabletMetadata {
       kvBuilder = ImmutableSortedMap.naturalOrder();
     }
 
-    var filesBuilder = ImmutableMap.<TabletFile,DataFileValue>builder();
-    var scansBuilder = ImmutableList.<TabletFile>builder();
+    var filesBuilder = ImmutableMap.<StoredTabletFile,DataFileValue>builder();
+    var scansBuilder = ImmutableList.<StoredTabletFile>builder();
     var logsBuilder = ImmutableList.<LogEntry>builder();
     final var loadedFilesBuilder = ImmutableMap.<TabletFile,Long>builder();
     ByteSequence row = null;
@@ -343,10 +344,11 @@ public class TabletMetadata {
           }
           break;
         case DataFileColumnFamily.STR_NAME:
-          filesBuilder.put(new TabletFile(qual), new DataFileValue(val));
+          filesBuilder.put(new StoredTabletFile(qual), new DataFileValue(val));
           break;
         case BulkFileColumnFamily.STR_NAME:
-          loadedFilesBuilder.put(new TabletFile(qual), BulkFileColumnFamily.getBulkLoadTid(val));
+          loadedFilesBuilder.put(new StoredTabletFile(qual),
+              BulkFileColumnFamily.getBulkLoadTid(val));
           break;
         case CurrentLocationColumnFamily.STR_NAME:
           te.setLocationOnce(val, qual, LocationType.CURRENT);
@@ -358,7 +360,7 @@ public class TabletMetadata {
           te.last = new Location(val, qual, LocationType.LAST);
           break;
         case ScanFileColumnFamily.STR_NAME:
-          scansBuilder.add(new TabletFile(qual));
+          scansBuilder.add(new StoredTabletFile(qual));
           break;
         case ClonedColumnFamily.STR_NAME:
           te.cloned = val;

@@ -48,7 +48,7 @@ import com.google.common.collect.Iterables;
 
 public class GroupBalancerTest {
 
-  private static Function<KeyExtent,String> partitioner = new Function<KeyExtent,String>() {
+  private static Function<KeyExtent,String> partitioner = new Function<>() {
 
     @Override
     public String apply(KeyExtent input) {

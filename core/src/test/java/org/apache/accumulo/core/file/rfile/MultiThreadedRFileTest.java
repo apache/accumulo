@@ -225,8 +225,7 @@ public class MultiThreadedRFileTest {
       justification = "information put into error message is safe and used for testing")
   @Test
   public void testMultipleReaders() throws IOException {
-    final List<Throwable> threadExceptions =
-        Collections.synchronizedList(new ArrayList<Throwable>());
+    final List<Throwable> threadExceptions = Collections.synchronizedList(new ArrayList<>());
     Map<String,MutableInt> messages = new HashMap<>();
     Map<String,String> stackTrace = new HashMap<>();
 

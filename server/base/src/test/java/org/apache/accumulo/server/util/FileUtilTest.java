@@ -18,23 +18,15 @@
  */
 package org.apache.accumulo.server.util;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.Path;
 import org.junit.Before;
@@ -65,25 +57,6 @@ public class FileUtilTest {
   }
 
   @Test
-  public void testToPathStrings() {
-    Collection<TabletFile> c = new java.util.ArrayList<>();
-    TabletFile r1 = createMock(TabletFile.class);
-    expect(r1.getNormalizedPath()).andReturn("/foo");
-    replay(r1);
-    c.add(r1);
-    TabletFile r2 = createMock(TabletFile.class);
-    expect(r2.getNormalizedPath()).andReturn("/bar");
-    replay(r2);
-    c.add(r2);
-
-    Collection<String> cs = FileUtil.toPathStrings(c);
-    assertEquals(2, cs.size());
-    Iterator<String> iter = cs.iterator();
-    assertEquals("/foo", iter.next());
-    assertEquals("/bar", iter.next());
-  }
-
-  @Test
   public void testCleanupIndexOpWithDfsDir() throws IOException {
     // And a "unique" tmp directory for each volume
     File tmp1 = new File(accumuloDir, "tmp");
@@ -93,9 +66,9 @@ public class FileUtilTest {
     HashMap<Property,String> testProps = new HashMap<>();
     testProps.put(INSTANCE_DFS_DIR, accumuloDir.getAbsolutePath());
 
-    VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
-
-    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
+    try (var fs = VolumeManagerImpl.getLocalForTesting(accumuloDir.getAbsolutePath())) {
+      FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
+    }
 
     assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
   }
@@ -119,15 +92,12 @@ public class FileUtilTest {
     HashMap<Property,String> testProps = new HashMap<>();
     testProps.put(Property.INSTANCE_VOLUMES, v1.toURI() + "," + v2.toURI());
 
-    VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
-
-    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
-
-    assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
-
-    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
-
-    assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    try (var fs = VolumeManagerImpl.getLocalForTesting(accumuloDir.getAbsolutePath())) {
+      FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
+      assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
+      FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
+      assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    }
   }
 
   @Test
@@ -152,15 +122,12 @@ public class FileUtilTest {
     HashMap<Property,String> testProps = new HashMap<>();
     testProps.put(Property.INSTANCE_VOLUMES, v1.toURI() + "," + v2.toURI());
 
-    VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
-
-    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
-
-    assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
-
-    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
-
-    assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    try (var fs = VolumeManagerImpl.getLocalForTesting(accumuloDir.getAbsolutePath())) {
+      FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
+      assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
+      FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
+      assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    }
   }
 
   @Test
@@ -179,15 +146,12 @@ public class FileUtilTest {
     HashMap<Property,String> testProps = new HashMap<>();
     testProps.put(Property.INSTANCE_VOLUMES, v1.toURI() + "," + v2.toURI());
 
-    VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
-
-    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
-
-    assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
-
-    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
-
-    assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    try (var fs = VolumeManagerImpl.getLocalForTesting(accumuloDir.getAbsolutePath())) {
+      FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
+      assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
+      FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
+      assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    }
   }
 
   @Test
@@ -209,14 +173,11 @@ public class FileUtilTest {
     HashMap<Property,String> testProps = new HashMap<>();
     testProps.put(Property.INSTANCE_VOLUMES, v1.toURI() + "," + v2.toURI());
 
-    VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
-
-    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
-
-    assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
-
-    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
-
-    assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    try (var fs = VolumeManagerImpl.getLocalForTesting(accumuloDir.getAbsolutePath())) {
+      FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
+      assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
+      FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
+      assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    }
   }
 }

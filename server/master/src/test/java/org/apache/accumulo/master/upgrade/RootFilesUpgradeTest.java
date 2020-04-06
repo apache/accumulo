@@ -167,31 +167,31 @@ public class RootFilesUpgradeTest {
     conf.set(Property.INSTANCE_DFS_DIR, "/");
     conf.set(Property.GENERAL_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
-    VolumeManager vm = VolumeManagerImpl.get(conf, new Configuration());
+    try (var vm = VolumeManagerImpl.get(conf, new Configuration())) {
 
-    TestWrapper wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
-    wrapper.prepareReplacement();
-    wrapper.renameReplacement();
-    wrapper.finishReplacement();
-    wrapper.assertFiles("A00004.rf");
+      TestWrapper wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      wrapper.prepareReplacement();
+      wrapper.renameReplacement();
+      wrapper.finishReplacement();
+      wrapper.assertFiles("A00004.rf");
 
-    wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
-    wrapper.prepareReplacement();
-    wrapper.cleanupReplacement("A00002.rf", "F00003.rf");
-    wrapper.assertFiles("A00002.rf", "F00003.rf");
+      wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      wrapper.prepareReplacement();
+      wrapper.cleanupReplacement("A00002.rf", "F00003.rf");
+      wrapper.assertFiles("A00002.rf", "F00003.rf");
 
-    wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
-    wrapper.prepareReplacement();
-    wrapper.renameReplacement();
-    wrapper.cleanupReplacement("A00004.rf");
-    wrapper.assertFiles("A00004.rf");
+      wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      wrapper.prepareReplacement();
+      wrapper.renameReplacement();
+      wrapper.cleanupReplacement("A00004.rf");
+      wrapper.assertFiles("A00004.rf");
 
-    wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
-    wrapper.prepareReplacement();
-    wrapper.renameReplacement();
-    wrapper.finishReplacement();
-    wrapper.cleanupReplacement("A00004.rf");
-    wrapper.assertFiles("A00004.rf");
-
+      wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      wrapper.prepareReplacement();
+      wrapper.renameReplacement();
+      wrapper.finishReplacement();
+      wrapper.cleanupReplacement("A00004.rf");
+      wrapper.assertFiles("A00004.rf");
+    }
   }
 }

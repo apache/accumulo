@@ -25,6 +25,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -139,7 +140,7 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
-  default void putGcCandidates(TableId tableId, Collection<TabletFile> candidates) {
+  default void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
     throw new UnsupportedOperationException();
   }
 
@@ -189,11 +190,11 @@ public interface Ample {
 
     public TabletMutator putFile(TabletFile path, DataFileValue dfv);
 
-    public TabletMutator deleteFile(TabletFile path);
+    public TabletMutator deleteFile(StoredTabletFile path);
 
     public TabletMutator putScan(TabletFile path);
 
-    public TabletMutator deleteScan(TabletFile path);
+    public TabletMutator deleteScan(StoredTabletFile path);
 
     public TabletMutator putCompactionId(long compactionId);
 

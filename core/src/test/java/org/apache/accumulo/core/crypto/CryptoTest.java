@@ -23,7 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -73,9 +73,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Iterables;
 
@@ -92,9 +90,6 @@ public class CryptoTest {
   public static final String emptyKeyPath =
       System.getProperty("user.dir") + "/target/CryptoTest-emptykeyfile";
   private static Configuration hadoopConf = new Configuration();
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   @BeforeClass
   public static void setupKeyFiles() throws Exception {
@@ -279,25 +274,31 @@ public class CryptoTest {
         AccumuloVFSClassLoader.loadClass(configuredClass, CryptoService.class);
     CryptoService cs = clazz.getDeclaredConstructor().newInstance();
 
-    exception.expect(NullPointerException.class);
-    cs.init(aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
     assertEquals(AESCryptoService.class, cs.getClass());
+    assertThrows(NullPointerException.class,
+        () -> cs.init(aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
   }
 
-  @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is being tested")
   @Test
   public void testAESKeyUtilsGeneratesKey() throws NoSuchAlgorithmException,
       NoSuchProviderException, NoSuchPaddingException, InvalidKeyException {
     SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
-    java.security.Key key;
-    key = AESKeyUtils.generateKey(sr, 16);
-    Cipher.getInstance("AES/CBC/NoPadding").init(Cipher.ENCRYPT_MODE, key);
+    // verify valid key sizes (corresponds to 128, 192, and 256 bits)
+    for (int i : new int[] {16, 24, 32}) {
+      verifyKeySizeForCBC(sr, i);
+    }
+    // verify invalid key sizes
+    for (int i : new int[] {1, 2, 8, 11, 15, 64, 128}) {
+      assertThrows(InvalidKeyException.class, () -> verifyKeySizeForCBC(sr, i));
+    }
+  }
 
-    key = AESKeyUtils.generateKey(sr, 24);
-    key = AESKeyUtils.generateKey(sr, 32);
-    key = AESKeyUtils.generateKey(sr, 11);
-
-    exception.expect(InvalidKeyException.class);
+  // this has to be a separate method, for spotbugs, because spotbugs annotation doesn't seem to
+  // apply to the lambda inline
+  @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is being tested")
+  private void verifyKeySizeForCBC(SecureRandom sr, int sizeInBytes)
+      throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
+    java.security.Key key = AESKeyUtils.generateKey(sr, sizeInBytes);
     Cipher.getInstance("AES/CBC/NoPadding").init(Cipher.ENCRYPT_MODE, key);
   }
 
@@ -324,9 +325,7 @@ public class CryptoTest {
     java.security.Key wrongKek = new SecretKeySpec(wrongBytes, "AES");
 
     byte[] wrapped = AESKeyUtils.wrapKey(fek, kek);
-    exception.expect(CryptoException.class);
-    java.security.Key unwrapped = AESKeyUtils.unwrapKey(wrapped, wrongKek);
-    fail("creation of " + unwrapped + " should fail");
+    assertThrows(CryptoException.class, () -> AESKeyUtils.unwrapKey(wrapped, wrongKek));
   }
 
   @Test
@@ -341,17 +340,13 @@ public class CryptoTest {
 
   @Test
   public void testAESKeyUtilsLoadKekFromUriInvalidUri() {
-    exception.expect(CryptoException.class);
-    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(
-        System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile-doesnt-exist");
-    fail("creation of " + fileKey + " should fail");
+    assertThrows(CryptoException.class, () -> AESKeyUtils.loadKekFromUri(
+        System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile-doesnt-exist"));
   }
 
   @Test
   public void testAESKeyUtilsLoadKekFromEmptyFile() {
-    exception.expect(CryptoException.class);
-    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(emptyKeyPath);
-    fail("creation of " + fileKey + " should fail");
+    assertThrows(CryptoException.class, () -> AESKeyUtils.loadKekFromUri(emptyKeyPath));
   }
 
   private ArrayList<Key> testData() {

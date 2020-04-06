@@ -332,8 +332,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     this.hrtlbConf =
         context.getServerConfFactory().getSystemConfiguration().newDeriver(HrtlbConf::new);
 
-    tablesRegExCache = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS)
-        .build(new CacheLoader<TableId,Deriver<Map<String,String>>>() {
+    tablesRegExCache =
+        CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build(new CacheLoader<>() {
           @Override
           public Deriver<Map<String,String>> load(TableId key) throws Exception {
             return context.getServerConfFactory().getTableConfiguration(key)
@@ -351,15 +351,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = splitCurrentByRegex(current);
     // group the unassigned into tables
     Map<TableId,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
-    for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
-      Map<KeyExtent,TServerInstance> tableUnassigned =
-          groupedUnassigned.get(e.getKey().getTableId());
-      if (tableUnassigned == null) {
-        tableUnassigned = new HashMap<>();
-        groupedUnassigned.put(e.getKey().getTableId(), tableUnassigned);
-      }
-      tableUnassigned.put(e.getKey(), e.getValue());
-    }
+    unassigned.forEach((keyExtent, tServerInstance) -> {
+      groupedUnassigned.computeIfAbsent(keyExtent.getTableId(), p -> new HashMap<>()).put(keyExtent,
+          tServerInstance);
+    });
 
     Map<TableId,String> tableIdToTableName = createdTableNameMap(getTableOperations().tableIdMap());
 

@@ -82,7 +82,7 @@ public class RegexGroupBalancer extends GroupBalancer {
 
     final Pattern pattern = Pattern.compile(regex);
 
-    return new Function<KeyExtent,String>() {
+    return new Function<>() {
 
       @Override
       public String apply(KeyExtent input) {

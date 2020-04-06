@@ -64,6 +64,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
@@ -176,18 +177,21 @@ public class MetadataTableUtil {
     tablet.mutate();
   }
 
-  public static void updateTabletDataFile(long tid, KeyExtent extent,
+  public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(long tid, KeyExtent extent,
       Map<TabletFile,DataFileValue> estSizes, MetadataTime time, ServerContext context,
       ZooLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putTime(time);
-    estSizes.forEach(tablet::putFile);
 
-    for (TabletFile file : estSizes.keySet()) {
-      tablet.putBulkFile(file, tid);
-    }
+    Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(estSizes.size());
+    estSizes.forEach((tf, dfv) -> {
+      tablet.putFile(tf, dfv);
+      tablet.putBulkFile(tf, tid);
+      newFiles.put(tf.insert(), dfv);
+    });
     tablet.putZooLock(zooLock);
     tablet.mutate();
+    return newFiles;
   }
 
   public static void updateTabletDir(KeyExtent extent, String newDir, ServerContext context,
@@ -210,7 +214,7 @@ public class MetadataTableUtil {
   }
 
   public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove,
-      List<LogEntry> logsToAdd, List<TabletFile> filesToRemove,
+      List<LogEntry> logsToAdd, List<StoredTabletFile> filesToRemove,
       SortedMap<TabletFile,DataFileValue> filesToAdd, ZooLock zooLock, ServerContext context) {
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
@@ -247,27 +251,29 @@ public class MetadataTableUtil {
     update(context, zooLock, m, extent);
   }
 
-  public static void finishSplit(Text metadataEntry, Map<TabletFile,DataFileValue> datafileSizes,
-      List<TabletFile> highDatafilesToRemove, final ServerContext context, ZooLock zooLock) {
+  public static void finishSplit(Text metadataEntry,
+      Map<StoredTabletFile,DataFileValue> datafileSizes,
+      List<StoredTabletFile> highDatafilesToRemove, final ServerContext context, ZooLock zooLock) {
     Mutation m = new Mutation(metadataEntry);
     TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
     TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
 
-    for (Entry<TabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
-      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetadataText(),
+    for (Entry<StoredTabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
+      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetaInsertText(),
           new Value(entry.getValue().encode()));
     }
 
-    for (TabletFile pathToRemove : highDatafilesToRemove) {
-      m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetadataText());
+    for (StoredTabletFile pathToRemove : highDatafilesToRemove) {
+      m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetaUpdateDeleteText());
     }
 
     update(context, zooLock, m, new KeyExtent(metadataEntry, (Text) null));
   }
 
-  public static void finishSplit(KeyExtent extent, Map<TabletFile,DataFileValue> datafileSizes,
-      List<TabletFile> highDatafilesToRemove, ServerContext context, ZooLock zooLock) {
+  public static void finishSplit(KeyExtent extent,
+      Map<StoredTabletFile,DataFileValue> datafileSizes,
+      List<StoredTabletFile> highDatafilesToRemove, ServerContext context, ZooLock zooLock) {
     finishSplit(extent.getMetadataEntry(), datafileSizes, highDatafilesToRemove, context, zooLock);
   }
 
@@ -288,7 +294,7 @@ public class MetadataTableUtil {
     update(context, ServerAmpleImpl.createDeleteMutation(path), new KeyExtent(tableId, null, null));
   }
 
-  public static void removeScanFiles(KeyExtent extent, Set<TabletFile> scanFiles,
+  public static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
       ServerContext context, ZooLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     scanFiles.forEach(tablet::deleteScan);
@@ -298,12 +304,12 @@ public class MetadataTableUtil {
 
   public static void splitDatafiles(Text midRow, double splitRatio,
       Map<TabletFile,FileUtil.FileInfo> firstAndLastRows,
-      SortedMap<TabletFile,DataFileValue> datafiles,
-      SortedMap<TabletFile,DataFileValue> lowDatafileSizes,
-      SortedMap<TabletFile,DataFileValue> highDatafileSizes,
-      List<TabletFile> highDatafilesToRemove) {
+      SortedMap<StoredTabletFile,DataFileValue> datafiles,
+      SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes,
+      SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
+      List<StoredTabletFile> highDatafilesToRemove) {
 
-    for (Entry<TabletFile,DataFileValue> entry : datafiles.entrySet()) {
+    for (Entry<StoredTabletFile,DataFileValue> entry : datafiles.entrySet()) {
 
       Text firstRow = null;
       Text lastRow = null;
@@ -408,10 +414,10 @@ public class MetadataTableUtil {
     }
   }
 
-  public static Pair<List<LogEntry>,SortedMap<TabletFile,DataFileValue>>
+  public static Pair<List<LogEntry>,SortedMap<StoredTabletFile,DataFileValue>>
       getFileAndLogEntries(ServerContext context, KeyExtent extent) throws IOException {
     ArrayList<LogEntry> result = new ArrayList<>();
-    TreeMap<TabletFile,DataFileValue> sizes = new TreeMap<>();
+    TreeMap<StoredTabletFile,DataFileValue> sizes = new TreeMap<>();
 
     TabletMetadata tablet = context.getAmple().readTablet(extent, FILES, LOGS, PREV_ROW, DIR);
 
@@ -711,13 +717,7 @@ public class MetadataTableUtil {
 
       Text row = entry.getKey().getRow();
 
-      SortedMap<ColumnFQ,Value> colVals = tabletEntries.get(row);
-      if (colVals == null) {
-        colVals = new TreeMap<>();
-        tabletEntries.put(row, colVals);
-      }
-
-      colVals.put(currentKey, entry.getValue());
+      tabletEntries.computeIfAbsent(row, k -> new TreeMap<>()).put(currentKey, entry.getValue());
     }
 
     return tabletEntries;

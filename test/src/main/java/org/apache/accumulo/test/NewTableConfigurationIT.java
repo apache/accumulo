@@ -87,8 +87,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
           "newerval1");
       assertEquals(props.get(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "newerprop2"),
           "newerval2");
-      assertFalse(props.keySet().contains(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1"));
-      assertFalse(props.keySet().contains(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2"));
+      assertFalse(props.containsKey(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1"));
+      assertFalse(props.containsKey(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2"));
     }
   }
 

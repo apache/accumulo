@@ -47,7 +47,7 @@ class ZooTabletStateStore implements TabletStateStore {
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
 
-    return new ClosableIterator<TabletLocationState>() {
+    return new ClosableIterator<>() {
       boolean finished = false;
 
       @Override

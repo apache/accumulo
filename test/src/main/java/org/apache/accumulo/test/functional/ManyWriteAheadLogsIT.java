@@ -198,16 +198,34 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
   }
 
   private void addOpenWals(ServerContext c, Set<String> allWalsSeen) throws Exception {
-    Map<String,WalState> wals = WALSunnyDayIT._getWals(c);
-    Set<Entry<String,WalState>> es = wals.entrySet();
+
     int open = 0;
-    for (Entry<String,WalState> entry : es) {
-      if (entry.getValue() == WalState.OPEN) {
-        open++;
-        allWalsSeen.add(entry.getKey());
+    int attempts = 0;
+    boolean foundWal = false;
+
+    while (open == 0) {
+      attempts++;
+      Map<String,WalState> wals = WALSunnyDayIT._getWals(c);
+      Set<Entry<String,WalState>> es = wals.entrySet();
+      for (Entry<String,WalState> entry : es) {
+        if (entry.getValue() == WalState.OPEN) {
+          open++;
+          allWalsSeen.add(entry.getKey());
+          foundWal = true;
+        } else {
+          // log CLOSED or UNREFERENCED to help debug this test
+          log.debug("The WalState for {} is {}", entry.getKey(), entry.getValue());
+        }
+      }
+
+      if (!foundWal) {
+        Thread.sleep(50);
+        if (attempts % 50 == 0)
+          log.debug("No open WALs found in {} attempts.", attempts);
       }
     }
 
+    log.debug("It took {} attempt(s) to find {} open WALs", attempts, open);
     assertTrue("Open WALs not in expected range " + open, open > 0 && open < 4);
   }
 

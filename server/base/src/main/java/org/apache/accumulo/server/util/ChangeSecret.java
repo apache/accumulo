@@ -63,28 +63,29 @@ public class ChangeSecret {
 
   public static void main(String[] args) throws Exception {
     var siteConfig = SiteConfiguration.auto();
-    VolumeManager fs = VolumeManagerImpl.get(siteConfig, new Configuration());
-    verifyHdfsWritePermission(fs);
+    try (var fs = VolumeManagerImpl.get(siteConfig, new Configuration())) {
+      verifyHdfsWritePermission(fs);
 
-    Opts opts = new Opts();
-    List<String> argsList = new ArrayList<>(args.length + 2);
-    argsList.add("--old");
-    argsList.add("--new");
-    argsList.addAll(Arrays.asList(args));
-    try (TraceScope clientSpan =
-        opts.parseArgsAndTrace(ChangeSecret.class.getName(), argsList.toArray(new String[0]))) {
+      Opts opts = new Opts();
+      List<String> argsList = new ArrayList<>(args.length + 2);
+      argsList.add("--old");
+      argsList.add("--new");
+      argsList.addAll(Arrays.asList(args));
+      try (TraceScope clientSpan =
+          opts.parseArgsAndTrace(ChangeSecret.class.getName(), argsList.toArray(new String[0]))) {
 
-      ServerContext context = opts.getServerContext();
-      verifyAccumuloIsDown(context, opts.oldPass);
+        ServerContext context = opts.getServerContext();
+        verifyAccumuloIsDown(context, opts.oldPass);
 
-      final String newInstanceId = UUID.randomUUID().toString();
-      updateHdfs(fs, newInstanceId);
-      rewriteZooKeeperInstance(context, newInstanceId, opts.oldPass, opts.newPass);
-      if (opts.oldPass != null) {
-        deleteInstance(context, opts.oldPass);
+        final String newInstanceId = UUID.randomUUID().toString();
+        updateHdfs(fs, newInstanceId);
+        rewriteZooKeeperInstance(context, newInstanceId, opts.oldPass, opts.newPass);
+        if (opts.oldPass != null) {
+          deleteInstance(context, opts.oldPass);
+        }
+        System.out.println("New instance id is " + newInstanceId);
+        System.out.println("Be sure to put your new secret in accumulo.properties");
       }
-      System.out.println("New instance id is " + newInstanceId);
-      System.out.println("Be sure to put your new secret in accumulo.properties");
     }
   }
 

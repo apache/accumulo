@@ -25,11 +25,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.junit.BeforeClass;
@@ -71,11 +68,13 @@ public class SystemCredentialsTest {
   }
 
   /**
-   * This is a test to ensure the string literal in
-   * {@link ClientContext#ClientContext(SingletonReservation, ClientInfo)} is kept up-to-date if we
-   * move the {@link SystemToken}<br>
-   * This check will not be needed after ACCUMULO-1578
+   * This is a test to ensure the SYSTEM_TOKEN_NAME string literal in
+   * {@link org.apache.accumulo.core.clientImpl.ConnectorImpl} is kept up-to-date if we move the
+   * {@link SystemToken}<br>
+   *
+   * @deprecated This check will not be needed after Connector is removed
    */
+  @Deprecated
   @Test
   public void testSystemToken() {
     assertEquals("org.apache.accumulo.server.security.SystemCredentials$SystemToken",

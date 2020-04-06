@@ -52,9 +52,7 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
 
   @Override
   public void delete() throws MutationsRejectedException {
-    BatchWriter bw = null;
-    try {
-      bw = new BatchWriterImpl(context, tableId, bwConfig);
+    try (BatchWriter bw = new BatchWriterImpl(context, tableId, bwConfig)) {
       Iterator<Entry<Key,Value>> iter = super.iterator();
       while (iter.hasNext()) {
         Entry<Key,Value> next = iter.next();
@@ -64,9 +62,6 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
             new ColumnVisibility(k.getColumnVisibility()), k.getTimestamp());
         bw.addMutation(m);
       }
-    } finally {
-      if (bw != null)
-        bw.close();
     }
   }
 
