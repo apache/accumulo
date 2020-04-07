@@ -21,27 +21,31 @@ package org.apache.accumulo.server.master.state;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.fs.Path;
 
 class MetaDataStateStore implements TabletStateStore {
 
+  private static final int THREADS = 4;
+  private static final int LATENCY = 1000;
+  private static final int MAX_MEMORY = 200 * 1024 * 1024;
+
   protected final ClientContext context;
   protected final CurrentState state;
   private final String targetTableName;
-  private final Ample ample;
 
   protected MetaDataStateStore(ClientContext context, CurrentState state, String targetTableName) {
     this.context = context;
     this.state = state;
-    this.ample = context.getAmple();
     this.targetTableName = targetTableName;
   }
 
@@ -56,87 +60,135 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setLocation(Assignment assignment, TServerInstance prevLastLoc) {
-
-    TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-    tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
-    tabletMutator.putLocation(assignment.server, LocationType.LAST);
-    tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
-
-    // remove the old location
-    if (prevLastLoc != null && !prevLastLoc.equals(assignment.server)) {
-      tabletMutator.deleteLocation(prevLastLoc, LocationType.LAST);
+  public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
+    BatchWriter writer = createBatchWriter();
+    try {
+      for (Assignment assignment : assignments) {
+        Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
+        assignment.server.putLocation(m);
+        assignment.server.clearFutureLocation(m);
+        SuspendingTServer.clearSuspension(m);
+        writer.addMutation(m);
+      }
+    } catch (Exception ex) {
+      throw new DistributedStoreException(ex);
+    } finally {
+      try {
+        writer.close();
+      } catch (MutationsRejectedException e) {
+        throw new DistributedStoreException(e);
+      }
     }
+  }
 
-    tabletMutator.mutate();
-
+  BatchWriter createBatchWriter() {
+    try {
+      return context.createBatchWriter(targetTableName,
+          new BatchWriterConfig().setMaxMemory(MAX_MEMORY)
+              .setMaxLatency(LATENCY, TimeUnit.MILLISECONDS).setMaxWriteThreads(THREADS));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
-  public void setFutureLocation(Assignment assignment) {
-
-    TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-    tabletMutator.deleteSuspension();
-    tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
-    tabletMutator.mutate();
-
+  public void setFutureLocations(Collection<Assignment> assignments)
+      throws DistributedStoreException {
+    BatchWriter writer = createBatchWriter();
+    try {
+      for (Assignment assignment : assignments) {
+        Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
+        SuspendingTServer.clearSuspension(m);
+        assignment.server.putFutureLocation(m);
+        writer.addMutation(m);
+      }
+    } catch (Exception ex) {
+      throw new DistributedStoreException(ex);
+    } finally {
+      try {
+        writer.close();
+      } catch (MutationsRejectedException e) {
+        throw new DistributedStoreException(e);
+      }
+    }
   }
 
   @Override
   public void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers) {
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     unassign(tablets, logsForDeadServers, -1);
   }
 
   @Override
   public void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp) {
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      throws DistributedStoreException {
     unassign(tablets, logsForDeadServers, suspensionTimestamp);
   }
 
   private void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp) {
-    try (var tabletsMutator = ample.mutateTablets()) {
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      throws DistributedStoreException {
+    BatchWriter writer = createBatchWriter();
+    try {
       for (TabletLocationState tls : tablets) {
-        TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
+        Mutation m = new Mutation(tls.extent.getMetadataEntry());
         if (tls.current != null) {
-          tabletMutator.deleteLocation(tls.current, LocationType.CURRENT);
+          tls.current.clearLocation(m);
           if (logsForDeadServers != null) {
             List<Path> logs = logsForDeadServers.get(tls.current);
             if (logs != null) {
               for (Path log : logs) {
                 LogEntry entry =
                     new LogEntry(tls.extent, 0, tls.current.hostPort(), log.toString());
-                tabletMutator.putWal(entry);
+                m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
               }
             }
           }
           if (suspensionTimestamp >= 0) {
-            tabletMutator.putSuspension(tls.current, suspensionTimestamp);
+            SuspendingTServer suspender =
+                new SuspendingTServer(tls.current.getLocation(), suspensionTimestamp);
+            suspender.setSuspension(m);
           }
         }
         if (tls.suspend != null && suspensionTimestamp < 0) {
-          tabletMutator.deleteSuspension();
+          SuspendingTServer.clearSuspension(m);
         }
         if (tls.future != null) {
-          tabletMutator.deleteLocation(tls.future, LocationType.FUTURE);
+          tls.future.clearFutureLocation(m);
         }
-        tabletMutator.mutate();
+        writer.addMutation(m);
+      }
+    } catch (Exception ex) {
+      throw new DistributedStoreException(ex);
+    } finally {
+      try {
+        writer.close();
+      } catch (MutationsRejectedException e) {
+        throw new DistributedStoreException(e);
       }
     }
   }
 
   @Override
-  public void unsuspend(Collection<TabletLocationState> tablets) {
-
-    try (var tabletsMutator = ample.mutateTablets()) {
+  public void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException {
+    BatchWriter writer = createBatchWriter();
+    try {
       for (TabletLocationState tls : tablets) {
         if (tls.suspend != null) {
           continue;
         }
-        TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
-        tabletMutator.deleteSuspension();
-        tabletMutator.mutate();
+        Mutation m = new Mutation(tls.extent.getMetadataEntry());
+        SuspendingTServer.clearSuspension(m);
+        writer.addMutation(m);
+      }
+    } catch (Exception ex) {
+      throw new DistributedStoreException(ex);
+    } finally {
+      try {
+        writer.close();
+      } catch (MutationsRejectedException e) {
+        throw new DistributedStoreException(e);
       }
     }
   }

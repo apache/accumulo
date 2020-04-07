@@ -80,6 +80,7 @@ import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.ClosableIterator;
+import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -818,7 +819,7 @@ abstract class TabletGroupWatcher extends Daemon {
       List<TabletLocationState> assignedToDeadServers,
       Map<TServerInstance,List<Path>> logsForDeadServers,
       List<TabletLocationState> suspendedToGoneServers, Map<KeyExtent,TServerInstance> unassigned)
-      throws TException, WalMarkerException {
+      throws DistributedStoreException, TException, WalMarkerException {
     boolean tabletsSuspendable = canSuspendTablets();
     if (!assignedToDeadServers.isEmpty()) {
       int maxServersToShow = min(assignedToDeadServers.size(), 100);
@@ -871,9 +872,7 @@ abstract class TabletGroupWatcher extends Daemon {
 
     if (assignments.size() > 0) {
       Master.log.info(String.format("Assigning %d tablets", assignments.size()));
-
-      for (Assignment assignment : assignments)
-        store.setFutureLocation(assignment);
+      store.setFutureLocations(assignments);
     }
     assignments.addAll(assigned);
     for (Assignment a : assignments) {

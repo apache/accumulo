@@ -48,12 +48,12 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
   /**
    * Store the assigned locations in the data store.
    */
-  void setFutureLocation(Assignment assignment);
+  void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException;
 
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online
    */
-  void setLocation(Assignment assignment, TServerInstance prevLastLoc);
+  void setLocations(Collection<Assignment> assignments) throws DistributedStoreException;
 
   /**
    * Mark the tablets as having no known or future location.
@@ -64,35 +64,38 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
    *          a cache of logs in use by servers when they died
    */
   void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers);
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException;
 
   /**
    * Mark tablets as having no known or future location, but desiring to be returned to their
    * previous tserver.
    */
   void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp);
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      throws DistributedStoreException;
 
   /**
    * Remove a suspension marker for a collection of tablets, moving them to being simply unassigned.
    */
-  void unsuspend(Collection<TabletLocationState> tablets);
+  void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException;
 
   public static void unassign(ServerContext context, TabletLocationState tls,
-      Map<TServerInstance,List<Path>> logsForDeadServers) {
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     getStoreForTablet(tls.extent, context).unassign(Collections.singletonList(tls),
         logsForDeadServers);
   }
 
   public static void suspend(ServerContext context, TabletLocationState tls,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp) {
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      throws DistributedStoreException {
     getStoreForTablet(tls.extent, context).suspend(Collections.singletonList(tls),
         logsForDeadServers, suspensionTimestamp);
   }
 
-  public static void setLocation(ServerContext context, Assignment assignment,
-      TServerInstance prevLastLoc) {
-    getStoreForTablet(assignment.tablet, context).setLocation(assignment, prevLastLoc);
+  public static void setLocation(ServerContext context, Assignment assignment)
+      throws DistributedStoreException {
+    getStoreForTablet(assignment.tablet, context)
+        .setLocations(Collections.singletonList(assignment));
   }
 
   static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {

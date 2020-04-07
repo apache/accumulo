@@ -48,21 +48,21 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocation(Assignment assignment) {
-    wrapped.setFutureLocation(assignment);
-    TabletLogger.assigned(assignment.tablet, assignment.server);
-
+  public void setFutureLocations(Collection<Assignment> assignments)
+      throws DistributedStoreException {
+    wrapped.setFutureLocations(assignments);
+    assignments.forEach(assignment -> TabletLogger.assigned(assignment.tablet, assignment.server));
   }
 
   @Override
-  public void setLocation(Assignment assignment, TServerInstance prevLastLoc) {
-    wrapped.setLocation(assignment, prevLastLoc);
-    TabletLogger.loaded(assignment.tablet, assignment.server);
+  public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
+    wrapped.setLocations(assignments);
+    assignments.forEach(assignment -> TabletLogger.loaded(assignment.tablet, assignment.server));
   }
 
   @Override
   public void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers) {
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     wrapped.unassign(tablets, logsForDeadServers);
 
     if (logsForDeadServers == null)
@@ -75,7 +75,8 @@ class LoggingTabletStateStore implements TabletStateStore {
 
   @Override
   public void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp) {
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      throws DistributedStoreException {
     wrapped.suspend(tablets, logsForDeadServers, suspensionTimestamp);
 
     if (logsForDeadServers == null)
@@ -88,7 +89,7 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void unsuspend(Collection<TabletLocationState> tablets) {
+  public void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException {
     wrapped.unsuspend(tablets);
     for (TabletLocationState tls : tablets) {
       TabletLogger.unsuspended(tls.extent);

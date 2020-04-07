@@ -222,10 +222,6 @@ public interface Ample {
 
     public TabletMutator putChopped();
 
-    public TabletMutator putSuspension(TServer tserver, long suspensionTime);
-
-    public TabletMutator deleteSuspension();
-
     /**
      * This method persist (or queues for persisting) previous put and deletes against this object.
      * Unless this method is called, previous calls will never be persisted. The purpose of this

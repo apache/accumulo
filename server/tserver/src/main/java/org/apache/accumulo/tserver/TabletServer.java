@@ -192,6 +192,7 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.master.recovery.RecoveryPath;
 import org.apache.accumulo.server.master.state.Assignment;
+import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
@@ -2363,6 +2364,8 @@ public class TabletServer extends AbstractServer {
           TabletStateStore.suspend(getContext(), tls, null,
               requestTimeSkew + MILLISECONDS.convert(System.nanoTime(), NANOSECONDS));
         }
+      } catch (DistributedStoreException ex) {
+        log.warn("Unable to update storage", ex);
       } catch (KeeperException e) {
         log.warn("Unable determine our zookeeper session information", e);
       } catch (InterruptedException e) {
@@ -2505,7 +2508,7 @@ public class TabletServer extends AbstractServer {
           throw new RuntimeException("Minor compaction after recovery fails for " + extent);
         }
         Assignment assignment = new Assignment(extent, getTabletSession());
-        TabletStateStore.setLocation(getContext(), assignment, data.getLastLocation());
+        TabletStateStore.setLocation(getContext(), assignment);
 
         synchronized (openingTablets) {
           synchronized (onlineTablets) {

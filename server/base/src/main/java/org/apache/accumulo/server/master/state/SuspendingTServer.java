@@ -18,8 +18,11 @@
  */
 package org.apache.accumulo.server.master.state;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
+
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.HostAndPort;
 
@@ -52,6 +55,14 @@ public class SuspendingTServer {
     }
     SuspendingTServer rhs = (SuspendingTServer) rhsObject;
     return server.equals(rhs.server) && suspensionTime == rhs.suspensionTime;
+  }
+
+  public void setSuspension(Mutation m) {
+    m.put(SUSPEND_COLUMN.getColumnFamily(), SUSPEND_COLUMN.getColumnQualifier(), toValue());
+  }
+
+  public static void clearSuspension(Mutation m) {
+    m.putDelete(SUSPEND_COLUMN.getColumnFamily(), SUSPEND_COLUMN.getColumnQualifier());
   }
 
   @Override
