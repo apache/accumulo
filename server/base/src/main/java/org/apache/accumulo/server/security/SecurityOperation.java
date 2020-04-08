@@ -888,7 +888,7 @@ public class SecurityOperation {
     return hasTablePermission(credentials, tableId, namespaceId, TablePermission.READ, false);
   }
 
-  public boolean canImport(TCredentials credentials, String tableName, String importDir,
+  public boolean canImport(TCredentials credentials, String tableName, Set<String> importDir,
       NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.CREATE_TABLE,

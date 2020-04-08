@@ -177,10 +177,25 @@ public interface TableOperations {
    * @param tableName
    *          Name of a table to create and import into.
    * @param importDir
-   *          Directory that contains the files copied by distcp from exportTable
+   *          A directory containing the files copied by distcp from exportTable
    * @since 1.5.0
+   *
    */
-  void importTable(String tableName, String importDir)
+  default void importTable(String tableName, String importDir)
+      throws TableExistsException, AccumuloException, AccumuloSecurityException {
+    importTable(tableName, Set.of(importDir));
+  }
+
+  /**
+   * Imports a table exported via exportTable and copied via hadoop distcp.
+   *
+   * @param tableName
+   *          Name of a table to create and import into.
+   * @param importDirs
+   *          A set of directories containing the files copied by distcp from exportTable
+   * @since 2.1.0
+   */
+  void importTable(String tableName, Set<String> importDirs)
       throws TableExistsException, AccumuloException, AccumuloSecurityException;
 
   /**
