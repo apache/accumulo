@@ -62,7 +62,13 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   private void initFactory(ServerConfigurationFactory factory) {
     ServerContext context = createMockContext();
-    expect(context.getServerConfFactory()).andReturn(factory).anyTimes();
+    expect(context.getConfiguration()).andReturn(factory.getSystemConfiguration()).anyTimes();
+    expect(context.getTableConfiguration(FOO.getId()))
+        .andReturn(factory.getTableConfiguration(FOO.getId())).anyTimes();
+    expect(context.getTableConfiguration(BAR.getId()))
+        .andReturn(factory.getTableConfiguration(BAR.getId())).anyTimes();
+    expect(context.getTableConfiguration(BAZ.getId()))
+        .andReturn(factory.getTableConfiguration(BAZ.getId())).anyTimes();
     replay(context);
     init(context);
   }

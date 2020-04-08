@@ -306,9 +306,8 @@ public class Upgrader9to10 implements Upgrader {
         long maxTime = -1;
         try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(
-                context.getServerConfFactory().getTableConfiguration(RootTable.ID))
-            .seekToBeginning().build()) {
+            .withTableConfiguration(context.getTableConfiguration(RootTable.ID)).seekToBeginning()
+            .build()) {
           while (reader.hasTop()) {
             maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());
             reader.next();

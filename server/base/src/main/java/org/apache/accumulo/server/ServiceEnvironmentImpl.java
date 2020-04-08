@@ -121,7 +121,7 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   @Override
   public Configuration getConfiguration(TableId tableId) {
-    return new ConfigurationImpl(srvCtx.getServerConfFactory().getTableConfiguration(tableId));
+    return new ConfigurationImpl(srvCtx.getTableConfiguration(tableId));
   }
 
   @Override
@@ -138,8 +138,7 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
   @Override
   public <T> T instantiate(TableId tableId, String className, Class<T> base)
       throws ReflectiveOperationException, IOException {
-    String ctx =
-        srvCtx.getServerConfFactory().getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
+    String ctx = srvCtx.getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
     return ConfigurationTypeHelper.getClassInstance(ctx, className, base);
   }
 }

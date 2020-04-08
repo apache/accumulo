@@ -58,7 +58,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.ServerUtil;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -84,7 +83,6 @@ import org.slf4j.LoggerFactory;
 public class TraceServer implements Watcher, AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(TraceServer.class);
-  private final ServerConfigurationFactory serverConfiguration;
   private final ServerContext context;
   private final TServer server;
   private final AtomicReference<BatchWriter> writer;
@@ -197,10 +195,9 @@ public class TraceServer implements Watcher, AutoCloseable {
 
   public TraceServer(ServerContext context, String hostname) throws Exception {
     this.context = context;
-    this.serverConfiguration = context.getServerConfFactory();
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", context.getInstanceID());
-    AccumuloConfiguration conf = serverConfiguration.getSystemConfiguration();
+    AccumuloConfiguration conf = context.getConfiguration();
     tableName = conf.get(Property.TRACE_TABLE);
     accumuloClient = ensureTraceTableExists(conf);
 
@@ -306,8 +303,8 @@ public class TraceServer implements Watcher, AutoCloseable {
   }
 
   public void run() {
-    SimpleTimer.getInstance(serverConfiguration.getSystemConfiguration()).schedule(() -> flush(),
-        SCHEDULE_DELAY, SCHEDULE_PERIOD);
+    SimpleTimer.getInstance(context.getConfiguration()).schedule(() -> flush(), SCHEDULE_DELAY,
+        SCHEDULE_PERIOD);
     server.serve();
   }
 

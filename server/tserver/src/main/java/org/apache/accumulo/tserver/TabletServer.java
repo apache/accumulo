@@ -181,7 +181,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
@@ -350,7 +349,6 @@ public class TabletServer extends AbstractServer {
   public static final AtomicLong seekCount = new AtomicLong(0);
 
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
-  private final ServerConfigurationFactory confFactory;
 
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
@@ -367,7 +365,6 @@ public class TabletServer extends AbstractServer {
     context.setupCrypto();
     this.masterLockCache = new ZooCache(context.getZooReaderWriter(), null);
     this.watcher = new TransactionWatcher(context);
-    this.confFactory = context.getServerConfFactory();
     this.fs = context.getVolumeManager();
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
@@ -603,8 +600,7 @@ public class TabletServer extends AbstractServer {
         return null;
       }
 
-      return getContext().getServerConfFactory().getTableConfiguration(extent.getTableId())
-          .getScanDispatcher();
+      return getContext().getTableConfiguration(extent.getTableId()).getScanDispatcher();
     }
 
     @Override
@@ -1345,7 +1341,7 @@ public class TabletServer extends AbstractServer {
 
       final CompressedIterators compressedIters = new CompressedIterators(symbols);
       ConditionCheckerContext checkerContext = new ConditionCheckerContext(getContext(),
-          compressedIters, confFactory.getTableConfiguration(cs.tableId));
+          compressedIters, getContext().getTableConfiguration(cs.tableId));
 
       while (iter.hasNext()) {
         final Entry<KeyExtent,List<ServerConditionalMutation>> entry = iter.next();
@@ -2072,10 +2068,9 @@ public class TabletServer extends AbstractServer {
             SecurityErrorCode.PERMISSION_DENIED).asThriftException();
       }
 
-      ServerConfigurationFactory factory = getContext().getServerConfFactory();
       ExecutorService es = resourceManager.getSummaryPartitionExecutor();
       Future<SummaryCollection> future = new Gatherer(getContext(), request,
-          factory.getTableConfiguration(tableId), getContext().getCryptoService()).gather(es);
+          getContext().getTableConfiguration(tableId), getContext().getCryptoService()).gather(es);
 
       return startSummaryOperation(credentials, future);
     }
@@ -2090,11 +2085,12 @@ public class TabletServer extends AbstractServer {
             SecurityErrorCode.PERMISSION_DENIED).asThriftException();
       }
 
-      ServerConfigurationFactory factory = getContext().getServerConfFactory();
       ExecutorService spe = resourceManager.getSummaryRemoteExecutor();
-      Future<SummaryCollection> future = new Gatherer(getContext(), request,
-          factory.getTableConfiguration(TableId.of(request.getTableId())),
-          getContext().getCryptoService()).processPartition(spe, modulus, remainder);
+      TableConfiguration tableConfig =
+          getContext().getTableConfiguration(TableId.of(request.getTableId()));
+      Future<SummaryCollection> future =
+          new Gatherer(getContext(), request, tableConfig, getContext().getCryptoService())
+              .processPartition(spe, modulus, remainder);
 
       return startSummaryOperation(credentials, future);
     }
@@ -2111,7 +2107,7 @@ public class TabletServer extends AbstractServer {
 
       ExecutorService srp = resourceManager.getSummaryRetrievalExecutor();
       TableConfiguration tableCfg =
-          confFactory.getTableConfiguration(TableId.of(request.getTableId()));
+          getContext().getTableConfiguration(TableId.of(request.getTableId()));
       BlockCache summaryCache = resourceManager.getSummaryCache();
       BlockCache indexCache = resourceManager.getIndexCache();
       Cache<String,Long> fileLenCache = resourceManager.getFileLenCache();
@@ -3177,9 +3173,9 @@ public class TabletServer extends AbstractServer {
   private Durability getMincEventDurability(KeyExtent extent) {
     TableConfiguration conf;
     if (extent.isMeta()) {
-      conf = confFactory.getTableConfiguration(RootTable.ID);
+      conf = getContext().getTableConfiguration(RootTable.ID);
     } else {
-      conf = confFactory.getTableConfiguration(MetadataTable.ID);
+      conf = getContext().getTableConfiguration(MetadataTable.ID);
     }
     return DurabilityImpl.fromString(conf.get(Property.TABLE_DURABILITY));
   }
@@ -3228,7 +3224,7 @@ public class TabletServer extends AbstractServer {
   }
 
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
-    return confFactory.getTableConfiguration(extent.getTableId());
+    return getContext().getTableConfiguration(extent.getTableId());
   }
 
   public DfsLogger.ServerResources getServerConfig() {

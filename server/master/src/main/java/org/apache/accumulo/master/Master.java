@@ -99,7 +99,6 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -275,8 +274,6 @@ public class Master extends AbstractServer
 
   private Future<Void> upgradeMetadataFuture;
 
-  private final ServerConfigurationFactory serverConfig;
-
   private MasterClientServiceHandler clientHandler;
 
   private int assignedOrHosted(TableId tableId) {
@@ -374,9 +371,8 @@ public class Master extends AbstractServer
   Master(ServerOpts opts, String[] args) throws IOException {
     super("master", opts, args);
     ServerContext context = super.getContext();
-    this.serverConfig = context.getServerConfFactory();
 
-    AccumuloConfiguration aconf = serverConfig.getSystemConfiguration();
+    AccumuloConfiguration aconf = context.getConfiguration();
 
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", getInstanceID());
@@ -1589,10 +1585,6 @@ public class Master extends AbstractServer
 
   public EventCoordinator getEventCoordinator() {
     return nextEvent;
-  }
-
-  public ServerConfigurationFactory getConfigurationFactory() {
-    return serverConfig;
   }
 
   public VolumeManager getVolumeManager() {
