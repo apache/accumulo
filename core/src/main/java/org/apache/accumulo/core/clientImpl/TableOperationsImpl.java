@@ -61,6 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -139,7 +140,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.util.Retry;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -1499,7 +1499,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       try {
         FileSystem fs = new Path(importDir).getFileSystem(context.getHadoopConf());
         exportFilePath = new Path(importDir, Constants.EXPORT_FILE);
+        log.debug("Looking for export metadata in {}", exportFilePath);
         if (fs.exists(exportFilePath)) {
+          log.debug("Found export metadata in {}", exportFilePath);
           exportFiles.add(exportFilePath);
         }
       } catch (IOException ioe) {
@@ -1577,8 +1579,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
           ioe.getMessage());
     }
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(StringUtils.join(checkedImportDirs, ",").getBytes(UTF_8)));
+    Stream<String> argStream = Stream.concat(Stream.of(tableName), checkedImportDirs.stream());
+    List<ByteBuffer> args =
+        argStream.map(String::getBytes).map(ByteBuffer::wrap).collect(Collectors.toList());
 
     Map<String,String> opts = Collections.emptyMap();
 
