@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -364,7 +365,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_IMPORT_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME,
-                filePrefix + exportDir)));
+                Pattern.quote(Set.of(filePrefix + exportDir).toString()))));
     assertEquals(1, findAuditMessage(auditMessages, String
         .format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, THIRD_TEST_TABLE_NAME)));
     assertEquals(1,
