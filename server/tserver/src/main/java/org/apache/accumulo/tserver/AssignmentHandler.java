@@ -22,7 +22,6 @@ import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 import java.util.Arrays;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TimerTask;
 import java.util.TreeSet;
 
@@ -46,13 +45,10 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AssignmentHandler implements Runnable {
+class AssignmentHandler implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(AssignmentHandler.class);
   private final KeyExtent extent;
   private final int retryAttempt;
-  private final SortedSet<KeyExtent> unopenedTablets;
-  private final SortedSet<KeyExtent> openingTablets;
-  private final OnlineTablets onlineTablets;
   private final TabletServer server;
 
   public AssignmentHandler(TabletServer server, KeyExtent extent) {
@@ -61,24 +57,23 @@ public class AssignmentHandler implements Runnable {
 
   public AssignmentHandler(TabletServer server, KeyExtent extent, int retryAttempt) {
     this.server = server;
-    this.onlineTablets = server.getOnlineTabletsRaw();
-    this.unopenedTablets = server.getUnopenedTablets();
-    this.openingTablets = server.getOpeningTablets();
     this.extent = extent;
     this.retryAttempt = retryAttempt;
   }
 
   @Override
   public void run() {
-    synchronized (unopenedTablets) {
-      synchronized (openingTablets) {
-        synchronized (onlineTablets) {
+    synchronized (server.unopenedTablets) {
+      synchronized (server.openingTablets) {
+        synchronized (server.onlineTablets) {
           // nothing should be moving between sets, do a sanity
           // check
-          Set<KeyExtent> unopenedOverlapping = KeyExtent.findOverlapping(extent, unopenedTablets);
-          Set<KeyExtent> openingOverlapping = KeyExtent.findOverlapping(extent, openingTablets);
+          Set<KeyExtent> unopenedOverlapping =
+              KeyExtent.findOverlapping(extent, server.unopenedTablets);
+          Set<KeyExtent> openingOverlapping =
+              KeyExtent.findOverlapping(extent, server.openingTablets);
           Set<KeyExtent> onlineOverlapping =
-              KeyExtent.findOverlapping(extent, onlineTablets.snapshot());
+              KeyExtent.findOverlapping(extent, server.onlineTablets.snapshot());
 
           if (openingOverlapping.contains(extent) || onlineOverlapping.contains(extent)) {
             return;
@@ -92,13 +87,13 @@ public class AssignmentHandler implements Runnable {
           if (unopenedOverlapping.size() != 1 || openingOverlapping.size() > 0
               || onlineOverlapping.size() > 0) {
             throw new IllegalStateException(
-                "overlaps assigned " + extent + " " + !unopenedTablets.contains(extent) + " "
+                "overlaps assigned " + extent + " " + !server.unopenedTablets.contains(extent) + " "
                     + unopenedOverlapping + " " + openingOverlapping + " " + onlineOverlapping);
           }
         }
 
-        unopenedTablets.remove(extent);
-        openingTablets.add(extent);
+        server.unopenedTablets.remove(extent);
+        server.openingTablets.add(extent);
       }
     }
 
@@ -115,9 +110,9 @@ public class AssignmentHandler implements Runnable {
         KeyExtent fixedExtent =
             MasterMetadataUtil.fixSplit(server.getContext(), tabletMetadata, server.getLock());
 
-        synchronized (openingTablets) {
-          openingTablets.remove(extent);
-          openingTablets.notifyAll();
+        synchronized (server.openingTablets) {
+          server.openingTablets.remove(extent);
+          server.openingTablets.notifyAll();
           // it expected that the new extent will overlap the old one... if it does not, it
           // should not be added to unopenedTablets
           if (!KeyExtent.findOverlapping(extent, new TreeSet<>(Arrays.asList(fixedExtent)))
@@ -125,7 +120,7 @@ public class AssignmentHandler implements Runnable {
             throw new IllegalStateException(
                 "Fixed split does not overlap " + extent + " " + fixedExtent);
           }
-          unopenedTablets.add(fixedExtent);
+          server.unopenedTablets.add(fixedExtent);
         }
         // split was rolled back... try again
         new AssignmentHandler(server, fixedExtent).run();
@@ -133,9 +128,9 @@ public class AssignmentHandler implements Runnable {
 
       }
     } catch (Exception e) {
-      synchronized (openingTablets) {
-        openingTablets.remove(extent);
-        openingTablets.notifyAll();
+      synchronized (server.openingTablets) {
+        server.openingTablets.remove(extent);
+        server.openingTablets.notifyAll();
       }
       log.warn("Failed to verify tablet " + extent, e);
       server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
@@ -145,9 +140,9 @@ public class AssignmentHandler implements Runnable {
     if (!canLoad) {
       log.debug("Reporting tablet {} assignment failure: unable to verify Tablet Information",
           extent);
-      synchronized (openingTablets) {
-        openingTablets.remove(extent);
-        openingTablets.notifyAll();
+      synchronized (server.openingTablets) {
+        server.openingTablets.remove(extent);
+        server.openingTablets.notifyAll();
       }
       server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       return;
@@ -159,7 +154,7 @@ public class AssignmentHandler implements Runnable {
     try {
       server.acquireRecoveryMemory(extent);
 
-      TabletResourceManager trm = server.getResourceManager().createTabletResourceManager(extent,
+      TabletResourceManager trm = server.resourceManager.createTabletResourceManager(extent,
           server.getTableConfiguration(extent));
       TabletData data = new TabletData(tabletMetadata);
 
@@ -184,12 +179,12 @@ public class AssignmentHandler implements Runnable {
       Assignment assignment = new Assignment(extent, server.getTabletSession());
       TabletStateStore.setLocation(server.getContext(), assignment);
 
-      synchronized (openingTablets) {
-        synchronized (onlineTablets) {
-          openingTablets.remove(extent);
-          onlineTablets.put(extent, tablet);
-          openingTablets.notifyAll();
-          server.getRecentlyUnloadedCache().remove(tablet.getExtent());
+      synchronized (server.openingTablets) {
+        synchronized (server.onlineTablets) {
+          server.openingTablets.remove(extent);
+          server.onlineTablets.put(extent, tablet);
+          server.openingTablets.notifyAll();
+          server.recentlyUnloadedCache.remove(tablet.getExtent());
         }
       }
       tablet = null; // release this reference
@@ -209,11 +204,11 @@ public class AssignmentHandler implements Runnable {
     }
 
     if (!successful) {
-      synchronized (unopenedTablets) {
-        synchronized (openingTablets) {
-          openingTablets.remove(extent);
-          unopenedTablets.add(extent);
-          openingTablets.notifyAll();
+      synchronized (server.unopenedTablets) {
+        synchronized (server.openingTablets) {
+          server.openingTablets.remove(extent);
+          server.unopenedTablets.add(extent);
+          server.openingTablets.notifyAll();
         }
       }
       log.warn("failed to open tablet {} reporting failure to master", extent);
@@ -229,10 +224,10 @@ public class AssignmentHandler implements Runnable {
             if (extent.isRootTablet()) {
               new Daemon(new LoggingRunnable(log, handler), "Root tablet assignment retry").start();
             } else {
-              server.getResourceManager().addMetaDataAssignment(extent, log, handler);
+              server.resourceManager.addMetaDataAssignment(extent, log, handler);
             }
           } else {
-            server.getResourceManager().addAssignment(extent, log, handler);
+            server.resourceManager.addAssignment(extent, log, handler);
           }
         }
       }, reschedule);

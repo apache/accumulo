@@ -130,7 +130,6 @@ import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
@@ -176,15 +175,14 @@ public class TabletServer extends AbstractServer {
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
 
-  private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
-  private final TransactionWatcher watcher;
-  private ZooCache masterLockCache;
+  final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
+  ZooCache masterLockCache;
 
-  private final TabletServerLogger logger;
+  final TabletServerLogger logger;
 
-  private final TabletServerUpdateMetrics updateMetrics;
-  private final TabletServerScanMetrics scanMetrics;
-  private final TabletServerMinCMetrics mincMetrics;
+  final TabletServerUpdateMetrics updateMetrics;
+  final TabletServerScanMetrics scanMetrics;
+  final TabletServerMinCMetrics mincMetrics;
 
   public TabletServerScanMetrics getScanMetrics() {
     return scanMetrics;
@@ -194,13 +192,9 @@ public class TabletServer extends AbstractServer {
     return mincMetrics;
   }
 
-  public TabletServerUpdateMetrics getUpdateMetrics() {
-    return updateMetrics;
-  }
-
   private final LogSorter logSorter;
   private ReplicationWorker replWorker = null;
-  private final TabletStatsKeeper statsKeeper;
+  final TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
 
   private final AtomicLong flushCounter = new AtomicLong(0);
@@ -208,22 +202,19 @@ public class TabletServer extends AbstractServer {
 
   private final VolumeManager fs;
 
-  private final OnlineTablets onlineTablets = new OnlineTablets();
-  private final SortedSet<KeyExtent> unopenedTablets =
-      Collections.synchronizedSortedSet(new TreeSet<>());
-  private final SortedSet<KeyExtent> openingTablets =
-      Collections.synchronizedSortedSet(new TreeSet<>());
-  private final Map<KeyExtent,Long> recentlyUnloadedCache =
-      Collections.synchronizedMap(new LRUMap<>(1000));
+  final OnlineTablets onlineTablets = new OnlineTablets();
+  final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<>());
+  final SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<>());
+  final Map<KeyExtent,Long> recentlyUnloadedCache = Collections.synchronizedMap(new LRUMap<>(1000));
 
-  private final TabletServerResourceManager resourceManager;
+  final TabletServerResourceManager resourceManager;
   private final SecurityOperation security;
 
   private final BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<>();
 
   private Thread majorCompactorThread;
 
-  private HostAndPort clientAddress;
+  HostAndPort clientAddress;
 
   private volatile boolean serverStopRequested = false;
   private volatile boolean shutdownComplete = false;
@@ -255,7 +246,6 @@ public class TabletServer extends AbstractServer {
     ServerContext context = super.getContext();
     context.setupCrypto();
     this.masterLockCache = new ZooCache(context.getZooReaderWriter(), null);
-    this.watcher = new TransactionWatcher(context);
     this.fs = context.getVolumeManager();
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
@@ -384,71 +374,19 @@ public class TabletServer extends AbstractServer {
     return (long) ((1. + (r.nextDouble() / 10)) * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 
-  private final SessionManager sessionManager;
+  final SessionManager sessionManager;
 
   private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
   private final ReentrantLock recoveryLock = new ReentrantLock(true);
   private ThriftClientHandler clientHandler;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
-  protected TransactionWatcher getWatcher() {
-    return watcher;
-  }
-
-  protected TabletServerLogger getLogger() {
-    return logger;
-  }
-
   protected String getLockID() {
     return lockID;
   }
 
-  protected HostAndPort getClientAddress() {
-    return clientAddress;
-  }
-
-  protected TabletServerResourceManager getResourceManager() {
-    return resourceManager;
-  }
-
-  protected SecurityOperation getSecurity() {
-    return security;
-  }
-
-  protected SessionManager getSessionManager() {
-    return sessionManager;
-  }
-
-  protected GarbageCollectionLogger getGcLogger() {
-    return gcLogger;
-  }
-
-  protected TabletStatsKeeper getStatsKeeper() {
-    return statsKeeper;
-  }
-
-  protected void serverStopRequested() {
+  void requestStop() {
     serverStopRequested = true;
-  }
-
-  protected ZooCache getMasterLockCache() {
-    return masterLockCache;
-  }
-
-  protected SortedSet<KeyExtent> getUnopenedTablets() {
-    return unopenedTablets;
-  }
-
-  protected SortedSet<KeyExtent> getOpeningTablets() {
-    return openingTablets;
-  }
-
-  protected OnlineTablets getOnlineTabletsRaw() {
-    return onlineTablets;
-  }
-
-  protected Map<KeyExtent,Long> getRecentlyUnloadedCache() {
-    return recentlyUnloadedCache;
   }
 
   private class SplitRunner implements Runnable {

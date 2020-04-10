@@ -21,8 +21,6 @@ package org.apache.accumulo.tserver;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
-import java.util.SortedSet;
-
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
@@ -38,14 +36,11 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UnloadTabletHandler implements Runnable {
+class UnloadTabletHandler implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(UnloadTabletHandler.class);
   private final KeyExtent extent;
   private final TUnloadTabletGoal goalState;
   private final long requestTimeSkew;
-  private final SortedSet<KeyExtent> unopenedTablets;
-  private final SortedSet<KeyExtent> openingTablets;
-  private final OnlineTablets onlineTablets;
   private final TabletServer server;
 
   public UnloadTabletHandler(TabletServer server, KeyExtent extent, TUnloadTabletGoal goalState,
@@ -53,9 +48,6 @@ public class UnloadTabletHandler implements Runnable {
     this.extent = extent;
     this.goalState = goalState;
     this.server = server;
-    this.openingTablets = server.getOpeningTablets();
-    this.unopenedTablets = server.getUnopenedTablets();
-    this.onlineTablets = server.getOnlineTabletsRaw();
     this.requestTimeSkew = requestTime - MILLISECONDS.convert(System.nanoTime(), NANOSECONDS);
   }
 
@@ -64,30 +56,30 @@ public class UnloadTabletHandler implements Runnable {
 
     Tablet t = null;
 
-    synchronized (unopenedTablets) {
-      if (unopenedTablets.contains(extent)) {
-        unopenedTablets.remove(extent);
+    synchronized (server.unopenedTablets) {
+      if (server.unopenedTablets.contains(extent)) {
+        server.unopenedTablets.remove(extent);
         // enqueueMasterMessage(new TabletUnloadedMessage(extent));
         return;
       }
     }
-    synchronized (openingTablets) {
-      while (openingTablets.contains(extent)) {
+    synchronized (server.openingTablets) {
+      while (server.openingTablets.contains(extent)) {
         try {
-          openingTablets.wait();
+          server.openingTablets.wait();
         } catch (InterruptedException e) {}
       }
     }
-    synchronized (onlineTablets) {
-      if (onlineTablets.snapshot().containsKey(extent)) {
-        t = onlineTablets.snapshot().get(extent);
+    synchronized (server.onlineTablets) {
+      if (server.onlineTablets.snapshot().containsKey(extent)) {
+        t = server.onlineTablets.snapshot().get(extent);
       }
     }
 
     if (t == null) {
       // Tablet has probably been recently unloaded: repeated master
       // unload request is crossing the successful unloaded message
-      if (!server.getRecentlyUnloadedCache().containsKey(extent)) {
+      if (!server.recentlyUnloadedCache.containsKey(extent)) {
         log.info("told to unload tablet that was not being served {}", extent);
         server.enqueueMasterMessage(
             new TabletStatusMessage(TabletLoadState.UNLOAD_FAILURE_NOT_SERVING, extent));
@@ -111,12 +103,12 @@ public class UnloadTabletHandler implements Runnable {
 
     // stop serving tablet - client will get not serving tablet
     // exceptions
-    server.getRecentlyUnloadedCache().put(extent, System.currentTimeMillis());
-    onlineTablets.remove(extent);
+    server.recentlyUnloadedCache.put(extent, System.currentTimeMillis());
+    server.onlineTablets.remove(extent);
 
     try {
       TServerInstance instance =
-          new TServerInstance(server.getClientAddress(), server.getLock().getSessionId());
+          new TServerInstance(server.clientAddress, server.getLock().getSessionId());
       TabletLocationState tls = null;
       try {
         tls = new TabletLocationState(extent, null, instance, null, null, null, false);
@@ -144,6 +136,6 @@ public class UnloadTabletHandler implements Runnable {
 
     // roll tablet stats over into tablet server's statsKeeper object as
     // historical data
-    server.getStatsKeeper().saveMajorMinorTimes(t.getTabletStats());
+    server.statsKeeper.saveMajorMinorTimes(t.getTabletStats());
   }
 }

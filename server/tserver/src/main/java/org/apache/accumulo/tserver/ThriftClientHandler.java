@@ -33,8 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -131,15 +129,11 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.RowLocks.RowLock;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
-import org.apache.accumulo.tserver.log.TabletServerLogger;
-import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
-import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
 import org.apache.accumulo.tserver.scan.LookupTask;
 import org.apache.accumulo.tserver.scan.NextBatchTask;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.session.ConditionalSession;
 import org.apache.accumulo.tserver.session.MultiScanSession;
-import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.session.SummarySession;
 import org.apache.accumulo.tserver.session.UpdateSession;
@@ -165,7 +159,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Collections2;
 
-public class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
+class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
   private static final Logger log = LoggerFactory.getLogger(ThriftClientHandler.class);
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
@@ -173,24 +167,16 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
   private final TabletServer server;
   private final WriteTracker writeTracker = new WriteTracker();
   private final RowLocks rowLocks = new RowLocks();
-  private final TransactionWatcher watcher;
   private final VolumeManager fs;
+  private final TransactionWatcher watcher;
   private final SecurityOperation security;
-  private final SessionManager sessionManager;
-  private final TabletServerUpdateMetrics updateMetrics;
-  private final TabletServerScanMetrics scanMetrics;
-  private final TabletServerLogger logger;
 
   public ThriftClientHandler(TabletServer server) {
-    super(server.getContext(), server.getWatcher(), server.getFileSystem());
+    super(server.getContext(), new TransactionWatcher(server.getContext()), server.getFileSystem());
     this.server = server;
-    this.watcher = server.getWatcher();
-    this.fs = server.getFileSystem();
-    this.security = server.getSecurity();
-    this.sessionManager = server.getSessionManager();
-    this.updateMetrics = server.getUpdateMetrics();
-    this.scanMetrics = server.getScanMetrics();
-    this.logger = server.getLogger();
+    this.watcher = transactionWatcher;
+    this.security = server.getSecurityOperation();
+    this.fs = server.getContext().getVolumeManager();
     log.debug("{} created", ThriftClientHandler.class.getName());
   }
 
@@ -348,7 +334,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     scanSession.scanner =
         tablet.createScanner(new Range(range), scanParams, scanSession.interruptFlag);
 
-    long sid = sessionManager.createSession(scanSession, true);
+    long sid = server.sessionManager.createSession(scanSession, true);
 
     ScanResult scanResult;
     try {
@@ -357,7 +343,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       log.error("The impossible happened", e);
       throw new RuntimeException();
     } finally {
-      sessionManager.unreserveSession(sid);
+      server.sessionManager.unreserveSession(sid);
     }
 
     return new InitialScan(sid, scanResult);
@@ -367,7 +353,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
   public ScanResult continueScan(TInfo tinfo, long scanID) throws NoSuchScanIDException,
       NotServingTabletException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
       TSampleNotPresentException {
-    SingleScanSession scanSession = (SingleScanSession) sessionManager.reserveSession(scanID);
+    SingleScanSession scanSession =
+        (SingleScanSession) server.sessionManager.reserveSession(scanID);
     if (scanSession == null) {
       throw new NoSuchScanIDException();
     }
@@ -375,7 +362,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     try {
       return continueScan(tinfo, scanID, scanSession);
     } finally {
-      sessionManager.unreserveSession(scanSession);
+      server.sessionManager.unreserveSession(scanSession);
     }
   }
 
@@ -386,7 +373,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
     if (scanSession.nextBatchTask == null) {
       scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
-      server.getResourceManager().executeReadAhead(scanSession.extent,
+      server.resourceManager.executeReadAhead(scanSession.extent,
           getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
     }
 
@@ -396,7 +383,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           TimeUnit.MILLISECONDS);
       scanSession.nextBatchTask = null;
     } catch (ExecutionException e) {
-      sessionManager.removeSession(scanID);
+      server.sessionManager.removeSession(scanID);
       if (e.getCause() instanceof NotServingTabletException) {
         throw (NotServingTabletException) e.getCause();
       } else if (e.getCause() instanceof TooManyFilesException) {
@@ -413,7 +400,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         throw new RuntimeException(e);
       }
     } catch (CancellationException ce) {
-      sessionManager.removeSession(scanID);
+      server.sessionManager.removeSession(scanID);
       Tablet tablet = server.getOnlineTablet(scanSession.extent);
       if (tablet == null || tablet.isClosed()) {
         throw new NotServingTabletException(scanSession.extent.toThrift());
@@ -423,10 +410,10 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     } catch (TimeoutException e) {
       List<TKeyValue> param = Collections.emptyList();
       long timeout = server.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
-      sessionManager.removeIfNotAccessed(scanID, timeout);
+      server.sessionManager.removeIfNotAccessed(scanID, timeout);
       return new ScanResult(param, true);
     } catch (Throwable t) {
-      sessionManager.removeSession(scanID);
+      server.sessionManager.removeSession(scanID);
       log.warn("Failed to get next batch", t);
       throw new RuntimeException(t);
     }
@@ -441,7 +428,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       // start reading next batch while current batch is transmitted
       // to client
       scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
-      server.getResourceManager().executeReadAhead(scanSession.extent,
+      server.resourceManager.executeReadAhead(scanSession.extent,
           getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
     }
 
@@ -454,7 +441,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
   @Override
   public void closeScan(TInfo tinfo, long scanID) {
-    final SingleScanSession ss = (SingleScanSession) sessionManager.removeSession(scanID);
+    final SingleScanSession ss = (SingleScanSession) server.sessionManager.removeSession(scanID);
     if (ss != null) {
       long t2 = System.currentTimeMillis();
 
@@ -464,8 +451,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
             (t2 - ss.startTime) / 1000.0, ss.runStats.toString()));
       }
 
-      scanMetrics.addScan(t2 - ss.startTime);
-      scanMetrics.addResult(ss.entriesReturned);
+      server.scanMetrics.addScan(t2 - ss.startTime);
+      server.scanMetrics.addResult(ss.entriesReturned);
     }
   }
 
@@ -530,13 +517,13 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       mss.numRanges += ranges.size();
     }
 
-    long sid = sessionManager.createSession(mss, true);
+    long sid = server.sessionManager.createSession(mss, true);
 
     MultiScanResult result;
     try {
       result = continueMultiScan(sid, mss);
     } finally {
-      sessionManager.unreserveSession(sid);
+      server.sessionManager.unreserveSession(sid);
     }
 
     return new InitialMultiScan(sid, result);
@@ -546,7 +533,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
   public MultiScanResult continueMultiScan(TInfo tinfo, long scanID)
       throws NoSuchScanIDException, TSampleNotPresentException {
 
-    MultiScanSession session = (MultiScanSession) sessionManager.reserveSession(scanID);
+    MultiScanSession session = (MultiScanSession) server.sessionManager.reserveSession(scanID);
 
     if (session == null) {
       throw new NoSuchScanIDException();
@@ -555,7 +542,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     try {
       return continueMultiScan(scanID, session);
     } finally {
-      sessionManager.unreserveSession(session);
+      server.sessionManager.unreserveSession(session);
     }
   }
 
@@ -564,7 +551,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
     if (session.lookupTask == null) {
       session.lookupTask = new LookupTask(server, scanID);
-      server.getResourceManager().executeReadAhead(session.threadPoolExtent,
+      server.resourceManager.executeReadAhead(session.threadPoolExtent,
           getScanDispatcher(session.threadPoolExtent), session, session.lookupTask);
     }
 
@@ -574,7 +561,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       session.lookupTask = null;
       return scanResult;
     } catch (ExecutionException e) {
-      sessionManager.removeSession(scanID);
+      server.sessionManager.removeSession(scanID);
       if (e.getCause() instanceof SampleNotPresentException) {
         throw new TSampleNotPresentException();
       } else {
@@ -583,13 +570,13 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       }
     } catch (TimeoutException e1) {
       long timeout = server.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
-      sessionManager.removeIfNotAccessed(scanID, timeout);
+      server.sessionManager.removeIfNotAccessed(scanID, timeout);
       List<TKeyValue> results = Collections.emptyList();
       Map<TKeyExtent,List<TRange>> failures = Collections.emptyMap();
       List<TKeyExtent> fullScans = Collections.emptyList();
       return new MultiScanResult(results, failures, fullScans, null, null, false, true);
     } catch (Throwable t) {
-      sessionManager.removeSession(scanID);
+      server.sessionManager.removeSession(scanID);
       log.warn("Failed to get multiscan result", t);
       throw new RuntimeException(t);
     }
@@ -597,7 +584,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
   @Override
   public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException {
-    MultiScanSession session = (MultiScanSession) sessionManager.removeSession(scanID);
+    MultiScanSession session = (MultiScanSession) server.sessionManager.removeSession(scanID);
     if (session == null) {
       throw new NoSuchScanIDException();
     }
@@ -619,12 +606,12 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     // Make sure user is real
     Durability durability = DurabilityImpl.fromThrift(tdurabilty);
     security.authenticateUser(credentials, credentials);
-    updateMetrics.addPermissionErrors(0);
+    server.updateMetrics.addPermissionErrors(0);
 
     UpdateSession us =
         new UpdateSession(new TservConstraintEnv(server.getContext(), security, credentials),
             credentials, durability);
-    return sessionManager.createSession(us, false);
+    return server.sessionManager.createSession(us, false);
   }
 
   private void setUpdateTablet(UpdateSession us, KeyExtent keyExtent) {
@@ -656,7 +643,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           // not serving tablet, so report all mutations as
           // failures
           us.failures.put(keyExtent, 0L);
-          updateMetrics.addUnknownTabletErrors(0);
+          server.updateMetrics.addUnknownTabletErrors(0);
         }
       } else {
         log.warn("Denying access to table {} for user {}", keyExtent.getTableId(), us.getUser());
@@ -664,7 +651,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
         us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
-        updateMetrics.addPermissionErrors(0);
+        server.updateMetrics.addPermissionErrors(0);
         return;
       }
     } catch (TableNotFoundException tnfe) {
@@ -673,7 +660,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       us.authTimes.addStat(t2 - t1);
       us.currentTablet = null;
       us.authFailures.put(keyExtent, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      updateMetrics.addUnknownTabletErrors(0);
+      server.updateMetrics.addUnknownTabletErrors(0);
       return;
     } catch (ThriftSecurityException e) {
       log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(),
@@ -682,7 +669,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       us.authTimes.addStat(t2 - t1);
       us.currentTablet = null;
       us.authFailures.put(keyExtent, e.getCode());
-      updateMetrics.addPermissionErrors(0);
+      server.updateMetrics.addPermissionErrors(0);
       return;
     }
   }
@@ -690,7 +677,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
   @Override
   public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent tkeyExtent,
       List<TMutation> tmutations) {
-    UpdateSession us = (UpdateSession) sessionManager.reserveSession(updateID);
+    UpdateSession us = (UpdateSession) server.sessionManager.reserveSession(updateID);
     if (us == null) {
       return;
     }
@@ -719,14 +706,14 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
             // then removing the session should cause the client to fail
             // in such a way that it retries.
             log.debug("HoldTimeoutException during applyUpdates, removing session");
-            sessionManager.removeSession(updateID, true);
+            server.sessionManager.removeSession(updateID, true);
             reserved = false;
           }
         }
       }
     } finally {
       if (reserved) {
-        sessionManager.unreserveSession(us);
+        server.sessionManager.unreserveSession(us);
       }
     }
   }
@@ -748,7 +735,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     }
 
     if (!containsMetadataTablet && us.queuedMutations.size() > 0) {
-      server.getResourceManager().waitUntilCommitsAreEnabled();
+      server.resourceManager.waitUntilCommitsAreEnabled();
     }
 
     try (TraceScope prep = Trace.startSpan("prep")) {
@@ -760,7 +747,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         List<Mutation> mutations = entry.getValue();
         if (mutations.size() > 0) {
           try {
-            updateMetrics.addMutationArraySize(mutations.size());
+            server.updateMetrics.addMutationArraySize(mutations.size());
 
             PreparedMutations prepared = tablet.prepareMutationsForCommit(us.cenv, mutations);
 
@@ -781,7 +768,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
               if (!prepared.getViolations().isEmpty()) {
                 us.violations.add(prepared.getViolations());
-                updateMetrics.addConstraintViolations(0);
+                server.updateMetrics.addConstraintViolations(0);
               }
               // Use the size of the original mutation list, regardless of how many mutations
               // did not violate constraints.
@@ -811,7 +798,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           try {
             long t1 = System.currentTimeMillis();
 
-            logger.logManyTablets(loggables);
+            server.logger.logManyTablets(loggables);
 
             long t2 = System.currentTimeMillis();
             us.walogTimes.addStat(t2 - t1);
@@ -861,22 +848,22 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
   }
 
   private void updateWalogWriteTime(long time) {
-    updateMetrics.addWalogWriteTime(time);
+    server.updateMetrics.addWalogWriteTime(time);
   }
 
   private void updateAvgCommitTime(long time, int size) {
     if (size > 0)
-      updateMetrics.addCommitTime((long) (time / (double) size));
+      server.updateMetrics.addCommitTime((long) (time / (double) size));
   }
 
   private void updateAvgPrepTime(long time, int size) {
     if (size > 0)
-      updateMetrics.addCommitPrep((long) (time / (double) size));
+      server.updateMetrics.addCommitPrep((long) (time / (double) size));
   }
 
   @Override
   public UpdateErrors closeUpdate(TInfo tinfo, long updateID) throws NoSuchScanIDException {
-    final UpdateSession us = (UpdateSession) sessionManager.removeSession(updateID);
+    final UpdateSession us = (UpdateSession) server.sessionManager.removeSession(updateID);
     if (us == null) {
       throw new NoSuchScanIDException();
     }
@@ -947,7 +934,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
     if (!keyExtent.isMeta()) {
       try {
-        server.getResourceManager().waitUntilCommitsAreEnabled();
+        server.resourceManager.waitUntilCommitsAreEnabled();
       } catch (HoldTimeoutException hte) {
         // Major hack. Assumption is that the client has timed out and is gone. If that's not the
         // case, then throwing the following will let client know there
@@ -982,7 +969,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         while (durability != Durability.NONE) {
           try {
             try (TraceScope wal = Trace.startSpan("wal")) {
-              logger.log(session, mutation, durability);
+              server.logger.log(session, mutation, durability);
             }
             break;
           } catch (IOException ex) {
@@ -1111,7 +1098,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       while (loggables.size() > 0) {
         try {
           long t1 = System.currentTimeMillis();
-          logger.logManyTablets(loggables);
+          server.logger.logManyTablets(loggables);
           long t2 = System.currentTimeMillis();
           updateWalogWriteTime(t2 - t1);
           break;
@@ -1197,8 +1184,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     ConditionalSession cs = new ConditionalSession(credentials, new Authorizations(authorizations),
         tableId, DurabilityImpl.fromThrift(tdurabilty));
 
-    long sid = sessionManager.createSession(cs, false);
-    return new TConditionalSession(sid, server.getLockID(), sessionManager.getMaxIdleTime());
+    long sid = server.sessionManager.createSession(cs, false);
+    return new TConditionalSession(sid, server.getLockID(), server.sessionManager.getMaxIdleTime());
   }
 
   @Override
@@ -1206,7 +1193,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols)
       throws NoSuchScanIDException, TException {
 
-    ConditionalSession cs = (ConditionalSession) sessionManager.reserveSession(sessID);
+    ConditionalSession cs = (ConditionalSession) server.sessionManager.reserveSession(sessID);
 
     if (cs == null || cs.interruptFlag.get()) {
       throw new NoSuchScanIDException();
@@ -1214,7 +1201,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
     if (!cs.tableId.equals(MetadataTable.ID) && !cs.tableId.equals(RootTable.ID)) {
       try {
-        server.getResourceManager().waitUntilCommitsAreEnabled();
+        server.resourceManager.waitUntilCommitsAreEnabled();
       } catch (HoldTimeoutException hte) {
         // Assumption is that the client has timed out and is gone. If that's not the case throw
         // an exception that will cause it to retry.
@@ -1251,7 +1238,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       throw new TException(ioe);
     } finally {
       writeTracker.finishWrite(opid);
-      sessionManager.unreserveSession(sessID);
+      server.sessionManager.unreserveSession(sessID);
     }
   }
 
@@ -1260,20 +1247,20 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     // this method should wait for any running conditional update to complete
     // after this method returns a conditional update should not be able to start
 
-    ConditionalSession cs = (ConditionalSession) sessionManager.getSession(sessID);
+    ConditionalSession cs = (ConditionalSession) server.sessionManager.getSession(sessID);
     if (cs != null) {
       cs.interruptFlag.set(true);
     }
 
-    cs = (ConditionalSession) sessionManager.reserveSession(sessID, true);
+    cs = (ConditionalSession) server.sessionManager.reserveSession(sessID, true);
     if (cs != null) {
-      sessionManager.removeSession(sessID, true);
+      server.sessionManager.removeSession(sessID, true);
     }
   }
 
   @Override
   public void closeConditionalUpdate(TInfo tinfo, long sessID) {
-    sessionManager.removeSession(sessID, false);
+    server.sessionManager.removeSession(sessID, false);
   }
 
   @Override
@@ -1310,7 +1297,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
   @Override
   public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) {
-    return server.getStats(sessionManager.getActiveScansPerTable());
+    return server.getStats(server.sessionManager.getActiveScansPerTable());
   }
 
   @Override
@@ -1363,7 +1350,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       Halt.halt(1, () -> {
         log.info("Tablet server no longer holds lock during checkPermission() : {}, exiting",
             request);
-        server.getGcLogger().logGCInfo(server.getConfiguration());
+        server.gcLogger.logGCInfo(server.getConfiguration());
       });
     }
 
@@ -1372,11 +1359,11 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           new ZooUtil.LockID(server.getContext().getZooKeeperRoot() + Constants.ZMASTER_LOCK, lock);
 
       try {
-        if (!ZooLock.isLockHeld(server.getMasterLockCache(), lid)) {
+        if (!ZooLock.isLockHeld(server.masterLockCache, lid)) {
           // maybe the cache is out of date and a new master holds the
           // lock?
-          server.getMasterLockCache().clear();
-          if (!ZooLock.isLockHeld(server.getMasterLockCache(), lid)) {
+          server.masterLockCache.clear();
+          if (!ZooLock.isLockHeld(server.masterLockCache, lid)) {
             log.warn("Got {} message from a master that does not hold the current lock {}", request,
                 lock);
             throw new RuntimeException("bad master lock");
@@ -1400,21 +1387,21 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     }
 
     final KeyExtent extent = new KeyExtent(textent);
-    SortedSet<KeyExtent> unopenedTablets = server.getUnopenedTablets();
-    SortedSet<KeyExtent> openingTablets = server.getOpeningTablets();
 
-    synchronized (unopenedTablets) {
-      synchronized (openingTablets) {
-        SortedMap<KeyExtent,Tablet> onlineTablets = server.getOnlineTablets();
-        synchronized (onlineTablets) {
+    synchronized (server.unopenedTablets) {
+      synchronized (server.openingTablets) {
+        synchronized (server.onlineTablets) {
 
           // checking if this exact tablet is in any of the sets
           // below is not a strong enough check
           // when splits and fix splits occurring
 
-          Set<KeyExtent> unopenedOverlapping = KeyExtent.findOverlapping(extent, unopenedTablets);
-          Set<KeyExtent> openingOverlapping = KeyExtent.findOverlapping(extent, openingTablets);
-          Set<KeyExtent> onlineOverlapping = KeyExtent.findOverlapping(extent, onlineTablets);
+          Set<KeyExtent> unopenedOverlapping =
+              KeyExtent.findOverlapping(extent, server.unopenedTablets);
+          Set<KeyExtent> openingOverlapping =
+              KeyExtent.findOverlapping(extent, server.openingTablets);
+          Set<KeyExtent> onlineOverlapping =
+              KeyExtent.findOverlapping(extent, server.onlineTablets.snapshot());
 
           Set<KeyExtent> all = new HashSet<>();
           all.addAll(unopenedOverlapping);
@@ -1442,7 +1429,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
             return;
           }
 
-          unopenedTablets.add(extent);
+          server.unopenedTablets.add(extent);
         }
       }
     }
@@ -1468,9 +1455,9 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       }.start();
     } else {
       if (extent.isMeta()) {
-        server.getResourceManager().addMetaDataAssignment(extent, log, ah);
+        server.resourceManager.addMetaDataAssignment(extent, log, ah);
       } else {
-        server.getResourceManager().addAssignment(extent, log, ah);
+        server.resourceManager.addAssignment(extent, log, ah);
       }
     }
   }
@@ -1487,7 +1474,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
     KeyExtent extent = new KeyExtent(textent);
 
-    server.getResourceManager().addMigration(extent,
+    server.resourceManager.addMigration(extent,
         new LoggingRunnable(log, new UnloadTabletHandler(server, extent, goal, requestTime)));
   }
 
@@ -1559,8 +1546,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
     Halt.halt(0, () -> {
       log.info("Master requested tablet server halt");
-      server.getGcLogger().logGCInfo(server.getConfiguration());
-      server.serverStopRequested();
+      server.gcLogger.logGCInfo(server.getConfiguration());
+      server.requestStop();
       try {
         server.getLock().unlock();
       } catch (Exception e) {
@@ -1580,7 +1567,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
   @Override
   public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials) {
-    return server.getStatsKeeper().getTabletStats();
+    return server.statsKeeper.getTabletStats();
   }
 
   @Override
@@ -1593,7 +1580,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       throw e;
     }
 
-    return sessionManager.getActiveScans();
+    return server.sessionManager.getActiveScans();
   }
 
   @Override
@@ -1674,7 +1661,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
   @Override
   public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
-    String log = logger.getLogFile();
+    String log = server.logger.getLogFile();
     // Might be null if there no active logger
     if (log == null) {
       return Collections.emptyList();
@@ -1705,7 +1692,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
   private TSummaries handleTimeout(long sessionId) {
     long timeout = server.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
-    sessionManager.removeIfNotAccessed(sessionId, timeout);
+    server.sessionManager.removeIfNotAccessed(sessionId, timeout);
     return new TSummaries(false, sessionId, -1, -1, null);
   }
 
@@ -1714,10 +1701,11 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     try {
       return getSummaries(future);
     } catch (TimeoutException e) {
-      long sid = sessionManager.createSession(new SummarySession(credentials, future), false);
+      long sid =
+          server.sessionManager.createSession(new SummarySession(credentials, future), false);
       while (sid == 0) {
-        sessionManager.removeSession(sid);
-        sid = sessionManager.createSession(new SummarySession(credentials, future), false);
+        server.sessionManager.removeSession(sid);
+        sid = server.sessionManager.createSession(new SummarySession(credentials, future), false);
       }
       return handleTimeout(sid);
     }
@@ -1741,7 +1729,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    ExecutorService es = server.getResourceManager().getSummaryPartitionExecutor();
+    ExecutorService es = server.resourceManager.getSummaryPartitionExecutor();
     Future<SummaryCollection> future = new Gatherer(server.getContext(), request,
         server.getContext().getTableConfiguration(tableId), server.getContext().getCryptoService())
             .gather(es);
@@ -1759,7 +1747,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    ExecutorService spe = server.getResourceManager().getSummaryRemoteExecutor();
+    ExecutorService spe = server.resourceManager.getSummaryRemoteExecutor();
     TableConfiguration tableConfig =
         server.getContext().getTableConfiguration(TableId.of(request.getTableId()));
     Future<SummaryCollection> future = new Gatherer(server.getContext(), request, tableConfig,
@@ -1778,12 +1766,12 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    ExecutorService srp = server.getResourceManager().getSummaryRetrievalExecutor();
+    ExecutorService srp = server.resourceManager.getSummaryRetrievalExecutor();
     TableConfiguration tableCfg =
         server.getContext().getTableConfiguration(TableId.of(request.getTableId()));
-    BlockCache summaryCache = server.getResourceManager().getSummaryCache();
-    BlockCache indexCache = server.getResourceManager().getIndexCache();
-    Cache<String,Long> fileLenCache = server.getResourceManager().getFileLenCache();
+    BlockCache summaryCache = server.resourceManager.getSummaryCache();
+    BlockCache indexCache = server.resourceManager.getIndexCache();
+    Cache<String,Long> fileLenCache = server.resourceManager.getFileLenCache();
     FileSystemResolver volMgr = p -> fs.getFileSystemByPath(p);
     Future<SummaryCollection> future =
         new Gatherer(server.getContext(), request, tableCfg, server.getContext().getCryptoService())
@@ -1795,7 +1783,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
   @Override
   public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId)
       throws NoSuchScanIDException, TException {
-    SummarySession session = (SummarySession) sessionManager.getSession(sessionId);
+    SummarySession session = (SummarySession) server.sessionManager.getSession(sessionId);
     if (session == null) {
       throw new NoSuchScanIDException();
     }
@@ -1803,7 +1791,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     Future<SummaryCollection> future = session.getFuture();
     try {
       TSummaries tsums = getSummaries(future);
-      sessionManager.removeSession(sessionId);
+      server.sessionManager.removeSession(sessionId);
       return tsums;
     } catch (TimeoutException e) {
       return handleTimeout(sessionId);
