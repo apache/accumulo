@@ -69,6 +69,7 @@ public class ZooZap {
       new JCommander(opts).usage();
       return;
     }
+
     try {
       var siteConf = SiteConfiguration.auto();
       Configuration hadoopConf = new Configuration();

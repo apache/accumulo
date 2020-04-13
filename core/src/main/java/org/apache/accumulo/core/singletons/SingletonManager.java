@@ -58,7 +58,7 @@ public class SingletonManager {
      */
     CLIENT,
     /**
-     * In this mode singletons are never disabled.
+     * In this mode singletons are never disabled, unless the CLOSED mode is entered.
      */
     SERVER,
     /**
@@ -66,7 +66,12 @@ public class SingletonManager {
      * can do this by using util.CleanUp (an old API created for users).
      */
     CONNECTOR,
+    /**
+     * In this mode singletons are permanently disabled and entering this mode prevents
+     * transitioning to other modes.
+     */
     CLOSED
+
   }
 
   private static long reservations;
@@ -149,7 +154,9 @@ public class SingletonManager {
    * Change how singletons are managed. The default mode is {@link Mode#CLIENT}
    */
   public static synchronized void setMode(Mode mode) {
-    if (SingletonManager.mode == Mode.CLOSED && mode != Mode.CLOSED)
+    if (SingletonManager.mode == mode)
+      return;
+    if (SingletonManager.mode == Mode.CLOSED)
       throw new IllegalStateException("Cannot leave closed mode once entered");
     if (SingletonManager.mode == Mode.CLIENT && mode == Mode.CONNECTOR) {
       if (transitionedFromClientToConnector) {
@@ -163,7 +170,8 @@ public class SingletonManager {
       transitionedFromClientToConnector = true;
     }
 
-    // do not change from server mode, its a terminal mode that can not be left once entered
+    // always allow transition to closed and only allow transition to client/connector when the
+    // current mode is not server
     if (SingletonManager.mode != Mode.SERVER || mode == Mode.CLOSED) {
       SingletonManager.mode = mode;
     }
