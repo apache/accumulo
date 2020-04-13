@@ -63,6 +63,8 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -275,6 +277,8 @@ public class Admin implements KeywordExecutable {
     } catch (Exception e) {
       log.error("{}", e.getMessage(), e);
       System.exit(3);
+    } finally {
+      SingletonManager.setMode(Mode.CLOSED);
     }
   }
 

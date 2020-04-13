@@ -35,6 +35,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -67,59 +69,62 @@ public class ZooZap {
       new JCommander(opts).usage();
       return;
     }
-
-    var siteConf = SiteConfiguration.auto();
-    Configuration hadoopConf = new Configuration();
-    // Login as the server on secure HDFS
-    if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      SecurityUtil.serverLogin(siteConf);
-    }
-
-    String volDir = VolumeConfiguration.getVolumeUris(siteConf, hadoopConf).iterator().next();
-    Path instanceDir = new Path(volDir, "instance_id");
-    String iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, siteConf, hadoopConf);
-    ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
-
-    if (opts.zapMaster) {
-      String masterLockPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
-
-      try {
-        zapDirectory(zoo, masterLockPath, opts);
-      } catch (Exception e) {
-        e.printStackTrace();
+    try {
+      var siteConf = SiteConfiguration.auto();
+      Configuration hadoopConf = new Configuration();
+      // Login as the server on secure HDFS
+      if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        SecurityUtil.serverLogin(siteConf);
       }
-    }
 
-    if (opts.zapTservers) {
-      String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
-      try {
-        List<String> children = zoo.getChildren(tserversPath);
-        for (String child : children) {
-          message("Deleting " + tserversPath + "/" + child + " from zookeeper", opts);
+      String volDir = VolumeConfiguration.getVolumeUris(siteConf, hadoopConf).iterator().next();
+      Path instanceDir = new Path(volDir, "instance_id");
+      String iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, siteConf, hadoopConf);
+      ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
-          if (opts.zapMaster) {
-            zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
-          } else {
-            String path = tserversPath + "/" + child;
-            if (zoo.getChildren(path).size() > 0) {
-              if (!ZooLock.deleteLock(zoo, path, "tserver")) {
-                message("Did not delete " + tserversPath + "/" + child, opts);
+      if (opts.zapMaster) {
+        String masterLockPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
+
+        try {
+          zapDirectory(zoo, masterLockPath, opts);
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+
+      if (opts.zapTservers) {
+        String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
+        try {
+          List<String> children = zoo.getChildren(tserversPath);
+          for (String child : children) {
+            message("Deleting " + tserversPath + "/" + child + " from zookeeper", opts);
+
+            if (opts.zapMaster) {
+              zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
+            } else {
+              String path = tserversPath + "/" + child;
+              if (zoo.getChildren(path).size() > 0) {
+                if (!ZooLock.deleteLock(zoo, path, "tserver")) {
+                  message("Did not delete " + tserversPath + "/" + child, opts);
+                }
               }
             }
           }
+        } catch (Exception e) {
+          log.error("{}", e.getMessage(), e);
         }
-      } catch (Exception e) {
-        log.error("{}", e.getMessage(), e);
       }
-    }
 
-    if (opts.zapTracers) {
-      String path = siteConf.get(Property.TRACE_ZK_PATH);
-      try {
-        zapDirectory(zoo, path, opts);
-      } catch (Exception e) {
-        // do nothing if the /tracers node does not exist.
+      if (opts.zapTracers) {
+        String path = siteConf.get(Property.TRACE_ZK_PATH);
+        try {
+          zapDirectory(zoo, path, opts);
+        } catch (Exception e) {
+          // do nothing if the /tracers node does not exist.
+        }
       }
+    } finally {
+      SingletonManager.setMode(Mode.CLOSED);
     }
 
   }
