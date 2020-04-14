@@ -170,8 +170,10 @@ public class SingletonManager {
       transitionedFromClientToConnector = true;
     }
 
-    // always allow transition to closed and only allow transition to client/connector when the
-    // current mode is not server
+    /**
+     * Always allow transition to closed and only allow transition to client/connector when the
+     * current mode is not server.
+     */
     if (SingletonManager.mode != Mode.SERVER || mode == Mode.CLOSED) {
       SingletonManager.mode = mode;
     }
