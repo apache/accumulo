@@ -381,7 +381,7 @@ public class TabletServer extends AbstractServer {
   private ThriftClientHandler clientHandler;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
-  protected String getLockID() {
+  String getLockID() {
     return lockID;
   }
 
@@ -479,8 +479,7 @@ public class TabletServer extends AbstractServer {
     }
   }
 
-  protected TreeMap<KeyExtent,TabletData> splitTablet(Tablet tablet, byte[] splitPoint)
-      throws IOException {
+  TreeMap<KeyExtent,TabletData> splitTablet(Tablet tablet, byte[] splitPoint) throws IOException {
     long t1 = System.currentTimeMillis();
 
     TreeMap<KeyExtent,TabletData> tabletInfo = tablet.split(splitPoint);
@@ -529,13 +528,13 @@ public class TabletServer extends AbstractServer {
     masterMessages.addLast(m);
   }
 
-  protected void acquireRecoveryMemory(KeyExtent extent) {
+  void acquireRecoveryMemory(KeyExtent extent) {
     if (!extent.isMeta()) {
       recoveryLock.lock();
     }
   }
 
-  protected void releaseRecoveryMemory(KeyExtent extent) {
+  void releaseRecoveryMemory(KeyExtent extent) {
     if (!extent.isMeta()) {
       recoveryLock.unlock();
     }
