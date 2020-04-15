@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -338,7 +339,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
     }
     FileUtils.copyFileToDirectory(importFile, exportDir);
     FileUtils.copyFileToDirectory(importFile, exportDirBulk);
-    auditAccumuloClient.tableOperations().importTable(NEW_TEST_TABLE_NAME, exportDir.toString());
+    auditAccumuloClient.tableOperations().importTable(NEW_TEST_TABLE_NAME,
+        Collections.singleton(exportDir.toString()));
 
     // Now do a Directory (bulk) import of the same data.
     auditAccumuloClient.tableOperations().create(THIRD_TEST_TABLE_NAME);
@@ -363,7 +365,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_IMPORT_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME,
-                filePrefix + exportDir)));
+                Pattern.quote(Set.of(filePrefix + exportDir).toString()))));
     assertEquals(1, findAuditMessage(auditMessages, String
         .format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, THIRD_TEST_TABLE_NAME)));
     assertEquals(1,

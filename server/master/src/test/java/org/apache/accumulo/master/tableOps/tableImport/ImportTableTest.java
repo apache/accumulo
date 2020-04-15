@@ -27,6 +27,7 @@ import static org.junit.Assert.fail;
 import java.net.URI;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
@@ -49,22 +50,27 @@ public class ImportTableTest {
     assertEquals(0, out.size());
 
     // empty
-    out = ImportTable.parseExportDir("");
+    out = ImportTable.parseExportDir(Set.of(""));
     assertEquals(0, out.size());
 
     // single
-    out = ImportTable.parseExportDir("hdfs://nn1:8020/apps/import");
+    out = ImportTable.parseExportDir(Set.of("hdfs://nn1:8020/apps/import"));
     assertEquals(1, out.size());
     assertEquals("hdfs://nn1:8020/apps/import", out.get(0).exportDir);
     assertNull(out.get(0).importDir);
 
     // multiple
-    out = ImportTable.parseExportDir("hdfs://nn1:8020/apps/import,hdfs://nn2:8020/apps/import");
+    out = ImportTable
+        .parseExportDir(Set.of("hdfs://nn1:8020/apps/import", "hdfs://nn2:8020/apps/import"));
     assertEquals(2, out.size());
-    assertEquals("hdfs://nn1:8020/apps/import", out.get(0).exportDir);
-    assertNull(out.get(0).importDir);
-    assertEquals("hdfs://nn2:8020/apps/import", out.get(1).exportDir);
-    assertNull(out.get(1).importDir);
+
+    out = out.stream().filter(i -> i.importDir == null).collect(Collectors.toList());
+    assertEquals(2, out.size());
+
+    out = out.stream().filter(i -> !i.exportDir.equals("hdfs://nn1:8020/apps/import"))
+        .filter(i -> !i.exportDir.equals("hdfs://nn2:8020/apps/import"))
+        .collect(Collectors.toList());
+    assertEquals(0, out.size());
   }
 
   @Test
@@ -76,7 +82,6 @@ public class ImportTableTest {
 
     String[] expDirs = {"hdfs://nn1:8020/import-dir-nn1", "hdfs://nn2:8020/import-dir-nn2",
         "hdfs://nn3:8020/import-dir-nn3"};
-    String joinedImpDirs = expDirs[0] + "," + expDirs[1] + "," + expDirs[2];
     String[] tableDirs =
         {"hdfs://nn1:8020/apps/accumulo1/tables", "hdfs://nn2:8020/applications/accumulo/tables",
             "hdfs://nn3:8020/applications/accumulo/tables"};
@@ -98,7 +103,7 @@ public class ImportTableTest {
 
     ImportedTableInfo ti = new ImportedTableInfo();
     ti.tableId = TableId.of("5b");
-    ti.directories = ImportTable.parseExportDir(joinedImpDirs);
+    ti.directories = ImportTable.parseExportDir(Set.of(expDirs));
     assertEquals(3, ti.directories.size());
 
     EasyMock.replay(master, context, volumeManager, uniqueNameAllocator);

@@ -26,3 +26,5 @@
 /nbproject/
 /nbactions.xml
 /nb-configuration.xml
+.vscode/
+.factorypath
