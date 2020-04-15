@@ -120,10 +120,8 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
@@ -167,16 +165,10 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
   private final TabletServer server;
   private final WriteTracker writeTracker = new WriteTracker();
   private final RowLocks rowLocks = new RowLocks();
-  private final VolumeManager fs;
-  private final TransactionWatcher watcher;
-  private final SecurityOperation security;
 
-  public ThriftClientHandler(TabletServer server) {
+  ThriftClientHandler(TabletServer server) {
     super(server.getContext(), new TransactionWatcher(server.getContext()), server.getFileSystem());
     this.server = server;
-    this.watcher = transactionWatcher;
-    this.security = server.getSecurityOperation();
-    this.fs = server.getContext().getVolumeManager();
     log.debug("{} created", ThriftClientHandler.class.getName());
   }
 
@@ -191,7 +183,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     }
 
     try {
-      return watcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
+      return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
         List<TKeyExtent> failures = new ArrayList<>();
 
         for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
@@ -237,7 +229,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
+    transactionWatcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
       tabletImports.forEach((tke, fileMap) -> {
         Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
         for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
@@ -1401,7 +1393,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           Set<KeyExtent> openingOverlapping =
               KeyExtent.findOverlapping(extent, server.openingTablets);
           Set<KeyExtent> onlineOverlapping =
-              KeyExtent.findOverlapping(extent, server.onlineTablets.snapshot());
+              KeyExtent.findOverlapping(extent, server.getOnlineTablets());
 
           Set<KeyExtent> all = new HashSet<>();
           all.addAll(unopenedOverlapping);

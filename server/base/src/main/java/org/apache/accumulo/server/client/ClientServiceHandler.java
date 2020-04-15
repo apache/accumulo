@@ -74,9 +74,9 @@ import org.slf4j.LoggerFactory;
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
   protected final TransactionWatcher transactionWatcher;
-  private final ServerContext context;
-  private final VolumeManager fs;
-  private final SecurityOperation security;
+  protected final ServerContext context;
+  protected final VolumeManager fs;
+  protected final SecurityOperation security;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher,

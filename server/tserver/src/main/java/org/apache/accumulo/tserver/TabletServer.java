@@ -176,7 +176,7 @@ public class TabletServer extends AbstractServer {
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
 
   final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
-  ZooCache masterLockCache;
+  final ZooCache masterLockCache;
 
   final TabletServerLogger logger;
 
