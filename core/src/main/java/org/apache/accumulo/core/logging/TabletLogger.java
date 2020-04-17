@@ -104,11 +104,8 @@ public class TabletLogger {
     fileLog.debug("Compacted {} created {} from {}", extent, output, inputs);
   }
 
-  public static void flushed(KeyExtent extent, TabletFile absMergeFile, TabletFile newDatafile) {
-    if (absMergeFile == null)
-      fileLog.debug("Flushed {} created {} from [memory]", extent, newDatafile);
-    else
-      fileLog.debug("Flushed {} created {} from [memory,{}]", extent, newDatafile, absMergeFile);
+  public static void flushed(KeyExtent extent, TabletFile newDatafile) {
+    fileLog.debug("Flushed {} created {} from [memory]", extent, newDatafile);
   }
 
   public static void bulkImported(KeyExtent extent, TabletFile file) {

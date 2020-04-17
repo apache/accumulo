@@ -52,7 +52,8 @@ public class TabletTest {
 
     EasyMock.replay(tableConf, plan, writeParams);
 
-    AccumuloConfiguration aConf = Tablet.createCompactionConfiguration(tableConf, plan);
+    AccumuloConfiguration aConf =
+        CompactableUtils.createCompactionConfiguration(tableConf, writeParams);
 
     EasyMock.verify(tableConf, plan, writeParams);
 

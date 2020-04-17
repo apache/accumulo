@@ -39,6 +39,16 @@ public interface PluginEnvironment {
   public interface Configuration extends Iterable<Entry<String,String>> {
 
     /**
+     * Properties with a default value will always return something when calling
+     * {@link #get(String)}, even if a user never set the property. The method allows checking if a
+     * user set a property.
+     *
+     * @return true if a user set this property and false if a user did not set it.
+     * @since 2.1.0
+     */
+    boolean isSet(String key);
+
+    /**
      * @return The value for a single property or null if not present. Sensitive properties are
      *         intentionally not returned in order to prevent inadvertent logging of them. If your
      *         plugin needs sensitive properties a getSensitive method could be added.

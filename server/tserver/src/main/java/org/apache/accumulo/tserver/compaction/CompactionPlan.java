@@ -33,6 +33,7 @@ import com.google.common.collect.Sets;
  * A plan for a compaction: the input files, the files that are *not* inputs to a compaction that
  * should simply be deleted, and the optional parameters used to create the resulting output file.
  */
+@Deprecated
 public class CompactionPlan {
   public final List<StoredTabletFile> inputFiles = new ArrayList<>();
   public final List<StoredTabletFile> deleteFiles = new ArrayList<>();

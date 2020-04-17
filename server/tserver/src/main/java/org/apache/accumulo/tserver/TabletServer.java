@@ -134,7 +134,8 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
-import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
+import org.apache.accumulo.tserver.compactions.Compactable;
+import org.apache.accumulo.tserver.compactions.CompactionManager;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.accumulo.tserver.log.MutationReceiver;
@@ -168,6 +169,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterators;
 
 public class TabletServer extends AbstractServer {
 
@@ -447,10 +449,6 @@ public class TabletServer extends AbstractServer {
             }
 
             tablet.checkIfMinorCompactionNeededForLogs(closedCopy);
-
-            synchronized (tablet) {
-              tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL);
-            }
           }
         } catch (Throwable t) {
           log.error("Unexpected exception in {}", Thread.currentThread().getName(), t);
@@ -462,14 +460,7 @@ public class TabletServer extends AbstractServer {
 
   private void splitTablet(Tablet tablet) {
     try {
-
-      TreeMap<KeyExtent,TabletData> tabletInfo = splitTablet(tablet, null);
-      if (tabletInfo == null) {
-        // either split or compact not both
-        // were not able to split... so see if a major compaction is
-        // needed
-        tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL);
-      }
+      splitTablet(tablet, null);
     } catch (IOException e) {
       statsKeeper.updateTime(Operation.SPLIT, 0, true);
       log.error("split failed: {} for tablet {}", e.getMessage(), tablet.getExtent(), e);
@@ -780,6 +771,15 @@ public class TabletServer extends AbstractServer {
     SimpleTimer.getInstance(aconf).schedule(new BulkImportCacheCleaner(this),
         CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS);
 
+    // TODO where should this go? Maybe tablet server resource manager
+    new CompactionManager(new Iterable<Compactable>() {
+      @Override
+      public Iterator<Compactable> iterator() {
+        return Iterators.transform(onlineTablets.snapshot().values().iterator(),
+            Tablet::asCompactable);
+      }
+    }, getContext()).start();
+
     HostAndPort masterHost;
     while (!serverStopRequested) {
       // send all of the pending messages
@@ -1070,12 +1070,15 @@ public class TabletServer extends AbstractServer {
       if (tablet.isMinorCompactionQueued()) {
         table.minors.queued++;
       }
+
       if (tablet.isMajorCompactionRunning()) {
         table.majors.running++;
       }
+
       if (tablet.isMajorCompactionQueued()) {
         table.majors.queued++;
       }
+
     });
 
     scanCounts.forEach((tableId, mapCounter) -> {

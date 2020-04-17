@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.compaction;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+@Deprecated
 public class WriteParameters {
   private String compressType = null;
   private long hdfsBlockSize = 0;

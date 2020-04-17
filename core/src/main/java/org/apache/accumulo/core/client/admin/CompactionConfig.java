@@ -21,12 +21,15 @@ package org.apache.accumulo.core.client.admin;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.clientImpl.CompactionStrategyConfigUtil.DEFAULT_STRATEGY;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Preconditions;
 
 /**
  * This class exist to pass parameters to {@link TableOperations#compact(String, CompactionConfig)}
@@ -34,12 +37,16 @@ import org.apache.hadoop.io.Text;
  * @since 1.7.0
  */
 public class CompactionConfig {
+
   private Text start = null;
   private Text end = null;
   private boolean flush = true;
   private boolean wait = true;
   private List<IteratorSetting> iterators = Collections.emptyList();
   private CompactionStrategyConfig compactionStrategy = DEFAULT_STRATEGY;
+  private Map<String,String> hints = Map.of();
+  private CompactionSelectorConfig selectorConfig = UserCompactionUtils.DEFAULT_CSC;
+  private CompactionConfigurerConfig configurerConfig = UserCompactionUtils.DEFAULT_CCC;
 
   /**
    * @param start
@@ -124,7 +131,7 @@ public class CompactionConfig {
    * @return this
    */
   public CompactionConfig setIterators(List<IteratorSetting> iterators) {
-    this.iterators = new ArrayList<>(iterators);
+    this.iterators = List.copyOf(iterators);
     return this;
   }
 
@@ -141,9 +148,16 @@ public class CompactionConfig {
    *          configures the strategy that will be used by each tablet to select files. If no
    *          strategy is set, then all files will be compacted.
    * @return this
+   * @deprecated since 2.1.0 use {@link #setSelector(CompactionSelectorConfig)} and
+   *             {@link #setConfigurer(CompactionConfigurerConfig)} instead. See
+   *             {@link CompactionStrategyConfig} for details about why this was deprecated.
    */
+  @Deprecated(since = "2.1.0", forRemoval = true)
   public CompactionConfig setCompactionStrategy(CompactionStrategyConfig csConfig) {
     requireNonNull(csConfig);
+    Preconditions.checkArgument(!csConfig.getClassName().isBlank());
+    Preconditions.checkState(
+        selectorConfig.getClassName().isEmpty() && configurerConfig.getClassName().isEmpty());
     this.compactionStrategy = csConfig;
     return this;
   }
@@ -152,8 +166,64 @@ public class CompactionConfig {
    * @return The previously set compaction strategy. Defaults to a configuration of
    *         org.apache.accumulo.tserver.compaction.EverythingCompactionStrategy which always
    *         compacts all files.
+   * @deprecated since 2.1.0
    */
+  @Deprecated(since = "2.1.0", forRemoval = true)
   public CompactionStrategyConfig getCompactionStrategy() {
     return compactionStrategy;
+  }
+
+  /**
+   * @return this;
+   * @since 2.1.0
+   */
+  public CompactionConfig setSelector(CompactionSelectorConfig selectorConfig) {
+    Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
+    Preconditions.checkArgument(!selectorConfig.getClassName().isBlank());
+    this.selectorConfig = requireNonNull(selectorConfig);
+    return this;
+  }
+
+  /**
+   * @since 2.1.0
+   */
+  public CompactionSelectorConfig getSelector() {
+    return selectorConfig;
+  }
+
+  /**
+   * @since 2.1.0
+   */
+  public CompactionConfig setExecutionHints(Map<String,String> hints) {
+    if (!hints.isEmpty())
+      Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
+    this.hints = Map.copyOf(hints);
+    return this;
+  }
+
+  /**
+   * @since 2.1.0
+   */
+  public Map<String,String> getExecutionHints() {
+    return hints;
+  }
+
+  /**
+   * Set and override any per-table properties that configure compaction file output like
+   * compression.
+   *
+   * @since 2.1.0
+   */
+  public CompactionConfig setConfigurer(CompactionConfigurerConfig configurerConfig) {
+    Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
+    this.configurerConfig = configurerConfig;
+    return this;
+  }
+
+  /**
+   * @since 2.1.0
+   */
+  public CompactionConfigurerConfig getConfigurer() {
+    return configurerConfig;
   }
 }

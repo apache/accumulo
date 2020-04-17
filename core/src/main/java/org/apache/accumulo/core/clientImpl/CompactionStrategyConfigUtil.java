@@ -18,23 +18,15 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
-import java.io.DataInputStream;
 import java.io.DataOutput;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 
 public class CompactionStrategyConfigUtil {
 
-  public static final CompactionStrategyConfig DEFAULT_STRATEGY = new CompactionStrategyConfig(
-      "org.apache.accumulo.tserver.compaction.EverythingCompactionStrategy") {
+  public static final CompactionStrategyConfig DEFAULT_STRATEGY = new CompactionStrategyConfig("") {
     @Override
     public CompactionStrategyConfig setOptions(Map<String,String> opts) {
       throw new UnsupportedOperationException();
@@ -43,66 +35,20 @@ public class CompactionStrategyConfigUtil {
 
   private static final int MAGIC = 0xcc5e6024;
 
-  public static void encode(DataOutput dout, CompactionStrategyConfig csc) throws IOException {
-
-    dout.writeInt(MAGIC);
-    dout.writeByte(1);
-
-    dout.writeUTF(csc.getClassName());
-    dout.writeInt(csc.getOptions().size());
-
-    for (Entry<String,String> entry : csc.getOptions().entrySet()) {
-      dout.writeUTF(entry.getKey());
-      dout.writeUTF(entry.getValue());
-    }
-
+  public static void encode(DataOutput dout, CompactionStrategyConfig csc) {
+    UserCompactionUtils.encode(dout, MAGIC, 1, csc.getClassName(), csc.getOptions());
   }
 
   public static byte[] encode(CompactionStrategyConfig csc) {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    DataOutputStream dos = new DataOutputStream(baos);
-
-    try {
-      encode(dos, csc);
-      dos.close();
-
-      return baos.toByteArray();
-    } catch (IOException ioe) {
-      throw new RuntimeException(ioe);
-    }
+    return UserCompactionUtils.encode(csc, CompactionStrategyConfigUtil::encode);
   }
 
-  public static CompactionStrategyConfig decode(DataInput din) throws IOException {
-    if (din.readInt() != MAGIC) {
-      throw new IllegalArgumentException("Unexpected MAGIC ");
-    }
-
-    if (din.readByte() != 1) {
-      throw new IllegalArgumentException("Unexpected version");
-    }
-
-    String classname = din.readUTF();
-    int numEntries = din.readInt();
-
-    HashMap<String,String> opts = new HashMap<>();
-
-    for (int i = 0; i < numEntries; i++) {
-      String k = din.readUTF();
-      String v = din.readUTF();
-      opts.put(k, v);
-    }
-
-    return new CompactionStrategyConfig(classname).setOptions(opts);
+  public static CompactionStrategyConfig decode(DataInput din) {
+    var pcd = UserCompactionUtils.decode(din, MAGIC, 1);
+    return new CompactionStrategyConfig(pcd.className).setOptions(pcd.opts);
   }
 
   public static CompactionStrategyConfig decode(byte[] encodedCsc) {
-    ByteArrayInputStream bais = new ByteArrayInputStream(encodedCsc);
-    DataInputStream dis = new DataInputStream(bais);
-
-    try {
-      return decode(dis);
-    } catch (IOException ioe) {
-      throw new RuntimeException(ioe);
-    }
+    return UserCompactionUtils.decode(encodedCsc, CompactionStrategyConfigUtil::decode);
   }
 }

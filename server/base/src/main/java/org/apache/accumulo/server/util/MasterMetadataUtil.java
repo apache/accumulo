@@ -217,8 +217,7 @@ public class MasterMetadataUtil {
    *
    */
   public static StoredTabletFile updateTabletDataFile(ServerContext context, KeyExtent extent,
-      TabletFile path, StoredTabletFile mergeFile, DataFileValue dfv, MetadataTime time,
-      Set<StoredTabletFile> filesInUseByScans, String address, ZooLock zooLock,
+      TabletFile path, DataFileValue dfv, MetadataTime time, String address, ZooLock zooLock,
       Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
@@ -239,12 +238,7 @@ public class MasterMetadataUtil {
     }
     tablet.putFlushId(flushId);
 
-    if (mergeFile != null) {
-      tablet.deleteFile(mergeFile);
-    }
-
     unusedWalLogs.forEach(tablet::deleteWal);
-    filesInUseByScans.forEach(tablet::putScan);
 
     tablet.putZooLock(zooLock);
 

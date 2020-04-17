@@ -21,6 +21,10 @@ package org.apache.accumulo.tserver.compaction;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
+import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
+import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
+
 /**
  * The interface for customizing major compactions.
  * <p>
@@ -36,7 +40,14 @@ import java.util.Map;
  * <p>
  * <b>Note:</b> the strategy object used for the {@link #shouldCompact(MajorCompactionRequest)} call
  * is going to be different from the one used in the compaction thread.
+ *
+ * @deprecated since 2.1.0 use {@link CompactionSelector}, {@link CompactionConfigurer}, and
+ *             {@link CompactionPlanner} instead. See
+ *             {@link org.apache.accumulo.core.client.admin.CompactionStrategyConfig} for more
+ *             information about why this was deprecated.
+ * @see org.apache.accumulo.core.spi.compaction
  */
+@Deprecated(since = "2.1.0", forRemoval = true)
 public abstract class CompactionStrategy {
   /**
    * The settings for the compaction strategy pulled from zookeeper. The

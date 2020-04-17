@@ -147,6 +147,7 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
+  // TODO can this be simplified now that there are no longer mergin minor compactions
   public Compactor(ServerContext context, Tablet tablet, Map<StoredTabletFile,DataFileValue> files,
       InMemoryMap imm, TabletFile outputFile, boolean propogateDeletes, CompactionEnv env,
       List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
