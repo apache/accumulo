@@ -21,7 +21,6 @@ package org.apache.accumulo.core.client.admin;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -60,7 +59,7 @@ abstract class PluginConfig<T extends PluginConfig<T>> {
    */
   public T setOptions(Map<String,String> opts) {
     requireNonNull(opts);
-    this.options = new HashMap<>(opts);
+    this.options = Map.copyOf(opts);
     return (T) this;
   }
 
@@ -68,7 +67,7 @@ abstract class PluginConfig<T extends PluginConfig<T>> {
    * @return The previously set options. Returns an unmodifiable map. The default is an empty map.
    */
   public Map<String,String> getOptions() {
-    return Collections.unmodifiableMap(options);
+    return options;
   }
 
   @Override
