@@ -70,6 +70,8 @@ public interface CompactionPlanner {
      * @return jobs that are currently running
      */
     Collection<CompactionJob> getRunningCompactions();
+
+    // TODO make execution hints available
   }
 
   /**
