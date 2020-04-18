@@ -52,8 +52,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 public class CompactionServiceImpl implements CompactionService {
-  // TODO when user has a compaction strat configured at table, may want to have a planner that uses
-  // this to select files.
+  // TODO move rate limiters to the compaction service level.
   private final CompactionPlanner planner;
   private final Map<CompactionExecutorId,CompactionExecutor> executors;
   private final CompactionServiceId myId;
