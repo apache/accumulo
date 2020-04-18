@@ -42,49 +42,6 @@ public class CompactionManager {
 
   private LinkedBlockingQueue<Compactable> compactablesToCheck = new LinkedBlockingQueue<>();
 
-  /*
-   * private synchronized void printStats() { try {
-   *
-   * Map<String,Integer> epos = Map.of("small", 1, "medium", 3, "large", 5, "huge", 7);
-   *
-   * String[] columns = {"not compacting", "small running", "small queued", "medium running",
-   * "medium queued", "large running", "large queued", "huge running", "huge queued"};
-   *
-   * while (true) {
-   *
-   * List<Compactable> sortedCompactables = new ArrayList<Compactable>();
-   * compactables.forEach(sortedCompactables::add); sortedCompactables.removeIf( c ->
-   * c.getExtent().isMeta() || c.getExtent().getTableId().canonical().equals("+rep") ||
-   * c.getExtent().getTableId().canonical().equals("1")); Collections.sort(sortedCompactables,
-   * Comparator.comparing(CompactionManager::getEndrow,
-   * Comparator.nullsLast(Comparator.naturalOrder())));
-   *
-   * int[][] data = new int[sortedCompactables.size()][]; String[] rows = new
-   * String[sortedCompactables.size()];
-   *
-   * for (int i = 0; i < sortedCompactables.size(); i++) { int r = i; var compactable =
-   * sortedCompactables.get(r);
-   *
-   * rows[r] = compactable.getExtent().getEndRow() + "";
-   *
-   * data[r] = new int[columns.length];
-   *
-   * submittedJobs.row(compactable.getExtent()).values().forEach(sjob -> { var status =
-   * sjob.getStatus();
-   *
-   * if (status == Status.QUEUED || status == Status.RUNNING) { int pos =
-   * epos.get(sjob.getJob().getExecutor()); if (status == Status.QUEUED) pos++; data[r][pos] =
-   * sjob.getJob().getFiles().size(); } });
-   *
-   * data[r][0] = compactable.getFiles().size(); }
-   *
-   * if (rows.length > 0) { System.out.println("Compaction stats : " + new Date());
-   * System.out.println(new PrintableTable(columns, rows, data).toString()); }
-   *
-   * try { wait(1000); } catch (InterruptedException e) { // TODO Auto-generated catch block
-   * e.printStackTrace(); } } } catch (Exception e) { log.error("CMSF", e); } }
-   */
-  // TODO remove sync... its a hack for printStats
   private void mainLoop() {
     long lastCheckAllTime = System.nanoTime();
     long maxTimeBetweenChecks = TimeUnit.SECONDS.toNanos(30); // TODO is this correct? TODO
