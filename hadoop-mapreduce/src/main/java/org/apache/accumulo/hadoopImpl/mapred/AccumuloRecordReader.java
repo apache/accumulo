@@ -237,7 +237,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     }
 
     Map<String,String> executionHints = baseSplit.getExecutionHints();
-    if (executionHints == null || executionHints.size() == 0) {
+    if (executionHints == null || executionHints.isEmpty()) {
       executionHints = tableConfig.getExecutionHints();
     }
 

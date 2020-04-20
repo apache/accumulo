@@ -558,7 +558,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
           log.error("Not authorized to write to tables : " + tables);
         }
 
-        if (e.getConstraintViolationSummaries().size() > 0) {
+        if (!e.getConstraintViolationSummaries().isEmpty()) {
           log.error("Constraint violations : " + e.getConstraintViolationSummaries().size());
         }
         throw new IOException(e);

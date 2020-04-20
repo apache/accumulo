@@ -108,7 +108,7 @@ public class SummaryCollection {
 
   SummaryCollection(Collection<FileSummary> initialEntries, boolean deleted) {
     if (deleted) {
-      Preconditions.checkArgument(initialEntries.size() == 0);
+      Preconditions.checkArgument(initialEntries.isEmpty());
     }
     mergedSummaries = new HashMap<>();
     for (FileSummary entry : initialEntries) {

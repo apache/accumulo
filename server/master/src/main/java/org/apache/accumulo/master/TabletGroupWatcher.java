@@ -162,7 +162,7 @@ abstract class TabletGroupWatcher extends Daemon {
           currentTServers.put(entry, this.master.tserverStatus.get(entry));
         }
 
-        if (currentTServers.size() == 0) {
+        if (currentTServers.isEmpty()) {
           eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
           synchronized (this) {
             lastScanServers = ImmutableSortedSet.of();
@@ -430,11 +430,11 @@ abstract class TabletGroupWatcher extends Daemon {
           future.put(entry.getKey(), entry.getValue());
         }
       }
-      if (future.size() > 0 && assigned.size() > 0) {
+      if (!future.isEmpty() && !assigned.isEmpty()) {
         Master.log.warn("Found a tablet assigned and hosted, attempting to repair");
-      } else if (future.size() > 1 && assigned.size() == 0) {
+      } else if (future.size() > 1 && assigned.isEmpty()) {
         Master.log.warn("Found a tablet assigned to multiple servers, attempting to repair");
-      } else if (future.size() == 0 && assigned.size() > 1) {
+      } else if (future.isEmpty() && assigned.size() > 1) {
         Master.log.warn("Found a tablet hosted on multiple servers, attempting to repair");
       } else {
         Master.log.info("Attempted a repair, but nothing seems to be obviously wrong. {} {}",
@@ -869,7 +869,7 @@ abstract class TabletGroupWatcher extends Daemon {
         Master.log.warn("Load balancer failed to assign any tablets");
     }
 
-    if (assignments.size() > 0) {
+    if (!assignments.isEmpty()) {
       Master.log.info(String.format("Assigning %d tablets", assignments.size()));
       store.setFutureLocations(assignments);
     }

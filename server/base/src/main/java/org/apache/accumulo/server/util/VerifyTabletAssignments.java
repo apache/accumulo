@@ -143,7 +143,7 @@ public class VerifyTabletAssignments {
 
     while (!tp.awaitTermination(1, TimeUnit.HOURS)) {}
 
-    if (failures.size() > 0)
+    if (!failures.isEmpty())
       checkTable(context, opts, tableName, failures);
   }
 

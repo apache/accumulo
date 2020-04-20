@@ -363,7 +363,7 @@ public class TestIngest {
       try {
         bw.close();
       } catch (MutationsRejectedException e) {
-        if (e.getSecurityErrorCodes().size() > 0) {
+        if (!e.getSecurityErrorCodes().isEmpty()) {
           for (Entry<TabletId,Set<SecurityErrorCode>> entry : e.getSecurityErrorCodes()
               .entrySet()) {
             System.err.println("ERROR : Not authorized to write to : " + entry.getKey() + " due to "
@@ -371,7 +371,7 @@ public class TestIngest {
           }
         }
 
-        if (e.getConstraintViolationSummaries().size() > 0) {
+        if (!e.getConstraintViolationSummaries().isEmpty()) {
           for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
             System.err.println("ERROR : Constraint violates : " + cvs);
           }

@@ -791,7 +791,7 @@ public class Master extends AbstractServer
                         tserverSet.remove(server);
                       }
                     }
-                    if (currentServers.size() == 0) {
+                    if (currentServers.isEmpty()) {
                       setMasterState(MasterState.STOP);
                     }
                   }
@@ -884,7 +884,7 @@ public class Master extends AbstractServer
         migrations.put(m.tablet, m.newServer);
         log.debug("migration {}", m);
       }
-      if (migrationsOut.size() > 0) {
+      if (!migrationsOut.isEmpty()) {
         nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(),
             migrations.size());
       } else {
@@ -1451,7 +1451,7 @@ public class Master extends AbstractServer
     if (!deleted.isEmpty() || !added.isEmpty()) {
       DeadServerList obit =
           new DeadServerList(getContext(), getZooKeeperRoot() + Constants.ZDEADTSERVERS);
-      if (added.size() > 0) {
+      if (!added.isEmpty()) {
         log.info("New servers: {}", added);
         for (TServerInstance up : added) {
           obit.delete(up.hostPort());
@@ -1469,7 +1469,7 @@ public class Master extends AbstractServer
 
       Set<TServerInstance> unexpected = new HashSet<>(deleted);
       unexpected.removeAll(this.serversToShutdown);
-      if (unexpected.size() > 0) {
+      if (!unexpected.isEmpty()) {
         if (stillMaster() && !getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
           log.warn("Lost servers {}", unexpected);
         }
@@ -1616,7 +1616,7 @@ public class Master extends AbstractServer
         } catch (InterruptedException e) {
           log.debug(e.toString(), e);
         }
-      } while (displayUnassigned() > 0 || migrations.size() > 0
+      } while (displayUnassigned() > 0 || !migrations.isEmpty()
           || eventCounter != nextEvent.waitForEvents(0, 0));
     }
   }

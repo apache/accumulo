@@ -97,7 +97,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
     userProps.putAll(summarizerProps);
     userProps.putAll(samplerProps);
 
-    if (userProps.size() > 0) {
+    if (!userProps.isEmpty()) {
       acuconf = new ConfigurationCopy(Iterables.concat(acuconf, userProps.entrySet()));
     }
 

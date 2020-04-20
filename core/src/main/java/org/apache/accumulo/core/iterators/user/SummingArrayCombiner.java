@@ -220,7 +220,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   public static class StringArrayEncoder extends AbstractEncoder<List<Long>> {
     @Override
     public byte[] encode(List<Long> la) {
-      if (la.size() == 0)
+      if (la.isEmpty())
         return new byte[] {};
       StringBuilder sb = new StringBuilder(Long.toString(la.get(0)));
       for (int i = 1; i < la.size(); i++) {
@@ -242,7 +242,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       String[] longstrs = new String(b, offset, len, UTF_8).split(",");
       List<Long> la = new ArrayList<>(longstrs.length);
       for (String s : longstrs) {
-        if (s.length() == 0)
+        if (s.isEmpty())
           la.add(0L);
         else
           try {

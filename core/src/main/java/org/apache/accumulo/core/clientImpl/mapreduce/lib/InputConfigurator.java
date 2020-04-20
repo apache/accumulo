@@ -733,7 +733,7 @@ public class InputConfigurator extends ConfiguratorBase {
         getInputTableConfigs(implementingClass, conf);
     try {
       AccumuloClient client = client(implementingClass, conf);
-      if (getInputTableConfigs(implementingClass, conf).size() == 0)
+      if (getInputTableConfigs(implementingClass, conf).isEmpty())
         throw new IOException("No table set.");
 
       String principal = getPrincipal(implementingClass, conf);

@@ -144,7 +144,7 @@ public class ServerConstants {
       baseDirsList.add(baseDir);
     }
 
-    if (baseDirsList.size() == 0) {
+    if (baseDirsList.isEmpty()) {
       throw new RuntimeException("None of the configured paths are initialized.");
     }
 

@@ -734,7 +734,7 @@ public class InputConfigurator extends ConfiguratorBase {
       AccumuloClient client) throws IOException {
     Map<String,InputTableConfig> inputTableConfigs = getInputTableConfigs(implementingClass, conf);
     try {
-      if (getInputTableConfigs(implementingClass, conf).size() == 0)
+      if (getInputTableConfigs(implementingClass, conf).isEmpty())
         throw new IOException("No table set.");
 
       Properties props = getClientProperties(implementingClass, conf);

@@ -81,7 +81,7 @@ public class CacheTestWriter {
           String child = UUID.randomUUID().toString();
           zk.putPersistentData(rootDir + "/dir/" + child, new byte[0], NodeExistsPolicy.SKIP);
           children.add(child);
-        } else if (children.size() > 0) {
+        } else if (!children.isEmpty()) {
           int index = r.nextInt(children.size());
           String child = children.remove(index);
           zk.recursiveDelete(rootDir + "/dir/" + child, NodeMissingPolicy.FAIL);

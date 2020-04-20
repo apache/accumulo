@@ -298,7 +298,7 @@ public class GarbageCollectionAlgorithm {
 
       outOfMemory = getCandidates(gce, lastCandidate, candidates);
 
-      if (candidates.size() == 0)
+      if (candidates.isEmpty())
         break;
       else
         lastCandidate = candidates.get(candidates.size() - 1);

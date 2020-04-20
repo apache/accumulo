@@ -95,7 +95,7 @@ public abstract class TabletTime {
       long currTime = RelativeTime.currentTimeMillis();
 
       synchronized (this) {
-        if (mutations.size() == 0)
+        if (mutations.isEmpty())
           return lastTime;
 
         currTime = updateTime(currTime);
@@ -170,7 +170,7 @@ public abstract class TabletTime {
 
     @Override
     public long setUpdateTimes(List<Mutation> mutations) {
-      if (mutations.size() == 0)
+      if (mutations.isEmpty())
         return getTime();
 
       long time = nextTime.getAndAdd(mutations.size());

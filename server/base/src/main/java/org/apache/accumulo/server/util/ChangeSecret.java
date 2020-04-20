@@ -116,7 +116,7 @@ public class ChangeSecret {
         ephemerals.add(path);
       }
     });
-    if (ephemerals.size() > 0) {
+    if (!ephemerals.isEmpty()) {
       System.err.println("The following ephemeral nodes exist, something is still running:");
       for (String path : ephemerals) {
         System.err.println(path);

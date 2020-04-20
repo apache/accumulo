@@ -726,7 +726,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       }
     }
 
-    if (!containsMetadataTablet && us.queuedMutations.size() > 0) {
+    if (!containsMetadataTablet && !us.queuedMutations.isEmpty()) {
       server.resourceManager.waitUntilCommitsAreEnabled();
     }
 
@@ -737,7 +737,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
         Durability durability =
             DurabilityImpl.resolveDurabilty(us.durability, tablet.getDurability());
         List<Mutation> mutations = entry.getValue();
-        if (mutations.size() > 0) {
+        if (!mutations.isEmpty()) {
           try {
             server.updateMetrics.addMutationArraySize(mutations.size());
 
@@ -884,18 +884,18 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
               us.flushTime / 1000.0, us.prepareTimes.sum() / 1000.0, us.walogTimes.sum() / 1000.0,
               us.commitTimes.sum() / 1000.0));
     }
-    if (us.failures.size() > 0) {
+    if (!us.failures.isEmpty()) {
       Entry<KeyExtent,Long> first = us.failures.entrySet().iterator().next();
       log.debug(String.format("Failures: %d, first extent %s successful commits: %d",
           us.failures.size(), first.getKey().toString(), first.getValue()));
     }
     List<ConstraintViolationSummary> violations = us.violations.asList();
-    if (violations.size() > 0) {
+    if (!violations.isEmpty()) {
       ConstraintViolationSummary first = us.violations.asList().iterator().next();
       log.debug(String.format("Violations: %d, first %s occurs %d", violations.size(),
           first.violationDescription, first.numberOfViolatingMutations));
     }
-    if (us.authFailures.size() > 0) {
+    if (!us.authFailures.isEmpty()) {
       KeyExtent first = us.authFailures.keySet().iterator().next();
       log.debug(String.format("Authentication Failures: %d, first %s", us.authFailures.size(),
           first.toString()));
@@ -1016,7 +1016,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
         try {
           tablet.checkConditions(checker, cs.auths, cs.interruptFlag);
 
-          if (okMutations.size() > 0) {
+          if (!okMutations.isEmpty()) {
             entry.setValue(okMutations);
           } else {
             iter.remove();
@@ -1087,7 +1087,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     }
 
     try (TraceScope walSpan = Trace.startSpan("wal")) {
-      while (loggables.size() > 0) {
+      while (!loggables.isEmpty()) {
         try {
           long t1 = System.currentTimeMillis();
           server.logger.logManyTablets(loggables);
@@ -1221,7 +1221,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       Map<KeyExtent,List<ServerConditionalMutation>> deferred =
           conditionalUpdate(cs, updates, results, symbols);
 
-      while (deferred.size() > 0) {
+      while (!deferred.isEmpty()) {
         deferred = conditionalUpdate(cs, deferred, results, symbols);
       }
 
@@ -1414,7 +1414,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
             // ignore self, for error logging
             all.remove(extent);
 
-            if (all.size() > 0) {
+            if (!all.isEmpty()) {
               log.error("Tablet {} overlaps previously assigned {} {} {}", extent,
                   unopenedOverlapping, openingOverlapping, onlineOverlapping + " " + all);
             }

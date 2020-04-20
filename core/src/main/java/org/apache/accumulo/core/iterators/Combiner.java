@@ -285,7 +285,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
 
     String encodedColumns = options.get(COLUMNS_OPTION);
-    if (encodedColumns.length() == 0)
+    if (encodedColumns.isEmpty())
       throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
 
     combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
@@ -356,7 +356,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
           "options must include " + ALL_OPTION + " or " + COLUMNS_OPTION);
 
     String encodedColumns = options.get(COLUMNS_OPTION);
-    if (encodedColumns.length() == 0)
+    if (encodedColumns.isEmpty())
       throw new IllegalArgumentException("empty columns specified in option " + COLUMNS_OPTION);
 
     for (String columns : Splitter.on(",").split(encodedColumns)) {

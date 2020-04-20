@@ -84,8 +84,8 @@ class AssignmentHandler implements Runnable {
             return;
           }
 
-          if (unopenedOverlapping.size() != 1 || openingOverlapping.size() > 0
-              || onlineOverlapping.size() > 0) {
+          if (unopenedOverlapping.size() != 1 || !openingOverlapping.isEmpty()
+              || !onlineOverlapping.isEmpty()) {
             throw new IllegalStateException(
                 "overlaps assigned " + extent + " " + !server.unopenedTablets.contains(extent) + " "
                     + unopenedOverlapping + " " + openingOverlapping + " " + onlineOverlapping);

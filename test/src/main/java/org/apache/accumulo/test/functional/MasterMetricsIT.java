@@ -213,7 +213,7 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
 
       Map<String,String> results = metricsTail.parseLine("");
 
-      if (results != null && results.size() > 0
+      if (results != null && !results.isEmpty()
           && Long.parseLong(results.get("currentFateOps")) >= tableCount) {
         log.info("Found required number of fate operations");
         return results;

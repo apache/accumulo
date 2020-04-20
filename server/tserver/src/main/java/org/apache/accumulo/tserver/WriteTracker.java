@@ -87,7 +87,7 @@ class WriteTracker {
   }
 
   public long startWrite(Set<Tablet> keySet) {
-    if (keySet.size() == 0)
+    if (keySet.isEmpty())
       return -1;
 
     List<KeyExtent> extents = new ArrayList<>(keySet.size());

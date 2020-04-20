@@ -213,7 +213,7 @@ public class CreateTableCommand extends Command {
       final Shell shellState, NewTableConfiguration ntc) {
     EnumSet<IteratorScope> scopeEnumSet;
     IteratorSetting iteratorSetting;
-    if (shellState.iteratorProfiles.size() == 0)
+    if (shellState.iteratorProfiles.isEmpty())
       throw new IllegalArgumentException("No shell iterator profiles have been created.");
     String[] options = cl.getOptionValues(createTableOptIteratorProps.getOpt());
     for (String profileInfo : options) {

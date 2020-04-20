@@ -157,7 +157,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     if (authsString.startsWith(HEADER)) {
       // it's the new format
       authsString = authsString.substring(HEADER.length());
-      if (authsString.length() > 0) {
+      if (!authsString.isEmpty()) {
         for (String encAuth : authsString.split(",")) {
           byte[] auth = Base64.getDecoder().decode(encAuth);
           auths.add(new ArrayByteSequence(auth));

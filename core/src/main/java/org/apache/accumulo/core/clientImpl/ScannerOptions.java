@@ -73,7 +73,7 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public synchronized void addScanIterator(IteratorSetting si) {
     checkArgument(si != null, "si is null");
-    if (serverSideIteratorList.size() == 0) {
+    if (serverSideIteratorList.isEmpty()) {
       serverSideIteratorList = new ArrayList<>();
     }
 
@@ -89,7 +89,7 @@ public class ScannerOptions implements ScannerBase {
 
     serverSideIteratorList.add(new IterInfo(si.getPriority(), si.getIteratorClass(), si.getName()));
 
-    if (serverSideIteratorOptions.size() == 0) {
+    if (serverSideIteratorOptions.isEmpty()) {
       serverSideIteratorOptions = new HashMap<>();
     }
     serverSideIteratorOptions.computeIfAbsent(si.getName(), k -> new HashMap<>())
@@ -100,7 +100,7 @@ public class ScannerOptions implements ScannerBase {
   public synchronized void removeScanIterator(String iteratorName) {
     checkArgument(iteratorName != null, "iteratorName is null");
     // if no iterators are set, we don't have it, so it is already removed
-    if (serverSideIteratorList.size() == 0) {
+    if (serverSideIteratorList.isEmpty()) {
       return;
     }
 
@@ -119,7 +119,7 @@ public class ScannerOptions implements ScannerBase {
     checkArgument(iteratorName != null, "iteratorName is null");
     checkArgument(key != null, "key is null");
     checkArgument(value != null, "value is null");
-    if (serverSideIteratorOptions.size() == 0) {
+    if (serverSideIteratorOptions.isEmpty()) {
       serverSideIteratorOptions = new HashMap<>();
     }
     serverSideIteratorOptions.computeIfAbsent(iteratorName, k -> new HashMap<>()).put(key, value);

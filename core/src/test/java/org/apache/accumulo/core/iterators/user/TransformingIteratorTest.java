@@ -455,7 +455,7 @@ public class TransformingIteratorTest {
   private void checkExpected(Range range, Set<ByteSequence> families,
       TreeMap<Key,Value> expectedEntries) throws IOException {
 
-    titer.seek(range, families, families.size() != 0);
+    titer.seek(range, families, !families.isEmpty());
 
     while (titer.hasTop()) {
       Entry<Key,Value> expected = expectedEntries.pollFirstEntry();

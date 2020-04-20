@@ -116,7 +116,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     List<String> results = new ArrayList<>();
     for (String candidate : cache.getChildren(path)) {
       var children = cache.getChildren(path + "/" + candidate);
-      if (children != null && children.size() > 0) {
+      if (children != null && !children.isEmpty()) {
         var copy = new ArrayList<>(children);
         Collections.sort(copy);
         var data = cache.get(path + "/" + candidate + "/" + copy.get(0));

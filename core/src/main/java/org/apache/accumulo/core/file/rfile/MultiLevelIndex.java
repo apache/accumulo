@@ -575,7 +575,7 @@ public class MultiLevelIndex {
 
       out.writeInt(totalAdded);
       // save root node
-      if (levels.size() > 0) {
+      if (!levels.isEmpty()) {
         levels.get(levels.size() - 1).write(out);
       } else {
         new IndexBlock(0, 0).write(out);

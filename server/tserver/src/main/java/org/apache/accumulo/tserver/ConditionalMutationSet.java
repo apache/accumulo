@@ -59,7 +59,7 @@ public class ConditionalMutationSet {
       List<ServerConditionalMutation> deferred = new ArrayList<>();
       filter.defer(scml, okMutations, deferred);
 
-      if (deferred.size() > 0) {
+      if (!deferred.isEmpty()) {
         scml.clear();
         scml.addAll(okMutations);
         List<ServerConditionalMutation> l = deferredMutations.get(entry.getKey());

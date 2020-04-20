@@ -2205,8 +2205,8 @@ public class RFileTest {
 
         trf.closeWriter();
 
-        assertTrue(sampleDataLG1.size() > 0);
-        assertTrue(sampleDataLG2.size() > 0);
+        assertTrue(!sampleDataLG1.isEmpty());
+        assertTrue(!sampleDataLG2.isEmpty());
 
         trf.openReader(false);
         FileSKVIterator sample =

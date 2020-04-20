@@ -58,7 +58,7 @@ public class MasterClient {
 
     List<String> locations = context.getMasterLocations();
 
-    if (locations.size() == 0) {
+    if (locations.isEmpty()) {
       log.debug("No masters...");
       return null;
     }

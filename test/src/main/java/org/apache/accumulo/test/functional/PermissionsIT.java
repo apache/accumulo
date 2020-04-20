@@ -654,7 +654,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
             m.put("a", "b", "c");
             bw.addMutation(m);
           } catch (MutationsRejectedException e1) {
-            if (e1.getSecurityErrorCodes().size() > 0)
+            if (!e1.getSecurityErrorCodes().isEmpty())
               throw new AccumuloSecurityException(test_user_client.whoami(),
                   org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode.PERMISSION_DENIED,
                   e1);

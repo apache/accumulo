@@ -79,7 +79,7 @@ public class ColumnFamilySkippingIterator extends ServerSkippingIterator
           count = 0;
         }
       }
-    else if (colFamSet != null && colFamSet.size() > 0)
+    else if (colFamSet != null && !colFamSet.isEmpty())
       while (source.hasTop() && colFamSet.contains(source.getTopKey().getColumnFamilyData())) {
         if (count < 10) {
           source.next();

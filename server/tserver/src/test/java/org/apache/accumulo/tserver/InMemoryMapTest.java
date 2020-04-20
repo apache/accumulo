@@ -590,7 +590,7 @@ public class InMemoryMapTest {
         mutate(imm, row, "cf2:cq2", 5, "v" + ((2 * r) + 1), sampler, expectedSample, expectedAll);
       }
 
-      assertTrue(expectedSample.size() > 0);
+      assertTrue(!expectedSample.isEmpty());
 
       MemoryIterator iter1 = imm.skvIterator(sampleConfig);
       MemoryIterator iter2 = imm.skvIterator(null);
@@ -673,7 +673,7 @@ public class InMemoryMapTest {
       mutate(imm, row, "cf2:cq2", 5, "v" + ((2 * r) + 1), sampler, expectedSample, expectedAll);
     }
 
-    assertTrue(expectedSample.size() > 0);
+    assertTrue(!expectedSample.isEmpty());
 
     MemoryIterator miter = imm.skvIterator(sampleConfig1);
     AtomicBoolean iFlag = new AtomicBoolean(false);

@@ -166,7 +166,7 @@ public class RemoveEntriesForMissingFiles {
     threadPool.shutdown();
 
     synchronized (processing) {
-      while (processing.size() > 0)
+      while (!processing.isEmpty())
         processing.wait();
     }
 

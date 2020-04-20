@@ -44,7 +44,7 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
 
   @Override
   public synchronized TraceRunnable poll() {
-    if (task.size() == 0)
+    if (task.isEmpty())
       return null;
 
     TraceRunnable min = Collections.min(task, ELEMENT_COMPARATOR);
@@ -60,7 +60,7 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
 
   @Override
   public synchronized TraceRunnable peek() {
-    if (task.size() == 0)
+    if (task.isEmpty())
       return null;
 
     return Collections.min(task, ELEMENT_COMPARATOR);
@@ -88,7 +88,7 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
 
   @Override
   public synchronized TraceRunnable take() throws InterruptedException {
-    while (task.size() == 0) {
+    while (task.isEmpty()) {
       wait();
     }
 
@@ -97,11 +97,11 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
 
   @Override
   public synchronized TraceRunnable poll(long timeout, TimeUnit unit) throws InterruptedException {
-    if (task.size() == 0) {
+    if (task.isEmpty()) {
       wait(unit.toMillis(timeout));
     }
 
-    if (task.size() == 0)
+    if (task.isEmpty())
       return null;
 
     return poll();

@@ -192,7 +192,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     try {
       TabletServerBatchReaderIterator.doLookup(context, tserver, tabletsRanges, failures, unscanned,
           rr, columns, opts, Authorizations.EMPTY);
-      if (failures.size() > 0) {
+      if (!failures.isEmpty()) {
         // invalidate extents in parents cache
         if (log.isTraceEnabled())
           log.trace("lookupTablets failed for {} extents", failures.size());

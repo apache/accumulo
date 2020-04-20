@@ -193,7 +193,7 @@ class ScanDataSource implements DataSource {
 
       ParsedIteratorConfig pic =
           tablet.getTableConfiguration().getParsedIteratorConfig(IteratorScope.scan);
-      if (scanParams.getSsiList().size() == 0 && scanParams.getSsio().size() == 0) {
+      if (scanParams.getSsiList().isEmpty() && scanParams.getSsio().isEmpty()) {
         // No scan time iterator options were set, so can just use the pre-parsed table iterator
         // options.
         iterInfos = pic.getIterInfo();

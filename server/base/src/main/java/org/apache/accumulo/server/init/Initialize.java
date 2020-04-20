@@ -716,7 +716,7 @@ public class Initialize implements KeywordExecutable {
         System.exit(0);
       }
       instanceName = instanceName.trim();
-      if (instanceName.length() == 0) {
+      if (instanceName.isEmpty()) {
         continue;
       }
       instanceNamePath = getInstanceNamePrefix() + instanceName;
@@ -868,7 +868,7 @@ public class Initialize implements KeywordExecutable {
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
             + MetadataTable.NAME + " replication of 5. What do you want to set your "
             + MetadataTable.NAME + " replication to? (" + replication + ") ");
-    if (rep == null || rep.length() == 0) {
+    if (rep == null || rep.isEmpty()) {
       rep = Integer.toString(replication);
     } else {
       // Lets make sure it's a number

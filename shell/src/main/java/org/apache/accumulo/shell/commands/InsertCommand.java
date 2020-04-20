@@ -125,7 +125,7 @@ public class InsertCommand extends Command {
         lines.add("\t\t" + cvs);
       }
 
-      if (lines.size() == 0 || e.getUnknownExceptions() > 0) {
+      if (lines.isEmpty() || e.getUnknownExceptions() > 0) {
         // must always print something
         lines.add(" " + e.getClass().getName() + " : " + e.getMessage());
         if (e.getCause() != null)

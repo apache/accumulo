@@ -467,7 +467,7 @@ public class CollectTabletStats {
           .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(aconf).build();
       Range range = new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true);
-      reader.seek(range, columnSet, columnSet.size() != 0);
+      reader.seek(range, columnSet, !columnSet.isEmpty());
       while (reader.hasTop() && !range.afterEndKey(reader.getTopKey())) {
         count++;
         reader.next();
@@ -510,7 +510,7 @@ public class CollectTabletStats {
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
 
     reader.seek(new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true), columnSet,
-        columnSet.size() != 0);
+        !columnSet.isEmpty());
 
     int count = 0;
 

@@ -132,7 +132,7 @@ public class ConfigOpts extends Help {
       System.err.println(errMsg);
       throw new IllegalArgumentException(errMsg);
     }
-    if (getOverrides().size() > 0) {
+    if (!getOverrides().isEmpty()) {
       log.info("The following configuration was set on the command line:");
       for (Map.Entry<String,String> entry : getOverrides().entrySet()) {
         String key = entry.getKey();

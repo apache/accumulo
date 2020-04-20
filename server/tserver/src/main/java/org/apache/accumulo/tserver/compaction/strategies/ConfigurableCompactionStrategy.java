@@ -81,7 +81,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
       gatherCalled = true;
       Collection<SummarizerConfiguration> configs =
           SummarizerConfiguration.fromTableProperties(request.getTableProperties());
-      if (configs.size() == 0) {
+      if (configs.isEmpty()) {
         summaryConfigured = false;
       } else {
         Set<SummarizerConfiguration> configsSet = configs instanceof Set
@@ -128,7 +128,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
       if (!gatherCalled) {
         Collection<SummarizerConfiguration> configs =
             SummarizerConfiguration.fromTableProperties(request.getTableProperties());
-        return configs.size() > 0;
+        return !configs.isEmpty();
       }
 
       if (!summaryConfigured) {

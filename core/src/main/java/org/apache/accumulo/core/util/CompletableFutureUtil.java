@@ -30,7 +30,7 @@ public class CompletableFutureUtil {
   // results of their children when complete
   public static <T> CompletableFuture<T> merge(List<CompletableFuture<T>> futures,
       BiFunction<T,T,T> mergeFunc, Supplier<T> nothing) {
-    if (futures.size() == 0) {
+    if (futures.isEmpty()) {
       return CompletableFuture.completedFuture(nothing.get());
     }
     while (futures.size() > 1) {

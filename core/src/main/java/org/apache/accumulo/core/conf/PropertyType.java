@@ -230,7 +230,7 @@ public enum PropertyType {
       }
       try {
         double d;
-        if (input.length() > 0 && input.charAt(input.length() - 1) == '%') {
+        if (!input.isEmpty() && input.charAt(input.length() - 1) == '%') {
           d = Double.parseDouble(input.substring(0, input.length() - 1));
         } else {
           d = Double.parseDouble(input);

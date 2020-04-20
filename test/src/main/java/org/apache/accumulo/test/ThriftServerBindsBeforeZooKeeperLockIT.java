@@ -69,7 +69,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     Collection<ProcessReference> monitors = cluster.getProcesses().get(ServerType.MONITOR);
     // Need to start one monitor and let it become active.
-    if (monitors == null || monitors.size() == 0) {
+    if (monitors == null || monitors.isEmpty()) {
       getClusterControl().start(ServerType.MONITOR, "localhost");
     }
 
@@ -144,7 +144,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
         try {
           List<String> locks =
               reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMASTER_LOCK);
-          if (locks.size() > 0) {
+          if (!locks.isEmpty()) {
             break;
           }
         } catch (Exception e) {
@@ -206,7 +206,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
         try {
           List<String> locks =
               reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
-          if (locks.size() > 0) {
+          if (!locks.isEmpty()) {
             break;
           }
         } catch (Exception e) {

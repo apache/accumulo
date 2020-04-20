@@ -380,15 +380,15 @@ public class TraceServer implements Watcher, AutoCloseable {
         Map<String,String> loginMap =
             acuConf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
         String keyTab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
-        if (keyTab == null || keyTab.length() == 0) {
+        if (keyTab == null || keyTab.isEmpty()) {
           keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
         }
-        if (keyTab == null || keyTab.length() == 0) {
+        if (keyTab == null || keyTab.isEmpty()) {
           return;
         }
 
         String principalConfig = acuConf.get(Property.TRACE_USER);
-        if (principalConfig == null || principalConfig.length() == 0) {
+        if (principalConfig == null || principalConfig.isEmpty()) {
           return;
         }
 

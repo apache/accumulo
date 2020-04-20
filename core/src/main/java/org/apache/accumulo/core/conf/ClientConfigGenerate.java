@@ -107,7 +107,7 @@ class ClientConfigGenerate {
       doc.print("| <a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> "
           + prop.getKey() + " | ");
       String defaultValue = sanitize(prop.getDefaultValue()).trim();
-      if (defaultValue.length() == 0) {
+      if (defaultValue.isEmpty()) {
         defaultValue = "*empty*";
       }
       doc.println(
