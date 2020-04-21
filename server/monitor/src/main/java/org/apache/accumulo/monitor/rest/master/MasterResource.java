@@ -102,7 +102,7 @@ public class MasterResource {
       List<String> masters = monitor.getContext().getMasterLocations();
 
       String master =
-          masters.size() == 0 ? "Down" : AddressUtil.parseAddress(masters.get(0), false).getHost();
+          masters.isEmpty() ? "Down" : AddressUtil.parseAddress(masters.get(0), false).getHost();
       int onlineTabletServers = mmi.tServerInfo.size();
       int totalTabletServers = tservers.size();
       int tablets = monitor.getTotalTabletCount();

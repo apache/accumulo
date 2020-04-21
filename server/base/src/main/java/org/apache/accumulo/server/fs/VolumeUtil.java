@@ -63,7 +63,7 @@ public class VolumeUtil {
   }
 
   public static Path switchVolume(String path, FileType ft, List<Pair<Path,Path>> replacements) {
-    if (replacements.size() == 0) {
+    if (replacements.isEmpty()) {
       log.trace("Not switching volume because there are no replacements");
       return null;
     }

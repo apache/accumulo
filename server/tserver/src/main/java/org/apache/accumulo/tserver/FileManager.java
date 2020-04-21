@@ -146,7 +146,7 @@ public class FileManager {
             }
           }
 
-          if (ofl.size() == 0) {
+          if (ofl.isEmpty()) {
             iter.remove();
           }
         }
@@ -211,7 +211,7 @@ public class FileManager {
         throw new RuntimeException("Failed to remove open reader that should have been there");
       }
 
-      if (ofl.size() == 0) {
+      if (ofl.isEmpty()) {
         openFiles.remove(or.fileName);
       }
 
@@ -240,10 +240,10 @@ public class FileManager {
     List<String> filesToOpen = Collections.emptyList();
     for (String file : files) {
       List<OpenReader> ofl = openFiles.get(file);
-      if (ofl != null && ofl.size() > 0) {
+      if (ofl != null && !ofl.isEmpty()) {
         OpenReader openReader = ofl.remove(ofl.size() - 1);
         readersReserved.put(openReader.reader, file);
-        if (ofl.size() == 0) {
+        if (ofl.isEmpty()) {
           openFiles.remove(file);
         }
       } else {
@@ -263,7 +263,7 @@ public class FileManager {
       throw new IllegalArgumentException("requested files exceeds max open");
     }
 
-    if (files.size() == 0) {
+    if (files.isEmpty()) {
       return Collections.emptyMap();
     }
 
@@ -571,7 +571,7 @@ public class FileManager {
     }
 
     public synchronized void reattach(SamplerConfigurationImpl samplerConfig) throws IOException {
-      if (tabletReservedReaders.size() != 0)
+      if (!tabletReservedReaders.isEmpty())
         throw new IllegalStateException();
 
       List<String> files = dataSources.stream().map(x -> x.file).collect(Collectors.toList());

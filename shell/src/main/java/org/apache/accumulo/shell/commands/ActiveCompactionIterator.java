@@ -94,7 +94,7 @@ class ActiveCompactionIterator implements Iterator<String> {
         compactions.add(tserver + " ERROR " + e.getMessage());
       }
 
-      if (compactions.size() > 0) {
+      if (!compactions.isEmpty()) {
         break;
       }
     }

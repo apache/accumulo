@@ -125,7 +125,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     timedoutServers = Collections.synchronizedSet(new HashSet<>());
     this.timeout = timeout;
 
-    if (options.fetchedColumns.size() > 0) {
+    if (!options.fetchedColumns.isEmpty()) {
       ArrayList<Range> ranges2 = new ArrayList<>(ranges.size());
       for (Range range : ranges) {
         ranges2.add(range.bound(options.fetchedColumns.first(), options.fetchedColumns.last()));
@@ -235,7 +235,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       binnedRanges.clear();
       List<Range> failures = tabletLocator.binRanges(context, ranges, binnedRanges);
 
-      if (failures.size() > 0) {
+      if (!failures.isEmpty()) {
         // tried to only do table state checks when failures.size() == ranges.size(), however this
         // did
         // not work because nothing ever invalidated entries in the tabletLocator cache... so even
@@ -360,7 +360,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
         doLookup(context, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns,
             options, authorizations, timeoutTracker);
-        if (tsFailures.size() > 0) {
+        if (!tsFailures.isEmpty()) {
           locator.invalidateCache(tsFailures.keySet());
           synchronized (failures) {
             failures.putAll(tsFailures);
@@ -399,7 +399,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         Thread.currentThread().setName(threadName);
         if (semaphore.tryAcquire(semaphoreSize)) {
           // finished processing all queries
-          if (fatalException == null && failures.size() > 0) {
+          if (fatalException == null && !failures.isEmpty()) {
             // there were some failures
             try {
               processFailures(failures, receiver, columns);
@@ -475,7 +475,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     Map<KeyExtent,List<Range>> failures = new HashMap<>();
 
-    if (timedoutServers.size() > 0) {
+    if (!timedoutServers.isEmpty()) {
       // go ahead and fail any timed out servers
       for (Iterator<Entry<String,Map<KeyExtent,List<Range>>>> iterator =
           binnedRanges.entrySet().iterator(); iterator.hasNext();) {
@@ -512,7 +512,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           }
         }
 
-        if (tabletSubset.size() > 0) {
+        if (!tabletSubset.isEmpty()) {
           QueryTask queryTask =
               new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
           queryTasks.add(queryTask);
@@ -630,7 +630,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       Authorizations authorizations, TimeoutTracker timeoutTracker)
       throws IOException, AccumuloSecurityException, AccumuloServerException {
 
-    if (requested.size() == 0) {
+    if (requested.isEmpty()) {
       return;
     }
 
@@ -674,7 +674,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             Translators.KET, new Translator.ListTranslator<>(Translators.RT));
 
         Map<String,String> execHints =
-            options.executionHints.size() == 0 ? null : options.executionHints;
+            options.executionHints.isEmpty() ? null : options.executionHints;
 
         InitialMultiScan imsr = client.startMultiScan(TraceUtil.traceInfo(), context.rpcCreds(),
             thriftTabletRanges, Translator.translate(columns, Translators.CT),
@@ -700,10 +700,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           entries.add(new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value)));
         }
 
-        if (entries.size() > 0)
+        if (!entries.isEmpty())
           receiver.receive(entries);
 
-        if (entries.size() > 0 || scanResult.fullScans.size() > 0)
+        if (!entries.isEmpty() || !scanResult.fullScans.isEmpty())
           timeoutTracker.madeProgress();
 
         trackScanning(failures, unscanned, scanResult);
@@ -735,10 +735,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             entries.add(new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value)));
           }
 
-          if (entries.size() > 0)
+          if (!entries.isEmpty())
             receiver.receive(entries);
 
-          if (entries.size() > 0 || scanResult.fullScans.size() > 0)
+          if (!entries.isEmpty() || !scanResult.fullScans.isEmpty())
             timeoutTracker.madeProgress();
 
           trackScanning(failures, unscanned, scanResult);

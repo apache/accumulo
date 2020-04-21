@@ -230,7 +230,7 @@ public class Upgrader9to10 implements Upgrader {
 
     String[] parts = str.split("[|]", 2);
     HostAndPort address = HostAndPort.fromString(parts[0]);
-    if (parts.length > 1 && parts[1] != null && parts[1].length() > 0) {
+    if (parts.length > 1 && parts[1] != null && !parts[1].isEmpty()) {
       return new TServerInstance(address, parts[1]);
     } else {
       // a 1.2 location specification: DO NOT WANT

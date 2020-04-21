@@ -312,7 +312,7 @@ public class Gatherer {
         client = ThriftUtil.getTServerClient(location, ctx);
         // partition files into smaller chunks so that not too many are sent to a tserver at once
         for (Map<TabletFile,List<TRowRange>> files : partition(allFiles, 500)) {
-          if (pfiles.failedFiles.size() > 0) {
+          if (!pfiles.failedFiles.isEmpty()) {
             // there was a previous failure on this tserver, so just fail the rest of the files
             pfiles.failedFiles.addAll(files.keySet());
             continue;
@@ -419,7 +419,7 @@ public class Gatherer {
       if (future.isDone()) {
         if (!future.isCancelled() && !future.isCompletedExceptionally()) {
           ProcessedFiles pf = _get();
-          if (pf.failedFiles.size() > 0) {
+          if (!pf.failedFiles.isEmpty()) {
             initiateProcessing(pf);
           }
         }
@@ -456,7 +456,7 @@ public class Gatherer {
         }
 
         ProcessedFiles pf = _get();
-        if (pf.failedFiles.size() == 0) {
+        if (pf.failedFiles.isEmpty()) {
           return true;
         } else {
           updateFuture();
@@ -470,7 +470,7 @@ public class Gatherer {
     public SummaryCollection get() throws InterruptedException, ExecutionException {
       CompletableFuture<ProcessedFiles> futureRef = updateFuture();
       ProcessedFiles processedFiles = futureRef.get();
-      while (processedFiles.failedFiles.size() > 0) {
+      while (!processedFiles.failedFiles.isEmpty()) {
         futureRef = updateFuture();
         processedFiles = futureRef.get();
       }
@@ -487,7 +487,7 @@ public class Gatherer {
       ProcessedFiles processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);
       t2 = System.nanoTime();
       nanosLeft -= (t2 - t1);
-      while (processedFiles.failedFiles.size() > 0) {
+      while (!processedFiles.failedFiles.isEmpty()) {
         futureRef = updateFuture();
         t1 = System.nanoTime();
         processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);

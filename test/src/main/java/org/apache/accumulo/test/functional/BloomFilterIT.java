@@ -228,7 +228,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
       }
       long t2 = System.currentTimeMillis();
 
-      if (expected.size() > 0) {
+      if (!expected.isEmpty()) {
         throw new Exception("Did not get all expected values " + expected.size());
       }
 

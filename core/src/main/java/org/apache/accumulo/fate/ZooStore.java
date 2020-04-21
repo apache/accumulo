@@ -142,7 +142,7 @@ public class ZooStore<T> implements TStore<T> {
         Collections.sort(txdirs);
 
         synchronized (this) {
-          if (txdirs.size() > 0 && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0)
+          if (!txdirs.isEmpty() && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0)
             lastReserved = "";
         }
 
@@ -191,7 +191,7 @@ public class ZooStore<T> implements TStore<T> {
         synchronized (this) {
           // suppress lgtm alert - synchronized variable is not always true
           if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
-            if (defered.size() > 0) {
+            if (!defered.isEmpty()) {
               Long minTime = Collections.min(defered.values());
               long waitTime = minTime - System.currentTimeMillis();
               if (waitTime > 0)

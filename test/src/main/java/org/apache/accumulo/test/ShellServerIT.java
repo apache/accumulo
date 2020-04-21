@@ -254,7 +254,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         assertEquals(errorMsg, 0, shell.getExitCode());
       }
 
-      if (s.length() > 0)
+      if (!s.isEmpty())
         assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
             output.get().contains(s));
     }
@@ -266,7 +266,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         assertTrue(errorMsg, shell.getExitCode() > 0);
       }
 
-      if (s.length() > 0)
+      if (!s.isEmpty())
         assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
             output.get().contains(s));
       shell.resetExitCode();

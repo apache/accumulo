@@ -325,7 +325,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
       }
     }
 
-    if (valuesSeen.size() != 0) {
+    if (!valuesSeen.isEmpty()) {
       throw new Exception("Saw more values than expected " + valuesSeen);
     }
   }

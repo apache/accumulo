@@ -286,7 +286,7 @@ public class Admin implements KeywordExecutable {
 
     InstanceOperations io = context.instanceOperations();
 
-    if (args.size() == 0) {
+    if (args.isEmpty()) {
       args = io.getTabletServers();
     }
 
@@ -367,7 +367,7 @@ public class Admin implements KeywordExecutable {
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,
       final boolean force) throws AccumuloException, AccumuloSecurityException {
-    if (context.getMasterLocations().size() == 0) {
+    if (context.getMasterLocations().isEmpty()) {
       log.info("No masters running. Not attempting safe unload of tserver.");
       return;
     }
@@ -483,7 +483,7 @@ public class Admin implements KeywordExecutable {
           printNameSpaceConfiguration(context, namespace, outputDirectory);
         }
       }
-      if (opts.tables.size() > 0) {
+      if (!opts.tables.isEmpty()) {
         for (String tableName : opts.tables) {
           printTableConfiguration(context, tableName, outputDirectory);
         }

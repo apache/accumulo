@@ -545,7 +545,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     }
 
     // expect workq should be empty at this point
-    if (workQueue.size() != 0) {
+    if (!workQueue.isEmpty()) {
       log.error("WAL work queue not empty after sync thread exited");
       throw new IllegalStateException("WAL work queue not empty after sync thread exited");
     }

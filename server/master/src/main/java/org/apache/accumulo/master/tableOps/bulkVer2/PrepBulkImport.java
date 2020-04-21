@@ -91,7 +91,7 @@ public class PrepBulkImport extends MasterRepo {
     if (!Utils.getReadLock(master, bulkInfo.tableId, tid).tryLock())
       return 100;
 
-    if (master.onlineTabletServers().size() == 0)
+    if (master.onlineTabletServers().isEmpty())
       return 500;
     Tables.clearCache(master.getContext());
 

@@ -215,7 +215,7 @@ public class ThriftScanner {
 
       this.batchTimeOut = batchTimeOut;
 
-      if (executionHints == null || executionHints.size() == 0)
+      if (executionHints == null || executionHints.isEmpty())
         this.executionHints = null; // avoid thrift serialization for empty map
       else
         this.executionHints = executionHints;
@@ -408,7 +408,7 @@ public class ThriftScanner {
         }
       }
 
-      if (results != null && results.size() == 0 && scanState.finished) {
+      if (results != null && results.isEmpty() && scanState.finished) {
         results = null;
       }
 
@@ -536,7 +536,7 @@ public class ThriftScanner {
 
       Key.decompress(sr.results);
 
-      if (sr.results.size() > 0 && !scanState.finished)
+      if (!sr.results.isEmpty() && !scanState.finished)
         scanState.range = new Range(new Key(sr.results.get(sr.results.size() - 1).key), false,
             scanState.range.getEndKey(), scanState.range.isEndKeyInclusive());
 

@@ -198,7 +198,7 @@ public class DefaultLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
-      if (migrationsOut.size() == 0)
+      if (migrationsOut.isEmpty())
         break;
       for (TabletMigration migration : migrationsOut) {
         if (servers.get(migration.oldServer).extents.remove(migration.tablet))
@@ -240,7 +240,7 @@ public class DefaultLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
-      if (migrationsOut.size() == 0)
+      if (migrationsOut.isEmpty())
         break;
       for (TabletMigration migration : migrationsOut) {
         if (servers.get(migration.oldServer).extents.remove(migration.tablet))

@@ -104,7 +104,7 @@ public class ZooZap {
               zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
             } else {
               String path = tserversPath + "/" + child;
-              if (zoo.getChildren(path).size() > 0) {
+              if (!zoo.getChildren(path).isEmpty()) {
                 if (!ZooLock.deleteLock(zoo, path, "tserver")) {
                   message("Did not delete " + tserversPath + "/" + child, opts);
                 }

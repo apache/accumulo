@@ -624,7 +624,7 @@ public class TabletServerResourceManager {
 
         try {
           if (mma != null && mma.tabletsToMinorCompact != null
-              && mma.tabletsToMinorCompact.size() > 0) {
+              && !mma.tabletsToMinorCompact.isEmpty()) {
             for (KeyExtent keyExtent : mma.tabletsToMinorCompact) {
               TabletStateImpl tabletReport = tabletReportsCopy.get(keyExtent);
 

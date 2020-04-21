@@ -67,7 +67,7 @@ public class ShellCompletor implements Completer {
     boolean end_space = buffer.endsWith(" ");
 
     // tabbing with no text
-    if (buffer.length() == 0) {
+    if (buffer.isEmpty()) {
       candidates.addAll(root.getSubcommandNames());
       return 0;
     }

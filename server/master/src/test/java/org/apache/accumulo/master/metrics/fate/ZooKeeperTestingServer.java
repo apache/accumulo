@@ -125,7 +125,7 @@ public class ZooKeeperTestingServer {
       String path = "";
 
       for (String p : paths) {
-        if (p.length() > 0) {
+        if (!p.isEmpty()) {
           path = path + slash + p;
           log.debug("building default paths, creating node {}", path);
           zoo.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);

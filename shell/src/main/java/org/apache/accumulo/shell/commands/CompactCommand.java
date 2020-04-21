@@ -152,7 +152,7 @@ public class CompactCommand extends TableOperation {
     Map<String,String> configurableCompactOpt = getConfigurableCompactionStrategyOpts(cl);
 
     if (cl.hasOption(strategyOpt.getOpt())) {
-      if (configurableCompactOpt.size() > 0)
+      if (!configurableCompactOpt.isEmpty())
         throw new IllegalArgumentException(
             "Can not specify compaction strategy with file selection and file output options.");
 
@@ -164,7 +164,7 @@ public class CompactCommand extends TableOperation {
       compactionConfig.setCompactionStrategy(csc);
     }
 
-    if (configurableCompactOpt.size() > 0) {
+    if (!configurableCompactOpt.isEmpty()) {
       CompactionStrategyConfig csc = new CompactionStrategyConfig(
           "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy");
       csc.setOptions(configurableCompactOpt);

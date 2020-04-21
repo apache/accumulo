@@ -89,7 +89,7 @@ class LoadFiles extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master master) throws Exception {
-    if (master.onlineTabletServers().size() == 0) {
+    if (master.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
           + FateTxId.formatTid(tid) + ")");
       return 100;

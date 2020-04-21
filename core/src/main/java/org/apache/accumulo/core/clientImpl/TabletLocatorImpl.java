@@ -194,7 +194,7 @@ public class TabletLocatorImpl extends TabletLocator {
       rLock.unlock();
     }
 
-    if (notInCache.size() > 0) {
+    if (!notInCache.isEmpty()) {
       Collections.sort(notInCache, (o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
           o1.getRow().length, o2.getRow(), 0, o2.getRow().length));
 
@@ -356,7 +356,7 @@ public class TabletLocatorImpl extends TabletLocator {
       rLock.unlock();
     }
 
-    if (failures.size() > 0) {
+    if (!failures.isEmpty()) {
       // sort failures by range start key
       Collections.sort(failures);
 
@@ -567,7 +567,7 @@ public class TabletLocatorImpl extends TabletLocator {
       er = MAX_TEXT;
     metaCache.put(er, tabletLocation);
 
-    if (badExtents.size() > 0)
+    if (!badExtents.isEmpty())
       removeOverlapping(badExtents, tabletLocation.tablet_extent);
   }
 
@@ -683,7 +683,7 @@ public class TabletLocatorImpl extends TabletLocator {
   private void processInvalidated(ClientContext context, LockCheckerSession lcSession)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
 
-    if (badExtents.size() == 0)
+    if (badExtents.isEmpty())
       return;
 
     final boolean writeLockHeld = rwLock.isWriteLockedByCurrentThread();
@@ -691,7 +691,7 @@ public class TabletLocatorImpl extends TabletLocator {
       if (!writeLockHeld) {
         rLock.unlock();
         wLock.lock();
-        if (badExtents.size() == 0)
+        if (badExtents.isEmpty())
           return;
       }
 

@@ -121,7 +121,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       return null;
     // parse "host:port[INSTANCE]"
     Set<TServerInstance> result = new HashSet<>();
-    if (servers.length() > 0) {
+    if (!servers.isEmpty()) {
       for (String part : servers.split(",")) {
         String[] parts = part.split("\\[", 2);
         String hostport = parts[0];

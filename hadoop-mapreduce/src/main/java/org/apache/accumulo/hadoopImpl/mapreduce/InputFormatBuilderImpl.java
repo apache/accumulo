@@ -96,7 +96,7 @@ public class InputFormatBuilderImpl<T>
   public InputFormatBuilder.InputFormatOptions<T> ranges(Collection<Range> ranges) {
     List<Range> newRanges =
         List.copyOf(Objects.requireNonNull(ranges, "Collection of ranges is null"));
-    if (newRanges.size() == 0) {
+    if (newRanges.isEmpty()) {
       throw new IllegalArgumentException("Specified collection of ranges is empty.");
     }
     tableConfigMap.get(currentTable).setRanges(newRanges);
@@ -108,7 +108,7 @@ public class InputFormatBuilderImpl<T>
       fetchColumns(Collection<IteratorSetting.Column> fetchColumns) {
     Collection<IteratorSetting.Column> newFetchColumns =
         List.copyOf(Objects.requireNonNull(fetchColumns, "Collection of fetch columns is null"));
-    if (newFetchColumns.size() == 0) {
+    if (newFetchColumns.isEmpty()) {
       throw new IllegalArgumentException("Specified collection of fetch columns is empty.");
     }
     tableConfigMap.get(currentTable).fetchColumns(newFetchColumns);
@@ -127,7 +127,7 @@ public class InputFormatBuilderImpl<T>
   public InputFormatBuilder.InputFormatOptions<T> executionHints(Map<String,String> hints) {
     Map<String,String> newHints =
         Map.copyOf(Objects.requireNonNull(hints, "Map of execution hints must not be null."));
-    if (newHints.size() == 0) {
+    if (newHints.isEmpty()) {
       throw new IllegalArgumentException("Specified map of execution hints is empty.");
     }
     tableConfigMap.get(currentTable).setExecutionHints(newHints);
@@ -194,7 +194,7 @@ public class InputFormatBuilderImpl<T>
 
   private void _store(Configuration conf) throws AccumuloException, AccumuloSecurityException {
     InputConfigurator.setClientProperties(callingClass, conf, clientProps, clientPropsPath);
-    if (tableConfigMap.size() == 0) {
+    if (tableConfigMap.isEmpty()) {
       throw new IllegalArgumentException("At least one Table must be configured for job.");
     }
     // if only one table use the single table configuration method
@@ -214,20 +214,20 @@ public class InputFormatBuilderImpl<T>
       if (config.getContext().isPresent()) {
         InputConfigurator.setClassLoaderContext(callingClass, conf, config.getContext().get());
       }
-      if (config.getRanges().size() > 0) {
+      if (!config.getRanges().isEmpty()) {
         InputConfigurator.setRanges(callingClass, conf, config.getRanges());
       }
-      if (config.getIterators().size() > 0) {
+      if (!config.getIterators().isEmpty()) {
         InputConfigurator.writeIteratorsToConf(callingClass, conf, config.getIterators());
       }
-      if (config.getFetchedColumns().size() > 0) {
+      if (!config.getFetchedColumns().isEmpty()) {
         InputConfigurator.fetchColumns(callingClass, conf, config.getFetchedColumns());
       }
       if (config.getSamplerConfiguration() != null) {
         InputConfigurator.setSamplerConfiguration(callingClass, conf,
             config.getSamplerConfiguration());
       }
-      if (config.getExecutionHints().size() > 0) {
+      if (!config.getExecutionHints().isEmpty()) {
         InputConfigurator.setExecutionHints(callingClass, conf, config.getExecutionHints());
       }
       InputConfigurator.setAutoAdjustRanges(callingClass, conf, config.shouldAutoAdjustRanges());

@@ -66,7 +66,7 @@ public class StatusResource {
       }
 
       List<String> masters = monitor.getContext().getMasterLocations();
-      masterStatus = masters.size() == 0 ? Status.ERROR : Status.OK;
+      masterStatus = masters.isEmpty() ? Status.ERROR : Status.OK;
 
       int tServerUp = mmi.getTServerInfoSize();
       int tServerDown = mmi.getDeadTabletServersSize();

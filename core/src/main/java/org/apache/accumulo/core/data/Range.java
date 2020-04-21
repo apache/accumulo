@@ -451,7 +451,7 @@ public class Range implements WritableComparable<Range> {
    * @return list of merged ranges
    */
   public static List<Range> mergeOverlapping(Collection<Range> ranges) {
-    if (ranges.size() == 0)
+    if (ranges.isEmpty())
       return Collections.emptyList();
     if (ranges.size() == 1)
       return Collections.singletonList(ranges.iterator().next());

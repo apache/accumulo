@@ -142,7 +142,7 @@ class DatafileManager {
         tablet.notifyAll();
     }
 
-    if (filesToDelete.size() > 0) {
+    if (!filesToDelete.isEmpty()) {
       log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
       MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
           tablet.getTabletServer().getLock());
@@ -150,7 +150,7 @@ class DatafileManager {
   }
 
   void removeFilesAfterScan(Set<StoredTabletFile> scanFiles) {
-    if (scanFiles.size() == 0)
+    if (scanFiles.isEmpty())
       return;
 
     Set<StoredTabletFile> filesToDelete = new HashSet<>();
@@ -164,7 +164,7 @@ class DatafileManager {
       }
     }
 
-    if (filesToDelete.size() > 0) {
+    if (!filesToDelete.isEmpty()) {
       log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
       MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
           tablet.getTabletServer().getLock());
@@ -231,7 +231,7 @@ class DatafileManager {
 
     synchronized (bulkFileImportLock) {
 
-      if (paths.size() > 0) {
+      if (!paths.isEmpty()) {
         long bulkTime = Long.MIN_VALUE;
         if (setTime) {
           for (DataFileValue dfv : paths.values()) {
@@ -283,7 +283,7 @@ class DatafileManager {
     // largest file is returned for merging.. the following check mostly
     // avoids this case, except for the case where major compactions fail or
     // are canceled
-    if (majorCompactingFiles.size() > 0 && datafileSizes.size() == maxFiles)
+    if (!majorCompactingFiles.isEmpty() && datafileSizes.size() == maxFiles)
       return null;
 
     if (datafileSizes.size() >= maxFiles) {
@@ -474,7 +474,7 @@ class DatafileManager {
   }
 
   public void reserveMajorCompactingFiles(Collection<StoredTabletFile> files) {
-    if (majorCompactingFiles.size() != 0)
+    if (!majorCompactingFiles.isEmpty())
       throw new IllegalStateException("Major compacting files not empty " + majorCompactingFiles);
 
     if (mergingMinorCompactionFile != null && files.contains(mergingMinorCompactionFile))
@@ -545,7 +545,7 @@ class DatafileManager {
 
     // known consistency issue between minor and major compactions - see ACCUMULO-18
     Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
-    if (filesInUseByScans.size() > 0)
+    if (!filesInUseByScans.isEmpty())
       log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
     MasterMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
         filesInUseByScans, newFile, compactionId, dfv,

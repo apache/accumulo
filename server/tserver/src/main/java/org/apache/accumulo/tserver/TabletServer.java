@@ -555,7 +555,7 @@ public class TabletServer extends AbstractServer {
   private HostAndPort getMasterAddress() {
     try {
       List<String> locations = getContext().getMasterLocations();
-      if (locations.size() == 0) {
+      if (locations.isEmpty()) {
         return null;
       }
       return HostAndPort.fromString(locations.get(0));

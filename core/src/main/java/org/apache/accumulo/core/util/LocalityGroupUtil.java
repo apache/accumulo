@@ -70,7 +70,7 @@ public class LocalityGroupUtil {
    * @return An immutable set of columns
    */
   public static Set<ByteSequence> families(Collection<Column> columns) {
-    if (columns.size() == 0) {
+    if (columns.isEmpty()) {
       return EMPTY_CF_SET;
     }
     var builder = ImmutableSet.<ByteSequence>builder();
@@ -115,7 +115,7 @@ public class LocalityGroupUtil {
     Map<String,Set<ByteSequence>> result = new HashMap<>();
     String[] groups = acuconf.get(Property.TABLE_LOCALITY_GROUPS).split(",");
     for (String group : groups) {
-      if (group.length() > 0) {
+      if (!group.isEmpty()) {
         result.put(group, new HashSet<>());
       }
     }

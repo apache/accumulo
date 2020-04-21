@@ -116,7 +116,7 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
     values.clear();
     currentPosition = 0;
 
-    while (source.hasTop() && keys.size() == 0) {
+    while (source.hasTop() && keys.isEmpty()) {
 
       addKeyValue(source.getTopKey(), source.getTopValue());
 

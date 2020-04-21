@@ -66,14 +66,14 @@ public class ColumnSet {
 
   public boolean contains(Key key) {
     // lookup column family and column qualifier
-    if (objectsCol.size() > 0) {
+    if (!objectsCol.isEmpty()) {
       lookupCol.set(key);
       if (objectsCol.contains(lookupCol))
         return true;
     }
 
     // lookup just column family
-    if (objectsCF.size() > 0) {
+    if (!objectsCF.isEmpty()) {
       lookupCF.set(key);
       return objectsCF.contains(lookupCF);
     }
@@ -82,7 +82,7 @@ public class ColumnSet {
   }
 
   public boolean isEmpty() {
-    return objectsCol.size() == 0 && objectsCF.size() == 0;
+    return objectsCol.isEmpty() && objectsCF.isEmpty();
   }
 
   public static String encodeColumns(Text columnFamily, Text columnQualifier) {

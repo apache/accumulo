@@ -93,7 +93,7 @@ class ConfigurationDocGen {
     doc.print(strike("**type:** " + prop.getType().name(), depr) + ", ");
     doc.print(strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ");
     String defaultValue = sanitize(prop.getDefaultValue()).trim();
-    if (defaultValue.length() == 0) {
+    if (defaultValue.isEmpty()) {
       defaultValue = strike("**default value:** empty", depr);
     } else if (defaultValue.contains("\n")) {
       // deal with multi-line values, skip strikethrough of value

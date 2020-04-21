@@ -114,7 +114,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           col.fetch(scanner);
         }
 
-        if (families.size() == 0 && qualifiers.size() == 0) {
+        if (families.isEmpty() && qualifiers.isEmpty()) {
           fetchedCols = EnumSet.allOf(ColumnType.class);
         }
 

@@ -147,7 +147,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
       System.out.println(s);
     }
     System.out.println("End of captured audit messages for step " + stepName);
-    if (result.size() > 0)
+    if (!result.isEmpty())
       lastAuditTimestamp = (result.get(result.size() - 1)).substring(0, 23);
 
     return result;

@@ -285,7 +285,7 @@ public class SetIterCommand extends Command {
                 input = new String(input);
               }
 
-              if (input.length() == 0)
+              if (input.isEmpty())
                 break;
 
               String[] sa = input.split(" ", 2);

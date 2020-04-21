@@ -65,7 +65,7 @@ public class DeleteScanIterCommand extends Command {
         } else {
           Shell.log.info("Removed scan iterator {} from table {} ({} left)", name, tableName,
               shellState.scanIteratorOptions.get(tableName).size());
-          if (shellState.scanIteratorOptions.get(tableName).size() == 0) {
+          if (shellState.scanIteratorOptions.get(tableName).isEmpty()) {
             shellState.scanIteratorOptions.remove(tableName);
           }
         }

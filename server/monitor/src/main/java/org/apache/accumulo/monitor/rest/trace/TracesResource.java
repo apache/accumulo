@@ -305,7 +305,7 @@ public class TracesResource {
         conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     // May be null
     String keytab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
-    if (keytab == null || keytab.length() == 0) {
+    if (keytab == null || keytab.isEmpty()) {
       keytab = conf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
     }
 

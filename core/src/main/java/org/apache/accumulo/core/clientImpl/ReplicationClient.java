@@ -71,7 +71,7 @@ public class ReplicationClient {
   public static ReplicationCoordinator.Client getCoordinatorConnection(ClientContext context) {
     List<String> locations = context.getMasterLocations();
 
-    if (locations.size() == 0) {
+    if (locations.isEmpty()) {
       log.debug("No masters for replication to instance {}", context.getInstanceName());
       return null;
     }

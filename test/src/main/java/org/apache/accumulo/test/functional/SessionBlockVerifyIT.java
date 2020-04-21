@@ -147,7 +147,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
         for (ActiveScan scan : scans) {
           // only here to minimize chance of seeing meta extent scans
 
-          if (tableName.equals(scan.getTable()) && scan.getSsiList().size() > 0) {
+          if (tableName.equals(scan.getTable()) && !scan.getSsiList().isEmpty()) {
             assertEquals("Not the expected iterator", 1, scan.getSsiList().size());
             assertTrue("Not the expected iterator",
                 scan.getSsiList().iterator().next().contains("SlowIterator"));

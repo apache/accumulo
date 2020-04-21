@@ -404,8 +404,8 @@ public class AdminUtil<T> {
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
 
-    if (fateStatus.getDanglingHeldLocks().size() != 0
-        || fateStatus.getDanglingWaitingLocks().size() != 0) {
+    if (!fateStatus.getDanglingHeldLocks().isEmpty()
+        || !fateStatus.getDanglingWaitingLocks().isEmpty()) {
       fmt.format("%nThe following locks did not have an associated FATE operation%n");
       for (Entry<String,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet())
         fmt.format("txid: %s  locked: %s%n", entry.getKey(), entry.getValue());

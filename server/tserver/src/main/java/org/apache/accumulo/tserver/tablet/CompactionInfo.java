@@ -75,7 +75,7 @@ public class CompactionInfo {
     CompactionType type;
 
     if (compactor.hasIMM())
-      if (compactor.getFilesToCompact().size() > 0)
+      if (!compactor.getFilesToCompact().isEmpty())
         type = CompactionType.MERGE;
       else
         type = CompactionType.MINOR;

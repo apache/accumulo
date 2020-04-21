@@ -133,7 +133,7 @@ public abstract class GroupBalancer extends TabletBalancer {
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
 
-    if (current.size() == 0) {
+    if (current.isEmpty()) {
       return;
     }
 
@@ -508,7 +508,7 @@ public abstract class GroupBalancer extends TabletBalancer {
       move.count--;
       if (move.count == 0) {
         srcMoves.remove(srcMoves.size() - 1);
-        if (srcMoves.size() == 0) {
+        if (srcMoves.isEmpty()) {
           moves.remove(src, group);
         }
       }
@@ -537,7 +537,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     ArrayList<TServerInstance> serversToRemove = new ArrayList<>();
 
     for (TserverGroupInfo destTgi : tservers.values()) {
-      if (surplusExtra.size() == 0) {
+      if (surplusExtra.isEmpty()) {
         break;
       }
 
@@ -564,7 +564,7 @@ public abstract class GroupBalancer extends TabletBalancer {
           }
         }
 
-        if (serversToRemove.size() > 0) {
+        if (!serversToRemove.isEmpty()) {
           surplusExtra.columnKeySet().removeAll(serversToRemove);
         }
 
@@ -593,7 +593,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
 
     balanceExtraMultiple(tservers, maxExtraGroups, moves, extraMultiple, false);
-    if (moves.size() < getMaxMigrations() && extraMultiple.size() > 0) {
+    if (moves.size() < getMaxMigrations() && !extraMultiple.isEmpty()) {
       // no place to move so must exceed maxExtra temporarily... subsequent balancer calls will
       // smooth things out
       balanceExtraMultiple(tservers, maxExtraGroups, moves, extraMultiple, true);
@@ -637,7 +637,7 @@ public abstract class GroupBalancer extends TabletBalancer {
           extraMultiple.remove(pair.getFirst(), pair.getSecond());
         }
 
-        if (extraMultiple.size() == 0 || moves.size() >= getMaxMigrations()) {
+        if (extraMultiple.isEmpty() || moves.size() >= getMaxMigrations()) {
           break;
         }
       }
@@ -661,7 +661,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     ArrayList<TServerInstance> emptyServers = new ArrayList<>();
     ArrayList<Pair<String,TServerInstance>> emptyServerGroups = new ArrayList<>();
     for (TserverGroupInfo destTgi : tservers.values()) {
-      if (extraSurplus.size() == 0) {
+      if (extraSurplus.isEmpty()) {
         break;
       }
 
@@ -696,7 +696,7 @@ public abstract class GroupBalancer extends TabletBalancer {
           }
         }
 
-        if (emptyServers.size() > 0) {
+        if (!emptyServers.isEmpty()) {
           extraSurplus.columnKeySet().removeAll(emptyServers);
         }
 

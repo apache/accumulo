@@ -131,7 +131,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
         bytesAdded += lookupResult.bytesAdded;
 
-        if (lookupResult.unfinishedRanges.size() > 0) {
+        if (!lookupResult.unfinishedRanges.isEmpty()) {
           if (lookupResult.closed) {
             failures.put(entry.getKey(), lookupResult.unfinishedRanges);
           } else {
@@ -165,7 +165,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       }
       // add results to queue
       addResult(new MultiScanResult(retResults, retFailures, retFullScans, retPartScan,
-          retPartNextKey, partNextKeyInclusive, session.queries.size() != 0));
+          retPartNextKey, partNextKeyInclusive, !session.queries.isEmpty()));
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
         log.warn("Iteration interrupted, when scan not cancelled", iie);

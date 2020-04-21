@@ -111,7 +111,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     Map<String,String> customProps =
         aconf.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
 
-    if (customProps != null && customProps.size() > 0) {
+    if (customProps != null && !customProps.isEmpty()) {
       for (Entry<String,String> customProp : customProps.entrySet()) {
         if (customProp.getKey().startsWith(HOST_BALANCER_PREFIX)) {
           if (customProp.getKey().equals(HOST_BALANCER_OOB_CHECK_KEY)
@@ -251,7 +251,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         pools.add(e.getKey());
       }
     }
-    if (pools.size() == 0) {
+    if (pools.isEmpty()) {
       pools.add(DEFAULT_POOL);
     }
     return pools;
@@ -362,7 +362,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       String tableName = tableIdToTableName.get(e.getKey());
       String poolName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = pools.get(poolName);
-      if (currentView == null || currentView.size() == 0) {
+      if (currentView == null || currentView.isEmpty()) {
         LOG.warn("No tablet servers online for table {}, assigning within default pool", tableName);
         currentView = pools.get(DEFAULT_POOL);
         if (currentView == null) {
@@ -464,13 +464,13 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
     }
 
-    if (migrationsOut.size() > 0) {
+    if (!migrationsOut.isEmpty()) {
       LOG.warn("Not balancing tables due to moving {} out of bounds tablets", migrationsOut.size());
       LOG.info("Migrating out of bounds tablets: {}", migrationsOut);
       return minBalanceTime;
     }
 
-    if (migrations != null && migrations.size() > 0) {
+    if (migrations != null && !migrations.isEmpty()) {
       if (migrations.size() >= myConf.maxOutstandingMigrations) {
         LOG.warn("Not balancing tables due to {} outstanding migrations", migrations.size());
         if (LOG.isTraceEnabled()) {
