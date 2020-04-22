@@ -52,7 +52,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -101,9 +100,6 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   public void setupEasyMockStuff() {
     SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
     final AccumuloConfiguration systemConf = new ConfigurationCopy(new HashMap<>());
-    ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
-    expect(factory.getSystemConfiguration()).andReturn(systemConf).anyTimes();
-    expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
     // Just make the SiteConfiguration delegate to our AccumuloConfiguration
     // Presently, we only need get(Property) and iterator().
@@ -118,7 +114,6 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
     EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConf.iterator()).anyTimes();
     ServerContext context = createMock(ServerContext.class);
-    expect(context.getServerConfFactory()).andReturn(factory).anyTimes();
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn("localhost").anyTimes();
     expect(context.getInstanceName()).andReturn("test").anyTimes();
@@ -126,7 +121,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     expect(context.getInstanceID()).andReturn("1111").anyTimes();
     expect(context.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
 
-    replay(factory, siteConfig, context);
+    replay(siteConfig, context);
 
     refs = new WrappedCloseWriteAheadLogReferences(context);
   }
