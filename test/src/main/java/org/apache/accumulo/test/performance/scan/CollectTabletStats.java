@@ -72,7 +72,6 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -116,7 +115,6 @@ public class CollectTabletStats {
 
     ServerContext context = opts.getServerContext();
     final VolumeManager fs = context.getVolumeManager();
-    ServerConfigurationFactory sconf = context.getServerConfFactory();
 
     TableId tableId = Tables.getTableId(context, opts.tableName);
     if (tableId == null) {
@@ -170,7 +168,7 @@ public class CollectTabletStats {
         Test test = new Test(ke) {
           @Override
           public int runTest() throws Exception {
-            return readFiles(fs, sconf.getSystemConfiguration(), files, ke, columns);
+            return readFiles(fs, context.getConfiguration(), files, ke, columns);
           }
 
         };
@@ -190,7 +188,7 @@ public class CollectTabletStats {
         Test test = new Test(ke) {
           @Override
           public int runTest() throws Exception {
-            return readFilesUsingIterStack(fs, sconf, files, opts.auths, ke, columns, false);
+            return readFilesUsingIterStack(fs, context, files, opts.auths, ke, columns, false);
           }
         };
 
@@ -208,7 +206,7 @@ public class CollectTabletStats {
         Test test = new Test(ke) {
           @Override
           public int runTest() throws Exception {
-            return readFilesUsingIterStack(fs, sconf, files, opts.auths, ke, columns, true);
+            return readFilesUsingIterStack(fs, context, files, opts.auths, ke, columns, true);
           }
         };
 
@@ -486,7 +484,7 @@ public class CollectTabletStats {
     return columnSet;
   }
 
-  private static int readFilesUsingIterStack(VolumeManager fs, ServerConfigurationFactory aconf,
+  private static int readFilesUsingIterStack(VolumeManager fs, ServerContext context,
       List<TabletFile> files, Authorizations auths, KeyExtent ke, String[] columns,
       boolean useTableIterators) throws Exception {
 
@@ -498,12 +496,12 @@ public class CollectTabletStats {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       readers.add(FileOperations.getInstance().newReaderBuilder()
           .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(aconf.getSystemConfiguration()).build());
+          .withTableConfiguration(context.getConfiguration()).build());
     }
 
     List<IterInfo> emptyIterinfo = Collections.emptyList();
     Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
-    TableConfiguration tconf = aconf.getTableConfiguration(ke.getTableId());
+    TableConfiguration tconf = context.getTableConfiguration(ke.getTableId());
     reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<>(), emptyIterinfo,
         emptySsio, useTableIterators, tconf);
 
