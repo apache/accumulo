@@ -275,10 +275,10 @@ public class MultiThreadedRFileTest {
 
       for (Throwable t : threadExceptions) {
         String msg = t.getClass() + " : " + t.getMessage();
-        if (!messages.containsKey(msg)) {
-          messages.put(msg, new MutableInt(1));
-        } else {
+        if (messages.containsKey(msg)) {
           messages.get(msg).increment();
+        } else {
+          messages.put(msg, new MutableInt(1));
         }
         StringWriter string = new StringWriter();
         PrintWriter writer = new PrintWriter(string);

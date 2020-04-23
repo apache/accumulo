@@ -187,13 +187,13 @@ public class CachableBlockFile {
           tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, cryptoService);
         }
 
-        if (!bcfr.compareAndSet(null, tmpReader)) {
+        if (bcfr.compareAndSet(null, tmpReader)) {
+          fin = fsIn;
+          return tmpReader;
+        } else {
           fsIn.close();
           tmpReader.close();
           return bcfr.get();
-        } else {
-          fin = fsIn;
-          return tmpReader;
         }
       }
 

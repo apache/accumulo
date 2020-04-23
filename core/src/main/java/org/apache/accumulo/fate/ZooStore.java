@@ -162,11 +162,12 @@ public class ZooStore<T> implements TStore<T> {
               else
                 continue;
             }
-            if (!reserved.contains(tid)) {
+            if (reserved.contains(tid))
+              continue;
+            else {
               reserved.add(tid);
               lastReserved = txdir;
-            } else
-              continue;
+            }
           }
 
           // have reserved id, status should not change
@@ -191,13 +192,14 @@ public class ZooStore<T> implements TStore<T> {
         synchronized (this) {
           // suppress lgtm alert - synchronized variable is not always true
           if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
-            if (!defered.isEmpty()) {
+            if (defered.isEmpty())
+              this.wait(5000);
+            else {
               Long minTime = Collections.min(defered.values());
               long waitTime = minTime - System.currentTimeMillis();
               if (waitTime > 0)
                 this.wait(Math.min(waitTime, 5000));
-            } else
-              this.wait(5000);
+            }
           }
         }
       }

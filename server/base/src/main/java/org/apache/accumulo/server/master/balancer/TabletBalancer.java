@@ -193,14 +193,14 @@ public abstract class TabletBalancer {
    * provided logging handler more often than TIME_BETWEEN_BALANCER_WARNINGS
    */
   protected void constraintNotMet(BalancerProblem cause) {
-    if (!stuck) {
-      stuck = true;
-      stuckNotificationTime = System.currentTimeMillis();
-    } else {
+    if (stuck) {
       if ((System.currentTimeMillis() - stuckNotificationTime) > TIME_BETWEEN_BALANCER_WARNINGS) {
         cause.run();
         stuckNotificationTime = System.currentTimeMillis();
       }
+    } else {
+      stuck = true;
+      stuckNotificationTime = System.currentTimeMillis();
     }
   }
 

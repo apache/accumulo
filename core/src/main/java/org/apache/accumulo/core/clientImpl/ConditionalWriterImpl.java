@@ -340,10 +340,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
     // result in bigger batches and less RPC overhead
 
     synchronized (serverQueue) {
-      if (!serverQueue.queue.isEmpty())
-        threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
-      else
+      if (serverQueue.queue.isEmpty())
         serverQueue.taskQueued = false;
+      else
+        threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
     }
 
   }
@@ -488,11 +488,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
         if (sid.reserved)
           throw new IllegalStateException();
 
-        if (!sid.isActive()) {
-          cachedSessionIDs.remove(location);
-        } else {
+        if (sid.isActive()) {
           sid.reserved = true;
           return sid;
+        } else {
+          cachedSessionIDs.remove(location);
         }
       }
     }

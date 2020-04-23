@@ -877,10 +877,10 @@ public class CombinerTest {
     assertEquals(expected, readAll(ai));
 
     long logSize = CombinerTestUtil.cacheSize();
-    if (!expectedLog) {
-      assertEquals("Expected 0 log messages, but got : " + logSize, 0, logSize);
-    } else {
+    if (expectedLog) {
       assertTrue("Expected >0 log messages, but got : " + logSize, logSize > 0);
+    } else {
+      assertEquals("Expected 0 log messages, but got : " + logSize, 0, logSize);
     }
   }
 

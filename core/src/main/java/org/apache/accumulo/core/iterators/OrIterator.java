@@ -135,7 +135,9 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
      */
     public void seek(Range originalRange) throws IOException {
       // the infinite start key is equivalent to a null startKey on the Range.
-      if (!originalRange.isInfiniteStartKey()) {
+      if (originalRange.isInfiniteStartKey()) {
+        currentRange = originalRange;
+      } else {
         Key originalStartKey = originalRange.getStartKey();
         // Pivot the provided range into the range for this term
         Key newKey = new Key(originalStartKey.getRow(), term, originalStartKey.getColumnQualifier(),
@@ -143,8 +145,6 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
         // Construct the new range, preserving the other attributes on the provided range.
         currentRange = new Range(newKey, originalRange.isStartKeyInclusive(),
             originalRange.getEndKey(), originalRange.isEndKeyInclusive());
-      } else {
-        currentRange = originalRange;
       }
       LOG.trace("Seeking {} to {}", this, currentRange);
       iter.seek(currentRange, seekColfams, true);

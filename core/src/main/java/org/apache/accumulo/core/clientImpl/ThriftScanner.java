@@ -363,15 +363,15 @@ public class ThriftScanner {
           scanState.scanID = null;
         } catch (TooManyFilesException e) {
           error = "Tablet has too many files " + loc + " retrying...";
-          if (!error.equals(lastError)) {
-            log.debug("{}", error);
-            tooManyFilesCount = 0;
-          } else {
+          if (error.equals(lastError)) {
             tooManyFilesCount++;
             if (tooManyFilesCount == 300)
               log.warn("{}", error);
             else if (log.isTraceEnabled())
               log.trace("{}", error);
+          } else {
+            log.debug("{}", error);
+            tooManyFilesCount = 0;
           }
           lastError = error;
 
@@ -491,7 +491,15 @@ public class ThriftScanner {
         }
       }
 
-      if (!sr.more) {
+      if (sr.more) {
+        if (timer != null) {
+          timer.stop();
+          log.trace("tid={} Finished scan in {} #results={} scanid={}",
+              Thread.currentThread().getId(),
+              String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)), sr.results.size(),
+              scanState.scanID);
+        }
+      } else {
         // log.debug("No more : tab end row = "+loc.tablet_extent.getEndRow()+" range =
         // "+scanState.range);
         if (loc.tablet_extent.getEndRow() == null) {
@@ -523,14 +531,6 @@ public class ThriftScanner {
                 Thread.currentThread().getId(),
                 String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)), sr.results.size());
           }
-        }
-      } else {
-        if (timer != null) {
-          timer.stop();
-          log.trace("tid={} Finished scan in {} #results={} scanid={}",
-              Thread.currentThread().getId(),
-              String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)), sr.results.size(),
-              scanState.scanID);
         }
       }
 

@@ -235,7 +235,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       binnedRanges.clear();
       List<Range> failures = tabletLocator.binRanges(context, ranges, binnedRanges);
 
-      if (!failures.isEmpty()) {
+      if (failures.isEmpty()) {
+        break;
+      } else {
         // tried to only do table state checks when failures.size() == ranges.size(), however this
         // did
         // not work because nothing ever invalidated entries in the tabletLocator cache... so even
@@ -260,8 +262,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
-      } else {
-        break;
       }
 
     }
@@ -382,10 +382,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         log.debug("AccumuloSecurityException thrown", e);
 
         Tables.clearCache(context);
-        if (!Tables.exists(context, tableId))
-          fatalException = new TableDeletedException(tableId.canonical());
-        else
+        if (Tables.exists(context, tableId))
           fatalException = e;
+        else
+          fatalException = new TableDeletedException(tableId.canonical());
       } catch (SampleNotPresentException e) {
         fatalException = e;
       } catch (Throwable t) {

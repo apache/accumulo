@@ -320,7 +320,9 @@ public class TracesResource {
       principal = conf.get(Property.TRACE_USER);
     }
 
-    if (!saslEnabled) {
+    if (saslEnabled) {
+      at = null;
+    } else {
       if (loginMap.isEmpty()) {
         Property p = Property.TRACE_PASSWORD;
         at = new PasswordToken(conf.get(p).getBytes(UTF_8));
@@ -336,8 +338,6 @@ public class TracesResource {
         token.init(props);
         at = token;
       }
-    } else {
-      at = null;
     }
 
     java.util.Properties props = monitor.getContext().getProperties();

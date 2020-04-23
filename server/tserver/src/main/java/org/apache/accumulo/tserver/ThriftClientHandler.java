@@ -1016,10 +1016,10 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
         try {
           tablet.checkConditions(checker, cs.auths, cs.interruptFlag);
 
-          if (!okMutations.isEmpty()) {
-            entry.setValue(okMutations);
-          } else {
+          if (okMutations.isEmpty()) {
             iter.remove();
+          } else {
+            entry.setValue(okMutations);
           }
         } catch (TabletClosedException | IterationInterruptedException | TooManyFilesException e) {
           // clear anything added while checking conditions.

@@ -203,7 +203,9 @@ class AssignmentHandler implements Runnable {
       server.releaseRecoveryMemory(extent);
     }
 
-    if (!successful) {
+    if (successful) {
+      server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOADED, extent));
+    } else {
       synchronized (server.unopenedTablets) {
         synchronized (server.openingTablets) {
           server.openingTablets.remove(extent);
@@ -231,8 +233,6 @@ class AssignmentHandler implements Runnable {
           }
         }
       }, reschedule);
-    } else {
-      server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOADED, extent));
     }
   }
 }

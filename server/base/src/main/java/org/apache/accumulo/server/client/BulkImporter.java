@@ -760,7 +760,7 @@ public class BulkImporter {
       sb.append(String.format("# map files with failures : %,10d %6.2f%s%n",
           completeFailures.size(), completeFailures.size() * 100.0 / numUniqueMapFiles, "%"));
       sb.append(String.format("# failed failed map files : %,10d %s%n", failedFailures.size(),
-          !failedFailures.isEmpty() ? " <-- THIS IS BAD" : ""));
+          failedFailures.isEmpty() ? "" : " <-- THIS IS BAD"));
       sb.append(String.format("# of tablets              : %,10d%n", counts.size()));
       sb.append(String.format("# tablets imported to     : %,10d %6.2f%s%n", tabletsImportedTo,
           tabletsImportedTo * 100.0 / counts.size(), "%"));

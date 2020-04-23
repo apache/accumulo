@@ -335,7 +335,9 @@ public class DefaultLoadBalancer extends TabletBalancer {
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
       Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     // do we have any servers?
-    if (!current.isEmpty()) {
+    if (current.isEmpty()) {
+      constraintNotMet(NO_SERVERS);
+    } else {
       // Don't migrate if we have migrations in progress
       if (migrations.isEmpty()) {
         resetBalancerErrors();
@@ -345,8 +347,6 @@ public class DefaultLoadBalancer extends TabletBalancer {
         outstandingMigrations.migrations = migrations;
         constraintNotMet(outstandingMigrations);
       }
-    } else {
-      constraintNotMet(NO_SERVERS);
     }
     return 5 * 1000;
   }

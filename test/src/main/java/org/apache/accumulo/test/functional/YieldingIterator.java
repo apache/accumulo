@@ -106,7 +106,11 @@ public class YieldingIterator extends WrappingIterator {
     log.info("start YieldingIterator.seek: " + getTopValue() + " with range " + range);
     boolean yielded = false;
 
-    if (!range.isStartKeyInclusive()) {
+    if (range.isStartKeyInclusive()) {
+      // must be a new scan so re-initialize the counters
+      log.info("reseting counters");
+      resetCounters();
+    } else {
       rebuilds.incrementAndGet();
 
       // yield on every other seek call.
@@ -120,10 +124,6 @@ public class YieldingIterator extends WrappingIterator {
             .yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
         log.info("end YieldingIterator.next: yielded at " + range.getStartKey());
       }
-    } else {
-      // must be a new scan so re-initialize the counters
-      log.info("reseting counters");
-      resetCounters();
     }
 
     // if not yielding, then simply pass on the call to the source

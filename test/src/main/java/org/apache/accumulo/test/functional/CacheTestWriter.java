@@ -103,11 +103,11 @@ public class CacheTestWriter {
 
           byte[] data = Long.toString(r.nextLong(), 16).getBytes(UTF_8);
 
-          if (!dataSExists) {
+          if (dataSExists) {
+            zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.OVERWRITE);
+          } else {
             zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.SKIP);
             dataSExists = true;
-          } else {
-            zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.OVERWRITE);
           }
 
           expectedData.put(rootDir + "/dataS", new String(data, UTF_8));

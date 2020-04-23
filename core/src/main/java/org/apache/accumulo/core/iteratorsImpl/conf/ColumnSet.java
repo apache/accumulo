@@ -145,9 +145,7 @@ public class ColumnSet {
 
     // very inefficient code
     for (int i = 0; i < sb.length; i++) {
-      if (sb[i] != '%') {
-        t.append(new byte[] {sb[i]}, 0, 1);
-      } else {
+      if (sb[i] == '%') {
         int x = ++i;
         int y = ++i;
         if (y < sb.length) {
@@ -159,6 +157,8 @@ public class ColumnSet {
           throw new IllegalArgumentException("Invalid characters in encoded string (" + s + ")."
               + " Expected two characters after '%'");
         }
+      } else {
+        t.append(new byte[] {sb[i]}, 0, 1);
       }
     }
 
