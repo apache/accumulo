@@ -20,6 +20,8 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,8 +34,15 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.IterConfigUtil;
+import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public abstract class TableOperationsHelper implements TableOperations {
 
@@ -231,5 +240,15 @@ public abstract class TableOperationsHelper implements TableOperations {
       }
     }
     return constraints;
+  }
+
+  @Override
+  public SortedKeyValueIterator<Key,Value> loadIterators(Iterable<Entry<String,String>> tableProps,
+      IteratorScope scope, SortedKeyValueIterator<Key,Value> source) throws IOException {
+    AccumuloConfiguration tableConf = new ConfigurationCopy(tableProps);
+    IterLoad iterLoad =
+        IterConfigUtil.loadIterConf(scope, new ArrayList<>(), new HashMap<>(), tableConf)
+            .useAccumuloClassLoader(false);
+    return IterConfigUtil.loadIterators(source, iterLoad);
   }
 }

@@ -39,9 +39,12 @@ import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.io.Text;
@@ -956,6 +959,23 @@ public interface TableOperations {
    */
   Map<String,EnumSet<IteratorScope>> listIterators(String tableName)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+
+  /**
+   * Create a stack of iterators from what is in the provided table properties and with the scope.
+   * The specified source will be the bottom of the stack and the top SortedKeyValueIterator on the
+   * stack will be returned.
+   *
+   * @param tableProps
+   *          the properties of the table where the iterators are configured
+   * @param scope
+   *          the scope of the iterators
+   * @param source
+   *          the iterator at the start of the stack
+   * @return the SortedKeyValueIterator at the top of the stack
+   * @since 2.1
+   */
+  SortedKeyValueIterator<Key,Value> loadIterators(Iterable<Entry<String,String>> tableProps,
+      IteratorScope scope, SortedKeyValueIterator<Key,Value> source) throws IOException;
 
   /**
    * Check whether a given iterator configuration conflicts with existing configuration; in

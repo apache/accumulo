@@ -96,7 +96,7 @@ public class IterConfigUtilTest {
     }
   }
 
-  static class AddingIter extends WrappedIter {
+  public static class AddingIter extends WrappedIter {
 
     int amount = 1;
 

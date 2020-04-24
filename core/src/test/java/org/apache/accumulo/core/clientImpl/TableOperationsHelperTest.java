@@ -23,6 +23,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -45,13 +46,20 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.conf.IterConfigUtilTest;
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iterators.system.MultiIteratorTest;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class TableOperationsHelperTest {
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   static class Tester extends TableOperationsHelper {
     Map<String,Map<String,String>> settings = new HashMap<>();
@@ -345,5 +353,42 @@ public class TableOperationsHelperTest {
     } catch (AccumuloException e) {}
     t.removeProperty("table", "table.iterator.minc.thirdName.opt.key");
     t.attachIterator("table", setting);
+  }
+
+  @Test
+  public void testLoadIterators() throws Exception {
+    TableOperationsHelper t = getHelper();
+    TreeMap<Key,Value> tm = new TreeMap<>();
+    MultiIteratorTest.newKeyValue(tm, 1, 0, false, "1");
+    MultiIteratorTest.newKeyValue(tm, 2, 0, false, "2");
+    SortedMapIterator source = new SortedMapIterator(tm);
+
+    // configure an iter to be loaded
+    IteratorSetting setting =
+        new IteratorSetting(10, "someName", IterConfigUtilTest.AddingIter.class);
+    t.attachIterator("table", setting, EnumSet.of(IteratorScope.scan));
+    // attach a majc iter that should not get loaded
+    setting = new IteratorSetting(1, "foobar", "foo.bar");
+    t.attachIterator("table", setting, EnumSet.of(IteratorScope.majc));
+    check(t, "table", new String[] {"table.iterator.majc.foobar=1,foo.bar",
+        "table.iterator.scan.someName=10," + IterConfigUtilTest.AddingIter.class.getName()});
+
+    var stack = t.loadIterators(t.getProperties("table"), IteratorScope.scan, source);
+    assertEquals(IterConfigUtilTest.AddingIter.class, stack.getClass());
+
+    stack.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    assertTrue(stack.hasTop());
+    assertEquals(stack.getTopKey(), MultiIteratorTest.newKey(1, 0));
+    assertEquals("2", stack.getTopValue().toString());
+
+    stack.next();
+
+    assertTrue(stack.hasTop());
+    assertEquals(stack.getTopKey(), MultiIteratorTest.newKey(2, 0));
+    assertEquals("3", stack.getTopValue().toString());
+
+    stack.next();
+    assertFalse(stack.hasTop());
   }
 }
