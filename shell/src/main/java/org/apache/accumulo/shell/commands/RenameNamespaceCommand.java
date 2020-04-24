@@ -46,7 +46,7 @@ public class RenameNamespaceCommand extends Command {
     String newer = cl.getArgs()[1];
     boolean resetContext = false;
     TableId currentTableId = null;
-    if (!(shellState.getTableName() == null) && !shellState.getTableName().isEmpty()) {
+    if (shellState.getTableName() != null && !shellState.getTableName().isEmpty()) {
       NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(), old);
       List<TableId> tableIds = Namespaces.getTableIds(shellState.getContext(), namespaceId);
       currentTableId = Tables.getTableId(shellState.getContext(), shellState.getTableName());

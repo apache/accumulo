@@ -370,10 +370,10 @@ public class Compactor implements Callable<CompactionStats> {
 
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);
 
-      if (!inclusive) {
-        mfw.startDefaultLocalityGroup();
-      } else {
+      if (inclusive) {
         mfw.startNewLocalityGroup(lgName, columnFamilies);
+      } else {
+        mfw.startDefaultLocalityGroup();
       }
 
       try (TraceScope write = Trace.startSpan("write")) {

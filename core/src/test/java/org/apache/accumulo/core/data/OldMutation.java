@@ -454,9 +454,7 @@ public class OldMutation implements Writable {
     entries = in.readInt();
 
     boolean valuesPresent = in.readBoolean();
-    if (!valuesPresent) {
-      values = null;
-    } else {
+    if (valuesPresent) {
       values = new ArrayList<>();
       int numValues = in.readInt();
       for (int i = 0; i < numValues; i++) {
@@ -465,6 +463,8 @@ public class OldMutation implements Writable {
         in.readFully(val);
         values.add(val);
       }
+    } else {
+      values = null;
     }
   }
 

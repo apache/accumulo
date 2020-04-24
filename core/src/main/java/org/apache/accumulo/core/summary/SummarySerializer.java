@@ -398,7 +398,9 @@ class SummarySerializer {
   static SummarySerializer load(SummarizerConfiguration sconf, DataInputStream in)
       throws IOException {
     boolean exceededMaxSize = in.readBoolean();
-    if (!exceededMaxSize) {
+    if (exceededMaxSize) {
+      return new SummarySerializer(sconf);
+    } else {
       WritableUtils.readVInt(in);
       // load symbol table
       int numSymbols = WritableUtils.readVInt(in);
@@ -414,8 +416,6 @@ class SummarySerializer {
       }
 
       return new SummarySerializer(sconf, allSummaries);
-    } else {
-      return new SummarySerializer(sconf);
     }
   }
 

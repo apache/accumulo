@@ -365,13 +365,7 @@ public class TraceServer implements Watcher, AutoCloseable {
       Class<? extends AuthenticationToken> traceTokenType = AccumuloVFSClassLoader.getClassLoader()
           .loadClass(acuConf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class);
 
-      if (!(KerberosToken.class.isAssignableFrom(traceTokenType))) {
-        // We're not using Kerberos to talk to Accumulo, but we might still need it for talking to
-        // HDFS/ZK for
-        // instance information.
-        log.info("Handling login under the assumption that Accumulo users are not using Kerberos.");
-        SecurityUtil.serverLogin(acuConf);
-      } else {
+      if (KerberosToken.class.isAssignableFrom(traceTokenType)) {
         // We're using Kerberos to talk to Accumulo, so check for trace user specific auth details.
         // We presume this same user will have the needed access for the service to interact with
         // HDFS/ZK for
@@ -394,6 +388,12 @@ public class TraceServer implements Watcher, AutoCloseable {
 
         log.info("Attempting to login as {} with {}", principalConfig, keyTab);
         SecurityUtil.serverLogin(acuConf, keyTab, principalConfig);
+      } else {
+        // We're not using Kerberos to talk to Accumulo, but we might still need it for talking to
+        // HDFS/ZK for
+        // instance information.
+        log.info("Handling login under the assumption that Accumulo users are not using Kerberos.");
+        SecurityUtil.serverLogin(acuConf);
       }
     } catch (IOException | ClassNotFoundException exception) {
       final String msg =

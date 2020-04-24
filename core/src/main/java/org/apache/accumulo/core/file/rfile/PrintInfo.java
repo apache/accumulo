@@ -323,11 +323,11 @@ public class PrintInfo implements KeywordExecutable {
       long cryptoParamOffset = fsDis.readLong();
       fsDis.seek(cryptoParamOffset);
       byte[] cryptoParams = CryptoUtils.readParams(fsDis);
-      if (!Arrays.equals(noCryptoBytes, cryptoParams)) {
+      if (Arrays.equals(noCryptoBytes, cryptoParams)) {
+        System.out.println("No on disk encryption detected.");
+      } else {
         System.out.println("Encrypted with Params: "
             + Key.toPrintableString(cryptoParams, 0, cryptoParams.length, cryptoParams.length));
-      } else {
-        System.out.println("No on disk encryption detected.");
       }
     } catch (IOException ioe) {
       log.error("Error reading crypto params", ioe);

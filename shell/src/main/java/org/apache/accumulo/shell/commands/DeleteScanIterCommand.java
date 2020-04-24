@@ -60,14 +60,14 @@ public class DeleteScanIterCommand extends Command {
             break;
           }
         }
-        if (!found) {
-          Shell.log.info("No iterator named {} found for table {}", name, tableName);
-        } else {
+        if (found) {
           Shell.log.info("Removed scan iterator {} from table {} ({} left)", name, tableName,
               shellState.scanIteratorOptions.get(tableName).size());
           if (shellState.scanIteratorOptions.get(tableName).isEmpty()) {
             shellState.scanIteratorOptions.remove(tableName);
           }
+        } else {
+          Shell.log.info("No iterator named {} found for table {}", name, tableName);
         }
       } else {
         Shell.log.info("No iterator named {} found for table {}", name, tableName);

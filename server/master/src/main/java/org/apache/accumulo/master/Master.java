@@ -884,13 +884,13 @@ public class Master extends AbstractServer
         migrations.put(m.tablet, m.newServer);
         log.debug("migration {}", m);
       }
-      if (!migrationsOut.isEmpty()) {
-        nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(),
-            migrations.size());
-      } else {
+      if (migrationsOut.isEmpty()) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
         }
+      } else {
+        nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(),
+            migrations.size());
       }
       return wait;
     }

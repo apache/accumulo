@@ -47,11 +47,12 @@ public class ShardedTableDistributionFormatter extends AggregatingFormatter {
       // Parse the day out of the row
       int semicolon = row.indexOf(";");
       String day = null;
-      if (semicolon != -1) {
+      if (semicolon == -1)
+        day = "NULL    ";
+      else {
         semicolon++;
         day = row.substring(semicolon, semicolon + 8);
-      } else
-        day = "NULL    ";
+      }
       String server = entry.getValue().toString();
       countsByDay.computeIfAbsent(day, k -> new HashSet<>());
       countsByDay.get(day).add(server);

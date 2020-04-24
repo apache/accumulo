@@ -1001,9 +1001,7 @@ public class RFile {
 
         reset();
 
-        if (!iiter.hasNext()) {
-          // past the last key
-        } else {
+        if (iiter.hasNext()) {
 
           // if the index contains the same key multiple times, then go to the
           // earliest index entry containing the key
@@ -1061,6 +1059,8 @@ public class RFile {
           // set rk when everything above is successful, if exception
           // occurs rk will not be set
           rk = skippr.rk;
+        } else {
+          // past the last key
         }
       }
 

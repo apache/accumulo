@@ -640,11 +640,11 @@ public class TabletServerResourceManager {
                   synchronized (tabletReports) {
                     TabletStateImpl latestReport = tabletReports.remove(keyExtent);
                     if (latestReport != null) {
-                      if (latestReport.getTablet() != tablet) {
+                      if (latestReport.getTablet() == tablet) {
+                        log.debug("Cleaned up report for closed tablet {}", keyExtent);
+                      } else {
                         // different tablet instance => put it back
                         tabletReports.put(keyExtent, latestReport);
-                      } else {
-                        log.debug("Cleaned up report for closed tablet {}", keyExtent);
                       }
                     }
                   }

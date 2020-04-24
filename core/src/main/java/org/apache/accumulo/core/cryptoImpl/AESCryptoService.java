@@ -353,10 +353,11 @@ public class AESCryptoService implements CryptoService {
       void incrementIV(byte[] iv, int i) {
         iv[i]++;
         if (iv[i] == 0) {
-          if (i != 0) {
-            incrementIV(iv, i - 1);
-          } else
+          if (i == 0)
             return;
+          else {
+            incrementIV(iv, i - 1);
+          }
         }
 
       }

@@ -63,10 +63,7 @@ public class EmbeddedWebServer {
   private static AbstractConnectionFactory[] getConnectionFactories(AccumuloConfiguration conf,
       boolean secure) {
     HttpConnectionFactory httpFactory = new HttpConnectionFactory();
-    if (!secure) {
-      LOG.debug("Not configuring Jetty to use TLS");
-      return new AbstractConnectionFactory[] {httpFactory};
-    } else {
+    if (secure) {
       LOG.debug("Configuring Jetty to use TLS");
       final SslContextFactory sslContextFactory = new SslContextFactory.Server();
       // If the key password is the same as the keystore password, we don't
@@ -101,6 +98,9 @@ public class EmbeddedWebServer {
       SslConnectionFactory sslFactory =
           new SslConnectionFactory(sslContextFactory, httpFactory.getProtocol());
       return new AbstractConnectionFactory[] {sslFactory, httpFactory};
+    } else {
+      LOG.debug("Not configuring Jetty to use TLS");
+      return new AbstractConnectionFactory[] {httpFactory};
     }
   }
 

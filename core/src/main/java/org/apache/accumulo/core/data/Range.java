@@ -684,18 +684,18 @@ public class Range implements WritableComparable<Range> {
   public void readFields(DataInput in) throws IOException {
     infiniteStartKey = in.readBoolean();
     infiniteStopKey = in.readBoolean();
-    if (!infiniteStartKey) {
+    if (infiniteStartKey) {
+      start = null;
+    } else {
       start = new Key();
       start.readFields(in);
-    } else {
-      start = null;
     }
 
-    if (!infiniteStopKey) {
+    if (infiniteStopKey) {
+      stop = null;
+    } else {
       stop = new Key();
       stop.readFields(in);
-    } else {
-      stop = null;
     }
 
     startKeyInclusive = in.readBoolean();

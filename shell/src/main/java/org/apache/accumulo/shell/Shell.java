@@ -711,7 +711,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     fields = fields.length > 1 ? Arrays.copyOfRange(fields, 1, fields.length) : new String[] {};
 
     Command sc = null;
-    if (!command.isEmpty()) {
+    if (command.isEmpty()) {
+      ++exitCode;
+      printException(new BadArgumentException("Unrecognized empty command", command, -1));
+    } else {
       try {
         // Obtain the command from the command table
         sc = commandFactory.get(command);
@@ -801,9 +804,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         ++exitCode;
         printException(e);
       }
-    } else {
-      ++exitCode;
-      printException(new BadArgumentException("Unrecognized empty command", command, -1));
     }
     reader.flush();
   }

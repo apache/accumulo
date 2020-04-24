@@ -180,12 +180,12 @@ public abstract class SeekingFilter extends WrappingIterator {
             f.advance == AdvanceResult.USE_HINT ? getNextKeyHint(src.getTopKey(), src.getTopValue())
                 : " (none)");
       }
-      if (f.accept != negate) {
+      if (f.accept == negate) {
+        advanceSource(src, f.advance);
+      } else {
         // advance will be processed when next is called
         advance = f.advance;
         break;
-      } else {
-        advanceSource(src, f.advance);
       }
     }
   }
