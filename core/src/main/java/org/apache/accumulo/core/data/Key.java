@@ -1159,7 +1159,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   private static boolean isEqual(byte[] a1, byte[] a2) {
-    if (a1 == a2)
+    if (Arrays.equals(a1, a2))
       return true;
 
     int last = a1.length;

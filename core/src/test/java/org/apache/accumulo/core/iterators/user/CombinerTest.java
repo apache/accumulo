@@ -679,9 +679,7 @@ public class CombinerTest {
 
   public static List<Long> nal(Long... longs) {
     List<Long> al = new ArrayList<>(longs.length);
-    for (Long l : longs) {
-      al.add(l);
-    }
+    Collections.addAll(al, longs);
     return al;
   }
 

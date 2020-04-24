@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -64,9 +65,7 @@ public abstract class TableOperation extends Command {
         tableSet.add(Tables.getTableName(shellState.getContext(), tableId));
       }
     } else if (useCommandLine && cl.getArgs().length > 0) {
-      for (String tableName : cl.getArgs()) {
-        tableSet.add(tableName);
-      }
+      Collections.addAll(tableSet, cl.getArgs());
     } else {
       shellState.checkTableState();
       tableSet.add(shellState.getTableName());

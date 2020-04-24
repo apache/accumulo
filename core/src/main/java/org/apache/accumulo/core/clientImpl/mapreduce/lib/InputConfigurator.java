@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -360,9 +361,7 @@ public class InputConfigurator extends ConfiguratorBase {
     List<String> serialized = new ArrayList<>();
     if (confValue != null) {
       // Split and include any trailing empty strings to allow empty column families
-      for (String val : confValue.split(",", -1)) {
-        serialized.add(val);
-      }
+      Collections.addAll(serialized, confValue.split(",", -1));
     }
     return deserializeFetchedColumns(serialized);
   }

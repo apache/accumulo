@@ -343,9 +343,7 @@ public class InputConfigurator extends ConfiguratorBase {
     List<String> serialized = new ArrayList<>();
     if (confValue != null) {
       // Split and include any trailing empty strings to allow empty column families
-      for (String val : confValue.split(",", -1)) {
-        serialized.add(val);
-      }
+      Collections.addAll(serialized, confValue.split(",", -1));
     }
     return deserializeFetchedColumns(serialized);
   }
