@@ -389,8 +389,7 @@ public class ZKPermHandler implements PermissionHandler {
     // create the root user with all system privileges, no table privileges, and no record-level
     // authorizations
     Set<SystemPermission> rootPerms = new TreeSet<>();
-    for (SystemPermission p : SystemPermission.values())
-      rootPerms.add(p);
+    Collections.addAll(rootPerms, SystemPermission.values());
     Map<TableId,Set<TablePermission>> tablePerms = new HashMap<>();
     // Allow the root user to flush the system tables
     tablePerms.put(RootTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));

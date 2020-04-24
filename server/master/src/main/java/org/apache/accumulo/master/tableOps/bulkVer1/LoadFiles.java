@@ -107,9 +107,7 @@ class LoadFiles extends MasterRepo {
     final AccumuloConfiguration conf = master.getConfiguration();
     VolumeManager fs = master.getVolumeManager();
     List<FileStatus> files = new ArrayList<>();
-    for (FileStatus entry : fs.listStatus(new Path(bulk))) {
-      files.add(entry);
-    }
+    Collections.addAll(files, fs.listStatus(new Path(bulk)));
     log.debug(FateTxId.formatTid(tid) + " importing " + files.size() + " files");
 
     Path writable = new Path(this.errorDir, ".iswritable");

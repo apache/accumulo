@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -54,9 +55,7 @@ public class CloneTableCommand extends Command {
 
     if (cl.hasOption(excludePropsOption.getOpt())) {
       String[] keys = cl.getOptionValue(excludePropsOption.getOpt()).split(",");
-      for (String key : keys) {
-        exclude.add(key);
-      }
+      Collections.addAll(exclude, keys);
     }
 
     if (cl.hasOption(noFlushOption.getOpt())) {

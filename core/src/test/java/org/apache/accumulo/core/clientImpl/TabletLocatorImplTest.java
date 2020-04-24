@@ -199,9 +199,7 @@ public class TabletLocatorImplTest {
   static Set<KeyExtent> nkes(KeyExtent... extents) {
     HashSet<KeyExtent> kes = new HashSet<>();
 
-    for (KeyExtent keyExtent : extents) {
-      kes.add(keyExtent);
-    }
+    Collections.addAll(kes, extents);
 
     return kes;
   }
