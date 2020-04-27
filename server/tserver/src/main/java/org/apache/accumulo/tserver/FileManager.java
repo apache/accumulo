@@ -82,13 +82,7 @@ public class FileManager {
 
     @Override
     public int compareTo(OpenReader o) {
-      if (releaseTime < o.releaseTime) {
-        return -1;
-      } else if (releaseTime > o.releaseTime) {
-        return 1;
-      } else {
-        return 0;
-      }
+      return Long.compare(releaseTime, o.releaseTime);
     }
 
     @Override
