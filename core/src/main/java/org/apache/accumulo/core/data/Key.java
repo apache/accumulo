@@ -998,12 +998,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
       return result;
 
     // check for matching timestamp
-    if (timestamp < other.timestamp)
-      result = 1;
-    else if (timestamp > other.timestamp)
-      result = -1;
-    else
-      result = 0;
+    result = Long.compare(other.timestamp, timestamp);
 
     if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME))
       return result;
