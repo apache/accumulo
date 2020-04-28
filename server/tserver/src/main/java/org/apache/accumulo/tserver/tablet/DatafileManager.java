@@ -329,16 +329,26 @@ class DatafileManager {
     StoredTabletFile newFile;
     // rename before putting in metadata table, so files in metadata table should
     // always exist
+    boolean attemptedRename = false;
     do {
       try {
         if (dfv.getNumEntries() == 0) {
+
           tablet.getTabletServer().getFileSystem().deleteRecursively(tmpDatafile.getPath());
         } else {
-          if (tablet.getTabletServer().getFileSystem().exists(newDatafile.getPath())) {
+          if (!attemptedRename
+              && tablet.getTabletServer().getFileSystem().exists(newDatafile.getPath())) {
             log.warn("Target map file already exist {}", newDatafile);
-            tablet.getTabletServer().getFileSystem().deleteRecursively(newDatafile.getPath());
+            throw new RuntimeException("File unexpectedly exists " + newDatafile.getPath());
           }
-
+          // the following checks for spurious rename failures that succeeded but gave an IoE
+          if (attemptedRename
+              && tablet.getTabletServer().getFileSystem().exists(newDatafile.getPath())
+              && !tablet.getTabletServer().getFileSystem().exists(tmpDatafile.getPath())) {
+            // seems like previous rename succeeded, so break
+            break;
+          }
+          attemptedRename = true;
           rename(tablet.getTabletServer().getFileSystem(), tmpDatafile.getPath(),
               newDatafile.getPath());
         }
