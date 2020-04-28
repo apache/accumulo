@@ -64,7 +64,7 @@ public class IdleRatioScanPrioritizerTest {
           }
         });
 
-    Collections.sort(scans, comparator);
+    scans.sort(comparator);
 
     assertEquals("b", scans.get(0).testId);
     assertEquals("a", scans.get(1).testId);

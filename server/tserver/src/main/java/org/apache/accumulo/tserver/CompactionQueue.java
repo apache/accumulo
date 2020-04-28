@@ -119,7 +119,7 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
 
   @Override
   public synchronized int drainTo(Collection<? super TraceRunnable> c, int maxElements) {
-    Collections.sort(task, ELEMENT_COMPARATOR);
+    task.sort(ELEMENT_COMPARATOR);
 
     int num = Math.min(task.size(), maxElements);
 
@@ -134,7 +134,7 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
 
   @Override
   public synchronized Iterator<TraceRunnable> iterator() {
-    Collections.sort(task, ELEMENT_COMPARATOR);
+    task.sort(ELEMENT_COMPARATOR);
 
     return task.iterator();
   }

@@ -123,7 +123,7 @@ public class IterConfigUtil {
       }
     }
 
-    Collections.sort(iterators, ITER_INFO_COMPARATOR);
+    iterators.sort(ITER_INFO_COMPARATOR);
     return iterators;
   }
 
@@ -133,7 +133,7 @@ public class IterConfigUtil {
       Map<String,Map<String,String>> ssio) {
     destList.addAll(tableIters);
     destList.addAll(ssi);
-    Collections.sort(destList, ITER_INFO_COMPARATOR);
+    destList.sort(ITER_INFO_COMPARATOR);
 
     Set<Entry<String,Map<String,String>>> es = tableOpts.entrySet();
     for (Entry<String,Map<String,String>> entry : es) {

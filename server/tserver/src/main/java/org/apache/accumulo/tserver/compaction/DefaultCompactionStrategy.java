@@ -19,7 +19,6 @@
 package org.apache.accumulo.tserver.compaction;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +56,7 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
         files.add(new CompactionFile(entry.getKey(), entry.getValue().getSize()));
       }
 
-      Collections.sort(files, Comparator.comparingLong(CompactionFile::getSize)
+      files.sort(Comparator.comparingLong(CompactionFile::getSize)
           .thenComparing(CompactionFile::getFile).reversed());
 
       for (CompactionFile file : files) {

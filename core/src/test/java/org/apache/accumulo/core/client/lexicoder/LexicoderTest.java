@@ -45,7 +45,7 @@ public abstract class LexicoderTest {
     }
 
     if (comp != null)
-      Collections.sort(list, comp);
+      list.sort(comp);
     else
       Collections.sort(list);
 

@@ -494,7 +494,7 @@ public class ZooStore<T> implements TStore<T> {
       }
 
       ops = new ArrayList<>(ops);
-      Collections.sort(ops, Collections.reverseOrder());
+      ops.sort(Collections.reverseOrder());
 
       ArrayList<ReadOnlyRepo<T>> dops = new ArrayList<>();
 
