@@ -780,7 +780,7 @@ public class InputConfigurator extends ConfiguratorBase {
       InputTableConfig queryConfig = new InputTableConfig();
       List<IteratorSetting> itrs = getIterators(implementingClass, conf);
       if (itrs != null)
-        itrs.forEach(itr -> queryConfig.addIterator(itr));
+        itrs.forEach(queryConfig::addIterator);
       Set<IteratorSetting.Column> columns = getFetchedColumns(implementingClass, conf);
       if (columns != null)
         queryConfig.fetchColumns(columns);

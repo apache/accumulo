@@ -119,7 +119,7 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
         SummarizerConfiguration.fromTableProperties(request.getTableProperties());
 
     // check if delete summarizer is configured for table
-    if (configuredSummarizers.stream().map(sc -> sc.getClassName())
+    if (configuredSummarizers.stream().map(SummarizerConfiguration::getClassName)
         .anyMatch(cn -> cn.equals(DeletesSummarizer.class.getName()))) {
       // This is called before gatherInformation, so need to always queue for compaction until
       // context

@@ -209,11 +209,11 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     expectClosed(() -> c.createScanner(tableName, Authorizations.EMPTY));
     expectClosed(() -> c.createConditionalWriter(tableName, new ConditionalWriterConfig()));
     expectClosed(() -> c.createBatchWriter(tableName));
-    expectClosed(() -> c.tableOperations());
-    expectClosed(() -> c.instanceOperations());
-    expectClosed(() -> c.securityOperations());
-    expectClosed(() -> c.namespaceOperations());
-    expectClosed(() -> c.properties());
+    expectClosed(c::tableOperations);
+    expectClosed(c::instanceOperations);
+    expectClosed(c::securityOperations);
+    expectClosed(c::namespaceOperations);
+    expectClosed(c::properties);
     expectClosed(() -> c.instanceOperations().getInstanceID());
 
     // check a few table ops to ensure they fail

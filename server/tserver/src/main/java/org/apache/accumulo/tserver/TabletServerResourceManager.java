@@ -233,7 +233,7 @@ public class TabletServerResourceManager {
 
     scanExecQueues.put(sec.name, queue);
 
-    return createEs(() -> sec.getCurrentMaxThreads(), "scan-" + sec.name, queue, sec.priority);
+    return createEs(sec::getCurrentMaxThreads, "scan-" + sec.name, queue, sec.priority);
   }
 
   private ExecutorService createEs(IntSupplier maxThreadsSupplier, String name,
@@ -550,13 +550,13 @@ public class TabletServerResourceManager {
       memUsageReports = new LinkedBlockingQueue<>();
       maxMem = context.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
 
-      Runnable r1 = () -> processTabletMemStats();
+      Runnable r1 = this::processTabletMemStats;
 
       memoryGuardThread = new Daemon(new LoggingRunnable(log, r1));
       memoryGuardThread.setPriority(Thread.NORM_PRIORITY + 1);
       memoryGuardThread.setName("Accumulo Memory Guard");
 
-      Runnable r2 = () -> manageMemory();
+      Runnable r2 = this::manageMemory;
 
       minorCompactionInitiatorThread = new Daemon(new LoggingRunnable(log, r2));
       minorCompactionInitiatorThread.setName("Accumulo Minor Compaction Initiator");

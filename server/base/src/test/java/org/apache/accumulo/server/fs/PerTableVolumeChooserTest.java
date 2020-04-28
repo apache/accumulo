@@ -121,7 +121,7 @@ public class PerTableVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, () -> getTableDelegate());
+    assertThrows(VolumeChooserException.class, this::getTableDelegate);
   }
 
   @Test
@@ -133,7 +133,7 @@ public class PerTableVolumeChooserTest {
         VolumeChooser.class)).andThrow(new RuntimeException());
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, () -> getTableDelegate());
+    assertThrows(VolumeChooserException.class, this::getTableDelegate);
   }
 
   @Test

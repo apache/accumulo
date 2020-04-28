@@ -113,7 +113,7 @@ public class PreferredVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, () -> chooseForTable());
+    assertThrows(VolumeChooserException.class, this::chooseForTable);
   }
 
   @Test
@@ -121,7 +121,7 @@ public class PreferredVolumeChooserTest {
     expect(tableConf.getTableCustom(TABLE_CUSTOM_SUFFIX)).andReturn(",").once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, () -> chooseForTable());
+    assertThrows(VolumeChooserException.class, this::chooseForTable);
   }
 
   @Test
@@ -131,7 +131,7 @@ public class PreferredVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, () -> chooseForTable());
+    assertThrows(VolumeChooserException.class, this::chooseForTable);
   }
 
   @Test

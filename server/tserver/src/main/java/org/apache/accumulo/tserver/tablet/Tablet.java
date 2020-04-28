@@ -354,7 +354,7 @@ public class Tablet {
     final List<LogEntry> logEntries = tabletPaths.logEntries;
     final SortedMap<StoredTabletFile,DataFileValue> datafiles = tabletPaths.datafiles;
 
-    constraintChecker = tableConfiguration.newDeriver(conf -> new ConstraintChecker(conf));
+    constraintChecker = tableConfiguration.newDeriver(ConstraintChecker::new);
 
     if (extent.isMeta()) {
       defaultSecurityLabel = () -> EMPTY_BYTES;

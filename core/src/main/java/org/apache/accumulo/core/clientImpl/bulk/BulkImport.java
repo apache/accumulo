@@ -408,7 +408,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     // leverages read ahead.
     fileDestinations.values().stream().flatMap(List::stream)
         .filter(dest -> dest.getRangeType() == RangeType.FILE)
-        .flatMap(dest -> Stream.of(dest.getStartRow(), dest.getEndRow())).filter(row -> row != null)
+        .flatMap(dest -> Stream.of(dest.getStartRow(), dest.getEndRow())).filter(Objects::nonNull)
         .map(Text::new).sorted().distinct().forEach(row -> {
           try {
             extentCache.lookup(row);

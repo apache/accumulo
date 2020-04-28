@@ -341,8 +341,7 @@ public class TabletServer extends AbstractServer {
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
-    SimpleTimer.getInstance(aconf).schedule(() -> TabletLocator.clearLocators(), jitter(),
-        jitter());
+    SimpleTimer.getInstance(aconf).schedule(TabletLocator::clearLocators, jitter(), jitter());
     walMarker = new WalStateManager(context);
 
     // Create the secret manager

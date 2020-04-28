@@ -112,7 +112,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
       return systemConf.getBoolean((Property) args[0]);
     }).anyTimes();
 
-    EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConf.iterator()).anyTimes();
+    EasyMock.expect(siteConfig.iterator()).andAnswer(systemConf::iterator).anyTimes();
     ServerContext context = createMock(ServerContext.class);
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn("localhost").anyTimes();

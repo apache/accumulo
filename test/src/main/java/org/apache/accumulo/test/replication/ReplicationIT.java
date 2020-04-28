@@ -279,13 +279,13 @@ public class ReplicationIT extends ConfigurableMacBase {
           // look for locality group column family definitions
           if (key.equals(
               Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.STATUS_LG_NAME)
-              && val.equals(j.join(Iterables.transform(ReplicationTable.STATUS_LG_COLFAMS,
-                  text -> text.toString())))) {
+              && val.equals(j
+                  .join(Iterables.transform(ReplicationTable.STATUS_LG_COLFAMS, Text::toString)))) {
             foundLocalityGroupDef1 = true;
           } else if (key
               .equals(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.WORK_LG_NAME)
-              && val.equals(j.join(Iterables.transform(ReplicationTable.WORK_LG_COLFAMS,
-                  text -> text.toString())))) {
+              && val.equals(
+                  j.join(Iterables.transform(ReplicationTable.WORK_LG_COLFAMS, Text::toString)))) {
             foundLocalityGroupDef2 = true;
           }
         }
