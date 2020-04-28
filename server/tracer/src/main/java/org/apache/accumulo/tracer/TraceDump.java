@@ -23,7 +23,6 @@ import static java.lang.Math.min;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map.Entry;
@@ -72,7 +71,7 @@ public class TraceDump {
 
   public static List<RemoteSpan> sortByStart(Collection<RemoteSpan> spans) {
     List<RemoteSpan> spanList = new ArrayList<>(spans);
-    Collections.sort(spanList, (o1, o2) -> (int) (o1.start - o2.start));
+    spanList.sort((o1, o2) -> (int) (o1.start - o2.start));
     return spanList;
   }
 

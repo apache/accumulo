@@ -1159,7 +1159,7 @@ public class TabletServer extends AbstractServer {
       Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
     List<Path> recoveryLogs = new ArrayList<>();
     List<LogEntry> sorted = new ArrayList<>(logEntries);
-    Collections.sort(sorted, (e1, e2) -> (int) (e1.timestamp - e2.timestamp));
+    sorted.sort((e1, e2) -> (int) (e1.timestamp - e2.timestamp));
     for (LogEntry entry : sorted) {
       Path recovery = null;
       Path finished = RecoveryPath.getRecoveryPath(new Path(entry.filename));

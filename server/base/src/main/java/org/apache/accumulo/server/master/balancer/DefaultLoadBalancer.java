@@ -152,7 +152,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
       }
 
       // order from low to high
-      Collections.sort(totals, Collections.reverseOrder());
+      totals.sort(Collections.reverseOrder());
       int even = total / totals.size();
       int numServersOverEven = total % totals.size();
 
