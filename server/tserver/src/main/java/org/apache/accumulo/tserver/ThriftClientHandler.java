@@ -1764,7 +1764,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     BlockCache summaryCache = server.resourceManager.getSummaryCache();
     BlockCache indexCache = server.resourceManager.getIndexCache();
     Cache<String,Long> fileLenCache = server.resourceManager.getFileLenCache();
-    FileSystemResolver volMgr = p -> fs.getFileSystemByPath(p);
+    FileSystemResolver volMgr = fs::getFileSystemByPath;
     Future<SummaryCollection> future =
         new Gatherer(server.getContext(), request, tableCfg, server.getContext().getCryptoService())
             .processFiles(volMgr, files, summaryCache, indexCache, fileLenCache, srp);

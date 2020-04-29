@@ -150,7 +150,7 @@ public class TraceServer implements Watcher, AutoCloseable {
       TCompactProtocol protocol = new TCompactProtocol(transport);
       s.write(protocol);
       String parentString = s.getParentIdsSize() == 0 ? "" : s.getParentIds().stream()
-          .map(x -> Long.toHexString(x)).collect(Collectors.toList()).toString();
+          .map(Long::toHexString).collect(Collectors.toList()).toString();
       put(spanMutation, "span", parentString + ":" + Long.toHexString(s.spanId), transport.get(),
           transport.len());
       // Map the root span to time so we can look up traces by time
@@ -303,7 +303,7 @@ public class TraceServer implements Watcher, AutoCloseable {
   }
 
   public void run() {
-    SimpleTimer.getInstance(context.getConfiguration()).schedule(() -> flush(), SCHEDULE_DELAY,
+    SimpleTimer.getInstance(context.getConfiguration()).schedule(this::flush, SCHEDULE_DELAY,
         SCHEDULE_PERIOD);
     server.serve();
   }

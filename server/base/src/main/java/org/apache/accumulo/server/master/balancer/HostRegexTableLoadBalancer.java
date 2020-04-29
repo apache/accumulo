@@ -335,7 +335,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build(new CacheLoader<>() {
           @Override
           public Deriver<Map<String,String>> load(TableId key) throws Exception {
-            return context.getTableConfiguration(key).newDeriver(conf -> getRegexes(conf));
+            return context.getTableConfiguration(key)
+                .newDeriver(HostRegexTableLoadBalancer::getRegexes);
           }
         });
 
@@ -391,7 +392,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
     Map<String,String> tableIdMap = t.tableIdMap();
     Map<TableId,String> tableIdToTableName = createdTableNameMap(tableIdMap);
-    tableIdToTableName.keySet().forEach(tid -> checkTableConfig(tid));
+    tableIdToTableName.keySet().forEach(this::checkTableConfig);
 
     long now = System.currentTimeMillis();
 

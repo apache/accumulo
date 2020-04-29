@@ -104,7 +104,7 @@ public class TraceUtil {
     Map<String,
         String> htraceConfigProps = spanReceiverProps.entrySet().stream().collect(Collectors.toMap(
             k -> String.valueOf(k).substring(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey().length()),
-            v -> String.valueOf(v), (a, b) -> {
+            String::valueOf, (a, b) -> {
               throw new AssertionError("duplicate can't happen");
             }, HashMap::new));
     htraceConfigProps.put(TRACER_ZK_HOST, zookeepers);
@@ -116,9 +116,7 @@ public class TraceUtil {
     if (service != null) {
       htraceConfigProps.put(TRACE_SERVICE_PROPERTY, service);
     }
-    ShutdownHookManager.get().addShutdownHook(() -> {
-      disable();
-    }, 0);
+    ShutdownHookManager.get().addShutdownHook(TraceUtil::disable, 0);
     synchronized (receivers) {
       if (!receivers.isEmpty()) {
         log.info("Already loaded span receivers, enable tracing does not need to be called again");

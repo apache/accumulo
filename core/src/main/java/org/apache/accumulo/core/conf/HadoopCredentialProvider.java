@@ -99,11 +99,12 @@ public class HadoopCredentialProvider {
         log.warn("Failed to call getCredentialEntry(alias) for provider {}", provider, e);
         return null;
       }
-    }).filter(Objects::nonNull).map(entry -> entry.getCredential()).findFirst().orElseGet(() -> {
-      // If we didn't find it, this isn't an error, it just wasn't set in the CredentialProvider
-      log.trace("Could not extract credential for {} from providers", alias);
-      return null;
-    });
+    }).filter(Objects::nonNull).map(CredentialProvider.CredentialEntry::getCredential).findFirst()
+        .orElseGet(() -> {
+          // If we didn't find it, this isn't an error, it just wasn't set in the CredentialProvider
+          log.trace("Could not extract credential for {} from providers", alias);
+          return null;
+        });
   }
 
   /**

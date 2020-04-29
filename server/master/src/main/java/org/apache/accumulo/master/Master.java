@@ -1114,7 +1114,7 @@ public class Master extends AbstractServer
       fate = new Fate<>(this, store, TraceRepo::toLogString);
       fate.startTransactionRunners(threads);
 
-      SimpleTimer.getInstance(getConfiguration()).schedule(() -> store.ageOff(), 63000, 63000);
+      SimpleTimer.getInstance(getConfiguration()).schedule(store::ageOff, 63000, 63000);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }

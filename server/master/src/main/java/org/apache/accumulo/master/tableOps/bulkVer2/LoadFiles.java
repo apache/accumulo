@@ -96,8 +96,8 @@ class LoadFiles extends MasterRepo {
     }
     VolumeManager fs = master.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
-    try (LoadMappingIterator lmi = BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(),
-        bulkInfo.tableId, p -> fs.open(p))) {
+    try (LoadMappingIterator lmi =
+        BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
       return loadFiles(bulkInfo.tableId, bulkDir, lmi, master, tid);
     }
   }
