@@ -22,8 +22,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -77,7 +80,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
         cluster.getSiteConfiguration().getBoolean(Property.GC_METRICS_ENABLED);
 
     if (!gcMetricsEnabled) {
-      log.info("gc metrics are disabled with GC_METRICS_ENABLED={}", gcMetricsEnabled);
+      log.info("gc metrics are disabled with GC_METRICS_ENABLED=true");
       return;
     }
 
@@ -93,7 +96,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
     try {
 
-      long testStart = System.currentTimeMillis();
+      var updateTimestamp = System.currentTimeMillis();
 
       // Read two updates, throw away the first snapshot - it could have been from a previous run
       // or another test (the file appends.)
@@ -106,8 +109,9 @@ public class GcMetricsIT extends ConfigurableMacBase {
       log.trace("M:{}", firstSeenMap);
 
       assertTrue(lookForExpectedKeys(firstSeenMap));
-      sanity(testStart, firstSeenMap);
+      sanity(updateTimestamp, firstSeenMap);
 
+      updateTimestamp = System.currentTimeMillis();
       LineUpdate nextUpdate = waitForUpdate(firstUpdate.getLastUpdate(), gcTail);
 
       Map<String,Long> updateSeenMap = parseLine(nextUpdate.getLine());
@@ -116,7 +120,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
       log.trace("Mapped values:{}", updateSeenMap);
 
       assertTrue(lookForExpectedKeys(updateSeenMap));
-      sanity(testStart, updateSeenMap);
+      sanity(updateTimestamp, updateSeenMap);
 
       validate(firstSeenMap, updateSeenMap);
 
@@ -239,12 +243,14 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
   private LineUpdate waitForUpdate(final long prevUpdate, final MetricsFileTailer tail) {
 
+    long start = System.currentTimeMillis();
+
     for (int count = 0; count < NUM_TAIL_ATTEMPTS; count++) {
 
       String line = tail.getLast();
       long currUpdate = tail.getLastUpdate();
 
-      if (line != null && (currUpdate != prevUpdate)) {
+      if (line != null && (currUpdate != prevUpdate) && isValidTimestamp(line, start)) {
         return new LineUpdate(tail.getLastUpdate(), line);
       }
 
@@ -259,6 +265,28 @@ public class GcMetricsIT extends ConfigurableMacBase {
     throw new IllegalStateException(
         String.format("File source update not received after %d tries in %d sec", NUM_TAIL_ATTEMPTS,
             TimeUnit.MILLISECONDS.toSeconds(TAIL_DELAY * NUM_TAIL_ATTEMPTS)));
+  }
+
+  private static final Pattern timestampPattern = Pattern.compile("^\\s*(?<timestamp>\\d+).*");
+
+  private boolean isValidTimestamp(final String line, final long start) {
+
+    if (Objects.isNull(line)) {
+      return false;
+    }
+
+    Matcher m = timestampPattern.matcher(line);
+
+    if (m.matches()) {
+      try {
+        var timestamp = Long.parseLong(m.group("timestamp"));
+        return timestamp >= start;
+      } catch (NumberFormatException ex) {
+        log.trace("Could not parse timestamp from line '{}", line);
+        return false;
+      }
+    }
+    return false;
   }
 
   private boolean lookForExpectedKeys(final Map<String,Long> received) {
