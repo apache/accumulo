@@ -60,7 +60,7 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
   private static final long TAIL_DELAY = 5_000;
 
   // number of tables / concurrent compactions used during testing.
-  private final int tableCount = 4;
+  private final int tableCount = 1;
 
   private long maxWait;
 
