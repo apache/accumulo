@@ -353,7 +353,7 @@ public class VolumeManagerImpl implements VolumeManager {
       URI optUri = URI.create(opt);
       return sourceUri.getScheme().equals(optUri.getScheme())
           && Objects.equals(sourceUri.getAuthority(), optUri.getAuthority());
-    }).map(Path::new).findFirst().orElse(null);
+    }).map((String opt) -> new Path(opt)).findFirst().orElse(null);
   }
 
   @Override
