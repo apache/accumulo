@@ -548,12 +548,6 @@ public class TabletLocatorImpl extends TabletLocator {
           "Cannot add null locations to cache " + tableId + "  " + tabletLocation.tablet_extent);
     }
 
-    if (!tabletLocation.tablet_extent.getTableId().equals(tableId)) {
-      // sanity check
-      throw new IllegalStateException("Cannot add other table ids to locations cache " + tableId
-          + "  " + tabletLocation.tablet_extent);
-    }
-
     // clear out any overlapping extents in cache
     removeOverlapping(metaCache, tabletLocation.tablet_extent);
 
