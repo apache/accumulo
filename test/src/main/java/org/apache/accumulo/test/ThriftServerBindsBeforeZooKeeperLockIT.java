@@ -85,47 +85,45 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
 
     LOG.debug("Found active monitor");
 
-    while (true) {
-      int freePort = PortUtils.getRandomFreePort();
-      String monitorUrl = "http://localhost:" + freePort;
-      Process monitor = null;
-      try {
-        LOG.debug("Starting standby monitor on {}", freePort);
-        monitor = startProcess(cluster, ServerType.MONITOR, freePort);
+    int freePort = PortUtils.getRandomFreePort();
+    String monitorUrl = "http://localhost:" + freePort;
+    Process monitor = null;
+    try {
+      LOG.debug("Starting standby monitor on {}", freePort);
+      monitor = startProcess(cluster, ServerType.MONITOR, freePort);
 
-        while (true) {
-          URL url = new URL(monitorUrl);
-          try {
-            HttpURLConnection cnxn = (HttpURLConnection) url.openConnection();
-            final int responseCode = cnxn.getResponseCode();
-            String errorText;
-            // This is our "assertion", but we want to re-check it if it's not what we expect
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-              return;
-            } else {
-              errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
-            }
-            LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'",
-                responseCode, errorText);
-          } catch (Exception e) {
-            LOG.debug("Caught exception trying to fetch monitor info", e);
+      while (true) {
+        URL url = new URL(monitorUrl);
+        try {
+          HttpURLConnection cnxn = (HttpURLConnection) url.openConnection();
+          final int responseCode = cnxn.getResponseCode();
+          String errorText;
+          // This is our "assertion", but we want to re-check it if it's not what we expect
+          if (responseCode == HttpURLConnection.HTTP_OK) {
+            return;
+          } else {
+            errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
           }
-          // Wait before trying again
-          Thread.sleep(1000);
-          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually
-          // free and the process
-          // died trying to bind it. Pick a new port and restart it in that case.
-          if (!monitor.isAlive()) {
-            freePort = PortUtils.getRandomFreePort();
-            monitorUrl = "http://localhost:" + freePort;
-            LOG.debug("Monitor died, restarting it listening on {}", freePort);
-            monitor = startProcess(cluster, ServerType.MONITOR, freePort);
-          }
+          LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'",
+              responseCode, errorText);
+        } catch (Exception e) {
+          LOG.debug("Caught exception trying to fetch monitor info", e);
         }
-      } finally {
-        if (monitor != null) {
-          monitor.destroyForcibly();
+        // Wait before trying again
+        Thread.sleep(1000);
+        // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually
+        // free and the process
+        // died trying to bind it. Pick a new port and restart it in that case.
+        if (!monitor.isAlive()) {
+          freePort = PortUtils.getRandomFreePort();
+          monitorUrl = "http://localhost:" + freePort;
+          LOG.debug("Monitor died, restarting it listening on {}", freePort);
+          monitor = startProcess(cluster, ServerType.MONITOR, freePort);
         }
+      }
+    } finally {
+      if (monitor != null) {
+        monitor.destroyForcibly();
       }
     }
   }
@@ -155,38 +153,36 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
 
       LOG.debug("Found active master");
 
-      while (true) {
-        int freePort = PortUtils.getRandomFreePort();
-        Process master = null;
-        try {
-          LOG.debug("Starting standby master on {}", freePort);
-          master = startProcess(cluster, ServerType.MASTER, freePort);
+      int freePort = PortUtils.getRandomFreePort();
+      Process master = null;
+      try {
+        LOG.debug("Starting standby master on {}", freePort);
+        master = startProcess(cluster, ServerType.MASTER, freePort);
 
-          while (true) {
-            try (Socket s = new Socket("localhost", freePort)) {
-              if (s.isConnected()) {
-                // Pass
-                return;
-              }
-            } catch (Exception e) {
-              LOG.debug("Caught exception trying to connect to Master", e);
+        while (true) {
+          try (Socket s = new Socket("localhost", freePort)) {
+            if (s.isConnected()) {
+              // Pass
+              return;
             }
-            // Wait before trying again
-            Thread.sleep(1000);
-            // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
-            // actually
-            // free and the process
-            // died trying to bind it. Pick a new port and restart it in that case.
-            if (!master.isAlive()) {
-              freePort = PortUtils.getRandomFreePort();
-              LOG.debug("Master died, restarting it listening on {}", freePort);
-              master = startProcess(cluster, ServerType.MASTER, freePort);
-            }
+          } catch (Exception e) {
+            LOG.debug("Caught exception trying to connect to Master", e);
           }
-        } finally {
-          if (master != null) {
-            master.destroyForcibly();
+          // Wait before trying again
+          Thread.sleep(1000);
+          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
+          // actually
+          // free and the process
+          // died trying to bind it. Pick a new port and restart it in that case.
+          if (!master.isAlive()) {
+            freePort = PortUtils.getRandomFreePort();
+            LOG.debug("Master died, restarting it listening on {}", freePort);
+            master = startProcess(cluster, ServerType.MASTER, freePort);
           }
+        }
+      } finally {
+        if (master != null) {
+          master.destroyForcibly();
         }
       }
     }
@@ -217,38 +213,36 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
 
       LOG.debug("Found active gc");
 
-      while (true) {
-        int freePort = PortUtils.getRandomFreePort();
-        Process master = null;
-        try {
-          LOG.debug("Starting standby gc on {}", freePort);
-          master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
+      int freePort = PortUtils.getRandomFreePort();
+      Process master = null;
+      try {
+        LOG.debug("Starting standby gc on {}", freePort);
+        master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
 
-          while (true) {
-            try (Socket s = new Socket("localhost", freePort)) {
-              if (s.isConnected()) {
-                // Pass
-                return;
-              }
-            } catch (Exception e) {
-              LOG.debug("Caught exception trying to connect to GC", e);
+        while (true) {
+          try (Socket s = new Socket("localhost", freePort)) {
+            if (s.isConnected()) {
+              // Pass
+              return;
             }
-            // Wait before trying again
-            Thread.sleep(1000);
-            // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
-            // actually
-            // free and the process
-            // died trying to bind it. Pick a new port and restart it in that case.
-            if (!master.isAlive()) {
-              freePort = PortUtils.getRandomFreePort();
-              LOG.debug("GC died, restarting it listening on {}", freePort);
-              master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
-            }
+          } catch (Exception e) {
+            LOG.debug("Caught exception trying to connect to GC", e);
           }
-        } finally {
-          if (master != null) {
-            master.destroyForcibly();
+          // Wait before trying again
+          Thread.sleep(1000);
+          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
+          // actually
+          // free and the process
+          // died trying to bind it. Pick a new port and restart it in that case.
+          if (!master.isAlive()) {
+            freePort = PortUtils.getRandomFreePort();
+            LOG.debug("GC died, restarting it listening on {}", freePort);
+            master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
           }
+        }
+      } finally {
+        if (master != null) {
+          master.destroyForcibly();
         }
       }
     }
