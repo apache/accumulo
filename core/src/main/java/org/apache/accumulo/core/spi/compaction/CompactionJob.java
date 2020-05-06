@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
-import java.util.Collection;
-import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
@@ -30,67 +28,23 @@ import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
  * @since 2.1.0
  * @see org.apache.accumulo.core.spi.compaction
  */
-public class CompactionJob {
+public interface CompactionJob {
 
-  private final long priority;
-  private final CompactionExecutorId executor;
-  private final Set<CompactableFile> files;
-  private final CompactionKind kind;
-
-  public CompactionJob(long priority, CompactionExecutorId executor,
-      Collection<CompactableFile> files, CompactionKind kind) {
-    this.priority = priority;
-    this.executor = executor;
-    this.files = Set.copyOf(files);
-    this.kind = kind;
-  }
-
-  public long getPriority() {
-    return priority;
-  }
+  long getPriority();
 
   /**
    * @return The executor to run the job.
    */
-  public CompactionExecutorId getExecutor() {
-    return executor;
-  }
+  CompactionExecutorId getExecutor();
 
   /**
    * @return The files to compact
    */
-  public Set<CompactableFile> getFiles() {
-    return files;
-  }
+  Set<CompactableFile> getFiles();
 
   /**
    * @return The kind of compaction this is.
    */
-  public CompactionKind getKind() {
-    return kind;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(priority, executor, files, kind);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (o instanceof CompactionJob) {
-      CompactionJob ocj = (CompactionJob) o;
-
-      return priority == ocj.priority && executor.equals(ocj.executor) && files.equals(ocj.files)
-          && kind == ocj.kind;
-    }
-
-    return false;
-  }
-
-  @Override
-  public String toString() {
-    return "CompactionJob [priority=" + priority + ", executor=" + executor + ", files=" + files
-        + ", type=" + kind + "]";
-  }
+  CompactionKind getKind();
 
 }

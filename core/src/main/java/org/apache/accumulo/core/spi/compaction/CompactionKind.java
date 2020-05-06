@@ -21,8 +21,6 @@ package org.apache.accumulo.core.spi.compaction;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 
 /**
- * TODO reconcile with CompactionReason
- *
  * @since 2.1.0
  * @see org.apache.accumulo.core.spi.compaction
  */

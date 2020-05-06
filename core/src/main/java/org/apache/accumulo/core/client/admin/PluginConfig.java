@@ -24,10 +24,12 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
+ * Encapsulates the configuration of an Accumulo server side plugin, which consist of a class name
+ * and options.
  *
  * @since 2.1.0
  */
-abstract class PluginConfig<T extends PluginConfig<T>> {
+public class PluginConfig {
 
   private String className;
   private Map<String,String> options = Collections.emptyMap();
@@ -38,7 +40,7 @@ abstract class PluginConfig<T extends PluginConfig<T>> {
    *          org.apache.accumulo.tserver.compaction.CompactionStrategy. This class must be exist on
    *          tservers.
    */
-  protected PluginConfig(String className) {
+  public PluginConfig(String className) {
     requireNonNull(className);
     this.className = className;
   }
@@ -52,15 +54,14 @@ abstract class PluginConfig<T extends PluginConfig<T>> {
 
   /**
    * @param opts
-   *          The options that will be passed to the init() method of the compaction strategy when
-   *          its instantiated on a tserver. This method will copy the map. The default is an empty
-   *          map.
+   *          The options that will be passed to the init() method of the plugin when its
+   *          instantiated on a tserver. This method will copy the map. The default is an empty map.
    * @return this
    */
-  public T setOptions(Map<String,String> opts) {
+  public PluginConfig setOptions(Map<String,String> opts) {
     requireNonNull(opts);
     this.options = Map.copyOf(opts);
-    return (T) this;
+    return this;
   }
 
   /**

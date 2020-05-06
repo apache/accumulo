@@ -1605,30 +1605,23 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     KeyExtent ke = new KeyExtent(TableId.of(tableId), ByteBufferUtil.toText(endRow),
         ByteBufferUtil.toText(startRow));
 
-    ArrayList<Tablet> tabletsToCompact = new ArrayList<>();
+    Pair<Long,CompactionConfig> compactionInfo = null;
 
     for (Tablet tablet : server.getOnlineTablets().values()) {
       if (ke.overlaps(tablet.getExtent())) {
-        tabletsToCompact.add(tablet);
-      }
-    }
-
-    Pair<Long,CompactionConfig> compactionInfo = null;
-
-    for (Tablet tablet : tabletsToCompact) {
-      // all for the same table id, so only need to read
-      // compaction id once
-      if (compactionInfo == null) {
-        try {
-          compactionInfo = tablet.getCompactionID();
-        } catch (NoNodeException e) {
-          log.info("Asked to compact table with no compaction id {} {}", ke, e.getMessage());
-          return;
+        // all for the same table id, so only need to read
+        // compaction id once
+        if (compactionInfo == null) {
+          try {
+            compactionInfo = tablet.getCompactionID();
+          } catch (NoNodeException e) {
+            log.info("Asked to compact table with no compaction id {} {}", ke, e.getMessage());
+            return;
+          }
         }
+        tablet.compactAll(compactionInfo.getFirst(), compactionInfo.getSecond());
       }
-      tablet.compactAll(compactionInfo.getFirst(), compactionInfo.getSecond());
     }
-
   }
 
   @Override

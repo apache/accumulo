@@ -52,6 +52,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
@@ -64,7 +65,6 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TabletIteratorEnvironment;
-import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
@@ -81,7 +81,7 @@ public class Compactor implements Callable<CompactionStats> {
 
   public interface CompactionEnv {
 
-    boolean isCompactionEnabled();
+    boolean isCompactionEnabled(long entriesCompacted);
 
     IteratorScope getIteratorScope();
 
@@ -147,7 +147,6 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  // TODO can this be simplified now that there are no longer mergin minor compactions
   public Compactor(ServerContext context, Tablet tablet, Map<StoredTabletFile,DataFileValue> files,
       InMemoryMap imm, TabletFile outputFile, boolean propogateDeletes, CompactionEnv env,
       List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
@@ -178,8 +177,8 @@ public class Compactor implements Callable<CompactionStats> {
     return outputFile.toString();
   }
 
-  MajorCompactionReason getMajorCompactionReason() {
-    return MajorCompactionReason.values()[reason];
+  CompactionKind getMajorCompactionReason() {
+    return CompactionKind.values()[reason];
   }
 
   protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)
@@ -378,7 +377,7 @@ public class Compactor implements Callable<CompactionStats> {
       }
 
       try (TraceScope write = Trace.startSpan("write")) {
-        while (itr.hasTop() && env.isCompactionEnabled()) {
+        while (itr.hasTop() && env.isCompactionEnabled(entriesCompacted)) {
           mfw.append(itr.getTopKey(), itr.getTopValue());
           itr.next();
           entriesCompacted++;
@@ -389,7 +388,7 @@ public class Compactor implements Callable<CompactionStats> {
           }
         }
 
-        if (itr.hasTop() && !env.isCompactionEnabled()) {
+        if (itr.hasTop() && !env.isCompactionEnabled(entriesCompacted)) {
           // cancel major compaction operation
           try {
             try {

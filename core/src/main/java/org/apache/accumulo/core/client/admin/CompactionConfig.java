@@ -24,8 +24,11 @@ import static org.apache.accumulo.core.clientImpl.CompactionStrategyConfigUtil.D
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
+import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.hadoop.io.Text;
 
@@ -45,8 +48,8 @@ public class CompactionConfig {
   private List<IteratorSetting> iterators = Collections.emptyList();
   private CompactionStrategyConfig compactionStrategy = DEFAULT_STRATEGY;
   private Map<String,String> hints = Map.of();
-  private CompactionSelectorConfig selectorConfig = UserCompactionUtils.DEFAULT_CSC;
-  private CompactionConfigurerConfig configurerConfig = UserCompactionUtils.DEFAULT_CCC;
+  private PluginConfig selectorConfig = UserCompactionUtils.DEFAULT_CSC;
+  private PluginConfig configurerConfig = UserCompactionUtils.DEFAULT_CCC;
 
   /**
    * @param start
@@ -174,10 +177,13 @@ public class CompactionConfig {
   }
 
   /**
+   * Configure a {@link CompactionSelector} plugin to run for this compaction. Specify the class
+   * name and options here.
+   *
    * @return this;
    * @since 2.1.0
    */
-  public CompactionConfig setSelector(CompactionSelectorConfig selectorConfig) {
+  public CompactionConfig setSelector(PluginConfig selectorConfig) {
     Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
     Preconditions.checkArgument(!selectorConfig.getClassName().isBlank());
     this.selectorConfig = requireNonNull(selectorConfig);
@@ -187,7 +193,7 @@ public class CompactionConfig {
   /**
    * @since 2.1.0
    */
-  public CompactionSelectorConfig getSelector() {
+  public PluginConfig getSelector() {
     return selectorConfig;
   }
 
@@ -209,12 +215,12 @@ public class CompactionConfig {
   }
 
   /**
-   * Set and override any per-table properties that configure compaction file output like
-   * compression.
+   * Enables a {@link CompactionConfigurer} to run for this compaction on the server side. Specify
+   * the class name and options here.
    *
    * @since 2.1.0
    */
-  public CompactionConfig setConfigurer(CompactionConfigurerConfig configurerConfig) {
+  public CompactionConfig setConfigurer(PluginConfig configurerConfig) {
     Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
     this.configurerConfig = configurerConfig;
     return this;
@@ -223,7 +229,39 @@ public class CompactionConfig {
   /**
    * @since 2.1.0
    */
-  public CompactionConfigurerConfig getConfigurer() {
+  public PluginConfig getConfigurer() {
     return configurerConfig;
+  }
+
+  private String append(StringBuilder sb, String prefix, BooleanSupplier test, String name,
+      Object val) {
+    if (test.getAsBoolean()) {
+      sb.append(prefix);
+      sb.append(name);
+      sb.append("=");
+      sb.append(val);
+      return ", ";
+    }
+    return prefix;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    var prefix = append(sb, "", () -> start != null, "start", start);
+    prefix = append(sb, prefix, () -> end != null, "end", end);
+    prefix = append(sb, prefix, () -> !flush, "flush", flush);
+    prefix = append(sb, prefix, () -> !wait, "wait", wait);
+    prefix = append(sb, prefix, () -> !iterators.isEmpty(), "iterators", iterators);
+    prefix = append(sb, prefix, () -> !UserCompactionUtils.isDefault(compactionStrategy),
+        "strategy", compactionStrategy);
+    prefix = append(sb, prefix, () -> !UserCompactionUtils.isDefault(selectorConfig), "selector",
+        selectorConfig);
+    prefix = append(sb, prefix, () -> !UserCompactionUtils.isDefault(configurerConfig),
+        "configurer", configurerConfig);
+    prefix = append(sb, prefix, () -> !hints.isEmpty(), "hints", hints);
+    sb.append("]");
+    return sb.toString();
   }
 }

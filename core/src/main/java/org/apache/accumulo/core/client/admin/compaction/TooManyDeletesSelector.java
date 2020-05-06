@@ -16,31 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.compaction.strategies;
+
+package org.apache.accumulo.core.client.admin.compaction;
 
 import static org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer.DELETES_STAT;
 import static org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer.TOTAL_STAT;
 
-import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.List;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.admin.compaction.TooManyDeletesSelector;
 import org.apache.accumulo.core.client.rfile.RFile.WriterOptions;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.tserver.compaction.CompactionPlan;
-import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
-import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 
 /**
- * This compaction strategy works in concert with the {@link DeletesSummarizer}. Using the
+ * This compaction selector works in concert with the {@link DeletesSummarizer}. Using the
  * statistics from DeleteSummarizer this strategy will compact all files in a table when the number
  * of deletes/non-deletes exceeds a threshold.
  *
@@ -68,23 +60,12 @@ import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
  * {@link WriterOptions#withSummarizers(SummarizerConfiguration...)}
  *
  * <p>
- * When this strategy does not decide to compact based on the number of deletes, then it will defer
- * the decision to the {@link DefaultCompactionStrategy}.
+ * When using this feature, its important to ensure summary cache is on and the summaries fit in the
+ * cache.
  *
- * <p>
- * Configuring this compaction strategy for a table will cause it to always queue compactions, even
- * though it may not decide to compact. These queued compactions may show up on the Accumulo monitor
- * page. This is because summary data can not be read until after compaction is queued and dequeued.
- * When the compaction is dequeued it can then decide not to compact. See <a
- * href=https://issues.apache.org/jira/browse/ACCUMULO-4573>ACCUMULO-4573</a>
- *
- * @since 2.0.0
- * @deprecated since 2.1.0 use {@link TooManyDeletesSelector} instead
+ * @since 2.1.0
  */
-@Deprecated(since = "2.1.0", forRemoval = true)
-public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy {
-
-  private boolean shouldCompact = false;
+public class TooManyDeletesSelector implements CompactionSelector {
 
   private double threshold;
 
@@ -105,7 +86,8 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
   public static final String PROCEED_ZERO_NO_SUMMARY_OPT_DEFAULT = "false";
 
   @Override
-  public void init(Map<String,String> options) {
+  public void init(InitParamaters iparams) {
+    var options = iparams.getOptions();
     this.threshold = Double.parseDouble(options.getOrDefault(THRESHOLD_OPT, THRESHOLD_OPT_DEFAULT));
     if (threshold <= 0.0 || threshold > 1.0) {
       throw new IllegalArgumentException(
@@ -117,27 +99,20 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
   }
 
   @Override
-  public boolean shouldCompact(MajorCompactionRequest request) {
+  public Selection select(SelectionParameters sparams) {
+
+    var tableConf = sparams.getEnvironment().getConfiguration(sparams.getTableId());
+
+    // TODO ISSUE could add a method to get props with prefix. That could be used to efficiently get
+    // only props with summarizer prefix
     Collection<SummarizerConfiguration> configuredSummarizers =
-        SummarizerConfiguration.fromTableProperties(request.getTableProperties());
+        SummarizerConfiguration.fromTableProperties(tableConf);
 
     // check if delete summarizer is configured for table
     if (configuredSummarizers.stream().map(sc -> sc.getClassName())
-        .anyMatch(cn -> cn.equals(DeletesSummarizer.class.getName()))) {
-      // This is called before gatherInformation, so need to always queue for compaction until
-      // context
-      // can be gathered. Also its not safe to request summary
-      // information here as its a blocking operation. Blocking operations are not allowed in
-      // shouldCompact.
-      return true;
-    } else {
-      return super.shouldCompact(request);
+        .noneMatch(cn -> cn.equals(DeletesSummarizer.class.getName()))) {
+      return new Selection(List.of());
     }
-  }
-
-  @Override
-  public void gatherInformation(MajorCompactionRequest request) throws IOException {
-    super.gatherInformation(request);
 
     Predicate<SummarizerConfiguration> summarizerPredicate =
         conf -> conf.getClassName().equals(DeletesSummarizer.class.getName())
@@ -146,21 +121,20 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
     long total = 0;
     long deletes = 0;
 
-    for (Entry<StoredTabletFile,DataFileValue> entry : request.getFiles().entrySet()) {
-      Collection<Summary> summaries =
-          request.getSummaries(Collections.singleton(entry.getKey()), summarizerPredicate);
+    for (CompactableFile file : sparams.getAvailableFiles()) {
+      Collection<Summary> summaries = sparams.getSummaries(List.of(file), summarizerPredicate);
+
       if (summaries.size() == 1) {
         Summary summary = summaries.iterator().next();
         total += summary.getStatistics().get(TOTAL_STAT);
         deletes += summary.getStatistics().get(DELETES_STAT);
       } else {
-        long numEntries = entry.getValue().getNumEntries();
+        long numEntries = file.getEstimatedEntries();
         if (numEntries == 0 && !proceed_bns) {
-          shouldCompact = false;
-          return;
+          return new Selection(List.of());
         } else {
           // no summary data so use Accumulo's estimate of total entries in file
-          total += entry.getValue().getNumEntries();
+          total += numEntries;
         }
       }
     }
@@ -172,21 +146,12 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
       // estimates are off
 
       double ratio = deletes / (double) nonDeletes;
-      shouldCompact = ratio >= threshold;
-    } else {
-      shouldCompact = false;
-    }
-  }
-
-  @Override
-  public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
-    if (shouldCompact) {
-      CompactionPlan cp = new CompactionPlan();
-      cp.inputFiles.addAll(request.getFiles().keySet());
-      return cp;
+      if (ratio >= threshold) {
+        return new Selection(sparams.getAvailableFiles());
+      }
     }
 
-    // fall back to default
-    return super.getCompactionPlan(request);
+    return new Selection(List.of());
   }
+
 }

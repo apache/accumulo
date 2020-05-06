@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.Map;
+
 /**
  * Configuration object which describes how a Compaction is run. Configuration objects are dependent
  * upon the CompactionStrategy running insider the server. This class is used in conjunction with
@@ -37,7 +39,7 @@ package org.apache.accumulo.core.client.admin;
  *             {@link CompactionConfigurerConfig} as soon as possible.
  */
 @Deprecated(since = "2.1.0", forRemoval = true)
-public class CompactionStrategyConfig extends PluginConfig<CompactionStrategyConfig> {
+public class CompactionStrategyConfig extends PluginConfig {
   /**
    * @param className
    *          The name of a class that implements
@@ -46,5 +48,18 @@ public class CompactionStrategyConfig extends PluginConfig<CompactionStrategyCon
    */
   public CompactionStrategyConfig(String className) {
     super(className);
+  }
+
+  /**
+   * @param opts
+   *          The options that will be passed to the init() method of the compaction strategy when
+   *          its instantiated on a tserver. This method will copy the map. The default is an empty
+   *          map.
+   * @return this
+   */
+  @Override
+  public CompactionStrategyConfig setOptions(Map<String,String> opts) {
+    super.setOptions(opts);
+    return this;
   }
 }

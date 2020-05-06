@@ -20,10 +20,10 @@ package org.apache.accumulo.tserver.compactions;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
@@ -43,30 +43,34 @@ public interface Compactable {
 
   public static class Files {
 
-    public final Collection<CompactableFile> allFiles;
-    public final CompactionKind kind;
+    public final Set<CompactableFile> allFiles;
     public final Collection<CompactableFile> candidates;
     public final Collection<CompactionJob> compacting;
+    public final Map<String,String> executionHints;
 
-    public Files(SortedMap<StoredTabletFile,DataFileValue> allFiles, CompactionKind kind,
+    public Files(SortedMap<StoredTabletFile,DataFileValue> allFiles,
         Set<StoredTabletFile> candidates, Collection<CompactionJob> running) {
+      this(allFiles, candidates, running, Map.of());
+    }
 
-      // TODO can the copies be avoided.?
+    public Files(SortedMap<StoredTabletFile,DataFileValue> allFiles,
+        Set<StoredTabletFile> candidates, Collection<CompactionJob> running,
+        Map<String,String> executionHints) {
 
       this.allFiles = Collections.unmodifiableSet(allFiles.entrySet().stream()
           .map(entry -> new CompactableFileImpl(entry.getKey(), entry.getValue()))
           .collect(Collectors.toSet()));
-      this.kind = kind;
       this.candidates = Collections.unmodifiableSet(candidates.stream()
           .map(stf -> new CompactableFileImpl(stf, allFiles.get(stf))).collect(Collectors.toSet()));
 
       this.compacting = Set.copyOf(running);
+      this.executionHints = executionHints;
     }
 
     @Override
     public String toString() {
-      return "Files [allFiles=" + allFiles + ", kind=" + kind + ", candidates=" + candidates
-          + ", compacting=" + compacting + "]";
+      return "Files [allFiles=" + allFiles + ", candidates=" + candidates + ", compacting="
+          + compacting + ", hints=" + executionHints + "]";
     }
 
   }
@@ -84,6 +88,4 @@ public interface Compactable {
   CompactionServiceId getConfiguredService(CompactionKind kind);
 
   double getCompactionRatio();
-
-  void registerNewFilesCallback(Consumer<Compactable> callback);
 }

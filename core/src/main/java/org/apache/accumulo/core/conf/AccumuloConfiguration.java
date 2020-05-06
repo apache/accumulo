@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * A configuration object.
@@ -196,6 +197,16 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     return prefixProps.props;
+  }
+
+  public Map<String,String> getAllPropertiesWithPrefixStripped(Property prefix) {
+    var builder = ImmutableMap.<String,String>builder();
+    getAllPropertiesWithPrefix(prefix).forEach((k, v) -> {
+      String optKey = k.substring(prefix.getKey().length());
+      builder.put(optKey, v);
+    });
+
+    return builder.build();
   }
 
   /**

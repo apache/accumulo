@@ -21,6 +21,7 @@ package org.apache.accumulo.core.spi.compaction;
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -71,7 +72,18 @@ public interface CompactionPlanner {
      */
     Collection<CompactionJob> getRunningCompactions();
 
-    // TODO make execution hints available
+    /**
+     * @return For a user compaction (when {@link #getKind()} returns {@link CompactionKind#USER})
+     *         where the user set execution hints via
+     *         {@link CompactionConfig#setExecutionHints(Map)} this will return those hints.
+     *         Otherwise this will return an immutable empty map.
+     */
+    Map<String,String> getExecutionHints();
+
+    /**
+     * @return A compaction plan builder that must be used to create a compaction plan.
+     */
+    CompactionPlan.Builder createPlanBuilder();
   }
 
   /**

@@ -175,7 +175,7 @@ public class PropertyTest {
   public void testIsValidTablePropertyKey() {
     for (Property prop : Property.values()) {
       if (prop.getKey().startsWith("table.") && !prop.getKey().equals("table.")) {
-        assertTrue(Property.isValidTablePropertyKey(prop.getKey()));
+        assertTrue(prop.getKey(), Property.isValidTablePropertyKey(prop.getKey()));
 
         if (prop.getType().equals(PropertyType.PREFIX)) {
           assertTrue(Property.isValidTablePropertyKey(prop.getKey() + "foo9"));

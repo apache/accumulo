@@ -18,26 +18,10 @@
  */
 package org.apache.accumulo.tserver.compaction;
 
-import org.apache.accumulo.core.spi.compaction.CompactionKind;
-
-//TODO analyze how this is used
+@Deprecated(since = "2.1.0", forRemoval = true)
 public enum MajorCompactionReason {
   // do not change the order, the order of this enum determines the order
   // in which queued major compactions are executed
-  USER, CHOP, NORMAL, IDLE;
-
-  public static MajorCompactionReason from(CompactionKind ck) {
-    switch (ck) {
-      case CHOP:
-        return CHOP;
-      case SYSTEM:
-      case SELECTOR:
-        return NORMAL;
-      case USER:
-        return USER;
-      default:
-        throw new IllegalArgumentException("Unknown kind " + ck);
-    }
-  }
+  USER, CHOP, NORMAL, IDLE
 
 }

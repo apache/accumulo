@@ -107,10 +107,8 @@ public class CompactionInfo {
         case CHOP:
           reason = CompactionReason.CHOP;
           break;
-        case IDLE:
-          reason = CompactionReason.IDLE;
-          break;
-        case NORMAL:
+        case SELECTOR:
+        case SYSTEM:
         default:
           reason = CompactionReason.SYSTEM;
           break;

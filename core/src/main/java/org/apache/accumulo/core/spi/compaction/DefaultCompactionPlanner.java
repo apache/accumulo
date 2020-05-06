@@ -32,11 +32,14 @@ import java.util.Set;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Finds the largest continuous set of small files that meet the compaction ratio and do not prevent
@@ -67,9 +70,9 @@ import com.google.gson.Gson;
  * @see org.apache.accumulo.core.spi.compaction
  */
 
-public class LarsmaCompactionPlanner implements CompactionPlanner {
+public class DefaultCompactionPlanner implements CompactionPlanner {
 
-  private static Logger log = LoggerFactory.getLogger(LarsmaCompactionPlanner.class);
+  private static Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
   public static class ExecutorConfig {
     String name;
@@ -90,11 +93,17 @@ public class LarsmaCompactionPlanner implements CompactionPlanner {
     Long getMaxSize() {
       return maxSize;
     }
+
+    @Override
+    public String toString() {
+      return "[ceid=" + ceid + ", maxSize=" + maxSize + "]";
+    }
   }
 
   private List<Executor> executors;
   private int maxFilesToCompact;
 
+  @SuppressFBWarnings(value = "UWF_UNWRITTEN_FIELD", justification = "Field is written by Gson")
   @Override
   public void init(InitParameters params) {
     ExecutorConfig[] execConfigs =
@@ -120,7 +129,7 @@ public class LarsmaCompactionPlanner implements CompactionPlanner {
           "Can only have one executor w/o a maxSize. " + params.getOptions().get("executors"));
     }
 
-    String fqo = params.getFullyQualifiedOption("maxFilesPerCompaction");
+    String fqo = params.getFullyQualifiedOption("maxOpen");
 
     if (!params.getServiceEnvironment().getConfiguration().isSet(fqo)
         && params.getServiceEnvironment().getConfiguration()
@@ -140,8 +149,7 @@ public class LarsmaCompactionPlanner implements CompactionPlanner {
     try {
 
       if (params.getCandidates().isEmpty()) {
-        // TODO should not even be called in this case
-        return new CompactionPlan();
+        return params.createPlanBuilder().build();
       }
 
       Set<CompactableFile> filesCopy = new HashSet<>(params.getCandidates());
@@ -180,47 +188,41 @@ public class LarsmaCompactionPlanner implements CompactionPlanner {
           && (params.getKind() == CompactionKind.USER
               || params.getKind() == CompactionKind.SELECTOR)
           && params.getRunningCompactions().stream()
-              .filter(job -> job.getKind() == params.getKind()).count() == 0) {
-        // TODO could partition files by executor sizes, however would need to do this in optimal
-        // way.. not as easy as chop because need to result in a single file
+              .noneMatch(job -> job.getKind() == params.getKind())) {
+        // TODO ISSUE could partition files by executor sizes, however would need to do this in
+        // optimal way.. not as easy as chop because need to result in a single file
         group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);
       }
 
       if (group.isEmpty() && params.getKind() == CompactionKind.CHOP) {
-        // TODO since chop compactions do not have to result in a single file, could partition files
-        // by executors sizes
+        // TODO ISSUE since chop compactions do not have to result in a single file, could partition
+        // files by executors sizes
         group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);
       }
 
       if (group.isEmpty()) {
-        return new CompactionPlan();
+        return params.createPlanBuilder().build();
       } else {
         // determine which executor to use based on the size of the files
         var ceid = getExecutor(group);
 
-        if (!params.getRunningCompactions().isEmpty()) {
-          // TODO remove
-          log.info("Planning concurrent {} {}", ceid, group);
-        }
-
-        // TODO include type in priority!
-        CompactionJob job =
-            new CompactionJob(params.getAll().size(), ceid, group, params.getKind());
-        return new CompactionPlan(List.of(job));
+        return params.createPlanBuilder().addJob(createPriority(params), ceid, group).build();
       }
 
     } catch (RuntimeException e) {
-      // TODO remove
-      log.warn("params:{}", params, e);
       throw e;
     }
+  }
+
+  private static long createPriority(PlanningParameters params) {
+    return CompactionJobPrioritizer.createPriority(params.getKind(), params.getAll().size());
   }
 
   private long getMaxSizeToCompact(CompactionKind kind) {
     if (kind == CompactionKind.SYSTEM) {
       Long max = executors.get(executors.size() - 1).maxSize;
-      if (max == null)
-        max = Long.MAX_VALUE;
+      if (max != null)
+        return max;
     }
     return Long.MAX_VALUE;
   }
@@ -256,7 +258,6 @@ public class LarsmaCompactionPlanner implements CompactionPlanner {
     if (files.size() <= maxFilesToCompact)
       return files;
 
-    // TODO could reuse sorted files
     List<CompactableFile> sortedFiles = sortByFileSize(files);
 
     int numToCompact = maxFilesToCompact;
@@ -269,9 +270,6 @@ public class LarsmaCompactionPlanner implements CompactionPlanner {
     return sortedFiles.subList(0, numToCompact);
   }
 
-  /**
-   * Find the largest set of small files to compact.
-   */
   public static Collection<CompactableFile> findMapFilesToCompact(Set<CompactableFile> files,
       double ratio, int maxFilesToCompact, long maxSizeToCompact) {
     if (files.size() <= 1)
@@ -279,6 +277,65 @@ public class LarsmaCompactionPlanner implements CompactionPlanner {
 
     // sort files from smallest to largest. So position 0 has the smallest file.
     List<CompactableFile> sortedFiles = sortByFileSize(files);
+
+    int maxSizeIndex = sortedFiles.size();
+    long sum = 0;
+    for (int i = 0; i < sortedFiles.size(); i++) {
+      sum += sortedFiles.get(i).getEstimatedSize();
+      if (sum > maxSizeToCompact) {
+        maxSizeIndex = i;
+        break;
+      }
+    }
+
+    if (maxSizeIndex < sortedFiles.size()) {
+      sortedFiles = sortedFiles.subList(0, maxSizeIndex);
+      if (sortedFiles.size() <= 1)
+        return Collections.emptySet();
+    }
+
+    var loops = Math.max(1, sortedFiles.size() - maxFilesToCompact + 1);
+    for (int i = 0; i < loops; i++) {
+      var filesToCompact = findMapFilesToCompact(
+          sortedFiles.subList(i, Math.min(sortedFiles.size(), maxFilesToCompact) + i), ratio);
+      if (!filesToCompact.isEmpty())
+        return filesToCompact;
+    }
+
+    return Collections.emptySet();
+
+  }
+
+  /**
+   * Find the largest set of contiguous small files that meet the compaction ratio. For a set of
+   * file size like [101M,102M,103M,104M,4M,3M,3M,3M,3M], it would be nice compact the smaller files
+   * [4M,3M,3M,3M,3M] followed by the larger ones. The reason to do the smaller ones first is to
+   * more quickly reduce the number of files. However, all compactions should still follow the
+   * compaction ratio in order to ensure the amount of data rewriting is logarithmic.
+   *
+   * <p>
+   * A set of files meets the compaction ratio when the largestFileinSet * compactionRatio <
+   * sumOfFileSizesInSet. This algorithm grows the set of small files until it meets the compaction
+   * ratio, then keeps growing it while it continues to meet the ratio. Once a set does not meet the
+   * compaction ratio, the last set that did is returned. Growing the set of small files means
+   * adding the smallest file not in the set.
+   *
+   * <p>
+   * There is one caveat to the algorithm mentioned above, if a smaller set of files would prevent a
+   * future compaction then do not select it. This code in this function performs a look ahead to
+   * see if a candidate set will prevent future compactions.
+   *
+   * <p>
+   * As an example of a small set of files that could prevent a future compaction, consider the
+   * files sizes [100M,99M,33M,33M,33M,33M]. For a compaction ratio of 3, the set
+   * [100M,99M,33M,33M,33M,33M] and [33M,33M,33M,33M] both meet the compaction ratio. If the set
+   * [33M,33M,33M,33M] is compacted, then it will result in a tablet having [132M, 100M, 99M] which
+   * does not meet the compaction ration. So in this case, choosing the set [33M,33M,33M,33M]
+   * prevents a future compaction that could have occurred. This function will not choose the
+   * smaller set because of it would prevent the future compaction.
+   */
+  private static Collection<CompactableFile>
+      findMapFilesToCompact(List<CompactableFile> sortedFiles, double ratio) {
 
     int larsmaIndex = -1;
     long larsmaSum = Long.MIN_VALUE;
@@ -290,21 +347,19 @@ public class LarsmaCompactionPlanner implements CompactionPlanner {
 
     for (int c = 1; c < sortedFiles.size(); c++) {
       long currSize = sortedFiles.get(c).getEstimatedSize();
-      sum += currSize;
 
-      if (sum > maxSizeToCompact)
-        break;
+      // ensure data is sorted
+      Preconditions.checkArgument(currSize >= sortedFiles.get(c - 1).getEstimatedEntries());
+
+      sum += currSize;
 
       if (currSize * ratio < sum) {
         goodIndex = c;
-
-        if (goodIndex + 1 >= maxFilesToCompact)
-          break; // TODO old algorithm used to slide a window up when nothing found in smallest
-                 // files
       } else if (c - 1 == goodIndex) {
         // The previous file met the compaction ratio, but the current file does not. So all of the
         // previous files are candidates. However we must ensure that any candidate set produces a
-        // file smaller than the next largest file in the next candidate set.
+        // file smaller than the next largest file in the next candidate set to ensure future
+        // compactions are not prevented.
         if (larsmaIndex == -1 || larsmaSum > sortedFiles.get(goodIndex).getEstimatedSize()) {
           larsmaIndex = goodIndex;
           larsmaSum = sum - currSize;
@@ -330,16 +385,15 @@ public class LarsmaCompactionPlanner implements CompactionPlanner {
     long size = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
 
     for (Executor executor : executors) {
-      if (size < executor.maxSize)
+      if (executor.maxSize == null || size < executor.maxSize)
         return executor.ceid;
     }
 
-    // TODO is this best behavior? Could not compact when there is no executor to service that size
     return executors.get(executors.size() - 1).ceid;
   }
 
   public static List<CompactableFile> sortByFileSize(Collection<CompactableFile> files) {
-    List<CompactableFile> sortedFiles = new ArrayList<>(files);
+    ArrayList<CompactableFile> sortedFiles = new ArrayList<>(files);
 
     // sort from smallest file to largest
     Collections.sort(sortedFiles, Comparator.comparingLong(CompactableFile::getEstimatedSize)

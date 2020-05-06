@@ -19,32 +19,32 @@
 package org.apache.accumulo.core.spi.compaction;
 
 import java.util.Collection;
-import java.util.List;
+
+import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 
 /**
- *
  * @since 2.1.0
  * @see CompactionPlanner
  * @see org.apache.accumulo.core.spi.compaction
  */
-public class CompactionPlan {
+public interface CompactionPlan {
 
-  private final Collection<CompactionJob> jobs;
+  interface Builder {
+    /**
+     * @param priority
+     *          This determines the order in which the job is taken off the execution queue. Larger
+     *          numbers are taken off the queue first. If two jobs are on the queue, one with a
+     *          priority of 4 and another with 5, then the one with 5 will be taken first.
+     * @param executor
+     *          Where the job should run.
+     * @param group
+     *          The files to compact.
+     * @return this
+     */
+    Builder addJob(long priority, CompactionExecutorId executor, Collection<CompactableFile> group);
 
-  public CompactionPlan() {
-    this.jobs = List.of();
+    CompactionPlan build();
   }
 
-  public CompactionPlan(Collection<CompactionJob> jobs) {
-    this.jobs = List.copyOf(jobs);
-  }
-
-  public Collection<CompactionJob> getJobs() {
-    return jobs;
-  }
-
-  @Override
-  public String toString() {
-    return "jobs: " + jobs;
-  }
+  Collection<CompactionJob> getJobs();
 }

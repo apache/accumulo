@@ -75,7 +75,7 @@ public interface CompactionDispatcher {
     /**
      * @return the currently configured compaction services
      */
-    Map<CompactionServiceId,CompactionService> getCompactionServices();
+    CompactionServices getCompactionServices();
 
     ServiceEnvironment getServiceEnv();
 

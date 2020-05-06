@@ -18,9 +18,11 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import java.util.Set;
+
 /**
  * @since 2.1.0
  */
-public interface CompactionService {
-  String getName();
+public interface CompactionServices {
+  Set<CompactionServiceId> getIds();
 }

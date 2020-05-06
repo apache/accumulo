@@ -430,7 +430,7 @@ public class Tablet {
       removeOldTemporaryFiles();
     }
 
-    this.compactable = new CompactableImpl(this);
+    this.compactable = new CompactableImpl(this, tabletServer.getCompactionManager());
   }
 
   public ServerContext getContext() {
@@ -791,12 +791,11 @@ public class Tablet {
       }
 
       try (TraceScope span = Trace.startSpan("bringOnline")) {
-        getDatafileManager().bringMinorCompactionOnline(tmpDatafile, newDatafile,
+        var storedFile = getDatafileManager().bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId);
+        compactable.filesAdded(true, List.of(storedFile));
       }
-
-      compactable.filesAdded();
 
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
     } catch (Exception | Error e) {
@@ -994,13 +993,8 @@ public class Tablet {
   long getCompactionCancelID() {
     String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
         + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
-
-    try {
-      String id = new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8);
-      return Long.parseLong(id);
-    } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Exception on " + extent + " getting compact cancel ID", e);
-    }
+    String id = new String(context.getZooCache().get(zTablePath), UTF_8);
+    return Long.parseLong(id);
   }
 
   public Pair<Long,CompactionConfig> getCompactionID() throws NoNodeException {
@@ -1030,7 +1024,6 @@ public class Tablet {
         }
       }
 
-      // TODO
       if (overlappingConfig == null)
         overlappingConfig = new CompactionConfig(); // no config present, set to default
 
@@ -1196,27 +1189,25 @@ public class Tablet {
     log.trace("initiateClose(saveState={}) {}", saveState, getExtent());
 
     MinorCompactionTask mct = null;
-
     synchronized (this) {
       if (isClosed() || isClosing()) {
         String msg = "Tablet " + getExtent() + " already " + closeState;
         throw new IllegalStateException(msg);
       }
 
-      // enter the closing state, no splits, minor, or major compactions can start
-      // should cause running major compactions to stop
+      // enter the closing state, no splits or minor compactions can start
       closeState = CloseState.CLOSING;
       this.notifyAll();
+    }
 
-      // wait for major compactions to finish, setting closing to
-      // true should cause any running major compactions to abort
-      while (isMajorCompactionRunning()) {
-        try {
-          this.wait(50);
-        } catch (InterruptedException e) {
-          log.error(e.toString());
-        }
-      }
+    // Cancel any running compactions and prevent future ones from starting. This is very important
+    // because background compactions may update the metadata table. These metadata updates can not
+    // be allowed after a tablet closes. Compactable has its own lock and calls tablet code, so do
+    // not hold tablet lock while calling it.
+    compactable.close();
+
+    synchronized (this) {
+      Preconditions.checkState(closeState == CloseState.CLOSING);
 
       while (updatingFlushID) {
         try {
@@ -1226,11 +1217,19 @@ public class Tablet {
         }
       }
 
+      // calling this.wait() releases the lock, ensure things are as expected when the lock is
+      // obtained again
+      Preconditions.checkState(closeState == CloseState.CLOSING);
+
       if (!saveState || getTabletMemory().getMemTable().getNumEntries() == 0) {
         return;
       }
 
       getTabletMemory().waitForMinC();
+
+      // calling this.wait() in waitForMinC() releases the lock, ensure things are as expected when
+      // the lock is obtained again
+      Preconditions.checkState(closeState == CloseState.CLOSING);
 
       try {
         mct = prepareForMinC(getFlushID(), MinorCompactionReason.CLOSE);
@@ -1596,8 +1595,7 @@ public class Tablet {
   }
 
   public boolean isMajorCompactionQueued() {
-    // TODO this is hard to track!
-    return false;
+    return compactable.isMajorCompactionQueued();
   }
 
   public boolean isMinorCompactionQueued() {
@@ -1813,13 +1811,13 @@ public class Tablet {
     try {
       tabletServer.updateBulkImportState(files, BulkImportState.LOADING);
 
-      getDatafileManager().importMapFiles(tid, entries, setTime);
+      var storedTabletFile = getDatafileManager().importMapFiles(tid, entries, setTime);
       lastMapFileImportTime = System.currentTimeMillis();
 
       if (needsSplit()) {
         getTabletServer().executeSplit(this);
       } else {
-        compactable.filesAdded();
+        compactable.filesAdded(false, storedTabletFile);
       }
     } finally {
       synchronized (this) {
@@ -2067,7 +2065,6 @@ public class Tablet {
         return;
       }
 
-      // TODO remove???
       if (isMinorCompactionRunning()) {
         // want to wait for running minc to finish before starting majc, see ACCUMULO-3041
         if (compactionWaitInfo.compactionID == compactionId) {
@@ -2081,7 +2078,6 @@ public class Tablet {
         }
       }
 
-      // TODO remove major compaction state tracking
       if (isClosing() || isClosed()) {
         return;
       }
@@ -2090,7 +2086,6 @@ public class Tablet {
 
     }
 
-    // TODO may need to record in sync block that we are initiating
     if (shouldInitiate) {
       compactable.initiateUserCompaction(compactionId, compactionConfig);
     }

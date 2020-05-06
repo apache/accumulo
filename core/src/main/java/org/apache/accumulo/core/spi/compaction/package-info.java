@@ -43,7 +43,7 @@
  * configure a compaction service. It makes decisions about which files to compact on which
  * executors. See {@link org.apache.accumulo.core.spi.compaction.CompactionPlanner},
  * {@link org.apache.accumulo.core.spi.compaction.CompactionPlanner#makePlan(org.apache.accumulo.core.spi.compaction.CompactionPlanner.PlanningParameters)},
- * and {@link org.apache.accumulo.core.spi.compaction.LarsmaCompactionPlanner}
+ * and {@link org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner}
  * <li><b>Compaction Executor</b> A non pluggable component that executes compactions using multiple
  * threads and has a priority queue.</li>
  * </ul>

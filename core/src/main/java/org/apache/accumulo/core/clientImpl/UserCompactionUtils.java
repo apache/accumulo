@@ -33,9 +33,8 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.client.admin.CompactionConfigurerConfig;
-import org.apache.accumulo.core.client.admin.CompactionSelectorConfig;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
+import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -46,8 +45,18 @@ public class UserCompactionUtils {
   private static final int SELECTOR_MAGIC = 0xae9270bf;
   private static final int CONFIGURER_MAGIC = 0xf93e570a;
 
-  public static CompactionConfigurerConfig DEFAULT_CCC = new CompactionConfigurerConfig("");
-  public static CompactionSelectorConfig DEFAULT_CSC = new CompactionSelectorConfig("");
+  public static final PluginConfig DEFAULT_CCC = new PluginConfig("") {
+    @Override
+    public PluginConfig setOptions(java.util.Map<String,String> opts) {
+      throw new UnsupportedOperationException();
+    }
+  };
+  public static final PluginConfig DEFAULT_CSC = new PluginConfig("") {
+    @Override
+    public PluginConfig setOptions(java.util.Map<String,String> opts) {
+      throw new UnsupportedOperationException();
+    }
+  };
 
   public static void encode(DataOutput dout, Map<String,String> options) {
     try {
@@ -158,37 +167,37 @@ public class UserCompactionUtils {
     return decoder.decode(dis);
   }
 
-  public static void encode(DataOutput dout, CompactionSelectorConfig csc) {
+  public static void encodeSelector(DataOutput dout, PluginConfig csc) {
     encode(dout, SELECTOR_MAGIC, 1, csc.getClassName(), csc.getOptions());
   }
 
-  public static byte[] encode(CompactionSelectorConfig csc) {
-    return encode(csc, UserCompactionUtils::encode);
+  public static byte[] encodeSelector(PluginConfig csc) {
+    return encode(csc, UserCompactionUtils::encodeSelector);
   }
 
-  public static CompactionSelectorConfig decodeSelector(DataInput di) {
+  public static PluginConfig decodeSelector(DataInput di) {
     var pcd = decode(di, SELECTOR_MAGIC, 1);
-    return new CompactionSelectorConfig(pcd.className).setOptions(pcd.opts);
+    return new PluginConfig(pcd.className).setOptions(pcd.opts);
   }
 
-  public static CompactionSelectorConfig decodeSelector(byte[] bytes) {
+  public static PluginConfig decodeSelector(byte[] bytes) {
     return decode(bytes, UserCompactionUtils::decodeSelector);
   }
 
-  public static void encode(DataOutput dout, CompactionConfigurerConfig ccc) {
+  public static void encodeConfigurer(DataOutput dout, PluginConfig ccc) {
     encode(dout, CONFIGURER_MAGIC, 1, ccc.getClassName(), ccc.getOptions());
   }
 
-  public static byte[] encode(CompactionConfigurerConfig ccc) {
-    return encode(ccc, UserCompactionUtils::encode);
+  public static byte[] encodeConfigurer(PluginConfig ccc) {
+    return encode(ccc, UserCompactionUtils::encodeConfigurer);
   }
 
-  public static CompactionConfigurerConfig decodeConfigurer(DataInput di) {
+  public static PluginConfig decodeConfigurer(DataInput di) {
     var pcd = decode(di, CONFIGURER_MAGIC, 1);
-    return new CompactionConfigurerConfig(pcd.className).setOptions(pcd.opts);
+    return new PluginConfig(pcd.className).setOptions(pcd.opts);
   }
 
-  public static CompactionConfigurerConfig decodeConfigurer(byte[] bytes) {
+  public static PluginConfig decodeConfigurer(byte[] bytes) {
     return decode(bytes, UserCompactionUtils::decodeConfigurer);
   }
 
@@ -221,8 +230,8 @@ public class UserCompactionUtils {
 
       CompactionStrategyConfigUtil.encode(dout, cc.getCompactionStrategy());
 
-      encode(dout, cc.getConfigurer());
-      encode(dout, cc.getSelector());
+      encodeConfigurer(dout, cc.getConfigurer());
+      encodeSelector(dout, cc.getSelector());
       encode(dout, cc.getExecutionHints());
 
     } catch (IOException ioe) {
@@ -286,7 +295,7 @@ public class UserCompactionUtils {
     }
   }
 
-  public static boolean isDefault(CompactionConfigurerConfig configurer) {
+  public static boolean isDefault(PluginConfig configurer) {
     return configurer.equals(DEFAULT_CCC);
   }
 
@@ -297,9 +306,5 @@ public class UserCompactionUtils {
   public static boolean isDefault(CompactionStrategyConfig compactionStrategy) {
     return compactionStrategy.equals(CompactionStrategyConfigUtil.DEFAULT_STRATEGY);
 
-  }
-
-  public static boolean isDefault(CompactionSelectorConfig selector) {
-    return selector.equals(DEFAULT_CSC);
   }
 }

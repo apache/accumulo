@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver.tablet;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -194,8 +195,8 @@ class DatafileManager {
     return inUse;
   }
 
-  public void importMapFiles(long tid, Map<TabletFile,DataFileValue> paths, boolean setTime)
-      throws IOException {
+  public Collection<StoredTabletFile> importMapFiles(long tid, Map<TabletFile,DataFileValue> paths,
+      boolean setTime) throws IOException {
 
     String bulkDir = null;
     // once tablet files are inserted into the metadata they will become StoredTabletFiles
@@ -260,10 +261,12 @@ class DatafileManager {
     for (Entry<StoredTabletFile,DataFileValue> entry : newFiles.entrySet()) {
       TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
     }
+
+    return newFiles.keySet();
   }
 
-  void bringMinorCompactionOnline(TabletFile tmpDatafile, TabletFile newDatafile, DataFileValue dfv,
-      CommitSession commitSession, long flushId) {
+  StoredTabletFile bringMinorCompactionOnline(TabletFile tmpDatafile, TabletFile newDatafile,
+      DataFileValue dfv, CommitSession commitSession, long flushId) {
     StoredTabletFile newFile;
     // rename before putting in metadata table, so files in metadata table should
     // always exist
@@ -381,6 +384,8 @@ class DatafileManager {
       log.debug(String.format("Minor Compaction wrote out file larger than split threshold."
           + " split threshold = %,d  file size = %,d", splitSize, dfv.getSize()));
     }
+
+    return newFile;
   }
 
   StoredTabletFile bringMajorCompactionOnline(Set<StoredTabletFile> oldDatafiles,
@@ -450,7 +455,6 @@ class DatafileManager {
       log.trace(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));
     }
 
-    TabletLogger.compacted(extent, oldDatafiles, newFile);
     return newFile;
   }
 

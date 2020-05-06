@@ -78,6 +78,7 @@ import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -167,46 +168,58 @@ public class Initialize implements KeywordExecutable {
     return zoo;
   }
 
-  private static HashMap<String,String> initialMetadataConf = new HashMap<>();
-  private static HashMap<String,String> initialMetadataCombinerConf = new HashMap<>();
+  // config only for root table
+  private static HashMap<String,String> initialRootConf = new HashMap<>();
+  // config for root and metadata table
+  private static HashMap<String,String> initialRootMetaConf = new HashMap<>();
+  // config for only metadata table
+  private static HashMap<String,String> initialMetaConf = new HashMap<>();
   private static HashMap<String,String> initialReplicationTableConf = new HashMap<>();
 
   static {
-    initialMetadataConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
-    initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
-    initialMetadataConf.put(Property.TABLE_DURABILITY.getKey(), "sync");
-    initialMetadataConf.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
-    initialMetadataConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "64M");
-    initialMetadataConf.put(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
+    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+        SimpleCompactionDispatcher.class.getName());
+    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root");
+
+    initialRootMetaConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
+    initialRootMetaConf.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
+    initialRootMetaConf.put(Property.TABLE_DURABILITY.getKey(), "sync");
+    initialRootMetaConf.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
+    initialRootMetaConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "64M");
+    initialRootMetaConf.put(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
         MetadataConstraints.class.getName());
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers",
         "10," + VersioningIterator.class.getName());
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions",
         "1");
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers",
         "10," + VersioningIterator.class.getName());
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions",
         "1");
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers",
         "10," + VersioningIterator.class.getName());
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions",
         "1");
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter",
         "20," + MetadataBulkLoadFilter.class.getName());
-    initialMetadataConf.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
-    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
+    initialRootMetaConf.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
+    initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
         String.format("%s,%s", TabletColumnFamily.NAME, CurrentLocationColumnFamily.NAME));
-    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server",
+    initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server",
         String.format("%s,%s,%s,%s", DataFileColumnFamily.NAME, LogColumnFamily.NAME,
             ServerColumnFamily.NAME, FutureLocationColumnFamily.NAME));
-    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
-    initialMetadataConf.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
-    initialMetadataConf.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
-    initialMetadataConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
+    initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
+    initialRootMetaConf.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
+    initialRootMetaConf.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
+    initialRootMetaConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
+
+    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+        SimpleCompactionDispatcher.class.getName());
+    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
 
     // ACCUMULO-3077 Set the combiner on accumulo.metadata during init to reduce the likelihood of a
-    // race
-    // condition where a tserver compacts away Status updates because it didn't see the Combiner
+    // race condition where a tserver compacts away Status updates because it didn't see the
+    // Combiner
     // configured
     IteratorSetting setting =
         new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, StatusCombiner.class);
@@ -215,10 +228,9 @@ public class Initialize implements KeywordExecutable {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), setting.getName());
       for (Entry<String,String> prop : setting.getOptions().entrySet()) {
-        initialMetadataCombinerConf.put(root + ".opt." + prop.getKey(), prop.getValue());
+        initialMetaConf.put(root + ".opt." + prop.getKey(), prop.getValue());
       }
-      initialMetadataCombinerConf.put(root,
-          setting.getPriority() + "," + setting.getIteratorClass());
+      initialMetaConf.put(root, setting.getPriority() + "," + setting.getIteratorClass());
     }
 
     // add combiners to replication table
@@ -832,7 +844,15 @@ public class Initialize implements KeywordExecutable {
       if (min > 5) {
         setMetadataReplication(min, "min");
       }
-      for (Entry<String,String> entry : initialMetadataConf.entrySet()) {
+
+      for (Entry<String,String> entry : initialRootConf.entrySet()) {
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, RootTable.ID, entry.getKey(),
+            entry.getValue())) {
+          throw new IOException("Cannot create per-table property " + entry.getKey());
+        }
+      }
+
+      for (Entry<String,String> entry : initialRootMetaConf.entrySet()) {
         if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, RootTable.ID, entry.getKey(),
             entry.getValue())) {
           throw new IOException("Cannot create per-table property " + entry.getKey());
@@ -842,8 +862,8 @@ public class Initialize implements KeywordExecutable {
           throw new IOException("Cannot create per-table property " + entry.getKey());
         }
       }
-      // Only add combiner config to accumulo.metadata table (ACCUMULO-3077)
-      for (Entry<String,String> entry : initialMetadataCombinerConf.entrySet()) {
+
+      for (Entry<String,String> entry : initialMetaConf.entrySet()) {
         if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, MetadataTable.ID, entry.getKey(),
             entry.getValue())) {
           throw new IOException("Cannot create per-table property " + entry.getKey());
@@ -874,7 +894,7 @@ public class Initialize implements KeywordExecutable {
       // Lets make sure it's a number
       Integer.parseInt(rep);
     }
-    initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
+    initialRootMetaConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
   }
 
   public static boolean isInitialized(VolumeManager fs, SiteConfiguration siteConfig,

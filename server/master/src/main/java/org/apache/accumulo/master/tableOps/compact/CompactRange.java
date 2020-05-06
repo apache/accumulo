@@ -83,7 +83,7 @@ public class CompactRange extends MasterRepo {
 
     this.startRow =
         Optional.ofNullable(compactionConfig.getStartRow()).map(TextUtil::getBytes).orElse(null);
-    this.startRow =
+    this.endRow =
         Optional.ofNullable(compactionConfig.getEndRow()).map(TextUtil::getBytes).orElse(null);
   }
 

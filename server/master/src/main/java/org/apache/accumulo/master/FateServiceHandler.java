@@ -465,7 +465,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_COMPACT: {
         TableOperation tableOp = TableOperation.COMPACT;
-        // TODO could have compatability mode for the old number of args
+        // TODO ISSUE could have compatability mode for the old number of args
         validateArgumentCount(arguments, tableOp, 2);
         TableId tableId = validateTableIdArgument(arguments.get(0), tableOp, null);
         CompactionConfig compactionConfig =

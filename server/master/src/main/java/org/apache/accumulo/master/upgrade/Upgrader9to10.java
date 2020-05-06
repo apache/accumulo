@@ -54,6 +54,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -63,6 +64,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -76,6 +78,7 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
+import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -108,6 +111,7 @@ public class Upgrader9to10 implements Upgrader {
 
   @Override
   public void upgradeZookeeper(ServerContext ctx) {
+    setMetaTableProps(ctx);
     upgradeRootTabletMetadata(ctx);
   }
 
@@ -123,6 +127,24 @@ public class Upgrader9to10 implements Upgrader {
     upgradeRelativePaths(ctx, Ample.DataLevel.USER);
     upgradeDirColumns(ctx, Ample.DataLevel.USER);
     upgradeFileDeletes(ctx, Ample.DataLevel.USER);
+  }
+
+  private void setMetaTableProps(ServerContext ctx) {
+    try {
+      TablePropUtil.setTableProperty(ctx, RootTable.ID,
+          Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+          SimpleCompactionDispatcher.class.getName());
+      TablePropUtil.setTableProperty(ctx, RootTable.ID,
+          Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root");
+
+      TablePropUtil.setTableProperty(ctx, MetadataTable.ID,
+          Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+          SimpleCompactionDispatcher.class.getName());
+      TablePropUtil.setTableProperty(ctx, MetadataTable.ID,
+          Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Unable to set system table properties", e);
+    }
   }
 
   private void upgradeRootTabletMetadata(ServerContext ctx) {

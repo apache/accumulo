@@ -22,27 +22,32 @@ import java.util.Map;
 
 public enum CompactionSettings {
 
-  SF_NO_SUMMARY(new NullType()),
-  SF_EXTRA_SUMMARY(new NullType()),
-  SF_NO_SAMPLE(new NullType()),
-  SF_GT_ESIZE_OPT(new SizeType()),
-  SF_LT_ESIZE_OPT(new SizeType()),
-  SF_NAME_RE_OPT(new PatternType()),
-  SF_PATH_RE_OPT(new PatternType()),
-  MIN_FILES_OPT(new UIntType()),
-  OUTPUT_COMPRESSION_OPT(new StringType()),
-  OUTPUT_BLOCK_SIZE_OPT(new SizeType()),
-  OUTPUT_HDFS_BLOCK_SIZE_OPT(new SizeType()),
-  OUTPUT_INDEX_BLOCK_SIZE_OPT(new SizeType()),
-  OUTPUT_REPLICATION_OPT(new UIntType());
+  SF_NO_SUMMARY(new NullType(), true),
+  SF_EXTRA_SUMMARY(new NullType(), true),
+  SF_NO_SAMPLE(new NullType(), true),
+  SF_GT_ESIZE_OPT(new SizeType(), true),
+  SF_LT_ESIZE_OPT(new SizeType(), true),
+  SF_NAME_RE_OPT(new PatternType(), true),
+  SF_PATH_RE_OPT(new PatternType(), true),
+  MIN_FILES_OPT(new UIntType(), true),
+  OUTPUT_COMPRESSION_OPT(new StringType(), false),
+  OUTPUT_BLOCK_SIZE_OPT(new SizeType(), false),
+  OUTPUT_HDFS_BLOCK_SIZE_OPT(new SizeType(), false),
+  OUTPUT_INDEX_BLOCK_SIZE_OPT(new SizeType(), false),
+  OUTPUT_REPLICATION_OPT(new UIntType(), false);
 
   private Type type;
+  private boolean selectorOpt;
 
-  private CompactionSettings(Type type) {
+  private CompactionSettings(Type type, boolean selectorOpt) {
     this.type = type;
+    this.selectorOpt = selectorOpt;
   }
 
-  public void put(Map<String,String> options, String val) {
-    options.put(name(), type.convert(val));
+  public void put(Map<String,String> selectorOpts, Map<String,String> configurerOpts, String val) {
+    if (selectorOpt)
+      selectorOpts.put(name(), type.convert(val));
+    else
+      configurerOpts.put(name(), type.convert(val));
   }
 }

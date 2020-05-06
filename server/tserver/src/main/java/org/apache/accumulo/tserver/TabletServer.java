@@ -382,6 +382,7 @@ public class TabletServer extends AbstractServer {
   private final ReentrantLock recoveryLock = new ReentrantLock(true);
   private ThriftClientHandler clientHandler;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
+  private CompactionManager compactionManager;
 
   String getLockID() {
     return lockID;
@@ -725,6 +726,15 @@ public class TabletServer extends AbstractServer {
       }
     }
 
+    this.compactionManager = new CompactionManager(new Iterable<Compactable>() {
+      @Override
+      public Iterator<Compactable> iterator() {
+        return Iterators.transform(onlineTablets.snapshot().values().iterator(),
+            Tablet::asCompactable);
+      }
+    }, getContext(), this.resourceManager);
+    compactionManager.start();
+
     try {
       clientAddress = startTabletClientService();
     } catch (UnknownHostException e1) {
@@ -770,15 +780,6 @@ public class TabletServer extends AbstractServer {
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
     SimpleTimer.getInstance(aconf).schedule(new BulkImportCacheCleaner(this),
         CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS);
-
-    // TODO where should this go? Maybe tablet server resource manager
-    new CompactionManager(new Iterable<Compactable>() {
-      @Override
-      public Iterator<Compactable> iterator() {
-        return Iterators.transform(onlineTablets.snapshot().values().iterator(),
-            Tablet::asCompactable);
-      }
-    }, getContext()).start();
 
     HostAndPort masterHost;
     while (!serverStopRequested) {
@@ -1378,5 +1379,9 @@ public class TabletServer extends AbstractServer {
    */
   public final RateLimiter getMajorCompactionWriteLimiter() {
     return SharedRateLimiterFactory.getInstance().create(MAJC_WRITE_LIMITER_KEY, rateProvider);
+  }
+
+  public CompactionManager getCompactionManager() {
+    return compactionManager;
   }
 }

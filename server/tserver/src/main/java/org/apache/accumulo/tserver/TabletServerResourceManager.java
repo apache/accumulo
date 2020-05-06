@@ -32,7 +32,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Queue;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,12 +53,11 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.scan.ScanDirectives;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
@@ -78,10 +76,6 @@ import org.apache.accumulo.server.tabletserver.MemoryManager;
 import org.apache.accumulo.server.tabletserver.TabletState;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
-import org.apache.accumulo.tserver.compaction.CompactionStrategy;
-import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
-import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
-import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.htrace.wrappers.TraceExecutorService;
@@ -323,6 +317,15 @@ public class TabletServerResourceManager {
     }
 
     return builder.build();
+  }
+
+  public ExecutorService createCompactionExecutor(CompactionExecutorId ceid, int numThreads,
+      BlockingQueue<Runnable> queue) {
+    String name = "compaction." + ceid;
+    ThreadPoolExecutor tp = new ThreadPoolExecutor(numThreads, numThreads, 60, TimeUnit.SECONDS,
+        queue, new NamingThreadFactory("compaction." + ceid));
+    tp.allowCoreThreadTimeOut(true);
+    return addEs(name, tp);
   }
 
   @SuppressFBWarnings(value = "DM_GC",
@@ -723,8 +726,6 @@ public class TabletServerResourceManager {
 
   public class TabletResourceManager {
 
-    private final long creationTime = System.currentTimeMillis();
-
     private volatile boolean openFilesReserved = false;
 
     private volatile boolean closed = false;
@@ -809,53 +810,6 @@ public class TabletServerResourceManager {
     }
 
     // END methods that Tablets call to manage memory
-
-    // BEGIN methods that Tablets call to make decisions about major compaction
-    // when too many files are open, we may want tablets to compact down
-    // to one map file
-    public boolean needsMajorCompaction(SortedMap<StoredTabletFile,DataFileValue> tabletFiles,
-        MajorCompactionReason reason) {
-      if (closed) {
-        return false;// throw new IOException("closed");
-      }
-
-      // int threshold;
-
-      if (reason == MajorCompactionReason.USER) {
-        return true;
-      }
-
-      if (reason == MajorCompactionReason.IDLE) {
-        // threshold = 1;
-        long idleTime;
-        if (lastReportedCommitTime == 0) {
-          // no commits, so compute how long the tablet has been assigned to the
-          // tablet server
-          idleTime = System.currentTimeMillis() - creationTime;
-        } else {
-          idleTime = System.currentTimeMillis() - lastReportedCommitTime;
-        }
-
-        if (idleTime < tableConf.getTimeInMillis(Property.TABLE_MAJC_COMPACTALL_IDLETIME)) {
-          return false;
-        }
-      }
-      // TODO remove this
-      CompactionStrategy strategy = Property.createTableInstanceFromPropertyName(tableConf,
-          Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
-          new DefaultCompactionStrategy());
-      strategy.init(Property.getCompactionStrategyOptions(tableConf));
-      MajorCompactionRequest request =
-          new MajorCompactionRequest(extent, reason, tableConf, context);
-      request.setFiles(tabletFiles);
-      try {
-        return strategy.shouldCompact(request);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    // END methods that Tablets call to make decisions about major compaction
 
     // tablets call this method to run minor compactions,
     // this allows us to control how many minor compactions
