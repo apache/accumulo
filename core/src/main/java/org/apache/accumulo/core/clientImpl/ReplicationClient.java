@@ -184,20 +184,18 @@ public class ReplicationClient {
       ClientExecReturn<T,ReplicationServicer.Client> exec, long timeout)
       throws AccumuloException, AccumuloSecurityException {
     ReplicationServicer.Client client = null;
-    while (true) {
-      try {
-        client = getServicerConnection(context, tserver, timeout);
-        return exec.execute(client);
-      } catch (ThriftSecurityException e) {
-        throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (AccumuloException e) {
-        throw e;
-      } catch (Exception e) {
-        throw new AccumuloException(e);
-      } finally {
-        if (client != null)
-          close(client);
-      }
+    try {
+      client = getServicerConnection(context, tserver, timeout);
+      return exec.execute(client);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloSecurityException(e.user, e.code, e);
+    } catch (AccumuloException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null)
+        close(client);
     }
   }
 
