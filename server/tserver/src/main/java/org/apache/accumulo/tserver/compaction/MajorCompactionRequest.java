@@ -60,6 +60,7 @@ import com.google.common.cache.Cache;
 /**
  * Information that can be used to determine how a tablet is to be major compacted, if needed.
  */
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class MajorCompactionRequest implements Cloneable {
   private final KeyExtent extent;
   private final MajorCompactionReason reason;
@@ -71,6 +72,7 @@ public class MajorCompactionRequest implements Cloneable {
   private final ServerContext context;
   private final Cache<String,Long> fileLenCache;
 
+  // TODO ISSUE make this compatible with 1.9 and 2.0.. do not use StoredTabletFile
   public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
       VolumeManager manager, AccumuloConfiguration tabletConfig, BlockCache summaryCache,
       BlockCache indexCache, Cache<String,Long> fileLenCache, ServerContext context) {

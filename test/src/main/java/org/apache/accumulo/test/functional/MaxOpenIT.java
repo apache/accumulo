@@ -48,6 +48,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * A functional test that exercises hitting the max open file limit on a tablet server. This test
  * assumes there are one or two tablet servers.
  */
+@SuppressWarnings("removal")
 public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Override

@@ -31,6 +31,7 @@ import org.apache.accumulo.tserver.compaction.strategies.BasicCompactionStrategy
 /**
  * {@link BasicCompactionStrategy} offer the same functionality as this class and more.
  */
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class SizeLimitCompactionStrategy extends DefaultCompactionStrategy {
   public static final String SIZE_LIMIT_OPT = "sizeLimit";
 

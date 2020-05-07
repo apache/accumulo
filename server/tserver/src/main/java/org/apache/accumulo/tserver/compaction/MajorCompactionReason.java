@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.tserver.compaction;
 
+@Deprecated(since = "2.1.0", forRemoval = true)
 public enum MajorCompactionReason {
   // do not change the order, the order of this enum determines the order
   // in which queued major compactions are executed
   USER, CHOP, NORMAL, IDLE
+
 }

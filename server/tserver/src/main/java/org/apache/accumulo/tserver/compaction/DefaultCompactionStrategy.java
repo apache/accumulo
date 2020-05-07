@@ -32,6 +32,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
+@SuppressWarnings("removal")
 public class DefaultCompactionStrategy extends CompactionStrategy {
 
   /**

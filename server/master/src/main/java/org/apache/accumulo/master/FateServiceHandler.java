@@ -39,16 +39,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.clientImpl.CompactionStrategyConfigUtil;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -56,7 +55,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.master.thrift.FateService;
@@ -467,14 +465,11 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_COMPACT: {
         TableOperation tableOp = TableOperation.COMPACT;
-        validateArgumentCount(arguments, tableOp, 5);
+        // TODO ISSUE could have compatability mode for the old number of args
+        validateArgumentCount(arguments, tableOp, 2);
         TableId tableId = validateTableIdArgument(arguments.get(0), tableOp, null);
-        byte[] startRow = ByteBufferUtil.toBytes(arguments.get(1));
-        byte[] endRow = ByteBufferUtil.toBytes(arguments.get(2));
-        List<IteratorSetting> iterators =
-            SystemIteratorUtil.decodeIteratorSettings(ByteBufferUtil.toBytes(arguments.get(3)));
-        CompactionStrategyConfig compactionStrategy =
-            CompactionStrategyConfigUtil.decode(ByteBufferUtil.toBytes(arguments.get(4)));
+        CompactionConfig compactionConfig =
+            UserCompactionUtils.decodeCompactionConfig(ByteBufferUtil.toBytes(arguments.get(1)));
         NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canCompact;
@@ -488,8 +483,8 @@ class FateServiceHandler implements FateService.Iface {
         if (!canCompact)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.fate.seedTransaction(opid, new TraceRepo<>(new CompactRange(namespaceId, tableId,
-            startRow, endRow, iterators, compactionStrategy)), autoCleanup);
+        master.fate.seedTransaction(opid,
+            new TraceRepo<>(new CompactRange(namespaceId, tableId, compactionConfig)), autoCleanup);
         break;
       }
       case TABLE_CANCEL_COMPACT: {

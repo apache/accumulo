@@ -27,6 +27,7 @@ import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 
+@SuppressWarnings("removal")
 public class SizeCompactionStrategy extends CompactionStrategy {
 
   private long size = 0;

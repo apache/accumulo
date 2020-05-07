@@ -64,6 +64,8 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.PluginConfig;
+import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.client.summary.CounterSummary;
@@ -437,9 +439,38 @@ public class SummaryIT extends AccumuloClusterHarness {
   }
 
   /**
+   * A compaction selector that initiates a compaction when {@code foo} occurs more than {@code bar}
+   * in the data. The {@link FooCounter} summary data is used to make the determination.
+   */
+  public static class FooSelector implements CompactionSelector {
+
+    @Override
+    public void init(InitParamaters iparams) {}
+
+    @Override
+    public Selection select(SelectionParameters sparams) {
+      Collection<Summary> summaries = sparams.getSummaries(sparams.getAvailableFiles(),
+          conf -> conf.getClassName().contains("FooCounter"));
+      if (summaries.size() == 1) {
+        Summary summary = summaries.iterator().next();
+        Long foos = summary.getStatistics().getOrDefault("foos", 0L);
+        Long bars = summary.getStatistics().getOrDefault("bars", 0L);
+
+        if (foos > bars) {
+          return new Selection(sparams.getAvailableFiles());
+        }
+      }
+
+      return new Selection(Set.of());
+    }
+
+  }
+
+  /**
    * A compaction strategy that initiates a compaction when {@code foo} occurs more than {@code bar}
    * in the data. The {@link FooCounter} summary data is used to make the determination.
    */
+  @SuppressWarnings("removal")
   public static class FooCS extends CompactionStrategy {
 
     private boolean compact = false;
@@ -475,7 +506,23 @@ public class SummaryIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void compactionTest() throws Exception {
+  public void compactionSelectorTest() throws Exception {
+    // Create a compaction config that will filter out foos if there are too many. Uses summary
+    // data to know if there are too many foos.
+    PluginConfig csc = new PluginConfig(FooSelector.class.getName());
+    CompactionConfig compactConfig = new CompactionConfig().setSelector(csc);
+    compactionTest(compactConfig);
+  }
+
+  @SuppressWarnings("removal")
+  @Test
+  public void compactionStrategyTest() throws Exception {
+    CompactionStrategyConfig csc = new CompactionStrategyConfig(FooCS.class.getName());
+    CompactionConfig compactConfig = new CompactionConfig().setCompactionStrategy(csc);
+    compactionTest(compactConfig);
+  }
+
+  public void compactionTest(CompactionConfig compactConfig) throws Exception {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
@@ -490,14 +537,9 @@ public class SummaryIT extends AccumuloClusterHarness {
         write(bw, "foo1", "f1", "q1", "v3");
       }
 
-      // Create a compaction config that will filter out foos if there are too many. Uses summary
-      // data
-      // to know if there are too many foos.
-      CompactionStrategyConfig csc = new CompactionStrategyConfig(FooCS.class.getName());
       List<IteratorSetting> iterators =
           Collections.singletonList(new IteratorSetting(100, FooFilter.class));
-      CompactionConfig compactConfig = new CompactionConfig().setFlush(true)
-          .setCompactionStrategy(csc).setIterators(iterators).setWait(true);
+      compactConfig = compactConfig.setFlush(true).setIterators(iterators).setWait(true);
 
       // this compaction should make no changes because there are less foos than bars
       c.tableOperations().compact(table, compactConfig);

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.admin.compaction.TooManyDeletesSelector;
 import org.apache.accumulo.core.client.rfile.RFile.WriterOptions;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
@@ -78,7 +79,9 @@ import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
  * href=https://issues.apache.org/jira/browse/ACCUMULO-4573>ACCUMULO-4573</a>
  *
  * @since 2.0.0
+ * @deprecated since 2.1.0 use {@link TooManyDeletesSelector} instead
  */
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy {
 
   private boolean shouldCompact = false;
