@@ -37,7 +37,7 @@ public class CompactionPlanImpl implements CompactionPlan {
 
   private final Collection<CompactionJob> jobs;
 
-  CompactionPlanImpl(Collection<CompactionJob> jobs) {
+  private CompactionPlanImpl(Collection<CompactionJob> jobs) {
     this.jobs = List.copyOf(jobs);
   }
 
@@ -57,10 +57,13 @@ public class CompactionPlanImpl implements CompactionPlan {
     private ArrayList<CompactionJob> jobs = new ArrayList<>();
     private Set<CompactableFile> allFiles;
     private Set<CompactableFile> seenFiles = new HashSet<>();
+    private Set<CompactableFile> candidates;
 
-    public BuilderImpl(CompactionKind kind, Set<CompactableFile> allFiles) {
+    public BuilderImpl(CompactionKind kind, Set<CompactableFile> allFiles,
+        Set<CompactableFile> candidates) {
       this.kind = kind;
       this.allFiles = allFiles;
+      this.candidates = candidates;
     }
 
     @Override
@@ -71,8 +74,8 @@ public class CompactionPlanImpl implements CompactionPlan {
 
       Preconditions.checkArgument(Collections.disjoint(filesSet, seenFiles),
           "Job files overlaps with previous job %s %s", files, jobs);
-      Preconditions.checkArgument(allFiles.containsAll(filesSet),
-          "Job files are not tablet files %s %s", files, allFiles);
+      Preconditions.checkArgument(candidates.containsAll(filesSet),
+          "Job files are not compaction candidates %s %s", files, candidates);
 
       seenFiles.addAll(filesSet);
 

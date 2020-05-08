@@ -216,7 +216,7 @@ public class DefaultCompactionPlannerTest {
 
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
-    return new CompactionPlanImpl.BuilderImpl(kind, all)
+    return new CompactionPlanImpl.BuilderImpl(kind, all, all)
         .addJob(all.size(), CompactionExecutorId.of("small"), files).build().getJobs().iterator()
         .next();
   }
@@ -309,7 +309,7 @@ public class DefaultCompactionPlannerTest {
 
       @Override
       public Builder createPlanBuilder() {
-        return new CompactionPlanImpl.BuilderImpl(kind, all);
+        return new CompactionPlanImpl.BuilderImpl(kind, all, candidates);
       }
     };
   }

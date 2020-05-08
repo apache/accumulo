@@ -195,7 +195,8 @@ public class CompactionService {
 
       @Override
       public CompactionPlan.Builder createPlanBuilder() {
-        return new CompactionPlanImpl.BuilderImpl(kind, files.get().allFiles);
+        return new CompactionPlanImpl.BuilderImpl(kind, files.get().allFiles,
+            files.get().candidates);
       }
     };
 
@@ -211,10 +212,9 @@ public class CompactionService {
       throw e;
     }
 
+    plan = convertPlan(plan, kind, files.get().allFiles, files.get().candidates);
+
     Set<CompactionJob> jobs = new HashSet<>(plan.getJobs());
-    if (jobs.removeIf(job -> job.getKind() != kind)) {
-      log.warn("Planner {} is returning wrong job kind {}", planner.getClass().getName(), kind);
-    }
 
     Collection<SubmittedJob> submitted =
         submittedJobs.getOrDefault(compactable.getExtent(), List.of());
@@ -243,6 +243,23 @@ public class CompactionService {
       log.trace("Did not submit compaction plan {} id:{} files:{} plan:{}", compactable.getExtent(),
           myId, files, plan);
     }
+  }
+
+  private CompactionPlan convertPlan(CompactionPlan plan, CompactionKind kind,
+      Set<CompactableFile> allFiles, Set<CompactableFile> candidates) {
+
+    if (plan.getClass().equals(CompactionPlanImpl.class))
+      return plan;
+
+    var builder = new CompactionPlanImpl.BuilderImpl(kind, allFiles, candidates);
+
+    for (var job : plan.getJobs()) {
+      Preconditions.checkArgument(job.getKind() == kind, "Unexpected compaction kind %s != %s",
+          job.getKind(), kind);
+      builder.addJob(job.getPriority(), job.getExecutor(), job.getFiles());
+    }
+
+    return builder.build();
   }
 
   public boolean isCompactionQueued(KeyExtent extent) {

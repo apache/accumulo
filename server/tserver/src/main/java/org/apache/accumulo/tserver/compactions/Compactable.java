@@ -44,7 +44,7 @@ public interface Compactable {
   public static class Files {
 
     public final Set<CompactableFile> allFiles;
-    public final Collection<CompactableFile> candidates;
+    public final Set<CompactableFile> candidates;
     public final Collection<CompactionJob> compacting;
     public final Map<String,String> executionHints;
 

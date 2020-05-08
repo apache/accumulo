@@ -75,10 +75,14 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CompactionIT extends SharedMiniClusterBase {
 
   // TODO ISSUE create a test where the compaction selector sporadically throws an exception
 
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "predictable random is okay for testing")
   public static class TestPlanner implements CompactionPlanner {
 
     private int filesPerCompaction;
