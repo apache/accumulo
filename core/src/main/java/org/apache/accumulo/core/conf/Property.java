@@ -440,11 +440,9 @@ public enum Property {
       "The maximum number of files a compaction will open"),
   TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
       "tserver.compaction.service.default.planner.opts.executors",
-      "[{'name':'tiny','maxSize':'8M','numThreads':3},"
-          + "{'name':'small','maxSize':'32M','numThreads':3},"
-          + "{'name':'medium','maxSize':'128M','numThreads':3},"
-          + "{'name':'large','maxSize':'512M','numThreads':3},"
-          + "{'name':'huge','numThreads':3}]".replaceAll("'", "\""),
+      "[{'name':'small','maxSize':'32M','numThreads':2},"
+          + "{'name':'medium','maxSize':'128M','numThreads':2},"
+          + "{'name':'large','numThreads':2}]".replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
   @Deprecated(since = "2.1.0", forRemoval = true)
@@ -667,9 +665,7 @@ public enum Property {
       "Prefix to be used for user defined arbitrary properties."),
   TABLE_MAJC_RATIO("table.compaction.major.ratio", "3", PropertyType.FRACTION,
       "Minimum ratio of total input size to maximum input RFile size for"
-          + " running a major compaction. When adjusting this property you may want to"
-          + " also adjust table.file.max. Want to avoid the situation where only"
-          + " merging minor compactions occur."),
+          + " running a major compaction. "),
   @Deprecated(since = "2.1.0", forRemoval = true)
   TABLE_MAJC_COMPACTALL_IDLETIME("table.compaction.major.everything.idle", "1h",
       PropertyType.TIMEDURATION,
