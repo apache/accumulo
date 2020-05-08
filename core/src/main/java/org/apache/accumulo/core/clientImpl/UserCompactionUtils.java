@@ -44,18 +44,8 @@ public class UserCompactionUtils {
   private static final int SELECTOR_MAGIC = 0xae9270bf;
   private static final int CONFIGURER_MAGIC = 0xf93e570a;
 
-  public static final PluginConfig DEFAULT_CCC = new PluginConfig("") {
-    @Override
-    public PluginConfig setOptions(java.util.Map<String,String> opts) {
-      throw new UnsupportedOperationException();
-    }
-  };
-  public static final PluginConfig DEFAULT_CSC = new PluginConfig("") {
-    @Override
-    public PluginConfig setOptions(java.util.Map<String,String> opts) {
-      throw new UnsupportedOperationException();
-    }
-  };
+  public static final PluginConfig DEFAULT_CCC = new PluginConfig("", Map.of());
+  public static final PluginConfig DEFAULT_CSC = new PluginConfig("", Map.of());
 
   public static void encode(DataOutput dout, Map<String,String> options) {
     try {
@@ -176,7 +166,7 @@ public class UserCompactionUtils {
 
   public static PluginConfig decodeSelector(DataInput di) {
     var pcd = decode(di, SELECTOR_MAGIC, 1);
-    return new PluginConfig(pcd.className).setOptions(pcd.opts);
+    return new PluginConfig(pcd.className, pcd.opts);
   }
 
   public static PluginConfig decodeSelector(byte[] bytes) {
@@ -193,7 +183,7 @@ public class UserCompactionUtils {
 
   public static PluginConfig decodeConfigurer(DataInput di) {
     var pcd = decode(di, CONFIGURER_MAGIC, 1);
-    return new PluginConfig(pcd.className).setOptions(pcd.opts);
+    return new PluginConfig(pcd.className, pcd.opts);
   }
 
   public static PluginConfig decodeConfigurer(byte[] bytes) {

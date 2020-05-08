@@ -185,6 +185,7 @@ public class CompactionConfig {
    * @return this;
    * @since 2.1.0
    */
+  @SuppressWarnings("removal")
   public CompactionConfig setSelector(PluginConfig selectorConfig) {
     Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
     Preconditions.checkArgument(!selectorConfig.getClassName().isBlank());
@@ -202,6 +203,7 @@ public class CompactionConfig {
   /**
    * @since 2.1.0
    */
+  @SuppressWarnings("removal")
   public CompactionConfig setExecutionHints(Map<String,String> hints) {
     if (!hints.isEmpty())
       Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
@@ -222,6 +224,7 @@ public class CompactionConfig {
    *
    * @since 2.1.0
    */
+  @SuppressWarnings("removal")
   public CompactionConfig setConfigurer(PluginConfig configurerConfig) {
     Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
     this.configurerConfig = configurerConfig;

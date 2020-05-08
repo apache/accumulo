@@ -303,8 +303,8 @@ public class CompactionIT extends SharedMiniClusterBase {
       assertEquals(2, getFiles(client, "tmd_control3").size());
 
       var cc1 = new CompactionConfig()
-          .setSelector(new PluginConfig(TooManyDeletesSelector.class.getName())
-              .setOptions(Map.of("threshold", ".99")))
+          .setSelector(
+              new PluginConfig(TooManyDeletesSelector.class.getName(), Map.of("threshold", ".99")))
           .setWait(true);
 
       client.tableOperations().compact("tmd_control1", cc1);
@@ -316,8 +316,8 @@ public class CompactionIT extends SharedMiniClusterBase {
       assertEquals(2, getFiles(client, "tmd_control3").size());
 
       var cc2 = new CompactionConfig()
-          .setSelector(new PluginConfig(TooManyDeletesSelector.class.getName())
-              .setOptions(Map.of("threshold", ".40")))
+          .setSelector(
+              new PluginConfig(TooManyDeletesSelector.class.getName(), Map.of("threshold", ".40")))
           .setWait(true);
 
       client.tableOperations().compact("tmd_control1", cc2);
@@ -462,8 +462,8 @@ public class CompactionIT extends SharedMiniClusterBase {
 
       client.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true)
-              .setConfigurer(new PluginConfig(CompressionConfigurer.class.getName())
-                  .setOptions(Map.of(CompressionConfigurer.LARGE_FILE_COMPRESSION_TYPE, "gz",
+              .setConfigurer(new PluginConfig(CompressionConfigurer.class.getName(),
+                  Map.of(CompressionConfigurer.LARGE_FILE_COMPRESSION_TYPE, "gz",
                       CompressionConfigurer.LARGE_FILE_COMPRESSION_THRESHOLD, data.length + ""))));
 
       // after compacting with compression, expect small file

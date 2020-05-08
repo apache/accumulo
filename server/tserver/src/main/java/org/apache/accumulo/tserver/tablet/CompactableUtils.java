@@ -216,8 +216,7 @@ public class CompactableUtils {
 
     var opts = tconf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_CONFIGURER_OPTS);
 
-    return createCompactionConfiguration(tablet, files,
-        new PluginConfig(configurorClass).setOptions(opts));
+    return createCompactionConfiguration(tablet, files, new PluginConfig(configurorClass, opts));
   }
 
   static AccumuloConfiguration createCompactionConfiguration(Tablet tablet,
@@ -485,7 +484,7 @@ public class CompactableUtils {
       if (selectorClassName != null && !selectorClassName.isBlank()) {
         var opts =
             tconf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_SELECTOR_OPTS);
-        cselCfg = new PluginConfig(selectorClassName).setOptions(opts);
+        cselCfg = new PluginConfig(selectorClassName, opts);
       }
 
       CompactionStrategyConfig stratCfg = null;

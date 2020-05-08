@@ -161,15 +161,15 @@ public class CompactCommand extends TableOperation {
 
     if (!selectorOpts.isEmpty()) {
       PluginConfig selectorCfg = new PluginConfig(
-          "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy");
-      selectorCfg.setOptions(selectorOpts);
+          "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy",
+          selectorOpts);
       compactionConfig.setSelector(selectorCfg);
     }
 
     if (configurerOpts.size() > 0) {
       PluginConfig configurerConfig = new PluginConfig(
-          "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy");
-      configurerConfig.setOptions(configurerOpts);
+          "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy",
+          configurerOpts);
       compactionConfig.setConfigurer(configurerConfig);
     }
 

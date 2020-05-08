@@ -20,7 +20,6 @@ package org.apache.accumulo.core.client.admin;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -31,18 +30,31 @@ import java.util.Map;
  */
 public class PluginConfig {
 
-  private String className;
-  private Map<String,String> options = Collections.emptyMap();
+  private final String className;
+  private final Map<String,String> options;
 
   /**
    * @param className
-   *          The name of a class that implements
-   *          org.apache.accumulo.tserver.compaction.CompactionStrategy. This class must be exist on
-   *          tservers.
+   *          The name of a class that implements a server side plugin. This class must exist on the
+   *          server side classpath.
    */
   public PluginConfig(String className) {
-    requireNonNull(className);
-    this.className = className;
+    this.className = requireNonNull(className);
+    this.options = Map.of();
+  }
+
+  /**
+   *
+   * @param className
+   *          The name of a class that implements a server side plugin. This class must exist on the
+   *          server side classpath.
+   * @param options
+   *          The options that will be passed to the init() method of the plugin when its
+   *          instantiated server side. This method will copy the map. The default is an empty map.
+   */
+  public PluginConfig(String className, Map<String,String> options) {
+    this.className = requireNonNull(className);
+    this.options = Map.copyOf(options);
   }
 
   /**
@@ -50,18 +62,6 @@ public class PluginConfig {
    */
   public String getClassName() {
     return className;
-  }
-
-  /**
-   * @param opts
-   *          The options that will be passed to the init() method of the plugin when its
-   *          instantiated on a tserver. This method will copy the map. The default is an empty map.
-   * @return this
-   */
-  public PluginConfig setOptions(Map<String,String> opts) {
-    requireNonNull(opts);
-    this.options = Map.copyOf(opts);
-    return this;
   }
 
   /**
@@ -90,5 +90,4 @@ public class PluginConfig {
   public String toString() {
     return "[className=" + className + ", options=" + options + "]";
   }
-
 }

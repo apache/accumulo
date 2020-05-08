@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Map;
 
 /**
@@ -39,7 +41,10 @@ import java.util.Map;
  *             {@link CompactionConfig#setConfigurer(PluginConfig)} as soon as possible.
  */
 @Deprecated(since = "2.1.0", forRemoval = true)
-public class CompactionStrategyConfig extends PluginConfig {
+public class CompactionStrategyConfig {
+  private String className;
+  private Map<String,String> options = Map.of();
+
   /**
    * @param className
    *          The name of a class that implements
@@ -47,7 +52,14 @@ public class CompactionStrategyConfig extends PluginConfig {
    *          tservers.
    */
   public CompactionStrategyConfig(String className) {
-    super(className);
+    this.className = requireNonNull(className);
+  }
+
+  /**
+   * @return the class name passed to the constructor.
+   */
+  public String getClassName() {
+    return className;
   }
 
   /**
@@ -57,9 +69,30 @@ public class CompactionStrategyConfig extends PluginConfig {
    *          map.
    * @return this
    */
-  @Override
   public CompactionStrategyConfig setOptions(Map<String,String> opts) {
-    super.setOptions(opts);
+    this.options = Map.copyOf(opts);
     return this;
+  }
+
+  /**
+   * @return The previously set options. Returns an unmodifiable map. The default is an empty map.
+   */
+  public Map<String,String> getOptions() {
+    return options;
+  }
+
+  @Override
+  public int hashCode() {
+    return className.hashCode() + options.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof CompactionStrategyConfig) {
+      CompactionStrategyConfig ocsc = (CompactionStrategyConfig) o;
+      return className.equals(ocsc.className) && options.equals(ocsc.options);
+    }
+
+    return false;
   }
 }
