@@ -242,6 +242,8 @@ public enum Property {
       "org.apache.accumulo.server.master.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions."),
+  MASTER_BULK_MAX_TABLETS("master.bulk.max.tablets", "0", PropertyType.COUNT,
+      "The maximum number of tablets allowed for one bulk import. Value of 0 is Unlimited"),
   MASTER_BULK_RETRIES("master.bulk.retries", "3", PropertyType.COUNT,
       "The number of attempts to bulk import a RFile before giving up."),
   MASTER_BULK_THREADPOOL_SIZE("master.bulk.threadpool.size", "5", PropertyType.COUNT,

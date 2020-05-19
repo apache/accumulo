@@ -64,6 +64,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -148,6 +149,11 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
       if (mappings.isEmpty())
         throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
+
+      long tabletMaxSize = conf.getCount(Property.MASTER_BULK_MAX_TABLETS);
+      if (tabletMaxSize > 0 && mappings.keySet().size() > tabletMaxSize)
+        throw new IllegalArgumentException("Attempted to import to " + mappings.keySet().size()
+            + " tablets. Max tablets allowed set to " + tabletMaxSize);
 
       BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
 

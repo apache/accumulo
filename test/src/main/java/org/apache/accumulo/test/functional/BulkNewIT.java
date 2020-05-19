@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.LoadPlan;
@@ -180,6 +181,23 @@ public class BulkNewIT extends SharedMiniClusterBase {
   public void testSingleTabletSingleFileOffline() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       testSingleTabletSingleFile(client, true, false);
+    }
+  }
+
+  @Test
+  public void testMaxTablets() throws Exception {
+    String maxTablets = "0";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      maxTablets = client.instanceOperations().getSystemConfiguration()
+          .get(Property.MASTER_BULK_MAX_TABLETS.getKey());
+      client.instanceOperations().setProperty(Property.MASTER_BULK_MAX_TABLETS.getKey(), "1");
+      testBulkFile(false, false);
+      fail("Expected IllegalArgumentException for " + Property.MASTER_BULK_MAX_TABLETS);
+    } catch (IllegalArgumentException e) {} finally {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+        client.instanceOperations().setProperty(Property.MASTER_BULK_MAX_TABLETS.getKey(),
+            maxTablets);
+      }
     }
   }
 
