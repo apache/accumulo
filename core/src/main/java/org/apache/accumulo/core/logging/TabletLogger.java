@@ -127,15 +127,16 @@ public class TabletLogger {
         Collections2.transform(inputs, TabletFile::getFileName));
   }
 
-  //TODO log compaction service id that is running the compaction
+  // TODO log compaction service id that is running the compaction
   public static void compacting(KeyExtent extent, CompactionJob job, CompactionConfig config) {
     if (fileLog.isDebugEnabled()) {
       if (config == null) {
-        fileLog.debug("Compacting {} for {} from {} size {}", extent, job.getKind(),
-            asFileNames(job.getFiles()), getSize(job.getFiles()));
+        fileLog.debug("Compacting {} on {} for {} from {} size {}", extent, job.getExecutor(),
+            job.getKind(), asFileNames(job.getFiles()), getSize(job.getFiles()));
       } else {
-        fileLog.debug("Compacting {} for {} from {} size {} config {}", extent, job.getKind(),
-            asFileNames(job.getFiles()), getSize(job.getFiles()), config);
+        fileLog.debug("Compacting {} on {} for {} from {} size {} config {}", extent,
+            job.getExecutor(), job.getKind(), asFileNames(job.getFiles()), getSize(job.getFiles()),
+            config);
       }
     }
   }
