@@ -242,8 +242,6 @@ public enum Property {
       "org.apache.accumulo.server.master.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions."),
-  MASTER_BULK_MAX_TABLETS("master.bulk.max.tablets", "0", PropertyType.COUNT,
-      "The maximum number of tablets allowed for one bulk import. Value of 0 is Unlimited"),
   MASTER_BULK_RETRIES("master.bulk.retries", "3", PropertyType.COUNT,
       "The number of attempts to bulk import a RFile before giving up."),
   MASTER_BULK_THREADPOOL_SIZE("master.bulk.threadpool.size", "5", PropertyType.COUNT,
@@ -717,6 +715,8 @@ public enum Property {
           + " perform specialized parsing of the key. "),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING,
       "The bloom filter hash type"),
+  TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "0", PropertyType.COUNT,
+      "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited"),
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY,
       "The durability used to write to the write-ahead log. Legal values are:"
           + " none, which skips the write-ahead log; log, which sends the data to the"

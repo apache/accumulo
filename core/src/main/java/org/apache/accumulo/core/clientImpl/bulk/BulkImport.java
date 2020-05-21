@@ -134,6 +134,14 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     SortedMap<KeyExtent,Bulk.Files> mappings;
     TableOperationsImpl tableOps = new TableOperationsImpl(context);
+
+    int maxTablets = 0;
+    for (var prop : tableOps.getProperties(tableName)) {
+      if (prop.getKey().equals(Property.TABLE_BULK_MAX_TABLETS.getKey())) {
+        maxTablets = Integer.parseInt(prop.getValue());
+        break;
+      }
+    }
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
         .incrementBy(100, MILLISECONDS).maxWait(2, MINUTES).backOffFactor(1.5)
         .logInterval(3, TimeUnit.MINUTES).createRetry();
@@ -142,18 +150,13 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     boolean shouldRetry = true;
     while (shouldRetry) {
       if (plan == null) {
-        mappings = computeMappingFromFiles(fs, tableId, srcPath);
+        mappings = computeMappingFromFiles(fs, tableId, srcPath, maxTablets);
       } else {
-        mappings = computeMappingFromPlan(fs, tableId, srcPath);
+        mappings = computeMappingFromPlan(fs, tableId, srcPath, maxTablets);
       }
 
       if (mappings.isEmpty())
         throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
-
-      long tabletMaxSize = conf.getCount(Property.MASTER_BULK_MAX_TABLETS);
-      if (tabletMaxSize > 0 && mappings.keySet().size() > tabletMaxSize)
-        throw new IllegalArgumentException("Attempted to import to " + mappings.keySet().size()
-            + " tablets. Max tablets allowed set to " + tabletMaxSize);
 
       BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
 
@@ -391,7 +394,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   private SortedMap<KeyExtent,Files> computeMappingFromPlan(FileSystem fs, TableId tableId,
-      Path srcPath)
+      Path srcPath, int maxTablets)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     Map<String,List<Destination>> fileDestinations =
@@ -428,7 +431,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     for (Entry<String,List<Destination>> entry : fileDestinations.entrySet()) {
       String fileName = entry.getKey();
       List<Destination> destinations = entry.getValue();
-      Set<KeyExtent> extents = mapDesitnationsToExtents(tableId, extentCache, destinations);
+      Set<KeyExtent> extents = mapDestinationsToExtents(tableId, extentCache, destinations);
+      checkTabletCount(maxTablets, extents.size(), fileName);
 
       long estSize = (long) (fileLens.get(fileName) / (double) extents.size());
 
@@ -445,7 +449,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return row == null ? null : new Text(row);
   }
 
-  private Set<KeyExtent> mapDesitnationsToExtents(TableId tableId, KeyExtentCache kec,
+  private Set<KeyExtent> mapDestinationsToExtents(TableId tableId, KeyExtentCache kec,
       List<Destination> destinations)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Set<KeyExtent> extents = new HashSet<>();
@@ -476,7 +480,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   private SortedMap<KeyExtent,Bulk.Files> computeMappingFromFiles(FileSystem fs, TableId tableId,
-      Path dirPath) throws IOException {
+      Path dirPath, int maxTablets) throws IOException {
 
     Executor executor;
     ExecutorService service = null;
@@ -492,7 +496,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     }
 
     try {
-      return computeFileToTabletMappings(fs, tableId, dirPath, executor, context);
+      return computeFileToTabletMappings(fs, tableId, dirPath, executor, context, maxTablets);
     } finally {
       if (service != null) {
         service.shutdown();
@@ -529,8 +533,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return fileList;
   }
 
-  public static SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs,
-      TableId tableId, Path dirPath, Executor executor, ClientContext context) throws IOException {
+  public SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs, TableId tableId,
+      Path dirPath, Executor executor, ClientContext context, int maxTablets) throws IOException {
 
     KeyExtentCache extentCache = new ConcurrentKeyExtentCache(tableId, context);
 
@@ -546,21 +550,22 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     CryptoService cs = CryptoServiceFactory.newDefaultInstance();
 
     for (FileStatus fileStatus : files) {
+      Path filePath = fileStatus.getPath();
       CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future = CompletableFuture.supplyAsync(() -> {
         try {
           long t1 = System.currentTimeMillis();
-          List<KeyExtent> extents = findOverlappingTablets(context, extentCache,
-              fileStatus.getPath(), fs, fileLensCache, cs);
-          Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(),
-              fileStatus.getPath(), fileStatus.getLen(), extents, fs, fileLensCache, cs);
+          List<KeyExtent> extents =
+              findOverlappingTablets(context, extentCache, filePath, fs, fileLensCache, cs);
+          // make sure file isn't going to too many tablets
+          checkTabletCount(maxTablets, extents.size(), filePath.toString());
+          Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(), filePath,
+              fileStatus.getLen(), extents, fs, fileLensCache, cs);
           Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
           for (KeyExtent ke : extents) {
-            pathLocations.put(ke,
-                new Bulk.FileInfo(fileStatus.getPath(), estSizes.getOrDefault(ke, 0L)));
+            pathLocations.put(ke, new Bulk.FileInfo(filePath, estSizes.getOrDefault(ke, 0L)));
           }
           long t2 = System.currentTimeMillis();
-          log.trace("Mapped {} to {} tablets in {}ms", fileStatus.getPath(), pathLocations.size(),
-              t2 - t1);
+          log.trace("Mapped {} to {} tablets in {}ms", filePath, pathLocations.size(), t2 - t1);
           return pathLocations;
         } catch (Exception e) {
           throw new CompletionException(e);
@@ -582,7 +587,12 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       } catch (ExecutionException e) {
-        throw new RuntimeException(e);
+        // clean up exception for user
+        Throwable t = e.getCause();
+        if (t instanceof IllegalArgumentException) {
+          throw (IllegalArgumentException) t;
+        } else
+          throw new RuntimeException(t);
       }
     }
 
@@ -616,5 +626,11 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     }
 
     return mappings;
+  }
+
+  private void checkTabletCount(int tabletMaxSize, int tabletCount, String file) {
+    if (tabletMaxSize > 0 && tabletCount > tabletMaxSize)
+      throw new IllegalArgumentException("The file " + file + " attempted to import to "
+          + tabletCount + " tablets. Max tablets allowed set to " + tabletMaxSize);
   }
 }

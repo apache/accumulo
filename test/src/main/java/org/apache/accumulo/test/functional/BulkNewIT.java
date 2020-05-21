@@ -186,18 +186,26 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   @Test
   public void testMaxTablets() throws Exception {
-    String maxTablets = "0";
+    // test max tablets hit while inspecting bulk files
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      maxTablets = client.instanceOperations().getSystemConfiguration()
-          .get(Property.MASTER_BULK_MAX_TABLETS.getKey());
-      client.instanceOperations().setProperty(Property.MASTER_BULK_MAX_TABLETS.getKey(), "1");
+      tableName = "testMaxTablets_table1";
+      NewTableConfiguration newTableConf = new NewTableConfiguration();
+      // set logical time type so we can set time on bulk import
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_BULK_MAX_TABLETS.getKey(), "1");
+      newTableConf.setProperties(props);
+      client.tableOperations().create(tableName, newTableConf);
       testBulkFile(false, false);
-      fail("Expected IllegalArgumentException for " + Property.MASTER_BULK_MAX_TABLETS);
-    } catch (IllegalArgumentException e) {} finally {
-      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        client.instanceOperations().setProperty(Property.MASTER_BULK_MAX_TABLETS.getKey(),
-            maxTablets);
-      }
+      fail("Expected IllegalArgumentException for " + Property.TABLE_BULK_MAX_TABLETS);
+    } catch (IllegalArgumentException e) {
+      // expected
+    }
+    // test max tablets hit using load plan
+    try {
+      testBulkFile(false, true);
+      fail("Expected IllegalArgumentException for " + Property.TABLE_BULK_MAX_TABLETS);
+    } catch (IllegalArgumentException e) {
+      // expected
     }
   }
 
