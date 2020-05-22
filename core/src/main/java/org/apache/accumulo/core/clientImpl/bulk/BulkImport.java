@@ -587,12 +587,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       } catch (ExecutionException e) {
-        // clean up exception for user
-        Throwable t = e.getCause();
-        if (t instanceof IllegalArgumentException) {
-          throw (IllegalArgumentException) t;
-        } else
-          throw new RuntimeException(t);
+        throw new RuntimeException(e);
       }
     }
 

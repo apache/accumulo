@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -41,6 +42,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -186,7 +188,6 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   @Test
   public void testMaxTablets() throws Exception {
-    // test max tablets hit while inspecting bulk files
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = "testMaxTablets_table1";
       NewTableConfiguration newTableConf = new NewTableConfiguration();
@@ -195,17 +196,16 @@ public class BulkNewIT extends SharedMiniClusterBase {
       props.put(Property.TABLE_BULK_MAX_TABLETS.getKey(), "1");
       newTableConf.setProperties(props);
       client.tableOperations().create(tableName, newTableConf);
-      testBulkFile(false, false);
-      fail("Expected IllegalArgumentException for " + Property.TABLE_BULK_MAX_TABLETS);
-    } catch (IllegalArgumentException e) {
-      // expected
-    }
-    // test max tablets hit using load plan
-    try {
-      testBulkFile(false, true);
-      fail("Expected IllegalArgumentException for " + Property.TABLE_BULK_MAX_TABLETS);
-    } catch (IllegalArgumentException e) {
-      // expected
+
+      // test max tablets hit while inspecting bulk files
+      var thrown = assertThrows(RuntimeException.class, () -> testBulkFile(false, false));
+      var c = thrown.getCause();
+      assertTrue("Wrong exception: " + c, c instanceof ExecutionException);
+      assertTrue("Wrong exception: " + c.getCause(),
+          c.getCause() instanceof IllegalArgumentException);
+
+      // test max tablets hit using load plan
+      assertThrows(IllegalArgumentException.class, () -> testBulkFile(false, true));
     }
   }
 
