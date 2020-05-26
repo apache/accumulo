@@ -127,7 +127,6 @@ public class TabletLogger {
         Collections2.transform(inputs, TabletFile::getFileName));
   }
 
-  // TODO log compaction service id that is running the compaction
   public static void compacting(KeyExtent extent, CompactionJob job, CompactionConfig config) {
     if (fileLog.isDebugEnabled()) {
       if (config == null) {

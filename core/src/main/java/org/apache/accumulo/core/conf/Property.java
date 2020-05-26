@@ -436,7 +436,7 @@ public enum Property {
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service."),
   TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
-      "tserver.compaction.service.default.planner.opts.maxOpen", "30", PropertyType.COUNT,
+      "tserver.compaction.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
       "The maximum number of files a compaction will open"),
   TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
       "tserver.compaction.service.default.planner.opts.executors",

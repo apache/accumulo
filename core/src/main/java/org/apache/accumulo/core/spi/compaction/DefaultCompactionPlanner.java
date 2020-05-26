@@ -143,7 +143,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       this.maxFilesToCompact = Integer.parseInt(params.getServiceEnvironment().getConfiguration()
           .get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey()));
     } else {
-      this.maxFilesToCompact = Integer.parseInt(params.getOptions().getOrDefault("maxOpen", "30"));
+      this.maxFilesToCompact = Integer.parseInt(params.getOptions().getOrDefault("maxOpen", "10"));
     }
   }
 
@@ -163,7 +163,29 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       if (params.getRunningCompactions().isEmpty()) {
         group = findMapFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
             maxSizeToCompact);
-      } else {
+
+        if (!group.isEmpty() && group.size() < params.getCandidates().size()
+            && params.getCandidates().size() <= maxFilesToCompact
+            && (params.getKind() == CompactionKind.USER
+                || params.getKind() == CompactionKind.SELECTOR)) {
+          // USER and SELECTOR compactions must eventually compact all files. When a subset of files
+          // that meets the compaction ratio is selected, look ahead and see if the next compaction
+          // would also meet the compaction ratio. If not then compact everything to avoid doing
+          // more than logarithmic work across multiple comapctions.
+
+          filesCopy.removeAll(group);
+          filesCopy.add(getExpected(group, 0));
+
+          if (findMapFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
+              maxSizeToCompact).isEmpty()) {
+            // The next possible compaction does not meet the compaction ratio, so compact
+            // everything.
+            group = Set.copyOf(params.getCandidates());
+          }
+
+        }
+
+      } else if (params.getKind() == CompactionKind.SYSTEM) {
         // This code determines if once the files compacting finish would they be included in a
         // compaction with the files smaller than them? If so, then wait for the running compaction
         // to complete.
@@ -185,21 +207,15 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
           // wait.
           group = Set.of();
         }
+      } else {
+        group = Set.of();
       }
 
       if (group.isEmpty()
-          && (params.getKind() == CompactionKind.USER
-              || params.getKind() == CompactionKind.SELECTOR)
+          && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR
+              || params.getKind() == CompactionKind.CHOP)
           && params.getRunningCompactions().stream()
               .noneMatch(job -> job.getKind() == params.getKind())) {
-        // TODO ISSUE could partition files by executor sizes, however would need to do this in
-        // optimal way.. not as easy as chop because need to result in a single file
-        group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);
-      }
-
-      if (group.isEmpty() && params.getKind() == CompactionKind.CHOP) {
-        // TODO ISSUE since chop compactions do not have to result in a single file, could partition
-        // files by executors sizes
         group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);
       }
 
@@ -211,7 +227,6 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
         return params.createPlanBuilder().addJob(createPriority(params), ceid, group).build();
       }
-
     } catch (RuntimeException e) {
       throw e;
     }
@@ -230,6 +245,17 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     return Long.MAX_VALUE;
   }
 
+  private CompactableFile getExpected(Collection<CompactableFile> files, int count) {
+    long size = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
+    try {
+      return CompactableFile.create(
+          new URI("hdfs://fake/accumulo/tables/adef/t-zzFAKEzz/FAKE-0000" + count + ".rf"), size,
+          0);
+    } catch (URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   /**
    * @return the expected files sizes for sets of compacting files.
    */
@@ -241,15 +267,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
     for (CompactionJob job : compacting) {
       count++;
-      long size = job.getFiles().stream().mapToLong(CompactableFile::getEstimatedSize).sum();
-      try {
-        expected.add(CompactableFile.create(
-            new URI("hdfs://fake/accumulo/tables/adef/t-zzFAKEzz/FAKE-0000" + count + ".rf"), size,
-            0));
-      } catch (URISyntaxException e) {
-        throw new RuntimeException(e);
-      }
-
+      expected.add(getExpected(job.getFiles(), count));
     }
 
     return expected;

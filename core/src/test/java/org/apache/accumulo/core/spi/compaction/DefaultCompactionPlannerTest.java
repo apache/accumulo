@@ -192,6 +192,25 @@ public class DefaultCompactionPlannerTest {
     assertEquals(all, job.getFiles());
     assertEquals(CompactionExecutorId.of("huge"), job.getExecutor());
 
+    // For user compaction, can compact a subset that meets the compaction ratio if there is also a
+    // larger set of files the meets the compaction ratio
+    all = createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M", "F5", "50M", "F6", "51M", "F7",
+        "52M");
+    params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
+    plan = planner.makePlan(params);
+    job = Iterables.getOnlyElement(plan.getJobs());
+    assertEquals(createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M"), job.getFiles());
+    assertEquals(CompactionExecutorId.of("small"), job.getExecutor());
+
+    // There is a subset of small files that meets the compaction ratio, but the larger set does not
+    // so compact everything to avoid doing more than logarithmic work
+    all = createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M", "F5", "50M");
+    params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
+    plan = planner.makePlan(params);
+    job = Iterables.getOnlyElement(plan.getJobs());
+    assertEquals(all, job.getFiles());
+    assertEquals(CompactionExecutorId.of("medium"), job.getExecutor());
+
   }
 
   @Test
