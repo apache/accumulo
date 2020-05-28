@@ -45,7 +45,6 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -519,7 +518,6 @@ class DatafileManager {
           newDatafile.getPath());
     }
 
-    TServerInstance lastLocation = null;
     // calling insert to get the new file before inserting into the metadata
     StoredTabletFile newFile = newDatafile.insert();
     synchronized (tablet) {
@@ -547,7 +545,7 @@ class DatafileManager {
 
       tablet.computeNumEntries();
 
-      lastLocation = tablet.resetLastLocation();
+      tablet.resetLastLocation();
 
       tablet.setLastCompactionID(compactionId);
       t2 = System.currentTimeMillis();
@@ -558,9 +556,7 @@ class DatafileManager {
     if (!filesInUseByScans.isEmpty())
       log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
     MasterMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
-        filesInUseByScans, newFile, compactionId, dfv,
-        tablet.getTabletServer().getClientAddressString(), lastLocation,
-        tablet.getTabletServer().getLock());
+        filesInUseByScans, newFile, compactionId, dfv, tablet.getTabletServer().getLock());
     removeFilesAfterScan(filesInUseByScans);
 
     if (log.isTraceEnabled()) {

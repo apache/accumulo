@@ -25,7 +25,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
-import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
@@ -123,8 +122,6 @@ class UnloadTabletHandler implements Runnable {
         TabletStateStore.suspend(server.getContext(), tls, null,
             requestTimeSkew + MILLISECONDS.convert(System.nanoTime(), NANOSECONDS));
       }
-    } catch (DistributedStoreException ex) {
-      log.warn("Unable to update storage", ex);
     } catch (KeeperException e) {
       log.warn("Unable determine our zookeeper session information", e);
     } catch (InterruptedException e) {

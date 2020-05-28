@@ -177,7 +177,7 @@ class AssignmentHandler implements Runnable {
         throw new RuntimeException("Minor compaction after recovery fails for " + extent);
       }
       Assignment assignment = new Assignment(extent, server.getTabletSession());
-      TabletStateStore.setLocation(server.getContext(), assignment);
+      TabletStateStore.setLocation(server.getContext(), assignment, assignment.server);
 
       synchronized (server.openingTablets) {
         synchronized (server.onlineTablets) {

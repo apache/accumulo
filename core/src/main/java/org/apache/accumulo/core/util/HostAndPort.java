@@ -35,7 +35,7 @@ import java.io.Serializable;
  *
  * <pre>
  * HostAndPort hp =
- *     HostAndPort.fromString(&quot;[2001:db8::1]&quot;).withDefaultPort(80).requireBracketsForIPv6();
+ *     zHostAndPort.fromString(&quot;[2001:db8::1]&quot;).withDefaultPort(80).requireBracketsForIPv6();
  * hp.getHost(); // returns &quot;2001:db8::1&quot;
  * hp.getPort(); // returns 80
  * hp.toString(); // returns &quot;[2001:db8::1]:80&quot;
@@ -171,6 +171,10 @@ public final class HostAndPort implements Serializable {
       // JDK7 accepts leading plus signs. We don't want to.
       checkArgument(!portString.startsWith("+"), "Unparseable port number: %s", hostPortString);
       try {
+        if (portString.contains("[")) {
+          int endIndex = portString.indexOf("[");
+          portString = portString.substring(0, endIndex);
+        }
         port = Integer.parseInt(portString);
       } catch (NumberFormatException e) {
         throw new IllegalArgumentException("Unparseable port number: " + hostPortString);

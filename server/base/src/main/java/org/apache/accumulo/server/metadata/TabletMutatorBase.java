@@ -198,6 +198,23 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
     return this;
   }
 
+  @Override
+  public Ample.TabletMutator putSuspension(Ample.TServer tServer, long suspensionTime) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.put(TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
+        TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier(),
+        new Value(tServer + "|" + suspensionTime));
+    return this;
+  }
+
+  @Override
+  public Ample.TabletMutator deleteSuspension() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.putDelete(TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
+        TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier());
+    return this;
+  }
+
   protected Mutation getMutation() {
     updatesEnabled = false;
     return mutation;

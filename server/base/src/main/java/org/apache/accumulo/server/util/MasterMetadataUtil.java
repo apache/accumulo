@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,7 +27,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
@@ -55,7 +52,6 @@ import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,21 +164,9 @@ public class MasterMetadataUtil {
     }
   }
 
-  private static TServerInstance getTServerInstance(String address, ZooLock zooLock) {
-    while (true) {
-      try {
-        return new TServerInstance(address, zooLock.getSessionId());
-      } catch (KeeperException | InterruptedException e) {
-        log.error("{}", e.getMessage(), e);
-      }
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-    }
-  }
-
   public static void replaceDatafiles(ServerContext context, KeyExtent extent,
       Set<StoredTabletFile> datafilesToDelete, Set<StoredTabletFile> scanFiles, TabletFile path,
-      Long compactionId, DataFileValue size, String address, TServerInstance lastLocation,
-      ZooLock zooLock) {
+      Long compactionId, DataFileValue size, ZooLock zooLock) {
 
     context.getAmple().putGcCandidates(extent.getTableId(), datafilesToDelete);
 
@@ -196,13 +180,6 @@ public class MasterMetadataUtil {
 
     if (compactionId != null)
       tablet.putCompactionId(compactionId);
-
-    TServerInstance self = getTServerInstance(address, zooLock);
-    tablet.putLocation(self, LocationType.LAST);
-
-    // remove the old location
-    if (lastLocation != null && !lastLocation.equals(self))
-      tablet.deleteLocation(lastLocation, LocationType.LAST);
 
     tablet.putZooLock(zooLock);
 
@@ -218,8 +195,8 @@ public class MasterMetadataUtil {
    */
   public static StoredTabletFile updateTabletDataFile(ServerContext context, KeyExtent extent,
       TabletFile path, StoredTabletFile mergeFile, DataFileValue dfv, MetadataTime time,
-      Set<StoredTabletFile> filesInUseByScans, String address, ZooLock zooLock,
-      Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
+      Set<StoredTabletFile> filesInUseByScans, ZooLock zooLock, Set<String> unusedWalLogs,
+      long flushId) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     StoredTabletFile newFile = null;
@@ -228,14 +205,6 @@ public class MasterMetadataUtil {
       tablet.putFile(path, dfv);
       tablet.putTime(time);
       newFile = path.insert();
-
-      TServerInstance self = getTServerInstance(address, zooLock);
-      tablet.putLocation(self, LocationType.LAST);
-
-      // remove the old location
-      if (lastLocation != null && !lastLocation.equals(self)) {
-        tablet.deleteLocation(lastLocation, LocationType.LAST);
-      }
     }
     tablet.putFlushId(flushId);
 
