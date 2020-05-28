@@ -356,9 +356,7 @@ public class TabletServer extends AbstractServer {
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
 
-  private int maxThreads =
-      getServerConfig().getConfiguration().getCount(Property.TSERV_MAX_WRITETHREADS);
-  private int maxThreadPermits = maxThreads == 0 ? Integer.MAX_VALUE : maxThreads;
+  private int maxThreadPermits = 0;
   private Semaphore sem;
 
   public static void main(String[] args) throws Exception {
@@ -1041,17 +1039,17 @@ public class TabletServer extends AbstractServer {
         return;
       }
 
-      Semaphore semaphoreCopy = getSemaphore();
+      Semaphore semaphoreCopy = null;
       boolean reserved = true;
-      boolean semaphoreAcquired = false;
+
       try {
         KeyExtent keyExtent = new KeyExtent(tkeyExtent);
 
         if (TabletType.type(keyExtent) == TabletType.USER) {
+          semaphoreCopy = getSemaphore();
           if (!semaphoreCopy.tryAcquire()) {
             throw new TException("Mutation failed. No threads available.");
           } else {
-            semaphoreAcquired = true;
             log.info("Available permits: {}", semaphoreCopy.availablePermits());
             log.info("Write Threads Limit: {}", maxThreadPermits);
           }
@@ -1085,7 +1083,7 @@ public class TabletServer extends AbstractServer {
           }
         }
       } finally {
-        if (semaphoreAcquired)
+        if (semaphoreCopy != null)
           semaphoreCopy.release();
         if (reserved) {
           sessionManager.unreserveSession(us);
