@@ -270,15 +270,15 @@ public class VerifyIngest {
       throw new AccumuloException("saw " + errors + " errors ");
     }
 
-    if (expectedRow != (params.rows + params.startRow)) {
-      throw new AccumuloException("Did not read expected number of rows. Saw "
-          + (expectedRow - params.startRow) + " expected " + params.rows);
-    } else {
+    if (expectedRow == (params.rows + params.startRow)) {
       System.out.printf(
           "%,12d records read | %,8d records/sec | %,12d bytes read |"
               + " %,8d bytes/sec | %6.3f secs   %n",
           recsRead, (int) ((recsRead) / ((t2 - t1) / 1000.0)), bytesRead,
           (int) (bytesRead / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0);
+    } else {
+      throw new AccumuloException("Did not read expected number of rows. Saw "
+          + (expectedRow - params.startRow) + " expected " + params.rows);
     }
   }
 

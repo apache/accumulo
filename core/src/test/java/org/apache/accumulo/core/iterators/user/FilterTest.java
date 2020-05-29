@@ -27,6 +27,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -407,9 +408,7 @@ public class FilterTest {
       throws IOException {
     HashSet<Column> hsc = new HashSet<>();
 
-    for (Column column : columns) {
-      hsc.add(column);
-    }
+    Collections.addAll(hsc, columns);
 
     SortedKeyValueIterator<Key,Value> a =
         ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);

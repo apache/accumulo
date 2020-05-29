@@ -66,13 +66,7 @@ public class GetSplitsCommand extends Command {
 
     try (PrintLine p =
         outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile)) {
-      if (!verbose) {
-        for (Text row : maxSplits > 0
-            ? shellState.getAccumuloClient().tableOperations().listSplits(tableName, maxSplits)
-            : shellState.getAccumuloClient().tableOperations().listSplits(tableName)) {
-          p.print(encode(encode, row));
-        }
-      } else {
+      if (verbose) {
         String systemTableToCheck =
             MetadataTable.NAME.equals(tableName) ? RootTable.NAME : MetadataTable.NAME;
         final Scanner scanner =
@@ -93,6 +87,12 @@ public class GetSplitsCommand extends Command {
                 er == null ? ") Default Tablet " : "]");
             p.print(line);
           }
+        }
+      } else {
+        for (Text row : maxSplits > 0
+            ? shellState.getAccumuloClient().tableOperations().listSplits(tableName, maxSplits)
+            : shellState.getAccumuloClient().tableOperations().listSplits(tableName)) {
+          p.print(encode(encode, row));
         }
       }
 

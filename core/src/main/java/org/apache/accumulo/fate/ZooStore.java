@@ -142,7 +142,7 @@ public class ZooStore<T> implements TStore<T> {
         Collections.sort(txdirs);
 
         synchronized (this) {
-          if (txdirs.size() > 0 && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0)
+          if (!txdirs.isEmpty() && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0)
             lastReserved = "";
         }
 
@@ -162,11 +162,12 @@ public class ZooStore<T> implements TStore<T> {
               else
                 continue;
             }
-            if (!reserved.contains(tid)) {
+            if (reserved.contains(tid))
+              continue;
+            else {
               reserved.add(tid);
               lastReserved = txdir;
-            } else
-              continue;
+            }
           }
 
           // have reserved id, status should not change
@@ -191,13 +192,14 @@ public class ZooStore<T> implements TStore<T> {
         synchronized (this) {
           // suppress lgtm alert - synchronized variable is not always true
           if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
-            if (defered.size() > 0) {
+            if (defered.isEmpty())
+              this.wait(5000);
+            else {
               Long minTime = Collections.min(defered.values());
               long waitTime = minTime - System.currentTimeMillis();
               if (waitTime > 0)
                 this.wait(Math.min(waitTime, 5000));
-            } else
-              this.wait(5000);
+            }
           }
         }
       }
@@ -492,7 +494,7 @@ public class ZooStore<T> implements TStore<T> {
       }
 
       ops = new ArrayList<>(ops);
-      Collections.sort(ops, Collections.reverseOrder());
+      ops.sort(Collections.reverseOrder());
 
       ArrayList<ReadOnlyRepo<T>> dops = new ArrayList<>();
 

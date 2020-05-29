@@ -235,7 +235,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
       }
 
-      if (lowBulkFiles.size() == 0) {
+      if (lowBulkFiles.isEmpty()) {
         throw new Exception(" no bulk files " + low);
       }
     } else {

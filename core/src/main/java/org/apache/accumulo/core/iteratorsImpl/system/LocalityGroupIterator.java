@@ -164,22 +164,22 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
     hiter.clear();
 
     Set<ByteSequence> cfSet;
-    if (columnFamilies.size() > 0) {
+    if (columnFamilies.isEmpty()) {
+      cfSet = Collections.emptySet();
+    } else {
       if (columnFamilies instanceof Set<?>) {
         cfSet = (Set<ByteSequence>) columnFamilies;
       } else {
         cfSet = new HashSet<>();
         cfSet.addAll(columnFamilies);
       }
-    } else {
-      cfSet = Collections.emptySet();
     }
 
     // determine the set of groups to use
     Collection<LocalityGroup> groups = Collections.emptyList();
 
     // if no column families specified, then include all groups unless !inclusive
-    if (cfSet.size() == 0) {
+    if (cfSet.isEmpty()) {
       if (!inclusive) {
         groups = lgContext.groups;
       }

@@ -91,7 +91,7 @@ public class PrepBulkImport extends MasterRepo {
     if (!Utils.getReadLock(master, bulkInfo.tableId, tid).tryLock())
       return 100;
 
-    if (master.onlineTabletServers().size() == 0)
+    if (master.onlineTabletServers().isEmpty())
       return 500;
     Tables.clearCache(master.getContext());
 
@@ -160,13 +160,13 @@ public class PrepBulkImport extends MasterRepo {
     VolumeManager fs = master.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
     try (LoadMappingIterator lmi =
-        BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, p -> fs.open(p))) {
+        BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
 
       TabletIterFactory tabletIterFactory = startRow -> TabletsMetadata.builder()
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetch(PREV_ROW)
           .build(master.getContext()).stream().map(TabletMetadata::getExtent).iterator();
 
-      checkForMerge(bulkInfo.tableId.canonical(), Iterators.transform(lmi, entry -> entry.getKey()),
+      checkForMerge(bulkInfo.tableId.canonical(), Iterators.transform(lmi, Map.Entry::getKey),
           tabletIterFactory);
     }
   }
@@ -198,7 +198,7 @@ public class PrepBulkImport extends MasterRepo {
     // also have to move mapping file
     oldToNewNameMap.put(mappingFile.getName(), new Path(bulkDir, mappingFile.getName()).getName());
 
-    BulkSerialize.writeRenameMap(oldToNewNameMap, bulkDir.toString(), p -> fs.create(p));
+    BulkSerialize.writeRenameMap(oldToNewNameMap, bulkDir.toString(), fs::create);
 
     bulkInfo.bulkDir = bulkDir.toString();
     // return the next step, which will move files

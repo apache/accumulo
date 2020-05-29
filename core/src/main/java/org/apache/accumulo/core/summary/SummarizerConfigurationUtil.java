@@ -37,7 +37,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
 public class SummarizerConfigurationUtil {
 
   public static Map<String,String> toTablePropertiesMap(List<SummarizerConfiguration> summarizers) {
-    if (summarizers.size() == 0) {
+    if (summarizers.isEmpty()) {
       return Collections.emptyMap();
     }
 
@@ -84,7 +84,7 @@ public class SummarizerConfigurationUtil {
 
   private static List<SummarizerConfiguration>
       getSummarizerConfigsFiltered(SortedMap<String,String> sprops) {
-    if (sprops.size() == 0) {
+    if (sprops.isEmpty()) {
       return Collections.emptyList();
     }
 

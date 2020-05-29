@@ -87,7 +87,7 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
   public Collection<Summary> read() throws IOException {
     SummarizerFactory factory = new SummarizerFactory();
     ConfigurationCopy acuconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    config.forEach((k, v) -> acuconf.set(k, v));
+    config.forEach(acuconf::set);
 
     RFileSource[] sources = in.getSources();
     try {

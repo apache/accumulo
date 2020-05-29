@@ -182,7 +182,7 @@ public class LogSorter {
       try (MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path),
           MapFile.Writer.keyClass(LogFileKey.class),
           MapFile.Writer.valueClass(LogFileValue.class))) {
-        Collections.sort(buffer, Comparator.comparing(Pair::getFirst));
+        buffer.sort(Comparator.comparing(Pair::getFirst));
         for (Pair<LogFileKey,LogFileValue> entry : buffer) {
           output.append(entry.getFirst(), entry.getSecond());
         }

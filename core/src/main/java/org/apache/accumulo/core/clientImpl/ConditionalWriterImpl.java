@@ -279,7 +279,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
         }
       }
 
-      if (mutations2.size() > 0)
+      if (!mutations2.isEmpty())
         failedMutations.addAll(mutations2);
 
     } else {
@@ -309,7 +309,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       binnedMutations.clear();
     }
 
-    if (failures.size() > 0)
+    if (!failures.isEmpty())
       queueRetry(failures, null);
 
     binnedMutations.forEach(this::queue);
@@ -340,10 +340,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
     // result in bigger batches and less RPC overhead
 
     synchronized (serverQueue) {
-      if (serverQueue.queue.size() > 0)
-        threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
-      else
+      if (serverQueue.queue.isEmpty())
         serverQueue.taskQueued = false;
+      else
+        threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
     }
 
   }
@@ -354,7 +354,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     var mutations = new ArrayList<TabletServerMutations<QCMutation>>();
     queue.drainTo(mutations);
 
-    if (mutations.size() == 0)
+    if (mutations.isEmpty())
       return null;
 
     if (mutations.size() == 1) {
@@ -388,7 +388,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     Runnable failureHandler = () -> {
       List<QCMutation> mutations = new ArrayList<>();
       failedMutations.drainTo(mutations);
-      if (mutations.size() > 0)
+      if (!mutations.isEmpty())
         queue(mutations);
     };
 
@@ -412,7 +412,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       ConditionalMutation mut = mutations.next();
       count++;
 
-      if (mut.getConditions().size() == 0)
+      if (mut.getConditions().isEmpty())
         throw new IllegalArgumentException(
             "ConditionalMutation had no conditions " + new String(mut.getRow(), UTF_8));
 
@@ -488,11 +488,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
         if (sid.reserved)
           throw new IllegalStateException();
 
-        if (!sid.isActive()) {
-          cachedSessionIDs.remove(location);
-        } else {
+        if (sid.isActive()) {
           sid.reserved = true;
           return sid;
+        } else {
+          cachedSessionIDs.remove(location);
         }
       }
     }

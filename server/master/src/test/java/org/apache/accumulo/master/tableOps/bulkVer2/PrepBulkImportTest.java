@@ -62,7 +62,7 @@ public class PrepBulkImportTest {
 
     }
 
-    extents.add(nke(rows.size() == 0 ? null : rows.get(rows.size() - 1), null));
+    extents.add(nke(rows.isEmpty() ? null : rows.get(rows.size() - 1), null));
 
     return extents;
   }

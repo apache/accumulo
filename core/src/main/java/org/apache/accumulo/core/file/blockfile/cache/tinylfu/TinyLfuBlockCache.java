@@ -235,7 +235,7 @@ public final class TinyLfuBlockCache implements BlockCache {
   public CacheEntry getBlock(String blockName, Loader loader) {
     Map<String,Loader> deps = loader.getDependencies();
     Block block;
-    if (deps.size() == 0) {
+    if (deps.isEmpty()) {
       block = cache.get(blockName, k -> load(loader, Collections.emptyMap()));
     } else {
       // This code path exist to handle the case where dependencies may need to be loaded. Loading

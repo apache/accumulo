@@ -416,13 +416,12 @@ public class Initialize implements KeywordExecutable {
       // If they did not, fall back to the credentials present in accumulo.properties that the
       // servers will use themselves.
       try {
-        final var siteConf = context.getServerConfFactory().getSiteConfiguration();
-        if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        if (siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
           final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
           // We don't have any valid creds to talk to HDFS
           if (!ugi.hasKerberosCredentials()) {
-            final String accumuloKeytab = siteConf.get(Property.GENERAL_KERBEROS_KEYTAB),
-                accumuloPrincipal = siteConf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
+            final String accumuloKeytab = siteConfig.get(Property.GENERAL_KERBEROS_KEYTAB),
+                accumuloPrincipal = siteConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL);
 
             // Fail if the site configuration doesn't contain appropriate credentials to login as
             // servers
@@ -717,7 +716,7 @@ public class Initialize implements KeywordExecutable {
         System.exit(0);
       }
       instanceName = instanceName.trim();
-      if (instanceName.length() == 0) {
+      if (instanceName.isEmpty()) {
         continue;
       }
       instanceNamePath = getInstanceNamePrefix() + instanceName;
@@ -869,7 +868,7 @@ public class Initialize implements KeywordExecutable {
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
             + MetadataTable.NAME + " replication of 5. What do you want to set your "
             + MetadataTable.NAME + " replication to? (" + replication + ") ");
-    if (rep == null || rep.length() == 0) {
+    if (rep == null || rep.isEmpty()) {
       rep = Integer.toString(replication);
     } else {
       // Lets make sure it's a number

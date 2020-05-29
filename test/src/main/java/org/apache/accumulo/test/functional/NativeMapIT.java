@@ -494,7 +494,7 @@ public class NativeMapIT {
     for (int i = 0; i < 2; i++) {
 
       // sort data
-      Collections.sort(testData, Comparator.comparing(Pair::getFirst));
+      testData.sort(Comparator.comparing(Pair::getFirst));
 
       // verify
       Iterator<Entry<Key,Value>> iter1 = nm.iterator();

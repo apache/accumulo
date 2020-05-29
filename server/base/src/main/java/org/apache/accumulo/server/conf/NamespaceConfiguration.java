@@ -108,11 +108,11 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
   public String get(Property property) {
     String key = property.getKey();
     AccumuloConfiguration getParent;
-    if (!(namespaceId.equals(Namespace.ACCUMULO.id()) && isIteratorOrConstraint(key))) {
-      getParent = parent;
-    } else {
+    if (namespaceId.equals(Namespace.ACCUMULO.id()) && isIteratorOrConstraint(key)) {
       // ignore iterators from parent if system namespace
       getParent = null;
+    } else {
+      getParent = parent;
     }
     return getPropCacheAccessor().get(property, getPath(), getParent);
   }

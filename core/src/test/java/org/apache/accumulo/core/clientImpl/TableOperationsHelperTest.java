@@ -197,7 +197,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public void importTable(String tableName, String exportDir) {}
+    public void importTable(String tableName, Set<String> exportDir) {}
 
     @Override
     public void exportTable(String tableName, String exportDir) {}

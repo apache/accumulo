@@ -164,7 +164,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.context = context;
     this.range = range;
 
-    if (this.options.fetchedColumns.size() > 0) {
+    if (!this.options.fetchedColumns.isEmpty()) {
       this.range =
           range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
@@ -265,7 +265,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     iter = createIterator(tablet.getExtent(), tablet.getFiles());
     iter.seek(range, LocalityGroupUtil.families(options.fetchedColumns),
-        options.fetchedColumns.size() != 0);
+        !options.fetchedColumns.isEmpty());
     currentExtent = tablet.getExtent();
 
   }

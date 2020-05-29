@@ -31,6 +31,7 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.util.SimpleThreadPool;
@@ -89,7 +90,7 @@ class BulkImportMove extends MasterRepo {
 
     try {
       Map<String,String> oldToNewNameMap =
-          BulkSerialize.readRenameMap(bulkDir.toString(), p -> fs.open(p));
+          BulkSerialize.readRenameMap(bulkDir.toString(), fs::open);
       moveFiles(tid, sourceDir, bulkDir, master, fs, oldToNewNameMap);
 
       return new LoadFiles(bulkInfo);
@@ -108,7 +109,10 @@ class BulkImportMove extends MasterRepo {
     MetadataTableUtil.addBulkLoadInProgressFlag(master.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
 
-    int workerCount = master.getConfiguration().getCount(Property.MASTER_BULK_RENAME_THREADS);
+    AccumuloConfiguration aConf = master.getConfiguration();
+    @SuppressWarnings("deprecation")
+    int workerCount = aConf.getCount(
+        aConf.resolve(Property.MASTER_RENAME_THREADS, Property.MASTER_BULK_RENAME_THREADS));
     SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulkDir move");
     List<Future<Boolean>> results = new ArrayList<>();
 

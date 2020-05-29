@@ -142,13 +142,13 @@ public class MetadataConstraints implements Constraint {
       }
     }
 
-    if (!containsSemiC) {
-      // see if last row char is <
-      if (row.length == 0 || row[row.length - 1] != '<') {
+    if (containsSemiC) {
+      if (row.length == 0) {
         violations = addIfNotPresent(violations, 4);
       }
     } else {
-      if (row.length == 0) {
+      // see if last row char is <
+      if (row.length == 0 || row[row.length - 1] != '<') {
         violations = addIfNotPresent(violations, 4);
       }
     }

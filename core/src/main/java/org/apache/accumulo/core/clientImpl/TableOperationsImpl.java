@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -445,8 +447,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         if (splits.size() <= 2) {
           addSplits(env.tableName, new TreeSet<>(splits), env.tableId);
-          for (int i = 0; i < splits.size(); i++)
-            env.latch.countDown();
+          splits.forEach(s -> env.latch.countDown());
           return;
         }
 
@@ -1477,6 +1478,49 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return finalUsages;
   }
 
+  /**
+   * Search multiple directories for exportMetadata.zip, the control file used for the importable
+   * command.
+   *
+   * @param context
+   *          used to obtain filesystem based on configuration
+   * @param importDirs
+   *          the set of directories to search.
+   * @return the Path representing the location of the file.
+   * @throws AccumuloException
+   *           if zero or more than one copy of the exportMetadata.zip file are found in the
+   *           directories provided.
+   */
+  public static Path findExportFile(ClientContext context, Set<String> importDirs)
+      throws AccumuloException {
+    LinkedHashSet<Path> exportFiles = new LinkedHashSet<>();
+    for (String importDir : importDirs) {
+      Path exportFilePath = null;
+      try {
+        FileSystem fs = new Path(importDir).getFileSystem(context.getHadoopConf());
+        exportFilePath = new Path(importDir, Constants.EXPORT_FILE);
+        log.debug("Looking for export metadata in {}", exportFilePath);
+        if (fs.exists(exportFilePath)) {
+          log.debug("Found export metadata in {}", exportFilePath);
+          exportFiles.add(exportFilePath);
+        }
+      } catch (IOException ioe) {
+        log.warn("Non-Fatal IOException reading export file: {}", exportFilePath, ioe);
+      }
+    }
+
+    if (exportFiles.size() > 1) {
+      String fileList = Arrays.toString(exportFiles.toArray());
+      log.warn("Found multiple export metadata files: " + fileList);
+      throw new AccumuloException("Found multiple export metadata files: " + fileList);
+    } else if (exportFiles.isEmpty()) {
+      log.warn("Unable to locate export metadata");
+      throw new AccumuloException("Unable to locate export metadata");
+    }
+
+    return exportFiles.iterator().next();
+  }
+
   public static Map<String,String> getExportedProps(FileSystem fs, Path path) throws IOException {
     HashMap<String,String> props = new HashMap<>();
 
@@ -1500,22 +1544,26 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void importTable(String tableName, String importDir)
+  public void importTable(String tableName, Set<String> importDirs)
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
-    checkArgument(importDir != null, "importDir is null");
+    checkArgument(importDirs != null, "importDir is null");
     checkArgument(tableName.length() <= MAX_TABLE_NAME_LEN,
         "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
 
+    Set<String> checkedImportDirs = new HashSet<String>();
     try {
-      importDir = checkPath(importDir, "Table", "").toString();
+      for (String s : importDirs) {
+        checkedImportDirs.add(checkPath(s, "Table", "").toString());
+      }
     } catch (IOException e) {
       throw new AccumuloException(e);
     }
 
     try {
-      FileSystem fs = new Path(importDir).getFileSystem(context.getHadoopConf());
-      Map<String,String> props = getExportedProps(fs, new Path(importDir, Constants.EXPORT_FILE));
+      Path exportFilePath = findExportFile(context, checkedImportDirs);
+      FileSystem fs = exportFilePath.getFileSystem(context.getHadoopConf());
+      Map<String,String> props = getExportedProps(fs, exportFilePath);
 
       for (Entry<String,String> entry : props.entrySet()) {
         if (Property.isClassProperty(entry.getKey())
@@ -1525,15 +1573,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
               sanitize(entry.getKey()), sanitize(entry.getValue()));
         }
       }
-
     } catch (IOException ioe) {
       LoggerFactory.getLogger(this.getClass()).warn(
           "Failed to check if imported table references external java classes : {}",
           ioe.getMessage());
     }
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(importDir.getBytes(UTF_8)));
+    Stream<String> argStream = Stream.concat(Stream.of(tableName), checkedImportDirs.stream());
+    List<ByteBuffer> args =
+        argStream.map(String::getBytes).map(ByteBuffer::wrap).collect(Collectors.toList());
 
     Map<String,String> opts = Collections.emptyMap();
 

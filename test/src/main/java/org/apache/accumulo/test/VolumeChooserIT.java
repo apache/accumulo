@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -179,8 +180,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       throws Exception {
     // Verify the new files are written to the Volumes specified
     ArrayList<String> volumes = new ArrayList<>();
-    for (String s : vol.split(","))
-      volumes.add(s);
+    Collections.addAll(volumes, vol.split(","));
 
     TreeSet<String> volumesSeen = new TreeSet<>();
     int fileCount = 0;
@@ -247,8 +247,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       throws TableNotFoundException {
     // Verify the new files are written to the Volumes specified
     ArrayList<String> volumes = new ArrayList<>();
-    for (String s : vol.split(","))
-      volumes.add(s);
+    Collections.addAll(volumes, vol.split(","));
 
     TreeSet<String> volumesSeen = new TreeSet<>();
     try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {

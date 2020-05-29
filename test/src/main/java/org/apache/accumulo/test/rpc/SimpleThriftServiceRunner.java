@@ -39,7 +39,7 @@ public class SimpleThriftServiceRunner {
   public SimpleThriftServiceRunner(String threadName) {
     this.mocket = new Mocket();
     this.server = createServer();
-    this.serviceThread = new Thread(() -> server.serve(), threadName);
+    this.serviceThread = new Thread(server::serve, threadName);
   }
 
   public void startService() {

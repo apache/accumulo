@@ -149,7 +149,7 @@ public class BulkImporter {
             }
             log.debug("Map file {} found to overlap {} tablets", mapFile,
                 tabletsToAssignMapFileTo.size());
-            if (tabletsToAssignMapFileTo.size() == 0) {
+            if (tabletsToAssignMapFileTo.isEmpty()) {
               List<KeyExtent> empty = Collections.emptyList();
               completeFailures.put(mapFile, empty);
             } else
@@ -179,7 +179,7 @@ public class BulkImporter {
         failureCount.put(entry.getKey(), 1);
 
       long sleepTime = 2 * 1000;
-      while (assignmentFailures.size() > 0) {
+      while (!assignmentFailures.isEmpty()) {
         sleepTime = Math.min(sleepTime * 2, 60 * 1000);
         locator.invalidateCache();
         // assumption about assignment failures is that it caused by a split
@@ -217,7 +217,7 @@ public class BulkImporter {
             timer.stop(Timers.QUERY_METADATA);
           }
 
-          if (tabletsToAssignMapFileTo.size() > 0)
+          if (!tabletsToAssignMapFileTo.isEmpty())
             assignments.put(entry.getKey(), tabletsToAssignMapFileTo);
         }
 
@@ -304,7 +304,7 @@ public class BulkImporter {
 
     Set<Entry<Path,List<KeyExtent>>> es = completeFailures.entrySet();
 
-    if (completeFailures.size() == 0)
+    if (completeFailures.isEmpty())
       return Collections.emptySet();
 
     log.debug("The following map files failed ");
@@ -760,7 +760,7 @@ public class BulkImporter {
       sb.append(String.format("# map files with failures : %,10d %6.2f%s%n",
           completeFailures.size(), completeFailures.size() * 100.0 / numUniqueMapFiles, "%"));
       sb.append(String.format("# failed failed map files : %,10d %s%n", failedFailures.size(),
-          failedFailures.size() > 0 ? " <-- THIS IS BAD" : ""));
+          failedFailures.isEmpty() ? "" : " <-- THIS IS BAD"));
       sb.append(String.format("# of tablets              : %,10d%n", counts.size()));
       sb.append(String.format("# tablets imported to     : %,10d %6.2f%s%n", tabletsImportedTo,
           tabletsImportedTo * 100.0 / counts.size(), "%"));

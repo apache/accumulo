@@ -189,7 +189,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     this.opts = opts;
-    if (opts.tableConfig != null && opts.tableConfig.size() > 0) {
+    if (opts.tableConfig != null && !opts.tableConfig.isEmpty()) {
       ConfigurationCopy tableCC = new ConfigurationCopy(DefaultConfiguration.getInstance());
       opts.tableConfig.forEach(tableCC::set);
       this.tableConf = tableCC;
@@ -377,7 +377,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
       }
 
       try {
-        if (opts.tableConfig != null && opts.tableConfig.size() > 0) {
+        if (opts.tableConfig != null && !opts.tableConfig.isEmpty()) {
           IterLoad il = IterConfigUtil.loadIterConf(IteratorScope.scan, serverSideIteratorList,
               serverSideIteratorOptions, tableConf);
           iterator = IterConfigUtil.loadIterators(iterator,
@@ -391,7 +391,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
         throw new RuntimeException(e);
       }
 
-      iterator.seek(getRange() == null ? EMPTY_RANGE : getRange(), families, families.size() != 0);
+      iterator.seek(getRange() == null ? EMPTY_RANGE : getRange(), families, !families.isEmpty());
       return new IteratorAdapter(iterator);
 
     } catch (IOException e) {

@@ -254,7 +254,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         assertEquals(errorMsg, 0, shell.getExitCode());
       }
 
-      if (s.length() > 0)
+      if (!s.isEmpty())
         assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
             output.get().contains(s));
     }
@@ -266,7 +266,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         assertTrue(errorMsg, shell.getExitCode() > 0);
       }
 
-      if (s.length() > 0)
+      if (!s.isEmpty())
         assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
             output.get().contains(s));
       shell.resetExitCode();
@@ -2247,8 +2247,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table + " -l locg1=fam1,fam2 locg2=colfam1", true);
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       Map<String,Set<Text>> lMap = accumuloClient.tableOperations().getLocalityGroups(table);
-      assertTrue(lMap.keySet().contains("locg1"));
-      assertTrue(lMap.keySet().contains("locg2"));
+      assertTrue(lMap.containsKey("locg1"));
+      assertTrue(lMap.containsKey("locg2"));
       Set<Text> expectedColFams1 = new HashSet<>(Arrays.asList(new Text("fam1"), new Text("fam2")));
       Set<Text> expectedColFams2 = new HashSet<>(Arrays.asList(new Text("colfam1")));
       assertTrue(lMap.get("locg1").containsAll(expectedColFams1));

@@ -691,7 +691,7 @@ public class ThriftTransportPool {
       // randomly pick a server from the connection cache
       serversSet.retainAll(pool.getThriftTransportKeys());
 
-      if (serversSet.size() > 0) {
+      if (!serversSet.isEmpty()) {
         ArrayList<ThriftTransportKey> cachedServers = new ArrayList<>(serversSet);
         Collections.shuffle(cachedServers, random);
 
@@ -709,7 +709,7 @@ public class ThriftTransportPool {
 
     ConnectionPool pool = getConnectionPool();
     int retryCount = 0;
-    while (servers.size() > 0 && retryCount < 10) {
+    while (!servers.isEmpty() && retryCount < 10) {
 
       int index = random.nextInt(servers.size());
       ThriftTransportKey ttk = servers.get(index);

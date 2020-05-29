@@ -66,15 +66,15 @@ public class MetricsFileTailerTest {
 
     int count = 0;
     while (count++ < 5) {
-      if (lastUpdate != tailer.getLastUpdate()) {
+      if (lastUpdate == tailer.getLastUpdate()) {
+        log.trace("no change");
+      } else {
         lastUpdate = tailer.getLastUpdate();
         log.trace("{} - {}", tailer.getLastUpdate(), tailer.getLast());
         if (SUCCESS.compareTo(tailer.getLast()) == 0) {
           passed = Boolean.TRUE;
           break;
         }
-      } else {
-        log.trace("no change");
       }
       try {
         Thread.sleep(5_000);

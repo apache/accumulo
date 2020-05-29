@@ -234,7 +234,7 @@ public class ZooReaderWriter extends ZooReader {
   public void recursiveCopyPersistent(String source, String destination, NodeExistsPolicy policy)
       throws KeeperException, InterruptedException {
     Stat stat = null;
-    if (!(getStatus(getZooKeeper(), getRetryFactory(), source) != null))
+    if (getStatus(getZooKeeper(), getRetryFactory(), source) == null)
       throw KeeperException.create(Code.NONODE, source);
     if (getStatus(getZooKeeper(), getRetryFactory(), destination) != null) {
       switch (policy) {
@@ -404,7 +404,7 @@ public class ZooReaderWriter extends ZooReader {
       try {
         List<String> children = getZooKeeper().getChildren(lockID.path, false);
 
-        if (children.size() == 0) {
+        if (children.isEmpty()) {
           return false;
         }
 

@@ -100,11 +100,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   private static SortedSet<String> nss(String... labels) {
     TreeSet<String> ts = new TreeSet<>();
-
-    for (String s : labels) {
-      ts.add(s);
-    }
-
+    Collections.addAll(ts, labels);
     return ts;
   }
 
@@ -325,7 +321,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
       }
     }
 
-    if (valuesSeen.size() != 0) {
+    if (!valuesSeen.isEmpty()) {
       throw new Exception("Saw more values than expected " + valuesSeen);
     }
   }

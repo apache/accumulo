@@ -294,15 +294,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           ProtobufUtil.toString(currentStatus));
 
       // If we got a different status
-      if (!currentStatus.equals(lastStatus)) {
-        // If we don't have any more work, just quit
-        if (!StatusUtil.isWorkRequired(currentStatus)) {
-          return currentStatus;
-        } else {
-          // Otherwise, let it loop and replicate some more data
-          lastStatus = currentStatus;
-        }
-      } else {
+      if (currentStatus.equals(lastStatus)) {
         log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target,
             ProtobufUtil.toString(lastStatus));
 
@@ -310,6 +302,14 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         // data)
         // we can just not record any updates, and it will be picked up again by the work assigner
         return status;
+      } else {
+        // If we don't have any more work, just quit
+        if (StatusUtil.isWorkRequired(currentStatus)) {
+          // Otherwise, let it loop and replicate some more data
+          lastStatus = currentStatus;
+        } else {
+          return currentStatus;
+        }
       }
     }
   }
@@ -378,7 +378,15 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             ProtobufUtil.toString(currentStatus));
 
         // If we got a different status
-        if (!currentStatus.equals(lastStatus)) {
+        if (currentStatus.equals(lastStatus)) {
+          log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target,
+              ProtobufUtil.toString(lastStatus));
+
+          // otherwise, we didn't actually replicate (likely because there was error sending the
+          // data)
+          // we can just not record any updates, and it will be picked up again by the work assigner
+          return status;
+        } else {
           try (TraceScope span = Trace.startSpan("Update replication table")) {
             if (accumuloUgi != null) {
               final Status copy = currentStatus;
@@ -416,20 +424,12 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           log.debug("Recorded updated status for {}: {}", p, ProtobufUtil.toString(currentStatus));
 
           // If we don't have any more work, just quit
-          if (!StatusUtil.isWorkRequired(currentStatus)) {
-            return currentStatus;
-          } else {
+          if (StatusUtil.isWorkRequired(currentStatus)) {
             // Otherwise, let it loop and replicate some more data
             lastStatus = currentStatus;
+          } else {
+            return currentStatus;
           }
-        } else {
-          log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target,
-              ProtobufUtil.toString(lastStatus));
-
-          // otherwise, we didn't actually replicate (likely because there was error sending the
-          // data)
-          // we can just not record any updates, and it will be picked up again by the work assigner
-          return status;
         }
       }
     } catch (LogHeaderIncompleteException e) {
@@ -496,11 +496,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       if (edits.walEdits.getEditsSize() > 0) {
         log.debug("Sending {} edits", edits.walEdits.getEditsSize());
         long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits, tcreds);
-        if (entriesReplicated != edits.numUpdates) {
+        if (entriesReplicated == edits.numUpdates) {
+          log.debug("Replicated {} edits", entriesReplicated);
+        } else {
           log.warn("Sent {} WAL entries for replication but {} were reported as replicated",
               edits.numUpdates, entriesReplicated);
-        } else {
-          log.debug("Replicated {} edits", entriesReplicated);
         }
 
         // We don't have to replicate every LogEvent in the file (only Mutation LogEvents), but we

@@ -148,7 +148,7 @@ public class SummaryWriter implements FileSKVWriter {
     List<SummarizerConfiguration> configs =
         SummarizerConfigurationUtil.getSummarizerConfigs(tableConfig);
 
-    if (configs.size() == 0) {
+    if (configs.isEmpty()) {
       return writer;
     }
 

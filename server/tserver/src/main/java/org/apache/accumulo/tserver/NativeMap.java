@@ -220,7 +220,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       allocatedNativeMaps = new HashSet<>();
 
       Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-        if (allocatedNativeMaps.size() > 0) {
+        if (!allocatedNativeMaps.isEmpty()) {
           log.info("There are {} allocated native maps", allocatedNativeMaps.size());
         }
         log.debug("{} native maps were allocated", totalAllocations);

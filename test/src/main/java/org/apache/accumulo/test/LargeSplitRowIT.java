@@ -242,11 +242,11 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       client.tableOperations().flush(tableName, new Text(), new Text("z"), true);
 
       // Make sure a split occurs
-      while (client.tableOperations().listSplits(tableName).size() == 0) {
+      while (client.tableOperations().listSplits(tableName).isEmpty()) {
         Thread.sleep(250);
       }
 
-      assertTrue(client.tableOperations().listSplits(tableName).size() > 0);
+      assertTrue(!client.tableOperations().listSplits(tableName).isEmpty());
     }
   }
 

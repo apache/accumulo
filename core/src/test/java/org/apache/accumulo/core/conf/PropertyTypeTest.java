@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -72,7 +73,7 @@ public class PropertyTypeTest {
     // a corresponding test
     Stream<String> types = Arrays.stream(PropertyType.values()).map(Enum<PropertyType>::name);
 
-    List<String> typesTested = Arrays.stream(this.getClass().getMethods()).map(m -> m.getName())
+    List<String> typesTested = Arrays.stream(this.getClass().getMethods()).map(Method::getName)
         .filter(m -> m.startsWith("testType")).map(m -> m.substring(8))
         .collect(Collectors.toList());
 

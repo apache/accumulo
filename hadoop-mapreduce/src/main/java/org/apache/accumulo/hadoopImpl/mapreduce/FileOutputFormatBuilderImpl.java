@@ -127,7 +127,7 @@ public class FileOutputFormatBuilderImpl<T> implements FileOutputFormatBuilder,
       FileOutputConfigurator.setReplication(callingClass, conf, replication.get());
     if (sampler.isPresent())
       FileOutputConfigurator.setSampler(callingClass, conf, sampler.get());
-    if (summarizers.size() > 0)
+    if (!summarizers.isEmpty())
       FileOutputConfigurator.setSummarizers(callingClass, conf,
           summarizers.toArray(new SummarizerConfiguration[0]));
   }

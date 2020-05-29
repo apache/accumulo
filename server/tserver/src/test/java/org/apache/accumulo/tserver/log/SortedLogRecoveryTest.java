@@ -787,13 +787,13 @@ public class SortedLogRecoveryTest {
     filesSet.addAll(Arrays.asList(tabletFiles));
     List<Mutation> mutations = recover(logs, filesSet, extent);
 
-    if (!startMatches) {
+    if (startMatches) {
+      assertEquals(1, mutations.size());
+      assertEquals(m2, mutations.get(0));
+    } else {
       assertEquals(2, mutations.size());
       assertEquals(m1, mutations.get(0));
       assertEquals(m2, mutations.get(1));
-    } else {
-      assertEquals(1, mutations.size());
-      assertEquals(m2, mutations.get(0));
     }
   }
 

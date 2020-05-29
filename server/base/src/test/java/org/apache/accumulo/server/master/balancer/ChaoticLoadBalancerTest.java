@@ -152,7 +152,7 @@ public class ChaoticLoadBalancerTest {
     // Just want to make sure it gets some migrations, randomness prevents guarantee of a defined
     // amount, or even expected amount
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    while (migrationsOut.size() != 0) {
+    while (!migrationsOut.isEmpty()) {
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
     }
   }

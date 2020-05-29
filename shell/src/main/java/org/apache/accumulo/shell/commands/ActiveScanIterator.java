@@ -56,7 +56,7 @@ class ActiveScanIterator implements Iterator<String> {
         scans.add(tserver + " ERROR " + e.getMessage());
       }
 
-      if (scans.size() > 0) {
+      if (!scans.isEmpty()) {
         break;
       }
     }

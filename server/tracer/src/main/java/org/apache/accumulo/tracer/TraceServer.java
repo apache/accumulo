@@ -58,7 +58,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.ServerUtil;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -84,7 +83,6 @@ import org.slf4j.LoggerFactory;
 public class TraceServer implements Watcher, AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(TraceServer.class);
-  private final ServerConfigurationFactory serverConfiguration;
   private final ServerContext context;
   private final TServer server;
   private final AtomicReference<BatchWriter> writer;
@@ -152,7 +150,7 @@ public class TraceServer implements Watcher, AutoCloseable {
       TCompactProtocol protocol = new TCompactProtocol(transport);
       s.write(protocol);
       String parentString = s.getParentIdsSize() == 0 ? "" : s.getParentIds().stream()
-          .map(x -> Long.toHexString(x)).collect(Collectors.toList()).toString();
+          .map(Long::toHexString).collect(Collectors.toList()).toString();
       put(spanMutation, "span", parentString + ":" + Long.toHexString(s.spanId), transport.get(),
           transport.len());
       // Map the root span to time so we can look up traces by time
@@ -197,10 +195,9 @@ public class TraceServer implements Watcher, AutoCloseable {
 
   public TraceServer(ServerContext context, String hostname) throws Exception {
     this.context = context;
-    this.serverConfiguration = context.getServerConfFactory();
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", context.getInstanceID());
-    AccumuloConfiguration conf = serverConfiguration.getSystemConfiguration();
+    AccumuloConfiguration conf = context.getConfiguration();
     tableName = conf.get(Property.TRACE_TABLE);
     accumuloClient = ensureTraceTableExists(conf);
 
@@ -306,8 +303,8 @@ public class TraceServer implements Watcher, AutoCloseable {
   }
 
   public void run() {
-    SimpleTimer.getInstance(serverConfiguration.getSystemConfiguration()).schedule(() -> flush(),
-        SCHEDULE_DELAY, SCHEDULE_PERIOD);
+    SimpleTimer.getInstance(context.getConfiguration()).schedule(this::flush, SCHEDULE_DELAY,
+        SCHEDULE_PERIOD);
     server.serve();
   }
 
@@ -368,13 +365,7 @@ public class TraceServer implements Watcher, AutoCloseable {
       Class<? extends AuthenticationToken> traceTokenType = AccumuloVFSClassLoader.getClassLoader()
           .loadClass(acuConf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class);
 
-      if (!(KerberosToken.class.isAssignableFrom(traceTokenType))) {
-        // We're not using Kerberos to talk to Accumulo, but we might still need it for talking to
-        // HDFS/ZK for
-        // instance information.
-        log.info("Handling login under the assumption that Accumulo users are not using Kerberos.");
-        SecurityUtil.serverLogin(acuConf);
-      } else {
+      if (KerberosToken.class.isAssignableFrom(traceTokenType)) {
         // We're using Kerberos to talk to Accumulo, so check for trace user specific auth details.
         // We presume this same user will have the needed access for the service to interact with
         // HDFS/ZK for
@@ -383,20 +374,26 @@ public class TraceServer implements Watcher, AutoCloseable {
         Map<String,String> loginMap =
             acuConf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
         String keyTab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
-        if (keyTab == null || keyTab.length() == 0) {
+        if (keyTab == null || keyTab.isEmpty()) {
           keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
         }
-        if (keyTab == null || keyTab.length() == 0) {
+        if (keyTab == null || keyTab.isEmpty()) {
           return;
         }
 
         String principalConfig = acuConf.get(Property.TRACE_USER);
-        if (principalConfig == null || principalConfig.length() == 0) {
+        if (principalConfig == null || principalConfig.isEmpty()) {
           return;
         }
 
         log.info("Attempting to login as {} with {}", principalConfig, keyTab);
         SecurityUtil.serverLogin(acuConf, keyTab, principalConfig);
+      } else {
+        // We're not using Kerberos to talk to Accumulo, but we might still need it for talking to
+        // HDFS/ZK for
+        // instance information.
+        log.info("Handling login under the assumption that Accumulo users are not using Kerberos.");
+        SecurityUtil.serverLogin(acuConf);
       }
     } catch (IOException | ClassNotFoundException exception) {
       final String msg =

@@ -133,7 +133,7 @@ public class GroupBalancerTest {
           tabletLocs.put(tabletMigration.tablet, tabletMigration.newServer);
         }
 
-        if (migrationsOut.size() == 0) {
+        if (migrationsOut.isEmpty()) {
           break;
         }
       }

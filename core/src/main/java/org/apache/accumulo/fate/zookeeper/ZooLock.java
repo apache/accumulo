@@ -414,7 +414,7 @@ public class ZooLock implements Watcher {
 
     List<String> children = zc.getChildren(lid.path);
 
-    if (children == null || children.size() == 0) {
+    if (children == null || children.isEmpty()) {
       return false;
     }
 
@@ -433,7 +433,7 @@ public class ZooLock implements Watcher {
       throws KeeperException, InterruptedException {
     List<String> children = zk.getChildren(path, false);
 
-    if (children == null || children.size() == 0) {
+    if (children == null || children.isEmpty()) {
       return null;
     }
 
@@ -449,7 +449,7 @@ public class ZooLock implements Watcher {
 
     List<String> children = zc.getChildren(path);
 
-    if (children == null || children.size() == 0) {
+    if (children == null || children.isEmpty()) {
       return null;
     }
 
@@ -468,7 +468,7 @@ public class ZooLock implements Watcher {
   public static long getSessionId(ZooCache zc, String path) {
     List<String> children = zc.getChildren(path);
 
-    if (children == null || children.size() == 0) {
+    if (children == null || children.isEmpty()) {
       return 0;
     }
 
@@ -495,7 +495,7 @@ public class ZooLock implements Watcher {
 
     children = zk.getChildren(path);
 
-    if (children == null || children.size() == 0) {
+    if (children == null || children.isEmpty()) {
       throw new IllegalStateException("No lock is held at " + path);
     }
 
@@ -517,7 +517,7 @@ public class ZooLock implements Watcher {
 
     children = zk.getChildren(path);
 
-    if (children == null || children.size() == 0) {
+    if (children == null || children.isEmpty()) {
       throw new IllegalStateException("No lock is held at " + path);
     }
 

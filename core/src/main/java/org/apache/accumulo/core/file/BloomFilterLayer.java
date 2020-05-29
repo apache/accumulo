@@ -256,10 +256,10 @@ public class BloomFilterLayer {
         } catch (NoSuchMetaStoreException nsme) {
           // file does not have a bloom filter, ignore it
         } catch (IOException ioe) {
-          if (!closed)
-            LOG.warn("Can't open BloomFilter", ioe);
-          else
+          if (closed)
             LOG.debug("Can't open BloomFilter, file closed : {}", ioe.getMessage());
+          else
+            LOG.warn("Can't open BloomFilter", ioe);
 
           bloomFilter = null;
         } catch (ClassNotFoundException e) {
@@ -269,10 +269,10 @@ public class BloomFilterLayer {
           LOG.error("Could not instantiate KeyFunctor: " + sanitize(ClassName), e);
           bloomFilter = null;
         } catch (RuntimeException rte) {
-          if (!closed)
-            throw rte;
-          else
+          if (closed)
             LOG.debug("Can't open BloomFilter, RTE after closed ", rte);
+          else
+            throw rte;
         } finally {
           if (in != null) {
             try {
@@ -372,11 +372,11 @@ public class BloomFilterLayer {
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
         throws IOException {
 
-      if (!bfl.probablyHasKey(range)) {
-        checkSuper = false;
-      } else {
+      if (bfl.probablyHasKey(range)) {
         reader.seek(range, columnFamilies, inclusive);
         checkSuper = true;
+      } else {
+        checkSuper = false;
       }
     }
 

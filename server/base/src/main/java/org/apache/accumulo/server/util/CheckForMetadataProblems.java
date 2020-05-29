@@ -47,7 +47,7 @@ public class CheckForMetadataProblems {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
 
-    if (tablets.size() == 0) {
+    if (tablets.isEmpty()) {
       System.out.println("No entries found in metadata table for table " + tablename);
       sawProblems = true;
       return;

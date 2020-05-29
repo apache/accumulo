@@ -44,25 +44,44 @@ class CreateImportDir extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
 
-    UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
-
-    Path exportDir = new Path(tableInfo.exportDir);
     Set<String> tableDirs = ServerConstants.getTablesDirs(master.getContext());
 
-    log.info("Looking for matching filesystem for {} from options {}", exportDir, tableDirs);
-    Path base = master.getVolumeManager().matchingFileSystem(exportDir, tableDirs);
-    if (base == null) {
-      throw new IOException(tableInfo.exportDir + " is not in a volume configured for Accumulo");
-    }
-    log.info("Chose base table directory of " + base);
-    Path directory = new Path(base, tableInfo.tableId.canonical());
-
-    Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
-
-    tableInfo.importDir = newBulkDir.toString();
-
-    log.info("Using import dir: " + tableInfo.importDir);
+    create(tableDirs, master);
 
     return new MapImportFileNames(tableInfo);
+  }
+
+  /**
+   * Generate destination directory names under the accumulo table directories imported rfiles.
+   * These directories must be on the same volume as each file being imported.
+   *
+   * @param tableDirs
+   *          the set of table directories on HDFS where files will be moved e.g:
+   *          hdfs://volume1/accumulo/tables/
+   * @param master
+   *          the master instance performing the table import.
+   * @throws IOException
+   *           if any import directory does not reside on a volume configured for accumulo.
+   */
+  void create(Set<String> tableDirs, Master master) throws IOException {
+    UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
+
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      Path exportDir = new Path(dm.exportDir);
+
+      log.info("Looking for matching filesystem for {} from options {}", exportDir, tableDirs);
+      Path base = master.getVolumeManager().matchingFileSystem(exportDir, tableDirs);
+      if (base == null) {
+        throw new IOException(dm.exportDir + " is not in a volume configured for Accumulo");
+      }
+      log.info("Chose base table directory of {}", base);
+      Path directory = new Path(base, tableInfo.tableId.canonical());
+
+      Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
+
+      dm.importDir = newBulkDir.toString();
+
+      log.info("Using import dir: {}", dm.importDir);
+    }
   }
 }

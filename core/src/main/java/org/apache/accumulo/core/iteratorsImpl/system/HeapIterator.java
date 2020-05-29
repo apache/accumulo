@@ -72,15 +72,7 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
     }
 
     topIdx.next();
-    if (!topIdx.hasTop()) {
-      if (nextKey == null) {
-        // No iterators left
-        topIdx = null;
-        return;
-      }
-
-      pullReferencesFromHeap();
-    } else {
+    if (topIdx.hasTop()) {
       if (nextKey == null) {
         // topIdx is the only iterator
         return;
@@ -96,15 +88,23 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
         topIdx = nextTopIdx;
         nextKey = heap.peek().getTopKey();
       }
+    } else {
+      if (nextKey == null) {
+        // No iterators left
+        topIdx = null;
+        return;
+      }
+
+      pullReferencesFromHeap();
     }
   }
 
   private void pullReferencesFromHeap() {
     topIdx = heap.remove();
-    if (!heap.isEmpty()) {
-      nextKey = heap.peek().getTopKey();
-    } else {
+    if (heap.isEmpty()) {
       nextKey = null;
+    } else {
+      nextKey = heap.peek().getTopKey();
     }
   }
 

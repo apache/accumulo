@@ -66,14 +66,14 @@ public class ColumnSet {
 
   public boolean contains(Key key) {
     // lookup column family and column qualifier
-    if (objectsCol.size() > 0) {
+    if (!objectsCol.isEmpty()) {
       lookupCol.set(key);
       if (objectsCol.contains(lookupCol))
         return true;
     }
 
     // lookup just column family
-    if (objectsCF.size() > 0) {
+    if (!objectsCF.isEmpty()) {
       lookupCF.set(key);
       return objectsCF.contains(lookupCF);
     }
@@ -82,7 +82,7 @@ public class ColumnSet {
   }
 
   public boolean isEmpty() {
-    return objectsCol.size() == 0 && objectsCF.size() == 0;
+    return objectsCol.isEmpty() && objectsCF.isEmpty();
   }
 
   public static String encodeColumns(Text columnFamily, Text columnQualifier) {
@@ -145,9 +145,7 @@ public class ColumnSet {
 
     // very inefficient code
     for (int i = 0; i < sb.length; i++) {
-      if (sb[i] != '%') {
-        t.append(new byte[] {sb[i]}, 0, 1);
-      } else {
+      if (sb[i] == '%') {
         int x = ++i;
         int y = ++i;
         if (y < sb.length) {
@@ -159,6 +157,8 @@ public class ColumnSet {
           throw new IllegalArgumentException("Invalid characters in encoded string (" + s + ")."
               + " Expected two characters after '%'");
         }
+      } else {
+        t.append(new byte[] {sb[i]}, 0, 1);
       }
     }
 

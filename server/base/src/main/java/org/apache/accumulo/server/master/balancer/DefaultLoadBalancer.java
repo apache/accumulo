@@ -63,7 +63,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
 
   public TServerInstance getAssignment(SortedMap<TServerInstance,TabletServerStatus> locations,
       TServerInstance last) {
-    if (locations.size() == 0)
+    if (locations.isEmpty())
       return null;
 
     if (last != null) {
@@ -152,7 +152,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
       }
 
       // order from low to high
-      Collections.sort(totals, Collections.reverseOrder());
+      totals.sort(Collections.reverseOrder());
       int even = total / totals.size();
       int numServersOverEven = total % totals.size();
 
@@ -292,7 +292,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
   }
 
   static KeyExtent selectTablet(Map<KeyExtent,TabletStats> extents) {
-    if (extents.size() == 0)
+    if (extents.isEmpty())
       return null;
     KeyExtent mostRecentlySplit = null;
     long splitTime = 0;
@@ -335,9 +335,11 @@ public class DefaultLoadBalancer extends TabletBalancer {
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
       Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     // do we have any servers?
-    if (current.size() > 0) {
+    if (current.isEmpty()) {
+      constraintNotMet(NO_SERVERS);
+    } else {
       // Don't migrate if we have migrations in progress
-      if (migrations.size() == 0) {
+      if (migrations.isEmpty()) {
         resetBalancerErrors();
         if (getMigrations(current, migrationsOut))
           return 1 * 1000;
@@ -345,8 +347,6 @@ public class DefaultLoadBalancer extends TabletBalancer {
         outstandingMigrations.migrations = migrations;
         constraintNotMet(outstandingMigrations);
       }
-    } else {
-      constraintNotMet(NO_SERVERS);
     }
     return 5 * 1000;
   }

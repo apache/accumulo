@@ -119,7 +119,7 @@ public class TestRandomDeletes {
 
     Set<RowColumn> current = scanAll(opts);
     current.removeAll(rows);
-    if (current.size() > 0) {
+    if (!current.isEmpty()) {
       throw new RuntimeException(current.size() + " records not deleted");
     }
     return result;

@@ -58,14 +58,20 @@ public class SingletonManager {
      */
     CLIENT,
     /**
-     * In this mode singletons are never disabled.
+     * In this mode singletons are never disabled, unless the CLOSED mode is entered.
      */
     SERVER,
     /**
      * In this mode singletons are never disabled unless the mode is set back to CLIENT. The user
      * can do this by using util.CleanUp (an old API created for users).
      */
-    CONNECTOR
+    CONNECTOR,
+    /**
+     * In this mode singletons are permanently disabled and entering this mode prevents
+     * transitioning to other modes.
+     */
+    CLOSED
+
   }
 
   private static long reservations;
@@ -148,6 +154,10 @@ public class SingletonManager {
    * Change how singletons are managed. The default mode is {@link Mode#CLIENT}
    */
   public static synchronized void setMode(Mode mode) {
+    if (SingletonManager.mode == mode)
+      return;
+    if (SingletonManager.mode == Mode.CLOSED)
+      throw new IllegalStateException("Cannot leave closed mode once entered");
     if (SingletonManager.mode == Mode.CLIENT && mode == Mode.CONNECTOR) {
       if (transitionedFromClientToConnector) {
         throw new IllegalStateException("Can only transition from " + Mode.CLIENT + " to "
@@ -160,8 +170,11 @@ public class SingletonManager {
       transitionedFromClientToConnector = true;
     }
 
-    // do not change from server mode, its a terminal mode that can not be left once entered
-    if (SingletonManager.mode != Mode.SERVER) {
+    /*
+     * Always allow transition to closed and only allow transition to client/connector when the
+     * current mode is not server.
+     */
+    if (SingletonManager.mode != Mode.SERVER || mode == Mode.CLOSED) {
       SingletonManager.mode = mode;
     }
     transition();
@@ -173,7 +186,7 @@ public class SingletonManager {
   }
 
   private static void transition() {
-    if (enabled && reservations == 0 && mode == Mode.CLIENT) {
+    if (enabled && ((reservations == 0 && mode == Mode.CLIENT) || mode == Mode.CLOSED)) {
       for (SingletonService service : services) {
         disable(service);
       }

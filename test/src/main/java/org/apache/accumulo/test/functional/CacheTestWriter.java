@@ -81,7 +81,7 @@ public class CacheTestWriter {
           String child = UUID.randomUUID().toString();
           zk.putPersistentData(rootDir + "/dir/" + child, new byte[0], NodeExistsPolicy.SKIP);
           children.add(child);
-        } else if (children.size() > 0) {
+        } else if (!children.isEmpty()) {
           int index = r.nextInt(children.size());
           String child = children.remove(index);
           zk.recursiveDelete(rootDir + "/dir/" + child, NodeMissingPolicy.FAIL);
@@ -103,11 +103,11 @@ public class CacheTestWriter {
 
           byte[] data = Long.toString(r.nextLong(), 16).getBytes(UTF_8);
 
-          if (!dataSExists) {
+          if (dataSExists) {
+            zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.OVERWRITE);
+          } else {
             zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.SKIP);
             dataSExists = true;
-          } else {
-            zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.OVERWRITE);
           }
 
           expectedData.put(rootDir + "/dataS", new String(data, UTF_8));

@@ -564,7 +564,12 @@ public class MetadataTableUtil {
       if (cloneSuccessful)
         continue;
 
-      if (!srcFiles.containsAll(cloneFiles)) {
+      if (srcFiles.containsAll(cloneFiles)) {
+        // write out marker that this tablet was successfully cloned
+        Mutation m = new Mutation(cloneTablet.getExtent().getMetadataEntry());
+        m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK"));
+        bw.addMutation(m);
+      } else {
         // delete existing cloned tablet entry
         Mutation m = new Mutation(cloneTablet.getExtent().getMetadataEntry());
 
@@ -579,11 +584,6 @@ public class MetadataTableUtil {
           bw.addMutation(createCloneMutation(srcTableId, tableId, st.getKeyValues()));
 
         rewrites++;
-      } else {
-        // write out marker that this tablet was successfully cloned
-        Mutation m = new Mutation(cloneTablet.getExtent().getMetadataEntry());
-        m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK"));
-        bw.addMutation(m);
       }
     }
 

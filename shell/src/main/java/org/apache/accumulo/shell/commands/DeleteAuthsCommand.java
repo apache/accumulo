@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -50,9 +51,7 @@ public class DeleteAuthsCommand extends Command {
     final StringBuilder userAuths = new StringBuilder();
     final String[] toBeRemovedAuths = scanOpts.split(",");
     final Set<String> toBeRemovedSet = new HashSet<>();
-    for (String auth : toBeRemovedAuths) {
-      toBeRemovedSet.add(auth);
-    }
+    Collections.addAll(toBeRemovedSet, toBeRemovedAuths);
     final String[] existingAuths = auths.toString().split(",");
     for (String auth : existingAuths) {
       if (!toBeRemovedSet.contains(auth)) {

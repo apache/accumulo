@@ -133,7 +133,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
         stats = getCluster().getMasterMonitorInfo();
       }
       log.info(stats.bulkImports.toString());
-      assertTrue(stats.bulkImports.size() > 0);
+      assertTrue(!stats.bulkImports.isEmpty());
       // look for exception
       for (Future<Object> err : errs) {
         err.get();

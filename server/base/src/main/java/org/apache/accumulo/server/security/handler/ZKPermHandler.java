@@ -298,7 +298,7 @@ public class ZKPermHandler implements PermissionHandler {
     try {
       if (tablePerms.remove(permission)) {
         zooCache.clear();
-        if (tablePerms.size() == 0)
+        if (tablePerms.isEmpty())
           zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table,
               NodeMissingPolicy.SKIP);
         else
@@ -329,7 +329,7 @@ public class ZKPermHandler implements PermissionHandler {
     try {
       if (namespacePerms.remove(permission)) {
         zooCache.clear();
-        if (namespacePerms.size() == 0)
+        if (namespacePerms.isEmpty())
           zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace,
               NodeMissingPolicy.SKIP);
         else
@@ -389,8 +389,7 @@ public class ZKPermHandler implements PermissionHandler {
     // create the root user with all system privileges, no table privileges, and no record-level
     // authorizations
     Set<SystemPermission> rootPerms = new TreeSet<>();
-    for (SystemPermission p : SystemPermission.values())
-      rootPerms.add(p);
+    Collections.addAll(rootPerms, SystemPermission.values());
     Map<TableId,Set<TablePermission>> tablePerms = new HashMap<>();
     // Allow the root user to flush the system tables
     tablePerms.put(RootTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));

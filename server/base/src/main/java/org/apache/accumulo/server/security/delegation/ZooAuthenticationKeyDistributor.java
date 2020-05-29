@@ -68,11 +68,7 @@ public class ZooAuthenticationKeyDistributor {
       return;
     }
 
-    if (!zk.exists(baseNode)) {
-      if (!zk.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL)) {
-        throw new AssertionError("Got false from putPrivatePersistentData method");
-      }
-    } else {
+    if (zk.exists(baseNode)) {
       List<ACL> acls = zk.getACL(baseNode, new Stat());
       if (acls.size() == 1) {
         ACL actualAcl = acls.get(0), expectedAcl = ZooUtil.PRIVATE.get(0);
@@ -90,6 +86,10 @@ public class ZooAuthenticationKeyDistributor {
       log.error("Expected {} to have ACLs {} but was {}", baseNode, ZooUtil.PRIVATE, acls);
       throw new IllegalStateException(
           "Delegation token secret key node in ZooKeeper is not protected.");
+    } else {
+      if (!zk.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL)) {
+        throw new AssertionError("Got false from putPrivatePersistentData method");
+      }
     }
 
     initialized.set(true);

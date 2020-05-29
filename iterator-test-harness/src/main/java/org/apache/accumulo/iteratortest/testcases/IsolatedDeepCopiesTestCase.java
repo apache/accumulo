@@ -107,7 +107,7 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
   }
 
   private <E> E getRandomElement(Collection<E> iterators) {
-    if (iterators == null || iterators.size() == 0)
+    if (iterators == null || iterators.isEmpty())
       throw new IllegalArgumentException("should not pass an empty collection");
     int num = random.nextInt(iterators.size());
     for (E e : iterators) {

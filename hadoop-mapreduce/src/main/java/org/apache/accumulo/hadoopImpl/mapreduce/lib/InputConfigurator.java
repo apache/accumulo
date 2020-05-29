@@ -343,9 +343,7 @@ public class InputConfigurator extends ConfiguratorBase {
     List<String> serialized = new ArrayList<>();
     if (confValue != null) {
       // Split and include any trailing empty strings to allow empty column families
-      for (String val : confValue.split(",", -1)) {
-        serialized.add(val);
-      }
+      Collections.addAll(serialized, confValue.split(",", -1));
     }
     return deserializeFetchedColumns(serialized);
   }
@@ -734,7 +732,7 @@ public class InputConfigurator extends ConfiguratorBase {
       AccumuloClient client) throws IOException {
     Map<String,InputTableConfig> inputTableConfigs = getInputTableConfigs(implementingClass, conf);
     try {
-      if (getInputTableConfigs(implementingClass, conf).size() == 0)
+      if (getInputTableConfigs(implementingClass, conf).isEmpty())
         throw new IOException("No table set.");
 
       Properties props = getClientProperties(implementingClass, conf);
@@ -782,7 +780,7 @@ public class InputConfigurator extends ConfiguratorBase {
       InputTableConfig queryConfig = new InputTableConfig();
       List<IteratorSetting> itrs = getIterators(implementingClass, conf);
       if (itrs != null)
-        itrs.forEach(itr -> queryConfig.addIterator(itr));
+        itrs.forEach(queryConfig::addIterator);
       Set<IteratorSetting.Column> columns = getFetchedColumns(implementingClass, conf);
       if (columns != null)
         queryConfig.fetchColumns(columns);

@@ -199,9 +199,7 @@ public class TabletLocatorImplTest {
   static Set<KeyExtent> nkes(KeyExtent... extents) {
     HashSet<KeyExtent> kes = new HashSet<>();
 
-    for (KeyExtent keyExtent : extents) {
-      kes.add(keyExtent);
-    }
+    Collections.addAll(kes, extents);
 
     return kes;
   }
@@ -480,7 +478,7 @@ public class TabletLocatorImplTest {
         }
       }
 
-      if (failures.size() > 0)
+      if (!failures.isEmpty())
         parent.invalidateCache(failures);
 
       return MetadataLocationObtainer.getMetadataLocationEntries(results).getLocations();
@@ -523,7 +521,7 @@ public class TabletLocatorImplTest {
     if (tabletData == null) {
       tabletData = new TreeMap<>();
       tablets.put(tablet, tabletData);
-    } else if (tabletData.size() > 0) {
+    } else if (!tabletData.isEmpty()) {
       throw new RuntimeException("Asked for empty tablet, but non empty tablet exists");
     }
   }

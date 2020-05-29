@@ -2205,8 +2205,8 @@ public class RFileTest {
 
         trf.closeWriter();
 
-        assertTrue(sampleDataLG1.size() > 0);
-        assertTrue(sampleDataLG2.size() > 0);
+        assertTrue(!sampleDataLG1.isEmpty());
+        assertTrue(!sampleDataLG2.isEmpty());
 
         trf.openReader(false);
         FileSKVIterator sample =
@@ -2224,7 +2224,7 @@ public class RFileTest {
         allSampleData.addAll(sampleDataLG1);
         allSampleData.addAll(sampleDataLG2);
 
-        Collections.sort(allSampleData, Comparator.comparing(Entry::getKey));
+        allSampleData.sort(Comparator.comparing(Entry::getKey));
 
         checkSample(sample, allSampleData, newColFamByteSequence("dataA", "metaA"), true);
         checkSample(sample, allSampleData, EMPTY_COL_FAMS, false);

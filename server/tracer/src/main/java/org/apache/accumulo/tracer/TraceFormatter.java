@@ -86,7 +86,7 @@ public class TraceFormatter implements Formatter {
       result.append(String.format(" %12s:%s%n", "loc", span.svc + "@" + span.sender));
       result.append(String.format(" %12s:%s%n", "span", Long.toHexString(span.spanId)));
       String parentString = span.getParentIdsSize() == 0 ? "" : span.getParentIds().stream()
-          .map(x -> Long.toHexString(x)).collect(Collectors.toList()).toString();
+          .map(Long::toHexString).collect(Collectors.toList()).toString();
       result.append(String.format(" %12s:%s%n", "parent", parentString));
       result.append(String.format(" %12s:%s%n", "start", dateFormatter.format(span.start)));
       result.append(String.format(" %12s:%s%n", "ms", span.stop - span.start));

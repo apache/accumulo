@@ -63,7 +63,7 @@ public class DistributedWorkQueue {
   private AtomicInteger numTask = new AtomicInteger(0);
 
   private void lookForWork(final Processor processor, List<String> children) {
-    if (children.size() == 0)
+    if (children.isEmpty())
       return;
 
     if (numTask.get() >= threadPool.getCorePoolSize())
