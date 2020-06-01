@@ -192,8 +192,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       tableName = "testMaxTablets_table1";
       NewTableConfiguration newTableConf = new NewTableConfiguration();
       // set logical time type so we can set time on bulk import
-      Map<String,String> props = new HashMap<>();
-      props.put(Property.TABLE_BULK_MAX_TABLETS.getKey(), "1");
+     var props = Map.of(Property.TABLE_BULK_MAX_TABLETS.getKey(), "1");
       newTableConf.setProperties(props);
       client.tableOperations().create(tableName, newTableConf);
 
