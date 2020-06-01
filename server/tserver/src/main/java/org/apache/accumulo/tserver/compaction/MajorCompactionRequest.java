@@ -72,7 +72,6 @@ public class MajorCompactionRequest implements Cloneable {
   private final ServerContext context;
   private final Cache<String,Long> fileLenCache;
 
-  // TODO ISSUE make this compatible with 1.9 and 2.0.. do not use StoredTabletFile
   public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
       VolumeManager manager, AccumuloConfiguration tabletConfig, BlockCache summaryCache,
       BlockCache indexCache, Cache<String,Long> fileLenCache, ServerContext context) {
