@@ -192,19 +192,19 @@ public class BulkNewIT extends SharedMiniClusterBase {
       tableName = "testMaxTablets_table1";
       NewTableConfiguration newTableConf = new NewTableConfiguration();
       // set logical time type so we can set time on bulk import
-     var props = Map.of(Property.TABLE_BULK_MAX_TABLETS.getKey(), "1");
+     var props = Map.of(Property.TABLE_BULK_MAX_TABLETS.getKey(), "2");
       newTableConf.setProperties(props);
       client.tableOperations().create(tableName, newTableConf);
 
       // test max tablets hit while inspecting bulk files
-      var thrown = assertThrows(RuntimeException.class, () -> testBulkFile(false, false));
+      var thrown = assertThrows(RuntimeException.class, () -> testBulkFileMax(false));
       var c = thrown.getCause();
       assertTrue("Wrong exception: " + c, c instanceof ExecutionException);
       assertTrue("Wrong exception: " + c.getCause(),
           c.getCause() instanceof IllegalArgumentException);
 
       // test max tablets hit using load plan
-      assertThrows(IllegalArgumentException.class, () -> testBulkFile(false, true));
+      assertThrows(IllegalArgumentException.class, () -> testBulkFileMax(true));
     }
   }
 
@@ -331,6 +331,56 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       if (offline) {
         c.tableOperations().online(tableName);
+      }
+
+      verifyData(c, tableName, 0, 1999, false);
+      verifyMetadata(c, tableName, hashes);
+    }
+  }
+
+  private void testBulkFileMax(boolean usePlan) throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      addSplits(c, tableName, "0333 0666 0999 1333 1666");
+
+      String dir = getDir("/testBulkFileMax-");
+
+      Map<String,Set<String>> hashes = new HashMap<>();
+      for (String endRow : Arrays.asList("0333 0666 0999 1333 1666 null".split(" "))) {
+        hashes.put(endRow, new HashSet<>());
+      }
+
+      // Add a junk file, should be ignored
+      FSDataOutputStream out = fs.create(new Path(dir, "junk"));
+      out.writeChars("ABCDEFG\n");
+      out.close();
+
+      // 1 Tablet 0333-null
+      String h1 = writeData(dir + "/f1.", aconf, 0, 333);
+      hashes.get("0333").add(h1);
+
+      // 3 Tablets 0666-0334, 0999-0667, 1333-1000
+      String h2 = writeData(dir + "/f2.", aconf, 334, 1333);
+      hashes.get("0666").add(h2);
+      hashes.get("0999").add(h2);
+      hashes.get("1333").add(h2);
+
+      // 1 Tablet 1666-1334
+      String h3 = writeData(dir + "/f3.", aconf, 1334, 1499);
+      hashes.get("1666").add(h3);
+
+      // 2 Tablets 1666-1334, >1666
+      String h4 = writeData(dir + "/f4.", aconf, 1500, 1999);
+      hashes.get("1666").add(h4);
+      hashes.get("null").add(h4);
+
+      if (usePlan) {
+        LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
+                .loadFileTo("f2.rf", RangeType.TABLE, row(333), row(1333))
+                .loadFileTo("f3.rf", RangeType.FILE, row(1334), row(1499))
+                .loadFileTo("f4.rf", RangeType.FILE, row(1500), row(1999)).build();
+        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
+      } else {
+        c.tableOperations().importDirectory(dir).to(tableName).load();
       }
 
       verifyData(c, tableName, 0, 1999, false);

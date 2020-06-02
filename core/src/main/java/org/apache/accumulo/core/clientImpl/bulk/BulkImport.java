@@ -432,6 +432,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       String fileName = entry.getKey();
       List<Destination> destinations = entry.getValue();
       Set<KeyExtent> extents = mapDestinationsToExtents(tableId, extentCache, destinations);
+      log.debug("The file {} mapped to {} tablets.", fileName, extents.size());
       checkTabletCount(maxTablets, extents.size(), fileName);
 
       long estSize = (long) (fileLens.get(fileName) / (double) extents.size());
@@ -565,7 +566,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
             pathLocations.put(ke, new Bulk.FileInfo(filePath, estSizes.getOrDefault(ke, 0L)));
           }
           long t2 = System.currentTimeMillis();
-          log.trace("Mapped {} to {} tablets in {}ms", filePath, pathLocations.size(), t2 - t1);
+          log.debug("Mapped {} to {} tablets in {}ms", filePath, pathLocations.size(), t2 - t1);
           return pathLocations;
         } catch (Exception e) {
           throw new CompletionException(e);
