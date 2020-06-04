@@ -28,15 +28,16 @@ import java.util.concurrent.TimeUnit;
  */
 public class SimpleThreadPool extends ThreadPoolExecutor {
 
-  public SimpleThreadPool(int max, final String name) {
-    super(max, max, 4L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
+  public SimpleThreadPool(int coreAndMax, boolean allowCoreThreadTimeOut, final String name) {
+    super(coreAndMax, coreAndMax, 4L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
         new NamingThreadFactory(name));
-    allowCoreThreadTimeOut(true);
+    allowCoreThreadTimeOut(allowCoreThreadTimeOut);
   }
 
-  public SimpleThreadPool(int max, final String name, BlockingQueue<Runnable> queue) {
-    super(max, max, 4L, TimeUnit.SECONDS, queue, new NamingThreadFactory(name));
-    allowCoreThreadTimeOut(true);
+  public SimpleThreadPool(int coreAndMax, boolean allowCoreThreadTimeOut, final String name,
+      BlockingQueue<Runnable> queue) {
+    super(coreAndMax, coreAndMax, 4L, TimeUnit.SECONDS, queue, new NamingThreadFactory(name));
+    allowCoreThreadTimeOut(allowCoreThreadTimeOut);
   }
 
   /**

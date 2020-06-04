@@ -303,7 +303,7 @@ public class NullTserver {
     Processor<Iface> processor = new Processor<>(tch);
     TServerUtils.startTServer(Metrics.initSystem(NullTserver.class.getSimpleName()),
         context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer",
-        "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1,
+        "null tserver", 2, true, 1, 1000, 10 * 1024 * 1024, null, null, -1,
         HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);

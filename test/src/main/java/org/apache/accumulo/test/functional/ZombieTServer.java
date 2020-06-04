@@ -109,7 +109,7 @@ public class ZombieTServer {
     Processor<Iface> processor = new Processor<>(tch);
     ServerAddress serverPort = TServerUtils.startTServer(
         Metrics.initSystem(ZombieTServer.class.getSimpleName()), context.getConfiguration(),
-        ThriftServerType.CUSTOM_HS_HA, processor, "ZombieTServer", "walking dead", 2, 1, 1000,
+        ThriftServerType.CUSTOM_HS_HA, processor, "ZombieTServer", "walking dead", 2, true, 1, 1000,
         10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
 
     String addressString = serverPort.address.toString();

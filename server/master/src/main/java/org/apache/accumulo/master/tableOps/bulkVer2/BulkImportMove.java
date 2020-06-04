@@ -113,7 +113,7 @@ class BulkImportMove extends MasterRepo {
     @SuppressWarnings("deprecation")
     int workerCount = aConf.getCount(
         aConf.resolve(Property.MASTER_RENAME_THREADS, Property.MASTER_BULK_RENAME_THREADS));
-    SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulkDir move");
+    SimpleThreadPool workers = new SimpleThreadPool(workerCount, true, "bulkDir move");
     List<Future<Boolean>> results = new ArrayList<>();
 
     String fmtTid = FateTxId.formatTid(tid);

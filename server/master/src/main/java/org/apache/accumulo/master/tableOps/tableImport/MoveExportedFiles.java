@@ -64,7 +64,7 @@ class MoveExportedFiles extends MasterRepo {
     String fmtTid = FateTxId.formatTid(tid);
 
     int workerCount = master.getConfiguration().getCount(Property.MASTER_RENAME_THREADS);
-    SimpleThreadPool workers = new SimpleThreadPool(workerCount, "importtable rename");
+    SimpleThreadPool workers = new SimpleThreadPool(workerCount, true, "importtable rename");
     List<Future<Boolean>> results = new ArrayList<>();
 
     VolumeManager fs = master.getVolumeManager();

@@ -653,7 +653,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     try {
       ServerAddress server = TServerUtils.startTServer(getMetricsSystem(), getConfiguration(),
           getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
-          "GC Monitor Service", 2,
+          "GC Monitor Service", 2, true,
           getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
           maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
           addresses);
