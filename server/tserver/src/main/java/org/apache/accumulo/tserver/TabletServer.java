@@ -538,7 +538,8 @@ public class TabletServer extends AbstractServer {
     ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), address,
         Property.TSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
-        Property.TSERV_THREADCHECK, maxMessageSizeProperty);
+        Property.TSERV_MINTHREADS_ALLOW_TIMEOUT, Property.TSERV_THREADCHECK,
+        maxMessageSizeProperty);
     this.server = sp.server;
     return sp.address;
   }
@@ -602,10 +603,11 @@ public class TabletServer extends AbstractServer {
     Property maxMessageSizeProperty =
         getConfiguration().get(Property.TSERV_MAX_MESSAGE_SIZE) != null
             ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE;
-    ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(),
-        clientAddress.getHost(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
-        "ReplicationServicerHandler", "Replication Servicer", Property.TSERV_PORTSEARCH,
-        Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
+    ServerAddress sp =
+        TServerUtils.startServer(getMetricsSystem(), getContext(), clientAddress.getHost(),
+            Property.REPLICATION_RECEIPT_SERVICE_PORT, processor, "ReplicationServicerHandler",
+            "Replication Servicer", Property.TSERV_PORTSEARCH, Property.REPLICATION_MIN_THREADS,
+            null, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
     this.replServer = sp.server;
     log.info("Started replication service on {}", sp.address);
 
@@ -748,7 +750,7 @@ public class TabletServer extends AbstractServer {
     }
 
     ThreadPoolExecutor distWorkQThreadPool = new SimpleThreadPool(
-        getConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
+        getConfiguration().getCount(Property.TSERV_WORKQ_THREADS), true, "distributed work queue");
 
     bulkFailedCopyQ = new DistributedWorkQueue(
         getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ, getConfiguration());
@@ -891,7 +893,7 @@ public class TabletServer extends AbstractServer {
 
     // Start the pool to handle outgoing replications
     final ThreadPoolExecutor replicationThreadPool = new SimpleThreadPool(
-        getConfiguration().getCount(Property.REPLICATION_WORKER_THREADS), "replication task");
+        getConfiguration().getCount(Property.REPLICATION_WORKER_THREADS), true, "replication task");
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
 

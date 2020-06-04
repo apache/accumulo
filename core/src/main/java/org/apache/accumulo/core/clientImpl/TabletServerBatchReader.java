@@ -70,7 +70,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.numThreads = numQueryThreads;
 
     queryThreadPool =
-        new SimpleThreadPool(numQueryThreads, "batch scanner " + batchReaderInstance + "-");
+        new SimpleThreadPool(numQueryThreads, true, "batch scanner " + batchReaderInstance + "-");
     cleanable = CleanerUtil.unclosed(this, scopeClass, closed, log, queryThreadPool.asCloseable());
   }
 
