@@ -192,7 +192,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       tableName = "testMaxTablets_table1";
       NewTableConfiguration newTableConf = new NewTableConfiguration();
       // set logical time type so we can set time on bulk import
-     var props = Map.of(Property.TABLE_BULK_MAX_TABLETS.getKey(), "2");
+      var props = Map.of(Property.TABLE_BULK_MAX_TABLETS.getKey(), "2");
       newTableConf.setProperties(props);
       client.tableOperations().create(tableName, newTableConf);
 
@@ -202,9 +202,13 @@ public class BulkNewIT extends SharedMiniClusterBase {
       assertTrue("Wrong exception: " + c, c instanceof ExecutionException);
       assertTrue("Wrong exception: " + c.getCause(),
           c.getCause() instanceof IllegalArgumentException);
+      var msg = c.getCause().getMessage();
+      assertTrue("Bad File not in exception: " + msg, msg.contains("bad-file.rf"));
 
-      // test max tablets hit using load plan
-      assertThrows(IllegalArgumentException.class, () -> testBulkFileMax(true));
+      // test max tablets hit using load plan on the server side
+      c = assertThrows(AccumuloException.class, () -> testBulkFileMax(true));
+      msg = c.getMessage();
+      assertTrue("Bad File not in exception: " + msg, msg.contains("bad-file.rf"));
     }
   }
 
@@ -359,7 +363,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       hashes.get("0333").add(h1);
 
       // 3 Tablets 0666-0334, 0999-0667, 1333-1000
-      String h2 = writeData(dir + "/f2.", aconf, 334, 1333);
+      String h2 = writeData(dir + "/bad-file.", aconf, 334, 1333);
       hashes.get("0666").add(h2);
       hashes.get("0999").add(h2);
       hashes.get("1333").add(h2);
@@ -375,9 +379,9 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       if (usePlan) {
         LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
-                .loadFileTo("f2.rf", RangeType.TABLE, row(333), row(1333))
-                .loadFileTo("f3.rf", RangeType.FILE, row(1334), row(1499))
-                .loadFileTo("f4.rf", RangeType.FILE, row(1500), row(1999)).build();
+            .loadFileTo("bad-file.rf", RangeType.TABLE, row(333), row(1333))
+            .loadFileTo("f3.rf", RangeType.FILE, row(1334), row(1499))
+            .loadFileTo("f4.rf", RangeType.FILE, row(1500), row(1999)).build();
         c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
       } else {
         c.tableOperations().importDirectory(dir).to(tableName).load();
