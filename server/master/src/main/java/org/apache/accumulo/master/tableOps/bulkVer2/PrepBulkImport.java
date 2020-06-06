@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -43,7 +44,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -108,8 +108,12 @@ public class PrepBulkImport extends MasterRepo {
     return Objects.equals(extractor.apply(ke1), extractor.apply(ke2));
   }
 
+  /**
+   * Checks a load mapping to ensure all of the rows in the mapping exists in the table and that no
+   * file goes to too many tablets.
+   */
   @VisibleForTesting
-  static void checkForMerge(String tableId, LoadMappingIterator lmi,
+  static void sanityCheckLoadMapping(String tableId, LoadMappingIterator lmi,
       TabletIterFactory tabletIterFactory, int maxNumTablets, long tid) throws Exception {
     var currRange = lmi.next();
 
@@ -170,11 +174,9 @@ public class PrepBulkImport extends MasterRepo {
     if (maxNumTablets > 0) {
       fileCounts.values().removeIf(c -> c <= maxNumTablets);
       if (!fileCounts.isEmpty()) {
-        log.warn("{} Bulk files overlapped too many tablets : {}", FateTxId.formatTid(tid),
-            fileCounts);
         throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
             TableOperationExceptionType.OTHER, "Files overlap the configured max (" + maxNumTablets
-                + ") number of tablets: " + fileCounts.keySet());
+                + ") number of tablets: " + new TreeMap<>(fileCounts));
       }
     }
   }
@@ -194,7 +196,7 @@ public class PrepBulkImport extends MasterRepo {
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetch(PREV_ROW)
           .build(master.getContext()).stream().map(TabletMetadata::getExtent).iterator();
 
-      checkForMerge(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets, tid);
+      sanityCheckLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets, tid);
     }
   }
 
