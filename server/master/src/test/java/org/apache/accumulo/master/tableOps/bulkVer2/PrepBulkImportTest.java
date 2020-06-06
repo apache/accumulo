@@ -21,6 +21,9 @@ package org.apache.accumulo.master.tableOps.bulkVer2;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -28,10 +31,15 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk;
+import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
+import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.master.tableOps.bulkVer2.PrepBulkImport.TabletIterFactory;
@@ -97,7 +105,28 @@ public class PrepBulkImportTest {
       return tabletRanges.subList(start, tabletRanges.size()).iterator();
     };
 
-    PrepBulkImport.checkForMerge("1", loadRanges.iterator(), tabletIterFactory);
+    try (LoadMappingIterator lmi = createLoadMappingIter(loadRanges)) {
+      PrepBulkImport.checkForMerge("1", lmi, tabletIterFactory, 100, 10001);
+    }
+  }
+
+  private LoadMappingIterator createLoadMappingIter(List<KeyExtent> loadRanges) throws IOException {
+    SortedMap<KeyExtent,Bulk.Files> mapping = new TreeMap<>();
+    Bulk.Files testFiles = new Bulk.Files();
+
+    long c = 0L;
+    for (String f : "f1 f2 f3".split(" ")) {
+      c++;
+      testFiles.add(new Bulk.FileInfo(f, c, c));
+    }
+    for (KeyExtent ke : loadRanges)
+      mapping.put(ke, testFiles);
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    BulkSerialize.writeLoadMapping(mapping, "/some/dir", p -> baos);
+    ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+    LoadMappingIterator lmi =
+        BulkSerialize.readLoadMapping("/some/dir", TableId.of("1"), p -> bais);
+    return lmi;
   }
 
   static String toRangeStrings(Collection<KeyExtent> extents) {

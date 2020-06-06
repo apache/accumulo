@@ -38,10 +38,12 @@ import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -59,7 +61,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterators;
 
 /**
  * Prepare bulk import directory. This REPO creates a bulk directory in Accumulo, list all the files
@@ -108,18 +109,21 @@ public class PrepBulkImport extends MasterRepo {
   }
 
   @VisibleForTesting
-  static void checkForMerge(String tableId, Iterator<KeyExtent> lmi,
-      TabletIterFactory tabletIterFactory) throws Exception {
-    KeyExtent currRange = lmi.next();
+  static void checkForMerge(String tableId, LoadMappingIterator lmi,
+      TabletIterFactory tabletIterFactory, int maxNumTablets, long tid) throws Exception {
+    var currRange = lmi.next();
 
-    Text startRow = currRange.getPrevEndRow();
+    Text startRow = currRange.getKey().getPrevEndRow();
 
     Iterator<KeyExtent> tabletIter = tabletIterFactory.newTabletIter(startRow);
 
     KeyExtent currTablet = tabletIter.next();
 
-    if (!tabletIter.hasNext() && equals(KeyExtent::getPrevEndRow, currTablet, currRange)
-        && equals(KeyExtent::getEndRow, currTablet, currRange))
+    var fileCounts = new HashMap<String,Integer>();
+    int count;
+
+    if (!tabletIter.hasNext() && equals(KeyExtent::getPrevEndRow, currTablet, currRange.getKey())
+        && equals(KeyExtent::getEndRow, currTablet, currRange.getKey()))
       currRange = null;
 
     while (tabletIter.hasNext()) {
@@ -131,20 +135,29 @@ public class PrepBulkImport extends MasterRepo {
         currRange = lmi.next();
       }
 
-      while (!equals(KeyExtent::getPrevEndRow, currTablet, currRange) && tabletIter.hasNext()) {
+      while (!equals(KeyExtent::getPrevEndRow, currTablet, currRange.getKey())
+          && tabletIter.hasNext()) {
         currTablet = tabletIter.next();
       }
 
-      boolean matchedPrevRow = equals(KeyExtent::getPrevEndRow, currTablet, currRange);
+      boolean matchedPrevRow = equals(KeyExtent::getPrevEndRow, currTablet, currRange.getKey());
+      count = matchedPrevRow ? 1 : 0;
 
-      while (!equals(KeyExtent::getEndRow, currTablet, currRange) && tabletIter.hasNext()) {
+      while (!equals(KeyExtent::getEndRow, currTablet, currRange.getKey())
+          && tabletIter.hasNext()) {
         currTablet = tabletIter.next();
+        count++;
       }
 
-      if (!matchedPrevRow || !equals(KeyExtent::getEndRow, currTablet, currRange)) {
+      if (!matchedPrevRow || !equals(KeyExtent::getEndRow, currTablet, currRange.getKey())) {
         break;
       }
 
+      if (maxNumTablets > 0) {
+        int fc = count;
+        currRange.getValue()
+            .forEach(fileInfo -> fileCounts.merge(fileInfo.getFileName(), fc, Integer::sum));
+      }
       currRange = null;
     }
 
@@ -153,12 +166,27 @@ public class PrepBulkImport extends MasterRepo {
       throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
           TableOperationExceptionType.BULK_CONCURRENT_MERGE, "Concurrent merge happened");
     }
+
+    if (maxNumTablets > 0) {
+      fileCounts.values().removeIf(c -> c <= maxNumTablets);
+      if (!fileCounts.isEmpty()) {
+        log.warn("{} Bulk files overlapped too many tablets : {}", FateTxId.formatTid(tid),
+            fileCounts);
+        throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+            TableOperationExceptionType.OTHER, "Files overlap the configured max (" + maxNumTablets
+                + ") number of tablets: " + fileCounts.keySet());
+      }
+    }
   }
 
-  private void checkForMerge(final Master master) throws Exception {
+  private void checkForMerge(final long tid, final Master master) throws Exception {
 
     VolumeManager fs = master.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
+
+    int maxTablets = Integer.parseInt(master.getContext().getTableConfiguration(bulkInfo.tableId)
+        .get(Property.TABLE_BULK_MAX_TABLETS));
+
     try (LoadMappingIterator lmi =
         BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
 
@@ -166,15 +194,14 @@ public class PrepBulkImport extends MasterRepo {
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetch(PREV_ROW)
           .build(master.getContext()).stream().map(TabletMetadata::getExtent).iterator();
 
-      checkForMerge(bulkInfo.tableId.canonical(), Iterators.transform(lmi, Map.Entry::getKey),
-          tabletIterFactory);
+      checkForMerge(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets, tid);
     }
   }
 
   @Override
   public Repo<Master> call(final long tid, final Master master) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
-    checkForMerge(master);
+    checkForMerge(tid, master);
 
     bulkInfo.tableState = Tables.getTableState(master.getContext(), bulkInfo.tableId);
 
