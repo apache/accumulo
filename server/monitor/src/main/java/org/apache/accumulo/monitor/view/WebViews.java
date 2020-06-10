@@ -26,6 +26,7 @@ import static org.apache.accumulo.monitor.util.ParameterValidator.RESOURCE_REGEX
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,9 +87,8 @@ public class WebViews {
     List<String> monitorResources = new ArrayList<>();
     ObjectMapper objectMapper = new ObjectMapper();
     try {
-      for (String monitorResource : objectMapper.readValue(resourcesProperty, String[].class)) {
-        monitorResources.add(monitorResource);
-      }
+      Collections.addAll(monitorResources,
+          objectMapper.readValue(resourcesProperty, String[].class));
     } catch (IOException e) {
       log.error("Error Monitor Resources config property {}: {}",
           Property.MONITOR_RESOURCES_EXTERNAL, e);

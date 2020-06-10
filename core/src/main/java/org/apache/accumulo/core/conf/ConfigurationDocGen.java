@@ -93,7 +93,7 @@ class ConfigurationDocGen {
     doc.print(strike("**type:** " + prop.getType().name(), depr) + ", ");
     doc.print(strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ");
     String defaultValue = sanitize(prop.getDefaultValue()).trim();
-    if (defaultValue.length() == 0) {
+    if (defaultValue.isEmpty()) {
       defaultValue = strike("**default value:** empty", depr);
     } else if (defaultValue.contains("\n")) {
       // deal with multi-line values, skip strikethrough of value
@@ -155,7 +155,9 @@ class ConfigurationDocGen {
    */
   public static void main(String[] args) throws IOException {
     if (args.length == 2 && args[0].equals("--generate-markdown")) {
-      new ConfigurationDocGen(new PrintStream(args[1], UTF_8)).generate();
+      try (var printStream = new PrintStream(args[1], UTF_8)) {
+        new ConfigurationDocGen(printStream).generate();
+      }
     } else {
       throw new IllegalArgumentException(
           "Usage: " + ConfigurationDocGen.class.getName() + " --generate-markdown <filename>");

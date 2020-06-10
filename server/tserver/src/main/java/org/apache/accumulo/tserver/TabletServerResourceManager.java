@@ -78,7 +78,6 @@ import org.apache.accumulo.server.tabletserver.MemoryManager;
 import org.apache.accumulo.server.tabletserver.TabletState;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
-import org.apache.accumulo.tserver.TabletServer.AssignmentHandler;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
@@ -234,7 +233,7 @@ public class TabletServerResourceManager {
 
     scanExecQueues.put(sec.name, queue);
 
-    return createEs(() -> sec.getCurrentMaxThreads(), "scan-" + sec.name, queue, sec.priority);
+    return createEs(sec::getCurrentMaxThreads, "scan-" + sec.name, queue, sec.priority);
   }
 
   private ExecutorService createEs(IntSupplier maxThreadsSupplier, String name,
@@ -551,13 +550,13 @@ public class TabletServerResourceManager {
       memUsageReports = new LinkedBlockingQueue<>();
       maxMem = context.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
 
-      Runnable r1 = () -> processTabletMemStats();
+      Runnable r1 = this::processTabletMemStats;
 
       memoryGuardThread = new Daemon(new LoggingRunnable(log, r1));
       memoryGuardThread.setPriority(Thread.NORM_PRIORITY + 1);
       memoryGuardThread.setName("Accumulo Memory Guard");
 
-      Runnable r2 = () -> manageMemory();
+      Runnable r2 = this::manageMemory;
 
       minorCompactionInitiatorThread = new Daemon(new LoggingRunnable(log, r2));
       minorCompactionInitiatorThread.setName("Accumulo Minor Compaction Initiator");
@@ -625,7 +624,7 @@ public class TabletServerResourceManager {
 
         try {
           if (mma != null && mma.tabletsToMinorCompact != null
-              && mma.tabletsToMinorCompact.size() > 0) {
+              && !mma.tabletsToMinorCompact.isEmpty()) {
             for (KeyExtent keyExtent : mma.tabletsToMinorCompact) {
               TabletStateImpl tabletReport = tabletReportsCopy.get(keyExtent);
 
@@ -641,11 +640,11 @@ public class TabletServerResourceManager {
                   synchronized (tabletReports) {
                     TabletStateImpl latestReport = tabletReports.remove(keyExtent);
                     if (latestReport != null) {
-                      if (latestReport.getTablet() != tablet) {
+                      if (latestReport.getTablet() == tablet) {
+                        log.debug("Cleaned up report for closed tablet {}", keyExtent);
+                      } else {
                         // different tablet instance => put it back
                         tabletReports.put(keyExtent, latestReport);
-                      } else {
-                        log.debug("Cleaned up report for closed tablet {}", keyExtent);
                       }
                     }
                   }

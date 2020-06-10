@@ -129,11 +129,7 @@ public class MasterMetadataUtil {
     try (ScannerImpl scanner2 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner2.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));
 
-      if (!scanner2.iterator().hasNext()) {
-        log.info("Rolling back incomplete split {} {}", metadataEntry, metadataPrevEndRow);
-        MetadataTableUtil.rollBackSplit(metadataEntry, oper, context, lock);
-        return new KeyExtent(metadataEntry, oper);
-      } else {
+      if (scanner2.iterator().hasNext()) {
         log.info("Finishing incomplete split {} {}", metadataEntry, metadataPrevEndRow);
 
         List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
@@ -164,6 +160,10 @@ public class MasterMetadataUtil {
             context, lock);
 
         return new KeyExtent(metadataEntry, KeyExtent.encodePrevEndRow(metadataPrevEndRow));
+      } else {
+        log.info("Rolling back incomplete split {} {}", metadataEntry, metadataPrevEndRow);
+        MetadataTableUtil.rollBackSplit(metadataEntry, oper, context, lock);
+        return new KeyExtent(metadataEntry, oper);
       }
     }
   }

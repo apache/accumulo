@@ -86,7 +86,18 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
       return false;
     }
 
-    if (!curr.getTableId().equals(prev.getTableId())) {
+    if (curr.getTableId().equals(prev.getTableId())) {
+      if (prev.getEndRow() == null) {
+        throw new IllegalStateException("Null end row for tablet in middle of table: "
+            + prev.getExtent() + " " + curr.getExtent());
+      }
+
+      if (curr.getPrevEndRow() == null || !prev.getEndRow().equals(curr.getPrevEndRow())) {
+        log.debug("Tablets end row and prev end row not equals {} {} ", prev.getExtent(),
+            curr.getExtent());
+        return false;
+      }
+    } else {
       if (prev.getEndRow() != null) {
         log.debug("Non-null end row for last tablet in table: " + prev.getExtent() + " "
             + curr.getExtent());
@@ -95,17 +106,6 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
       if (curr.getPrevEndRow() != null) {
         log.debug("First tablet for table had prev end row {} {} ", prev.getExtent(),
-            curr.getExtent());
-        return false;
-      }
-    } else {
-      if (prev.getEndRow() == null) {
-        throw new IllegalStateException("Null end row for tablet in middle of table: "
-            + prev.getExtent() + " " + curr.getExtent());
-      }
-
-      if (curr.getPrevEndRow() == null || !prev.getEndRow().equals(curr.getPrevEndRow())) {
-        log.debug("Tablets end row and prev end row not equals {} {} ", prev.getExtent(),
             curr.getExtent());
         return false;
       }

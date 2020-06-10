@@ -106,7 +106,9 @@ public class ConfiguratorBase {
     String propString;
     String clientPropsFile =
         conf.get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS_FILE), "");
-    if (!clientPropsFile.isEmpty()) {
+    if (clientPropsFile.isEmpty()) {
+      propString = conf.get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS), "");
+    } else {
       try (InputStream inputStream = DistributedCacheHelper.openCachedFile(clientPropsFile,
           cachedClientPropsFileName(implementingClass), conf)) {
 
@@ -120,8 +122,6 @@ public class ConfiguratorBase {
       } catch (IOException e) {
         throw new IllegalStateException("Error closing client properties file stream", e);
       }
-    } else {
-      propString = conf.get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS), "");
     }
     Properties props = new Properties();
     if (!propString.isEmpty()) {

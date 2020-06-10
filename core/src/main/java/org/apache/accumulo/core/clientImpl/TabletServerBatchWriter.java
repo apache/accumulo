@@ -477,7 +477,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   // BEGIN code for handling unrecoverable errors
 
   private void updatedConstraintViolations(List<ConstraintViolationSummary> cvsList) {
-    if (cvsList.size() > 0) {
+    if (!cvsList.isEmpty()) {
       synchronized (this) {
         somethingFailed = true;
         violations.add(cvsList);
@@ -495,7 +495,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   }
 
   private void updateAuthorizationFailures(Map<KeyExtent,SecurityErrorCode> authorizationFailures) {
-    if (authorizationFailures.size() > 0) {
+    if (!authorizationFailures.isEmpty()) {
 
       // was a table deleted?
       HashSet<TableId> tableIds = new HashSet<>();
@@ -517,14 +517,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   private void mergeAuthorizationFailures(Map<KeyExtent,Set<SecurityErrorCode>> source,
       Map<KeyExtent,SecurityErrorCode> addition) {
-    for (Entry<KeyExtent,SecurityErrorCode> entry : addition.entrySet()) {
-      Set<SecurityErrorCode> secs = source.get(entry.getKey());
-      if (secs == null) {
-        secs = new HashSet<>();
-        source.put(entry.getKey(), secs);
-      }
-      secs.add(entry.getValue());
-    }
+    addition.forEach((ke, sec) -> {
+      source.computeIfAbsent(ke, p -> new HashSet<>()).add(sec);
+    });
   }
 
   private synchronized void updateServerErrors(String server, Exception e) {
@@ -682,7 +677,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
             ArrayList<Mutation> tableFailures = new ArrayList<>();
             locator.binMutations(context, tableMutations, binnedMutations, tableFailures);
 
-            if (tableFailures.size() > 0) {
+            if (!tableFailures.isEmpty()) {
               failedMutations.add(tableId, tableFailures);
 
               if (tableFailures.size() == tableMutations.size())
@@ -892,7 +887,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     private MutationSet sendMutationsToTabletServer(String location,
         Map<KeyExtent,List<Mutation>> tabMuts, TimeoutTracker timeoutTracker)
         throws IOException, AccumuloSecurityException, AccumuloServerException {
-      if (tabMuts.size() == 0) {
+      if (tabMuts.isEmpty()) {
         return new MutationSet();
       }
       TInfo tinfo = TraceUtil.traceInfo();
@@ -1010,14 +1005,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
 
     void addMutation(TableId table, Mutation mutation) {
-      List<Mutation> tabMutList = mutations.get(table);
-      if (tabMutList == null) {
-        tabMutList = new ArrayList<>();
-        mutations.put(table, tabMutList);
-      }
-
-      tabMutList.add(mutation);
-
+      mutations.computeIfAbsent(table, k -> new ArrayList<>()).add(mutation);
       memoryUsed += mutation.estimatedMemoryUsed();
     }
 

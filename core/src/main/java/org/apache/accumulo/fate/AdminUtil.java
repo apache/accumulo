@@ -301,13 +301,8 @@ public class AdminUtil<T> {
               }
             }
 
-            List<String> tables = locks.get(Long.parseLong(lda[1], 16));
-            if (tables == null) {
-              tables = new ArrayList<>();
-              locks.put(Long.parseLong(lda[1], 16), tables);
-            }
-
-            tables.add(lda[0].charAt(0) + ":" + id);
+            locks.computeIfAbsent(Long.parseLong(lda[1], 16), k -> new ArrayList<>())
+                .add(lda[0].charAt(0) + ":" + id);
 
           } catch (Exception e) {
             log.error("{}", e.getMessage(), e);
@@ -409,8 +404,8 @@ public class AdminUtil<T> {
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
 
-    if (fateStatus.getDanglingHeldLocks().size() != 0
-        || fateStatus.getDanglingWaitingLocks().size() != 0) {
+    if (!fateStatus.getDanglingHeldLocks().isEmpty()
+        || !fateStatus.getDanglingWaitingLocks().isEmpty()) {
       fmt.format("%nThe following locks did not have an associated FATE operation%n");
       for (Entry<String,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet())
         fmt.format("txid: %s  locked: %s%n", entry.getKey(), entry.getValue());

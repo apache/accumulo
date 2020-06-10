@@ -23,7 +23,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -365,7 +364,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     }
 
     if (!keys.isEmpty()) {
-      Collections.sort(keys, keyComparator);
+      keys.sort(keyComparator);
       keyPos = 0;
     }
   }

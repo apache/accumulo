@@ -168,7 +168,18 @@ public class GarbageCollectionAlgorithm {
     while (iter.hasNext()) {
       Reference ref = iter.next();
 
-      if (!ref.isDir) {
+      if (ref.isDir) {
+        String tableID = ref.id.toString();
+        String dirName = ref.ref;
+        ServerColumnFamily.validateDirCol(dirName);
+
+        String dir = "/" + tableID + "/" + dirName;
+
+        dir = makeRelative(dir, 2);
+
+        if (candidateMap.remove(dir) != null)
+          log.debug("Candidate was still in use: {}", dir);
+      } else {
 
         String reference = ref.ref;
         if (reference.startsWith("/")) {
@@ -188,17 +199,6 @@ public class GarbageCollectionAlgorithm {
         if (candidateMap.remove(dir) != null)
           log.debug("Candidate was still in use: {}", reference);
 
-      } else {
-        String tableID = ref.id.toString();
-        String dirName = ref.ref;
-        ServerColumnFamily.validateDirCol(dirName);
-
-        String dir = "/" + tableID + "/" + dirName;
-
-        dir = makeRelative(dir, 2);
-
-        if (candidateMap.remove(dir) != null)
-          log.debug("Candidate was still in use: {}", dir);
       }
     }
 
@@ -298,7 +298,7 @@ public class GarbageCollectionAlgorithm {
 
       outOfMemory = getCandidates(gce, lastCandidate, candidates);
 
-      if (candidates.size() == 0)
+      if (candidates.isEmpty())
         break;
       else
         lastCandidate = candidates.get(candidates.size() - 1);

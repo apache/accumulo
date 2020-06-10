@@ -89,6 +89,7 @@ esac
 JAVA_OPTS=("${JAVA_OPTS[@]}"
   "-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
   "-Daccumulo.application=${cmd}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)"
+  "-Daccumulo.metrics.service.instance=${ACCUMULO_SERVICE_INSTANCE}"
   "-Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
 )
 

@@ -48,8 +48,7 @@ public class TableLoadBalancer extends TabletBalancer {
   private TabletBalancer constructNewBalancerForTable(String clazzName, TableId tableId)
       throws Exception {
     String context = null;
-    context = this.context.getServerConfFactory().getTableConfiguration(tableId)
-        .get(Property.TABLE_CLASSPATH);
+    context = this.context.getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
     Class<? extends TabletBalancer> clazz;
     if (context != null && !context.equals(""))
       clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName,
@@ -65,8 +64,7 @@ public class TableLoadBalancer extends TabletBalancer {
     if (tableState == null)
       return null;
     if (tableState.equals(TableState.ONLINE))
-      return this.context.getServerConfFactory().getTableConfiguration(table)
-          .get(Property.TABLE_LOAD_BALANCER);
+      return this.context.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
     return null;
   }
 
@@ -118,15 +116,11 @@ public class TableLoadBalancer extends TabletBalancer {
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
     // separate the unassigned into tables
     Map<TableId,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
-    for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
-      Map<KeyExtent,TServerInstance> tableUnassigned =
-          groupedUnassigned.get(e.getKey().getTableId());
-      if (tableUnassigned == null) {
-        tableUnassigned = new HashMap<>();
-        groupedUnassigned.put(e.getKey().getTableId(), tableUnassigned);
-      }
-      tableUnassigned.put(e.getKey(), e.getValue());
-    }
+    unassigned.forEach((keyExtent, tServerInstance) -> {
+      groupedUnassigned.computeIfAbsent(keyExtent.getTableId(), p -> new HashMap<>()).put(keyExtent,
+          tServerInstance);
+    });
+
     for (Entry<TableId,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> newAssignments = new HashMap<>();
       getBalancerForTable(e.getKey()).getAssignments(current, e.getValue(), newAssignments);

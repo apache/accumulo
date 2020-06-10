@@ -60,14 +60,14 @@ public class GetMasterStats {
     }
     out(0, "State: " + stats.state.name());
     out(0, "Goal State: " + stats.goalState.name());
-    if (stats.serversShuttingDown != null && stats.serversShuttingDown.size() > 0) {
+    if (stats.serversShuttingDown != null && !stats.serversShuttingDown.isEmpty()) {
       out(0, "Servers to shutdown");
       for (String server : stats.serversShuttingDown) {
         out(1, "%s", server);
       }
     }
     out(0, "Unassigned tablets: %d", stats.unassignedTablets);
-    if (stats.badTServers != null && stats.badTServers.size() > 0) {
+    if (stats.badTServers != null && !stats.badTServers.isEmpty()) {
       out(0, "Bad servers");
 
       for (Entry<String,Byte> entry : stats.badTServers.entrySet()) {
@@ -86,7 +86,7 @@ public class GetMasterStats {
       out(2, "Bulk state %s", bulk.state);
       out(2, "Bulk start %s", bulk.startTime);
     }
-    if (stats.tableMap != null && stats.tableMap.size() > 0) {
+    if (stats.tableMap != null && !stats.tableMap.isEmpty()) {
       out(0, "Tables");
       for (Entry<String,TableInfo> entry : stats.tableMap.entrySet()) {
         TableInfo v = entry.getValue();
@@ -99,7 +99,7 @@ public class GetMasterStats {
         out(2, "Query Rate: %.2f", v.queryRate);
       }
     }
-    if (stats.tServerInfo != null && stats.tServerInfo.size() > 0) {
+    if (stats.tServerInfo != null && !stats.tServerInfo.isEmpty()) {
       out(0, "Tablet Servers");
       long now = System.currentTimeMillis();
       for (TabletServerStatus server : stats.tServerInfo) {
@@ -115,7 +115,7 @@ public class GetMasterStats {
         if (server.holdTime > 0) {
           out(2, "Hold Time: %d", server.holdTime);
         }
-        if (server.tableMap != null && server.tableMap.size() > 0) {
+        if (server.tableMap != null && !server.tableMap.isEmpty()) {
           out(2, "Tables");
           for (Entry<String,TableInfo> status : server.tableMap.entrySet()) {
             TableInfo info = status.getValue();

@@ -65,7 +65,7 @@ class ActiveCompactionIterator implements Iterator<String> {
 
         acl = new ArrayList<>(acl);
 
-        Collections.sort(acl, (o1, o2) -> (int) (o2.getAge() - o1.getAge()));
+        acl.sort((o1, o2) -> (int) (o2.getAge() - o1.getAge()));
 
         for (ActiveCompaction ac : acl) {
           String output = ac.getOutputFile();
@@ -94,7 +94,7 @@ class ActiveCompactionIterator implements Iterator<String> {
         compactions.add(tserver + " ERROR " + e.getMessage());
       }
 
-      if (compactions.size() > 0) {
+      if (!compactions.isEmpty()) {
         break;
       }
     }

@@ -268,7 +268,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
           continue;
         }
 
-        if (locks != null && locks.size() > 0) {
+        if (locks != null && !locks.isEmpty()) {
           Collections.sort(locks);
 
           String lockPath = path + "/" + locks.get(0);

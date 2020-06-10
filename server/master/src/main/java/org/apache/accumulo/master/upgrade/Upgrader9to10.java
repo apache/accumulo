@@ -230,7 +230,7 @@ public class Upgrader9to10 implements Upgrader {
 
     String[] parts = str.split("[|]", 2);
     HostAndPort address = HostAndPort.fromString(parts[0]);
-    if (parts.length > 1 && parts[1] != null && parts[1].length() > 0) {
+    if (parts.length > 1 && parts[1] != null && !parts[1].isEmpty()) {
       return new TServerInstance(address, parts[1]);
     } else {
       // a 1.2 location specification: DO NOT WANT
@@ -306,9 +306,8 @@ public class Upgrader9to10 implements Upgrader {
         long maxTime = -1;
         try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(
-                context.getServerConfFactory().getTableConfiguration(RootTable.ID))
-            .seekToBeginning().build()) {
+            .withTableConfiguration(context.getTableConfiguration(RootTable.ID)).seekToBeginning()
+            .build()) {
           while (reader.hasTop()) {
             maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());
             reader.next();

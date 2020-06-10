@@ -25,7 +25,6 @@ import java.io.DataInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -400,8 +399,7 @@ public class DefaultCompactionStrategyTest {
     void print() {
       List<Entry<StoredTabletFile,DataFileValue>> entries = new ArrayList<>(files.entrySet());
 
-      Collections.sort(entries,
-          (e1, e2) -> Long.compare(e2.getValue().getSize(), e1.getValue().getSize()));
+      entries.sort((e1, e2) -> Long.compare(e2.getValue().getSize(), e1.getValue().getSize()));
 
       for (Entry<StoredTabletFile,DataFileValue> entry : entries) {
 

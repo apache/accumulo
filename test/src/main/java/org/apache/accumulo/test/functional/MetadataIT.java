@@ -86,7 +86,7 @@ public class MetadataIT extends AccumuloClusterHarness {
           files2.add(entry.getKey().getColumnQualifier().toString());
 
         // flush of metadata table should change file set in root table
-        assertTrue(files2.size() > 0);
+        assertTrue(!files2.isEmpty());
         assertNotEquals(files1, files2);
 
         c.tableOperations().compact(MetadataTable.NAME, null, null, false, true);

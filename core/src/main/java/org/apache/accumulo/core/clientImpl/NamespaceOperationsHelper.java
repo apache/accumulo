@@ -171,7 +171,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
           }
         }
       }
-      if (optionConflicts.size() > 0)
+      if (!optionConflicts.isEmpty())
         throw new AccumuloException(new IllegalArgumentException(
             "iterator options conflict for " + setting.getName() + ": " + optionConflicts));
     }

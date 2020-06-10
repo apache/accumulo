@@ -21,20 +21,26 @@ package org.apache.accumulo.server;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
-import java.util.Properties;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
+import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.conf.ZooConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
@@ -52,10 +58,12 @@ import org.apache.hadoop.security.UserGroupInformation;
 public class ServerContext extends ClientContext {
 
   private final ServerInfo info;
+  private final ZooReaderWriter zooReaderWriter;
   private TableManager tableManager;
   private UniqueNameAllocator nameAllocator;
-  private ZooReaderWriter zooReaderWriter;
   private ServerConfigurationFactory serverConfFactory = null;
+  private DefaultConfiguration defaultConfig = null;
+  private AccumuloConfiguration systemConfig = null;
   private AuthenticationTokenSecretManager secretManager;
   private CryptoService cryptoService = null;
 
@@ -63,28 +71,27 @@ public class ServerContext extends ClientContext {
     this(new ServerInfo(siteConfig));
   }
 
-  public ServerContext(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
-      int zooKeepersSessionTimeOut) {
-    this(new ServerInfo(siteConfig, instanceName, zooKeepers, zooKeepersSessionTimeOut));
-  }
-
-  public ServerContext(SiteConfiguration siteConfig, String instanceName, String instanceID) {
-    this(new ServerInfo(siteConfig, instanceName, instanceID));
-  }
-
-  public ServerContext(SiteConfiguration siteConfig, Properties clientProps) {
-    this(siteConfig, ClientInfo.from(clientProps));
-  }
-
-  private ServerContext(SiteConfiguration siteConfig, ClientInfo info) {
-    this(new ServerInfo(siteConfig, info.getInstanceName(), info.getZooKeepers(),
-        info.getZooKeepersSessionTimeOut()));
-  }
-
   private ServerContext(ServerInfo info) {
-    super(info, info.getSiteConfiguration());
+    super(SingletonReservation.noop(), info, info.getSiteConfiguration());
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
+  }
+
+  /**
+   * Used during initialization to set the instance name and ID.
+   */
+  public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
+      String instanceID) {
+    return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID));
+  }
+
+  /**
+   * Override properties for testing
+   */
+  public static ServerContext override(SiteConfiguration siteConfig, String instanceName,
+      String zooKeepers, int zkSessionTimeOut) {
+    return new ServerContext(
+        new ServerInfo(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
   }
 
   @Override
@@ -105,6 +112,10 @@ public class ServerContext extends ClientContext {
     cryptoService = CryptoServiceFactory.newInstance(acuConf, ClassloaderType.ACCUMULO);
   }
 
+  public SiteConfiguration getSiteConfiguration() {
+    return info.getSiteConfiguration();
+  }
+
   public synchronized ServerConfigurationFactory getServerConfFactory() {
     if (serverConfFactory == null) {
       serverConfFactory = new ServerConfigurationFactory(this, info.getSiteConfiguration());
@@ -114,7 +125,26 @@ public class ServerContext extends ClientContext {
 
   @Override
   public AccumuloConfiguration getConfiguration() {
-    return getServerConfFactory().getSystemConfiguration();
+    if (systemConfig == null) {
+      ZooCache propCache = new ZooCache(getZooKeepers(), getZooKeepersSessionTimeOut());
+      systemConfig = new ZooConfiguration(this, propCache, getSiteConfiguration());
+    }
+    return systemConfig;
+  }
+
+  public TableConfiguration getTableConfiguration(TableId id) {
+    return getServerConfFactory().getTableConfiguration(id);
+  }
+
+  public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
+    return getServerConfFactory().getNamespaceConfiguration(namespaceId);
+  }
+
+  public DefaultConfiguration getDefaultConfiguration() {
+    if (defaultConfig == null) {
+      defaultConfig = DefaultConfiguration.getInstance();
+    }
+    return defaultConfig;
   }
 
   /**
@@ -226,4 +256,5 @@ public class ServerContext extends ClientContext {
   public Ample getAmple() {
     return new ServerAmpleImpl(this);
   }
+
 }

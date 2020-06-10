@@ -80,7 +80,7 @@ public class MultiTableInputFormatTest {
     InputTableConfig table1 = new InputTableConfig();
     table1.setScanAuths(auths).setRanges(ranges).fetchColumns(cols).setUseLocalIterators(true)
         .setOfflineScan(true);
-    allIters.forEach(itr -> table1.addIterator(itr));
+    allIters.forEach(table1::addIterator);
     InputTableConfig table2 = new InputTableConfig();
     table2.setScanAuths(auths).setRanges(ranges).fetchColumns(cols).addIterator(iter2);
 

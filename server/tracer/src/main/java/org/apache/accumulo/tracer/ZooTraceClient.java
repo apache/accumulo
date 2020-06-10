@@ -89,7 +89,7 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
 
   @Override
   protected synchronized String getSpanKey(Map<String,String> data) {
-    if (hosts.size() > 0) {
+    if (!hosts.isEmpty()) {
       return hosts.get(random.nextInt(hosts.size()));
     }
     return null;

@@ -106,11 +106,11 @@ public class Value implements WritableComparable<Object> {
    */
   public Value(byte[] bytes, boolean copy) {
     requireNonNull(bytes);
-    if (!copy) {
-      this.value = bytes;
-    } else {
+    if (copy) {
       this.value = new byte[bytes.length];
       System.arraycopy(bytes, 0, this.value, 0, bytes.length);
+    } else {
+      this.value = bytes;
     }
 
   }

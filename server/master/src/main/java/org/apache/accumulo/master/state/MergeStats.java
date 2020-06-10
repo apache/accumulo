@@ -153,12 +153,7 @@ public class MergeStats {
       }
     }
     if (state == MergeState.WAITING_FOR_OFFLINE) {
-      if (chopped != needsToBeChopped) {
-        log.warn("Unexpected state: chopped tablets should be {} was {} merge {}", needsToBeChopped,
-            chopped, info.getExtent());
-        // Perhaps a split occurred after we chopped, but before we went offline: start over
-        state = MergeState.WAITING_FOR_CHOPPED;
-      } else {
+      if (chopped == needsToBeChopped) {
         log.info("{} tablets are chopped, {} are offline {}", chopped, unassigned,
             info.getExtent());
         if (unassigned == total) {
@@ -170,6 +165,11 @@ public class MergeStats {
           log.info("Waiting for {} unassigned tablets to be {} {}", unassigned, total,
               info.getExtent());
         }
+      } else {
+        log.warn("Unexpected state: chopped tablets should be {} was {} merge {}", needsToBeChopped,
+            chopped, info.getExtent());
+        // Perhaps a split occurred after we chopped, but before we went offline: start over
+        state = MergeState.WAITING_FOR_CHOPPED;
       }
     }
     if (state == MergeState.MERGING) {

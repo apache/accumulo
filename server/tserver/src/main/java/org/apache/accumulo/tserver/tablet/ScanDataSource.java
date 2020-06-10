@@ -88,7 +88,9 @@ class ScanDataSource implements DataSource {
 
   @Override
   public DataSource getNewDataSource() {
-    if (!isCurrent()) {
+    if (isCurrent())
+      return this;
+    else {
       // log.debug("Switching data sources during a scan");
       if (memIters != null) {
         tablet.getTabletMemory().returnIterators(memIters);
@@ -104,8 +106,7 @@ class ScanDataSource implements DataSource {
       iter = null;
 
       return this;
-    } else
-      return this;
+    }
   }
 
   @Override
@@ -185,15 +186,13 @@ class ScanDataSource implements DataSource {
         SystemIteratorUtil.setupSystemScanIterators(statsIterator, scanParams.getColumnSet(),
             scanParams.getAuthorizations(), defaultLabels, tablet.getTableConfiguration());
 
-    if (!loadIters) {
-      return visFilter;
-    } else {
+    if (loadIters) {
       List<IterInfo> iterInfos;
       Map<String,Map<String,String>> iterOpts;
 
       ParsedIteratorConfig pic =
           tablet.getTableConfiguration().getParsedIteratorConfig(IteratorScope.scan);
-      if (scanParams.getSsiList().size() == 0 && scanParams.getSsio().size() == 0) {
+      if (scanParams.getSsiList().isEmpty() && scanParams.getSsio().isEmpty()) {
         // No scan time iterator options were set, so can just use the pre-parsed table iterator
         // options.
         iterInfos = pic.getIterInfo();
@@ -225,6 +224,8 @@ class ScanDataSource implements DataSource {
       IterLoad il = new IterLoad().iters(iterInfos).iterOpts(iterOpts).iterEnv(iterEnv)
           .useAccumuloClassLoader(true).context(context);
       return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter, il));
+    } else {
+      return visFilter;
     }
   }
 

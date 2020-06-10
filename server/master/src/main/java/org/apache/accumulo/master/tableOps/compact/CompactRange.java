@@ -70,7 +70,7 @@ public class CompactRange extends MasterRepo {
     this.startRow = startRow.length == 0 ? null : startRow;
     this.endRow = endRow.length == 0 ? null : endRow;
 
-    if (iterators.size() > 0
+    if (!iterators.isEmpty()
         || !compactionStrategy.equals(CompactionStrategyConfigUtil.DEFAULT_STRATEGY)) {
       this.config = WritableUtils.toByteArray(
           new UserCompactionConfig(this.startRow, this.endRow, iterators, compactionStrategy));

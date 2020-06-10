@@ -305,7 +305,7 @@ public class TracesResource {
         conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     // May be null
     String keytab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
-    if (keytab == null || keytab.length() == 0) {
+    if (keytab == null || keytab.isEmpty()) {
       keytab = conf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
     }
 
@@ -320,7 +320,9 @@ public class TracesResource {
       principal = conf.get(Property.TRACE_USER);
     }
 
-    if (!saslEnabled) {
+    if (saslEnabled) {
+      at = null;
+    } else {
       if (loginMap.isEmpty()) {
         Property p = Property.TRACE_PASSWORD;
         at = new PasswordToken(conf.get(p).getBytes(UTF_8));
@@ -336,8 +338,6 @@ public class TracesResource {
         token.init(props);
         at = token;
       }
-    } else {
-      at = null;
     }
 
     java.util.Properties props = monitor.getContext().getProperties();

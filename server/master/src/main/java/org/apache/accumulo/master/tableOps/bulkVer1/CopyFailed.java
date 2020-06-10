@@ -145,7 +145,7 @@ class CopyFailed extends MasterRepo {
       log.debug(FateTxId.formatTid(tid) + " renamed " + orig + " to " + dest + ": import failed");
     }
 
-    if (loadedFailures.size() > 0) {
+    if (!loadedFailures.isEmpty()) {
       DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(
           Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
           master.getConfiguration());

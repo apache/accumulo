@@ -99,7 +99,6 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -275,8 +274,6 @@ public class Master extends AbstractServer
 
   private Future<Void> upgradeMetadataFuture;
 
-  private final ServerConfigurationFactory serverConfig;
-
   private MasterClientServiceHandler clientHandler;
 
   private int assignedOrHosted(TableId tableId) {
@@ -374,9 +371,8 @@ public class Master extends AbstractServer
   Master(ServerOpts opts, String[] args) throws IOException {
     super("master", opts, args);
     ServerContext context = super.getContext();
-    this.serverConfig = context.getServerConfFactory();
 
-    AccumuloConfiguration aconf = serverConfig.getSystemConfiguration();
+    AccumuloConfiguration aconf = context.getConfiguration();
 
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", getInstanceID());
@@ -795,7 +791,7 @@ public class Master extends AbstractServer
                         tserverSet.remove(server);
                       }
                     }
-                    if (currentServers.size() == 0) {
+                    if (currentServers.isEmpty()) {
                       setMasterState(MasterState.STOP);
                     }
                   }
@@ -888,13 +884,13 @@ public class Master extends AbstractServer
         migrations.put(m.tablet, m.newServer);
         log.debug("migration {}", m);
       }
-      if (migrationsOut.size() > 0) {
-        nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(),
-            migrations.size());
-      } else {
+      if (migrationsOut.isEmpty()) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
         }
+      } else {
+        nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(),
+            migrations.size());
       }
       return wait;
     }
@@ -1118,7 +1114,7 @@ public class Master extends AbstractServer
       fate = new Fate<>(this, store, TraceRepo::toLogString);
       fate.startTransactionRunners(threads);
 
-      SimpleTimer.getInstance(getConfiguration()).schedule(() -> store.ageOff(), 63000, 63000);
+      SimpleTimer.getInstance(getConfiguration()).schedule(store::ageOff, 63000, 63000);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
@@ -1455,7 +1451,7 @@ public class Master extends AbstractServer
     if (!deleted.isEmpty() || !added.isEmpty()) {
       DeadServerList obit =
           new DeadServerList(getContext(), getZooKeeperRoot() + Constants.ZDEADTSERVERS);
-      if (added.size() > 0) {
+      if (!added.isEmpty()) {
         log.info("New servers: {}", added);
         for (TServerInstance up : added) {
           obit.delete(up.hostPort());
@@ -1473,7 +1469,7 @@ public class Master extends AbstractServer
 
       Set<TServerInstance> unexpected = new HashSet<>(deleted);
       unexpected.removeAll(this.serversToShutdown);
-      if (unexpected.size() > 0) {
+      if (!unexpected.isEmpty()) {
         if (stillMaster() && !getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
           log.warn("Lost servers {}", unexpected);
         }
@@ -1591,10 +1587,6 @@ public class Master extends AbstractServer
     return nextEvent;
   }
 
-  public ServerConfigurationFactory getConfigurationFactory() {
-    return serverConfig;
-  }
-
   public VolumeManager getVolumeManager() {
     return getContext().getVolumeManager();
   }
@@ -1624,7 +1616,7 @@ public class Master extends AbstractServer
         } catch (InterruptedException e) {
           log.debug(e.toString(), e);
         }
-      } while (displayUnassigned() > 0 || migrations.size() > 0
+      } while (displayUnassigned() > 0 || !migrations.isEmpty()
           || eventCounter != nextEvent.waitForEvents(0, 0));
     }
   }

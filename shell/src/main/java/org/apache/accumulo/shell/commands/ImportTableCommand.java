@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -33,7 +37,8 @@ public class ImportTableCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
 
-    shellState.getAccumuloClient().tableOperations().importTable(cl.getArgs()[0], cl.getArgs()[1]);
+    Set<String> importDirs = Arrays.stream(cl.getArgs()).skip(1).collect(Collectors.toSet());
+    shellState.getAccumuloClient().tableOperations().importTable(cl.getArgs()[0], importDirs);
     return 0;
   }
 

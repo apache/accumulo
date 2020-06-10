@@ -95,14 +95,13 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
 
         // determine where to seek to, but don't go beyond the user-specified range
         Key nextKey = source.getTopKey().followingKey(PartialKey.ROW);
-        if (!latestRange.afterEndKey(nextKey))
+        if (latestRange.afterEndKey(nextKey)) {
+          finished = true;
+          break;
+        } else
           source.seek(
               new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()),
               latestColumnFamilies, latestInclusive);
-        else {
-          finished = true;
-          break;
-        }
       }
     }
     lastRowFound = source.hasTop() ? source.getTopKey().getRow(lastRowFound) : null;

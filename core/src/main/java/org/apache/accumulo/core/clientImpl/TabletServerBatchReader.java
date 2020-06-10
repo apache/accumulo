@@ -91,7 +91,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
 
   @Override
   public void setRanges(Collection<Range> ranges) {
-    if (ranges == null || ranges.size() == 0) {
+    if (ranges == null || ranges.isEmpty()) {
       throw new IllegalArgumentException("ranges must be non null and contain at least 1 range");
     }
 

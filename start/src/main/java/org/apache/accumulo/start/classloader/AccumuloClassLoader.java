@@ -126,7 +126,7 @@ public class AccumuloClassLoader {
       justification = "class path configuration is controlled by admin, not unchecked user input")
   private static void addUrl(String classpath, ArrayList<URL> urls) throws MalformedURLException {
     classpath = classpath.trim();
-    if (classpath.length() == 0)
+    if (classpath.isEmpty())
       return;
 
     classpath = replaceEnvVars(classpath, System.getenv());

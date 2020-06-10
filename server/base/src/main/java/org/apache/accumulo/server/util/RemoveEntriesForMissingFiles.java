@@ -91,7 +91,11 @@ public class RemoveEntriesForMissingFiles {
     @SuppressWarnings("unchecked")
     public void run() {
       try {
-        if (!fs.exists(path)) {
+        if (fs.exists(path)) {
+          synchronized (processing) {
+            cache.put(path, path);
+          }
+        } else {
           missing.incrementAndGet();
 
           Mutation m = new Mutation(key.getRow());
@@ -101,10 +105,6 @@ public class RemoveEntriesForMissingFiles {
             System.out.println("Reference " + path + " removed from " + key.getRow());
           } else {
             System.out.println("File " + path + " is missing");
-          }
-        } else {
-          synchronized (processing) {
-            cache.put(path, path);
           }
         }
       } catch (Exception e) {
@@ -166,7 +166,7 @@ public class RemoveEntriesForMissingFiles {
     threadPool.shutdown();
 
     synchronized (processing) {
-      while (processing.size() > 0)
+      while (!processing.isEmpty())
         processing.wait();
     }
 

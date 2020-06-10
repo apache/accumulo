@@ -149,7 +149,7 @@ public class BulkImporter {
             }
             log.debug("Map file {} found to overlap {} tablets", mapFile,
                 tabletsToAssignMapFileTo.size());
-            if (tabletsToAssignMapFileTo.size() == 0) {
+            if (tabletsToAssignMapFileTo.isEmpty()) {
               List<KeyExtent> empty = Collections.emptyList();
               completeFailures.put(mapFile, empty);
             } else
@@ -179,7 +179,7 @@ public class BulkImporter {
         failureCount.put(entry.getKey(), 1);
 
       long sleepTime = 2 * 1000;
-      while (assignmentFailures.size() > 0) {
+      while (!assignmentFailures.isEmpty()) {
         sleepTime = Math.min(sleepTime * 2, 60 * 1000);
         locator.invalidateCache();
         // assumption about assignment failures is that it caused by a split
@@ -217,7 +217,7 @@ public class BulkImporter {
             timer.stop(Timers.QUERY_METADATA);
           }
 
-          if (tabletsToAssignMapFileTo.size() > 0)
+          if (!tabletsToAssignMapFileTo.isEmpty())
             assignments.put(entry.getKey(), tabletsToAssignMapFileTo);
         }
 
@@ -304,7 +304,7 @@ public class BulkImporter {
 
     Set<Entry<Path,List<KeyExtent>>> es = completeFailures.entrySet();
 
-    if (completeFailures.size() == 0)
+    if (completeFailures.isEmpty())
       return Collections.emptySet();
 
     log.debug("The following map files failed ");
@@ -461,23 +461,17 @@ public class BulkImporter {
     }
 
     private void handleFailures(Collection<KeyExtent> failures, String message) {
-      for (KeyExtent ke : failures) {
+      failures.forEach(ke -> {
         List<PathSize> mapFiles = assignmentsPerTablet.get(ke);
         synchronized (assignmentFailures) {
-          for (PathSize pathSize : mapFiles) {
-            List<KeyExtent> existingFailures = assignmentFailures.get(pathSize.path);
-            if (existingFailures == null) {
-              existingFailures = new ArrayList<>();
-              assignmentFailures.put(pathSize.path, existingFailures);
-            }
-
-            existingFailures.add(ke);
-          }
+          mapFiles.forEach(pathSize -> {
+            assignmentFailures.computeIfAbsent(pathSize.path, k -> new ArrayList<>()).add(ke);
+          });
         }
 
         log.info("Could not assign {} map files to tablet {} because : {}.  Will retry ...",
             mapFiles.size(), ke, message);
-      }
+      });
     }
 
     @Override
@@ -520,20 +514,13 @@ public class BulkImporter {
 
     // group assignments by tablet
     Map<KeyExtent,List<PathSize>> assignmentsPerTablet = new TreeMap<>();
-    for (Entry<Path,List<AssignmentInfo>> entry : assignments.entrySet()) {
-      Path mapFile = entry.getKey();
-      List<AssignmentInfo> tabletsToAssignMapFileTo = entry.getValue();
 
-      for (AssignmentInfo ai : tabletsToAssignMapFileTo) {
-        List<PathSize> mapFiles = assignmentsPerTablet.get(ai.ke);
-        if (mapFiles == null) {
-          mapFiles = new ArrayList<>();
-          assignmentsPerTablet.put(ai.ke, mapFiles);
-        }
-
-        mapFiles.add(new PathSize(mapFile, ai.estSize));
-      }
-    }
+    assignments.forEach((mapFile, tabletsToAssignMapFileTo) -> {
+      tabletsToAssignMapFileTo.forEach(ai -> {
+        assignmentsPerTablet.computeIfAbsent(ai.ke, k -> new ArrayList<>())
+            .add(new PathSize(mapFile, ai.estSize));
+      });
+    });
 
     // group assignments by tabletserver
 
@@ -548,13 +535,7 @@ public class BulkImporter {
       if (location == null) {
         for (PathSize pathSize : entry.getValue()) {
           synchronized (assignmentFailures) {
-            List<KeyExtent> failures = assignmentFailures.get(pathSize.path);
-            if (failures == null) {
-              failures = new ArrayList<>();
-              assignmentFailures.put(pathSize.path, failures);
-            }
-
-            failures.add(ke);
+            assignmentFailures.computeIfAbsent(pathSize.path, k -> new ArrayList<>()).add(ke);
           }
         }
 
@@ -565,13 +546,8 @@ public class BulkImporter {
         continue;
       }
 
-      Map<KeyExtent,List<PathSize>> apt = assignmentsPerTabletServer.get(location);
-      if (apt == null) {
-        apt = new TreeMap<>();
-        assignmentsPerTabletServer.put(location, apt);
-      }
-
-      apt.put(entry.getKey(), entry.getValue());
+      assignmentsPerTabletServer.computeIfAbsent(location, k -> new TreeMap<>()).put(entry.getKey(),
+          entry.getValue());
     }
 
     ExecutorService threadPool =
@@ -784,7 +760,7 @@ public class BulkImporter {
       sb.append(String.format("# map files with failures : %,10d %6.2f%s%n",
           completeFailures.size(), completeFailures.size() * 100.0 / numUniqueMapFiles, "%"));
       sb.append(String.format("# failed failed map files : %,10d %s%n", failedFailures.size(),
-          failedFailures.size() > 0 ? " <-- THIS IS BAD" : ""));
+          failedFailures.isEmpty() ? "" : " <-- THIS IS BAD"));
       sb.append(String.format("# of tablets              : %,10d%n", counts.size()));
       sb.append(String.format("# tablets imported to     : %,10d %6.2f%s%n", tabletsImportedTo,
           tabletsImportedTo * 100.0 / counts.size(), "%"));

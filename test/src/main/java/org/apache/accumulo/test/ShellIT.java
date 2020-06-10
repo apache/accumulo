@@ -177,7 +177,7 @@ public class ShellIT extends SharedMiniClusterBase {
   void assertGoodExit(String s, boolean stringPresent) {
     Shell.log.debug("{}", output.get());
     assertEquals(shell.getExitCode(), 0);
-    if (s.length() > 0) {
+    if (!s.isEmpty()) {
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
           output.get().contains(s));
     }
@@ -186,7 +186,7 @@ public class ShellIT extends SharedMiniClusterBase {
   void assertBadExit(String s, boolean stringPresent) {
     Shell.log.debug("{}", output.get());
     assertTrue(shell.getExitCode() > 0);
-    if (s.length() > 0) {
+    if (!s.isEmpty()) {
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
           output.get().contains(s));
     }

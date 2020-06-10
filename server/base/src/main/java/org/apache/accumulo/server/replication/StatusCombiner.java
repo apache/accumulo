@@ -113,14 +113,14 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
       // Avoid creation of a new builder and message when we only have one
       // message to reduce
       if (combined == null) {
-        if (!iter.hasNext()) {
+        if (iter.hasNext()) {
+          combined = Status.newBuilder();
+        } else {
           if (log.isTraceEnabled()) {
             log.trace("Returned single value: {} {}", key.toStringNoTruncate(),
                 ProtobufUtil.toString(status));
           }
           return status;
-        } else {
-          combined = Status.newBuilder();
         }
       }
 

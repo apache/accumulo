@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -514,9 +515,15 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_IMPORT: {
         TableOperation tableOp = TableOperation.IMPORT;
-        validateArgumentCount(arguments, tableOp, 2);
+        int IMPORT_DIR_OFFSET = 2; // offset where table list begins
+        if (arguments.size() < IMPORT_DIR_OFFSET) {
+          throw new ThriftTableOperationException(null, null, tableOp,
+              TableOperationExceptionType.OTHER,
+              "Expected at least " + IMPORT_DIR_OFFSET + "arguments, sar :" + arguments.size());
+        }
         String tableName = validateNewTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
-        String exportDir = ByteBufferUtil.toString(arguments.get(1));
+        List<ByteBuffer> exportDirArgs = arguments.stream().skip(1).collect(Collectors.toList());
+        Set<String> exportDirs = ByteBufferUtil.toStringSet(exportDirArgs);
         NamespaceId namespaceId;
         try {
           namespaceId =
@@ -528,7 +535,7 @@ class FateServiceHandler implements FateService.Iface {
 
         final boolean canImport;
         try {
-          canImport = master.security.canImport(c, tableName, exportDir, namespaceId);
+          canImport = master.security.canImport(c, tableName, exportDirs, namespaceId);
         } catch (ThriftSecurityException e) {
           throwIfTableMissingSecurityException(e, null, tableName, TableOperation.IMPORT);
           throw e;
@@ -538,7 +545,7 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid,
-            new TraceRepo<>(new ImportTable(c.getPrincipal(), tableName, exportDir, namespaceId)),
+            new TraceRepo<>(new ImportTable(c.getPrincipal(), tableName, exportDirs, namespaceId)),
             autoCleanup);
         break;
       }

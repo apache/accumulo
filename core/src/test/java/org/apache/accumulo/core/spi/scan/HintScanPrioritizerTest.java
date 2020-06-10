@@ -67,7 +67,7 @@ public class HintScanPrioritizerTest {
           }
         });
 
-    Collections.sort(scans, comparator);
+    scans.sort(comparator);
 
     assertEquals("i", scans.get(0).testId);
     assertEquals("e", scans.get(1).testId);

@@ -112,11 +112,8 @@ public class VerifyTabletAssignments {
 
       if (loc != null) {
         final HostAndPort parsedLoc = HostAndPort.fromString(loc);
-        List<KeyExtent> extentList = extentsPerServer.get(parsedLoc);
-        if (extentList == null) {
-          extentList = new ArrayList<>();
-          extentsPerServer.put(parsedLoc, extentList);
-        }
+        List<KeyExtent> extentList =
+            extentsPerServer.computeIfAbsent(parsedLoc, k -> new ArrayList<>());
 
         if (check == null || check.contains(keyExtent))
           extentList.add(keyExtent);
@@ -146,7 +143,7 @@ public class VerifyTabletAssignments {
 
     while (!tp.awaitTermination(1, TimeUnit.HOURS)) {}
 
-    if (failures.size() > 0)
+    if (!failures.isEmpty())
       checkTable(context, opts, tableName, failures);
   }
 

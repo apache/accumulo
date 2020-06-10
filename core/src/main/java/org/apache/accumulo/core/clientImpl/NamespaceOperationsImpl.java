@@ -146,7 +146,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
           SecurityErrorCode.UNSUPPORTED_OPERATION);
     }
 
-    if (Namespaces.getTableIds(context, namespaceId).size() > 0) {
+    if (!Namespaces.getTableIds(context, namespaceId).isEmpty()) {
       throw new NamespaceNotEmptyException(namespaceId.canonical(), namespace, null);
     }
 

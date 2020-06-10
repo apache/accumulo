@@ -531,8 +531,8 @@ public class KerberosIT extends AccumuloITBase {
               client.securityOperations().getDelegationToken(new DelegationTokenConfig());
 
           assertTrue("Could not get tables with delegation token",
-              mac.createAccumuloClient(rootUser.getPrincipal(), token).tableOperations().list()
-                  .size() > 0);
+              !mac.createAccumuloClient(rootUser.getPrincipal(), token).tableOperations().list()
+                  .isEmpty());
 
           return token;
         });
@@ -548,7 +548,7 @@ public class KerberosIT extends AccumuloITBase {
       AccumuloClient client = mac.createAccumuloClient(rootUser.getPrincipal(), delegationToken1);
 
       assertTrue("Could not get tables with delegation token",
-          client.tableOperations().list().size() > 0);
+          !client.tableOperations().list().isEmpty());
 
       return null;
     });
@@ -565,8 +565,8 @@ public class KerberosIT extends AccumuloITBase {
               client.securityOperations().getDelegationToken(new DelegationTokenConfig());
 
           assertTrue("Could not get tables with delegation token",
-              mac.createAccumuloClient(rootUser.getPrincipal(), token).tableOperations().list()
-                  .size() > 0);
+              !mac.createAccumuloClient(rootUser.getPrincipal(), token).tableOperations().list()
+                  .isEmpty());
 
           return token;
         });

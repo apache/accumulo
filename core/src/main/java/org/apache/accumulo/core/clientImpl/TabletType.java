@@ -34,7 +34,7 @@ public enum TabletType {
   }
 
   public static TabletType type(Collection<KeyExtent> extents) {
-    if (extents.size() == 0)
+    if (extents.isEmpty())
       throw new IllegalArgumentException();
 
     TabletType ttype = null;

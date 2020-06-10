@@ -87,7 +87,7 @@ public class MapFileIterator implements FileSKVIterator {
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
-    if (columnFamilies.size() != 0 || inclusive) {
+    if (!columnFamilies.isEmpty() || inclusive) {
       throw new IllegalArgumentException("I do not know how to filter column families");
     }
 

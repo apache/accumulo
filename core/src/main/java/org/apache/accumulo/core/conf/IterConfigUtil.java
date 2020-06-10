@@ -116,20 +116,14 @@ public class IterConfigUtil {
         String iterName = suffixSplit[0];
         String optName = suffixSplit[2];
 
-        Map<String,String> options = allOptions.get(iterName);
-        if (options == null) {
-          options = new HashMap<>();
-          allOptions.put(iterName, options);
-        }
-
-        options.put(optName, entry.getValue());
+        allOptions.computeIfAbsent(iterName, k -> new HashMap<>()).put(optName, entry.getValue());
 
       } else {
         throw new IllegalArgumentException("Invalid iterator format: " + entry.getKey());
       }
     }
 
-    Collections.sort(iterators, ITER_INFO_COMPARATOR);
+    iterators.sort(ITER_INFO_COMPARATOR);
     return iterators;
   }
 
@@ -139,7 +133,7 @@ public class IterConfigUtil {
       Map<String,Map<String,String>> ssio) {
     destList.addAll(tableIters);
     destList.addAll(ssi);
-    Collections.sort(destList, ITER_INFO_COMPARATOR);
+    destList.sort(ITER_INFO_COMPARATOR);
 
     Set<Entry<String,Map<String,String>>> es = tableOpts.entrySet();
     for (Entry<String,Map<String,String>> entry : es) {

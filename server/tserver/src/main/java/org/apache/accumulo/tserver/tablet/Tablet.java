@@ -354,7 +354,7 @@ public class Tablet {
     final List<LogEntry> logEntries = tabletPaths.logEntries;
     final SortedMap<StoredTabletFile,DataFileValue> datafiles = tabletPaths.datafiles;
 
-    constraintChecker = tableConfiguration.newDeriver(conf -> new ConstraintChecker(conf));
+    constraintChecker = tableConfiguration.newDeriver(ConstraintChecker::new);
 
     if (extent.isMeta()) {
       defaultSecurityLabel = () -> EMPTY_BYTES;
@@ -493,7 +493,7 @@ public class Tablet {
     boolean tabletClosed = false;
 
     Set<ByteSequence> cfset = null;
-    if (scanParams.getColumnSet().size() > 0) {
+    if (!scanParams.getColumnSet().isEmpty()) {
       cfset = LocalityGroupUtil.families(scanParams.getColumnSet());
     }
 
@@ -655,7 +655,7 @@ public class Tablet {
   public LookupResult lookup(List<Range> ranges, List<KVEntry> results, ScanParameters scanParams,
       long maxResultSize, AtomicBoolean interruptFlag) throws IOException {
 
-    if (ranges.size() == 0) {
+    if (ranges.isEmpty()) {
       return new LookupResult();
     }
 
@@ -728,7 +728,7 @@ public class Tablet {
       iter.enableYielding(yield);
     }
 
-    if (scanParams.getColumnSet().size() == 0) {
+    if (scanParams.getColumnSet().isEmpty()) {
       iter.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
     } else {
       iter.seek(range, LocalityGroupUtil.families(scanParams.getColumnSet()), true);
@@ -777,7 +777,7 @@ public class Tablet {
     } else if (!iter.hasTop()) {
       // end of tablet has been reached
       continueKey = null;
-      if (results.size() == 0) {
+      if (results.isEmpty()) {
         results = null;
       }
     }
@@ -1300,7 +1300,7 @@ public class Tablet {
     }
 
     // wait for reads and writes to complete
-    while (writesInProgress > 0 || activeScans.size() > 0) {
+    while (writesInProgress > 0 || !activeScans.isEmpty()) {
       try {
         this.wait(50);
       } catch (InterruptedException e) {
@@ -1374,7 +1374,7 @@ public class Tablet {
       Pair<List<LogEntry>,SortedMap<StoredTabletFile,DataFileValue>> fileLog =
           MetadataTableUtil.getFileAndLogEntries(context, extent);
 
-      if (fileLog.getFirst().size() != 0) {
+      if (!fileLog.getFirst().isEmpty()) {
         String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " "
             + fileLog.getFirst();
         log.error(msg);
@@ -1394,7 +1394,7 @@ public class Tablet {
 
     }
 
-    if (otherLogs.size() != 0 || currentLogs.size() != 0 || referencedLogs.size() != 0) {
+    if (!otherLogs.isEmpty() || !currentLogs.isEmpty() || !referencedLogs.isEmpty()) {
       String msg = "Closed tablet " + extent + " has walog entries in memory currentLogs = "
           + currentLogs + "  otherLogs = " + otherLogs + " refererncedLogs = " + referencedLogs;
       log.error(msg);
@@ -1536,7 +1536,7 @@ public class Tablet {
 
       Text text = mid.getRow();
       SortedMap<Double,Key> firstHalf = keys.headMap(.5);
-      if (firstHalf.size() > 0) {
+      if (!firstHalf.isEmpty()) {
         Text beforeMid = firstHalf.get(firstHalf.lastKey()).getRow();
         Text shorter = new Text();
         int trunc = longestCommonLength(text, beforeMid);
@@ -1836,7 +1836,7 @@ public class Tablet {
         Set<StoredTabletFile> smallestFiles = removeSmallest(filesToCompact, numToCompact);
 
         TabletFile newFile =
-            getNextMapFilename((filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
+            getNextMapFilename((filesToCompact.isEmpty() && !propogateDeletes) ? "A" : "C");
         TabletFile compactTmpName = new TabletFile(new Path(newFile.getMetaInsert() + "_tmp"));
 
         AccumuloConfiguration tableConf = createCompactionConfiguration(tableConfiguration, plan);
@@ -1895,21 +1895,20 @@ public class Tablet {
           if (lastBatch && plan != null && plan.deleteFiles != null) {
             smallestFiles.addAll(plan.deleteFiles);
           }
-          StoredTabletFile newTabletFile =
-              getDatafileManager().bringMajorCompactionOnline(smallestFiles, compactTmpName,
-                  newFile, filesToCompact.size() == 0 && compactionId != null
-                      ? compactionId.getFirst() : null,
-                  new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
+          StoredTabletFile newTabletFile = getDatafileManager().bringMajorCompactionOnline(
+              smallestFiles, compactTmpName, newFile,
+              filesToCompact.isEmpty() && compactionId != null ? compactionId.getFirst() : null,
+              new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
 
           // when major compaction produces a file w/ zero entries, it will be deleted... do not
           // want to add the deleted file
-          if (filesToCompact.size() > 0 && mcs.getEntriesWritten() > 0) {
+          if (!filesToCompact.isEmpty() && mcs.getEntriesWritten() > 0) {
             filesToCompact.put(newTabletFile,
                 new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
           }
         }
 
-      } while (filesToCompact.size() > 0);
+      } while (!filesToCompact.isEmpty());
       return majCStats;
     } finally {
       synchronized (Tablet.this) {
@@ -1970,7 +1969,7 @@ public class Tablet {
     }
 
     Set<StoredTabletFile> smallestFiles = new HashSet<>();
-    while (smallestFiles.size() < maxFilesToCompact && fileHeap.size() > 0) {
+    while (smallestFiles.size() < maxFilesToCompact && !fileHeap.isEmpty()) {
       Pair<StoredTabletFile,Long> pair = fileHeap.remove();
       filesToCompact.remove(pair.getFirst());
       smallestFiles.add(pair.getFirst());
@@ -2104,7 +2103,7 @@ public class Tablet {
   }
 
   public boolean isMajorCompactionQueued() {
-    return majorCompactionQueued.size() > 0;
+    return !majorCompactionQueued.isEmpty();
   }
 
   public TreeMap<KeyExtent,TabletData> split(byte[] sp) throws IOException {
@@ -2446,7 +2445,7 @@ public class Tablet {
       // finishClearingUnusedLogs() calls rebuildReferencedLogs(). See the comments in
       // rebuildReferencedLogs() for more info.
 
-      if (unusedLogs.size() > 0) {
+      if (!unusedLogs.isEmpty()) {
         removingLogs = true;
       }
     }
@@ -2510,14 +2509,14 @@ public class Tablet {
           if (addToOther) {
             throw new IllegalStateException("Adding to other logs for mincFinish on " + extent);
           }
-          if (otherLogs.size() != 0) {
+          if (!otherLogs.isEmpty()) {
             throw new IllegalStateException("Expect other logs to be 0 when minC finish, but its "
                 + otherLogs + " for " + extent);
           }
 
           // when writing a minc finish event, there is no need to add the log to metadata
           // if nothing has been logged for the tablet since the minor compaction started
-          if (currentLogs.size() == 0) {
+          if (currentLogs.isEmpty()) {
             return !releaseLock;
           }
         }

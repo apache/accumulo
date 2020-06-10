@@ -36,7 +36,7 @@ public class ListShellIterCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
-    if (shellState.iteratorProfiles.size() == 0)
+    if (shellState.iteratorProfiles.isEmpty())
       return 0;
 
     final StringBuilder sb = new StringBuilder();

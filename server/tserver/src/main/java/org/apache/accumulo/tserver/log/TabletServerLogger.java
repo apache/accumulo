@@ -500,7 +500,7 @@ public class TabletServerLogger {
    * Log mutations. This method expects mutations that have a durability other than NONE.
    */
   public void logManyTablets(Map<CommitSession,TabletMutations> loggables) throws IOException {
-    if (loggables.size() == 0)
+    if (loggables.isEmpty())
       return;
 
     write(loggables.keySet(), false, logger -> logger.logManyTablets(loggables.values()),

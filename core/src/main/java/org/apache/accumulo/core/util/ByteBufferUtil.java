@@ -27,7 +27,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.TableId;
@@ -65,6 +67,16 @@ public class ByteBufferUtil {
     ArrayList<byte[]> result = new ArrayList<>(bytesList.size());
     for (ByteBuffer bytes : bytesList) {
       result.add(toBytes(bytes));
+    }
+    return result;
+  }
+
+  public static Set<String> toStringSet(Collection<ByteBuffer> bytesList) {
+    if (bytesList == null)
+      return null;
+    Set<String> result = new HashSet<>(bytesList.size());
+    for (ByteBuffer bytes : bytesList) {
+      result.add(toString(bytes));
     }
     return result;
   }

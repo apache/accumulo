@@ -142,7 +142,7 @@ public class InMemoryMap {
     SimpleMap allMap;
     SimpleMap sampleMap;
 
-    if (lggroups.size() == 0) {
+    if (lggroups.isEmpty()) {
       allMap = newMap(useNativeMap);
       sampleMap = newMap(useNativeMap);
       mapType = useNativeMap ? TYPE_NATIVE_MAP_WRAPPER : TYPE_DEFAULT_MAP;
@@ -357,7 +357,7 @@ public class InMemoryMap {
         partitioner.partition(mutations, partitioned);
 
         for (int i = 0; i < partitioned.length; i++) {
-          if (partitioned.get(i).size() > 0) {
+          if (!partitioned.get(i).isEmpty()) {
             maps[i].mutate(partitioned.get(i), kvCount);
             for (Mutation m : partitioned.get(i))
               kvCount += m.getUpdates().size();
@@ -735,11 +735,11 @@ public class InMemoryMap {
 
     long t1 = System.currentTimeMillis();
 
-    while (activeIters.size() > 0 && System.currentTimeMillis() - t1 < waitTime) {
+    while (!activeIters.isEmpty() && System.currentTimeMillis() - t1 < waitTime) {
       sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
     }
 
-    if (activeIters.size() > 0) {
+    if (!activeIters.isEmpty()) {
       // dump memmap exactly as is to a tmp file on disk, and switch scans to that temp file
       try {
         Configuration conf = context.getHadoopConf();
@@ -795,7 +795,7 @@ public class InMemoryMap {
       } catch (IOException ioe) {
         log.error("Failed to create mem dump file", ioe);
 
-        while (activeIters.size() > 0) {
+        while (!activeIters.isEmpty()) {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }
       }
@@ -825,7 +825,7 @@ public class InMemoryMap {
   }
 
   private void dumpLocalityGroup(FileSKVWriter out, InterruptibleIterator iter) throws IOException {
-    while (iter.hasTop() && activeIters.size() > 0) {
+    while (iter.hasTop() && !activeIters.isEmpty()) {
       // RFile does not support MemKey, so we move the kv count into the value only for the RFile.
       // There is no need to change the MemKey to a normal key because the kvCount info gets lost
       // when it is written

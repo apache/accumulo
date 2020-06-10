@@ -202,7 +202,7 @@ public class RFile {
     public void updateColumnCount(Key key) {
 
       if (isDefaultLG && columnFamilies == null) {
-        if (previousColumnFamilies.size() > 0) {
+        if (!previousColumnFamilies.isEmpty()) {
           // only do this check when there are previous column families
           ByteSequence cf = key.getColumnFamilyData();
           if (previousColumnFamilies.contains(cf)) {
@@ -409,7 +409,7 @@ public class RFile {
         // called with true
         List<SampleEntry> subList = entries.subList(0, entries.size() - 1);
 
-        if (subList.size() > 0) {
+        if (!subList.isEmpty()) {
           for (SampleEntry se : subList) {
             lgr.append(se.key, se.val);
           }
@@ -887,7 +887,7 @@ public class RFile {
       if (closed)
         throw new IllegalStateException("Locality group reader closed");
 
-      if (columnFamilies.size() != 0 || inclusive)
+      if (!columnFamilies.isEmpty() || inclusive)
         throw new IllegalArgumentException("I do not know how to filter column families");
 
       if (interruptFlag != null && interruptFlag.get()) {
@@ -1001,9 +1001,7 @@ public class RFile {
 
         reset();
 
-        if (!iiter.hasNext()) {
-          // past the last key
-        } else {
+        if (iiter.hasNext()) {
 
           // if the index contains the same key multiple times, then go to the
           // earliest index entry containing the key
@@ -1061,6 +1059,8 @@ public class RFile {
           // set rk when everything above is successful, if exception
           // occurs rk will not be set
           rk = skippr.rk;
+        } else {
+          // past the last key
         }
       }
 
@@ -1486,7 +1486,7 @@ public class RFile {
         lgm.printInfo(false, includeIndexDetails);
       }
 
-      if (sampleGroups.size() > 0) {
+      if (!sampleGroups.isEmpty()) {
 
         System.out.println();
         System.out.printf("%-24s :\n", "Sample Configuration");
@@ -1505,7 +1505,7 @@ public class RFile {
       if (deepCopy)
         throw new RuntimeException("Calling setInterruptFlag on a deep copy is not supported");
 
-      if (deepCopies.size() != 0)
+      if (!deepCopies.isEmpty())
         throw new RuntimeException("Setting interrupt flag after calling deep copy not supported");
 
       setInterruptFlagInternal(flag);

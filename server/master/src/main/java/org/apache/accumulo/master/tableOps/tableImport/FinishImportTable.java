@@ -44,14 +44,18 @@ class FinishImportTable extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
 
-    env.getVolumeManager().deleteRecursively(new Path(tableInfo.importDir, "mappings.txt"));
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      env.getVolumeManager().deleteRecursively(new Path(dm.importDir, "mappings.txt"));
+    }
 
     env.getTableManager().transitionTableState(tableInfo.tableId, TableState.ONLINE);
 
     Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(env, tableInfo.tableId, tid, true);
 
-    Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), tid);
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), tid);
+    }
 
     env.getEventCoordinator().event("Imported table %s ", tableInfo.tableName);
 

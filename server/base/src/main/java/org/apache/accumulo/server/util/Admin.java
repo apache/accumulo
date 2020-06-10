@@ -52,6 +52,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -275,6 +277,8 @@ public class Admin implements KeywordExecutable {
     } catch (Exception e) {
       log.error("{}", e.getMessage(), e);
       System.exit(3);
+    } finally {
+      SingletonManager.setMode(Mode.CLOSED);
     }
   }
 
@@ -282,7 +286,7 @@ public class Admin implements KeywordExecutable {
 
     InstanceOperations io = context.instanceOperations();
 
-    if (args.size() == 0) {
+    if (args.isEmpty()) {
       args = io.getTabletServers();
     }
 
@@ -363,7 +367,7 @@ public class Admin implements KeywordExecutable {
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,
       final boolean force) throws AccumuloException, AccumuloSecurityException {
-    if (context.getMasterLocations().size() == 0) {
+    if (context.getMasterLocations().isEmpty()) {
       log.info("No masters running. Not attempting safe unload of tserver.");
       return;
     }
@@ -479,7 +483,7 @@ public class Admin implements KeywordExecutable {
           printNameSpaceConfiguration(context, namespace, outputDirectory);
         }
       }
-      if (opts.tables.size() > 0) {
+      if (!opts.tables.isEmpty()) {
         for (String tableName : opts.tables) {
           printTableConfiguration(context, tableName, outputDirectory);
         }

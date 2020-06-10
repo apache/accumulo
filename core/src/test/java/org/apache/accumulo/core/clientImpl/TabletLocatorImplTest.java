@@ -199,9 +199,7 @@ public class TabletLocatorImplTest {
   static Set<KeyExtent> nkes(KeyExtent... extents) {
     HashSet<KeyExtent> kes = new HashSet<>();
 
-    for (KeyExtent keyExtent : extents) {
-      kes.add(keyExtent);
-    }
+    Collections.addAll(kes, extents);
 
     return kes;
   }
@@ -296,19 +294,8 @@ public class TabletLocatorImplTest {
       String server = (String) ol[1];
       KeyExtent ke = (KeyExtent) ol[2];
 
-      Map<KeyExtent,List<String>> tb = emb.get(server);
-      if (tb == null) {
-        tb = new HashMap<>();
-        emb.put(server, tb);
-      }
-
-      List<String> rl = tb.get(ke);
-      if (rl == null) {
-        rl = new ArrayList<>();
-        tb.put(ke, rl);
-      }
-
-      rl.add(row);
+      emb.computeIfAbsent(server, k -> new HashMap<>()).computeIfAbsent(ke, k -> new ArrayList<>())
+          .add(row);
     }
 
     return emb;
@@ -491,7 +478,7 @@ public class TabletLocatorImplTest {
         }
       }
 
-      if (failures.size() > 0)
+      if (!failures.isEmpty())
         parent.invalidateCache(failures);
 
       return MetadataLocationObtainer.getMetadataLocationEntries(results).getLocations();
@@ -527,17 +514,14 @@ public class TabletLocatorImplTest {
   }
 
   static void createEmptyTablet(TServers tservers, String server, KeyExtent tablet) {
-    Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
-    if (tablets == null) {
-      tablets = new HashMap<>();
-      tservers.tservers.put(server, tablets);
-    }
+    Map<KeyExtent,SortedMap<Key,Value>> tablets =
+        tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
 
     SortedMap<Key,Value> tabletData = tablets.get(tablet);
     if (tabletData == null) {
       tabletData = new TreeMap<>();
       tablets.put(tablet, tabletData);
-    } else if (tabletData.size() > 0) {
+    } else if (!tabletData.isEmpty()) {
       throw new RuntimeException("Asked for empty tablet, but non empty tablet exists");
     }
   }
@@ -562,17 +546,10 @@ public class TabletLocatorImplTest {
 
   static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke,
       String location, String instance) {
-    Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
-    if (tablets == null) {
-      tablets = new HashMap<>();
-      tservers.tservers.put(server, tablets);
-    }
+    Map<KeyExtent,SortedMap<Key,Value>> tablets =
+        tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
 
-    SortedMap<Key,Value> tabletData = tablets.get(tablet);
-    if (tabletData == null) {
-      tabletData = new TreeMap<>();
-      tablets.put(tablet, tabletData);
-    }
+    SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
 
     Text mr = ke.getMetadataEntry();
     Value per = KeyExtent.encodePrevEndRow(ke.getPrevEndRow());

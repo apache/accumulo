@@ -573,11 +573,11 @@ public class MasterClientServiceHandler extends FateServiceHandler
         }
 
         // Skip files that we didn't observe when we started (new files/data)
-        if (!relevantLogs.contains(file)) {
+        if (relevantLogs.contains(file)) {
+          drainLog.trace("Found file that we *do* care about {}", file);
+        } else {
           drainLog.trace("Found file that we didn't care about {}", file);
           continue;
-        } else {
-          drainLog.trace("Found file that we *do* care about {}", file);
         }
 
         try {

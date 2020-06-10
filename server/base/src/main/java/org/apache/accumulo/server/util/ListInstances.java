@@ -102,7 +102,7 @@ public class ListInstances {
       for (UUID uuid : instancedIds) {
         printInstanceInfo(cache, null, uuid, printErrors);
       }
-    } else if (instancedIds.size() > 0) {
+    } else if (!instancedIds.isEmpty()) {
       System.out.println();
       System.out.println("INFO : " + instancedIds.size()
           + " unamed instances were not printed, run with --print-all to see all instances");

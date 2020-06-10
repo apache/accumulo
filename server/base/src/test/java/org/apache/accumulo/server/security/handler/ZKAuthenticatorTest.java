@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -64,8 +65,7 @@ public class ZKAuthenticatorTest {
   @Test
   public void testSystemConversion() {
     Set<SystemPermission> perms = new TreeSet<>();
-    for (SystemPermission s : SystemPermission.values())
-      perms.add(s);
+    Collections.addAll(perms, SystemPermission.values());
 
     Set<SystemPermission> converted =
         ZKSecurityTool.convertSystemPermissions(ZKSecurityTool.convertSystemPermissions(perms));
@@ -77,8 +77,7 @@ public class ZKAuthenticatorTest {
   @Test
   public void testTableConversion() {
     Set<TablePermission> perms = new TreeSet<>();
-    for (TablePermission s : TablePermission.values())
-      perms.add(s);
+    Collections.addAll(perms, TablePermission.values());
 
     Set<TablePermission> converted =
         ZKSecurityTool.convertTablePermissions(ZKSecurityTool.convertTablePermissions(perms));

@@ -107,10 +107,10 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
               long timestamp;
 
               // If the update doesn't have a timestamp, pull it from the ServerMutation
-              if (!update.hasTimestamp()) {
-                timestamp = origServer.getSystemTimestamp();
-              } else {
+              if (update.hasTimestamp()) {
                 timestamp = update.getTimestamp();
+              } else {
+                timestamp = origServer.getSystemTimestamp();
               }
 
               // TODO ACCUMULO-2937 cache the CVs

@@ -80,7 +80,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
     this.reporter = reporter;
 
-    if (this.options.fetchedColumns.size() > 0) {
+    if (!this.options.fetchedColumns.isEmpty()) {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
 
@@ -154,7 +154,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
         Preconditions.checkState(!closed, "Scanner was closed");
         batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
       }
-    } while (batch != null && batch.size() == 0);
+    } while (batch != null && batch.isEmpty());
 
     if (batch != null) {
       reporter.readBatch(this);

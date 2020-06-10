@@ -111,7 +111,7 @@ abstract class TableMetadataServicer extends MetadataServicer {
     SortedSet<KeyExtent> tabletsKeys = (SortedSet<KeyExtent>) tablets.keySet();
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
-    if (tabletsKeys.size() == 0)
+    if (tabletsKeys.isEmpty())
       throw new AccumuloException(
           "No entries found in metadata table for table " + getServicedTableId());
 

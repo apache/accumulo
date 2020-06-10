@@ -57,10 +57,10 @@ public class SecurityUtil {
    *          The Kerberos principal
    */
   public static void serverLogin(AccumuloConfiguration acuConf, String keyTab, String principal) {
-    if (keyTab == null || keyTab.length() == 0)
+    if (keyTab == null || keyTab.isEmpty())
       return;
 
-    if (principal == null || principal.length() == 0)
+    if (principal == null || principal.isEmpty())
       return;
 
     if (login(principal, keyTab)) {
@@ -89,8 +89,8 @@ public class SecurityUtil {
   static boolean login(String principalConfig, String keyTabPath) {
     try {
       String principalName = getServerPrincipal(principalConfig);
-      if (keyTabPath != null && principalName != null && keyTabPath.length() != 0
-          && principalName.length() != 0) {
+      if (keyTabPath != null && principalName != null && !keyTabPath.isEmpty()
+          && !principalName.isEmpty()) {
         log.info("Attempting to login with keytab as {}", principalName);
         UserGroupInformation.loginUserFromKeytab(principalName, keyTabPath);
         log.info("Succesfully logged in as user {}", principalName);

@@ -161,7 +161,7 @@ public abstract class TableOperationsHelper implements TableOperations {
           }
         }
       }
-      if (optionConflicts.size() > 0)
+      if (!optionConflicts.isEmpty())
         throw new AccumuloException(new IllegalArgumentException(
             "iterator options conflict for " + setting.getName() + ": " + optionConflicts));
     }

@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -41,6 +42,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -50,6 +52,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.LoadPlan;
@@ -183,6 +186,32 @@ public class BulkNewIT extends SharedMiniClusterBase {
     }
   }
 
+  @Test
+  public void testMaxTablets() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      tableName = "testMaxTablets_table1";
+      NewTableConfiguration newTableConf = new NewTableConfiguration();
+      // set logical time type so we can set time on bulk import
+      var props = Map.of(Property.TABLE_BULK_MAX_TABLETS.getKey(), "2");
+      newTableConf.setProperties(props);
+      client.tableOperations().create(tableName, newTableConf);
+
+      // test max tablets hit while inspecting bulk files
+      var thrown = assertThrows(RuntimeException.class, () -> testBulkFileMax(false));
+      var c = thrown.getCause();
+      assertTrue("Wrong exception: " + c, c instanceof ExecutionException);
+      assertTrue("Wrong exception: " + c.getCause(),
+          c.getCause() instanceof IllegalArgumentException);
+      var msg = c.getCause().getMessage();
+      assertTrue("Bad File not in exception: " + msg, msg.contains("bad-file.rf"));
+
+      // test max tablets hit using load plan on the server side
+      c = assertThrows(AccumuloException.class, () -> testBulkFileMax(true));
+      msg = c.getMessage();
+      assertTrue("Bad File not in exception: " + msg, msg.contains("bad-file.rf"));
+    }
+  }
+
   private void testSingleTabletSingleFileNoSplits(AccumuloClient c, boolean offline)
       throws Exception {
     if (offline) {
@@ -306,6 +335,56 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       if (offline) {
         c.tableOperations().online(tableName);
+      }
+
+      verifyData(c, tableName, 0, 1999, false);
+      verifyMetadata(c, tableName, hashes);
+    }
+  }
+
+  private void testBulkFileMax(boolean usePlan) throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      addSplits(c, tableName, "0333 0666 0999 1333 1666");
+
+      String dir = getDir("/testBulkFileMax-");
+
+      Map<String,Set<String>> hashes = new HashMap<>();
+      for (String endRow : Arrays.asList("0333 0666 0999 1333 1666 null".split(" "))) {
+        hashes.put(endRow, new HashSet<>());
+      }
+
+      // Add a junk file, should be ignored
+      FSDataOutputStream out = fs.create(new Path(dir, "junk"));
+      out.writeChars("ABCDEFG\n");
+      out.close();
+
+      // 1 Tablet 0333-null
+      String h1 = writeData(dir + "/f1.", aconf, 0, 333);
+      hashes.get("0333").add(h1);
+
+      // 3 Tablets 0666-0334, 0999-0667, 1333-1000
+      String h2 = writeData(dir + "/bad-file.", aconf, 334, 1333);
+      hashes.get("0666").add(h2);
+      hashes.get("0999").add(h2);
+      hashes.get("1333").add(h2);
+
+      // 1 Tablet 1666-1334
+      String h3 = writeData(dir + "/f3.", aconf, 1334, 1499);
+      hashes.get("1666").add(h3);
+
+      // 2 Tablets 1666-1334, >1666
+      String h4 = writeData(dir + "/f4.", aconf, 1500, 1999);
+      hashes.get("1666").add(h4);
+      hashes.get("null").add(h4);
+
+      if (usePlan) {
+        LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
+            .loadFileTo("bad-file.rf", RangeType.TABLE, row(333), row(1333))
+            .loadFileTo("f3.rf", RangeType.FILE, row(1334), row(1499))
+            .loadFileTo("f4.rf", RangeType.FILE, row(1500), row(1999)).build();
+        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
+      } else {
+        c.tableOperations().importDirectory(dir).to(tableName).load();
       }
 
       verifyData(c, tableName, 0, 1999, false);

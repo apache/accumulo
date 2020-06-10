@@ -146,7 +146,7 @@ public class ConfigurationTypeHelper {
    * @return interpreted fraction as a decimal value
    */
   public static double getFraction(String str) {
-    if (str.length() > 0 && str.charAt(str.length() - 1) == '%')
+    if (!str.isEmpty() && str.charAt(str.length() - 1) == '%')
       return Double.parseDouble(str.substring(0, str.length() - 1)) / 100.0;
     return Double.parseDouble(str);
   }

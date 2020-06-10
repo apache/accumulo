@@ -169,7 +169,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
   private boolean checkGroup(Table<String,String,MutableInt> groupLocationCounts, String group,
       int min, int max, int tsevers) {
     Collection<MutableInt> counts = groupLocationCounts.row(group).values();
-    if (counts.size() == 0) {
+    if (counts.isEmpty()) {
       return min == 0 && max == 0 && tsevers == 0;
     }
     return min == Collections.min(counts).intValue() && max == Collections.max(counts).intValue()

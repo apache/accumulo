@@ -84,12 +84,12 @@ public class Token {
       Token t = iter.next();
       Set<String> subset = t.getCommandNames();
       for (String s : subset) {
-        if (!t.getCaseSensitive()) {
-          if (s.toLowerCase().startsWith(startsWith.toLowerCase())) {
+        if (t.getCaseSensitive()) {
+          if (s.startsWith(startsWith)) {
             set.add(s);
           }
         } else {
-          if (s.startsWith(startsWith)) {
+          if (s.toLowerCase().startsWith(startsWith.toLowerCase())) {
             set.add(s);
           }
         }

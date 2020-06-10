@@ -152,7 +152,7 @@ public class TableDiskUsage {
 
   public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs,
       AccumuloClient client, boolean humanReadable) throws TableNotFoundException, IOException {
-    printDiskUsage(tableNames, fs, client, line -> System.out.println(line), humanReadable);
+    printDiskUsage(tableNames, fs, client, System.out::println, humanReadable);
   }
 
   public static Map<TreeSet<String>,Long> getDiskUsage(Set<TableId> tableIds, VolumeManager fs,

@@ -20,7 +20,6 @@ package org.apache.accumulo.tserver;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -59,7 +58,7 @@ public class ConditionalMutationSet {
       List<ServerConditionalMutation> deferred = new ArrayList<>();
       filter.defer(scml, okMutations, deferred);
 
-      if (deferred.size() > 0) {
+      if (!deferred.isEmpty()) {
         scml.clear();
         scml.addAll(okMutations);
         List<ServerConditionalMutation> l = deferredMutations.get(entry.getKey());
@@ -81,7 +80,7 @@ public class ConditionalMutationSet {
 
   static void sortConditionalMutations(Map<KeyExtent,List<ServerConditionalMutation>> updates) {
     for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : updates.entrySet()) {
-      Collections.sort(entry.getValue(), (o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
+      entry.getValue().sort((o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
           o1.getRow().length, o2.getRow(), 0, o2.getRow().length));
     }
   }

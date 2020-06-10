@@ -27,20 +27,25 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLServerSocket;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerContext;
@@ -91,6 +96,21 @@ public class TServerUtils {
       addresses[i] = HostAndPort.fromParts(hostname, ports[i]);
     }
     return addresses;
+  }
+
+  /**
+   *
+   * @param config
+   *          Accumulo configuration
+   * @return A Map object with reserved port numbers as keys and Property objects as values
+   */
+
+  public static Map<Integer,Property> getReservedPorts(AccumuloConfiguration config) {
+    return EnumSet.allOf(Property.class).stream()
+        .filter(p -> p.getType() == PropertyType.PORT && p != Property.TSERV_CLIENTPORT)
+        .flatMap(rp -> {
+          return Arrays.stream(config.getPort(rp)).mapToObj(portNum -> new Pair<>(portNum, rp));
+        }).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
   }
 
   /**
@@ -155,7 +175,8 @@ public class TServerUtils {
       processor = updateSaslProcessor(serverType, processor);
     }
 
-    // create the TimedProcessor outside the port search loop so we don't try to register the same
+    // create the TimedProcessor outside the port search loop so we don't try to
+    // register the same
     // metrics mbean more than once
     TimedProcessor timedProcessor =
         new TimedProcessor(metricsSystem, config, processor, serverName, threadName);
@@ -168,10 +189,20 @@ public class TServerUtils {
           addresses);
     } catch (TTransportException e) {
       if (portSearch) {
+        // Build a list of reserved ports - as identified by properties of type PropertyType.PORT
+        Map<Integer,Property> reservedPorts = getReservedPorts(config);
+
         HostAndPort last = addresses[addresses.length - 1];
         // Attempt to allocate a port outside of the specified port property
         // Search sequentially over the next 1000 ports
         for (int port = last.getPort() + 1; port < last.getPort() + 1001; port++) {
+          if (reservedPorts.containsKey(port)) {
+            log.debug("During port search, skipping reserved port {} - property {} ({})", port,
+                reservedPorts.get(port).getKey(), reservedPorts.get(port).getDescription());
+
+            continue;
+          }
+
           if (port > 65535) {
             break;
           }

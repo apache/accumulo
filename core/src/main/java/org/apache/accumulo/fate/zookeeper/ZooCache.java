@@ -566,7 +566,7 @@ public class ZooCache {
 
     List<String> children = getChildren(path);
 
-    if (children == null || children.size() == 0) {
+    if (children == null || children.isEmpty()) {
       return null;
     }
 

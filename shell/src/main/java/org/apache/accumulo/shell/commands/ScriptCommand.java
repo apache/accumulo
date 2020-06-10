@@ -296,7 +296,7 @@ public class ScriptCommand extends Command {
       } else if (cl.hasOption(object.getOpt())) {
         String objectMethod = cl.getOptionValue(object.getOpt());
         String[] parts = objectMethod.split(":");
-        if (!(parts.length == 2)) {
+        if (parts.length != 2) {
           shellState.printException(new Exception("Object and Method must be supplied"));
           return;
         }

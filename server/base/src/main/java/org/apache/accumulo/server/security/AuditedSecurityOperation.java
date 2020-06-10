@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Credentials;
@@ -570,15 +571,15 @@ public class AuditedSecurityOperation extends SecurityOperation {
       "action: import;" + " targetTable: %s; dataDir: %s;";
 
   @Override
-  public boolean canImport(TCredentials credentials, String tableName, String importDir,
+  public boolean canImport(TCredentials credentials, String tableName, Set<String> importDirs,
       NamespaceId namespaceId) throws ThriftSecurityException {
 
     try {
-      boolean result = super.canImport(credentials, tableName, importDir, namespaceId);
-      audit(credentials, result, CAN_IMPORT_AUDIT_TEMPLATE, tableName, importDir);
+      boolean result = super.canImport(credentials, tableName, importDirs, namespaceId);
+      audit(credentials, result, CAN_IMPORT_AUDIT_TEMPLATE, tableName, importDirs);
       return result;
     } catch (ThriftSecurityException ex) {
-      audit(credentials, ex, CAN_IMPORT_AUDIT_TEMPLATE, tableName, importDir);
+      audit(credentials, ex, CAN_IMPORT_AUDIT_TEMPLATE, tableName, importDirs);
       throw ex;
     }
   }

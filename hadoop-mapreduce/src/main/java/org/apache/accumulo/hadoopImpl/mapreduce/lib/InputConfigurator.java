@@ -343,9 +343,7 @@ public class InputConfigurator extends ConfiguratorBase {
     List<String> serialized = new ArrayList<>();
     if (confValue != null) {
       // Split and include any trailing empty strings to allow empty column families
-      for (String val : confValue.split(",", -1)) {
-        serialized.add(val);
-      }
+      Collections.addAll(serialized, confValue.split(",", -1));
     }
     return deserializeFetchedColumns(serialized);
   }
@@ -734,7 +732,7 @@ public class InputConfigurator extends ConfiguratorBase {
       AccumuloClient client) throws IOException {
     Map<String,InputTableConfig> inputTableConfigs = getInputTableConfigs(implementingClass, conf);
     try {
-      if (getInputTableConfigs(implementingClass, conf).size() == 0)
+      if (getInputTableConfigs(implementingClass, conf).isEmpty())
         throw new IOException("No table set.");
 
       Properties props = getClientProperties(implementingClass, conf);
@@ -782,7 +780,7 @@ public class InputConfigurator extends ConfiguratorBase {
       InputTableConfig queryConfig = new InputTableConfig();
       List<IteratorSetting> itrs = getIterators(implementingClass, conf);
       if (itrs != null)
-        itrs.forEach(itr -> queryConfig.addIterator(itr));
+        itrs.forEach(queryConfig::addIterator);
       Set<IteratorSetting.Column> columns = getFetchedColumns(implementingClass, conf);
       if (columns != null)
         queryConfig.fetchColumns(columns);
@@ -880,19 +878,8 @@ public class InputConfigurator extends ConfiguratorBase {
           throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
         }
 
-        Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
-        if (tabletRanges == null) {
-          tabletRanges = new HashMap<>();
-          binnedRanges.put(last, tabletRanges);
-        }
-
-        List<Range> rangeList = tabletRanges.get(extent);
-        if (rangeList == null) {
-          rangeList = new ArrayList<>();
-          tabletRanges.put(extent, rangeList);
-        }
-
-        rangeList.add(range);
+        binnedRanges.computeIfAbsent(last, k -> new HashMap<>())
+            .computeIfAbsent(extent, k -> new ArrayList<>()).add(range);
 
         if (extent.getEndRow() == null
             || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {

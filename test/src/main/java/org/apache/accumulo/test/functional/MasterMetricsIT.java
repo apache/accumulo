@@ -60,7 +60,7 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
   private static final long TAIL_DELAY = 5_000;
 
   // number of tables / concurrent compactions used during testing.
-  private final int tableCount = 4;
+  private final int tableCount = 1;
 
   private long maxWait;
 
@@ -213,7 +213,7 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
 
       Map<String,String> results = metricsTail.parseLine("");
 
-      if (results != null && results.size() > 0
+      if (results != null && !results.isEmpty()
           && Long.parseLong(results.get("currentFateOps")) >= tableCount) {
         log.info("Found required number of fate operations");
         return results;

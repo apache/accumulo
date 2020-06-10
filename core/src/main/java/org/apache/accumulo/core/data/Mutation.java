@@ -1565,9 +1565,7 @@ public class Mutation implements Writable {
     entries = WritableUtils.readVInt(in);
 
     boolean valuesPresent = (first & 0x01) == 0x01;
-    if (!valuesPresent) {
-      values = null;
-    } else {
+    if (valuesPresent) {
       values = new ArrayList<>();
       int numValues = WritableUtils.readVInt(in);
       for (int i = 0; i < numValues; i++) {
@@ -1576,6 +1574,8 @@ public class Mutation implements Writable {
         in.readFully(val);
         values.add(val);
       }
+    } else {
+      values = null;
     }
 
     if ((first & 0x02) == 0x02) {
@@ -1605,9 +1605,7 @@ public class Mutation implements Writable {
 
     List<byte[]> localValues;
     boolean valuesPresent = in.readBoolean();
-    if (!valuesPresent) {
-      localValues = null;
-    } else {
+    if (valuesPresent) {
       localValues = new ArrayList<>();
       int numValues = in.readInt();
       for (int i = 0; i < numValues; i++) {
@@ -1616,6 +1614,8 @@ public class Mutation implements Writable {
         in.readFully(val);
         localValues.add(val);
       }
+    } else {
+      localValues = null;
     }
 
     // convert data to new format

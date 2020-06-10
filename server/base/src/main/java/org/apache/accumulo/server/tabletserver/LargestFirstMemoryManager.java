@@ -121,13 +121,6 @@ public class LargestFirstMemoryManager implements MemoryManager {
     }
   }
 
-  LargestFirstMemoryManager(long maxMemory, int maxConcurrentMincs, int numWaitingMultiplier) {
-    this();
-    this.maxMemory = maxMemory;
-    this.maxConcurrentMincs = maxConcurrentMincs;
-    this.numWaitingMultiplier = numWaitingMultiplier;
-  }
-
   @Override
   public void init(ServerConfiguration conf) {
     this.config = conf;

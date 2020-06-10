@@ -54,7 +54,13 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     replay(context1);
     final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(context1);
     ServerContext context2 = createMockContext();
-    expect(context2.getServerConfFactory()).andReturn(factory).anyTimes();
+    expect(context2.getConfiguration()).andReturn(factory.getSystemConfiguration()).anyTimes();
+    expect(context2.getTableConfiguration(FOO.getId()))
+        .andReturn(factory.getTableConfiguration(FOO.getId())).anyTimes();
+    expect(context2.getTableConfiguration(BAR.getId()))
+        .andReturn(factory.getTableConfiguration(BAR.getId())).anyTimes();
+    expect(context2.getTableConfiguration(BAZ.getId()))
+        .andReturn(factory.getTableConfiguration(BAZ.getId())).anyTimes();
     replay(context2);
     init(context2);
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();

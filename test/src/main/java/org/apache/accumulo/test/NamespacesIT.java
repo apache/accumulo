@@ -35,6 +35,7 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -978,8 +979,10 @@ public class NamespacesIT extends SharedMiniClusterBase {
     ops.create("a");
     assertAccumuloExceptionNoNamespace(
         () -> ops.clone("a", tableName, true, Collections.emptyMap(), Collections.emptySet()));
+    ops.offline("a", true);
+    ops.exportTable("a", System.getProperty("user.dir") + "/target");
     assertAccumuloExceptionNoNamespace(
-        () -> ops.importTable(tableName, System.getProperty("user.dir") + "/target"));
+        () -> ops.importTable(tableName, Set.of(System.getProperty("user.dir") + "/target")));
 
     // table operations that should throw an AccumuloException caused by a TableNotFoundException
     // caused by a NamespaceNotFoundException
@@ -1006,7 +1009,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
     assertNoTableNoNamespace(() -> ops.splitRangeByTablets(tableName, new Range(), 10));
     assertNoTableNoNamespace(() -> ops.exportTable(tableName, namespace + "_dir"));
     assertNoTableNoNamespace(() -> ops.flush(tableName, a, z, true));
-    assertNoTableNoNamespace(() -> ops.getDiskUsage(Collections.singleton(tableName)));
+    assertNoTableNoNamespace(() -> ops.getDiskUsage(Set.of(tableName)));
     assertNoTableNoNamespace(() -> ops.getIteratorSetting(tableName, "a", IteratorScope.scan));
     assertNoTableNoNamespace(() -> ops.getLocalityGroups(tableName));
     assertNoTableNoNamespace(

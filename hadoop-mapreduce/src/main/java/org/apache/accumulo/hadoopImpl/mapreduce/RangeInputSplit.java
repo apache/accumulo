@@ -222,7 +222,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
       new SamplerConfigurationImpl(samplerConfig).write(out);
     }
 
-    if (executionHints == null || executionHints.size() == 0) {
+    if (executionHints == null || executionHints.isEmpty()) {
       out.writeInt(0);
     } else {
       out.writeInt(executionHints.size());

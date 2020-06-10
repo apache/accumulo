@@ -115,7 +115,7 @@ public class WorkMaker {
         }
 
         // Get the table configuration for the table specified by the status record
-        tableConf = context.getServerConfFactory().getTableConfiguration(tableId);
+        tableConf = context.getTableConfiguration(tableId);
 
         // getTableConfiguration(String) returns null if the table no longer exists
         if (tableConf == null) {
@@ -129,12 +129,12 @@ public class WorkMaker {
         // If we have targets, we need to make a work record
         // TODO Don't replicate if it's a only a newFile entry (nothing to replicate yet)
         // -- Another scanner over the WorkSection can make this relatively cheap
-        if (!replicationTargets.isEmpty()) {
+        if (replicationTargets.isEmpty()) {
+          log.warn("No configured targets for table with ID {}", tableId);
+        } else {
           try (TraceScope workSpan = Trace.startSpan("createWorkMutations")) {
             addWorkRecord(file, entry.getValue(), replicationTargets, tableId);
           }
-        } else {
-          log.warn("No configured targets for table with ID {}", tableId);
         }
       }
     }

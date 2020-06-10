@@ -87,7 +87,7 @@ public class ColumnToClassMapping<K> {
     K obj = null;
 
     // lookup column family and column qualifier
-    if (objectsCol.size() > 0) {
+    if (!objectsCol.isEmpty()) {
       lookupCol.set(key);
       obj = objectsCol.get(lookupCol);
       if (obj != null) {
@@ -96,7 +96,7 @@ public class ColumnToClassMapping<K> {
     }
 
     // lookup just column family
-    if (objectsCF.size() > 0) {
+    if (!objectsCF.isEmpty()) {
       lookupCF.set(key);
       obj = objectsCF.get(lookupCF);
     }
@@ -105,6 +105,6 @@ public class ColumnToClassMapping<K> {
   }
 
   public boolean isEmpty() {
-    return objectsCol.size() == 0 && objectsCF.size() == 0;
+    return objectsCol.isEmpty() && objectsCF.isEmpty();
   }
 }

@@ -73,7 +73,7 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public synchronized void addScanIterator(IteratorSetting si) {
     checkArgument(si != null, "si is null");
-    if (serverSideIteratorList.size() == 0) {
+    if (serverSideIteratorList.isEmpty()) {
       serverSideIteratorList = new ArrayList<>();
     }
 
@@ -89,24 +89,18 @@ public class ScannerOptions implements ScannerBase {
 
     serverSideIteratorList.add(new IterInfo(si.getPriority(), si.getIteratorClass(), si.getName()));
 
-    if (serverSideIteratorOptions.size() == 0) {
+    if (serverSideIteratorOptions.isEmpty()) {
       serverSideIteratorOptions = new HashMap<>();
     }
-
-    Map<String,String> opts = serverSideIteratorOptions.get(si.getName());
-
-    if (opts == null) {
-      opts = new HashMap<>();
-      serverSideIteratorOptions.put(si.getName(), opts);
-    }
-    opts.putAll(si.getOptions());
+    serverSideIteratorOptions.computeIfAbsent(si.getName(), k -> new HashMap<>())
+        .putAll(si.getOptions());
   }
 
   @Override
   public synchronized void removeScanIterator(String iteratorName) {
     checkArgument(iteratorName != null, "iteratorName is null");
     // if no iterators are set, we don't have it, so it is already removed
-    if (serverSideIteratorList.size() == 0) {
+    if (serverSideIteratorList.isEmpty()) {
       return;
     }
 
@@ -125,17 +119,10 @@ public class ScannerOptions implements ScannerBase {
     checkArgument(iteratorName != null, "iteratorName is null");
     checkArgument(key != null, "key is null");
     checkArgument(value != null, "value is null");
-    if (serverSideIteratorOptions.size() == 0) {
+    if (serverSideIteratorOptions.isEmpty()) {
       serverSideIteratorOptions = new HashMap<>();
     }
-
-    Map<String,String> opts = serverSideIteratorOptions.get(iteratorName);
-
-    if (opts == null) {
-      opts = new HashMap<>();
-      serverSideIteratorOptions.put(iteratorName, opts);
-    }
-    opts.put(key, value);
+    serverSideIteratorOptions.computeIfAbsent(iteratorName, k -> new HashMap<>()).put(key, value);
   }
 
   @Override

@@ -291,15 +291,15 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       ports = new int[1];
       try {
         int port = Integer.parseInt(portString);
-        if (port != 0) {
+        if (port == 0) {
+          ports[0] = port;
+        } else {
           if (port < 1024 || port > 65535) {
             log.error("Invalid port number {}; Using default {}", port, property.getDefaultValue());
             ports[0] = Integer.parseInt(property.getDefaultValue());
           } else {
             ports[0] = port;
           }
-        } else {
-          ports[0] = port;
         }
       } catch (NumberFormatException e1) {
         throw new IllegalArgumentException("Invalid port syntax. Must be a single positive "
