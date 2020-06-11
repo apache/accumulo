@@ -410,36 +410,40 @@ public enum Property {
       "The maximum number of concurrent tablet migrations for a tablet server"),
   TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
       "Time a tablet server will sleep between checking which tablets need compaction."),
-  TSERV_COMPACTION_SERVICE_PREFIX("tserver.compaction.service.", null, PropertyType.PREFIX,
+  TSERV_COMPACTION_SERVICE_PREFIX("tserver.compaction.major.service.", null, PropertyType.PREFIX,
       "Prefix for compaction services."),
-  TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.service.root.planner",
+  TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for root tablet service"),
-  TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN("tserver.compaction.service.root.planner.opts.maxOpen",
-      "30", PropertyType.COUNT, "The maximum number of files a compaction will open"),
-  TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS("tserver.compaction.service.root.planner.opts.executors",
+  TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
+      "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
+      "The maximum number of files a compaction will open"),
+  TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
+      "tserver.compaction.major.service.root.planner.opts.executors",
       "[{'name':'small','maxSize':'32M','numThreads':1},"
           + "{'name':'huge','numThreads':1}]".replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
-  TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.service.meta.planner",
+  TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for metadatat table"),
-  TSERV_COMPACTION_SERVICE_META_MAX_OPEN("tserver.compaction.service.meta.planner.opts.maxOpen",
-      "30", PropertyType.COUNT, "The maximum number of files a compaction will open"),
-  TSERV_COMPACTION_SERVICE_META_EXECUTORS("tserver.compaction.service.meta.planner.opts.executors",
+  TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
+      "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
+      "The maximum number of files a compaction will open"),
+  TSERV_COMPACTION_SERVICE_META_EXECUTORS(
+      "tserver.compaction.major.service.meta.planner.opts.executors",
       "[{'name':'small','maxSize':'32M','numThreads':2},"
           + "{'name':'huge','numThreads':2}]".replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
-  TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.service.default.planner",
+  TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service."),
   TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
-      "tserver.compaction.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
+      "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
       "The maximum number of files a compaction will open"),
   TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
-      "tserver.compaction.service.default.planner.opts.executors",
+      "tserver.compaction.major.service.default.planner.opts.executors",
       "[{'name':'small','maxSize':'32M','numThreads':2},"
           + "{'name':'medium','maxSize':'128M','numThreads':2},"
           + "{'name':'large','numThreads':2}]".replaceAll("'", "\""),
