@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -140,4 +141,11 @@ public interface InstanceOperations {
    * @since 2.0.0
    */
   String getInstanceID();
+
+  /**
+   * @return administrative operations currently running on this Accumulo instance like create
+   *         table, bulk import, etc.
+   * @since 2.1.0
+   */
+  Collection<AccumuloOperation> getOperations();
 }
