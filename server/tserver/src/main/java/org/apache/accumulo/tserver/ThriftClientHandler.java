@@ -686,7 +686,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
         if (!semaphoreCopy.tryAcquire()) {
           throw new TException("Mutation failed. No threads available.");
         } else {
-          log.info("Available permits: {}", semaphoreCopy.availablePermits());
+          log.trace("Available permits: {}", semaphoreCopy.availablePermits());
         }
       }
 
