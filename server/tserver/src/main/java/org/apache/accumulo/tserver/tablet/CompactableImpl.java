@@ -197,7 +197,6 @@ public class CompactableImpl implements Compactable {
   }
 
   private void markChopped() {
-    // TODO ISSUE work into compaction mutation
     MetadataTableUtil.chopped(tablet.getTabletServer().getContext(), getExtent(),
         tablet.getTabletServer().getLock());
     tablet.getTabletServer()
