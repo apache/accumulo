@@ -575,8 +575,6 @@ public class CompactableUtils {
     var mcs = compactor.call();
 
     if (job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR) {
-      // TODO this approach will only drop files when there are files to compact... I think this is
-      // what old code did
       helper.getFilesToDrop().forEach(f -> {
         if (allFiles.containsKey(f)) {
           compactFiles.put(f, allFiles.get(f));
