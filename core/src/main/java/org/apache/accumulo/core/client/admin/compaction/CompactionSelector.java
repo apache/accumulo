@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- * This class select which files a user compaction will compact. It can also be configured per table
+ * This class selects which files a user compaction will compact. It can also be configured per table
  * to periodically select files to compact.
  *
  * @since 2.1.0
