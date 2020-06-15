@@ -138,7 +138,6 @@ public class CompactionService {
 
   public void compact(CompactionKind kind, Compactable compactable,
       Consumer<Compactable> completionCallback) {
-    // TODO ISSUE this could take a while... could run this in a thread pool
     var files = compactable.getFiles(myId, kind);
 
     if (files.isEmpty() || files.get().candidates.isEmpty()) {
