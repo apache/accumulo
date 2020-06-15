@@ -520,7 +520,6 @@ public class CompactableImpl implements Compactable {
     private Supplier<Boolean> memoizedCheck;
 
     public CompactionCheck(CompactionServiceId service, CompactionKind kind, Long compactionId) {
-      // TODO ISSUE explore performance of this as its called for every key value in a compaction
       this.memoizedCheck = Suppliers.memoizeWithExpiration(() -> {
         if (closed)
           return false;

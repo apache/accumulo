@@ -55,7 +55,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 public class CompactionService {
-  // TODO ISSUE move rate limiters to the compaction service level.
   private final CompactionPlanner planner;
   private final Map<CompactionExecutorId,CompactionExecutor> executors;
   private final CompactionServiceId myId;
@@ -64,7 +63,6 @@ public class CompactionService {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionService.class);
 
-  // TODO ISSUE change thread pool sizes if compaction service config changes
   public CompactionService(String serviceName, String plannerClass,
       Map<String,String> serviceOptions, ServerContext sctx, TabletServerResourceManager tsrm) {
 
