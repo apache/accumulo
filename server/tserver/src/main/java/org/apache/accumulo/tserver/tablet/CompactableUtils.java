@@ -441,8 +441,6 @@ public class CompactableUtils {
       }
 
       if (selectedFiles.isEmpty()) {
-        // TODO ISSUE seems like this should be set after the metadata update.. was before in the
-        // exisitng code
         tablet.setLastCompactionID(compactionId);
 
         MetadataTableUtil.updateTabletCompactID(tablet.getExtent(), compactionId,

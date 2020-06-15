@@ -446,7 +446,6 @@ class DatafileManager {
 
       lastLocation = tablet.resetLastLocation();
 
-      // TODO this is iffy in the case where the metadata table write fails
       tablet.setLastCompactionID(compactionId);
       t2 = System.currentTimeMillis();
     }
