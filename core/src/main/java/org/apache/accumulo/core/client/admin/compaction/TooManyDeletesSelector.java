@@ -103,8 +103,6 @@ public class TooManyDeletesSelector implements CompactionSelector {
 
     var tableConf = sparams.getEnvironment().getConfiguration(sparams.getTableId());
 
-    // TODO ISSUE could add a method to get props with prefix. That could be used to efficiently get
-    // only props with summarizer prefix
     Collection<SummarizerConfiguration> configuredSummarizers =
         SummarizerConfiguration.fromTableProperties(tableConf);
 
