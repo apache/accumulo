@@ -49,7 +49,7 @@ import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
  * back to using Accumulo's estimated entries per file in this case. For the files without summary
  * information the estimated number of deletes will be zero. This fall back method will
  * underestimate deletes which will not lead to false positives, except for the case of bulk
- * imported files. Accumulo estimates that bulk imported files have zero entires. The second option
+ * imported files. Accumulo estimates that bulk imported files have zero entries. The second option
  * {@value #PROCEED_ZERO_NO_SUMMARY_OPT} determines if this strategy should proceed when it sees
  * bulk imported files that do not have summary data. This option defaults to
  * {@value #PROCEED_ZERO_NO_SUMMARY_OPT_DEFAULT}.
