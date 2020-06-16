@@ -26,12 +26,12 @@
  * <img src="doc-files/compaction-spi-design.png" alt="Compaction design diagram">
  *
  * <p>
- * The following is a desciption of each functional component.
+ * The following is a description of each functional component.
  *
  * <ul>
  * <li><b>Compaction Manager</b> A non pluggable component within the tablet server that brings all
  * other components together. The manager will route compactables to compaction services. For each
- * kind of compaction, an individual compactible will be routed to a single compaction service. For
+ * kind of compaction, an individual compactable will be routed to a single compaction service. For
  * example its possible that compactable C1 is routed to service S1 for user compactions and service
  * S2 for system compactions.
  * <ul>
