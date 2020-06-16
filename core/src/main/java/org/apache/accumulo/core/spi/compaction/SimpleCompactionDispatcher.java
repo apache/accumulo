@@ -26,10 +26,10 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 
 /**
  * Dispatcher that supports simple configuration for making tables use compaction services. By
- * default it dispatches to a compction service named default.
+ * default it dispatches to a compaction service named default.
  *
  * <p>
- * The following schema is supported for configration options.
+ * The following schema is supported for configuration options.
  *
  * <p>
  * {@code table.compaction.dispatcher.opts.service[.user[.<user type>]|selected|system|chop]=
