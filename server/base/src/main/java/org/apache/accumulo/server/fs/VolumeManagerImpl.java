@@ -23,19 +23,24 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.volume.VolumeImpl;
@@ -287,6 +292,38 @@ public class VolumeManagerImpl implements VolumeManager {
           "Cannot rename files across volumes: " + path + " -> " + newPath);
     }
     return source.rename(path, newPath);
+  }
+
+  @Override
+  public List<Future<Boolean>> bulkRename(Map<Path,Path> oldToNewPathMap,
+      SimpleThreadPool workerPool, String transactionId) throws InterruptedException {
+    List<Future<Boolean>> results = new ArrayList<>();
+    oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
+      boolean success;
+      try {
+        success = rename(oldPath, newPath);
+      } catch (IOException e) {
+        // The rename could have failed because this is the second time its running (failures
+        // could cause this to run multiple times).
+        if (!exists(newPath) || exists(oldPath)) {
+          throw e;
+        }
+        log.debug(
+            "Ignoring rename exception for {} because destination already exists. orig: {} new: {}",
+            transactionId, oldPath, newPath, e);
+        success = true;
+      }
+      if (!success) {
+        log.error("Rename operation {} returned false. orig: {} new: {}", transactionId, oldPath,
+            newPath);
+      } else if (log.isTraceEnabled()) {
+        log.trace("{} moved {} to {}", transactionId, oldPath, newPath);
+      }
+      return success;
+    })));
+    workerPool.shutdown();
+    while (!workerPool.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {}
+    return results;
   }
 
   @Override

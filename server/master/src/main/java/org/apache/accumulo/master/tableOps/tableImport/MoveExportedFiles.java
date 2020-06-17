@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.master.tableOps.tableImport;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -64,10 +62,8 @@ class MoveExportedFiles extends MasterRepo {
     String fmtTid = FateTxId.formatTid(tid);
 
     int workerCount = master.getConfiguration().getCount(Property.MASTER_RENAME_THREADS);
-    SimpleThreadPool workers = new SimpleThreadPool(workerCount, "importtable rename");
-    List<Future<Boolean>> results = new ArrayList<>();
-
     VolumeManager fs = master.getVolumeManager();
+    Map<Path,Path> oldToNewPaths = new HashMap<>();
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       Map<String,String> fileNameMappings = new HashMap<>();
@@ -101,36 +97,21 @@ class MoveExportedFiles extends MasterRepo {
       for (FileStatus fileStatus : exportedFiles) {
         Path originalPath = fileStatus.getPath();
         String newName = fileNameMappings.get(originalPath.getName());
+        // Need to exclude any other files which may be present in the exported directory
+        if (newName != null) {
+          Path newPath = new Path(dm.importDir, newName);
 
-        results.add(workers.submit(() -> {
-          boolean success = true;
-
-          // Need to exclude any other files which may be present in the exported directory
-          if (newName != null) {
-            Path newPath = new Path(dm.importDir, newName);
-
-            // No try-catch here, as we do not expect any "benign" exceptions. Prior code already
-            // accounts for files which were already moved. So anything returned by the rename
-            // operation would be truly unexpected
-            success = fs.rename(originalPath, newPath);
-
-            if (!success) {
-              log.error("{} rename operation returned false. orig: {} new: {}", fmtTid,
-                  originalPath, newPath);
-            } else if (log.isTraceEnabled()) {
-              log.trace("{} moved {} to {}", fmtTid, originalPath, newPath);
-            }
-          } else {
-            log.debug("{} not moving (unmapped) file {}", fmtTid, originalPath);
-          }
-
-          return success;
-        }));
+          // No try-catch here, as we do not expect any "benign" exceptions. Prior code already
+          // accounts for files which were already moved. So anything returned by the rename
+          // operation would be truly unexpected
+          oldToNewPaths.put(originalPath, newPath);
+        } else {
+          log.debug("{} not moving (unmapped) file {}", fmtTid, originalPath);
+        }
       }
     }
-
-    workers.shutdown();
-    while (!workers.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {}
+    List<Future<Boolean>> results = fs.bulkRename(oldToNewPaths,
+        new SimpleThreadPool(workerCount, "importtable rename"), fmtTid);
 
     for (Future<Boolean> future : results) {
       try {
