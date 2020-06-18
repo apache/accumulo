@@ -37,6 +37,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy;
 import org.junit.Test;
 
+@SuppressWarnings("removal")
 public class TooManyDeletesIT extends AccumuloClusterHarness {
   @Test
   public void tooManyDeletesCompactionStrategyIT() throws Exception {

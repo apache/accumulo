@@ -32,6 +32,8 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
@@ -359,10 +361,6 @@ public enum Property {
   TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION("tserver.walog.maximum.wait.duration", "5m",
       PropertyType.TIMEDURATION,
       "The maximum amount of time to wait after a failure to create or write a write-ahead log."),
-  TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
-      "Time a tablet server will sleep between checking which tablets need compaction."),
-  TSERV_MAJC_THREAD_MAXOPEN("tserver.compaction.major.thread.files.open.max", "10",
-      PropertyType.COUNT, "Max number of RFiles a major compaction thread can open at once. "),
   TSERV_SCAN_MAX_OPENFILES("tserver.scan.files.open.max", "100", PropertyType.COUNT,
       "Maximum total RFiles that all tablets in a tablet server can open for scans. "),
   TSERV_MAX_IDLE("tserver.files.open.idle", "1m", PropertyType.TIMEDURATION,
@@ -410,6 +408,53 @@ public enum Property {
       "The number of threads for the metadata table scan executor."),
   TSERV_MIGRATE_MAXCONCURRENT("tserver.migrations.concurrent.max", "1", PropertyType.COUNT,
       "The maximum number of concurrent tablet migrations for a tablet server"),
+  TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
+      "Time a tablet server will sleep between checking which tablets need compaction."),
+  TSERV_COMPACTION_SERVICE_PREFIX("tserver.compaction.major.service.", null, PropertyType.PREFIX,
+      "Prefix for compaction services."),
+  TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
+      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
+      "Compaction planner for root tablet service"),
+  TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
+      "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
+      "The maximum number of files a compaction will open"),
+  TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
+      "tserver.compaction.major.service.root.planner.opts.executors",
+      "[{'name':'small','maxSize':'32M','numThreads':1},"
+          + "{'name':'huge','numThreads':1}]".replaceAll("'", "\""),
+      PropertyType.STRING,
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
+  TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
+      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
+      "Compaction planner for metadata table"),
+  TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
+      "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
+      "The maximum number of files a compaction will open"),
+  TSERV_COMPACTION_SERVICE_META_EXECUTORS(
+      "tserver.compaction.major.service.meta.planner.opts.executors",
+      "[{'name':'small','maxSize':'32M','numThreads':2},"
+          + "{'name':'huge','numThreads':2}]".replaceAll("'", "\""),
+      PropertyType.STRING,
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
+  TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
+      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
+      "Planner for default compaction service."),
+  TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
+      "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
+      "The maximum number of files a compaction will open"),
+  TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
+      "tserver.compaction.major.service.default.planner.opts.executors",
+      "[{'name':'small','maxSize':'32M','numThreads':2},"
+          + "{'name':'medium','maxSize':'128M','numThreads':2},"
+          + "{'name':'large','numThreads':2}]".replaceAll("'", "\""),
+      PropertyType.STRING,
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = Property.TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN)
+  TSERV_MAJC_THREAD_MAXOPEN("tserver.compaction.major.thread.files.open.max", "10",
+      PropertyType.COUNT, "Max number of RFiles a major compaction thread can open at once. "),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS)
   TSERV_MAJC_MAXCONCURRENT("tserver.compaction.major.concurrent.max", "3", PropertyType.COUNT,
       "The maximum number of concurrent major compactions for a tablet server"),
   TSERV_MAJC_THROUGHPUT("tserver.compaction.major.throughput", "0B", PropertyType.BYTES,
@@ -624,9 +669,8 @@ public enum Property {
       "Prefix to be used for user defined arbitrary properties."),
   TABLE_MAJC_RATIO("table.compaction.major.ratio", "3", PropertyType.FRACTION,
       "Minimum ratio of total input size to maximum input RFile size for"
-          + " running a major compaction. When adjusting this property you may want to"
-          + " also adjust table.file.max. Want to avoid the situation where only"
-          + " merging minor compactions occur."),
+          + " running a major compaction. "),
+  @Deprecated(since = "2.1.0", forRemoval = true)
   TABLE_MAJC_COMPACTALL_IDLETIME("table.compaction.major.everything.idle", "1h",
       PropertyType.TIMEDURATION,
       "After a tablet has been idle (no mutations) for this time period it may"
@@ -646,10 +690,30 @@ public enum Property {
       "After a tablet has been idle (no mutations) for this time period it may have its "
           + "in-memory map flushed to disk in a minor compaction. There is no guarantee an idle "
           + "tablet will be compacted."),
-  TABLE_MINC_MAX_MERGE_FILE_SIZE("table.compaction.minor.merge.file.size.max", "0",
-      PropertyType.BYTES,
-      "The max RFile size used for a merging minor compaction. The default"
-          + " value of 0 disables a max file size."),
+  TABLE_COMPACTION_DISPATCHER("table.compaction.dispatcher",
+      SimpleCompactionDispatcher.class.getName(), PropertyType.CLASSNAME,
+      "A configurable dispatcher that decides what comaction service a table should use."),
+  TABLE_COMPACTION_DISPATCHER_OPTS("table.compaction.dispatcher.opts.", null, PropertyType.PREFIX,
+      "Options for the table compaction dispatcher"),
+  TABLE_COMPACTION_SELECTOR("table.compaction.selector", "", PropertyType.CLASSNAME,
+      "A configurable selector for a table that can periodically select file for mandatory "
+          + "compaction, even if the files do not meet the compaction ratio."),
+  TABLE_COMPACTION_SELECTOR_OPTS("table.compaction.selector.opts.", null, PropertyType.PREFIX,
+      "Options for the table compaction dispatcher"),
+  TABLE_COMPACTION_CONFIGURER("table.compaction.configurer", "", PropertyType.CLASSNAME,
+      "A plugin that can dynamically configure compaction output files based on input files."),
+  TABLE_COMPACTION_CONFIGURER_OPTS("table.compaction.configurer.opts.", null, PropertyType.PREFIX,
+      "Options for the table compaction configuror"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = TABLE_COMPACTION_SELECTOR)
+  TABLE_COMPACTION_STRATEGY("table.majc.compaction.strategy",
+      "org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy", PropertyType.CLASSNAME,
+      "Deprecated since 2.1.0 See {% jlink -f org.apache.accumulo.core.spi.compaction}"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = TABLE_COMPACTION_SELECTOR_OPTS)
+  TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null,
+      PropertyType.PREFIX,
+      "Properties in this category are used to configure the compaction strategy."),
   TABLE_SCAN_DISPATCHER("table.scan.dispatcher", SimpleScanDispatcher.class.getName(),
       PropertyType.CLASSNAME,
       "This class is used to dynamically dispatch scans to configured scan executors.  Configured "
@@ -789,12 +853,6 @@ public enum Property {
       PropertyType.STRING, "The ScanInterpreter class to apply on scan arguments in the shell"),
   TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING,
       "Per table classpath context"),
-  TABLE_COMPACTION_STRATEGY("table.majc.compaction.strategy",
-      "org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy", PropertyType.CLASSNAME,
-      "A customizable major compaction strategy."),
-  TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null,
-      PropertyType.PREFIX,
-      "Properties in this category are used to configure the compaction strategy."),
   TABLE_REPLICATION("table.replication", "false", PropertyType.BOOLEAN,
       "Is replication enabled for the given table"),
   TABLE_REPLICATION_TARGET("table.replication.target.", null, PropertyType.PREFIX,
@@ -1203,7 +1261,10 @@ public enum Property {
             || key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey())
             || key.startsWith(TABLE_SAMPLER_OPTS.getKey())
             || key.startsWith(TABLE_SUMMARIZER_PREFIX.getKey())
-            || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())));
+            || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())
+            || key.startsWith(TABLE_COMPACTION_DISPATCHER_OPTS.getKey())
+            || key.startsWith(TABLE_COMPACTION_CONFIGURER_OPTS.getKey())
+            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey())));
   }
 
   private static final EnumSet<Property> fixedProperties =

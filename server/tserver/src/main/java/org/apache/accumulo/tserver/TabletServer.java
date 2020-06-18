@@ -134,7 +134,8 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
-import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
+import org.apache.accumulo.tserver.compactions.Compactable;
+import org.apache.accumulo.tserver.compactions.CompactionManager;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.accumulo.tserver.log.MutationReceiver;
@@ -168,6 +169,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterators;
 
 public class TabletServer extends AbstractServer {
 
@@ -379,6 +381,7 @@ public class TabletServer extends AbstractServer {
   private final ReentrantLock recoveryLock = new ReentrantLock(true);
   private ThriftClientHandler clientHandler;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
+  private CompactionManager compactionManager;
 
   String getLockID() {
     return lockID;
@@ -446,10 +449,6 @@ public class TabletServer extends AbstractServer {
             }
 
             tablet.checkIfMinorCompactionNeededForLogs(closedCopy);
-
-            synchronized (tablet) {
-              tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL);
-            }
           }
         } catch (Throwable t) {
           log.error("Unexpected exception in {}", Thread.currentThread().getName(), t);
@@ -461,14 +460,7 @@ public class TabletServer extends AbstractServer {
 
   private void splitTablet(Tablet tablet) {
     try {
-
-      TreeMap<KeyExtent,TabletData> tabletInfo = splitTablet(tablet, null);
-      if (tabletInfo == null) {
-        // either split or compact not both
-        // were not able to split... so see if a major compaction is
-        // needed
-        tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL);
-      }
+      splitTablet(tablet, null);
     } catch (IOException e) {
       statsKeeper.updateTime(Operation.SPLIT, 0, true);
       log.error("split failed: {} for tablet {}", e.getMessage(), tablet.getExtent(), e);
@@ -732,6 +724,15 @@ public class TabletServer extends AbstractServer {
             + " ZooKeeper. Delegation token authentication will be unavailable.", e);
       }
     }
+
+    this.compactionManager = new CompactionManager(new Iterable<Compactable>() {
+      @Override
+      public Iterator<Compactable> iterator() {
+        return Iterators.transform(onlineTablets.snapshot().values().iterator(),
+            Tablet::asCompactable);
+      }
+    }, getContext(), this.resourceManager);
+    compactionManager.start();
 
     try {
       clientAddress = startTabletClientService();
@@ -1069,12 +1070,15 @@ public class TabletServer extends AbstractServer {
       if (tablet.isMinorCompactionQueued()) {
         table.minors.queued++;
       }
+
       if (tablet.isMajorCompactionRunning()) {
         table.majors.running++;
       }
+
       if (tablet.isMajorCompactionQueued()) {
         table.majors.queued++;
       }
+
     });
 
     scanCounts.forEach((tableId, mapCounter) -> {
@@ -1374,5 +1378,9 @@ public class TabletServer extends AbstractServer {
    */
   public final RateLimiter getMajorCompactionWriteLimiter() {
     return SharedRateLimiterFactory.getInstance().create(MAJC_WRITE_LIMITER_KEY, rateProvider);
+  }
+
+  public CompactionManager getCompactionManager() {
+    return compactionManager;
   }
 }

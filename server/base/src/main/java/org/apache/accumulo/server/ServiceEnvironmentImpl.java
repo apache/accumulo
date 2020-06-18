@@ -55,6 +55,16 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
     }
 
     @Override
+    public boolean isSet(String key) {
+      Property prop = Property.getPropertyByKey(key);
+      if (prop != null) {
+        return acfg.isPropertySet(prop, false);
+      } else {
+        return acfg.get(key) != null;
+      }
+    }
+
+    @Override
     public String get(String key) {
       // Get prop to check if sensitive, also looking up by prop may be more efficient.
       Property prop = Property.getPropertyByKey(key);

@@ -33,9 +33,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -53,26 +51,15 @@ public class MinorCompactor extends Compactor {
 
   private static final Logger log = LoggerFactory.getLogger(MinorCompactor.class);
 
-  private static final Map<StoredTabletFile,DataFileValue> EMPTY_MAP = Collections.emptyMap();
-
-  private static Map<StoredTabletFile,DataFileValue> toFileMap(StoredTabletFile mergeFile,
-      DataFileValue dfv) {
-    if (mergeFile == null)
-      return EMPTY_MAP;
-
-    return Collections.singletonMap(mergeFile, dfv);
-  }
-
   private final TabletServer tabletServer;
 
   public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
-      StoredTabletFile mergeFile, DataFileValue dfv, TabletFile outputFile,
-      MinorCompactionReason mincReason, TableConfiguration tableConfig) {
-    super(tabletServer.getContext(), tablet, toFileMap(mergeFile, dfv), imm, outputFile, true,
+      TabletFile outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
+    super(tabletServer.getContext(), tablet, Collections.emptyMap(), imm, outputFile, true,
         new CompactionEnv() {
 
           @Override
-          public boolean isCompactionEnabled() {
+          public boolean isCompactionEnabled(long entriesCompacted) {
             return true;
           }
 
