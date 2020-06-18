@@ -202,5 +202,4 @@ public class SingletonManager {
       enabled = true;
     }
   }
-
 }

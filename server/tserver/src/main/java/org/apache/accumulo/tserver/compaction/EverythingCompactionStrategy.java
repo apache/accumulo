@@ -22,7 +22,7 @@ package org.apache.accumulo.tserver.compaction;
  * The default compaction strategy for user initiated compactions. This strategy will always select
  * all files.
  */
-
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class EverythingCompactionStrategy extends CompactionStrategy {
 
   @Override

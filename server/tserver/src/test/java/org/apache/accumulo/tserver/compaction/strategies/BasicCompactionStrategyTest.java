@@ -47,6 +47,7 @@ import org.junit.Test;
 /**
  * Tests org.apache.accumulo.tserver.compaction.BasicCompactionStrategy
  */
+@SuppressWarnings("removal")
 public class BasicCompactionStrategyTest {
   private String largeCompressionType = "gz";
   private BasicCompactionStrategy ttcs = null;

@@ -30,6 +30,7 @@ import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
+@SuppressWarnings("removal")
 public class TabletTest {
 
   @Test
@@ -52,7 +53,8 @@ public class TabletTest {
 
     EasyMock.replay(tableConf, plan, writeParams);
 
-    AccumuloConfiguration aConf = Tablet.createCompactionConfiguration(tableConf, plan);
+    AccumuloConfiguration aConf =
+        CompactableUtils.createCompactionConfiguration(tableConf, writeParams);
 
     EasyMock.verify(tableConf, plan, writeParams);
 

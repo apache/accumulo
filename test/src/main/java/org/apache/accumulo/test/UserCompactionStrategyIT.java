@@ -62,6 +62,7 @@ import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressWarnings("removal")
 public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @Override

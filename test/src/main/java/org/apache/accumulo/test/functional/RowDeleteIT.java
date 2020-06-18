@@ -110,5 +110,4 @@ public class RowDeleteIT extends AccumuloClusterHarness {
       }
     }
   }
-
 }
