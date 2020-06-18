@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
@@ -76,12 +78,9 @@ import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-
 public class BulkFailureIT extends AccumuloClusterHarness {
 
-  static interface Loader {
+  interface Loader {
     void load(long txid, ClientContext context, KeyExtent extent, Path path, long size,
         boolean expectFailure) throws Exception;
   }
@@ -126,7 +125,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       VolumeManager vm = asCtx.getVolumeManager();
 
       // move the file into a directory for the table and rename the file to something unique
-      String bulkDir = BulkImport.prepareBulkImport(asCtx, vm, testFile, TableId.of(tableId));
+      String bulkDir =
+          BulkImport.prepareBulkImport(asCtx, vm, testFile, TableId.of(tableId), fateTxid);
 
       // determine the files new name and path
       FileStatus status = fs.listStatus(new Path(bulkDir))[0];
@@ -135,8 +135,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       // Directly ask the tablet to load the file.
       loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), false);
 
-      assertEquals(ImmutableSet.of(bulkLoadPath), getFiles(c, extent));
-      assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
+      assertEquals(Set.of(bulkLoadPath), getFiles(c, extent));
+      assertEquals(Set.of(bulkLoadPath), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
 
       // Compact the bulk imported file. Subsequent request to load the file should be ignored.
@@ -145,14 +145,14 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       Set<Path> tabletFiles = getFiles(c, extent);
       assertFalse(tabletFiles.contains(bulkLoadPath));
       assertEquals(1, tabletFiles.size());
-      assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
+      assertEquals(Set.of(bulkLoadPath), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
 
       // this request should be ignored by the tablet
       loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), false);
 
       assertEquals(tabletFiles, getFiles(c, extent));
-      assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
+      assertEquals(Set.of(bulkLoadPath), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
 
       // this is done to ensure the tablet reads the load flags from the metadata table when it
@@ -164,7 +164,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), false);
 
       assertEquals(tabletFiles, getFiles(c, extent));
-      assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
+      assertEquals(Set.of(bulkLoadPath), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
 
       // After this, all load request should fail.
@@ -181,7 +181,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), true);
 
       assertEquals(tabletFiles, getFiles(c, extent));
-      assertEquals(ImmutableSet.of(), getLoaded(c, extent));
+      assertEquals(Set.of(), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
     }
   }
@@ -203,8 +203,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     fs.mkdirs(base);
     Path files = new Path(base, "files");
 
-    try (RFileWriter writer = RFile.newWriter().to(new Path(files, "ici_01.rf").toString())
-        .withFileSystem(fs).build()) {
+    try (RFileWriter writer =
+        RFile.newWriter().to(new Path(files, "ici_01.rf").toString()).withFileSystem(fs).build()) {
       writer.append(testData.entrySet());
     }
 
@@ -256,8 +256,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     TabletClientService.Iface client = getClient(context, extent);
     try {
 
-      Map<String,MapFileInfo> val = ImmutableMap.of(path.toString(), new MapFileInfo(size));
-      Map<KeyExtent,Map<String,MapFileInfo>> files = ImmutableMap.of(extent, val);
+      Map<String,MapFileInfo> val = Map.of(path.toString(), new MapFileInfo(size));
+      Map<KeyExtent,Map<String,MapFileInfo>> files = Map.of(extent, val);
 
       client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(), txid,
           Translator.translate(files, Translators.KET), false);
@@ -265,8 +265,9 @@ public class BulkFailureIT extends AccumuloClusterHarness {
         fail("Expected RPC to fail");
       }
     } catch (TApplicationException tae) {
-      if (!expectFailure)
+      if (!expectFailure) {
         throw tae;
+      }
     } finally {
       ThriftUtil.returnClient((TServiceClient) client);
     }
@@ -278,8 +279,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     TabletClientService.Iface client = getClient(context, extent);
     try {
 
-      Map<String,MapFileInfo> val = ImmutableMap.of(path.getName(), new MapFileInfo(size));
-      Map<KeyExtent,Map<String,MapFileInfo>> files = ImmutableMap.of(extent, val);
+      Map<String,MapFileInfo> val = Map.of(path.getName(), new MapFileInfo(size));
+      Map<KeyExtent,Map<String,MapFileInfo>> files = Map.of(extent, val);
 
       client.loadFiles(TraceUtil.traceInfo(), context.rpcCreds(), txid, path.getParent().toString(),
           Translator.translate(files, Translators.KET), false);

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.replication;
 
@@ -49,10 +51,12 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.easymock.EasyMock;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   private MockRemoveCompleteReplicationRecords rcrr;
@@ -291,9 +295,11 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
       }
 
       int actualRecords = 0;
-      for (Entry<Key,Value> entry : ReplicationTable.getScanner(client)) {
-        assertFalse(filesToRemove.contains(entry.getKey().getRow().toString()));
-        actualRecords++;
+      try (var scanner = ReplicationTable.getScanner(client)) {
+        for (Entry<Key,Value> entry : scanner) {
+          assertFalse(filesToRemove.contains(entry.getKey().getRow().toString()));
+          actualRecords++;
+        }
       }
 
       assertEquals(finalNumRecords, actualRecords);
@@ -324,8 +330,8 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     Mutation m = new Mutation(fileToRemove);
     ReplicationTarget target = new ReplicationTarget("peer1", "5", TableId.of("5"));
-    Value value = ProtobufUtil
-        .toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
+    Value value =
+        ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
     StatusSection.add(m, TableId.of("5"), value);
     WorkSection.add(m, target.toText(), value);
     target = new ReplicationTarget("peer2", "5", TableId.of("5"));

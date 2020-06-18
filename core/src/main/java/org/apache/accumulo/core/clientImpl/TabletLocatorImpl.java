@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -192,8 +194,8 @@ public class TabletLocatorImpl extends TabletLocator {
       rLock.unlock();
     }
 
-    if (notInCache.size() > 0) {
-      Collections.sort(notInCache, (o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
+    if (!notInCache.isEmpty()) {
+      notInCache.sort((o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
           o1.getRow().length, o2.getRow(), 0, o2.getRow().length));
 
       wLock.lock();
@@ -354,7 +356,7 @@ public class TabletLocatorImpl extends TabletLocator {
       rLock.unlock();
     }
 
-    if (failures.size() > 0) {
+    if (!failures.isEmpty()) {
       // sort failures by range start key
       Collections.sort(failures);
 
@@ -483,8 +485,8 @@ public class TabletLocatorImpl extends TabletLocator {
     TabletLocation ptl = parent.locateTablet(context, metadataRow, false, retry);
 
     if (ptl != null) {
-      TabletLocations locations = locationObtainer.lookupTablet(context, ptl, metadataRow,
-          lastTabletRow, parent);
+      TabletLocations locations =
+          locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
       while (locations != null && locations.getLocations().isEmpty()
           && locations.getLocationless().isEmpty()) {
         // try the next tablet, the current tablet does not have any tablets that overlap the row
@@ -493,8 +495,8 @@ public class TabletLocatorImpl extends TabletLocator {
           // System.out.println("er "+er+" ltr "+lastTabletRow);
           ptl = parent.locateTablet(context, er, true, retry);
           if (ptl != null)
-            locations = locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow,
-                parent);
+            locations =
+                locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
           else
             break;
         } else {
@@ -517,9 +519,9 @@ public class TabletLocatorImpl extends TabletLocator {
         // create new location if current prevEndRow == endRow
         if ((lastEndRow != null) && (ke.getPrevEndRow() != null)
             && ke.getPrevEndRow().equals(lastEndRow)) {
-          locToCache = new TabletLocation(
-              new KeyExtent(ke.getTableId(), ke.getEndRow(), lastEndRow),
-              tabletLocation.tablet_location, tabletLocation.tablet_session);
+          locToCache =
+              new TabletLocation(new KeyExtent(ke.getTableId(), ke.getEndRow(), lastEndRow),
+                  tabletLocation.tablet_location, tabletLocation.tablet_session);
         } else {
           locToCache = tabletLocation;
         }
@@ -546,12 +548,6 @@ public class TabletLocatorImpl extends TabletLocator {
           "Cannot add null locations to cache " + tableId + "  " + tabletLocation.tablet_extent);
     }
 
-    if (!tabletLocation.tablet_extent.getTableId().equals(tableId)) {
-      // sanity check
-      throw new IllegalStateException("Cannot add other table ids to locations cache " + tableId
-          + "  " + tabletLocation.tablet_extent);
-    }
-
     // clear out any overlapping extents in cache
     removeOverlapping(metaCache, tabletLocation.tablet_extent);
 
@@ -565,7 +561,7 @@ public class TabletLocatorImpl extends TabletLocator {
       er = MAX_TEXT;
     metaCache.put(er, tabletLocation);
 
-    if (badExtents.size() > 0)
+    if (!badExtents.isEmpty())
       removeOverlapping(badExtents, tabletLocation.tablet_extent);
   }
 
@@ -681,7 +677,7 @@ public class TabletLocatorImpl extends TabletLocator {
   private void processInvalidated(ClientContext context, LockCheckerSession lcSession)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
 
-    if (badExtents.size() == 0)
+    if (badExtents.isEmpty())
       return;
 
     final boolean writeLockHeld = rwLock.isWriteLockedByCurrentThread();
@@ -689,7 +685,7 @@ public class TabletLocatorImpl extends TabletLocator {
       if (!writeLockHeld) {
         rLock.unlock();
         wLock.lock();
-        if (badExtents.size() == 0)
+        if (badExtents.isEmpty())
           return;
       }
 
@@ -711,8 +707,8 @@ public class TabletLocatorImpl extends TabletLocator {
       Collections.shuffle(tabletServers);
 
       for (String tserver : tabletServers) {
-        List<TabletLocation> locations = locationObtainer.lookupTablets(context, tserver,
-            binnedRanges.get(tserver), parent);
+        List<TabletLocation> locations =
+            locationObtainer.lookupTablets(context, tserver, binnedRanges.get(tserver), parent);
 
         for (TabletLocation tabletLocation : locations) {
           updateCache(tabletLocation, lcSession);
@@ -728,19 +724,8 @@ public class TabletLocatorImpl extends TabletLocator {
 
   protected static void addRange(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
       String location, KeyExtent ke, Range range) {
-    Map<KeyExtent,List<Range>> tablets = binnedRanges.get(location);
-    if (tablets == null) {
-      tablets = new HashMap<>();
-      binnedRanges.put(location, tablets);
-    }
-
-    List<Range> tabletsRanges = tablets.get(ke);
-    if (tabletsRanges == null) {
-      tabletsRanges = new ArrayList<>();
-      tablets.put(ke, tabletsRanges);
-    }
-
-    tabletsRanges.add(range);
+    binnedRanges.computeIfAbsent(location, k -> new HashMap<>())
+        .computeIfAbsent(ke, k -> new ArrayList<>()).add(range);
   }
 
 }

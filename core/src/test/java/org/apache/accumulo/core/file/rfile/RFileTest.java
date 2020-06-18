@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile;
 
@@ -46,7 +48,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -69,15 +70,17 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguratio
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
@@ -99,6 +102,9 @@ import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class RFileTest {
 
   public static class SampleIE implements IteratorEnvironment {
@@ -124,8 +130,8 @@ public class RFileTest {
   private static final Configuration hadoopConf = new Configuration();
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @BeforeClass
   public static void setupCryptoKeyFile() throws Exception {
@@ -245,8 +251,8 @@ public class RFileTest {
       BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf,
           CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
 
-      SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
-          .newSamplerConfig(accumuloConfiguration);
+      SamplerConfigurationImpl samplerConfig =
+          SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
 
       if (samplerConfig != null) {
@@ -305,7 +311,7 @@ public class RFileTest {
       LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
       CachableBuilder cb = new CachableBuilder().cacheId("source-1").input(in).length(fileLength)
-          .conf(conf).data(dataCache).index(indexCache).cryptoService(
+          .conf(conf).cacheProvider(new BasicCacheProvider(indexCache, dataCache)).cryptoService(
               CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
       reader = new RFile.Reader(cb);
       if (cfsi)
@@ -332,7 +338,7 @@ public class RFileTest {
   }
 
   static Value newValue(String val) {
-    return new Value(val.getBytes());
+    return new Value(val);
   }
 
   static String formatString(String prefix, int i) {
@@ -1743,7 +1749,8 @@ public class RFileTest {
     manager.start(new BlockCacheConfiguration(aconf));
     CachableBuilder cb = new CachableBuilder().input(in2).length(data.length).conf(hadoopConf)
         .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA))
-        .index(manager.getBlockCache(CacheType.INDEX)).data(manager.getBlockCache(CacheType.DATA));
+        .cacheProvider(new BasicCacheProvider(manager.getBlockCache(CacheType.INDEX),
+            manager.getBlockCache(CacheType.DATA)));
     Reader reader = new RFile.Reader(cb);
     checkIndex(reader);
 
@@ -1954,9 +1961,9 @@ public class RFileTest {
   private Value newValue(int r, int c) {
     switch (c) {
       case 0:
-        return new Value(("123" + r + " west st").getBytes());
+        return new Value("123" + r + " west st");
       case 1:
-        return new Value(("bob" + r).getBytes());
+        return new Value("bob" + r);
       default:
         throw new IllegalArgumentException();
     }
@@ -2061,8 +2068,8 @@ public class RFileTest {
         Hasher dataHasher = Hashing.sha512().newHasher();
         List<Entry<Key,Value>> sampleData = new ArrayList<>();
 
-        ConfigurationCopy sampleConf = new ConfigurationCopy(
-            conf == null ? DefaultConfiguration.getInstance() : conf);
+        ConfigurationCopy sampleConf =
+            new ConfigurationCopy(conf == null ? DefaultConfiguration.getInstance() : conf);
         sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "hasher", "murmur3_32");
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "modulus", modulus + "");
@@ -2085,8 +2092,8 @@ public class RFileTest {
 
         trf.openReader();
 
-        FileSKVIterator sample = trf.reader
-            .getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+        FileSKVIterator sample =
+            trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
 
         checkSample(sample, sampleData);
 
@@ -2146,8 +2153,8 @@ public class RFileTest {
         List<Entry<Key,Value>> sampleDataLG1 = new ArrayList<>();
         List<Entry<Key,Value>> sampleDataLG2 = new ArrayList<>();
 
-        ConfigurationCopy sampleConf = new ConfigurationCopy(
-            conf == null ? DefaultConfiguration.getInstance() : conf);
+        ConfigurationCopy sampleConf =
+            new ConfigurationCopy(conf == null ? DefaultConfiguration.getInstance() : conf);
         sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "hasher", "murmur3_32");
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "modulus", modulus + "");
@@ -2166,9 +2173,9 @@ public class RFileTest {
           Key k2 = new Key(row, "metaB", "q8", 7);
           Key k3 = new Key(row, "metaB", "qA", 7);
 
-          Value v1 = new Value(("" + r).getBytes());
-          Value v2 = new Value(("" + r * 93).getBytes());
-          Value v3 = new Value(("" + r * 113).getBytes());
+          Value v1 = new Value("" + r);
+          Value v2 = new Value("" + r * 93);
+          Value v3 = new Value("" + r * 113);
 
           if (sampler.accept(k1)) {
             sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<>(k1, v1));
@@ -2187,7 +2194,7 @@ public class RFileTest {
           String row = String.format("r%06d", r);
           Key k1 = new Key(row, "dataA", "q9", 7);
 
-          Value v1 = new Value(("" + r).getBytes());
+          Value v1 = new Value("" + r);
 
           if (sampler.accept(k1)) {
             sampleDataLG2.add(new AbstractMap.SimpleImmutableEntry<>(k1, v1));
@@ -2198,12 +2205,12 @@ public class RFileTest {
 
         trf.closeWriter();
 
-        assertTrue(sampleDataLG1.size() > 0);
-        assertTrue(sampleDataLG2.size() > 0);
+        assertTrue(!sampleDataLG1.isEmpty());
+        assertTrue(!sampleDataLG2.isEmpty());
 
         trf.openReader(false);
-        FileSKVIterator sample = trf.reader
-            .getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+        FileSKVIterator sample =
+            trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
 
         checkSample(sample, sampleDataLG1, newColFamByteSequence("metaA", "metaB"), true);
         checkSample(sample, sampleDataLG1, newColFamByteSequence("metaA"), true);
@@ -2217,7 +2224,7 @@ public class RFileTest {
         allSampleData.addAll(sampleDataLG1);
         allSampleData.addAll(sampleDataLG2);
 
-        Collections.sort(allSampleData, Comparator.comparing(Entry::getKey));
+        allSampleData.sort(Comparator.comparing(Entry::getKey));
 
         checkSample(sample, allSampleData, newColFamByteSequence("dataA", "metaA"), true);
         checkSample(sample, allSampleData, EMPTY_COL_FAMS, false);
@@ -2261,7 +2268,7 @@ public class RFileTest {
     trf.openWriter();
 
     for (Key k : keys) {
-      trf.writer.append(k, new Value((k.hashCode() + "").getBytes()));
+      trf.writer.append(k, new Value(k.hashCode() + ""));
     }
 
     trf.writer.close();
@@ -2281,7 +2288,7 @@ public class RFileTest {
       trf.reader.seek(new Range(key, null), EMPTY_COL_FAMS, false);
       assertTrue(trf.reader.hasTop());
       assertEquals(key, trf.reader.getTopKey());
-      assertEquals(new Value((key.hashCode() + "").getBytes()), trf.reader.getTopValue());
+      assertEquals(new Value(key.hashCode() + ""), trf.reader.getTopValue());
     }
   }
 
@@ -2333,50 +2340,50 @@ public class RFileTest {
         MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
 
     // table tablet's directory
-    Key tableDirKey = new Key(tableExtent,
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableDirKey, new Value(/* TABLE_TABLETS_TABLET_DIR */"/table_info".getBytes()));
+    Key tableDirKey =
+        new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    mfw.append(tableDirKey, new Value(/* TABLE_TABLETS_TABLET_DIR */"/table_info"));
 
     // table tablet time
-    Key tableTimeKey = new Key(tableExtent,
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
+    Key tableTimeKey =
+        new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    mfw.append(tableTimeKey, new Value(/* TabletTime.LOGICAL_TIME_ID */'L' + "0"));
 
     // table tablet's prevRow
-    Key tablePrevRowKey = new Key(tableExtent,
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    Key tablePrevRowKey =
+        new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+            TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
 
     // ----------] default tablet info
     Text defaultExtent = new Text(TabletsSection.getRow(MetadataTable.ID, null));
 
     // default's directory
-    Key defaultDirKey = new Key(defaultExtent,
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
+    Key defaultDirKey =
+        new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    mfw.append(defaultDirKey, new Value(ServerColumnFamily.DEFAULT_TABLET_DIR_NAME));
 
     // default's time
-    Key defaultTimeKey = new Key(defaultExtent,
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
+    Key defaultTimeKey =
+        new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    mfw.append(defaultTimeKey, new Value(/* TabletTime.LOGICAL_TIME_ID */'L' + "0"));
 
     // default's prevRow
-    Key defaultPrevRowKey = new Key(defaultExtent,
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    Key defaultPrevRowKey =
+        new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+            TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultPrevRowKey,
         KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
 
     testRfile.closeWriter();
 
     if (true) {
-      FileOutputStream fileOutputStream = new FileOutputStream(
-          tempFolder.newFile("testEncryptedRootFile.rf"));
+      FileOutputStream fileOutputStream =
+          new FileOutputStream(tempFolder.newFile("testEncryptedRootFile.rf"));
       fileOutputStream.write(testRfile.baos.toByteArray());
       fileOutputStream.flush();
       fileOutputStream.close();

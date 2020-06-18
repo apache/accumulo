@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -44,8 +46,8 @@ public class ReplicationClient {
    *          the client session for the peer replicant
    * @return Client to the ReplicationCoordinator service
    */
-  public static ReplicationCoordinator.Client getCoordinatorConnectionWithRetry(
-      ClientContext context) throws AccumuloException {
+  public static ReplicationCoordinator.Client
+      getCoordinatorConnectionWithRetry(ClientContext context) throws AccumuloException {
     requireNonNull(context);
 
     for (int attempts = 1; attempts <= 10; attempts++) {
@@ -69,7 +71,7 @@ public class ReplicationClient {
   public static ReplicationCoordinator.Client getCoordinatorConnection(ClientContext context) {
     List<String> locations = context.getMasterLocations();
 
-    if (locations.size() == 0) {
+    if (locations.isEmpty()) {
       log.debug("No masters for replication to instance {}", context.getInstanceName());
       return null;
     }
@@ -90,8 +92,8 @@ public class ReplicationClient {
 
     // Get the coordinator port for the master we're trying to connect to
     try {
-      ZooReader reader = new ZooReader(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut());
+      ZooReader reader =
+          new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
       replCoordinatorAddr = new String(reader.getData(zkPath, null), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch remote coordinator port", e);
@@ -182,20 +184,18 @@ public class ReplicationClient {
       ClientExecReturn<T,ReplicationServicer.Client> exec, long timeout)
       throws AccumuloException, AccumuloSecurityException {
     ReplicationServicer.Client client = null;
-    while (true) {
-      try {
-        client = getServicerConnection(context, tserver, timeout);
-        return exec.execute(client);
-      } catch (ThriftSecurityException e) {
-        throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (AccumuloException e) {
-        throw e;
-      } catch (Exception e) {
-        throw new AccumuloException(e);
-      } finally {
-        if (client != null)
-          close(client);
-      }
+    try {
+      client = getServicerConnection(context, tserver, timeout);
+      return exec.execute(client);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloSecurityException(e.user, e.code, e);
+    } catch (AccumuloException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null)
+        close(client);
     }
   }
 

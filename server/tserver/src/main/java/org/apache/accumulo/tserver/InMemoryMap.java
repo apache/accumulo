@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver;
 
@@ -53,14 +55,14 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.iterators.system.EmptyIterator;
-import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
-import org.apache.accumulo.core.iterators.system.LocalityGroupIterator;
-import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroup;
-import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
-import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.iteratorsImpl.system.EmptyIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroup;
+import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -68,7 +70,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PreAllocatedArray;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -107,10 +109,8 @@ public class InMemoryMap {
   public static final String TYPE_LOCALITY_GROUP_MAP = "LocalityGroupMap";
   public static final String TYPE_LOCALITY_GROUP_MAP_NATIVE = "LocalityGroupMap with native";
 
-  // @formatter:off
   private AtomicReference<Pair<SamplerConfigurationImpl,Sampler>> samplerRef =
-    new AtomicReference<>(null);
-  // @formatter:on
+      new AtomicReference<>(null);
 
   private AccumuloConfiguration config;
 
@@ -142,7 +142,7 @@ public class InMemoryMap {
     SimpleMap allMap;
     SimpleMap sampleMap;
 
-    if (lggroups.size() == 0) {
+    if (lggroups.isEmpty()) {
       allMap = newMap(useNativeMap);
       sampleMap = newMap(useNativeMap);
       mapType = useNativeMap ? TYPE_NATIVE_MAP_WRAPPER : TYPE_DEFAULT_MAP;
@@ -357,7 +357,7 @@ public class InMemoryMap {
         partitioner.partition(mutations, partitioned);
 
         for (int i = 0; i < partitioned.length; i++) {
-          if (partitioned.get(i).size() > 0) {
+          if (!partitioned.get(i).isEmpty()) {
             maps[i].mutate(partitioned.get(i), kvCount);
             for (Mutation m : partitioned.get(i))
               kvCount += m.getUpdates().size();
@@ -374,8 +374,8 @@ public class InMemoryMap {
   }
 
   private static class DefaultMap implements SimpleMap {
-    private ConcurrentSkipListMap<Key,Value> map = new ConcurrentSkipListMap<>(
-        new MemKeyComparator());
+    private ConcurrentSkipListMap<Key,Value> map =
+        new ConcurrentSkipListMap<>(new MemKeyComparator());
     private AtomicLong bytesInMemory = new AtomicLong();
     private AtomicInteger size = new AtomicInteger();
 
@@ -399,7 +399,7 @@ public class InMemoryMap {
       if (map == null)
         throw new IllegalStateException();
 
-      return new SortedMapIterator(map);
+      return new InterruptibleMapIterator(map, null);
     }
 
     @Override
@@ -735,11 +735,11 @@ public class InMemoryMap {
 
     long t1 = System.currentTimeMillis();
 
-    while (activeIters.size() > 0 && System.currentTimeMillis() - t1 < waitTime) {
+    while (!activeIters.isEmpty() && System.currentTimeMillis() - t1 < waitTime) {
       sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
     }
 
-    if (activeIters.size() > 0) {
+    if (!activeIters.isEmpty()) {
       // dump memmap exactly as is to a tmp file on disk, and switch scans to that temp file
       try {
         Configuration conf = context.getHadoopConf();
@@ -795,7 +795,7 @@ public class InMemoryMap {
       } catch (IOException ioe) {
         log.error("Failed to create mem dump file", ioe);
 
-        while (activeIters.size() > 0) {
+        while (!activeIters.isEmpty()) {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }
       }
@@ -825,7 +825,7 @@ public class InMemoryMap {
   }
 
   private void dumpLocalityGroup(FileSKVWriter out, InterruptibleIterator iter) throws IOException {
-    while (iter.hasTop() && activeIters.size() > 0) {
+    while (iter.hasTop() && !activeIters.isEmpty()) {
       // RFile does not support MemKey, so we move the kv count into the value only for the RFile.
       // There is no need to change the MemKey to a normal key because the kvCount info gets lost
       // when it is written

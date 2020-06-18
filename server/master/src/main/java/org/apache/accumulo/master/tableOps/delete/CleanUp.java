@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.delete;
 
@@ -96,8 +98,8 @@ class CleanUp extends MasterRepo {
     scanner.setRange(tableRange);
 
     for (Entry<Key,Value> entry : scanner) {
-      TabletLocationState locationState = MetaDataTableScanner
-          .createTabletLocationState(entry.getKey(), entry.getValue());
+      TabletLocationState locationState =
+          MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
       TabletState state = locationState.getState(master.onlineTabletServers());
       if (!state.equals(TabletState.UNASSIGNED)) {
         // This code will even wait on tablets that are assigned to dead tablets servers. This is
@@ -125,12 +127,12 @@ class CleanUp extends MasterRepo {
     try {
       // look for other tables that references this table's files
       AccumuloClient client = master.getContext();
-      try (BatchScanner bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY,
-          8)) {
+      try (BatchScanner bs =
+          client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
         Range allTables = MetadataSchema.TabletsSection.getRange();
         Range tableRange = MetadataSchema.TabletsSection.getRange(tableId);
-        Range beforeTable = new Range(allTables.getStartKey(), true, tableRange.getStartKey(),
-            false);
+        Range beforeTable =
+            new Range(allTables.getStartKey(), true, tableRange.getStartKey(), false);
         Range afterTable = new Range(tableRange.getEndKey(), false, allTables.getEndKey(), true);
         bs.setRanges(Arrays.asList(beforeTable, afterTable));
         bs.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -173,7 +175,7 @@ class CleanUp extends MasterRepo {
     if (refCount == 0) {
       // delete the map files
       try {
-        VolumeManager fs = master.getFileSystem();
+        VolumeManager fs = master.getVolumeManager();
         for (String dir : ServerConstants.getTablesDirs(master.getContext())) {
           fs.deleteRecursively(new Path(dir, tableId.canonical()));
         }

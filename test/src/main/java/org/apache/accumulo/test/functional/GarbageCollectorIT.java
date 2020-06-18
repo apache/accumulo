@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
@@ -57,6 +59,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
+import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
@@ -102,7 +105,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     try {
       ZooLock.deleteLock(zk, path);
     } catch (IllegalStateException e) {
-
+      log.error("Unable to delete ZooLock for mini accumulo-gc", e);
     }
 
     assertNull(getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR));
@@ -144,7 +147,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     log.info("Filling metadata table with bogus delete flags");
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       addEntries(c);
-      cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
+      cluster.getConfig().setDefaultMemory(32, MemoryUnit.MEGABYTE);
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       sleepUninterruptibly(20, TimeUnit.SECONDS);
       String output = "";
@@ -152,6 +155,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         try {
           output = gc.readStdOut();
         } catch (UncheckedIOException ex) {
+          log.error("IO error reading the IT's accumulo-gc STDOUT", ex);
           break;
         }
       }
@@ -185,7 +189,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   private Mutation createDelMutation(String path, String cf, String cq, String val) {
-    Text row = new Text(MetadataSchema.DeletesSection.getRowPrefix() + path);
+    Text row = new Text(MetadataSchema.DeletesSection.encodeRow(path));
     Mutation delFlag = new Mutation(row);
     delFlag.put(cf, cq, val);
     return delFlag;
@@ -212,7 +216,11 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       try (BatchWriter bw = c.createBatchWriter(MetadataTable.NAME)) {
         bw.addMutation(createDelMutation("", "", "", ""));
         bw.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
-        bw.addMutation(createDelMutation("/", "", "", ""));
+        // path is invalid but value is expected - only way the invalid entry will come through
+        // processing and
+        // show up to produce error in output to allow while loop to end
+        bw.addMutation(
+            createDelMutation("/", "", "", MetadataSchema.DeletesSection.SkewedKeyValue.STR_NAME));
       }
 
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
@@ -249,8 +257,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
-      String path = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-          + Constants.ZGC_LOCK;
+      String path =
+          ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZGC_LOCK;
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {
@@ -260,7 +268,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
           continue;
         }
 
-        if (locks != null && locks.size() > 0) {
+        if (locks != null && !locks.isEmpty()) {
           Collections.sort(locks);
 
           String lockPath = path + "/" + locks.get(0);
@@ -296,18 +304,15 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     return Iterators.size(Arrays.asList(cluster.getFileSystem().globStatus(path)).iterator());
   }
 
-  public static void addEntries(AccumuloClient client) throws Exception {
+  private void addEntries(AccumuloClient client) throws Exception {
     client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
     try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
       for (int i = 0; i < 100000; ++i) {
-        final Text emptyText = new Text("");
-        Text row = new Text(
-            String.format("%s/%020d/%s", MetadataSchema.DeletesSection.getRowPrefix(), i,
-                "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
-                    + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
-        Mutation delFlag = new Mutation(row);
-        delFlag.put(emptyText, emptyText, new Value(new byte[] {}));
+        String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
+            + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
+        Mutation delFlag =
+            ServerAmpleImpl.createDeleteMutation(String.format("file:/%020d/%s", i, longpath));
         bw.addMutation(delFlag);
       }
     }

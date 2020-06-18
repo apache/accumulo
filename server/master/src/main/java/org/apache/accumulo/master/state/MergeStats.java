@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.state;
 
@@ -53,15 +55,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MergeStats {
-  private static final Logger log = LoggerFactory.getLogger(MergeStats.class);
-  MergeInfo info;
-  int hosted = 0;
-  int unassigned = 0;
-  int chopped = 0;
-  int needsToBeChopped = 0;
-  int total = 0;
-  boolean lowerSplit = false;
-  boolean upperSplit = false;
+  final static private Logger log = LoggerFactory.getLogger(MergeStats.class);
+  private final MergeInfo info;
+  private int hosted = 0;
+  private int unassigned = 0;
+  private int chopped = 0;
+  private int needsToBeChopped = 0;
+  private int total = 0;
+  private boolean lowerSplit = false;
+  private boolean upperSplit = false;
 
   public MergeStats(MergeInfo info) {
     this.info = info;
@@ -81,11 +83,11 @@ public class MergeStats {
     if (info.getState().equals(MergeState.NONE))
       return;
     if (!upperSplit && info.getExtent().getEndRow().equals(ke.getPrevEndRow())) {
-      log.info("Upper split found");
+      log.info("Upper split found: {}", ke.getPrevEndRow());
       upperSplit = true;
     }
     if (!lowerSplit && info.getExtent().getPrevEndRow().equals(ke.getEndRow())) {
-      log.info("Lower split found");
+      log.info("Lower split found: {}", ke.getEndRow());
       lowerSplit = true;
     }
     if (!info.overlaps(ke))
@@ -151,12 +153,7 @@ public class MergeStats {
       }
     }
     if (state == MergeState.WAITING_FOR_OFFLINE) {
-      if (chopped != needsToBeChopped) {
-        log.warn("Unexpected state: chopped tablets should be {} was {} merge {}", needsToBeChopped,
-            chopped, info.getExtent());
-        // Perhaps a split occurred after we chopped, but before we went offline: start over
-        state = MergeState.WAITING_FOR_CHOPPED;
-      } else {
+      if (chopped == needsToBeChopped) {
         log.info("{} tablets are chopped, {} are offline {}", chopped, unassigned,
             info.getExtent());
         if (unassigned == total) {
@@ -168,6 +165,11 @@ public class MergeStats {
           log.info("Waiting for {} unassigned tablets to be {} {}", unassigned, total,
               info.getExtent());
         }
+      } else {
+        log.warn("Unexpected state: chopped tablets should be {} was {} merge {}", needsToBeChopped,
+            chopped, info.getExtent());
+        // Perhaps a split occurred after we chopped, but before we went offline: start over
+        state = MergeState.WAITING_FOR_CHOPPED;
       }
     }
     if (state == MergeState.MERGING) {

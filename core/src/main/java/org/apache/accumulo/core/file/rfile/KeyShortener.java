@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.file.rfile;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -123,16 +124,16 @@ public class KeyShortener {
       }
       return sanityCheck(prev, current, new Key(shortenedRow.toArray(), EMPTY, EMPTY, EMPTY, 0));
     } else if (prev.getColumnFamilyData().compareTo(current.getColumnFamilyData()) < 0) {
-      ByteSequence shortenedFam = shorten(prev.getColumnFamilyData(),
-          current.getColumnFamilyData());
+      ByteSequence shortenedFam =
+          shorten(prev.getColumnFamilyData(), current.getColumnFamilyData());
       if (shortenedFam == null) {
         return prev;
       }
       return sanityCheck(prev, current,
           new Key(prev.getRowData().toArray(), shortenedFam.toArray(), EMPTY, EMPTY, 0));
     } else if (prev.getColumnQualifierData().compareTo(current.getColumnQualifierData()) < 0) {
-      ByteSequence shortenedQual = shorten(prev.getColumnQualifierData(),
-          current.getColumnQualifierData());
+      ByteSequence shortenedQual =
+          shorten(prev.getColumnQualifierData(), current.getColumnQualifierData());
       if (shortenedQual == null) {
         return prev;
       }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.rest.master;
 
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -53,12 +56,8 @@ import org.apache.accumulo.server.master.state.TabletServerState;
 public class MasterResource {
   public static final String NO_MASTERS = "No Masters running";
 
-  /**
-   * Gets the MasterMonitorInfo, allowing for mocking frameworks for testability
-   */
-  protected static MasterMonitorInfo getMmi() {
-    return Monitor.getMmi();
-  }
+  @Inject
+  private Monitor monitor;
 
   /**
    * Generates a master information JSON object
@@ -66,13 +65,16 @@ public class MasterResource {
    * @return master JSON object
    */
   @GET
-  public static MasterInformation getTables() {
+  public MasterInformation getTables() {
+    return getTables(monitor);
+  }
 
+  public static MasterInformation getTables(Monitor monitor) {
     MasterInformation masterInformation;
-    MasterMonitorInfo mmi = Monitor.getMmi();
+    MasterMonitorInfo mmi = monitor.getMmi();
 
     if (mmi != null) {
-      GCStatus gcStatusObj = Monitor.getGcStatus();
+      GCStatus gcStatusObj = monitor.getGcStatus();
       String gcStatus = "Waiting";
       String label = "";
       if (gcStatusObj != null) {
@@ -97,31 +99,31 @@ public class MasterResource {
       for (DeadServer down : mmi.deadTabletServers) {
         tservers.add(down.server);
       }
-      List<String> masters = Monitor.getContext().getMasterLocations();
+      List<String> masters = monitor.getContext().getMasterLocations();
 
-      String master = masters.size() == 0 ? "Down"
-          : AddressUtil.parseAddress(masters.get(0), false).getHost();
+      String master =
+          masters.isEmpty() ? "Down" : AddressUtil.parseAddress(masters.get(0), false).getHost();
       int onlineTabletServers = mmi.tServerInfo.size();
       int totalTabletServers = tservers.size();
-      int tablets = Monitor.getTotalTabletCount();
+      int tablets = monitor.getTotalTabletCount();
       int unassignedTablets = mmi.unassignedTablets;
-      long entries = Monitor.getTotalEntries();
-      double ingest = Monitor.getTotalIngestRate();
-      double entriesRead = Monitor.getTotalScanRate();
-      double entriesReturned = Monitor.getTotalQueryRate();
-      long holdTime = Monitor.getTotalHoldTime();
+      long entries = monitor.getTotalEntries();
+      double ingest = monitor.getTotalIngestRate();
+      double entriesRead = monitor.getTotalScanRate();
+      double entriesReturned = monitor.getTotalQueryRate();
+      long holdTime = monitor.getTotalHoldTime();
       double osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
 
-      int tables = Monitor.getTotalTables();
+      int tables = monitor.getTotalTables();
       int deadTabletServers = mmi.deadTabletServers.size();
-      long lookups = Monitor.getTotalLookups();
-      long uptime = System.currentTimeMillis() - Monitor.getStartTime();
+      long lookups = monitor.getTotalLookups();
+      long uptime = System.currentTimeMillis() - monitor.getStartTime();
 
       masterInformation = new MasterInformation(master, onlineTabletServers, totalTabletServers,
           gcStatus, tablets, unassignedTablets, entries, ingest, entriesRead, entriesReturned,
-          holdTime, osLoad, tables, deadTabletServers, lookups, uptime, label, getGoalState(),
-          getState(), getNumBadTservers(), getServersShuttingDown(), getDeadTservers(),
-          getDeadLoggers());
+          holdTime, osLoad, tables, deadTabletServers, lookups, uptime, label,
+          getGoalState(monitor), getState(monitor), getNumBadTservers(monitor),
+          getServersShuttingDown(monitor), getDeadTservers(monitor), getDeadLoggers(monitor));
     } else {
       masterInformation = new MasterInformation();
     }
@@ -133,8 +135,8 @@ public class MasterResource {
    *
    * @return master state
    */
-  public static String getState() {
-    MasterMonitorInfo mmi = getMmi();
+  public static String getState(Monitor monitor) {
+    MasterMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return NO_MASTERS;
     }
@@ -146,8 +148,8 @@ public class MasterResource {
    *
    * @return master goal state
    */
-  public static String getGoalState() {
-    MasterMonitorInfo mmi = getMmi();
+  public static String getGoalState(Monitor monitor) {
+    MasterMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return NO_MASTERS;
     }
@@ -159,8 +161,8 @@ public class MasterResource {
    *
    * @return dead server list
    */
-  public static DeadServerList getDeadTservers() {
-    MasterMonitorInfo mmi = getMmi();
+  public static DeadServerList getDeadTservers(Monitor monitor) {
+    MasterMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return new DeadServerList();
     }
@@ -179,8 +181,8 @@ public class MasterResource {
    *
    * @return dead logger list
    */
-  public static DeadLoggerList getDeadLoggers() {
-    MasterMonitorInfo mmi = getMmi();
+  public static DeadLoggerList getDeadLoggers(Monitor monitor) {
+    MasterMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return new DeadLoggerList();
     }
@@ -199,8 +201,8 @@ public class MasterResource {
    *
    * @return bad tserver list
    */
-  public static BadTabletServers getNumBadTservers() {
-    MasterMonitorInfo mmi = getMmi();
+  public static BadTabletServers getNumBadTservers(Monitor monitor) {
+    MasterMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return new BadTabletServers();
     }
@@ -231,10 +233,14 @@ public class MasterResource {
    *
    * @return servers shutting down list
    */
-  public static ServersShuttingDown getServersShuttingDown() {
+  public static ServersShuttingDown getServersShuttingDown(Monitor monitor) {
+    MasterMonitorInfo mmi = monitor.getMmi();
     ServersShuttingDown servers = new ServersShuttingDown();
+    if (mmi == null)
+      return servers;
+
     // Add new servers to the list
-    for (String server : Monitor.getMmi().serversShuttingDown) {
+    for (String server : mmi.serversShuttingDown) {
       servers.addServerShuttingDown(new ServerShuttingDownInformation(server));
     }
     return servers;

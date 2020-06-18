@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -160,8 +162,8 @@ public class CreateTableCommand extends Command {
         shellState.getAccumuloClient().tableOperations().addConstraint(tableName,
             VisibilityConstraint.class.getName());
       } catch (AccumuloException e) {
-        Shell.log
-            .warn(e.getMessage() + " while setting visibility constraint, but table was created");
+        Shell.log.warn("{} while setting visibility constraint, but table was created",
+            e.getMessage(), e);
       }
     }
 
@@ -211,7 +213,7 @@ public class CreateTableCommand extends Command {
       final Shell shellState, NewTableConfiguration ntc) {
     EnumSet<IteratorScope> scopeEnumSet;
     IteratorSetting iteratorSetting;
-    if (shellState.iteratorProfiles.size() == 0)
+    if (shellState.iteratorProfiles.isEmpty())
       throw new IllegalArgumentException("No shell iterator profiles have been created.");
     String[] options = cl.getOptionValues(createTableOptIteratorProps.getOpt());
     for (String profileInfo : options) {
@@ -290,10 +292,10 @@ public class CreateTableCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
 
-    createTableOptCopyConfig = new Option("cc", "copy-config", true,
-        "table to copy configuration from");
-    createTableOptCopySplits = new Option("cs", "copy-splits", true,
-        "table to copy current splits from");
+    createTableOptCopyConfig =
+        new Option("cc", "copy-config", true, "table to copy configuration from");
+    createTableOptCopySplits =
+        new Option("cs", "copy-splits", true, "table to copy current splits from");
     createTableOptSplit = new Option("sf", "splits-file", true,
         "file with a newline-separated list of rows to split the table with");
     createTableOptTimeLogical = new Option("tl", "time-logical", false, "use logical time");
@@ -304,16 +306,16 @@ public class CreateTableCommand extends Command {
         "prevent users from writing data they cannot read. When enabling this,"
             + " consider disabling bulk import and alter table.");
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
-    createTableOptInitProp = new Option("prop", "init-properties", true,
-        "user defined initial properties");
+    createTableOptInitProp =
+        new Option("prop", "init-properties", true, "user defined initial properties");
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
     createTableOptFormatter.setArgName("className");
     createTableOptInitProp.setArgName("properties");
 
-    createTableOptLocalityProps = new Option("l", "locality", true,
-        "create locality groups at table creation");
+    createTableOptLocalityProps =
+        new Option("l", "locality", true, "create locality groups at table creation");
     createTableOptLocalityProps.setArgName("group=col_fam[,col_fam]");
     createTableOptLocalityProps.setArgs(Option.UNLIMITED_VALUES);
 

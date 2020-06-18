@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.client;
 
@@ -58,7 +60,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
@@ -73,9 +74,9 @@ import org.slf4j.LoggerFactory;
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
   protected final TransactionWatcher transactionWatcher;
-  private final ServerContext context;
-  private final VolumeManager fs;
-  private final SecurityOperation security;
+  protected final ServerContext context;
+  protected final VolumeManager fs;
+  protected final SecurityOperation security;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher,
@@ -308,14 +309,13 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials,
       ConfigurationType type) throws TException {
-    ServerConfigurationFactory factory = context.getServerConfFactory();
     switch (type) {
       case CURRENT:
-        return conf(credentials, factory.getSystemConfiguration());
+        return conf(credentials, context.getConfiguration());
       case SITE:
-        return conf(credentials, factory.getSiteConfiguration());
+        return conf(credentials, context.getSiteConfiguration());
       case DEFAULT:
-        return conf(credentials, factory.getDefaultConfiguration());
+        return conf(credentials, context.getDefaultConfiguration());
     }
     throw new RuntimeException("Unexpected configuration type " + type);
   }
@@ -324,7 +324,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException, ThriftTableOperationException {
     TableId tableId = checkTableId(context, tableName, null);
-    AccumuloConfiguration config = context.getServerConfFactory().getTableConfiguration(tableId);
+    AccumuloConfiguration config = context.getTableConfiguration(tableId);
     return conf(credentials, config);
   }
 
@@ -368,10 +368,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
       Class test = AccumuloVFSClassLoader.loadClass(className, shouldMatch);
-      test.newInstance();
+      test.getDeclaredConstructor().newInstance();
       return true;
-    } catch (ClassCastException | IllegalAccessException | InstantiationException
-        | ClassNotFoundException e) {
+    } catch (ClassCastException | ReflectiveOperationException e) {
       log.warn("Error checking object types", e);
       return false;
     }
@@ -391,7 +390,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      AccumuloConfiguration conf = context.getServerConfFactory().getTableConfiguration(tableId);
+      AccumuloConfiguration conf = context.getTableConfiguration(tableId);
 
       String context = conf.get(Property.TABLE_CLASSPATH);
 
@@ -404,7 +403,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
 
       Class<?> test = currentLoader.loadClass(className).asSubclass(shouldMatch);
-      test.newInstance();
+      test.getDeclaredConstructor().newInstance();
       return true;
     } catch (Exception e) {
       log.warn("Error checking object types", e);
@@ -426,8 +425,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      AccumuloConfiguration conf = context.getServerConfFactory()
-          .getNamespaceConfiguration(namespaceId);
+      AccumuloConfiguration conf = context.getNamespaceConfiguration(namespaceId);
 
       String context = conf.get(Property.TABLE_CLASSPATH);
 
@@ -440,7 +438,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
 
       Class<?> test = currentLoader.loadClass(className).asSubclass(shouldMatch);
-      test.newInstance();
+      test.getDeclaredConstructor().newInstance();
       return true;
     } catch (Exception e) {
       log.warn("Error checking object types", e);
@@ -488,8 +486,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new ThriftTableOperationException(null, ns, null,
           TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
-    AccumuloConfiguration config = context.getServerConfFactory()
-        .getNamespaceConfiguration(namespaceId);
+    AccumuloConfiguration config = context.getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
   }
 

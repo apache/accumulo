@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -44,13 +46,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.server.util.AccumuloStatus;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -60,7 +61,7 @@ import org.junit.Test;
 public class ExistingMacIT extends ConfigurableMacBase {
   @Override
   public int defaultTimeoutSeconds() {
-    return 2 * 60;
+    return 4 * 60;
   }
 
   @Override
@@ -87,8 +88,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Test
   public void testExistingInstance() throws Exception {
 
-    AccumuloClient client = getCluster().createAccumuloClient("root",
-        new PasswordToken(ROOT_PASSWORD));
+    AccumuloClient client =
+        getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
 
     client.tableOperations().create("table1");
 
@@ -104,8 +105,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
     client.tableOperations().flush(MetadataTable.NAME, null, null, true);
     client.tableOperations().flush(RootTable.NAME, null, null, true);
 
-    Set<Entry<ServerType,Collection<ProcessReference>>> procs = getCluster().getProcesses()
-        .entrySet();
+    Set<Entry<ServerType,Collection<ProcessReference>>> procs =
+        getCluster().getProcesses().entrySet();
     for (Entry<ServerType,Collection<ProcessReference>> entry : procs) {
       if (entry.getKey() == ServerType.ZOOKEEPER)
         continue;
@@ -116,10 +117,10 @@ public class ExistingMacIT extends ConfigurableMacBase {
     final DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
     final long zkTimeout = ConfigurationTypeHelper.getTimeInMillis(
         getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
-    IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(
-        getCluster().getZooKeepers(), (int) zkTimeout, defaultConfig.get(Property.INSTANCE_SECRET));
-    final String zInstanceRoot = Constants.ZROOT + "/"
-        + client.instanceOperations().getInstanceID();
+    ZooReaderWriter zrw = new ZooReaderWriter(getCluster().getZooKeepers(), (int) zkTimeout,
+        defaultConfig.get(Property.INSTANCE_SECRET));
+    final String zInstanceRoot =
+        Constants.ZROOT + "/" + client.instanceOperations().getInstanceID();
     while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);

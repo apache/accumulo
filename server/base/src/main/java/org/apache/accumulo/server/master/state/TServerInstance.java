@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.master.state;
 
@@ -25,6 +27,7 @@ import java.io.Serializable;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -37,7 +40,7 @@ import org.apache.hadoop.io.Text;
  * Therefore tablet assignments can be considered out-of-date if the tablet server instance
  * information has been changed.
  */
-public class TServerInstance implements Comparable<TServerInstance>, Serializable {
+public class TServerInstance implements Ample.TServer, Comparable<TServerInstance>, Serializable {
 
   private static final long serialVersionUID = 1L;
 
@@ -140,13 +143,15 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
 
   private Value asMutationValue() {
-    return new Value(getLocation().toString().getBytes(UTF_8));
+    return new Value(getLocation().toString());
   }
 
+  @Override
   public HostAndPort getLocation() {
     return location;
   }
 
+  @Override
   public String getSession() {
     return session;
   }

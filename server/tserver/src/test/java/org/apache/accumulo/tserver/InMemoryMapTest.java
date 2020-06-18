@@ -1,23 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -27,13 +30,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
@@ -54,28 +54,23 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.ZooConfiguration;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class InMemoryMapTest {
 
   private static class SampleIE implements IteratorEnvironment {
@@ -101,15 +96,6 @@ public class InMemoryMapTest {
     }
   }
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
-  @BeforeClass
-  public static void setUp() {
-    // suppress log messages having to do with not having an instance
-    Logger.getLogger(ZooConfiguration.class).setLevel(Level.OFF);
-  }
-
   public static ServerContext getServerContext() {
     Configuration hadoopConf = new Configuration();
     ServerContext context = EasyMock.createMock(ServerContext.class);
@@ -123,8 +109,8 @@ public class InMemoryMapTest {
   }
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   public void mutate(InMemoryMap imm, String row, String column, long ts) {
     Mutation m = new Mutation(new Text(row));
@@ -137,7 +123,7 @@ public class InMemoryMapTest {
   public void mutate(InMemoryMap imm, String row, String column, long ts, String value) {
     Mutation m = new Mutation(new Text(row));
     String[] sa = column.split(":");
-    m.put(new Text(sa[0]), new Text(sa[1]), ts, new Value(value.getBytes()));
+    m.put(new Text(sa[0]), new Text(sa[1]), ts, new Value(value));
 
     imm.mutate(Collections.singletonList(m), 1);
   }
@@ -151,7 +137,7 @@ public class InMemoryMapTest {
       int ts, String val) throws IOException {
     assertTrue(dc.hasTop());
     assertEquals(newKey(row, column, ts), dc.getTopKey());
-    assertEquals(new Value(val.getBytes()), dc.getTopValue());
+    assertEquals(new Value(val), dc.getTopValue());
     dc.next();
 
   }
@@ -160,7 +146,7 @@ public class InMemoryMapTest {
       int ts, String val) {
     assertTrue(dc.hasTop());
     assertEquals(newKey(row, column, ts), dc.getTopKey());
-    assertEquals(new Value(val.getBytes()), dc.getTopValue());
+    assertEquals(new Value(val), dc.getTopValue());
 
   }
 
@@ -389,16 +375,18 @@ public class InMemoryMapTest {
 
     if (interleaving == 1) {
       imm.delete(0);
-      if (interrupt)
+      if (interrupt) {
         iflag.set(true);
+      }
     }
 
     SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(new SampleIE());
 
     if (interleaving == 2) {
       imm.delete(0);
-      if (interrupt)
+      if (interrupt) {
         iflag.set(true);
+      }
     }
 
     dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
@@ -406,8 +394,9 @@ public class InMemoryMapTest {
 
     if (interleaving == 3) {
       imm.delete(0);
-      if (interrupt)
+      if (interrupt) {
         iflag.set(true);
+      }
     }
 
     testAndCallNext(dc, "r1", "foo:cq1", 3, "bar1");
@@ -416,8 +405,9 @@ public class InMemoryMapTest {
 
     if (interleaving == 4) {
       imm.delete(0);
-      if (interrupt)
+      if (interrupt) {
         iflag.set(true);
+      }
     }
 
     testAndCallNext(ski1, "r1", "foo:cq2", 3, "bar2");
@@ -426,20 +416,23 @@ public class InMemoryMapTest {
     assertFalse(dc.hasTop());
     assertFalse(ski1.hasTop());
 
-    if (interrupt)
+    if (interrupt) {
       dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    }
   }
 
   @Test
   public void testDeepCopyAndDelete() throws Exception {
-    for (int i = 0; i <= 4; i++)
+    for (int i = 0; i <= 4; i++) {
       deepCopyAndDelete(i, false);
+    }
 
-    for (int i = 1; i <= 4; i++)
+    for (int i = 1; i <= 4; i++) {
       try {
         deepCopyAndDelete(i, true);
         fail("i = " + i);
       } catch (IterationInterruptedException iie) {}
+    }
   }
 
   @Test
@@ -494,8 +487,8 @@ public class InMemoryMapTest {
     InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
 
     Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("foo"), new Text("cq"), 3, new Value("v1".getBytes()));
-    m.put(new Text("foo"), new Text("cq"), 3, new Value("v2".getBytes()));
+    m.put(new Text("foo"), new Text("cq"), 3, new Value("v1"));
+    m.put(new Text("foo"), new Text("cq"), 3, new Value("v2"));
     imm.mutate(Collections.singletonList(m), 2);
 
     MemoryIterator skvi1 = imm.skvIterator(null);
@@ -504,56 +497,12 @@ public class InMemoryMapTest {
     testAndCallNext(skvi1, "r1", "foo:cq", 3, "v1");
   }
 
-  private static final Logger log = Logger.getLogger(InMemoryMapTest.class);
-
   static long sum(long[] counts) {
     long result = 0;
-    for (long count : counts)
+    for (long count : counts) {
       result += count;
+    }
     return result;
-  }
-
-  // - hard to get this timing test to run well on apache build machines
-  @Test
-  @Ignore
-  public void parallelWriteSpeed() throws Exception {
-    List<Double> timings = new ArrayList<>();
-    for (int threads : new int[] {1, 2, 16, /* 64, 256 */}) {
-      final long now = System.currentTimeMillis();
-      final long[] counts = new long[threads];
-      final InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
-      ExecutorService e = Executors.newFixedThreadPool(threads);
-      for (int j = 0; j < threads; j++) {
-        final int threadId = j;
-        e.execute(new Runnable() {
-          @Override
-          public void run() {
-            while (System.currentTimeMillis() - now < 1000) {
-              for (int k = 0; k < 1000; k++) {
-                Mutation m = new Mutation("row");
-                m.put("cf", "cq", new Value("v".getBytes()));
-                List<Mutation> mutations = Collections.singletonList(m);
-                imm.mutate(mutations, 1);
-                counts[threadId]++;
-              }
-            }
-          }
-        });
-      }
-      e.shutdown();
-      e.awaitTermination(10, TimeUnit.SECONDS);
-      imm.delete(10000);
-      double mutationsPerSecond = sum(counts) / ((System.currentTimeMillis() - now) / 1000.);
-      timings.add(mutationsPerSecond);
-      log.info(
-          String.format("%.1f mutations per second with %d threads", mutationsPerSecond, threads));
-    }
-    // verify that more threads doesn't go a lot faster, or a lot slower than one thread
-    for (Double timing : timings) {
-      double ratioFirst = timings.get(0) / timing;
-      assertTrue(ratioFirst < 3);
-      assertTrue(ratioFirst > 0.3);
-    }
   }
 
   @Test
@@ -610,7 +559,7 @@ public class InMemoryMapTest {
   public void testSample() throws Exception {
 
     SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
-        ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
+        Map.of("hasher", "murmur3_32", "modulus", "7"));
     Sampler sampler = SamplerFactory.newSampler(sampleConfig, DefaultConfiguration.getInstance());
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
@@ -641,7 +590,7 @@ public class InMemoryMapTest {
         mutate(imm, row, "cf2:cq2", 5, "v" + ((2 * r) + 1), sampler, expectedSample, expectedAll);
       }
 
-      assertTrue(expectedSample.size() > 0);
+      assertTrue(!expectedSample.isEmpty());
 
       MemoryIterator iter1 = imm.skvIterator(sampleConfig);
       MemoryIterator iter2 = imm.skvIterator(null);
@@ -705,7 +654,7 @@ public class InMemoryMapTest {
   private void runInterruptSampleTest(boolean deepCopy, boolean delete, boolean dcAfterDelete)
       throws Exception {
     SamplerConfigurationImpl sampleConfig1 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "2"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "2"));
     Sampler sampler = SamplerFactory.newSampler(sampleConfig1, DefaultConfiguration.getInstance());
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
@@ -724,7 +673,7 @@ public class InMemoryMapTest {
       mutate(imm, row, "cf2:cq2", 5, "v" + ((2 * r) + 1), sampler, expectedSample, expectedAll);
     }
 
-    assertTrue(expectedSample.size() > 0);
+    assertTrue(!expectedSample.isEmpty());
 
     MemoryIterator miter = imm.skvIterator(sampleConfig1);
     AtomicBoolean iFlag = new AtomicBoolean(false);
@@ -758,15 +707,15 @@ public class InMemoryMapTest {
     mutate(imm, row, cols, ts, val);
     Key k1 = newKey(row, cols, ts);
     if (sampler.accept(k1)) {
-      expectedSample.put(k1, new Value(val.getBytes()));
+      expectedSample.put(k1, new Value(val));
     }
-    expectedAll.put(k1, new Value(val.getBytes()));
+    expectedAll.put(k1, new Value(val));
   }
 
   @Test(expected = SampleNotPresentException.class)
   public void testDifferentSampleConfig() throws Exception {
     SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
-        ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
+        Map.of("hasher", "murmur3_32", "modulus", "7"));
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
     for (Entry<String,String> entry : sampleConfig.toTablePropertiesMap().entrySet()) {
@@ -778,7 +727,7 @@ public class InMemoryMapTest {
     mutate(imm, "r", "cf:cq", 5, "b");
 
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
     iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
   }
@@ -790,7 +739,7 @@ public class InMemoryMapTest {
     mutate(imm, "r", "cf:cq", 5, "b");
 
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
     iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
   }
@@ -800,7 +749,7 @@ public class InMemoryMapTest {
     InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
 
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
 
     // when in mem map is empty should be able to get sample iterator with any sample config
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
@@ -811,7 +760,7 @@ public class InMemoryMapTest {
   @Test
   public void testDeferredSamplerCreation() throws Exception {
     SamplerConfigurationImpl sampleConfig1 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
     for (Entry<String,String> entry : sampleConfig1.toTablePropertiesMap().entrySet()) {
@@ -822,7 +771,7 @@ public class InMemoryMapTest {
 
     // change sampler config after creating in mem map.
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
-        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
+        RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "7"));
     for (Entry<String,String> entry : sampleConfig2.toTablePropertiesMap().entrySet()) {
       config1.set(entry.getKey(), entry.getValue());
     }
@@ -847,9 +796,9 @@ public class InMemoryMapTest {
     iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
     assertEquals(expectedAll, readAll(iter));
 
-    iter = imm.skvIterator(sampleConfig1);
-    thrown.expect(SampleNotPresentException.class);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    final MemoryIterator iter2 = imm.skvIterator(sampleConfig1);
+    assertThrows(SampleNotPresentException.class,
+        () -> iter2.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false));
   }
 
   private TreeMap<Key,Value> readAll(SortedKeyValueIterator<Key,Value> iter) throws IOException {

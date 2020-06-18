@@ -1,31 +1,40 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.function.Predicate.not;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -45,23 +54,28 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ImportTable extends MasterRepo {
   private static final Logger log = LoggerFactory.getLogger(ImportTable.class);
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 2L;
 
   private ImportedTableInfo tableInfo;
 
-  public ImportTable(String user, String tableName, String exportDir, NamespaceId namespaceId) {
+  public ImportTable(String user, String tableName, Set<String> exportDirs,
+      NamespaceId namespaceId) {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
-    tableInfo.exportDir = exportDir;
     tableInfo.namespaceId = namespaceId;
+    tableInfo.directories = parseExportDir(exportDirs);
   }
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveHdfsDirectory(environment, new Path(tableInfo.exportDir).toString(), tid)
-        + Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, false, true,
-            TableOperation.IMPORT);
+    long result = 0;
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      result += Utils.reserveHdfsDirectory(environment, new Path(dm.exportDir).toString(), tid);
+    }
+    result += Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, false, true,
+        TableOperation.IMPORT);
+    return result;
   }
 
   @Override
@@ -86,11 +100,20 @@ public class ImportTable extends MasterRepo {
   @SuppressFBWarnings(value = "OS_OPEN_STREAM",
       justification = "closing intermediate readers would close the ZipInputStream")
   public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
-    Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
+    Set<String> exportDirs =
+        tableInfo.directories.stream().map(dm -> dm.exportDir).collect(Collectors.toSet());
+
+    log.debug("Searching for export file in {}", exportDirs);
+
     Integer exportVersion = null;
     Integer dataVersion = null;
 
-    try (ZipInputStream zis = new ZipInputStream(env.getFileSystem().open(path))) {
+    try {
+      Path exportFilePath = TableOperationsImpl.findExportFile(env.getContext(), exportDirs);
+      tableInfo.exportFile = exportFilePath.toString();
+      log.info("Export file is {}", tableInfo.exportFile);
+
+      ZipInputStream zis = new ZipInputStream(env.getVolumeManager().open(exportFilePath));
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_INFO_FILE)) {
@@ -107,11 +130,11 @@ public class ImportTable extends MasterRepo {
           break;
         }
       }
-    } catch (IOException ioe) {
-      log.warn("{}", ioe.getMessage(), ioe);
+    } catch (IOException | AccumuloException e) {
+      log.warn("{}", e.getMessage(), e);
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Failed to read export metadata " + ioe.getMessage());
+          "Failed to read export metadata " + e.getMessage());
     }
 
     if (exportVersion == null || exportVersion > ExportTable.VERSION)
@@ -127,7 +150,19 @@ public class ImportTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), tid);
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), tid);
+    }
+
     Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
+  }
+
+  static List<ImportedTableInfo.DirectoryMapping> parseExportDir(Set<String> exportDirs) {
+    if (exportDirs == null || exportDirs.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    return exportDirs.stream().filter(not(String::isEmpty))
+        .map(ImportedTableInfo.DirectoryMapping::new).collect(Collectors.toList());
   }
 }

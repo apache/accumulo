@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.fs;
 
@@ -22,7 +24,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -31,9 +33,7 @@ import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class PerTableVolumeChooserTest {
 
@@ -51,9 +51,6 @@ public class PerTableVolumeChooserTest {
   public static class MockChooser1 extends RandomVolumeChooser {}
 
   public static class MockChooser2 extends RandomVolumeChooser {}
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void before() {
@@ -73,13 +70,13 @@ public class PerTableVolumeChooserTest {
   }
 
   private VolumeChooser getTableDelegate() {
-    VolumeChooserEnvironment env = new VolumeChooserEnvironmentImpl(TableId.of("testTable"), null,
-        null) {
-      @Override
-      public ServiceEnvironment getServiceEnv() {
-        return serviceEnv;
-      }
-    };
+    VolumeChooserEnvironment env =
+        new VolumeChooserEnvironmentImpl(TableId.of("testTable"), null, null) {
+          @Override
+          public ServiceEnvironment getServiceEnv() {
+            return serviceEnv;
+          }
+        };
     return chooser.getDelegateChooser(env);
   }
 
@@ -91,13 +88,6 @@ public class PerTableVolumeChooserTest {
       }
     };
     return chooser.getDelegateChooser(env);
-  }
-
-  @Test
-  public void testInitScopeSelectsRandomChooser() {
-    replay(serviceEnv, tableConf, systemConf);
-    VolumeChooser delegate = getDelegate(ChooserScope.INIT);
-    assertSame(RandomVolumeChooser.class, delegate.getClass());
   }
 
   @Test
@@ -131,9 +121,7 @@ public class PerTableVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    getTableDelegate();
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, this::getTableDelegate);
   }
 
   @Test
@@ -145,9 +133,7 @@ public class PerTableVolumeChooserTest {
         VolumeChooser.class)).andThrow(new RuntimeException());
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    getTableDelegate();
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, this::getTableDelegate);
   }
 
   @Test
@@ -184,9 +170,7 @@ public class PerTableVolumeChooserTest {
         .once();
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    getDelegate(ChooserScope.LOGGER);
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> getDelegate(ChooserScope.LOGGER));
   }
 
   @Test
@@ -199,9 +183,32 @@ public class PerTableVolumeChooserTest {
         .andThrow(new RuntimeException());
     replay(serviceEnv, tableConf, systemConf);
 
-    thrown.expect(VolumeChooserException.class);
-    getDelegate(ChooserScope.LOGGER);
-    fail("should not reach");
+    assertThrows(VolumeChooserException.class, () -> getDelegate(ChooserScope.LOGGER));
+  }
+
+  @Test
+  public void testInitScopeUsingInitProperty() throws Exception {
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.INIT)))
+        .andReturn(MockChooser1.class.getName()).once();
+    expect(serviceEnv.instantiate(MockChooser1.class.getName(), VolumeChooser.class))
+        .andReturn(new MockChooser1());
+    replay(serviceEnv, tableConf, systemConf);
+
+    VolumeChooser delegate = getDelegate(ChooserScope.INIT);
+    assertSame(MockChooser1.class, delegate.getClass());
+  }
+
+  @Test
+  public void testInitScopeUsingDefaultProperty() throws Exception {
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.INIT))).andReturn(null).once();
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT)))
+        .andReturn(MockChooser2.class.getName()).once();
+    expect(serviceEnv.instantiate(MockChooser2.class.getName(), VolumeChooser.class))
+        .andReturn(new MockChooser2());
+    replay(serviceEnv, tableConf, systemConf);
+
+    VolumeChooser delegate = getDelegate(ChooserScope.INIT);
+    assertSame(MockChooser2.class, delegate.getClass());
   }
 
 }

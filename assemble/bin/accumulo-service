@@ -1,19 +1,22 @@
 #! /usr/bin/env bash
-
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
 
 function print_usage {
   cat <<EOF
@@ -68,8 +71,8 @@ function start_service() {
     "${bin}/accumulo" org.apache.accumulo.master.state.SetGoalState NORMAL
   fi
 
-  outfile="${ACCUMULO_LOG_DIR}/${service}_${host}.out"
-  errfile="${ACCUMULO_LOG_DIR}/${service}_${host}.err"
+  outfile="${ACCUMULO_LOG_DIR}/${service}${ACCUMULO_SERVICE_INSTANCE}_${host}.out"
+  errfile="${ACCUMULO_LOG_DIR}/${service}${ACCUMULO_SERVICE_INSTANCE}_${host}.err"
   rotate_log "$outfile"
   rotate_log "$errfile"
 
@@ -124,16 +127,17 @@ function main() {
     source "${conf}/accumulo-env.sh"
   fi
   ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
+  ACCUMULO_PID_DIR="${ACCUMULO_PID_DIR:-${basedir}/run}"
 
   mkdir -p "$ACCUMULO_LOG_DIR" 2>/dev/null
-  mkdir -p "${basedir}/run" 2>/dev/null
+  mkdir -p "$ACCUMULO_PID_DIR" 2>/dev/null
 
   host="$(hostname)"
   if [[ -z "$host" ]]; then
     host=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
   fi 
   service="$1"
-  pid_file="${basedir}/run/accumulo-${service}.pid"
+  pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${ACCUMULO_SERVICE_INSTANCE}.pid"
   case "$service" in
     gc|master|monitor|tserver|tracer)
       if [[ -z $2 ]]; then

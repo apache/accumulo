@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.fate;
 
@@ -24,8 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang.NotImplementedException;
 
 /**
  * Transient in memory store for transactions.
@@ -44,7 +44,7 @@ public class SimpleStore<T> implements TStore<T> {
 
   @Override
   public long reserve() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -64,17 +64,17 @@ public class SimpleStore<T> implements TStore<T> {
 
   @Override
   public Repo<T> top(long tid) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void push(long tid, Repo<T> repo) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void pop(long tid) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -100,17 +100,17 @@ public class SimpleStore<T> implements TStore<T> {
   @Override
   public org.apache.accumulo.fate.TStore.TStatus waitForStatusChange(long tid,
       EnumSet<org.apache.accumulo.fate.TStore.TStatus> expected) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void setProperty(long tid, String prop, Serializable val) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Serializable getProperty(long tid, String prop) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -127,7 +127,7 @@ public class SimpleStore<T> implements TStore<T> {
 
   @Override
   public List<ReadOnlyRepo<T>> getStack(long tid) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
 }

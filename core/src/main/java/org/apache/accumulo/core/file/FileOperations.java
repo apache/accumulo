@@ -1,20 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file;
+
+import static org.apache.accumulo.core.file.blockfile.impl.CacheProvider.NULL_PROVIDER;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -27,23 +31,36 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.mapred.FileOutputCommitter;
 
 import com.google.common.cache.Cache;
 
 public abstract class FileOperations {
 
-  private static final HashSet<String> validExtensions = new HashSet<>(
-      Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
+  private static final String HADOOP_JOBHISTORY_LOCATION = "_logs"; // dir related to
+                                                                    // hadoop.job.history.user.location
+
+  private static final HashSet<String> validExtensions =
+      new HashSet<>(Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
+
+  // Sometimes we want to know what files accumulo bulk processing creates
+  private static final HashSet<String> bulkWorkingFiles =
+      new HashSet<>(Arrays.asList(Constants.BULK_LOAD_MAPPING, Constants.BULK_RENAME_FILE,
+          FileOutputCommitter.SUCCEEDED_FILE_NAME, HADOOP_JOBHISTORY_LOCATION));
 
   public static Set<String> getValidExtensions() {
     return validExtensions;
+  }
+
+  public static Set<String> getBulkWorkingFiles() {
+    return bulkWorkingFiles;
   }
 
   public static String getNewFileExtension(AccumuloConfiguration acuconf) {
@@ -160,8 +177,7 @@ public abstract class FileOperations {
     public final FSDataOutputStream outputStream;
     public final boolean enableAccumuloStart;
     // reader only objects
-    public final BlockCache dataCache;
-    public final BlockCache indexCache;
+    public final CacheProvider cacheProvider;
     public final Cache<String,Long> fileLenCache;
     public final boolean seekToBeginning;
     public final CryptoService cryptoService;
@@ -172,10 +188,9 @@ public abstract class FileOperations {
 
     public FileOptions(AccumuloConfiguration tableConfiguration, String filename, FileSystem fs,
         Configuration fsConf, RateLimiter rateLimiter, String compression,
-        FSDataOutputStream outputStream, boolean enableAccumuloStart, BlockCache dataCache,
-        BlockCache indexCache, Cache<String,Long> fileLenCache, boolean seekToBeginning,
-        CryptoService cryptoService, Range range, Set<ByteSequence> columnFamilies,
-        boolean inclusive) {
+        FSDataOutputStream outputStream, boolean enableAccumuloStart, CacheProvider cacheProvider,
+        Cache<String,Long> fileLenCache, boolean seekToBeginning, CryptoService cryptoService,
+        Range range, Set<ByteSequence> columnFamilies, boolean inclusive) {
       this.tableConfiguration = tableConfiguration;
       this.filename = filename;
       this.fs = fs;
@@ -184,8 +199,7 @@ public abstract class FileOperations {
       this.compression = compression;
       this.outputStream = outputStream;
       this.enableAccumuloStart = enableAccumuloStart;
-      this.dataCache = dataCache;
-      this.indexCache = indexCache;
+      this.cacheProvider = cacheProvider;
       this.fileLenCache = fileLenCache;
       this.seekToBeginning = seekToBeginning;
       this.cryptoService = Objects.requireNonNull(cryptoService);
@@ -226,12 +240,8 @@ public abstract class FileOperations {
       return enableAccumuloStart;
     }
 
-    public BlockCache getDataCache() {
-      return dataCache;
-    }
-
-    public BlockCache getIndexCache() {
-      return indexCache;
+    public CacheProvider getCacheProvider() {
+      return cacheProvider;
     }
 
     public Cache<String,Long> getFileLenCache() {
@@ -303,25 +313,25 @@ public abstract class FileOperations {
     protected FileOptions toWriterBuilderOptions(String compression,
         FSDataOutputStream outputStream, boolean startEnabled) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, compression,
-          outputStream, startEnabled, null, null, null, false, cryptoService, null, null, true);
+          outputStream, startEnabled, NULL_PROVIDER, null, false, cryptoService, null, null, true);
     }
 
-    protected FileOptions toReaderBuilderOptions(BlockCache dataCache, BlockCache indexCache,
+    protected FileOptions toReaderBuilderOptions(CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
-          false, dataCache, indexCache, fileLenCache, seekToBeginning, cryptoService, null, null,
-          true);
+          false, cacheProvider == null ? NULL_PROVIDER : cacheProvider, fileLenCache,
+          seekToBeginning, cryptoService, null, null, true);
     }
 
     protected FileOptions toIndexReaderBuilderOptions(Cache<String,Long> fileLenCache) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
-          false, null, null, fileLenCache, false, cryptoService, null, null, true);
+          false, NULL_PROVIDER, fileLenCache, false, cryptoService, null, null, true);
     }
 
     protected FileOptions toScanReaderBuilderOptions(Range range, Set<ByteSequence> columnFamilies,
         boolean inclusive) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
-          false, null, null, null, false, cryptoService, range, columnFamilies, inclusive);
+          false, NULL_PROVIDER, null, false, cryptoService, range, columnFamilies, inclusive);
     }
 
     protected AccumuloConfiguration getTableConfiguration() {
@@ -384,8 +394,7 @@ public abstract class FileOperations {
    * Options common to all {@code FileOperations} which perform reads.
    */
   public class ReaderBuilder extends FileHelper implements ReaderTableConfiguration {
-    private BlockCache dataCache;
-    private BlockCache indexCache;
+    private CacheProvider cacheProvider;
     private Cache<String,Long> fileLenCache;
     private boolean seekToBeginning = false;
 
@@ -405,23 +414,8 @@ public abstract class FileOperations {
      * (Optional) Set the block cache pair to be used to optimize reads within the constructed
      * reader.
      */
-    public ReaderBuilder withBlockCache(BlockCache dataCache, BlockCache indexCache) {
-      this.dataCache = dataCache;
-      this.indexCache = indexCache;
-      return this;
-    }
-
-    /** (Optional) set the data cache to be used to optimize reads within the constructed reader. */
-    public ReaderBuilder withDataCache(BlockCache dataCache) {
-      this.dataCache = dataCache;
-      return this;
-    }
-
-    /**
-     * (Optional) set the index cache to be used to optimize reads within the constructed reader.
-     */
-    public ReaderBuilder withIndexCache(BlockCache indexCache) {
-      this.indexCache = indexCache;
+    public ReaderBuilder withCacheProvider(CacheProvider cacheProvider) {
+      this.cacheProvider = cacheProvider;
       return this;
     }
 
@@ -452,18 +446,7 @@ public abstract class FileOperations {
 
     /** Execute the operation, constructing the specified file reader. */
     public FileSKVIterator build() throws IOException {
-      /**
-       * If the table configuration disallows caching, rewrite the options object to not pass the
-       * caches.
-       */
-      if (!getTableConfiguration().getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) {
-        withIndexCache(null);
-      }
-      if (!getTableConfiguration().getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
-        withDataCache(null);
-      }
-      return openReader(
-          toReaderBuilderOptions(dataCache, indexCache, fileLenCache, seekToBeginning));
+      return openReader(toReaderBuilderOptions(cacheProvider, fileLenCache, seekToBeginning));
     }
   }
 

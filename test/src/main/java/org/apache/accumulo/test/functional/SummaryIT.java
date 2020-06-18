@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.test.functional;
 
 import static java.util.function.Function.identity;
@@ -63,6 +64,8 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.PluginConfig;
+import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.client.summary.CounterSummary;
@@ -89,8 +92,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -139,8 +140,8 @@ public class SummaryIT extends AccumuloClusterHarness {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
-      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BasicSummarizer.class.getName())
-          .build();
+      SummarizerConfiguration sc1 =
+          SummarizerConfiguration.builder(BasicSummarizer.class.getName()).build();
       ntc.enableSummarization(sc1);
       c.tableOperations().create(table, ntc);
 
@@ -329,8 +330,8 @@ public class SummaryIT extends AccumuloClusterHarness {
 
       LongSummaryStatistics stats = getTimestampStats(table, c);
 
-      Collection<Summary> summaries = c.tableOperations().summaries(table).withConfiguration(sc2)
-          .retrieve();
+      Collection<Summary> summaries =
+          c.tableOperations().summaries(table).withConfiguration(sc2).retrieve();
       assertEquals(1, summaries.size());
       checkSummary(summaries, sc2, "len=14", 100_000L);
 
@@ -438,9 +439,38 @@ public class SummaryIT extends AccumuloClusterHarness {
   }
 
   /**
+   * A compaction selector that initiates a compaction when {@code foo} occurs more than {@code bar}
+   * in the data. The {@link FooCounter} summary data is used to make the determination.
+   */
+  public static class FooSelector implements CompactionSelector {
+
+    @Override
+    public void init(InitParamaters iparams) {}
+
+    @Override
+    public Selection select(SelectionParameters sparams) {
+      Collection<Summary> summaries = sparams.getSummaries(sparams.getAvailableFiles(),
+          conf -> conf.getClassName().contains("FooCounter"));
+      if (summaries.size() == 1) {
+        Summary summary = summaries.iterator().next();
+        Long foos = summary.getStatistics().getOrDefault("foos", 0L);
+        Long bars = summary.getStatistics().getOrDefault("bars", 0L);
+
+        if (foos > bars) {
+          return new Selection(sparams.getAvailableFiles());
+        }
+      }
+
+      return new Selection(Set.of());
+    }
+
+  }
+
+  /**
    * A compaction strategy that initiates a compaction when {@code foo} occurs more than {@code bar}
    * in the data. The {@link FooCounter} summary data is used to make the determination.
    */
+  @SuppressWarnings("removal")
   public static class FooCS extends CompactionStrategy {
 
     private boolean compact = false;
@@ -476,12 +506,28 @@ public class SummaryIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void compactionTest() throws Exception {
+  public void compactionSelectorTest() throws Exception {
+    // Create a compaction config that will filter out foos if there are too many. Uses summary
+    // data to know if there are too many foos.
+    PluginConfig csc = new PluginConfig(FooSelector.class.getName());
+    CompactionConfig compactConfig = new CompactionConfig().setSelector(csc);
+    compactionTest(compactConfig);
+  }
+
+  @SuppressWarnings("removal")
+  @Test
+  public void compactionStrategyTest() throws Exception {
+    CompactionStrategyConfig csc = new CompactionStrategyConfig(FooCS.class.getName());
+    CompactionConfig compactConfig = new CompactionConfig().setCompactionStrategy(csc);
+    compactionTest(compactConfig);
+  }
+
+  public void compactionTest(CompactionConfig compactConfig) throws Exception {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
-      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FooCounter.class.getName())
-          .build();
+      SummarizerConfiguration sc1 =
+          SummarizerConfiguration.builder(FooCounter.class.getName()).build();
       ntc.enableSummarization(sc1);
       c.tableOperations().create(table, ntc);
 
@@ -491,14 +537,9 @@ public class SummaryIT extends AccumuloClusterHarness {
         write(bw, "foo1", "f1", "q1", "v3");
       }
 
-      // Create a compaction config that will filter out foos if there are too many. Uses summary
-      // data
-      // to know if there are too many foos.
-      CompactionStrategyConfig csc = new CompactionStrategyConfig(FooCS.class.getName());
-      List<IteratorSetting> iterators = Collections
-          .singletonList(new IteratorSetting(100, FooFilter.class));
-      CompactionConfig compactConfig = new CompactionConfig().setFlush(true)
-          .setCompactionStrategy(csc).setIterators(iterators).setWait(true);
+      List<IteratorSetting> iterators =
+          Collections.singletonList(new IteratorSetting(100, FooFilter.class));
+      compactConfig = compactConfig.setFlush(true).setIterators(iterators).setWait(true);
 
       // this compaction should make no changes because there are less foos than bars
       c.tableOperations().compact(table, compactConfig);
@@ -592,8 +633,8 @@ public class SummaryIT extends AccumuloClusterHarness {
       PasswordToken passTok = new PasswordToken("letmesee");
       c.securityOperations().createLocalUser("user1", passTok);
 
-      try (AccumuloClient c2 = Accumulo.newClient().from(c.properties()).as("user1", passTok)
-          .build()) {
+      try (AccumuloClient c2 =
+          Accumulo.newClient().from(c.properties()).as("user1", passTok).build()) {
         try {
           c2.tableOperations().summaries(table).retrieve();
           fail("Expected operation to fail because user does not have permssion to get summaries");
@@ -712,7 +753,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   }
 
   private Map<String,Long> nm(Object... entries) {
-    Builder<String,Long> imb = ImmutableMap.builder();
+    var imb = ImmutableMap.<String,Long>builder();
     for (int i = 0; i < entries.length; i += 2) {
       imb.put((String) entries[i], (Long) entries[i + 1]);
     }
@@ -729,10 +770,10 @@ public class SummaryIT extends AccumuloClusterHarness {
       ntc.enableSummarization(sc1, sc2);
 
       Map<String,Set<Text>> lgroups = new HashMap<>();
-      lgroups.put("lg1", ImmutableSet.of(new Text("chocolate"), new Text("coffee")));
-      lgroups.put("lg2", ImmutableSet.of(new Text(" broccoli "), new Text("cabbage")));
+      lgroups.put("lg1", Set.of(new Text("chocolate"), new Text("coffee")));
+      lgroups.put("lg2", Set.of(new Text(" broccoli "), new Text("cabbage")));
       // create a locality group that will not have data in it
-      lgroups.put("lg3", ImmutableSet.of(new Text(" apple "), new Text("orange")));
+      lgroups.put("lg3", Set.of(new Text(" apple "), new Text("orange")));
 
       ntc.setLocalityGroups(lgroups);
       c.tableOperations().create(table, ntc);
@@ -758,15 +799,16 @@ public class SummaryIT extends AccumuloClusterHarness {
           summaries.stream().map(Summary::getSummarizerConfiguration).distinct().count());
       for (Summary summary : summaries) {
         if (summary.getSummarizerConfiguration().equals(sc1)) {
-          Map<String,Long> expectedStats = nm("c:chocolate", 4L, "c:coffee", 2L, "c:broccoli", 2L,
-              "c:cheddar", 2L, "c:cabbage", 1L, TOO_LONG_STAT, 0L, TOO_MANY_STAT, 0L, SEEN_STAT,
-              11L, EMITTED_STAT, 11L, DELETES_IGNORED_STAT, 0L);
+          Map<String,
+              Long> expectedStats = nm("c:chocolate", 4L, "c:coffee", 2L, "c:broccoli", 2L,
+                  "c:cheddar", 2L, "c:cabbage", 1L, TOO_LONG_STAT, 0L, TOO_MANY_STAT, 0L, SEEN_STAT,
+                  11L, EMITTED_STAT, 11L, DELETES_IGNORED_STAT, 0L);
           assertEquals(expectedStats, summary.getStatistics());
           assertEquals(0, summary.getFileStatistics().getInaccurate());
           assertEquals(1, summary.getFileStatistics().getTotal());
         } else if (summary.getSummarizerConfiguration().equals(sc2)) {
-          Map<String,Long> expectedStats = nm(DELETES_STAT, 0L, TOTAL_STAT, 11L, MIN_TIMESTAMP_STAT,
-              3L, MAX_TIMESTAMP_STAT, 8L);
+          Map<String,Long> expectedStats =
+              nm(DELETES_STAT, 0L, TOTAL_STAT, 11L, MIN_TIMESTAMP_STAT, 3L, MAX_TIMESTAMP_STAT, 8L);
           assertEquals(expectedStats, summary.getStatistics());
           assertEquals(0, summary.getFileStatistics().getInaccurate());
           assertEquals(1, summary.getFileStatistics().getTotal());
@@ -808,10 +850,10 @@ public class SummaryIT extends AccumuloClusterHarness {
         fail();
       } catch (TableNotFoundException e) {}
 
-      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FamilySummarizer.class)
-          .setPropertyId("p1").build();
-      SummarizerConfiguration sc2 = SummarizerConfiguration.builder(VisibilitySummarizer.class)
-          .setPropertyId("p1").build();
+      SummarizerConfiguration sc1 =
+          SummarizerConfiguration.builder(FamilySummarizer.class).setPropertyId("p1").build();
+      SummarizerConfiguration sc2 =
+          SummarizerConfiguration.builder(VisibilitySummarizer.class).setPropertyId("p1").build();
 
       c.tableOperations().create("foo");
       c.tableOperations().addSummarizers("foo", sc1);

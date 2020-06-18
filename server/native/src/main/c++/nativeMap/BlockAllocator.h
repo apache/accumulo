@@ -1,19 +1,21 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 #ifndef _BLOCK_ALLOCATOR_H_
 #define _BLOCK_ALLOCATOR_H_ 1
 
@@ -23,6 +25,32 @@
 #include <vector>
 #include <stdlib.h>
 #include <stddef.h>
+
+/*
+ * The code in this file provides a simple memory allocator for each tablet.
+ * This allocator has the following goals.
+ *
+ *  - Avoid calling the system allocator for each key,value inserted.
+ *  - Avoid interleaving key values of different tablets in memory.  This
+ *    avoids fragmenting memory.  Tablets slowly allocate memory over time and
+ *    then free it all at once.
+ *  - Support quick deallocation of a tablets memory when its minor
+ *    compacted/flushed.  Want to avoid deallocating each key/value individually.
+ *
+ * These goals are achieved by allocating 128K blocks from the system.
+ * Individual key values are allocated from these 128K blocks.  The allocator
+ * keeps a list of these 128K blocks and deallocates them all when needed.
+ * Large key values are allocated directly from the system.  This strategy
+ * avoids interleaving key/values from different tablets in memory and supports
+ * fast de-allocation.
+ *
+ * This allocator does not support deallocation, except in the special
+ * circumstance of deallocating the last thing added.  This supports the case
+ * of allocating a key to see if it already exist in the map and then
+ * deallocating it when its found to exist.
+ *
+ * This allocator is not thread safe.
+ */
 
 struct Block {
   unsigned char *data;
@@ -94,7 +122,6 @@ struct LinkedBlockAllocator {
   }
 
   void *allocate(size_t amount){
-
     if(amount > (size_t)bigBlockSize){
       unsigned char *p = new unsigned char[amount];
       bigBlocks.push_back(BigBlock(p, amount));
@@ -124,7 +151,7 @@ struct LinkedBlockAllocator {
         blocks.back().rollback(p);
         lastAlloc = NULL;
         return;
-      }else if(bigBlocks.back().ptr == p){
+      }else if(!bigBlocks.empty() && bigBlocks.back().ptr == p){
         memused -= (sizeof(BigBlock) + bigBlocks.back().length);
         bigBlocks.pop_back();
         delete((unsigned char *)p);

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -38,7 +40,7 @@ public class DeleteShellIterCommand extends Command {
     if (shellState.iteratorProfiles.containsKey(profile)) {
       if (cl.hasOption(allOpt.getOpt())) {
         shellState.iteratorProfiles.remove(profile);
-        Shell.log.info("Removed profile " + profile);
+        Shell.log.info("Removed profile {}", profile);
       } else {
         List<IteratorSetting> iterSettings = shellState.iteratorProfiles.get(profile);
         String name = cl.getOptionValue(nameOpt.getOpt());
@@ -50,16 +52,16 @@ public class DeleteShellIterCommand extends Command {
             break;
           }
         }
-        if (!found) {
-          Shell.log.info("No iterator named " + name + " found");
+        if (found) {
+          Shell.log.info("Removed iterator {} from profile {} ( left)", name, profile,
+              iterSettings.size());
         } else {
-          Shell.log.info("Removed iterator " + name + " from profile " + profile + " ("
-              + iterSettings.size() + " left)");
+          Shell.log.info("No iterator named {} found", name);
         }
       }
 
     } else {
-      Shell.log.info("No profile named " + profile);
+      Shell.log.info("No profile named {}", profile);
     }
 
     return 0;

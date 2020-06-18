@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -28,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -120,7 +123,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     for (File file : files) {
       // We want to grab the files called .out
       if (file.getName().contains(".out") && file.isFile() && file.canRead()) {
-        try (java.util.Scanner it = new java.util.Scanner(file, UTF_8.name())) {
+        try (java.util.Scanner it = new java.util.Scanner(file, UTF_8)) {
           while (it.hasNext()) {
             String line = it.nextLine();
             // strip off prefix, because log4j.properties does
@@ -144,7 +147,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
       System.out.println(s);
     }
     System.out.println("End of captured audit messages for step " + stepName);
-    if (result.size() > 0)
+    if (!result.isEmpty())
       lastAuditTimestamp = (result.get(result.size() - 1)).substring(0, 23);
 
     return result;
@@ -202,8 +205,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Testing activity begins here
-    auditAccumuloClient = getCluster().createAccumuloClient(AUDIT_USER_1,
-        new PasswordToken(PASSWORD));
+    auditAccumuloClient =
+        getCluster().createAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
     auditAccumuloClient.tableOperations().create(OLD_TEST_TABLE_NAME);
     auditAccumuloClient.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
     Map<String,String> emptyMap = Collections.emptyMap();
@@ -243,8 +246,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditAccumuloClient = getCluster().createAccumuloClient(AUDIT_USER_1,
-        new PasswordToken(PASSWORD));
+    auditAccumuloClient =
+        getCluster().createAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
     auditAccumuloClient.securityOperations().createLocalUser(AUDIT_USER_2,
         new PasswordToken(PASSWORD));
 
@@ -298,8 +301,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditAccumuloClient = getCluster().createAccumuloClient(AUDIT_USER_1,
-        new PasswordToken(PASSWORD));
+    auditAccumuloClient =
+        getCluster().createAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
     auditAccumuloClient.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
@@ -326,7 +329,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // Just grab the first rf file, it will do for now.
     String filePrefix = "file:";
 
-    try (java.util.Scanner it = new java.util.Scanner(distCpTxt, UTF_8.name())) {
+    try (java.util.Scanner it = new java.util.Scanner(distCpTxt, UTF_8)) {
       while (it.hasNext() && importFile == null) {
         String line = it.nextLine();
         if (line.matches(".*\\.rf")) {
@@ -336,7 +339,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
     }
     FileUtils.copyFileToDirectory(importFile, exportDir);
     FileUtils.copyFileToDirectory(importFile, exportDirBulk);
-    auditAccumuloClient.tableOperations().importTable(NEW_TEST_TABLE_NAME, exportDir.toString());
+    auditAccumuloClient.tableOperations().importTable(NEW_TEST_TABLE_NAME,
+        Collections.singleton(exportDir.toString()));
 
     // Now do a Directory (bulk) import of the same data.
     auditAccumuloClient.tableOperations().create(THIRD_TEST_TABLE_NAME);
@@ -361,7 +365,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_IMPORT_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME,
-                filePrefix + exportDir)));
+                Pattern.quote(Set.of(filePrefix + exportDir).toString()))));
     assertEquals(1, findAuditMessage(auditMessages, String
         .format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, THIRD_TEST_TABLE_NAME)));
     assertEquals(1,
@@ -386,8 +390,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditAccumuloClient = getCluster().createAccumuloClient(AUDIT_USER_1,
-        new PasswordToken(PASSWORD));
+    auditAccumuloClient =
+        getCluster().createAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
     auditAccumuloClient.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
@@ -440,8 +444,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // Create our user with no privs
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     client.tableOperations().create(OLD_TEST_TABLE_NAME);
-    auditAccumuloClient = getCluster().createAccumuloClient(AUDIT_USER_1,
-        new PasswordToken(PASSWORD));
+    auditAccumuloClient =
+        getCluster().createAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
 
     // Start testing activities
     // We should get denied or / failed audit messages here.

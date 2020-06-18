@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -39,16 +41,11 @@ import org.apache.accumulo.core.file.rfile.RFileTest.TestRFile;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Before;
 import org.junit.Test;
 
 public class IndexedDocIteratorTest {
-
-  private static final Logger log = Logger.getLogger(IndexedDocIteratorTest.class);
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static final byte[] nullByte = {0};
@@ -65,7 +62,6 @@ public class IndexedDocIteratorTest {
   static Text docColf = new Text(docColfPrefix);
 
   static {
-    log.setLevel(Level.OFF);
     docColf.append(nullByte, 0, 1);
     docColf.append("type".getBytes(), 0, "type".getBytes().length);
   }
@@ -81,10 +77,13 @@ public class IndexedDocIteratorTest {
 
     for (int i = 0; i < columnFamilies.length; i++) {
       negateMask[i] = false;
-      if (negatedColumns.length > 0)
-        for (Text ng : negatedColumns)
-          if (columnFamilies[i].equals(ng))
+      if (negatedColumns.length > 0) {
+        for (Text ng : negatedColumns) {
+          if (columnFamilies[i].equals(ng)) {
             negateMask[i] = true;
+          }
+        }
+      }
     }
     for (int i = 0; i < numRows; i++) {
       Text row = new Text(String.format("%06d", i));
@@ -106,11 +105,13 @@ public class IndexedDocIteratorTest {
             map.put(k, v);
             sb.append(" ");
             sb.append(columnFamilies[j]);
-            if (negateMask[j])
+            if (negateMask[j]) {
               docHits = false;
+            }
           } else {
-            if (!negateMask[j])
+            if (!negateMask[j]) {
               docHits = false;
+            }
           }
         }
         if (docHits) {
@@ -131,7 +132,7 @@ public class IndexedDocIteratorTest {
         }
         sb.append(" docID=").append(doc);
         Key k = new Key(row, docColf, new Text(String.format("%010d", docid).getBytes()));
-        map.put(k, new Value(sb.toString().getBytes()));
+        map.put(k, new Value(sb.toString()));
       }
     }
     return map;
@@ -157,14 +158,16 @@ public class IndexedDocIteratorTest {
         columnFamilies, otherColumnFamilies, docs, negatedColumns);
     trf.writer.startNewLocalityGroup("docs", RFileTest.newColFamByteSequence(docColf.toString()));
     for (Entry<Key,Value> entry : inMemoryMap.entrySet()) {
-      if (entry.getKey().getColumnFamily().equals(docColf))
+      if (entry.getKey().getColumnFamily().equals(docColf)) {
         trf.writer.append(entry.getKey(), entry.getValue());
+      }
     }
     trf.writer.startNewLocalityGroup("terms",
         RFileTest.newColFamByteSequence(indexColf.toString()));
     for (Entry<Key,Value> entry : inMemoryMap.entrySet()) {
-      if (entry.getKey().getColumnFamily().equals(indexColf))
+      if (entry.getKey().getColumnFamily().equals(indexColf)) {
         trf.writer.append(entry.getKey(), entry.getValue());
+      }
     }
 
     trf.closeWriter();
@@ -176,11 +179,6 @@ public class IndexedDocIteratorTest {
   private static synchronized void cleanup() throws IOException {
     trf.closeReader();
     docid = 0;
-  }
-
-  @Before
-  public void setUp() {
-    Logger.getRootLogger().setLevel(Level.ERROR);
   }
 
   private static final int NUM_ROWS = 5;

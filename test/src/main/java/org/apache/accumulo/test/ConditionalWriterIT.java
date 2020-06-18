@@ -1,23 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.test;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -44,7 +44,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -87,7 +86,8 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
@@ -100,15 +100,16 @@ import org.apache.hadoop.io.Text;
 import org.apache.htrace.Sampler;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
-import org.junit.Assume;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
-public class ConditionalWriterIT extends AccumuloClusterHarness {
+public class ConditionalWriterIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
 
   @Override
@@ -116,13 +117,24 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     return 60;
   }
 
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    super.configureMiniCluster(cfg, hadoopCoreSite);
-    // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
-    Map<String,String> siteConf = cfg.getSiteConfig();
-    siteConf.put(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "tracer.span.min.ms", "0");
-    cfg.setSiteConfig(siteConf);
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
+  }
+
+  @AfterClass
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  private static class Callback implements MiniClusterConfigurationCallback {
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
+      Map<String,String> siteConf = cfg.getSiteConfig();
+      siteConf.put(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "tracer.span.min.ms", "0");
+      cfg.setSiteConfig(siteConf);
+    }
   }
 
   public static long abs(long l) {
@@ -152,8 +164,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       client.tableOperations().create(tableName);
 
       try (
-          ConditionalWriter cw = client.createConditionalWriter(tableName,
-              new ConditionalWriterConfig());
+          ConditionalWriter cw =
+              client.createConditionalWriter(tableName, new ConditionalWriterConfig());
           Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
         // mutation conditional on column tx:seq not existing
@@ -165,38 +177,38 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
 
         // mutation conditional on column tx:seq being 1
-        ConditionalMutation cm1 = new ConditionalMutation("99006",
-            new Condition("tx", "seq").setValue("1"));
+        ConditionalMutation cm1 =
+            new ConditionalMutation("99006", new Condition("tx", "seq").setValue("1"));
         cm1.put("name", "last", "Doe");
         cm1.put("tx", "seq", "2");
         assertEquals(Status.ACCEPTED, cw.write(cm1).getStatus());
 
         // test condition where value differs
-        ConditionalMutation cm2 = new ConditionalMutation("99006",
-            new Condition("tx", "seq").setValue("1"));
+        ConditionalMutation cm2 =
+            new ConditionalMutation("99006", new Condition("tx", "seq").setValue("1"));
         cm2.put("name", "last", "DOE");
         cm2.put("tx", "seq", "2");
         assertEquals(Status.REJECTED, cw.write(cm2).getStatus());
 
         // test condition where column does not exists
-        ConditionalMutation cm3 = new ConditionalMutation("99006",
-            new Condition("txtypo", "seq").setValue("1"));
+        ConditionalMutation cm3 =
+            new ConditionalMutation("99006", new Condition("txtypo", "seq").setValue("1"));
         cm3.put("name", "last", "deo");
         cm3.put("tx", "seq", "2");
         assertEquals(Status.REJECTED, cw.write(cm3).getStatus());
 
         // test two conditions, where one should fail
-        ConditionalMutation cm4 = new ConditionalMutation("99006",
-            new Condition("tx", "seq").setValue("2"),
-            new Condition("name", "last").setValue("doe"));
+        ConditionalMutation cm4 =
+            new ConditionalMutation("99006", new Condition("tx", "seq").setValue("2"),
+                new Condition("name", "last").setValue("doe"));
         cm4.put("name", "last", "deo");
         cm4.put("tx", "seq", "3");
         assertEquals(Status.REJECTED, cw.write(cm4).getStatus());
 
         // test two conditions, where one should fail
-        ConditionalMutation cm5 = new ConditionalMutation("99006",
-            new Condition("tx", "seq").setValue("1"),
-            new Condition("name", "last").setValue("Doe"));
+        ConditionalMutation cm5 =
+            new ConditionalMutation("99006", new Condition("tx", "seq").setValue("1"),
+                new Condition("name", "last").setValue("Doe"));
         cm5.put("name", "last", "deo");
         cm5.put("tx", "seq", "3");
         assertEquals(Status.REJECTED, cw.write(cm5).getStatus());
@@ -208,9 +220,9 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         assertEquals("Doe", entry.getValue().toString());
 
         // test w/ two conditions that are met
-        ConditionalMutation cm6 = new ConditionalMutation("99006",
-            new Condition("tx", "seq").setValue("2"),
-            new Condition("name", "last").setValue("Doe"));
+        ConditionalMutation cm6 =
+            new ConditionalMutation("99006", new Condition("tx", "seq").setValue("2"),
+                new Condition("name", "last").setValue("Doe"));
         cm6.put("name", "last", "DOE");
         cm6.put("tx", "seq", "3");
         assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
@@ -219,8 +231,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         assertEquals("DOE", entry.getValue().toString());
 
         // test a conditional mutation that deletes
-        ConditionalMutation cm7 = new ConditionalMutation("99006",
-            new Condition("tx", "seq").setValue("3"));
+        ConditionalMutation cm7 =
+            new ConditionalMutation("99006", new Condition("tx", "seq").setValue("3"));
         cm7.putDelete("name", "last");
         cm7.putDelete("name", "first");
         cm7.putDelete("tx", "seq");
@@ -260,8 +272,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       client1.securityOperations().changeUserAuthorizations(user, auths);
       client1.securityOperations().grantSystemPermission(user, SystemPermission.CREATE_TABLE);
 
-      try (AccumuloClient client2 = Accumulo.newClient().from(client1.properties())
-          .as(user, user1.getToken()).build()) {
+      try (AccumuloClient client2 =
+          Accumulo.newClient().from(client1.properties()).as(user, user1.getToken()).build()) {
         client2.tableOperations().create(tableName);
 
         try (
@@ -272,8 +284,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
           ColumnVisibility cva = new ColumnVisibility("A");
           ColumnVisibility cvb = new ColumnVisibility("B");
 
-          ConditionalMutation cm0 = new ConditionalMutation("99006",
-              new Condition("tx", "seq").setVisibility(cva));
+          ConditionalMutation cm0 =
+              new ConditionalMutation("99006", new Condition("tx", "seq").setVisibility(cva));
           cm0.put("name", "last", cva, "doe");
           cm0.put("name", "first", cva, "john");
           cm0.put("tx", "seq", cva, "1");
@@ -368,8 +380,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
           new ConditionalWriterConfig().setAuthorizations(filteredAuths))) {
 
         // User has authorization, but didn't include it in the writer
-        ConditionalMutation cm0 = new ConditionalMutation("99006",
-            new Condition("tx", "seq").setVisibility(cvb));
+        ConditionalMutation cm0 =
+            new ConditionalMutation("99006", new Condition("tx", "seq").setVisibility(cvb));
         cm0.put("name", "last", cva, "doe");
         cm0.put("name", "first", cva, "john");
         cm0.put("tx", "seq", cva, "1");
@@ -383,8 +395,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         assertEquals(Status.INVISIBLE_VISIBILITY, cw.write(cm1).getStatus());
 
         // User does not have the authorization
-        ConditionalMutation cm2 = new ConditionalMutation("99006",
-            new Condition("tx", "seq").setVisibility(cvc));
+        ConditionalMutation cm2 =
+            new ConditionalMutation("99006", new Condition("tx", "seq").setVisibility(cvc));
         cm2.put("name", "last", cva, "doe");
         cm2.put("name", "first", cva, "john");
         cm2.put("tx", "seq", cva, "1");
@@ -398,9 +410,9 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         assertEquals(Status.INVISIBLE_VISIBILITY, cw.write(cm3).getStatus());
 
         // if any visibility is bad, good visibilities don't override
-        ConditionalMutation cm4 = new ConditionalMutation("99006",
-            new Condition("tx", "seq").setVisibility(cvb),
-            new Condition("tx", "seq").setVisibility(cva));
+        ConditionalMutation cm4 =
+            new ConditionalMutation("99006", new Condition("tx", "seq").setVisibility(cvb),
+                new Condition("tx", "seq").setVisibility(cva));
 
         cm4.put("name", "last", cva, "doe");
         cm4.put("name", "first", cva, "john");
@@ -423,9 +435,9 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         cm6.put("tx", "seq", cva, "1");
         assertEquals(Status.INVISIBLE_VISIBILITY, cw.write(cm6).getStatus());
 
-        ConditionalMutation cm7 = new ConditionalMutation("99006",
-            new Condition("tx", "seq").setVisibility(cvb),
-            new Condition("tx", "seq").setVisibility(cva).setValue("1"));
+        ConditionalMutation cm7 =
+            new ConditionalMutation("99006", new Condition("tx", "seq").setVisibility(cvb),
+                new Condition("tx", "seq").setVisibility(cva).setValue("1"));
         cm7.put("name", "last", cva, "doe");
         cm7.put("name", "first", cva, "john");
         cm7.put("tx", "seq", cva, "1");
@@ -439,9 +451,9 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       try (ConditionalWriter cw2 = client.createConditionalWriter(tableName,
           new ConditionalWriterConfig().setAuthorizations(exceedingAuths))) {
 
-        ConditionalMutation cm8 = new ConditionalMutation("99006",
-            new Condition("tx", "seq").setVisibility(cvb),
-            new Condition("tx", "seq").setVisibility(cva).setValue("1"));
+        ConditionalMutation cm8 =
+            new ConditionalMutation("99006", new Condition("tx", "seq").setVisibility(cvb),
+                new Condition("tx", "seq").setVisibility(cva).setValue("1"));
         cm8.put("name", "last", cva, "doe");
         cm8.put("name", "first", cva, "john");
         cm8.put("tx", "seq", cva, "1");
@@ -471,8 +483,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
           new HashSet<>());
 
       try (
-          ConditionalWriter cw = client.createConditionalWriter(tableName + "_clone",
-              new ConditionalWriterConfig());
+          ConditionalWriter cw =
+              client.createConditionalWriter(tableName + "_clone", new ConditionalWriterConfig());
           Scanner scanner = client.createScanner(tableName + "_clone", new Authorizations())) {
 
         ConditionalMutation cm0 = new ConditionalMutation("99006+", new Condition("tx", "seq"));
@@ -541,8 +553,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
         assertEquals("3", entry.getValue().toString());
 
-        try (ConditionalWriter cw = client.createConditionalWriter(tableName,
-            new ConditionalWriterConfig())) {
+        try (ConditionalWriter cw =
+            client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
 
           ConditionalMutation cm0 = new ConditionalMutation("ACCUMULO-1000",
               new Condition("count", "comments").setValue("3"));
@@ -575,9 +587,9 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
               new Condition("count2", "comments").setIterators(iterConfig2).setValue("2"));
           cm4.put("count2", "comments", "1");
 
-          ConditionalMutation cm5 = new ConditionalMutation("ACCUMULO-1002",
-              new Condition("count2", "comments").setIterators(iterConfig2, iterConfig3)
-                  .setValue("2"));
+          ConditionalMutation cm5 =
+              new ConditionalMutation("ACCUMULO-1002", new Condition("count2", "comments")
+                  .setIterators(iterConfig2, iterConfig3).setValue("2"));
           cm5.put("count2", "comments", "1");
 
           Iterator<Result> results = cw.write(Arrays.asList(cm3, cm4, cm5).iterator());
@@ -610,7 +622,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       Value val = super.getTopValue();
       long l = Long.parseLong(val.toString());
       String newVal = (l + amount) + "";
-      return new Value(newVal.getBytes(UTF_8));
+      return new Value(newVal);
     }
 
     @Override
@@ -629,7 +641,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       Value val = super.getTopValue();
       long l = Long.parseLong(val.toString());
       String newVal = l * amount + "";
-      return new Value(newVal.getBytes(UTF_8));
+      return new Value(newVal);
     }
 
     @Override
@@ -675,8 +687,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       client.tableOperations().online(tableName, true);
 
       try (
-          ConditionalWriter cw = client.createConditionalWriter(tableName,
-              new ConditionalWriterConfig());
+          ConditionalWriter cw =
+              client.createConditionalWriter(tableName, new ConditionalWriterConfig());
           Scanner scanner = client.createScanner(tableName, new Authorizations())) {
 
         ConditionalMutation cm6 = new ConditionalMutation("ACCUMULO-1000",
@@ -753,22 +765,22 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       ArrayList<ConditionalMutation> mutations = new ArrayList<>();
 
-      ConditionalMutation cm0 = new ConditionalMutation("99006",
-          new Condition("tx", "seq").setVisibility(cvab));
+      ConditionalMutation cm0 =
+          new ConditionalMutation("99006", new Condition("tx", "seq").setVisibility(cvab));
       cm0.put("name", "last", cvab, "doe");
       cm0.put("name", "first", cvab, "john");
       cm0.put("tx", "seq", cvab, "1");
       mutations.add(cm0);
 
-      ConditionalMutation cm1 = new ConditionalMutation("59056",
-          new Condition("tx", "seq").setVisibility(cvab));
+      ConditionalMutation cm1 =
+          new ConditionalMutation("59056", new Condition("tx", "seq").setVisibility(cvab));
       cm1.put("name", "last", cvab, "doe");
       cm1.put("name", "first", cvab, "jane");
       cm1.put("tx", "seq", cvab, "1");
       mutations.add(cm1);
 
-      ConditionalMutation cm2 = new ConditionalMutation("19059",
-          new Condition("tx", "seq").setVisibility(cvab));
+      ConditionalMutation cm2 =
+          new ConditionalMutation("19059", new Condition("tx", "seq").setVisibility(cvab));
       cm2.put("name", "last", cvab, "doe");
       cm2.put("name", "first", cvab, "jack");
       cm2.put("tx", "seq", cvab, "1");
@@ -809,8 +821,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         cm3.put("tx", "seq", cvab, "2");
         mutations.add(cm3);
 
-        ConditionalMutation cm4 = new ConditionalMutation("59056",
-            new Condition("tx", "seq").setVisibility(cvab));
+        ConditionalMutation cm4 =
+            new ConditionalMutation("59056", new Condition("tx", "seq").setVisibility(cvab));
         cm4.put("name", "last", cvab, "Doe");
         cm4.put("tx", "seq", cvab, "1");
         mutations.add(cm4);
@@ -888,8 +900,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         cml.add(cm);
       }
 
-      try (ConditionalWriter cw = client.createConditionalWriter(tableName,
-          new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw =
+          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
 
         Iterator<Result> results = cw.write(cml.iterator());
 
@@ -907,8 +919,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         ArrayList<ConditionalMutation> cml2 = new ArrayList<>(num);
 
         for (int i = 0; i < num; i++) {
-          ConditionalMutation cm = new ConditionalMutation(rows.get(i),
-              new Condition("meta", "seq").setValue("1"));
+          ConditionalMutation cm =
+              new ConditionalMutation(rows.get(i), new Condition("meta", "seq").setValue("1"));
 
           cm.put("meta", "seq", "2");
           cm.put("meta", "tx", UUID.randomUUID().toString());
@@ -959,22 +971,22 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       ArrayList<ConditionalMutation> mutations = new ArrayList<>();
 
-      ConditionalMutation cm0 = new ConditionalMutation("99006",
-          new Condition("tx", "seq").setVisibility(cvaob));
+      ConditionalMutation cm0 =
+          new ConditionalMutation("99006", new Condition("tx", "seq").setVisibility(cvaob));
       cm0.put("name+", "last", cvaob, "doe");
       cm0.put("name", "first", cvaob, "john");
       cm0.put("tx", "seq", cvaob, "1");
       mutations.add(cm0);
 
-      ConditionalMutation cm1 = new ConditionalMutation("59056",
-          new Condition("tx", "seq").setVisibility(cvaab));
+      ConditionalMutation cm1 =
+          new ConditionalMutation("59056", new Condition("tx", "seq").setVisibility(cvaab));
       cm1.put("name", "last", cvaab, "doe");
       cm1.put("name", "first", cvaab, "jane");
       cm1.put("tx", "seq", cvaab, "1");
       mutations.add(cm1);
 
-      ConditionalMutation cm2 = new ConditionalMutation("19059",
-          new Condition("tx", "seq").setVisibility(cvaob));
+      ConditionalMutation cm2 =
+          new ConditionalMutation("19059", new Condition("tx", "seq").setVisibility(cvaob));
       cm2.put("name", "last", cvaob, "doe");
       cm2.put("name", "first", cvaob, "jack");
       cm2.put("tx", "seq", cvaob, "1");
@@ -1026,8 +1038,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(tableName);
 
-      try (ConditionalWriter cw = client.createConditionalWriter(tableName,
-          new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw =
+          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
 
         ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
         cm1.put("tx", "seq", "1");
@@ -1035,18 +1047,18 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
         assertEquals(Status.ACCEPTED, cw.write(cm1).getStatus());
 
-        ConditionalMutation cm2 = new ConditionalMutation("r1",
-            new Condition("tx", "seq").setValue("1"));
+        ConditionalMutation cm2 =
+            new ConditionalMutation("r1", new Condition("tx", "seq").setValue("1"));
         cm2.put("tx", "seq", "2");
         cm2.put("data", "x", "b");
 
-        ConditionalMutation cm3 = new ConditionalMutation("r1",
-            new Condition("tx", "seq").setValue("1"));
+        ConditionalMutation cm3 =
+            new ConditionalMutation("r1", new Condition("tx", "seq").setValue("1"));
         cm3.put("tx", "seq", "2");
         cm3.put("data", "x", "c");
 
-        ConditionalMutation cm4 = new ConditionalMutation("r1",
-            new Condition("tx", "seq").setValue("1"));
+        ConditionalMutation cm4 =
+            new ConditionalMutation("r1", new Condition("tx", "seq").setValue("1"));
         cm4.put("tx", "seq", "2");
         cm4.put("data", "x", "d");
 
@@ -1165,8 +1177,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     @Override
     public void run() {
-      try (Scanner scanner = new IsolatedScanner(
-          client.createScanner(tableName, Authorizations.EMPTY))) {
+      try (Scanner scanner =
+          new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY))) {
         Random rand = new SecureRandom();
 
         for (int i = 0; i < 20; i++) {
@@ -1224,8 +1236,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
           break;
       }
 
-      try (ConditionalWriter cw = client.createConditionalWriter(tableName,
-          new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw =
+          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
 
         ArrayList<ByteSequence> rows = new ArrayList<>();
 
@@ -1321,14 +1333,14 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       cm1.put("data", "x", "a");
 
       try (
-          AccumuloClient client2 = Accumulo.newClient().from(client.properties())
-              .as(user, user1.getToken()).build();
-          ConditionalWriter cw1 = client2.createConditionalWriter(table1,
-              new ConditionalWriterConfig());
-          ConditionalWriter cw2 = client2.createConditionalWriter(table2,
-              new ConditionalWriterConfig());
-          ConditionalWriter cw3 = client2.createConditionalWriter(table3,
-              new ConditionalWriterConfig())) {
+          AccumuloClient client2 =
+              Accumulo.newClient().from(client.properties()).as(user, user1.getToken()).build();
+          ConditionalWriter cw1 =
+              client2.createConditionalWriter(table1, new ConditionalWriterConfig());
+          ConditionalWriter cw2 =
+              client2.createConditionalWriter(table2, new ConditionalWriterConfig());
+          ConditionalWriter cw3 =
+              client2.createConditionalWriter(table3, new ConditionalWriterConfig())) {
 
         // Should be able to conditional-update a table we have R/W on
         assertEquals(Status.ACCEPTED, cw3.write(cm1).getStatus());
@@ -1396,8 +1408,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
             fail("Saw unexpected column family and qualifier: " + entry);
         }
 
-        ConditionalMutation cm3 = new ConditionalMutation("r1",
-            new Condition("tx", "seq").setValue("1"));
+        ConditionalMutation cm3 =
+            new ConditionalMutation("r1", new Condition("tx", "seq").setValue("1"));
         cm3.put("tx", "seq", "2");
         cm3.put("data", "x", "b");
 
@@ -1418,8 +1430,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw = client.createConditionalWriter(table,
-          new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw =
+          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
 
         client.tableOperations().delete(table);
 
@@ -1447,8 +1459,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw = client.createConditionalWriter(table,
-          new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw =
+          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
 
         client.tableOperations().offline(table, true);
 
@@ -1481,13 +1493,13 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw = client.createConditionalWriter(table,
-          new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw =
+          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
 
         IteratorSetting iterSetting = new IteratorSetting(5, BadIterator.class);
 
-        ConditionalMutation cm1 = new ConditionalMutation("r1",
-            new Condition("tx", "seq").setIterators(iterSetting));
+        ConditionalMutation cm1 =
+            new ConditionalMutation("r1", new Condition("tx", "seq").setIterators(iterSetting));
         cm1.put("tx", "seq", "1");
         cm1.put("data", "x", "a");
 
@@ -1512,8 +1524,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw = client.createConditionalWriter(table,
-          new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw =
+          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
 
         ConditionalMutation cm1 = new ConditionalMutation("r1");
         cm1.put("tx", "seq", "1");
@@ -1527,11 +1539,9 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testTrace() throws Exception {
     // Need to add a getClientConfig() to AccumuloCluster
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     Process tracer = null;
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      AccumuloCluster cluster = getCluster();
-      MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
+      MiniAccumuloClusterImpl mac = getCluster();
       if (!client.tableOperations().exists("trace")) {
         tracer = mac.exec(TraceServer.class).getProcess();
         while (!client.tableOperations().exists("trace")) {
@@ -1545,9 +1555,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       TraceUtil.enableClientTraces("localhost", "testTrace", mac.getClientProperties());
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       long rootTraceId;
-      try (TraceScope root = Trace.startSpan("traceTest", Sampler.ALWAYS);
-          ConditionalWriter cw = client.createConditionalWriter(tableName,
-              new ConditionalWriterConfig())) {
+      try (TraceScope root = Trace.startSpan("traceTest", Sampler.ALWAYS); ConditionalWriter cw =
+          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
         rootTraceId = root.getSpan().getTraceId();
 
         // mutation conditional on column tx:seq not exiting

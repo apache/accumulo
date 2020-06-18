@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
@@ -22,7 +24,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -40,9 +41,11 @@ public class PropertyTest {
   @Test
   public void testProperties() {
     HashSet<String> validPrefixes = new HashSet<>();
-    for (Property prop : Property.values())
-      if (prop.getType().equals(PropertyType.PREFIX))
+    for (Property prop : Property.values()) {
+      if (prop.getType().equals(PropertyType.PREFIX)) {
         validPrefixes.add(prop.getKey());
+      }
+    }
 
     HashSet<String> propertyNames = new HashSet<>();
     for (Property prop : Property.values()) {
@@ -63,11 +66,12 @@ public class PropertyTest {
 
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;
-      for (String pre : validPrefixes)
+      for (String pre : validPrefixes) {
         if (prop.getKey().startsWith(pre)) {
           containsValidPrefix = true;
           break;
         }
+      }
       assertTrue("Invalid prefix on prop " + prop, containsValidPrefix);
 
       // make sure properties aren't duplicate
@@ -81,24 +85,14 @@ public class PropertyTest {
   @Test
   public void testPorts() {
     HashSet<Integer> usedPorts = new HashSet<>();
-    for (Property prop : Property.values())
+    for (Property prop : Property.values()) {
       if (prop.getType().equals(PropertyType.PORT)) {
         int port = Integer.parseInt(prop.getDefaultValue());
         assertFalse("Port already in use: " + port, usedPorts.contains(port));
         usedPorts.add(port);
         assertTrue("Port out of range of valid ports: " + port, port > 1023 && port < 65536);
       }
-  }
-
-  @Test
-  public void testRawDefaultValues() {
-    AccumuloConfiguration conf = DefaultConfiguration.getInstance();
-    assertEquals("${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}",
-        Property.VFS_CLASSLOADER_CACHE_DIR.getRawDefaultValue());
-    assertEquals(
-        new File(System.getProperty("java.io.tmpdir"),
-            "accumulo-vfs-cache-" + System.getProperty("user.name")).getAbsolutePath(),
-        conf.get(Property.VFS_CLASSLOADER_CACHE_DIR));
+    }
   }
 
   // This test verifies all "sensitive" properties are properly marked as sensitive
@@ -109,13 +103,14 @@ public class PropertyTest {
     conf.set("trace.token.property.blah", "something");
 
     // ignores duplicates because ConfigurationCopy already de-duplicates
-    Collector<Entry<String,String>,?,TreeMap<String,String>> treeMapCollector = Collectors
-        .toMap(Entry::getKey, Entry::getValue, (a, b) -> a, TreeMap::new);
+    Collector<Entry<String,String>,?,TreeMap<String,String>> treeMapCollector =
+        Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> a, TreeMap::new);
 
-    Predicate<Entry<String,String>> sensitiveNames = e -> e.getKey()
-        .equals(Property.INSTANCE_SECRET.getKey()) || e.getKey().toLowerCase().contains("password")
-        || e.getKey().toLowerCase().endsWith("secret")
-        || e.getKey().startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey());
+    Predicate<Entry<String,String>> sensitiveNames =
+        e -> e.getKey().equals(Property.INSTANCE_SECRET.getKey())
+            || e.getKey().toLowerCase().contains("password")
+            || e.getKey().toLowerCase().endsWith("secret")
+            || e.getKey().startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey());
 
     Predicate<Entry<String,String>> isMarkedSensitive = e -> Property.isSensitive(e.getKey());
 
@@ -180,7 +175,7 @@ public class PropertyTest {
   public void testIsValidTablePropertyKey() {
     for (Property prop : Property.values()) {
       if (prop.getKey().startsWith("table.") && !prop.getKey().equals("table.")) {
-        assertTrue(Property.isValidTablePropertyKey(prop.getKey()));
+        assertTrue(prop.getKey(), Property.isValidTablePropertyKey(prop.getKey()));
 
         if (prop.getType().equals(PropertyType.PREFIX)) {
           assertTrue(Property.isValidTablePropertyKey(prop.getKey() + "foo9"));

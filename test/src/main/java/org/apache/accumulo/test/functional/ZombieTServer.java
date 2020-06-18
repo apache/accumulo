@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
@@ -41,6 +43,7 @@ import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -100,11 +103,12 @@ public class ZombieTServer {
     Random random = new SecureRandom();
     random.setSeed(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
-    ServerContext context = new ServerContext(new SiteConfiguration());
+    var context = new ServerContext(SiteConfiguration.auto());
     TransactionWatcher watcher = new TransactionWatcher(context);
     final ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);
-    ServerAddress serverPort = TServerUtils.startTServer(context.getConfiguration(),
+    ServerAddress serverPort = TServerUtils.startTServer(
+        Metrics.initSystem(ZombieTServer.class.getSimpleName()), context.getConfiguration(),
         ThriftServerType.CUSTOM_HS_HA, processor, "ZombieTServer", "walking dead", 2, 1, 1000,
         10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
 
@@ -142,8 +146,8 @@ public class ZombieTServer {
       }
     };
 
-    byte[] lockContent = new ServerServices(addressString, Service.TSERV_CLIENT).toString()
-        .getBytes(UTF_8);
+    byte[] lockContent =
+        new ServerServices(addressString, Service.TSERV_CLIENT).toString().getBytes(UTF_8);
     if (zlock.tryLock(lw, lockContent)) {
       log.debug("Obtained tablet server lock {}", zlock.getLockPath());
     }

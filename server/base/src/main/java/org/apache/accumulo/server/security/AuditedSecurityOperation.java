@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security;
 
@@ -23,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Credentials;
@@ -65,14 +68,9 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   public static synchronized SecurityOperation getInstance(ServerContext context) {
-    return getInstance(context, false);
-  }
-
-  public static synchronized SecurityOperation getInstance(ServerContext context,
-      boolean initialize) {
     if (instance == null) {
-      instance = new AuditedSecurityOperation(context, getAuthorizor(context, initialize),
-          getAuthenticator(context, initialize), getPermHandler(context, initialize));
+      instance = new AuditedSecurityOperation(context, getAuthorizor(context),
+          getAuthenticator(context), getPermHandler(context));
     }
     return instance;
   }
@@ -133,9 +131,9 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_SCAN_AUDIT_TEMPLATE = "action: scan;"
-      + " targetTable: %s; authorizations: %s; range: %s; columns: %s;"
-      + " iterators: %s; iteratorOptions: %s;";
+  public static final String CAN_SCAN_AUDIT_TEMPLATE =
+      "action: scan;" + " targetTable: %s; authorizations: %s; range: %s; columns: %s;"
+          + " iterators: %s; iteratorOptions: %s;";
   private static final int MAX_ELEMENTS_TO_LOG = 10;
 
   private static List<String> truncate(Collection<?> list) {
@@ -158,8 +156,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throws ThriftSecurityException {
     if (shouldAudit(credentials, tableId)) {
       Range convertedRange = new Range(range);
-      List<String> convertedColumns = truncate(
-          Translator.translate(columns, new Translator.TColumnTranslator()));
+      List<String> convertedColumns =
+          truncate(Translator.translate(columns, new Translator.TColumnTranslator()));
       String tableName = getTableName(tableId);
 
       try {
@@ -178,9 +176,9 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_SCAN_BATCH_AUDIT_TEMPLATE = "action: scan;"
-      + " targetTable: %s; authorizations: %s; range: %s; columns: %s;"
-      + " iterators: %s; iteratorOptions: %s;";
+  public static final String CAN_SCAN_BATCH_AUDIT_TEMPLATE =
+      "action: scan;" + " targetTable: %s; authorizations: %s; range: %s; columns: %s;"
+          + " iterators: %s; iteratorOptions: %s;";
 
   @Override
   public boolean canScan(TCredentials credentials, TableId tableId, NamespaceId namespaceId,
@@ -189,15 +187,15 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throws ThriftSecurityException {
     if (shouldAudit(credentials, tableId)) {
       @SuppressWarnings({"unchecked", "rawtypes"})
-      Map<KeyExtent,List<Range>> convertedBatch = Translator.translate(tbatch,
-          new Translator.TKeyExtentTranslator(),
-          new Translator.ListTranslator(new Translator.TRangeTranslator()));
+      Map<KeyExtent,List<Range>> convertedBatch =
+          Translator.translate(tbatch, new Translator.TKeyExtentTranslator(),
+              new Translator.ListTranslator(new Translator.TRangeTranslator()));
       Map<KeyExtent,List<String>> truncated = new HashMap<>();
       for (Entry<KeyExtent,List<Range>> entry : convertedBatch.entrySet()) {
         truncated.put(entry.getKey(), truncate(entry.getValue()));
       }
-      List<Column> convertedColumns = Translator.translate(tcolumns,
-          new Translator.TColumnTranslator());
+      List<Column> convertedColumns =
+          Translator.translate(tcolumns, new Translator.TColumnTranslator());
       String tableName = getTableName(tableId);
 
       try {
@@ -216,8 +214,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CHANGE_AUTHORIZATIONS_AUDIT_TEMPLATE = "action:"
-      + " changeAuthorizations; targetUser: %s; authorizations: %s";
+  public static final String CHANGE_AUTHORIZATIONS_AUDIT_TEMPLATE =
+      "action:" + " changeAuthorizations; targetUser: %s; authorizations: %s";
 
   @Override
   public void changeAuthorizations(TCredentials credentials, String user,
@@ -231,8 +229,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CHANGE_PASSWORD_AUDIT_TEMPLATE = "action:"
-      + " changePassword; targetUser: %s;";
+  public static final String CHANGE_PASSWORD_AUDIT_TEMPLATE =
+      "action:" + " changePassword; targetUser: %s;";
 
   @Override
   public void changePassword(TCredentials credentials, Credentials newInfo)
@@ -246,8 +244,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CREATE_USER_AUDIT_TEMPLATE = "action: createUser;"
-      + " targetUser: %s; Authorizations: %s;";
+  public static final String CREATE_USER_AUDIT_TEMPLATE =
+      "action: createUser;" + " targetUser: %s; Authorizations: %s;";
 
   @Override
   public void createUser(TCredentials credentials, Credentials newUser,
@@ -261,8 +259,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_CREATE_TABLE_AUDIT_TEMPLATE = "action:"
-      + " createTable; targetTable: %s;";
+  public static final String CAN_CREATE_TABLE_AUDIT_TEMPLATE =
+      "action:" + " createTable; targetTable: %s;";
 
   @Override
   public boolean canCreateTable(TCredentials c, String tableName, NamespaceId namespaceId)
@@ -277,8 +275,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_DELETE_TABLE_AUDIT_TEMPLATE = "action:"
-      + " deleteTable; targetTable: %s;";
+  public static final String CAN_DELETE_TABLE_AUDIT_TEMPLATE =
+      "action:" + " deleteTable; targetTable: %s;";
 
   @Override
   public boolean canDeleteTable(TCredentials c, TableId tableId, NamespaceId namespaceId)
@@ -294,8 +292,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_RENAME_TABLE_AUDIT_TEMPLATE = "action:"
-      + " renameTable; targetTable: %s; newTableName: %s;";
+  public static final String CAN_RENAME_TABLE_AUDIT_TEMPLATE =
+      "action:" + " renameTable; targetTable: %s; newTableName: %s;";
 
   @Override
   public boolean canRenameTable(TCredentials c, TableId tableId, String oldTableName,
@@ -310,8 +308,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_SPLIT_TABLE_AUDIT_TEMPLATE = "action:"
-      + " splitTable; targetTable: %s; targetNamespace: %s;";
+  public static final String CAN_SPLIT_TABLE_AUDIT_TEMPLATE =
+      "action:" + " splitTable; targetTable: %s; targetNamespace: %s;";
 
   @Override
   public boolean canSplitTablet(TCredentials credentials, TableId table, NamespaceId namespaceId)
@@ -326,8 +324,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_PERFORM_SYSTEM_ACTION_AUDIT_TEMPLATE = "action:"
-      + " performSystemAction; principal: %s;";
+  public static final String CAN_PERFORM_SYSTEM_ACTION_AUDIT_TEMPLATE =
+      "action:" + " performSystemAction; principal: %s;";
 
   @Override
   public boolean canPerformSystemActions(TCredentials credentials) throws ThriftSecurityException {
@@ -342,8 +340,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_FLUSH_TABLE_AUDIT_TEMPLATE = "action:"
-      + " flushTable; targetTable: %s; targetNamespace: %s;";
+  public static final String CAN_FLUSH_TABLE_AUDIT_TEMPLATE =
+      "action:" + " flushTable; targetTable: %s; targetNamespace: %s;";
 
   @Override
   public boolean canFlush(TCredentials c, TableId tableId, NamespaceId namespaceId)
@@ -358,8 +356,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_ALTER_TABLE_AUDIT_TEMPLATE = "action:"
-      + " alterTable; targetTable: %s; targetNamespace: %s;";
+  public static final String CAN_ALTER_TABLE_AUDIT_TEMPLATE =
+      "action:" + " alterTable; targetTable: %s; targetNamespace: %s;";
 
   @Override
   public boolean canAlterTable(TCredentials c, TableId tableId, NamespaceId namespaceId)
@@ -374,8 +372,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_CLONE_TABLE_AUDIT_TEMPLATE = "action:"
-      + " cloneTable; targetTable: %s; newTableName: %s";
+  public static final String CAN_CLONE_TABLE_AUDIT_TEMPLATE =
+      "action:" + " cloneTable; targetTable: %s; newTableName: %s";
 
   @Override
   public boolean canCloneTable(TCredentials c, TableId tableId, String tableName,
@@ -383,8 +381,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throws ThriftSecurityException {
     String oldTableName = getTableName(tableId);
     try {
-      boolean result = super.canCloneTable(c, tableId, tableName, destinationNamespaceId,
-          sourceNamespaceId);
+      boolean result =
+          super.canCloneTable(c, tableId, tableName, destinationNamespaceId, sourceNamespaceId);
       audit(c, result, CAN_CLONE_TABLE_AUDIT_TEMPLATE, oldTableName, tableName);
       return result;
     } catch (ThriftSecurityException ex) {
@@ -393,8 +391,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_DELETE_RANGE_AUDIT_TEMPLATE = "action:"
-      + " deleteData; targetTable: %s; startRange: %s; endRange: %s;";
+  public static final String CAN_DELETE_RANGE_AUDIT_TEMPLATE =
+      "action:" + " deleteData; targetTable: %s; startRange: %s; endRange: %s;";
 
   @Override
   public boolean canDeleteRange(TCredentials c, TableId tableId, String tableName, Text startRow,
@@ -411,8 +409,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_BULK_IMPORT_AUDIT_TEMPLATE = "action:"
-      + " bulkImport; targetTable: %s; dataDir: %s; failDir: %s;";
+  public static final String CAN_BULK_IMPORT_AUDIT_TEMPLATE =
+      "action:" + " bulkImport; targetTable: %s; dataDir: %s; failDir: %s;";
 
   @Override
   public boolean canBulkImport(TCredentials c, TableId tableId, String tableName, String dir,
@@ -427,8 +425,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_COMPACT_TABLE_AUDIT_TEMPLATE = "action:"
-      + " compactTable; targetTable: %s; targetNamespace: %s;";
+  public static final String CAN_COMPACT_TABLE_AUDIT_TEMPLATE =
+      "action:" + " compactTable; targetTable: %s; targetNamespace: %s;";
 
   @Override
   public boolean canCompact(TCredentials c, TableId tableId, NamespaceId namespaceId)
@@ -443,8 +441,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_CHANGE_AUTHORIZATIONS_AUDIT_TEMPLATE = "action:"
-      + " changeAuthorizations; targetUser: %s;";
+  public static final String CAN_CHANGE_AUTHORIZATIONS_AUDIT_TEMPLATE =
+      "action:" + " changeAuthorizations; targetUser: %s;";
 
   @Override
   public boolean canChangeAuthorizations(TCredentials c, String user)
@@ -459,8 +457,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_CHANGE_PASSWORD_AUDIT_TEMPLATE = "action:"
-      + " changePassword; targetUser: %s;";
+  public static final String CAN_CHANGE_PASSWORD_AUDIT_TEMPLATE =
+      "action:" + " changePassword; targetUser: %s;";
 
   @Override
   public boolean canChangePassword(TCredentials c, String user) throws ThriftSecurityException {
@@ -503,8 +501,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_GRANT_SYSTEM_AUDIT_TEMPLATE = "action:"
-      + " grantSystem; targetUser: %s; targetPermission: %s;";
+  public static final String CAN_GRANT_SYSTEM_AUDIT_TEMPLATE =
+      "action:" + " grantSystem; targetUser: %s; targetPermission: %s;";
 
   @Override
   public boolean canGrantSystem(TCredentials c, String user, SystemPermission sysPerm)
@@ -521,8 +519,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_GRANT_TABLE_AUDIT_TEMPLATE = "action:"
-      + " grantTable; targetUser: %s; targetTable: %s; targetNamespace: %s;";
+  public static final String CAN_GRANT_TABLE_AUDIT_TEMPLATE =
+      "action:" + " grantTable; targetUser: %s; targetTable: %s; targetNamespace: %s;";
 
   @Override
   public boolean canGrantTable(TCredentials c, String user, TableId table, NamespaceId namespaceId)
@@ -537,8 +535,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_REVOKE_SYSTEM_AUDIT_TEMPLATE = "action:"
-      + " revokeSystem; targetUser: %s;, targetPermission: %s;";
+  public static final String CAN_REVOKE_SYSTEM_AUDIT_TEMPLATE =
+      "action:" + " revokeSystem; targetUser: %s;, targetPermission: %s;";
 
   @Override
   public boolean canRevokeSystem(TCredentials c, String user, SystemPermission sysPerm)
@@ -553,8 +551,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_REVOKE_TABLE_AUDIT_TEMPLATE = "action:"
-      + " revokeTable; targetUser: %s; targetTable %s; targetNamespace: %s;";
+  public static final String CAN_REVOKE_TABLE_AUDIT_TEMPLATE =
+      "action:" + " revokeTable; targetUser: %s; targetTable %s; targetNamespace: %s;";
 
   @Override
   public boolean canRevokeTable(TCredentials c, String user, TableId table, NamespaceId namespaceId)
@@ -569,25 +567,25 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_IMPORT_AUDIT_TEMPLATE = "action: import;"
-      + " targetTable: %s; dataDir: %s;";
+  public static final String CAN_IMPORT_AUDIT_TEMPLATE =
+      "action: import;" + " targetTable: %s; dataDir: %s;";
 
   @Override
-  public boolean canImport(TCredentials credentials, String tableName, String importDir,
+  public boolean canImport(TCredentials credentials, String tableName, Set<String> importDirs,
       NamespaceId namespaceId) throws ThriftSecurityException {
 
     try {
-      boolean result = super.canImport(credentials, tableName, importDir, namespaceId);
-      audit(credentials, result, CAN_IMPORT_AUDIT_TEMPLATE, tableName, importDir);
+      boolean result = super.canImport(credentials, tableName, importDirs, namespaceId);
+      audit(credentials, result, CAN_IMPORT_AUDIT_TEMPLATE, tableName, importDirs);
       return result;
     } catch (ThriftSecurityException ex) {
-      audit(credentials, ex, CAN_IMPORT_AUDIT_TEMPLATE, tableName, importDir);
+      audit(credentials, ex, CAN_IMPORT_AUDIT_TEMPLATE, tableName, importDirs);
       throw ex;
     }
   }
 
-  public static final String CAN_EXPORT_AUDIT_TEMPLATE = "action: export;"
-      + " targetTable: %s; dataDir: %s;";
+  public static final String CAN_EXPORT_AUDIT_TEMPLATE =
+      "action: export;" + " targetTable: %s; dataDir: %s;";
 
   @Override
   public boolean canExport(TCredentials credentials, TableId tableId, String tableName,
@@ -616,8 +614,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String GRANT_SYSTEM_PERMISSION_AUDIT_TEMPLATE = "action:"
-      + " grantSystemPermission; permission: %s; targetUser: %s;";
+  public static final String GRANT_SYSTEM_PERMISSION_AUDIT_TEMPLATE =
+      "action:" + " grantSystemPermission; permission: %s; targetUser: %s;";
 
   @Override
   public void grantSystemPermission(TCredentials credentials, String user,
@@ -631,8 +629,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String GRANT_TABLE_PERMISSION_AUDIT_TEMPLATE = "action:"
-      + " grantTablePermission; permission: %s; targetTable: %s; targetUser: %s;";
+  public static final String GRANT_TABLE_PERMISSION_AUDIT_TEMPLATE =
+      "action:" + " grantTablePermission; permission: %s; targetTable: %s; targetUser: %s;";
 
   @Override
   public void grantTablePermission(TCredentials credentials, String user, TableId tableId,
@@ -647,8 +645,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String REVOKE_SYSTEM_PERMISSION_AUDIT_TEMPLATE = "action:"
-      + " revokeSystemPermission; permission: %s; targetUser: %s;";
+  public static final String REVOKE_SYSTEM_PERMISSION_AUDIT_TEMPLATE =
+      "action:" + " revokeSystemPermission; permission: %s; targetUser: %s;";
 
   @Override
   public void revokeSystemPermission(TCredentials credentials, String user,
@@ -663,8 +661,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String REVOKE_TABLE_PERMISSION_AUDIT_TEMPLATE = "action:"
-      + " revokeTablePermission; permission: %s; targetTable: %s; targetUser: %s;";
+  public static final String REVOKE_TABLE_PERMISSION_AUDIT_TEMPLATE =
+      "action:" + " revokeTablePermission; permission: %s; targetTable: %s; targetUser: %s;";
 
   @Override
   public void revokeTablePermission(TCredentials credentials, String user, TableId tableId,
@@ -679,8 +677,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String HAS_SYSTEM_PERMISSION_AUDIT_TEMPLATE = "action:"
-      + " hasSystemPermission; permission: %s; targetUser: %s;";
+  public static final String HAS_SYSTEM_PERMISSION_AUDIT_TEMPLATE =
+      "action:" + " hasSystemPermission; permission: %s; targetUser: %s;";
 
   @Override
   public boolean hasSystemPermission(TCredentials credentials, String user,
@@ -695,8 +693,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE = "action:"
-      + " %s; targetTable: %s;";
+  public static final String CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE =
+      "action:" + " %s; targetTable: %s;";
 
   @Override
   public boolean canOnlineOfflineTable(TCredentials credentials, TableId tableId, FateOperation op,
@@ -719,8 +717,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_MERGE_TABLE_AUDIT_TEMPLATE = "action:"
-      + " mergeTable; targetTable: %s; targetNamespace: %s;";
+  public static final String CAN_MERGE_TABLE_AUDIT_TEMPLATE =
+      "action:" + " mergeTable; targetTable: %s; targetNamespace: %s;";
 
   @Override
   public boolean canMerge(TCredentials c, TableId tableId, NamespaceId namespaceId)

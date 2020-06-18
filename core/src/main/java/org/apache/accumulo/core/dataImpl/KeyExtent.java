@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.dataImpl;
 
@@ -304,10 +306,10 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   // The last tablet in a table has no end row, so null sorts last for end row; similarly, the first
   // tablet has no previous end row, so null sorts first for previous end row
-  private static final Comparator<KeyExtent> COMPARATOR = Comparator
-      .comparing(KeyExtent::getTableId)
-      .thenComparing(KeyExtent::getEndRow, Comparator.nullsLast(Text::compareTo))
-      .thenComparing(KeyExtent::getPrevEndRow, Comparator.nullsFirst(Text::compareTo));
+  private static final Comparator<KeyExtent> COMPARATOR =
+      Comparator.comparing(KeyExtent::getTableId)
+          .thenComparing(KeyExtent::getEndRow, Comparator.nullsLast(Text::compareTo))
+          .thenComparing(KeyExtent::getPrevEndRow, Comparator.nullsFirst(Text::compareTo));
 
   @Override
   public int compareTo(KeyExtent other) {
@@ -357,8 +359,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   public String toString() {
     String endRowString;
     String prevEndRowString;
-    String tableIdString = getTableId().canonical().replaceAll(";", "\\\\;").replaceAll("\\\\",
-        "\\\\\\\\");
+    String tableIdString =
+        getTableId().canonical().replaceAll(";", "\\\\;").replaceAll("\\\\", "\\\\\\\\");
 
     if (getEndRow() == null)
       endRowString = "<";
@@ -436,8 +438,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       this.setEndRow(null, false, false);
     } else {
 
-      TableId tableId = TableId
-          .of(new String(Arrays.copyOfRange(flattenedExtent.getBytes(), 0, semiPos), UTF_8));
+      TableId tableId =
+          TableId.of(new String(Arrays.copyOfRange(flattenedExtent.getBytes(), 0, semiPos), UTF_8));
 
       Text endRow = new Text();
       endRow.set(flattenedExtent.getBytes(), semiPos + 1,
@@ -449,10 +451,10 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     }
   }
 
-  public static byte[] tableOfMetadataRow(Text row) {
+  public static TableId tableOfMetadataRow(Text row) {
     KeyExtent ke = new KeyExtent();
     ke.decodeMetadataRow(row);
-    return ke.getTableId().canonical().getBytes(UTF_8);
+    return ke.getTableId();
   }
 
   public boolean contains(final ByteSequence bsrow) {
@@ -497,8 +499,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   public Range toMetadataRange() {
 
-    Text metadataPrevRow = TabletsSection.getRow(getTableId(),
-        getPrevEndRow() == null ? EMPTY_TEXT : getPrevEndRow());
+    Text metadataPrevRow =
+        TabletsSection.getRow(getTableId(), getPrevEndRow() == null ? EMPTY_TEXT : getPrevEndRow());
 
     return new Range(metadataPrevRow, getPrevEndRow() == null, getMetadataEntry(), true);
   }

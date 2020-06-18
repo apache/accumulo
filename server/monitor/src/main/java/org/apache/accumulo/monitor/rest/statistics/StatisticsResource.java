@@ -1,24 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.rest.statistics;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -37,6 +40,9 @@ import org.apache.accumulo.monitor.Monitor;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class StatisticsResource {
 
+  @Inject
+  private Monitor monitor;
+
   /**
    * Generates the total lookup rate
    *
@@ -45,7 +51,7 @@ public class StatisticsResource {
   @GET
   @Path("lookupRate")
   public double getLookupRate() {
-    return Monitor.getLookupRate();
+    return monitor.getLookupRate();
   }
 
   /**
@@ -56,7 +62,7 @@ public class StatisticsResource {
   @GET
   @Path("totalTables")
   public int getTotalTables() {
-    return Monitor.getTotalTables();
+    return monitor.getTotalTables();
   }
 
   /**
@@ -67,7 +73,7 @@ public class StatisticsResource {
   @GET
   @Path("totalTabletCount")
   public int getTotalTabletCount() {
-    return Monitor.getTotalTabletCount();
+    return monitor.getTotalTabletCount();
   }
 
   /**
@@ -78,7 +84,7 @@ public class StatisticsResource {
   @GET
   @Path("totalEntries")
   public long getTotalEntries() {
-    return Monitor.getTotalEntries();
+    return monitor.getTotalEntries();
   }
 
   /**
@@ -89,7 +95,7 @@ public class StatisticsResource {
   @GET
   @Path("totalIngestRate")
   public double getTotalIngestRate() {
-    return Monitor.getTotalIngestRate();
+    return monitor.getTotalIngestRate();
   }
 
   /**
@@ -100,7 +106,7 @@ public class StatisticsResource {
   @GET
   @Path("totalQueryRate")
   public double getTotalQueryRate() {
-    return Monitor.getTotalQueryRate();
+    return monitor.getTotalQueryRate();
   }
 
   /**
@@ -111,7 +117,7 @@ public class StatisticsResource {
   @GET
   @Path("totalScanRate")
   public double getTotalScanRate() {
-    return Monitor.getTotalScanRate();
+    return monitor.getTotalScanRate();
   }
 
   /**
@@ -122,7 +128,7 @@ public class StatisticsResource {
   @GET
   @Path("totalHoldTime")
   public long getTotalHoldTime() {
-    return Monitor.getTotalHoldTime();
+    return monitor.getTotalHoldTime();
   }
 
   /**
@@ -133,7 +139,7 @@ public class StatisticsResource {
   @GET
   @Path("gcStatus")
   public GCStatus getGcStatus() {
-    return Monitor.getGcStatus();
+    return monitor.getGcStatus();
   }
 
   /**
@@ -144,7 +150,7 @@ public class StatisticsResource {
   @GET
   @Path("totalLookups")
   public long getTotalLookups() {
-    return Monitor.getTotalLookups();
+    return monitor.getTotalLookups();
   }
 
   /**
@@ -155,7 +161,7 @@ public class StatisticsResource {
   @GET
   @Path("time/scanRate")
   public List<Pair<Long,Integer>> getScanRate() {
-    return Monitor.getScanRateOverTime();
+    return monitor.getScanRateOverTime();
   }
 
   /**
@@ -166,7 +172,7 @@ public class StatisticsResource {
   @GET
   @Path("time/queryRate")
   public List<Pair<Long,Integer>> getQueryRate() {
-    return Monitor.getQueryRateOverTime();
+    return monitor.getQueryRateOverTime();
   }
 
   /**
@@ -180,9 +186,9 @@ public class StatisticsResource {
 
     List<Pair<String,List<Pair<Long,Integer>>>> scanEntries = new ArrayList<>();
 
-    Pair<String,List<Pair<Long,Integer>>> read = new Pair<>("Read", Monitor.getScanRateOverTime());
-    Pair<String,List<Pair<Long,Integer>>> returned = new Pair<>("Returned",
-        Monitor.getQueryRateOverTime());
+    Pair<String,List<Pair<Long,Integer>>> read = new Pair<>("Read", monitor.getScanRateOverTime());
+    Pair<String,List<Pair<Long,Integer>>> returned =
+        new Pair<>("Returned", monitor.getQueryRateOverTime());
 
     scanEntries.add(read);
     scanEntries.add(returned);
@@ -198,7 +204,7 @@ public class StatisticsResource {
   @GET
   @Path("time/queryByteRate")
   public List<Pair<Long,Double>> getQueryByteRate() {
-    return Monitor.getQueryByteRateOverTime();
+    return monitor.getQueryByteRateOverTime();
   }
 
   /**
@@ -209,7 +215,7 @@ public class StatisticsResource {
   @GET
   @Path("time/load")
   public List<Pair<Long,Double>> getLoad() {
-    return Monitor.getLoadOverTime();
+    return monitor.getLoadOverTime();
   }
 
   /**
@@ -220,7 +226,7 @@ public class StatisticsResource {
   @GET
   @Path("time/ingestRate")
   public List<Pair<Long,Double>> getIngestRate() {
-    return Monitor.getIngestRateOverTime();
+    return monitor.getIngestRateOverTime();
   }
 
   /**
@@ -231,7 +237,7 @@ public class StatisticsResource {
   @GET
   @Path("time/ingestByteRate")
   public List<Pair<Long,Double>> getIngestByteRate() {
-    return Monitor.getIngestByteRateOverTime();
+    return monitor.getIngestByteRateOverTime();
   }
 
   /**
@@ -242,7 +248,7 @@ public class StatisticsResource {
   @GET
   @Path("time/minorCompactions")
   public List<Pair<Long,Integer>> getMinorCompactions() {
-    return Monitor.getMinorCompactionsOverTime();
+    return monitor.getMinorCompactionsOverTime();
   }
 
   /**
@@ -253,7 +259,7 @@ public class StatisticsResource {
   @GET
   @Path("time/majorCompactions")
   public List<Pair<Long,Integer>> getMajorCompactions() {
-    return Monitor.getMajorCompactionsOverTime();
+    return monitor.getMajorCompactionsOverTime();
   }
 
   /**
@@ -264,7 +270,7 @@ public class StatisticsResource {
   @GET
   @Path("time/lookups")
   public List<Pair<Long,Double>> getLookups() {
-    return Monitor.getLookupsOverTime();
+    return monitor.getLookupsOverTime();
   }
 
   /**
@@ -275,7 +281,7 @@ public class StatisticsResource {
   @GET
   @Path("time/indexCacheHitRate")
   public List<Pair<Long,Double>> getIndexCacheHitRate() {
-    return Monitor.getIndexCacheHitRateOverTime();
+    return monitor.getIndexCacheHitRateOverTime();
   }
 
   /**
@@ -286,6 +292,6 @@ public class StatisticsResource {
   @GET
   @Path("time/dataCacheHitRate")
   public List<Pair<Long,Double>> getDataCacheHitRate() {
-    return Monitor.getDataCacheHitRateOverTime();
+    return monitor.getDataCacheHitRateOverTime();
   }
 }

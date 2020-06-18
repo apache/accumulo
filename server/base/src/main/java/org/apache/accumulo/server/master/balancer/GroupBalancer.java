@@ -1,24 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.server.master.balancer;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,7 +45,7 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.commons.lang.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableInt;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
@@ -79,8 +82,8 @@ public abstract class GroupBalancer extends TabletBalancer {
   protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
     return () -> {
       try {
-        return TabletsMetadata.builder().forTable(tableId).fetchLocation().fetchPrev()
-            .build(context).stream().map(tm -> {
+        return TabletsMetadata.builder().forTable(tableId).fetch(LOCATION, PREV_ROW).build(context)
+            .stream().map(tm -> {
               Location loc = Location.NONE;
               if (tm.hasCurrent()) {
                 loc = new Location(new TServerInstance(tm.getLocation()));
@@ -130,7 +133,7 @@ public abstract class GroupBalancer extends TabletBalancer {
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
 
-    if (current.size() == 0) {
+    if (current.isEmpty()) {
       return;
     }
 
@@ -505,7 +508,7 @@ public abstract class GroupBalancer extends TabletBalancer {
       move.count--;
       if (move.count == 0) {
         srcMoves.remove(srcMoves.size() - 1);
-        if (srcMoves.size() == 0) {
+        if (srcMoves.isEmpty()) {
           moves.remove(src, group);
         }
       }
@@ -534,7 +537,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     ArrayList<TServerInstance> serversToRemove = new ArrayList<>();
 
     for (TserverGroupInfo destTgi : tservers.values()) {
-      if (surplusExtra.size() == 0) {
+      if (surplusExtra.isEmpty()) {
         break;
       }
 
@@ -561,7 +564,7 @@ public abstract class GroupBalancer extends TabletBalancer {
           }
         }
 
-        if (serversToRemove.size() > 0) {
+        if (!serversToRemove.isEmpty()) {
           surplusExtra.columnKeySet().removeAll(serversToRemove);
         }
 
@@ -590,7 +593,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
 
     balanceExtraMultiple(tservers, maxExtraGroups, moves, extraMultiple, false);
-    if (moves.size() < getMaxMigrations() && extraMultiple.size() > 0) {
+    if (moves.size() < getMaxMigrations() && !extraMultiple.isEmpty()) {
       // no place to move so must exceed maxExtra temporarily... subsequent balancer calls will
       // smooth things out
       balanceExtraMultiple(tservers, maxExtraGroups, moves, extraMultiple, true);
@@ -634,7 +637,7 @@ public abstract class GroupBalancer extends TabletBalancer {
           extraMultiple.remove(pair.getFirst(), pair.getSecond());
         }
 
-        if (extraMultiple.size() == 0 || moves.size() >= getMaxMigrations()) {
+        if (extraMultiple.isEmpty() || moves.size() >= getMaxMigrations()) {
           break;
         }
       }
@@ -658,7 +661,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     ArrayList<TServerInstance> emptyServers = new ArrayList<>();
     ArrayList<Pair<String,TServerInstance>> emptyServerGroups = new ArrayList<>();
     for (TserverGroupInfo destTgi : tservers.values()) {
-      if (extraSurplus.size() == 0) {
+      if (extraSurplus.isEmpty()) {
         break;
       }
 
@@ -693,7 +696,7 @@ public abstract class GroupBalancer extends TabletBalancer {
           }
         }
 
-        if (emptyServers.size() > 0) {
+        if (!emptyServers.isEmpty()) {
           extraSurplus.columnKeySet().removeAll(emptyServers);
         }
 

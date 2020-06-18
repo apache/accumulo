@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.mapreduce;
 
@@ -45,6 +47,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -209,7 +212,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       for (int i = 0; i < 10000; i++) {
         String row = String.format("%09d", i);
         Mutation m = new Mutation(new Text(row));
-        m.put(new Text("cf1"), new Text("cq1"), ts, new Value(("" + i).getBytes()));
+        m.put(new Text("cf1"), new Text("cq1"), ts, new Value("" + i));
         bw.addMutation(m);
       }
     }
@@ -275,8 +278,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       assertionErrors.put(table + "_cleanup", new AssertionError("Dummy_cleanup"));
 
       @SuppressWarnings("unchecked")
-      Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class
-          .forName(inputFormatClassName);
+      Class<? extends InputFormat<?,?>> inputFormatClass =
+          (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
 
       Job job = Job.getInstance(getConf(),
           this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
@@ -332,8 +335,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
@@ -390,8 +394,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections
-        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
@@ -412,7 +416,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.fetchColumns(job, fetchColumns);
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLogLevel(job, level);
 
-      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat aif = new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat aif =
+          new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
 
       List<InputSplit> splits = aif.getSplits(job);
 
@@ -423,13 +428,99 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       assertEquals(org.apache.accumulo.core.client.mapreduce.RangeInputSplit.class,
           split.getClass());
 
-      org.apache.accumulo.core.client.mapreduce.RangeInputSplit risplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
+      org.apache.accumulo.core.client.mapreduce.RangeInputSplit risplit =
+          (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
 
       assertEquals(table, risplit.getTableName());
       assertEquals(isolated, risplit.isIsolatedScan());
       assertEquals(localIters, risplit.usesLocalIterators());
       assertEquals(fetchColumns, risplit.getFetchedColumns());
       assertEquals(level, risplit.getLogLevel());
+    }
+  }
+
+  @Test(expected = IOException.class)
+  public void testGetSplitsNoReadPermission() throws Exception {
+    Job job = Job.getInstance();
+
+    String table = getUniqueNames(1)[0];
+    Authorizations auths = new Authorizations("foo");
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    boolean isolated = true, localIters = true;
+    Level level = Level.WARN;
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table);
+      client.securityOperations().revokeTablePermission(client.whoami(), table,
+          TablePermission.READ);
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setZooKeeperInstance(job,
+          cluster.getClientConfig());
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setConnectorInfo(job,
+          getAdminPrincipal(), getAdminToken());
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setInputTableName(job, table);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanAuthorizations(job,
+          auths);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanIsolation(job, isolated);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLocalIterators(job,
+          localIters);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.fetchColumns(job, fetchColumns);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLogLevel(job, level);
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat aif =
+          new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
+
+      aif.getSplits(job);
+    }
+  }
+
+  /*
+   * This tests the case where we do not have Table.READ permission, but we do have Namespace.READ.
+   * See issue #1370.
+   */
+  @Test
+  public void testGetSplitsWithNamespaceReadPermission() throws Exception {
+    Job job = Job.getInstance();
+
+    final String[] namespaceAndTable = getUniqueNames(2);
+    final String namespace = namespaceAndTable[0];
+    final String tableSimpleName = namespaceAndTable[1];
+    final String table = namespace + "." + tableSimpleName;
+    Authorizations auths = new Authorizations("foo");
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    final boolean isolated = true;
+    final boolean localIters = true;
+    Level level = Level.WARN;
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.namespaceOperations().create(namespace); // creating namespace implies Namespace.READ
+      client.tableOperations().create(table);
+      client.securityOperations().revokeTablePermission(client.whoami(), table,
+          TablePermission.READ);
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setZooKeeperInstance(job,
+          cluster.getClientConfig());
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setConnectorInfo(job,
+          getAdminPrincipal(), getAdminToken());
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setInputTableName(job, table);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanAuthorizations(job,
+          auths);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanIsolation(job, isolated);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLocalIterators(job,
+          localIters);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.fetchColumns(job, fetchColumns);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLogLevel(job, level);
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat aif =
+          new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
+
+      List<InputSplit> splits = aif.getSplits(job);
+
+      assertEquals(1, splits.size());
     }
   }
 
@@ -459,11 +550,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // Copy only the necessary information
       for (InputSplit oldSplit : oldSplits) {
-        // @formatter:off
         org.apache.accumulo.core.client.mapreduce.RangeInputSplit newSplit =
-          new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
-            (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
-        // @formatter:on
+            new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
+                (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
         newSplits.add(newSplit);
       }
 

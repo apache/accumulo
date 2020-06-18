@@ -1,25 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -80,12 +79,14 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
 
       // Checking for compaction on a scan should throw an error.
       try {
-        assertFalse(env.isUserCompaction());
-        fail("Expected to throw IllegalStateException when checking compaction on a scan.");
+        env.isUserCompaction();
+        throw new RuntimeException(
+            "Test failed - Expected to throw IllegalStateException when checking compaction on a scan.");
       } catch (IllegalStateException e) {}
       try {
-        assertFalse(env.isFullMajorCompaction());
-        fail("Expected to throw IllegalStateException when checking compaction on a scan.");
+        env.isFullMajorCompaction();
+        throw new RuntimeException(
+            "Test failed - Expected to throw IllegalStateException when checking compaction on a scan.");
       } catch (IllegalStateException e) {}
     }
   }
@@ -101,8 +102,16 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
         IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
       testEnv(scope, options, env);
-      assertTrue(env.isUserCompaction());
-      assertTrue(env.isFullMajorCompaction());
+      try {
+        env.isUserCompaction();
+      } catch (IllegalStateException e) {
+        throw new RuntimeException("Test failed");
+      }
+      try {
+        env.isFullMajorCompaction();
+      } catch (IllegalStateException e) {
+        throw new RuntimeException("Test failed");
+      }
     }
   }
 
@@ -118,12 +127,14 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
       super.init(source, options, env);
       testEnv(scope, options, env);
       try {
-        assertTrue(env.isUserCompaction());
-        fail("Expected to throw IllegalStateException when checking compaction on a scan.");
+        env.isUserCompaction();
+        throw new RuntimeException(
+            "Test failed - Expected to throw IllegalStateException when checking compaction on a scan.");
       } catch (IllegalStateException e) {}
       try {
-        assertFalse(env.isFullMajorCompaction());
-        fail("Expected to throw IllegalStateException when checking compaction on a scan.");
+        env.isFullMajorCompaction();
+        throw new RuntimeException(
+            "Test failed - Expected to throw IllegalStateException when checking compaction on a scan.");
       } catch (IllegalStateException e) {}
     }
   }
@@ -135,13 +146,19 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   private static void testEnv(IteratorScope scope, Map<String,String> opts,
       IteratorEnvironment env) {
     TableId expectedTableId = TableId.of(opts.get("expected.table.id"));
-    assertEquals("Expected table property not found", "value1",
-        env.getConfig().get("table.custom.iterator.env.test"));
-    assertEquals("Expected table property not found", "value1",
-        env.getServiceEnv().getConfiguration(env.getTableId()).getTableCustom("iterator.env.test"));
-    assertEquals("Error getting iterator scope", scope, env.getIteratorScope());
-    assertFalse("isSamplingEnabled returned true, expected false", env.isSamplingEnabled());
-    assertEquals("Error getting Table ID", expectedTableId, env.getTableId());
+    if (!"value1".equals(env.getConfig().get("table.custom.iterator.env.test")) && !"value1".equals(
+        env.getServiceEnv().getConfiguration(env.getTableId()).getTableCustom("iterator.env.test")))
+      throw new RuntimeException("Test failed - Expected table property not found.");
+    if (!"value1".equals(env.getConfig().get("table.custom.iterator.env.test")) && !"value1".equals(
+        env.getPluginEnv().getConfiguration(env.getTableId()).getTableCustom("iterator.env.test")))
+      throw new RuntimeException("Test failed - Expected table property not found.");
+    if (!scope.equals(env.getIteratorScope()))
+      throw new RuntimeException("Test failed - Error getting iterator scope");
+    if (env.isSamplingEnabled())
+      throw new RuntimeException("Test failed - isSamplingEnabled returned true, expected false");
+    if (!expectedTableId.equals(env.getTableId()))
+      throw new RuntimeException("Test failed - Error getting Table ID");
+
   }
 
   @Before

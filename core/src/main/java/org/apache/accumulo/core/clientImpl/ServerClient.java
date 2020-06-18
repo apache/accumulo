@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -34,7 +36,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
@@ -89,7 +90,7 @@ public class ServerClient {
       CT client = null;
       String server = null;
       try {
-        Pair<String,CT> pair = ServerClient.getConnection(context, factory);
+        Pair<String,CT> pair = ServerClient.getConnection(context, factory, true);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -111,7 +112,8 @@ public class ServerClient {
       ClientService.Client client = null;
       String server = null;
       try {
-        Pair<String,Client> pair = ServerClient.getConnection(context);
+        Pair<String,Client> pair =
+            ServerClient.getConnection(context, new ClientService.Client.Factory(), true);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);
@@ -130,31 +132,11 @@ public class ServerClient {
 
   static volatile boolean warnedAboutTServersBeingDown = false;
 
-  public static Pair<String,ClientService.Client> getConnection(ClientContext context)
-      throws TTransportException {
-    return getConnection(context, true);
-  }
-
   public static <CT extends TServiceClient> Pair<String,CT> getConnection(ClientContext context,
-      TServiceClientFactory<CT> factory) throws TTransportException {
-    return getConnection(context, factory, true, context.getClientTimeoutInMillis());
-  }
-
-  public static Pair<String,ClientService.Client> getConnection(ClientContext context,
-      boolean preferCachedConnections) throws TTransportException {
-    return getConnection(context, preferCachedConnections, context.getClientTimeoutInMillis());
-  }
-
-  public static Pair<String,ClientService.Client> getConnection(ClientContext context,
-      boolean preferCachedConnections, long rpcTimeout) throws TTransportException {
-    return getConnection(context, new ClientService.Client.Factory(), preferCachedConnections,
-        rpcTimeout);
-  }
-
-  public static <CT extends TServiceClient> Pair<String,CT> getConnection(ClientContext context,
-      TServiceClientFactory<CT> factory, boolean preferCachedConnections, long rpcTimeout)
+      TServiceClientFactory<CT> factory, boolean preferCachedConnections)
       throws TTransportException {
     checkArgument(context != null, "context is null");
+    long rpcTimeout = context.getClientTimeoutInMillis();
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<>();
 
@@ -162,7 +144,7 @@ public class ServerClient {
     ZooCache zc = context.getZooCache();
     for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
       String path = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver;
-      byte[] data = ZooUtil.getLockData(zc, path);
+      byte[] data = zc.getLockData(path);
       if (data != null) {
         String strData = new String(data, UTF_8);
         if (!strData.equals("master"))
@@ -173,8 +155,8 @@ public class ServerClient {
 
     boolean opened = false;
     try {
-      Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers,
-          preferCachedConnections);
+      Pair<String,TTransport> pair =
+          ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
       CT client = ThriftUtil.createClient(factory, pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;

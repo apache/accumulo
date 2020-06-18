@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
@@ -20,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
@@ -30,16 +33,9 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
-import com.google.common.collect.ImmutableMap;
 
 public class AccumuloConfigurationTest {
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testGetPropertyByString() {
@@ -196,8 +192,7 @@ public class AccumuloConfigurationTest {
     expected1.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a2", "asg34");
     assertEquals(expected1, pm1);
 
-    thrown.expect(UnsupportedOperationException.class);
-    pm1.put("k9", "v3");
+    assertThrows(UnsupportedOperationException.class, () -> pm1.put("k9", "v3"));
   }
 
   @Test
@@ -271,8 +266,8 @@ public class AccumuloConfigurationTest {
     Map<String,String> pmF = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
     assertSame(pmE, pmF);
     assertNotSame(pm5, pmE);
-    assertEquals(ImmutableMap.of(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123",
-        "hdfs://ib/p1"), pmE);
+    assertEquals(
+        Map.of(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1"), pmE);
 
     Map<String,String> pmG = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     Map<String,String> pmH = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
@@ -303,8 +298,8 @@ public class AccumuloConfigurationTest {
 
     assertEquals(2, executors.size());
 
-    ScanExecutorConfig sec = executors.stream().filter(c -> c.name.equals(defName)).findFirst()
-        .get();
+    ScanExecutorConfig sec =
+        executors.stream().filter(c -> c.name.equals(defName)).findFirst().get();
     assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
         sec.maxThreads);
     assertFalse(sec.priority.isPresent());
@@ -316,8 +311,8 @@ public class AccumuloConfigurationTest {
     assertEquals(6, sec.getCurrentMaxThreads());
     assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
         sec.maxThreads);
-    ScanExecutorConfig sec2 = tc.getScanExecutors().stream().filter(c -> c.name.equals(defName))
-        .findFirst().get();
+    ScanExecutorConfig sec2 =
+        tc.getScanExecutors().stream().filter(c -> c.name.equals(defName)).findFirst().get();
     assertEquals(6, sec2.maxThreads);
 
     // ensure new prop overrides deprecated prop
@@ -325,12 +320,12 @@ public class AccumuloConfigurationTest {
     assertEquals(9, sec.getCurrentMaxThreads());
     assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
         sec.maxThreads);
-    ScanExecutorConfig sec3 = tc.getScanExecutors().stream().filter(c -> c.name.equals(defName))
-        .findFirst().get();
+    ScanExecutorConfig sec3 =
+        tc.getScanExecutors().stream().filter(c -> c.name.equals(defName)).findFirst().get();
     assertEquals(9, sec3.maxThreads);
 
-    ScanExecutorConfig sec4 = executors.stream().filter(c -> c.name.equals("meta")).findFirst()
-        .get();
+    ScanExecutorConfig sec4 =
+        executors.stream().filter(c -> c.name.equals("meta")).findFirst().get();
     assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_META_THREADS.getDefaultValue()),
         sec4.maxThreads);
     assertFalse(sec4.priority.isPresent());
@@ -339,14 +334,14 @@ public class AccumuloConfigurationTest {
 
     tc.set("tserver.metadata.readahead.concurrent.max", "2");
     assertEquals(2, sec4.getCurrentMaxThreads());
-    ScanExecutorConfig sec5 = tc.getScanExecutors().stream().filter(c -> c.name.equals("meta"))
-        .findFirst().get();
+    ScanExecutorConfig sec5 =
+        tc.getScanExecutors().stream().filter(c -> c.name.equals("meta")).findFirst().get();
     assertEquals(2, sec5.maxThreads);
 
     tc.set(Property.TSERV_SCAN_EXECUTORS_META_THREADS.getKey(), "3");
     assertEquals(3, sec4.getCurrentMaxThreads());
-    ScanExecutorConfig sec6 = tc.getScanExecutors().stream().filter(c -> c.name.equals("meta"))
-        .findFirst().get();
+    ScanExecutorConfig sec6 =
+        tc.getScanExecutors().stream().filter(c -> c.name.equals("meta")).findFirst().get();
     assertEquals(3, sec6.maxThreads);
 
     String prefix = Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey();
@@ -358,19 +353,19 @@ public class AccumuloConfigurationTest {
 
     executors = tc.getScanExecutors();
     assertEquals(3, executors.size());
-    ScanExecutorConfig sec7 = executors.stream().filter(c -> c.name.equals("hulksmash")).findFirst()
-        .get();
+    ScanExecutorConfig sec7 =
+        executors.stream().filter(c -> c.name.equals("hulksmash")).findFirst().get();
     assertEquals(66, sec7.maxThreads);
     assertEquals(3, sec7.priority.getAsInt());
     assertEquals("com.foo.ScanPrioritizer", sec7.prioritizerClass.get());
-    assertEquals(ImmutableMap.of("k1", "v1", "k2", "v3"), sec7.prioritizerOpts);
+    assertEquals(Map.of("k1", "v1", "k2", "v3"), sec7.prioritizerOpts);
 
     tc.set(prefix + "hulksmash.threads", "44");
     assertEquals(66, sec7.maxThreads);
     assertEquals(44, sec7.getCurrentMaxThreads());
 
-    ScanExecutorConfig sec8 = tc.getScanExecutors().stream().filter(c -> c.name.equals("hulksmash"))
-        .findFirst().get();
+    ScanExecutorConfig sec8 =
+        tc.getScanExecutors().stream().filter(c -> c.name.equals("hulksmash")).findFirst().get();
     assertEquals(44, sec8.maxThreads);
   }
 }

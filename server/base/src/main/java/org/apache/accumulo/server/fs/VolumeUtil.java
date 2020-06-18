@@ -1,32 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.fs;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -39,11 +39,6 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,22 +49,6 @@ import org.slf4j.LoggerFactory;
 public class VolumeUtil {
 
   private static final Logger log = LoggerFactory.getLogger(VolumeUtil.class);
-  private static final SecureRandom rand = new SecureRandom();
-
-  private static boolean isActiveVolume(ServerContext context, Path dir) {
-
-    // consider relative path as active and take no action
-    if (!dir.toString().contains(":"))
-      return true;
-
-    for (String tableDir : ServerConstants.getTablesDirs(context)) {
-      // use Path to normalize tableDir
-      if (dir.toString().startsWith(new Path(tableDir).toString()))
-        return true;
-    }
-
-    return false;
-  }
 
   public static String removeTrailingSlash(String path) {
     while (path.endsWith("/"))
@@ -83,17 +62,11 @@ public class VolumeUtil {
     return path;
   }
 
-  public static String switchVolume(String path, FileType ft, List<Pair<Path,Path>> replacements) {
-    if (replacements.size() == 0) {
+  public static Path switchVolume(String path, FileType ft, List<Pair<Path,Path>> replacements) {
+    if (replacements.isEmpty()) {
       log.trace("Not switching volume because there are no replacements");
       return null;
     }
-
-    if (!path.contains(":")) {
-      // ignore relative paths
-      return null;
-    }
-
     Path p = new Path(path);
 
     // removing slash because new Path("hdfs://nn1").equals(new Path("hdfs://nn1/")) evaluates to
@@ -104,7 +77,7 @@ public class VolumeUtil {
       Path key = removeTrailingSlash(pair.getFirst());
 
       if (key.equals(volume)) {
-        String replacement = new Path(pair.getSecond(), ft.removeVolume(p)).toString();
+        Path replacement = new Path(pair.getSecond(), ft.removeVolume(p));
         log.trace("Replacing {} with {}", path, replacement);
         return replacement;
       }
@@ -116,15 +89,14 @@ public class VolumeUtil {
   }
 
   private static LogEntry switchVolumes(LogEntry le, List<Pair<Path,Path>> replacements) {
-    String switchedPath = switchVolume(le.filename, FileType.WAL, replacements);
+    Path switchedPath = switchVolume(le.filename, FileType.WAL, replacements);
+    String switchedString;
     int numSwitched = 0;
-    if (switchedPath != null)
+    if (switchedPath != null) {
+      switchedString = switchedPath.toString();
       numSwitched++;
-    else
-      switchedPath = le.filename;
-
-    if (switchVolume(le.filename, FileType.WAL, replacements) != null) {
-      numSwitched++;
+    } else {
+      switchedString = le.filename;
     }
 
     if (numSwitched == 0) {
@@ -132,7 +104,7 @@ public class VolumeUtil {
       return null;
     }
 
-    LogEntry newLogEntry = new LogEntry(le.extent, le.timestamp, le.server, switchedPath);
+    LogEntry newLogEntry = new LogEntry(le.extent, le.timestamp, le.server, switchedString);
 
     log.trace("Switched {} to {}", le, newLogEntry);
 
@@ -140,33 +112,21 @@ public class VolumeUtil {
   }
 
   public static class TabletFiles {
-    public String dir;
+    public String dirName;
     public List<LogEntry> logEntries;
-    public SortedMap<FileRef,DataFileValue> datafiles;
+    public SortedMap<StoredTabletFile,DataFileValue> datafiles;
 
     public TabletFiles() {
       logEntries = new ArrayList<>();
       datafiles = new TreeMap<>();
     }
 
-    public TabletFiles(String dir, List<LogEntry> logEntries,
-        SortedMap<FileRef,DataFileValue> datafiles) {
-      this.dir = dir;
+    public TabletFiles(String dirName, List<LogEntry> logEntries,
+        SortedMap<StoredTabletFile,DataFileValue> datafiles) {
+      this.dirName = dirName;
       this.logEntries = logEntries;
       this.datafiles = datafiles;
     }
-  }
-
-  public static String switchRootTableVolume(ServerContext context, String location)
-      throws IOException {
-    String newLocation = switchVolume(location, FileType.TABLE,
-        ServerConstants.getVolumeReplacements(context.getConfiguration(), context.getHadoopConf()));
-    if (newLocation != null) {
-      MetadataTableUtil.setRootTabletDir(context, newLocation);
-      log.info("Volume replaced: {} -> {}", location, newLocation);
-      return new Path(newLocation).toString();
-    }
-    return location;
   }
 
   /**
@@ -175,17 +135,18 @@ public class VolumeUtil {
    * for use it chooses a new tablet directory.
    */
   public static TabletFiles updateTabletVolumes(ServerContext context, ZooLock zooLock,
-      VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
-      throws IOException {
-    List<Pair<Path,Path>> replacements = ServerConstants
-        .getVolumeReplacements(context.getConfiguration(), context.getHadoopConf());
+      KeyExtent extent, TabletFiles tabletFiles, boolean replicate) {
+    List<Pair<Path,Path>> replacements =
+        ServerConstants.getVolumeReplacements(context.getConfiguration(), context.getHadoopConf());
+    if (replacements.isEmpty())
+      return tabletFiles;
     log.trace("Using volume replacements: {}", replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();
     List<LogEntry> logsToAdd = new ArrayList<>();
 
-    List<FileRef> filesToRemove = new ArrayList<>();
-    SortedMap<FileRef,DataFileValue> filesToAdd = new TreeMap<>();
+    List<StoredTabletFile> filesToRemove = new ArrayList<>();
+    SortedMap<TabletFile,DataFileValue> filesToAdd = new TreeMap<>();
 
     TabletFiles ret = new TabletFiles();
 
@@ -202,35 +163,23 @@ public class VolumeUtil {
       }
     }
 
-    if (extent.isRootTablet()) {
-      ret.datafiles = tabletFiles.datafiles;
-    } else {
-      for (Entry<FileRef,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
-        String metaPath = entry.getKey().meta().toString();
-        String switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
-        if (switchedPath != null) {
-          filesToRemove.add(entry.getKey());
-          FileRef switchedRef = new FileRef(switchedPath, new Path(switchedPath));
-          filesToAdd.put(switchedRef, entry.getValue());
-          ret.datafiles.put(switchedRef, entry.getValue());
-          log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);
-        } else {
-          ret.datafiles.put(entry.getKey(), entry.getValue());
-        }
+    for (Entry<StoredTabletFile,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
+      String metaPath = entry.getKey().getMetaUpdateDelete();
+      Path switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
+      if (switchedPath != null) {
+        filesToRemove.add(entry.getKey());
+        TabletFile switchedFile = new TabletFile(switchedPath);
+        filesToAdd.put(switchedFile, entry.getValue());
+        ret.datafiles.put(switchedFile.insert(), entry.getValue());
+        log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);
+      } else {
+        ret.datafiles.put(entry.getKey(), entry.getValue());
       }
     }
 
-    String tabletDir = tabletFiles.dir;
-    String switchedDir = switchVolume(tabletDir, FileType.TABLE, replacements);
-
-    if (switchedDir != null) {
-      log.debug("Replacing volume {} : {} -> {}", extent, tabletDir, switchedDir);
-      tabletDir = switchedDir;
-    }
-
-    if (logsToRemove.size() + filesToRemove.size() > 0 || switchedDir != null) {
+    if (logsToRemove.size() + filesToRemove.size() > 0) {
       MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove,
-          filesToAdd, switchedDir, zooLock, context);
+          filesToAdd, zooLock, context);
       if (replicate) {
         Status status = StatusUtil.fileClosed();
         log.debug("Tablet directory switched, need to record old log files {} {}", logsToRemove,
@@ -242,139 +191,8 @@ public class VolumeUtil {
       }
     }
 
-    ret.dir = decommisionedTabletDir(context, zooLock, vm, extent, tabletDir);
-    if (extent.isRootTablet()) {
-      SortedMap<FileRef,DataFileValue> copy = ret.datafiles;
-      ret.datafiles = new TreeMap<>();
-      for (Entry<FileRef,DataFileValue> entry : copy.entrySet()) {
-        ret.datafiles.put(
-            new FileRef(new Path(ret.dir, entry.getKey().path().getName()).toString()),
-            entry.getValue());
-      }
-    }
-
     // method this should return the exact strings that are in the metadata table
+    ret.dirName = tabletFiles.dirName;
     return ret;
   }
-
-  private static String decommisionedTabletDir(ServerContext context, ZooLock zooLock,
-      VolumeManager vm, KeyExtent extent, String metaDir) throws IOException {
-    Path dir = new Path(metaDir);
-    if (isActiveVolume(context, dir))
-      return metaDir;
-
-    if (!dir.getParent().getParent().getName().equals(ServerConstants.TABLE_DIR)) {
-      throw new IllegalArgumentException("Unexpected table dir " + dir);
-    }
-
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(extent.getTableId(),
-        extent.getEndRow(), context);
-
-    Path newDir = new Path(vm.choose(chooserEnv, ServerConstants.getBaseUris(context))
-        + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName()
-        + Path.SEPARATOR + dir.getName());
-
-    log.info("Updating directory for {} from {} to {}", extent, dir, newDir);
-    if (extent.isRootTablet()) {
-      // the root tablet is special case, its files need to be copied if its dir is changed
-
-      // this code needs to be idempotent
-
-      FileSystem fs1 = vm.getVolumeByPath(dir).getFileSystem();
-      FileSystem fs2 = vm.getVolumeByPath(newDir).getFileSystem();
-
-      if (!same(fs1, dir, fs2, newDir)) {
-        if (fs2.exists(newDir)) {
-          Path newDirBackup = getBackupName(newDir);
-          // never delete anything because were dealing with the root tablet
-          // one reason this dir may exist is because this method failed previously
-          log.info("renaming {} to {}", newDir, newDirBackup);
-          if (!fs2.rename(newDir, newDirBackup)) {
-            throw new IOException("Failed to rename " + newDir + " to " + newDirBackup);
-          }
-        }
-
-        // do a lot of logging since this is the root tablet
-        log.info("copying {} to {}", dir, newDir);
-        if (!FileUtil.copy(fs1, dir, fs2, newDir, false, context.getHadoopConf())) {
-          throw new IOException("Failed to copy " + dir + " to " + newDir);
-        }
-
-        // only set the new location in zookeeper after a successful copy
-        log.info("setting root tablet location to {}", newDir);
-        MetadataTableUtil.setRootTabletDir(context, newDir.toString());
-
-        // rename the old dir to avoid confusion when someone looks at filesystem... its ok if we
-        // fail here and this does not happen because the location in
-        // zookeeper is the authority
-        Path dirBackup = getBackupName(dir);
-        log.info("renaming {} to {}", dir, dirBackup);
-        fs1.rename(dir, dirBackup);
-
-      } else {
-        log.info("setting root tablet location to {}", newDir);
-        MetadataTableUtil.setRootTabletDir(context, newDir.toString());
-      }
-
-      return newDir.toString();
-    } else {
-      MetadataTableUtil.updateTabletDir(extent, newDir.toString(), context, zooLock);
-      return newDir.toString();
-    }
-  }
-
-  static boolean same(FileSystem fs1, Path dir, FileSystem fs2, Path newDir)
-      throws FileNotFoundException, IOException {
-    // its possible that a user changes config in such a way that two uris point to the same thing.
-    // Like hdfs://foo/a/b and hdfs://1.2.3.4/a/b both reference
-    // the same thing because DNS resolves foo to 1.2.3.4. This method does not analyze uris to
-    // determine if equivalent, instead it inspects the contents of
-    // what the uris point to.
-
-    // this code is called infrequently and does not need to be optimized.
-
-    if (fs1.exists(dir) && fs2.exists(newDir)) {
-
-      if (!fs1.getFileStatus(dir).isDirectory())
-        throw new IllegalArgumentException("expected " + dir + " to be a directory");
-
-      if (!fs2.getFileStatus(newDir).isDirectory())
-        throw new IllegalArgumentException("expected " + newDir + " to be a directory");
-
-      HashSet<String> names1 = getFileNames(fs1.listStatus(dir));
-      HashSet<String> names2 = getFileNames(fs2.listStatus(newDir));
-
-      if (names1.equals(names2)) {
-        for (String name : names1)
-          if (!hash(fs1, dir, name).equals(hash(fs2, newDir, name)))
-            return false;
-        return true;
-      }
-
-    }
-    return false;
-  }
-
-  private static HashSet<String> getFileNames(FileStatus[] filesStatuses) {
-    HashSet<String> names = new HashSet<>();
-    for (FileStatus fileStatus : filesStatuses)
-      if (fileStatus.isDirectory())
-        throw new IllegalArgumentException("expected " + fileStatus.getPath() + " to be a file");
-      else
-        names.add(fileStatus.getPath().getName());
-    return names;
-  }
-
-  private static String hash(FileSystem fs, Path dir, String name) throws IOException {
-    try (FSDataInputStream in = fs.open(new Path(dir, name))) {
-      return DigestUtils.sha512Hex(in);
-    }
-
-  }
-
-  private static Path getBackupName(Path path) {
-    return new Path(path.getParent(), path.getName() + "_" + System.currentTimeMillis() + "_"
-        + (rand.nextInt(Integer.MAX_VALUE) + 1) + ".bak");
-  }
-
 }

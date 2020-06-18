@@ -1,22 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl.bulk;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.groupingBy;
 
 import java.io.FileNotFoundException;
@@ -41,6 +45,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -49,6 +54,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationArguments;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
+import org.apache.accumulo.core.clientImpl.AccumuloBulkMergeException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -58,6 +64,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -72,6 +79,8 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.fate.util.Retry;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -118,24 +127,70 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Map<String,String> props = context.instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
 
-    FileSystem fs = VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf)
-        .getFileSystem();
+    FileSystem fs =
+        VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf).getFileSystem();
 
     Path srcPath = checkPath(fs, dir);
 
     SortedMap<KeyExtent,Bulk.Files> mappings;
-    if (plan == null) {
-      mappings = computeMappingFromFiles(fs, tableId, srcPath);
-    } else {
-      mappings = computeMappingFromPlan(fs, tableId, srcPath);
+    TableOperationsImpl tableOps = new TableOperationsImpl(context);
+
+    int maxTablets = 0;
+    for (var prop : tableOps.getProperties(tableName)) {
+      if (prop.getKey().equals(Property.TABLE_BULK_MAX_TABLETS.getKey())) {
+        maxTablets = Integer.parseInt(prop.getValue());
+        break;
+      }
     }
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
+        .incrementBy(100, MILLISECONDS).maxWait(2, MINUTES).backOffFactor(1.5)
+        .logInterval(3, TimeUnit.MINUTES).createRetry();
 
-    BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
+    // retry if a merge occurs
+    boolean shouldRetry = true;
+    while (shouldRetry) {
+      if (plan == null) {
+        mappings = computeMappingFromFiles(fs, tableId, srcPath, maxTablets);
+      } else {
+        mappings = computeMappingFromPlan(fs, tableId, srcPath, maxTablets);
+      }
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
-        ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
-        ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
-    new TableOperationsImpl(context).doBulkFateOperation(args, tableName);
+      if (mappings.isEmpty())
+        throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
+
+      BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
+
+      List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
+          ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
+          ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
+      try {
+        tableOps.doBulkFateOperation(args, tableName);
+        shouldRetry = false;
+      } catch (AccumuloBulkMergeException ae) {
+        if (plan != null) {
+          checkPlanForSplits(ae);
+        }
+        try {
+          retry.waitForNextAttempt();
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+        log.info(ae.getMessage() + ". Retrying bulk import to " + tableName);
+      }
+    }
+  }
+
+  /**
+   * Check if splits were specified in plan when a concurrent merge occurred. If so, throw error
+   * back to user since retrying won't help. If not, then retry.
+   */
+  private void checkPlanForSplits(AccumuloBulkMergeException abme) throws AccumuloException {
+    for (Destination des : plan.getDestinations()) {
+      if (des.getRangeType().equals(RangeType.TABLE)) {
+        throw new AccumuloException("The splits provided in Load Plan do not exist in " + tableName,
+            abme);
+      }
+    }
   }
 
   /**
@@ -185,7 +240,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   @Override
   public ImportMappingOptions plan(LoadPlan plan) {
-    this.plan = plan;
+    this.plan = Objects.requireNonNull(plan);
     return this;
   }
 
@@ -339,11 +394,11 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   private SortedMap<KeyExtent,Files> computeMappingFromPlan(FileSystem fs, TableId tableId,
-      Path srcPath)
+      Path srcPath, int maxTablets)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    Map<String,List<Destination>> fileDestinations = plan.getDestinations().stream()
-        .collect(groupingBy(Destination::getFileName));
+    Map<String,List<Destination>> fileDestinations =
+        plan.getDestinations().stream().collect(groupingBy(Destination::getFileName));
 
     List<FileStatus> statuses = filterInvalid(
         fs.listStatus(srcPath, p -> !p.getName().equals(Constants.BULK_LOAD_MAPPING)));
@@ -362,7 +417,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     // leverages read ahead.
     fileDestinations.values().stream().flatMap(List::stream)
         .filter(dest -> dest.getRangeType() == RangeType.FILE)
-        .flatMap(dest -> Stream.of(dest.getStartRow(), dest.getEndRow())).filter(row -> row != null)
+        .flatMap(dest -> Stream.of(dest.getStartRow(), dest.getEndRow())).filter(Objects::nonNull)
         .map(Text::new).sorted().distinct().forEach(row -> {
           try {
             extentCache.lookup(row);
@@ -376,7 +431,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     for (Entry<String,List<Destination>> entry : fileDestinations.entrySet()) {
       String fileName = entry.getKey();
       List<Destination> destinations = entry.getValue();
-      Set<KeyExtent> extents = mapDesitnationsToExtents(tableId, extentCache, destinations);
+      Set<KeyExtent> extents = mapDestinationsToExtents(tableId, extentCache, destinations);
+      log.debug("The file {} mapped to {} tablets.", fileName, extents.size());
+      checkTabletCount(maxTablets, extents.size(), fileName);
 
       long estSize = (long) (fileLens.get(fileName) / (double) extents.size());
 
@@ -393,7 +450,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return row == null ? null : new Text(row);
   }
 
-  private Set<KeyExtent> mapDesitnationsToExtents(TableId tableId, KeyExtentCache kec,
+  private Set<KeyExtent> mapDestinationsToExtents(TableId tableId, KeyExtentCache kec,
       List<Destination> destinations)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Set<KeyExtent> extents = new HashSet<>();
@@ -424,7 +481,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   private SortedMap<KeyExtent,Bulk.Files> computeMappingFromFiles(FileSystem fs, TableId tableId,
-      Path dirPath) throws IOException {
+      Path dirPath, int maxTablets) throws IOException {
 
     Executor executor;
     ExecutorService service = null;
@@ -435,12 +492,12 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       executor = service = Executors.newFixedThreadPool(numThreads);
     } else {
       String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
-      executor = service = Executors
-          .newFixedThreadPool(ConfigurationTypeHelper.getNumThreads(threads));
+      executor =
+          service = Executors.newFixedThreadPool(ConfigurationTypeHelper.getNumThreads(threads));
     }
 
     try {
-      return computeFileToTabletMappings(fs, tableId, dirPath, executor, context);
+      return computeFileToTabletMappings(fs, tableId, dirPath, executor, context, maxTablets);
     } finally {
       if (service != null) {
         service.shutdown();
@@ -449,30 +506,24 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   }
 
-  private static List<FileStatus> filterInvalid(FileStatus[] files) {
-    ArrayList<FileStatus> fileList = new ArrayList<>(files.length);
+  public static List<FileStatus> filterInvalid(FileStatus[] files) {
 
+    ArrayList<FileStatus> fileList = new ArrayList<>(files.length);
     for (FileStatus fileStatus : files) {
 
       String fname = fileStatus.getPath().getName();
 
-      if (fname.equals("_SUCCESS") || fname.equals("_logs")) {
-        log.debug("Ignoring file likely created by map reduce : {}", fileStatus.getPath());
-        continue;
-      }
-
       if (fileStatus.isDirectory()) {
-        log.warn("{} is a directory, ignoring.", fileStatus.getPath());
+        log.debug("{} is a directory, ignoring.", fileStatus.getPath());
         continue;
       }
 
-      String[] sa = fname.split("\\.");
-      String extension = "";
-      if (sa.length > 1) {
-        extension = sa[sa.length - 1];
+      if (FileOperations.getBulkWorkingFiles().contains(fname)) {
+        log.debug("{} is an internal working file, ignoring.", fileStatus.getPath());
+        continue;
       }
 
-      if (!FileOperations.getValidExtensions().contains(extension)) {
+      if (!FileOperations.getValidExtensions().contains(FilenameUtils.getExtension(fname))) {
         log.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
         continue;
       }
@@ -483,8 +534,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return fileList;
   }
 
-  public static SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs,
-      TableId tableId, Path dirPath, Executor executor, ClientContext context) throws IOException {
+  public SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs, TableId tableId,
+      Path dirPath, Executor executor, ClientContext context, int maxTablets) throws IOException {
 
     KeyExtentCache extentCache = new ConcurrentKeyExtentCache(tableId, context);
 
@@ -500,21 +551,22 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     CryptoService cs = CryptoServiceFactory.newDefaultInstance();
 
     for (FileStatus fileStatus : files) {
+      Path filePath = fileStatus.getPath();
       CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future = CompletableFuture.supplyAsync(() -> {
         try {
           long t1 = System.currentTimeMillis();
-          List<KeyExtent> extents = findOverlappingTablets(context, extentCache,
-              fileStatus.getPath(), fs, fileLensCache, cs);
-          Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(),
-              fileStatus.getPath(), fileStatus.getLen(), extents, fs, fileLensCache, cs);
+          List<KeyExtent> extents =
+              findOverlappingTablets(context, extentCache, filePath, fs, fileLensCache, cs);
+          // make sure file isn't going to too many tablets
+          checkTabletCount(maxTablets, extents.size(), filePath.toString());
+          Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(), filePath,
+              fileStatus.getLen(), extents, fs, fileLensCache, cs);
           Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
           for (KeyExtent ke : extents) {
-            pathLocations.put(ke,
-                new Bulk.FileInfo(fileStatus.getPath(), estSizes.getOrDefault(ke, 0L)));
+            pathLocations.put(ke, new Bulk.FileInfo(filePath, estSizes.getOrDefault(ke, 0L)));
           }
           long t2 = System.currentTimeMillis();
-          log.trace("Mapped {} to {} tablets in {}ms", fileStatus.getPath(), pathLocations.size(),
-              t2 - t1);
+          log.debug("Mapped {} to {} tablets in {}ms", filePath, pathLocations.size(), t2 - t1);
           return pathLocations;
         } catch (Exception e) {
           throw new CompletionException(e);
@@ -545,8 +597,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   // This method handles the case of splits happening while files are being examined. It merges
   // smaller tablets into large tablets.
-  static SortedMap<KeyExtent,Bulk.Files> mergeOverlapping(
-      SortedMap<KeyExtent,Bulk.Files> mappings) {
+  static SortedMap<KeyExtent,Bulk.Files>
+      mergeOverlapping(SortedMap<KeyExtent,Bulk.Files> mappings) {
     List<KeyExtent> extents = new ArrayList<>(mappings.keySet());
 
     for (KeyExtent ke : extents) {
@@ -570,5 +622,11 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     }
 
     return mappings;
+  }
+
+  private void checkTabletCount(int tabletMaxSize, int tabletCount, String file) {
+    if (tabletMaxSize > 0 && tabletCount > tabletMaxSize)
+      throw new IllegalArgumentException("The file " + file + " attempted to import to "
+          + tabletCount + " tablets. Max tablets allowed set to " + tabletMaxSize);
   }
 }

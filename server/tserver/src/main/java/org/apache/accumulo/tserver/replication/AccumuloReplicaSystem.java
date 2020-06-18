@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.replication;
 
@@ -57,11 +59,10 @@ import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.replication.ReplicaSystem;
 import org.apache.accumulo.server.replication.ReplicaSystemHelper;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -71,7 +72,6 @@ import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -90,7 +90,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
   private String instanceName, zookeepers;
   private AccumuloConfiguration conf;
-  private VolumeManager fs;
+  private ServerContext context;
 
   protected void setConf(AccumuloConfiguration conf) {
     this.conf = conf;
@@ -121,13 +121,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     instanceName = configuration.substring(0, index);
     zookeepers = configuration.substring(index + 1);
     conf = context.getConfiguration();
-
-    try {
-      fs = VolumeManagerImpl.get(conf, context.getHadoopConf());
-    } catch (IOException e) {
-      log.error("Could not connect to filesystem", e);
-      throw new RuntimeException(e);
-    }
+    this.context = context;
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by admin")
@@ -300,15 +294,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           ProtobufUtil.toString(currentStatus));
 
       // If we got a different status
-      if (!currentStatus.equals(lastStatus)) {
-        // If we don't have any more work, just quit
-        if (!StatusUtil.isWorkRequired(currentStatus)) {
-          return currentStatus;
-        } else {
-          // Otherwise, let it loop and replicate some more data
-          lastStatus = currentStatus;
-        }
-      } else {
+      if (currentStatus.equals(lastStatus)) {
         log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target,
             ProtobufUtil.toString(lastStatus));
 
@@ -316,6 +302,14 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         // data)
         // we can just not record any updates, and it will be picked up again by the work assigner
         return status;
+      } else {
+        // If we don't have any more work, just quit
+        if (StatusUtil.isWorkRequired(currentStatus)) {
+          // Otherwise, let it loop and replicate some more data
+          lastStatus = currentStatus;
+        } else {
+          return currentStatus;
+        }
       }
     }
   }
@@ -328,7 +322,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     log.debug("Replication WAL to peer tserver");
     final Set<Integer> tids;
-    try (final FSDataInputStream fsinput = fs.open(p);
+    try (final FSDataInputStream fsinput = context.getVolumeManager().open(p);
         final DataInputStream input = getWalStream(p, fsinput)) {
       log.debug("Skipping unwanted data in WAL");
       try (TraceScope span = Trace.startSpan("Consume WAL prefix")) {
@@ -384,7 +378,15 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             ProtobufUtil.toString(currentStatus));
 
         // If we got a different status
-        if (!currentStatus.equals(lastStatus)) {
+        if (currentStatus.equals(lastStatus)) {
+          log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target,
+              ProtobufUtil.toString(lastStatus));
+
+          // otherwise, we didn't actually replicate (likely because there was error sending the
+          // data)
+          // we can just not record any updates, and it will be picked up again by the work assigner
+          return status;
+        } else {
           try (TraceScope span = Trace.startSpan("Update replication table")) {
             if (accumuloUgi != null) {
               final Status copy = currentStatus;
@@ -422,20 +424,12 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           log.debug("Recorded updated status for {}: {}", p, ProtobufUtil.toString(currentStatus));
 
           // If we don't have any more work, just quit
-          if (!StatusUtil.isWorkRequired(currentStatus)) {
-            return currentStatus;
-          } else {
+          if (StatusUtil.isWorkRequired(currentStatus)) {
             // Otherwise, let it loop and replicate some more data
             lastStatus = currentStatus;
+          } else {
+            return currentStatus;
           }
-        } else {
-          log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target,
-              ProtobufUtil.toString(lastStatus));
-
-          // otherwise, we didn't actually replicate (likely because there was error sending the
-          // data)
-          // we can just not record any updates, and it will be picked up again by the work assigner
-          return status;
         }
       }
     } catch (LogHeaderIncompleteException e) {
@@ -502,11 +496,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       if (edits.walEdits.getEditsSize() > 0) {
         log.debug("Sending {} edits", edits.walEdits.getEditsSize());
         long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits, tcreds);
-        if (entriesReplicated != edits.numUpdates) {
+        if (entriesReplicated == edits.numUpdates) {
+          log.debug("Replicated {} edits", entriesReplicated);
+        } else {
           log.warn("Sent {} WAL entries for replication but {} were reported as replicated",
               edits.numUpdates, entriesReplicated);
-        } else {
-          log.debug("Replicated {} edits", entriesReplicated);
         }
 
         // We don't have to replicate every LogEvent in the file (only Mutation LogEvents), but we
@@ -539,10 +533,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     requireNonNull(localConf);
     requireNonNull(target);
 
-    Map<String,String> peerPasswords = localConf
-        .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
-    String password = peerPasswords
-        .get(Property.REPLICATION_PEER_PASSWORD.getKey() + target.getPeerName());
+    Map<String,String> peerPasswords =
+        localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
+    String password =
+        peerPasswords.get(Property.REPLICATION_PEER_PASSWORD.getKey() + target.getPeerName());
     if (password == null) {
       throw new IllegalArgumentException("Cannot get password for " + target.getPeerName());
     }
@@ -553,10 +547,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     requireNonNull(localConf);
     requireNonNull(target);
 
-    Map<String,String> peerKeytabs = localConf
-        .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_KEYTAB);
-    String keytab = peerKeytabs
-        .get(Property.REPLICATION_PEER_KEYTAB.getKey() + target.getPeerName());
+    Map<String,String> peerKeytabs =
+        localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_KEYTAB);
+    String keytab =
+        peerKeytabs.get(Property.REPLICATION_PEER_KEYTAB.getKey() + target.getPeerName());
     if (keytab == null) {
       throw new IllegalArgumentException("Cannot get keytab for " + target.getPeerName());
     }
@@ -569,8 +563,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     String peerName = target.getPeerName();
     String userKey = Property.REPLICATION_PEER_USER.getKey() + peerName;
-    Map<String,String> peerUsers = localConf
-        .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_USER);
+    Map<String,String> peerUsers =
+        localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_USER);
 
     String user = peerUsers.get(userKey);
     if (user == null) {
@@ -592,7 +586,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
     ClientProperty.setAuthenticationToken(properties, token);
 
-    return new ClientContext(ClientInfo.from(properties, token), localConf);
+    return new ClientContext(SingletonReservation.noop(), ClientInfo.from(properties, token),
+        localConf);
   }
 
   protected Set<Integer> consumeWalPrefix(ReplicationTarget target, DataInputStream wal,
@@ -720,7 +715,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     // Add our name, and send it
     final String name = conf.get(Property.REPLICATION_NAME);
-    if (StringUtils.isBlank(name)) {
+    if (name.isBlank()) {
       throw new IllegalArgumentException("Local system has no replication name configured");
     }
 

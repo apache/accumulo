@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
@@ -24,10 +26,10 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.commons.lang.math.IntRange;
+import org.apache.commons.lang3.Range;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.base.Preconditions;
@@ -80,8 +82,9 @@ public enum PropertyType {
           + " 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
           + "Examples of invalid host lists are '', ':1000', and 'localhost:80000'"),
 
-  @SuppressWarnings("unchecked")
-  PORT("port", or(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}")),
+  PORT("port",
+      x -> Stream.of(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}"))
+          .anyMatch(y -> y.test(x)),
       "An positive integer in the range 1024-65535 (not already in use or"
           + " specified elsewhere in the configuration),\n"
           + "zero to indicate any open ephemeral port, or a range of positive"
@@ -99,12 +102,14 @@ public enum PropertyType {
 
   PATH("path", x -> true,
       "A string that represents a filesystem path, which can be either relative"
-          + " or absolute to some directory. The filesystem depends on the property."
-          + " The following environment variables will be substituted: "
-          + Constants.PATH_PROPERTY_ENV_VARS),
+          + " or absolute to some directory. The filesystem depends on the property. "
+          + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
+          + "config file using '${env:ACCUMULO_HOME}' or similar."),
 
+  // VFS_CLASSLOADER_CACHE_DIR's default value is a special case, for documentation purposes
   ABSOLUTEPATH("absolute path",
-      x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute(),
+      x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute()
+          || x.equals(Property.VFS_CLASSLOADER_CACHE_DIR.getDefaultValue()),
       "An absolute filesystem path. The filesystem depends on the property."
           + " This is the same as path, but enforces that its root is explicitly" + " specified."),
 
@@ -118,6 +123,9 @@ public enum PropertyType {
 
   DURABILITY("durability", in(false, null, "default", "none", "log", "flush", "sync"),
       "One of 'none', 'log', 'flush' or 'sync'."),
+
+  GC_POST_ACTION("gc_post_action", in(true, null, "none", "flush", "compact"),
+      "One of 'none', 'flush', or 'compact'."),
 
   STRING("string", x -> true,
       "An arbitrary string of characters whose format is unspecified and"
@@ -169,11 +177,6 @@ public enum PropertyType {
     return predicate.test(value);
   }
 
-  @SuppressWarnings("unchecked")
-  private static Predicate<String> or(final Predicate<String>... others) {
-    return (x) -> Arrays.stream(others).anyMatch(y -> y.test(x));
-  }
-
   private static Predicate<String> in(final boolean caseSensitive, final String... allowedSet) {
     if (caseSensitive) {
       return x -> Arrays.stream(allowedSet)
@@ -193,8 +196,8 @@ public enum PropertyType {
   }
 
   private static final Pattern SUFFIX_REGEX = Pattern.compile("[^\\d]*$");
-  private static final Function<String,String> stripUnits = x -> x == null ? null
-      : SUFFIX_REGEX.matcher(x.trim()).replaceAll("");
+  private static final Function<String,String> stripUnits =
+      x -> x == null ? null : SUFFIX_REGEX.matcher(x.trim()).replaceAll("");
 
   private static class HasSuffix implements Predicate<String> {
 
@@ -227,7 +230,7 @@ public enum PropertyType {
       }
       try {
         double d;
-        if (input.length() > 0 && input.charAt(input.length() - 1) == '%') {
+        if (!input.isEmpty() && input.charAt(input.length() - 1) == '%') {
           d = Double.parseDouble(input.substring(0, input.length() - 1));
         } else {
           d = Double.parseDouble(input);
@@ -306,7 +309,7 @@ public enum PropertyType {
 
   public static class PortRange extends Matches {
 
-    private static final IntRange VALID_RANGE = new IntRange(1024, 65535);
+    private static final Range<Integer> VALID_RANGE = Range.between(1024, 65535);
 
     public PortRange(final String pattern) {
       super(pattern);
@@ -331,8 +334,7 @@ public enum PropertyType {
       if (idx != -1) {
         int low = Integer.parseInt(portRange.substring(0, idx));
         int high = Integer.parseInt(portRange.substring(idx + 1));
-        if (!VALID_RANGE.containsInteger(low) || !VALID_RANGE.containsInteger(high)
-            || !(low <= high)) {
+        if (!VALID_RANGE.contains(low) || !VALID_RANGE.contains(high) || low > high) {
           throw new IllegalArgumentException(
               "Invalid port range specified, only 1024 to 65535 supported.");
         }

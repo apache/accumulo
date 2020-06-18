@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.master.balancer;
 
@@ -31,10 +33,12 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.conf.ConfigurationObserver;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -43,15 +47,17 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.commons.lang.builder.ToStringStyle;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -81,40 +87,101 @@ import com.google.common.collect.Multimap;
  * <b>table.custom.balancer.host.regex.max.outstanding.migrations</b>
  *
  */
-public class HostRegexTableLoadBalancer extends TableLoadBalancer implements ConfigurationObserver {
+public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
 
   private static final Logger LOG = LoggerFactory.getLogger(HostRegexTableLoadBalancer.class);
   public static final String HOST_BALANCER_PREFIX = PROP_PREFIX + "balancer.host.regex.";
-  public static final String HOST_BALANCER_OOB_CHECK_KEY = PROP_PREFIX
-      + "balancer.host.regex.oob.period";
+  public static final String HOST_BALANCER_OOB_CHECK_KEY =
+      PROP_PREFIX + "balancer.host.regex.oob.period";
   private static final String HOST_BALANCER_OOB_DEFAULT = "5m";
-  public static final String HOST_BALANCER_REGEX_USING_IPS_KEY = PROP_PREFIX
-      + "balancer.host.regex.is.ip";
-  public static final String HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY = PROP_PREFIX
-      + "balancer.host.regex.concurrent.migrations";
+  public static final String HOST_BALANCER_REGEX_USING_IPS_KEY =
+      PROP_PREFIX + "balancer.host.regex.is.ip";
+  public static final String HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY =
+      PROP_PREFIX + "balancer.host.regex.concurrent.migrations";
   private static final int HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT = 250;
   protected static final String DEFAULT_POOL = "HostTableLoadBalancer.ALL";
   private static final int DEFAULT_OUTSTANDING_MIGRATIONS = 0;
-  public static final String HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY = PROP_PREFIX
-      + "balancer.host.regex.max.outstanding.migrations";
+  public static final String HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY =
+      PROP_PREFIX + "balancer.host.regex.max.outstanding.migrations";
 
-  protected long oobCheckMillis = ConfigurationTypeHelper
-      .getTimeInMillis(HOST_BALANCER_OOB_DEFAULT);
+  private static Map<String,String> getRegexes(AccumuloConfiguration aconf) {
+    Map<String,String> regexes = new HashMap<>();
+    Map<String,String> customProps =
+        aconf.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
+
+    if (customProps != null && !customProps.isEmpty()) {
+      for (Entry<String,String> customProp : customProps.entrySet()) {
+        if (customProp.getKey().startsWith(HOST_BALANCER_PREFIX)) {
+          if (customProp.getKey().equals(HOST_BALANCER_OOB_CHECK_KEY)
+              || customProp.getKey().equals(HOST_BALANCER_REGEX_USING_IPS_KEY)
+              || customProp.getKey().equals(HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY)
+              || customProp.getKey().equals(HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY)) {
+            continue;
+          }
+          String tableName = customProp.getKey().substring(HOST_BALANCER_PREFIX.length());
+          String regex = customProp.getValue();
+          regexes.put(tableName, regex);
+        }
+      }
+    }
+
+    return Map.copyOf(regexes);
+  }
+
+  /**
+   * Host Regex Table Load Balance Config
+   */
+  static class HrtlbConf {
+
+    protected long oobCheckMillis =
+        ConfigurationTypeHelper.getTimeInMillis(HOST_BALANCER_OOB_DEFAULT);
+    private int maxTServerMigrations = HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT;
+    private int maxOutstandingMigrations = DEFAULT_OUTSTANDING_MIGRATIONS;
+    private boolean isIpBasedRegex = false;
+    private Map<String,String> regexes;
+    private Map<String,Pattern> poolNameToRegexPattern = null;
+
+    HrtlbConf(AccumuloConfiguration aconf) {
+      System.out.println("building hrtlb conf");
+      String oobProperty = aconf.get(HOST_BALANCER_OOB_CHECK_KEY);
+      if (oobProperty != null) {
+        oobCheckMillis = ConfigurationTypeHelper.getTimeInMillis(oobProperty);
+      }
+      String ipBased = aconf.get(HOST_BALANCER_REGEX_USING_IPS_KEY);
+      if (ipBased != null) {
+        isIpBasedRegex = Boolean.parseBoolean(ipBased);
+      }
+      String migrations = aconf.get(HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY);
+      if (migrations != null) {
+        maxTServerMigrations = Integer.parseInt(migrations);
+      }
+      String outstanding = aconf.get(HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY);
+      if (outstanding != null) {
+        maxOutstandingMigrations = Integer.parseInt(outstanding);
+      }
+
+      this.regexes = getRegexes(aconf);
+
+      Map<String,Pattern> poolNameToRegexPatternBuilder = new HashMap<>();
+      regexes.forEach((k, v) -> {
+        poolNameToRegexPatternBuilder.put(k, Pattern.compile(v));
+      });
+
+      poolNameToRegexPattern = Map.copyOf(poolNameToRegexPatternBuilder);
+    }
+  }
 
   private static final long ONE_HOUR = 60 * 60 * 1000;
   private static final Set<KeyExtent> EMPTY_MIGRATIONS = Collections.emptySet();
-
-  private Map<TableId,String> tableIdToTableName = null;
-  private Map<String,Pattern> poolNameToRegexPattern = null;
   private volatile long lastOOBCheck = System.currentTimeMillis();
-  private volatile boolean isIpBasedRegex = false;
   private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<>();
-  private volatile int maxTServerMigrations = HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT;
-  private volatile int maxOutstandingMigrations = DEFAULT_OUTSTANDING_MIGRATIONS;
   private final Map<KeyExtent,TabletMigration> migrationsFromLastPass = new HashMap<>();
   private final Map<String,Long> tableToTimeSinceNoMigrations = new HashMap<>();
+
+  private Deriver<HrtlbConf> hrtlbConf;
+  private LoadingCache<TableId,Deriver<Map<String,String>>> tablesRegExCache;
 
   /**
    * Group the set of current tservers by pool name. Tservers that don't match a regex are put into
@@ -126,10 +193,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
    *          map of current tservers
    * @return current servers grouped by pool name, if not a match it is put into a default pool.
    */
-  // @formatter:off
   protected synchronized Map<String,SortedMap<TServerInstance,TabletServerStatus>>
-    splitCurrentByRegex(SortedMap<TServerInstance,TabletServerStatus> current) {
-  // @formatter:on
+      splitCurrentByRegex(SortedMap<TServerInstance,TabletServerStatus> current) {
     LOG.debug("Performing pool recheck - regrouping tablet servers based on regular expressions");
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> newPools = new HashMap<>();
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
@@ -171,7 +236,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
    */
   protected List<String> getPoolNamesForHost(String host) {
     String test = host;
-    if (!isIpBasedRegex) {
+    if (!hrtlbConf.derive().isIpBasedRegex) {
       try {
         test = getNameFromIp(host);
       } catch (UnknownHostException e1) {
@@ -181,12 +246,12 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       }
     }
     List<String> pools = new ArrayList<>();
-    for (Entry<String,Pattern> e : poolNameToRegexPattern.entrySet()) {
+    for (Entry<String,Pattern> e : hrtlbConf.derive().poolNameToRegexPattern.entrySet()) {
       if (e.getValue().matcher(test).matches()) {
         pools.add(e.getKey());
       }
     }
-    if (pools.size() == 0) {
+    if (pools.isEmpty()) {
       pools.add(DEFAULT_POOL);
     }
     return pools;
@@ -194,6 +259,24 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
 
   protected String getNameFromIp(String hostIp) throws UnknownHostException {
     return InetAddress.getByName(hostIp).getHostName();
+  }
+
+  private void checkTableConfig(TableId tableId) {
+    Map<String,String> tableRegexes = tablesRegExCache.getUnchecked(tableId).derive();
+
+    if (!hrtlbConf.derive().regexes.equals(tableRegexes)) {
+      LoggerFactory.getLogger(HostRegexTableLoadBalancer.class).warn(
+          "Table id {} has different config than system.  The per table config is ignored.",
+          tableId);
+    }
+  }
+
+  private Map<TableId,String> createdTableNameMap(Map<String,String> tableIdMap) {
+    HashMap<TableId,String> tableNameMap = new HashMap<>();
+    tableIdMap.forEach((tableName, tableId) -> {
+      tableNameMap.put(TableId.of(tableId), tableName);
+    });
+    return tableNameMap;
   }
 
   /**
@@ -207,102 +290,57 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     if (tableName == null) {
       return DEFAULT_POOL;
     }
-    return poolNameToRegexPattern.containsKey(tableName) ? tableName : DEFAULT_POOL;
-  }
-
-  /**
-   * Parse configuration and extract properties
-   *
-   * @param conf
-   *          server configuration
-   */
-  protected void parseConfiguration(ServerConfiguration conf) {
-    TableOperations t = getTableOperations();
-    if (t == null) {
-      throw new RuntimeException("Table Operations cannot be null");
-    }
-    tableIdToTableName = new HashMap<>();
-    poolNameToRegexPattern = new HashMap<>();
-    for (Entry<String,String> table : t.tableIdMap().entrySet()) {
-      TableId tableId = TableId.of(table.getValue());
-      tableIdToTableName.put(tableId, table.getKey());
-      conf.getTableConfiguration(tableId).addObserver(this);
-      Map<String,String> customProps = conf.getTableConfiguration(tableId)
-          .getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
-      if (customProps != null && customProps.size() > 0) {
-        for (Entry<String,String> customProp : customProps.entrySet()) {
-          if (customProp.getKey().startsWith(HOST_BALANCER_PREFIX)) {
-            if (customProp.getKey().equals(HOST_BALANCER_OOB_CHECK_KEY)
-                || customProp.getKey().equals(HOST_BALANCER_REGEX_USING_IPS_KEY)
-                || customProp.getKey().equals(HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY)
-                || customProp.getKey().equals(HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY)) {
-              continue;
-            }
-            String tableName = customProp.getKey().substring(HOST_BALANCER_PREFIX.length());
-            String regex = customProp.getValue();
-            poolNameToRegexPattern.put(tableName, Pattern.compile(regex));
-          }
-        }
-      }
-    }
-    String oobProperty = conf.getSystemConfiguration().get(HOST_BALANCER_OOB_CHECK_KEY);
-    if (oobProperty != null) {
-      oobCheckMillis = ConfigurationTypeHelper.getTimeInMillis(oobProperty);
-    }
-    String ipBased = conf.getSystemConfiguration().get(HOST_BALANCER_REGEX_USING_IPS_KEY);
-    if (ipBased != null) {
-      isIpBasedRegex = Boolean.parseBoolean(ipBased);
-    }
-    String migrations = conf.getSystemConfiguration().get(HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY);
-    if (migrations != null) {
-      maxTServerMigrations = Integer.parseInt(migrations);
-    }
-    String outstanding = conf.getSystemConfiguration()
-        .get(HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY);
-    if (outstanding != null) {
-      this.maxOutstandingMigrations = Integer.parseInt(outstanding);
-    }
-    LOG.info("{}", this);
+    return hrtlbConf.derive().poolNameToRegexPattern.containsKey(tableName) ? tableName
+        : DEFAULT_POOL;
   }
 
   @Override
   public String toString() {
+    HrtlbConf myConf = hrtlbConf.derive();
     ToStringBuilder buf = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
-    buf.append("\nTablet Out Of Bounds Check Interval", this.oobCheckMillis);
-    buf.append("\nMax Tablet Server Migrations", this.maxTServerMigrations);
-    buf.append("\nRegular Expressions use IPs", this.isIpBasedRegex);
-    buf.append("\nPools", this.poolNameToRegexPattern);
+    buf.append("\nTablet Out Of Bounds Check Interval", myConf.oobCheckMillis);
+    buf.append("\nMax Tablet Server Migrations", myConf.maxTServerMigrations);
+    buf.append("\nRegular Expressions use IPs", myConf.isIpBasedRegex);
+    buf.append("\nPools", myConf.poolNameToRegexPattern);
     return buf.toString();
   }
 
-  public Map<TableId,String> getTableIdToTableName() {
-    return tableIdToTableName;
-  }
-
   public Map<String,Pattern> getPoolNameToRegexPattern() {
-    return poolNameToRegexPattern;
+    return hrtlbConf.derive().poolNameToRegexPattern;
   }
 
   public int getMaxMigrations() {
-    return maxTServerMigrations;
+    return hrtlbConf.derive().maxTServerMigrations;
   }
 
   public int getMaxOutstandingMigrations() {
-    return maxOutstandingMigrations;
+    return hrtlbConf.derive().maxOutstandingMigrations;
   }
 
   public long getOobCheckMillis() {
-    return oobCheckMillis;
+    return hrtlbConf.derive().oobCheckMillis;
   }
 
   public boolean isIpBasedRegex() {
-    return isIpBasedRegex;
+    return hrtlbConf.derive().isIpBasedRegex;
   }
 
   @Override
   public void init(ServerContext context) {
     super.init(context);
-    parseConfiguration(context.getServerConfFactory());
+
+    this.hrtlbConf = context.getConfiguration().newDeriver(HrtlbConf::new);
+
+    tablesRegExCache =
+        CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build(new CacheLoader<>() {
+          @Override
+          public Deriver<Map<String,String>> load(TableId key) throws Exception {
+            return context.getTableConfiguration(key)
+                .newDeriver(HostRegexTableLoadBalancer::getRegexes);
+          }
+        });
+
+    LOG.info("{}", this);
   }
 
   @Override
@@ -312,22 +350,20 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = splitCurrentByRegex(current);
     // group the unassigned into tables
     Map<TableId,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
-    for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
-      Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned
-          .get(e.getKey().getTableId());
-      if (tableUnassigned == null) {
-        tableUnassigned = new HashMap<>();
-        groupedUnassigned.put(e.getKey().getTableId(), tableUnassigned);
-      }
-      tableUnassigned.put(e.getKey(), e.getValue());
-    }
+    unassigned.forEach((keyExtent, tServerInstance) -> {
+      groupedUnassigned.computeIfAbsent(keyExtent.getTableId(), p -> new HashMap<>()).put(keyExtent,
+          tServerInstance);
+    });
+
+    Map<TableId,String> tableIdToTableName = createdTableNameMap(getTableOperations().tableIdMap());
+
     // Send a view of the current servers to the tables tablet balancer
     for (Entry<TableId,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> newAssignments = new HashMap<>();
       String tableName = tableIdToTableName.get(e.getKey());
       String poolName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = pools.get(poolName);
-      if (currentView == null || currentView.size() == 0) {
+      if (currentView == null || currentView.isEmpty()) {
         LOG.warn("No tablet servers online for table {}, assigning within default pool", tableName);
         currentView = pools.get(DEFAULT_POOL);
         if (currentView == null) {
@@ -350,18 +386,24 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     long minBalanceTime = 20 * 1000;
     // Iterate over the tables and balance each of them
     TableOperations t = getTableOperations();
-    if (t == null)
+    if (t == null) {
       return minBalanceTime;
+    }
 
     Map<String,String> tableIdMap = t.tableIdMap();
+    Map<TableId,String> tableIdToTableName = createdTableNameMap(tableIdMap);
+    tableIdToTableName.keySet().forEach(this::checkTableConfig);
+
     long now = System.currentTimeMillis();
 
-    Map<String,SortedMap<TServerInstance,TabletServerStatus>> currentGrouped = splitCurrentByRegex(
-        current);
-    if ((now - this.lastOOBCheck) > this.oobCheckMillis) {
+    HrtlbConf myConf = hrtlbConf.derive();
+
+    Map<String,SortedMap<TServerInstance,TabletServerStatus>> currentGrouped =
+        splitCurrentByRegex(current);
+    if ((now - this.lastOOBCheck) > myConf.oobCheckMillis) {
       try {
         // Check to see if a tablet is assigned outside the bounds of the pool. If so, migrate it.
-        for (String table : t.list()) {
+        for (String table : tableIdMap.keySet()) {
           LOG.debug("Checking for out of bounds tablets for table {}", table);
           String tablePoolName = getPoolNameForTable(table);
           for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
@@ -378,8 +420,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
               continue;
             }
             try {
-              List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(),
-                  TableId.of(tid));
+              List<TabletStats> outOfBoundsTablets =
+                  getOnlineTabletsForTable(e.getKey(), TableId.of(tid));
               if (outOfBoundsTablets == null) {
                 continue;
               }
@@ -391,8 +433,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
                   continue;
                 }
                 String poolName = getPoolNameForTable(table);
-                SortedMap<TServerInstance,TabletServerStatus> currentView = currentGrouped
-                    .get(poolName);
+                SortedMap<TServerInstance,TabletServerStatus> currentView =
+                    currentGrouped.get(poolName);
                 if (currentView != null) {
                   int skip = random.nextInt(currentView.size());
                   Iterator<TServerInstance> iter = currentView.keySet().iterator();
@@ -403,7 +445,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
                   LOG.info("Tablet {} is currently outside the bounds of the"
                       + " regex, migrating from {} to {}", ke, e.getKey(), nextTS);
                   migrationsOut.add(new TabletMigration(ke, e.getKey(), nextTS));
-                  if (migrationsOut.size() >= this.maxTServerMigrations) {
+                  if (migrationsOut.size() >= myConf.maxTServerMigrations) {
                     break;
                   }
                 } else {
@@ -423,14 +465,14 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       }
     }
 
-    if (migrationsOut.size() > 0) {
+    if (!migrationsOut.isEmpty()) {
       LOG.warn("Not balancing tables due to moving {} out of bounds tablets", migrationsOut.size());
       LOG.info("Migrating out of bounds tablets: {}", migrationsOut);
       return minBalanceTime;
     }
 
-    if (migrations != null && migrations.size() > 0) {
-      if (migrations.size() >= maxOutstandingMigrations) {
+    if (migrations != null && !migrations.isEmpty()) {
+      if (migrations.size() >= myConf.maxOutstandingMigrations) {
         LOG.warn("Not balancing tables due to {} outstanding migrations", migrations.size());
         if (LOG.isTraceEnabled()) {
           LOG.trace("Sample up to 10 outstanding migrations: {}", Iterables.limit(migrations, 10));
@@ -466,8 +508,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       TableId tableId = TableId.of(s);
       String tableName = tableIdToTableName.get(tableId);
       String regexTableName = getPoolNameForTable(tableName);
-      SortedMap<TServerInstance,TabletServerStatus> currentView = currentGrouped
-          .get(regexTableName);
+      SortedMap<TServerInstance,TabletServerStatus> currentView =
+          currentGrouped.get(regexTableName);
       if (currentView == null) {
         LOG.warn("Skipping balance for table {} as no tablet servers are online.", tableName);
         continue;
@@ -487,7 +529,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       }
 
       migrationsOut.addAll(newMigrations);
-      if (migrationsOut.size() >= this.maxTServerMigrations) {
+      if (migrationsOut.size() >= myConf.maxTServerMigrations) {
         break;
       }
     }
@@ -527,18 +569,4 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     }
     return newInfo;
   }
-
-  @Override
-  public void propertyChanged(String key) {
-    parseConfiguration(context.getServerConfFactory());
-  }
-
-  @Override
-  public void propertiesChanged() {
-    parseConfiguration(context.getServerConfFactory());
-  }
-
-  @Override
-  public void sessionExpired() {}
-
 }

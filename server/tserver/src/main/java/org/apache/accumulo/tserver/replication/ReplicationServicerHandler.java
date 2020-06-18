@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.replication;
 
@@ -66,8 +68,8 @@ public class ReplicationServicerHandler implements Iface {
 
     AccumuloConfiguration conf = tabletServer.getConfiguration();
 
-    Map<String,String> replicationHandlers = conf
-        .getAllPropertiesWithPrefix(Property.TSERV_REPLICATION_REPLAYERS);
+    Map<String,String> replicationHandlers =
+        conf.getAllPropertiesWithPrefix(Property.TSERV_REPLICATION_REPLAYERS);
     String propertyForHandlerTable = Property.TSERV_REPLICATION_REPLAYERS.getKey() + tableId;
 
     String handlerClassForTable = replicationHandlers.get(propertyForHandlerTable);
@@ -94,8 +96,8 @@ public class ReplicationServicerHandler implements Iface {
     // Create an instance
     AccumuloReplicationReplayer replayer;
     try {
-      replayer = clz.newInstance();
-    } catch (InstantiationException | IllegalAccessException e1) {
+      replayer = clz.getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e1) {
       log.error("Could not instantiate replayer class {}", clz.getName());
       throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER,
           "Could not instantiate replayer class" + clz.getName());

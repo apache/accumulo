@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.rest.problems;
 
@@ -25,6 +27,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.ws.rs.Consumes;
@@ -41,7 +44,6 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +56,9 @@ import org.slf4j.LoggerFactory;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class ProblemsResource {
 
+  @Inject
+  private Monitor monitor;
+
   /**
    * Generates a list with the problem summary
    *
@@ -65,8 +70,8 @@ public class ProblemsResource {
 
     ProblemSummary problems = new ProblemSummary();
 
-    if (Monitor.getProblemException() == null) {
-      for (Entry<TableId,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
+    if (monitor.getProblemException() == null) {
+      for (Entry<TableId,Map<ProblemType,Integer>> entry : monitor.getProblemSummary().entrySet()) {
         Integer readCount = null, writeCount = null, loadCount = null;
 
         for (ProblemType pt : ProblemType.values()) {
@@ -80,7 +85,7 @@ public class ProblemsResource {
           }
         }
 
-        String tableName = Tables.getPrintableTableInfoFromId(Monitor.getContext(), entry.getKey());
+        String tableName = Tables.getPrintableTableInfoFromId(monitor.getContext(), entry.getKey());
 
         problems.addProblemSummary(new ProblemSummaryInformation(tableName, entry.getKey(),
             readCount, writeCount, loadCount));
@@ -102,10 +107,10 @@ public class ProblemsResource {
       @QueryParam("s") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
-      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(TableId.of(tableID));
+      ProblemReports.getInstance(monitor.getContext()).deleteProblemReports(TableId.of(tableID));
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table "
-          + (StringUtils.isEmpty(tableID) ? StringUtils.EMPTY : sanitize(tableID)), e);
+          + (tableID.isEmpty() ? "" : sanitize(tableID)), e);
     }
   }
 
@@ -120,17 +125,18 @@ public class ProblemsResource {
 
     ProblemDetail problems = new ProblemDetail();
 
-    if (Monitor.getProblemException() == null) {
-      for (Entry<TableId,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
+    if (monitor.getProblemException() == null) {
+      for (Entry<TableId,Map<ProblemType,Integer>> entry : monitor.getProblemSummary().entrySet()) {
         ArrayList<ProblemReport> problemReports = new ArrayList<>();
-        Iterator<ProblemReport> iter = entry.getKey() == null
-            ? ProblemReports.getInstance(Monitor.getContext()).iterator()
-            : ProblemReports.getInstance(Monitor.getContext()).iterator(entry.getKey());
-        while (iter.hasNext())
+        Iterator<ProblemReport> iter =
+            entry.getKey() == null ? ProblemReports.getInstance(monitor.getContext()).iterator()
+                : ProblemReports.getInstance(monitor.getContext()).iterator(entry.getKey());
+        while (iter.hasNext()) {
           problemReports.add(iter.next());
+        }
         for (ProblemReport pr : problemReports) {
-          String tableName = Tables.getPrintableTableInfoFromId(Monitor.getContext(),
-              pr.getTableId());
+          String tableName =
+              Tables.getPrintableTableInfoFromId(monitor.getContext(), pr.getTableId());
 
           problems.addProblemDetail(
               new ProblemDetailInformation(tableName, entry.getKey(), pr.getProblemType().name(),
@@ -160,11 +166,11 @@ public class ProblemsResource {
       @QueryParam("ptype") @NotNull @Pattern(regexp = PROBLEM_TYPE_REGEX) String ptype) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
-      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(TableId.of(tableID),
+      ProblemReports.getInstance(monitor.getContext()).deleteProblemReport(TableId.of(tableID),
           ProblemType.valueOf(ptype), resource);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table "
-          + (StringUtils.isBlank(tableID) ? "" : sanitize(tableID)), e);
+          + (tableID.isBlank() ? "" : sanitize(tableID)), e);
     }
   }
 
@@ -179,7 +185,7 @@ public class ProblemsResource {
   @GET
   @Path("exception")
   public Exception getException() {
-    return Monitor.getProblemException();
+    return monitor.getProblemException();
   }
 
 }

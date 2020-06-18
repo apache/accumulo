@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -73,8 +75,8 @@ public class VerifyTabletAssignments {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(VerifyTabletAssignments.class.getName(),
-        args)) {
+    try (TraceScope clientSpan =
+        opts.parseArgsAndTrace(VerifyTabletAssignments.class.getName(), args)) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         for (String table : client.tableOperations().list())
           checkTable((ClientContext) client, opts, table, null);
@@ -110,11 +112,8 @@ public class VerifyTabletAssignments {
 
       if (loc != null) {
         final HostAndPort parsedLoc = HostAndPort.fromString(loc);
-        List<KeyExtent> extentList = extentsPerServer.get(parsedLoc);
-        if (extentList == null) {
-          extentList = new ArrayList<>();
-          extentsPerServer.put(parsedLoc, extentList);
-        }
+        List<KeyExtent> extentList =
+            extentsPerServer.computeIfAbsent(parsedLoc, k -> new ArrayList<>());
 
         if (check == null || check.contains(keyExtent))
           extentList.add(keyExtent);
@@ -144,7 +143,7 @@ public class VerifyTabletAssignments {
 
     while (!tp.awaitTermination(1, TimeUnit.HOURS)) {}
 
-    if (failures.size() > 0)
+    if (!failures.isEmpty())
       checkTable(context, opts, tableName, failures);
   }
 

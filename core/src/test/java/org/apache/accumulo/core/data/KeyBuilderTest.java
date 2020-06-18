@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.data;
 
@@ -121,8 +123,8 @@ public class KeyBuilderTest {
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierBytes() {
-    Key keyBuilt = Key.builder().row(rowBytes).family(familyBytes).qualifier(qualifierBytes)
-        .build();
+    Key keyBuilt =
+        Key.builder().row(rowBytes).family(familyBytes).qualifier(qualifierBytes).build();
     Key keyExpected = new Key(rowBytes, familyBytes, qualifierBytes, EMPTY_BYTES, Long.MAX_VALUE);
     assertEquals(keyExpected, keyBuilt);
   }
@@ -131,8 +133,8 @@ public class KeyBuilderTest {
   public void testKeyBuildingFromRowFamilyQualifierVisibilityBytes() {
     Key keyBuilt = Key.builder().row(rowBytes).family(familyBytes).qualifier(qualifierBytes)
         .visibility(visibilityBytes).build();
-    Key keyExpected = new Key(rowBytes, familyBytes, qualifierBytes, visibilityBytes,
-        Long.MAX_VALUE);
+    Key keyExpected =
+        new Key(rowBytes, familyBytes, qualifierBytes, visibilityBytes, Long.MAX_VALUE);
     assertEquals(keyExpected, keyBuilt);
   }
 
@@ -162,8 +164,8 @@ public class KeyBuilderTest {
 
   @Test
   public void testKeyBuildingFromRowFamilyVisibilityBytes() {
-    Key keyBuilt = Key.builder().row(rowBytes).family(familyBytes).visibility(visibilityBytes)
-        .build();
+    Key keyBuilt =
+        Key.builder().row(rowBytes).family(familyBytes).visibility(visibilityBytes).build();
     Key keyExpected = new Key(rowBytes, familyBytes, EMPTY_BYTES, visibilityBytes, Long.MAX_VALUE);
     assertEquals(keyExpected, keyBuilt);
   }
@@ -238,10 +240,10 @@ public class KeyBuilderTest {
 
   @Test
   public void testKeyBuildingFromRowFamilyVisibilityVisibility() {
-    Key keyBuilt = Key.builder().row(rowText).family(familyText).visibility(visibilityVisibility)
-        .build();
-    Key keyExpected = new Key(rowText, familyText, new Text(), visibilityVisibility,
-        Long.MAX_VALUE);
+    Key keyBuilt =
+        Key.builder().row(rowText).family(familyText).visibility(visibilityVisibility).build();
+    Key keyExpected =
+        new Key(rowText, familyText, new Text(), visibilityVisibility, Long.MAX_VALUE);
     assertEquals(keyExpected, keyBuilt);
   }
 
@@ -275,9 +277,9 @@ public class KeyBuilderTest {
   public void testKeyHeterogeneous() {
     Key keyBuilt = Key.builder().row(rowText).family(familyBytes).qualifier("foo").build();
     Text fooText = new Text("foo");
-    Key keyExpected = new Key(rowText.getBytes(), 0, rowText.getLength(), familyBytes, 0,
-        familyBytes.length, fooText.getBytes(), 0, fooText.getLength(), EMPTY_BYTES, 0, 0,
-        Long.MAX_VALUE);
+    Key keyExpected =
+        new Key(rowText.getBytes(), 0, rowText.getLength(), familyBytes, 0, familyBytes.length,
+            fooText.getBytes(), 0, fooText.getLength(), EMPTY_BYTES, 0, 0, Long.MAX_VALUE);
     assertEquals(keyExpected, keyBuilt);
   }
 

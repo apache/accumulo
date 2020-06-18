@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.start.classloader.vfs;
 
@@ -21,48 +23,41 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.net.URLClassLoader;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.powermock.core.classloader.MockClassLoader;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.powermock.reflect.Whitebox;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(AccumuloVFSClassLoader.class)
 @SuppressStaticInitializationFor({"org.apache.accumulo.start.classloader.AccumuloVFSClassLoader",
     "org.apache.log4j.LogManager"})
 @PowerMockIgnore({"org.apache.log4j.*", "org.apache.hadoop.log.metrics",
     "org.apache.commons.logging.*", "org.xml.*", "javax.xml.*", "org.w3c.dom.*",
-    "org.apache.hadoop.*"})
+    "org.apache.hadoop.*", "com.sun.org.apache.xerces.*"})
 public class AccumuloVFSClassLoaderTest {
 
-  private TemporaryFolder folder1 = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
-
-  @Before
-  public void setup() throws IOException {
-    folder1.create();
-  }
-
-  @After
-  public void tearDown() {
-    folder1.delete();
-  }
+  @Rule
+  public TemporaryFolder folder1 =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   /*
-   * Test that if enabled, but not configured, that the code creates the 2nd level classloader
+   * Test that the default (empty dynamic class paths) does not create the 2nd level loader
    */
   @Test
   public void testDefaultConfig() throws Exception {
@@ -74,6 +69,30 @@ public class AccumuloVFSClassLoaderTest {
     FileWriter out = new FileWriter(conf);
     out.append("general.classpaths=\n");
     out.append("general.vfs.classpaths=\n");
+    out.close();
+
+    Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
+    ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
+    assertTrue((acl instanceof URLClassLoader));
+    // no second level means the parent is the system loader (in this case, PowerMock's loader)
+    assertTrue((acl.getParent() instanceof MockClassLoader));
+  }
+
+  /*
+   * Test that if configured with dynamic class paths, that the code creates the 2nd level loader
+   */
+  @Test
+  public void testDynamicConfig() throws Exception {
+
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
+        (AccumuloReloadingVFSClassLoader) null);
+
+    File conf = folder1.newFile("accumulo.properties");
+    FileWriter out = new FileWriter(conf);
+    out.append("general.classpaths=\n");
+    out.append("general.vfs.classpaths=\n");
+    out.append("general.dynamic.classpaths=" + System.getProperty("user.dir") + "\n");
     out.close();
 
     Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
@@ -101,6 +120,7 @@ public class AccumuloVFSClassLoaderTest {
     out.append("general.classpaths=\n");
     out.append(
         "general.vfs.classpaths=" + new File(folder1.getRoot(), "HelloWorld.jar").toURI() + "\n");
+    out.append("general.dynamic.classpaths=" + System.getProperty("user.dir") + "\n");
     out.close();
 
     Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
@@ -113,7 +133,7 @@ public class AccumuloVFSClassLoaderTest {
     // We can't be sure what the authority/host will be due to FQDN mappings, so just check the path
     assertTrue(arvcl.getFileObjects()[0].getURL().toString().contains("HelloWorld.jar"));
     Class<?> clazz1 = arvcl.loadClass("test.HelloWorld");
-    Object o1 = clazz1.newInstance();
+    Object o1 = clazz1.getDeclaredConstructor().newInstance();
     assertEquals("Hello World!", o1.toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
         (AccumuloReloadingVFSClassLoader) null);

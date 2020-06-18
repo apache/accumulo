@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.miniclusterImpl;
 
@@ -26,7 +28,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
+import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.minicluster.MemoryUnit;
@@ -112,8 +114,9 @@ public class MiniAccumuloConfigImpl {
   MiniAccumuloConfigImpl initialize() {
 
     // Sanity checks
-    if (this.getDir().exists() && !this.getDir().isDirectory())
+    if (this.getDir().exists() && !this.getDir().isDirectory()) {
       throw new IllegalArgumentException("Must pass in directory, " + this.getDir() + " is a file");
+    }
 
     if (this.getDir().exists()) {
       String[] children = this.getDir().list();
@@ -152,8 +155,9 @@ public class MiniAccumuloConfigImpl {
       @SuppressWarnings("deprecation")
       Property generalClasspaths = Property.GENERAL_CLASSPATHS;
       mergeProp(generalClasspaths.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
-      mergeProp(Property.GENERAL_DYNAMIC_CLASSPATHS.getKey(),
-          libExtDir.getAbsolutePath() + "/[^.].*[.]jar");
+      @SuppressWarnings("deprecation")
+      Property generalDynamicClasspaths = Property.GENERAL_DYNAMIC_CLASSPATHS;
+      mergeProp(generalDynamicClasspaths.getKey(), libExtDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
       mergePropWithRandomPort(Property.MASTER_CLIENTPORT.getKey());
@@ -161,7 +165,6 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
-      mergePropWithRandomPort(Property.MONITOR_LOG4J_PORT.getKey());
       mergePropWithRandomPort(Property.REPLICATION_RECEIPT_SERVICE_PORT.getKey());
       mergePropWithRandomPort(Property.MASTER_REPLICATION_COORDINATOR_PORT.getKey());
 
@@ -176,8 +179,9 @@ public class MiniAccumuloConfigImpl {
           zkHost = existingZooKeepers;
         } else {
           // zookeeper port should be set explicitly in this class, not just on the site config
-          if (zooKeeperPort == 0)
+          if (zooKeeperPort == 0) {
             zooKeeperPort = PortUtils.getRandomFreePort();
+          }
 
           zkHost = "localhost:" + zooKeeperPort;
         }
@@ -196,15 +200,10 @@ public class MiniAccumuloConfigImpl {
       return;
     }
 
-    if (!CredentialProviderFactoryShim.isHadoopCredentialProviderAvailable()) {
-      throw new RuntimeException("Cannot use CredentialProvider when"
-          + " implementation is not available. Be sure to use >=Hadoop-2.6.0");
-    }
-
     File keystoreFile = new File(getConfDir(), "credential-provider.jks");
     String keystoreUri = "jceks://file" + keystoreFile.getAbsolutePath();
-    Configuration conf = CredentialProviderFactoryShim.getConfiguration(getHadoopConfiguration(),
-        keystoreUri);
+    Configuration conf = getHadoopConfiguration();
+    HadoopCredentialProvider.setPath(conf, keystoreUri);
 
     // Set the URI on the siteCfg
     siteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), keystoreUri);
@@ -220,8 +219,7 @@ public class MiniAccumuloConfigImpl {
 
       // Add the @Sensitive Property to the CredentialProvider
       try {
-        CredentialProviderFactoryShim.createEntry(conf, entry.getKey(),
-            entry.getValue().toCharArray());
+        HadoopCredentialProvider.createEntry(conf, entry.getKey(), entry.getValue().toCharArray());
       } catch (IOException e) {
         log.warn("Attempted to add " + entry.getKey() + " to CredentialProvider but failed", e);
         continue;
@@ -264,8 +262,9 @@ public class MiniAccumuloConfigImpl {
    *          the number of tablet servers that mini accumulo cluster should start
    */
   public MiniAccumuloConfigImpl setNumTservers(int numTservers) {
-    if (numTservers < 1)
+    if (numTservers < 1) {
       throw new IllegalArgumentException("Must have at least one tablet server");
+    }
     this.numTservers = numTservers;
     return this;
   }
@@ -287,9 +286,10 @@ public class MiniAccumuloConfigImpl {
    *          key/values that you normally put in accumulo.properties can be put here.
    */
   public MiniAccumuloConfigImpl setSiteConfig(Map<String,String> siteConfig) {
-    if (existingInstance != null && existingInstance)
+    if (existingInstance != null && existingInstance) {
       throw new UnsupportedOperationException(
           "Cannot set set config info when using an existing instance.");
+    }
 
     this.existingInstance = Boolean.FALSE;
 
@@ -297,9 +297,10 @@ public class MiniAccumuloConfigImpl {
   }
 
   public MiniAccumuloConfigImpl setClientProps(Map<String,String> clientProps) {
-    if (existingInstance != null && existingInstance)
+    if (existingInstance != null && existingInstance) {
       throw new UnsupportedOperationException(
           "Cannot set zookeeper info when using an existing instance.");
+    }
     this.existingInstance = Boolean.FALSE;
     this.clientProps = clientProps;
     return this;
@@ -320,9 +321,10 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.0
    */
   public MiniAccumuloConfigImpl setZooKeeperPort(int zooKeeperPort) {
-    if (existingInstance != null && existingInstance)
+    if (existingInstance != null && existingInstance) {
       throw new UnsupportedOperationException(
           "Cannot set zookeeper info when using an existing instance.");
+    }
 
     this.existingInstance = Boolean.FALSE;
 
@@ -341,9 +343,10 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.1
    */
   public MiniAccumuloConfigImpl setZooKeeperStartupTime(long zooKeeperStartupTime) {
-    if (existingInstance != null && existingInstance)
+    if (existingInstance != null && existingInstance) {
       throw new UnsupportedOperationException(
           "Cannot set zookeeper info when using an existing instance.");
+    }
 
     this.existingInstance = Boolean.FALSE;
 
@@ -707,16 +710,17 @@ public class MiniAccumuloConfigImpl {
    */
   public MiniAccumuloConfigImpl useExistingInstance(File accumuloProps, File hadoopConfDir)
       throws IOException {
-    if (existingInstance != null && !existingInstance)
+    if (existingInstance != null && !existingInstance) {
       throw new UnsupportedOperationException(
           "Cannot set to useExistingInstance after specifying config/zookeeper");
+    }
 
     this.existingInstance = Boolean.TRUE;
 
     System.setProperty("accumulo.properties", "accumulo.properties");
     this.hadoopConfDir = hadoopConfDir;
     hadoopConf = new Configuration(false);
-    accumuloConf = new SiteConfiguration(accumuloProps);
+    accumuloConf = SiteConfiguration.fromFile(accumuloProps).build();
     File coreSite = new File(hadoopConfDir, "core-site.xml");
     File hdfsSite = new File(hadoopConfDir, "hdfs-site.xml");
 

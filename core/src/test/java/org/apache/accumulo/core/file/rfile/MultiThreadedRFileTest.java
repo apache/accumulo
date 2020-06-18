@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile;
 
@@ -52,30 +54,32 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBu
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.commons.lang.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MultiThreadedRFileTest {
 
-  private static final Logger LOG = Logger.getLogger(MultiThreadedRFileTest.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MultiThreadedRFileTest.class);
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private static void checkIndex(Reader reader) throws IOException {
     FileSKVIterator indexIter = reader.getIndex();
@@ -83,16 +87,18 @@ public class MultiThreadedRFileTest {
     if (indexIter.hasTop()) {
       Key lastKey = new Key(indexIter.getTopKey());
 
-      if (reader.getFirstKey().compareTo(lastKey) > 0)
+      if (reader.getFirstKey().compareTo(lastKey) > 0) {
         throw new RuntimeException(
             "First key out of order " + reader.getFirstKey() + " " + lastKey);
+      }
 
       indexIter.next();
 
       while (indexIter.hasTop()) {
-        if (lastKey.compareTo(indexIter.getTopKey()) > 0)
+        if (lastKey.compareTo(indexIter.getTopKey()) > 0) {
           throw new RuntimeException(
               "Indext out of order " + lastKey + " " + indexIter.getTopKey());
+        }
 
         lastKey = new Key(indexIter.getTopKey());
         indexIter.next();
@@ -118,8 +124,9 @@ public class MultiThreadedRFileTest {
 
     public TestRFile(AccumuloConfiguration accumuloConfiguration) {
       this.accumuloConfiguration = accumuloConfiguration;
-      if (this.accumuloConfiguration == null)
+      if (this.accumuloConfiguration == null) {
         this.accumuloConfiguration = DefaultConfiguration.getInstance();
+      }
     }
 
     public void close() throws IOException {
@@ -154,16 +161,17 @@ public class MultiThreadedRFileTest {
       dos = fs.create(path, true);
       BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf,
           CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
-      SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
-          .newSamplerConfig(accumuloConfiguration);
+      SamplerConfigurationImpl samplerConfig =
+          SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
       if (samplerConfig != null) {
         sampler = SamplerFactory.newSampler(samplerConfig, accumuloConfiguration);
       }
       writer = new RFile.Writer(_cbw, 1000, 1000, samplerConfig, sampler);
 
-      if (startDLG)
+      if (startDLG) {
         writer.startDefaultLocalityGroup();
+      }
     }
 
     public void openWriter() throws IOException {
@@ -208,7 +216,7 @@ public class MultiThreadedRFileTest {
   }
 
   static Value newValue(String val) {
-    return new Value(val.getBytes());
+    return new Value(val);
   }
 
   public AccumuloConfiguration conf = null;
@@ -217,8 +225,7 @@ public class MultiThreadedRFileTest {
       justification = "information put into error message is safe and used for testing")
   @Test
   public void testMultipleReaders() throws IOException {
-    final List<Throwable> threadExceptions = Collections
-        .synchronizedList(new ArrayList<Throwable>());
+    final List<Throwable> threadExceptions = Collections.synchronizedList(new ArrayList<>());
     Map<String,MutableInt> messages = new HashMap<>();
     Map<String,String> stackTrace = new HashMap<>();
 
@@ -268,10 +275,10 @@ public class MultiThreadedRFileTest {
 
       for (Throwable t : threadExceptions) {
         String msg = t.getClass() + " : " + t.getMessage();
-        if (!messages.containsKey(msg)) {
-          messages.put(msg, new MutableInt(1));
-        } else {
+        if (messages.containsKey(msg)) {
           messages.get(msg).increment();
+        } else {
+          messages.put(msg, new MutableInt(1));
         }
         StringWriter string = new StringWriter();
         PrintWriter writer = new PrintWriter(string);
@@ -285,8 +292,8 @@ public class MultiThreadedRFileTest {
     }
 
     for (String message : messages.keySet()) {
-      LOG.error(messages.get(message) + ": " + message);
-      LOG.error(stackTrace.get(message));
+      LOG.error("{}: {}", messages.get(message), message);
+      LOG.error("{}", stackTrace.get(message));
     }
 
     assertTrue(threadExceptions.isEmpty());

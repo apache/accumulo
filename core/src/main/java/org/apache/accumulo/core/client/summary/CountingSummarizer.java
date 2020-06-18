@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.summary;
 
@@ -28,7 +30,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 
 /**
  * This class counts arbitrary keys while defending against too many keys and keys that are too
@@ -153,18 +155,18 @@ public abstract class CountingSummarizer<K> implements Summarizer {
   // this default can not be changed as persisted summary data depends on it
   public static final String INGNORE_DELETES_DEFAULT = "true";
 
-  private static final String[] ALL_STATS = {TOO_LONG_STAT, TOO_MANY_STAT, EMITTED_STAT, SEEN_STAT,
-      DELETES_IGNORED_STAT};
+  private static final String[] ALL_STATS =
+      {TOO_LONG_STAT, TOO_MANY_STAT, EMITTED_STAT, SEEN_STAT, DELETES_IGNORED_STAT};
 
   private int maxCounters;
   private int maxCounterKeyLen;
   private boolean ignoreDeletes;
 
   private void init(SummarizerConfiguration conf) {
-    maxCounters = Integer
-        .parseInt(conf.getOptions().getOrDefault(MAX_COUNTERS_OPT, MAX_COUNTER_DEFAULT));
-    maxCounterKeyLen = Integer
-        .parseInt(conf.getOptions().getOrDefault(MAX_COUNTER_LEN_OPT, MAX_CKL_DEFAULT));
+    maxCounters =
+        Integer.parseInt(conf.getOptions().getOrDefault(MAX_COUNTERS_OPT, MAX_COUNTER_DEFAULT));
+    maxCounterKeyLen =
+        Integer.parseInt(conf.getOptions().getOrDefault(MAX_COUNTER_LEN_OPT, MAX_CKL_DEFAULT));
     ignoreDeletes = Boolean
         .parseBoolean(conf.getOptions().getOrDefault(INGNORE_DELETES_OPT, INGNORE_DELETES_DEFAULT));
   }
@@ -299,13 +301,17 @@ public abstract class CountingSummarizer<K> implements Summarizer {
 
       if (summary1.size() - ALL_STATS.length > maxCounters) {
         // find the keys with the lowest counts to remove
-        List<String> keysToRemove = summary1.entrySet().stream()
-            .filter(e -> e.getKey().startsWith(COUNTER_STAT_PREFIX)) // filter out non counters
-            .sorted((e1, e2) -> Long.compare(e2.getValue(), e1.getValue())) // sort descending by
-                                                                            // count
-            .skip(maxCounters) // skip most frequent
-            .map(Entry::getKey).collect(Collectors.toList()); // collect the least frequent
-                                                              // counters in a list
+        List<String> keysToRemove =
+            summary1.entrySet().stream().filter(e -> e.getKey().startsWith(COUNTER_STAT_PREFIX)) // filter
+                                                                                                 // out
+                                                                                                 // non
+                                                                                                 // counters
+                .sorted((e1, e2) -> Long.compare(e2.getValue(), e1.getValue())) // sort descending
+                                                                                // by
+                                                                                // count
+                .skip(maxCounters) // skip most frequent
+                .map(Entry::getKey).collect(Collectors.toList()); // collect the least frequent
+                                                                  // counters in a list
 
         long removedCount = 0;
         for (String key : keysToRemove) {

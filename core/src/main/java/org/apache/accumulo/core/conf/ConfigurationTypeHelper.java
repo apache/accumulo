@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
@@ -144,7 +146,7 @@ public class ConfigurationTypeHelper {
    * @return interpreted fraction as a decimal value
    */
   public static double getFraction(String str) {
-    if (str.length() > 0 && str.charAt(str.length() - 1) == '%')
+    if (!str.isEmpty() && str.charAt(str.length() - 1) == '%')
       return Double.parseDouble(str.substring(0, str.length() - 1)) / 100.0;
     return Double.parseDouble(str);
   }
@@ -172,8 +174,7 @@ public class ConfigurationTypeHelper {
 
     try {
       instance = getClassInstance(context, clazzName, base);
-    } catch (RuntimeException | ClassNotFoundException | IOException | InstantiationException
-        | IllegalAccessException e) {
+    } catch (RuntimeException | IOException | ReflectiveOperationException e) {
       log.warn("Failed to load class {}", clazzName, e);
     }
 
@@ -196,7 +197,7 @@ public class ConfigurationTypeHelper {
    * @return a new instance of the class
    */
   public static <T> T getClassInstance(String context, String clazzName, Class<T> base)
-      throws ClassNotFoundException, IOException, InstantiationException, IllegalAccessException {
+      throws IOException, ReflectiveOperationException {
     T instance;
 
     Class<? extends T> clazz;
@@ -206,7 +207,7 @@ public class ConfigurationTypeHelper {
       clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
     }
 
-    instance = clazz.newInstance();
+    instance = clazz.getDeclaredConstructor().newInstance();
     if (loaded.put(clazzName, clazz) != clazz)
       log.debug("Loaded class : {}", clazzName);
 

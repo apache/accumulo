@@ -1,25 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.data;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.hadoop.io.Text;
@@ -37,7 +41,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @since 2.0.0
  */
 public class LoadPlan {
-  private final ImmutableList<Destination> destinations;
+  private final List<Destination> destinations;
 
   private static byte[] copy(byte[] data) {
     return data == null ? null : Arrays.copyOf(data, data.length);
@@ -48,7 +52,7 @@ public class LoadPlan {
   }
 
   private static byte[] copy(CharSequence data) {
-    return data == null ? null : data.toString().getBytes(StandardCharsets.UTF_8);
+    return data == null ? null : data.toString().getBytes(UTF_8);
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
@@ -107,16 +111,16 @@ public class LoadPlan {
 
       if (rangeType == RangeType.FILE) {
         if (UnsignedBytes.lexicographicalComparator().compare(startRow, endRow) > 0) {
-          String srs = new String(startRow, StandardCharsets.UTF_8);
-          String ers = new String(endRow, StandardCharsets.UTF_8);
+          String srs = new String(startRow, UTF_8);
+          String ers = new String(endRow, UTF_8);
           throw new IllegalArgumentException(
               "Start row is greater than end row : " + srs + " " + ers);
         }
       } else if (rangeType == RangeType.TABLE) {
         if (startRow != null && endRow != null
             && UnsignedBytes.lexicographicalComparator().compare(startRow, endRow) >= 0) {
-          String srs = new String(startRow, StandardCharsets.UTF_8);
-          String ers = new String(endRow, StandardCharsets.UTF_8);
+          String srs = new String(startRow, UTF_8);
+          String ers = new String(endRow, UTF_8);
           throw new IllegalArgumentException(
               "Start row is greater than or equal to end row : " + srs + " " + ers);
         }
@@ -143,7 +147,7 @@ public class LoadPlan {
     }
   }
 
-  private LoadPlan(ImmutableList<Destination> destinations) {
+  private LoadPlan(List<Destination> destinations) {
     this.destinations = destinations;
   }
 
@@ -156,7 +160,8 @@ public class LoadPlan {
    */
   public interface Builder {
     /**
-     * Specify the row range where a file should be loaded.
+     * Specify the row range where a file should be loaded. Note that whether the startRow parameter
+     * is inclusive or exclusive is determined by the {@link RangeType} parameter.
      *
      * @param fileName
      *          this should not be a path. Only a file name because loads are expected to happen
@@ -165,7 +170,8 @@ public class LoadPlan {
     Builder loadFileTo(String fileName, RangeType rangeType, Text startRow, Text endRow);
 
     /**
-     * Specify the row range where a file should be loaded.
+     * Specify the row range where a file should be loaded. Note that whether the startRow parameter
+     * is inclusive or exclusive is determined by the {@link RangeType} parameter.
      *
      * @param fileName
      *          this should not be a path. Only a file name because loads are expected to happen
@@ -174,7 +180,8 @@ public class LoadPlan {
     Builder loadFileTo(String fileName, RangeType rangeType, byte[] startRow, byte[] endRow);
 
     /**
-     * Specify the row range where a file should be loaded.
+     * Specify the row range where a file should be loaded. Note that whether the startRow parameter
+     * is inclusive or exclusive is determined by the {@link RangeType} parameter.
      *
      * @param fileName
      *          this should not be a path. Only a file name because loads are expected to happen

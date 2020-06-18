@@ -1,19 +1,22 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 var tableID;
 
 /**
@@ -63,7 +66,7 @@ function clearDetailsProblemsTable(table, resource, type) {
  * Generates the problem summary table
  */
 function refreshProblemSummaryTable() {
-  clearTable('problemSummary');
+  clearTableBody('problemSummary');
   var data = sessionStorage.problemSummary === undefined ?
       [] : JSON.parse(sessionStorage.problemSummary);
 
@@ -72,7 +75,7 @@ function refreshProblemSummaryTable() {
     items.push(createEmptyRow(5, 'Empty'));
     $('<tr/>', {
       html: items.join('')
-    }).appendTo('#problemSummary');
+    }).appendTo('#problemSummary tbody');
   } else {
     $.each(data.problemSummary, function(key, val) {
       var items = [];
@@ -90,7 +93,7 @@ function refreshProblemSummaryTable() {
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#problemSummary');
+      }).appendTo('#problemSummary tbody');
     });
   }
 }
@@ -99,7 +102,7 @@ function refreshProblemSummaryTable() {
  * Generates the problem details table
  */
 function refreshProblemDetailsTable() {
-  clearTable('problemDetails');
+  clearTableBody('problemDetails');
   var data = sessionStorage.problemDetails === undefined ?
       [] : JSON.parse(sessionStorage.problemDetails);
 
@@ -108,7 +111,7 @@ function refreshProblemDetailsTable() {
     items.push(createEmptyRow(7, 'Empty'));
     $('<tr/>', {
       html: items.join('')
-    }).appendTo('#problemDetails');
+    }).appendTo('#problemDetails tbody');
   } else {
     $.each(data.problemDetails, function(key, val) {
       var items = [];
@@ -136,7 +139,7 @@ function refreshProblemDetailsTable() {
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#problemDetails');
+      }).appendTo('#problemDetails tbody');
 
     });
   }

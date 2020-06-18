@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.log;
 
@@ -22,6 +24,7 @@ import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MUTATION;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -43,7 +46,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.data.ServerMutation;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
@@ -56,18 +58,21 @@ import org.apache.hadoop.io.MapFile.Writer;
 import org.apache.hadoop.io.Text;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class SortedLogRecoveryTest {
 
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
   static final Text cf = new Text("cf");
   static final Text cq = new Text("cq");
-  static final Value value = new Value("value".getBytes());
+  static final Value value = new Value("value");
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   static class KeyValue implements Comparable<KeyValue> {
     public final LogFileKey key;
@@ -132,25 +137,20 @@ public class SortedLogRecoveryTest {
     }
   }
 
-  private static List<Mutation> recover(Map<String,KeyValue[]> logs, KeyExtent extent)
-      throws IOException {
+  private List<Mutation> recover(Map<String,KeyValue[]> logs, KeyExtent extent) throws IOException {
     return recover(logs, new HashSet<>(), extent);
   }
 
-  private static List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files,
-      KeyExtent extent) throws IOException {
-    TemporaryFolder root = new TemporaryFolder(
-        new File(System.getProperty("user.dir") + "/target"));
-    root.create();
-    final String workdir = root.getRoot().getAbsolutePath() + "/workdir";
-    VolumeManager fs = VolumeManagerImpl.getLocal(workdir);
-    final Path workdirPath = new Path("file://" + workdir);
-    fs.deleteRecursively(workdirPath);
-    ArrayList<Path> dirs = new ArrayList<>();
-    try {
+  private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent)
+      throws IOException {
+    final String workdir = tempFolder.newFolder().getAbsolutePath();
+    try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
+      final Path workdirPath = new Path("file://" + workdir);
+      fs.deleteRecursively(workdirPath);
+      ArrayList<Path> dirs = new ArrayList<>();
       for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
         String path = workdir + "/" + entry.getKey();
-        FileSystem ns = fs.getVolumeByPath(new Path(path)).getFileSystem();
+        FileSystem ns = fs.getFileSystemByPath(new Path(path));
         @SuppressWarnings("deprecation")
         Writer map = new MapFile.Writer(ns.getConf(), ns, path + "/log1", LogFileKey.class,
             LogFileValue.class);
@@ -166,8 +166,6 @@ public class SortedLogRecoveryTest {
       CaptureMutations capture = new CaptureMutations();
       recovery.recover(extent, dirs, files, capture);
       return capture.result;
-    } finally {
-      root.delete();
     }
   }
 
@@ -179,25 +177,25 @@ public class SortedLogRecoveryTest {
     m.put(cf, cq, value);
     Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, value);
-    KeyValue[] entries = {createKeyValue(OPEN, 0, 1, "2"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"), createKeyValue(MUTATION, 2, 1, ignored),
-        createKeyValue(MUTATION, 4, 1, ignored),};
-    KeyValue[] entries2 = {createKeyValue(OPEN, 0, 1, "2"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 4, 1, "/t1/f1"), createKeyValue(MUTATION, 7, 1, m),};
-    KeyValue[] entries3 = {createKeyValue(OPEN, 0, 2, "23"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 5, 1, "/t1/f2"),
-        createKeyValue(COMPACTION_FINISH, 6, 1, null), createKeyValue(MUTATION, 3, 1, ignored),
-        createKeyValue(MUTATION, 4, 1, ignored),};
+    KeyValue[] entries =
+        {createKeyValue(OPEN, 0, 1, "2"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"),
+            createKeyValue(MUTATION, 2, 1, ignored), createKeyValue(MUTATION, 4, 1, ignored),};
+    KeyValue[] entries2 =
+        {createKeyValue(OPEN, 0, 1, "2"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 4, 1, "/t1/f1"), createKeyValue(MUTATION, 7, 1, m),};
+    KeyValue[] entries3 =
+        {createKeyValue(OPEN, 0, 2, "23"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 5, 1, "/t1/f2"),
+            createKeyValue(COMPACTION_FINISH, 6, 1, null), createKeyValue(MUTATION, 3, 1, ignored),
+            createKeyValue(MUTATION, 4, 1, ignored),};
     KeyValue[] entries4 = {createKeyValue(OPEN, 0, 3, "69"),
         createKeyValue(DEFINE_TABLET, 1, 1, extent), createKeyValue(MUTATION, 2, 1, ignored),
         createKeyValue(MUTATION, 3, 1, ignored), createKeyValue(MUTATION, 4, 1, ignored),};
-    KeyValue[] entries5 = {createKeyValue(OPEN, 0, 4, "70"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 3, 1, "/t1/f3"), createKeyValue(MUTATION, 2, 1, ignored),
-        createKeyValue(MUTATION, 6, 1, m2),};
+    KeyValue[] entries5 =
+        {createKeyValue(OPEN, 0, 4, "70"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 3, 1, "/t1/f3"),
+            createKeyValue(MUTATION, 2, 1, ignored), createKeyValue(MUTATION, 6, 1, m2),};
 
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
@@ -228,25 +226,25 @@ public class SortedLogRecoveryTest {
     m3.put(cf, cq, value);
     Mutation m4 = new ServerMutation(new Text("row4"));
     m4.put(cf, cq, value);
-    KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"), createKeyValue(MUTATION, 2, 1, ignored),
-        createKeyValue(MUTATION, 4, 1, ignored),};
+    KeyValue[] entries =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"),
+            createKeyValue(MUTATION, 2, 1, ignored), createKeyValue(MUTATION, 4, 1, ignored),};
     KeyValue[] entries2 = {createKeyValue(OPEN, 5, -1, "2"),
         createKeyValue(DEFINE_TABLET, 6, 1, extent), createKeyValue(MUTATION, 7, 1, ignored),};
     // createKeyValue(COMPACTION_FINISH, 14, 1, null),
-    KeyValue[] entries3 = {createKeyValue(OPEN, 8, -1, "3"),
-        createKeyValue(DEFINE_TABLET, 9, 1, extent),
-        createKeyValue(COMPACTION_FINISH, 10, 1, "/t1/f1"),
-        createKeyValue(COMPACTION_START, 12, 1, "/t1/f2"),
-        createKeyValue(COMPACTION_FINISH, 13, 1, "/t1/f2"),
-        // createKeyValue(COMPACTION_FINISH, 14, 1, null),
-        createKeyValue(MUTATION, 11, 1, ignored), createKeyValue(MUTATION, 15, 1, m),
-        createKeyValue(MUTATION, 16, 1, m2),};
-    KeyValue[] entries4 = {createKeyValue(OPEN, 17, -1, "4"),
-        createKeyValue(DEFINE_TABLET, 18, 1, extent),
-        createKeyValue(COMPACTION_START, 20, 1, "/t1/f3"), createKeyValue(MUTATION, 19, 1, m3),
-        createKeyValue(MUTATION, 21, 1, m4),};
+    KeyValue[] entries3 =
+        {createKeyValue(OPEN, 8, -1, "3"), createKeyValue(DEFINE_TABLET, 9, 1, extent),
+            createKeyValue(COMPACTION_FINISH, 10, 1, "/t1/f1"),
+            createKeyValue(COMPACTION_START, 12, 1, "/t1/f2"),
+            createKeyValue(COMPACTION_FINISH, 13, 1, "/t1/f2"),
+            // createKeyValue(COMPACTION_FINISH, 14, 1, null),
+            createKeyValue(MUTATION, 11, 1, ignored), createKeyValue(MUTATION, 15, 1, m),
+            createKeyValue(MUTATION, 16, 1, m2),};
+    KeyValue[] entries4 =
+        {createKeyValue(OPEN, 17, -1, "4"), createKeyValue(DEFINE_TABLET, 18, 1, extent),
+            createKeyValue(COMPACTION_START, 20, 1, "/t1/f3"), createKeyValue(MUTATION, 19, 1, m3),
+            createKeyValue(MUTATION, 21, 1, m4),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
@@ -277,13 +275,13 @@ public class SortedLogRecoveryTest {
     m4.put(cf, cq, value);
     Mutation m5 = new ServerMutation(new Text("row5"));
     m5.put(cf, cq, value);
-    KeyValue[] entries = {createKeyValue(OPEN, 0, 1, "2"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent), createKeyValue(MUTATION, 1, 1, ignored),
-        createKeyValue(MUTATION, 3, 1, m),};
-    KeyValue[] entries2 = {createKeyValue(OPEN, 0, 1, "2"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 2, 1, "/t1/f1"),
-        createKeyValue(COMPACTION_FINISH, 3, 1, "/t1/f1"), createKeyValue(MUTATION, 3, 1, m2),};
+    KeyValue[] entries =
+        {createKeyValue(OPEN, 0, 1, "2"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(MUTATION, 1, 1, ignored), createKeyValue(MUTATION, 3, 1, m),};
+    KeyValue[] entries2 =
+        {createKeyValue(OPEN, 0, 1, "2"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 2, 1, "/t1/f1"),
+            createKeyValue(COMPACTION_FINISH, 3, 1, "/t1/f1"), createKeyValue(MUTATION, 3, 1, m2),};
 
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
@@ -301,8 +299,8 @@ public class SortedLogRecoveryTest {
   @Test
   public void testEmpty() throws IOException {
     // Create a test log
-    KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),};
+    KeyValue[] entries =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("testlog", entries);
     // Recover
@@ -348,11 +346,11 @@ public class SortedLogRecoveryTest {
     ignored.put(cf, cq, value);
     Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
-    KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"),
-        createKeyValue(COMPACTION_FINISH, 4, 1, null), createKeyValue(MUTATION, 2, 1, ignored),
-        createKeyValue(MUTATION, 5, 1, m),};
+    KeyValue[] entries =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"),
+            createKeyValue(COMPACTION_FINISH, 4, 1, null), createKeyValue(MUTATION, 2, 1, ignored),
+            createKeyValue(MUTATION, 5, 1, m),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("testlog", entries);
     // Recover
@@ -372,9 +370,9 @@ public class SortedLogRecoveryTest {
     KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
         createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"), createKeyValue(MUTATION, 2, 1, ignored),};
-    KeyValue[] entries2 = {createKeyValue(OPEN, 4, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 5, 1, extent), createKeyValue(COMPACTION_FINISH, 6, 1, null),
-        createKeyValue(MUTATION, 7, 1, m),};
+    KeyValue[] entries2 =
+        {createKeyValue(OPEN, 4, -1, "1"), createKeyValue(DEFINE_TABLET, 5, 1, extent),
+            createKeyValue(COMPACTION_FINISH, 6, 1, null), createKeyValue(MUTATION, 7, 1, m),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
@@ -393,14 +391,14 @@ public class SortedLogRecoveryTest {
     Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
     Mutation m2 = new ServerMutation(new Text("row2"));
-    m2.put(cf, cq, new Value("123".getBytes()));
-    KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"), createKeyValue(MUTATION, 2, 1, ignored),
-        createKeyValue(MUTATION, 4, 1, m),};
-    KeyValue[] entries2 = {createKeyValue(OPEN, 5, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 4, 1, extent), createKeyValue(COMPACTION_FINISH, 4, 1, null),
-        createKeyValue(MUTATION, 8, 1, m2),};
+    m2.put(cf, cq, new Value("123"));
+    KeyValue[] entries =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"),
+            createKeyValue(MUTATION, 2, 1, ignored), createKeyValue(MUTATION, 4, 1, m),};
+    KeyValue[] entries2 =
+        {createKeyValue(OPEN, 5, -1, "1"), createKeyValue(DEFINE_TABLET, 4, 1, extent),
+            createKeyValue(COMPACTION_FINISH, 4, 1, null), createKeyValue(MUTATION, 8, 1, m2),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
@@ -420,7 +418,7 @@ public class SortedLogRecoveryTest {
     Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
     Mutation m2 = new ServerMutation(new Text("row2"));
-    m2.put(cf, cq, new Value("123".getBytes()));
+    m2.put(cf, cq, new Value("123"));
     KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
         createKeyValue(DEFINE_TABLET, 1, 1, extent), createKeyValue(COMPACTION_FINISH, 2, 1, null),
         createKeyValue(COMPACTION_START, 4, 1, "/t1/f1"),
@@ -447,15 +445,15 @@ public class SortedLogRecoveryTest {
     m2.put(cf, cq, value);
     Mutation m3 = new ServerMutation(new Text("row3"));
     m3.put(cf, cq, value);
-    KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"), createKeyValue(MUTATION, 2, 1, ignored),
-        createKeyValue(MUTATION, 4, 1, m),};
+    KeyValue[] entries =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"),
+            createKeyValue(MUTATION, 2, 1, ignored), createKeyValue(MUTATION, 4, 1, m),};
     KeyValue[] entries2 = {createKeyValue(OPEN, 5, -1, "1"),
         createKeyValue(DEFINE_TABLET, 4, 1, extent), createKeyValue(MUTATION, 4, 1, m2),};
-    KeyValue[] entries3 = {createKeyValue(OPEN, 8, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 4, 1, extent), createKeyValue(COMPACTION_FINISH, 4, 1, null),
-        createKeyValue(MUTATION, 4, 1, m3),};
+    KeyValue[] entries3 =
+        {createKeyValue(OPEN, 8, -1, "1"), createKeyValue(DEFINE_TABLET, 4, 1, extent),
+            createKeyValue(COMPACTION_FINISH, 4, 1, null), createKeyValue(MUTATION, 4, 1, m3),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
@@ -476,11 +474,11 @@ public class SortedLogRecoveryTest {
     m1.put(cf, cq, value);
     Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, value);
-    KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 30, 1, "/t1/f1"),
-        createKeyValue(COMPACTION_FINISH, 32, 1, "/t1/f1"), createKeyValue(MUTATION, 29, 1, m1),
-        createKeyValue(MUTATION, 30, 1, m2),};
+    KeyValue[] entries =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 30, 1, "/t1/f1"),
+            createKeyValue(COMPACTION_FINISH, 32, 1, "/t1/f1"), createKeyValue(MUTATION, 29, 1, m1),
+            createKeyValue(MUTATION, 30, 1, m2),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("testlog", entries);
     // Recover
@@ -500,14 +498,14 @@ public class SortedLogRecoveryTest {
     m2.put(cf, cq, value);
     Mutation m3 = new ServerMutation(new Text("row3"));
     m3.put(cf, cq, value);
-    KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"),
-        createKeyValue(COMPACTION_FINISH, 4, 1, null), createKeyValue(MUTATION, 4, 1, m),};
-    KeyValue[] entries2 = {createKeyValue(OPEN, 5, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 6, 1, extent),
-        createKeyValue(COMPACTION_START, 8, 1, "/t1/f1"), createKeyValue(MUTATION, 7, 1, m2),
-        createKeyValue(MUTATION, 9, 1, m3),};
+    KeyValue[] entries =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"),
+            createKeyValue(COMPACTION_FINISH, 4, 1, null), createKeyValue(MUTATION, 4, 1, m),};
+    KeyValue[] entries2 =
+        {createKeyValue(OPEN, 5, -1, "1"), createKeyValue(DEFINE_TABLET, 6, 1, extent),
+            createKeyValue(COMPACTION_START, 8, 1, "/t1/f1"), createKeyValue(MUTATION, 7, 1, m2),
+            createKeyValue(MUTATION, 9, 1, m3),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
@@ -538,30 +536,30 @@ public class SortedLogRecoveryTest {
     Mutation m6 = new ServerMutation(new Text("row6"));
     m6.put(cf, cq, value);
     // createKeyValue(COMPACTION_FINISH, 5, 1, null),
-    KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 4, 1, "/t1/f1"),
-        // createKeyValue(COMPACTION_FINISH, 5, 1, null),
-        createKeyValue(MUTATION, 2, 1, m), createKeyValue(MUTATION, 3, 1, m2),};
-    KeyValue[] entries2 = {createKeyValue(OPEN, 5, -1, "2"),
-        createKeyValue(DEFINE_TABLET, 6, 1, extent), createKeyValue(MUTATION, 7, 1, m3),
-        createKeyValue(MUTATION, 8, 1, m4),};
+    KeyValue[] entries =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 4, 1, "/t1/f1"),
+            // createKeyValue(COMPACTION_FINISH, 5, 1, null),
+            createKeyValue(MUTATION, 2, 1, m), createKeyValue(MUTATION, 3, 1, m2),};
+    KeyValue[] entries2 =
+        {createKeyValue(OPEN, 5, -1, "2"), createKeyValue(DEFINE_TABLET, 6, 1, extent),
+            createKeyValue(MUTATION, 7, 1, m3), createKeyValue(MUTATION, 8, 1, m4),};
     // createKeyValue(COMPACTION_FINISH, 11, 1, null),
     // createKeyValue(COMPACTION_FINISH, 14, 1, null),
     // createKeyValue(COMPACTION_START, 15, 1, "somefile"),
     // createKeyValue(COMPACTION_FINISH, 17, 1, null),
     // createKeyValue(COMPACTION_START, 18, 1, "somefile"),
     // createKeyValue(COMPACTION_FINISH, 19, 1, null),
-    KeyValue[] entries3 = {createKeyValue(OPEN, 9, -1, "3"),
-        createKeyValue(DEFINE_TABLET, 10, 1, extent),
-        // createKeyValue(COMPACTION_FINISH, 11, 1, null),
-        createKeyValue(COMPACTION_START, 12, 1, "/t1/f1"),
-        // createKeyValue(COMPACTION_FINISH, 14, 1, null),
-        // createKeyValue(COMPACTION_START, 15, 1, "somefile"),
-        // createKeyValue(COMPACTION_FINISH, 17, 1, null),
-        // createKeyValue(COMPACTION_START, 18, 1, "somefile"),
-        // createKeyValue(COMPACTION_FINISH, 19, 1, null),
-        createKeyValue(MUTATION, 9, 1, m5), createKeyValue(MUTATION, 20, 1, m6),};
+    KeyValue[] entries3 =
+        {createKeyValue(OPEN, 9, -1, "3"), createKeyValue(DEFINE_TABLET, 10, 1, extent),
+            // createKeyValue(COMPACTION_FINISH, 11, 1, null),
+            createKeyValue(COMPACTION_START, 12, 1, "/t1/f1"),
+            // createKeyValue(COMPACTION_FINISH, 14, 1, null),
+            // createKeyValue(COMPACTION_START, 15, 1, "somefile"),
+            // createKeyValue(COMPACTION_FINISH, 17, 1, null),
+            // createKeyValue(COMPACTION_START, 18, 1, "somefile"),
+            // createKeyValue(COMPACTION_FINISH, 19, 1, null),
+            createKeyValue(MUTATION, 9, 1, m5), createKeyValue(MUTATION, 20, 1, m6),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
@@ -594,16 +592,16 @@ public class SortedLogRecoveryTest {
     m4.put(cf, cq, value);
     Mutation m5 = new ServerMutation(new Text("row5"));
     m5.put(cf, cq, value);
-    KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 2, 1, "/t1/f1"),
-        createKeyValue(COMPACTION_FINISH, 3, 1, null), createKeyValue(MUTATION, 1, 1, ignored),
-        createKeyValue(MUTATION, 3, 1, m), createKeyValue(MUTATION, 3, 1, m2),
-        createKeyValue(MUTATION, 3, 1, m3),};
-    KeyValue[] entries2 = {createKeyValue(OPEN, 0, -1, "2"),
-        createKeyValue(DEFINE_TABLET, 1, 1, extent),
-        createKeyValue(COMPACTION_START, 2, 1, "/t1/f12"), createKeyValue(MUTATION, 3, 1, m4),
-        createKeyValue(MUTATION, 3, 1, m5),};
+    KeyValue[] entries =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 2, 1, "/t1/f1"),
+            createKeyValue(COMPACTION_FINISH, 3, 1, null), createKeyValue(MUTATION, 1, 1, ignored),
+            createKeyValue(MUTATION, 3, 1, m), createKeyValue(MUTATION, 3, 1, m2),
+            createKeyValue(MUTATION, 3, 1, m3),};
+    KeyValue[] entries2 =
+        {createKeyValue(OPEN, 0, -1, "2"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+            createKeyValue(COMPACTION_START, 2, 1, "/t1/f12"), createKeyValue(MUTATION, 3, 1, m4),
+            createKeyValue(MUTATION, 3, 1, m5),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
@@ -738,12 +736,12 @@ public class SortedLogRecoveryTest {
     Mutation m4 = new ServerMutation(new Text("s"));
     m4.put("f1", "q2", "v4");
 
-    KeyValue[] entries1 = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 7, 10, e1), createKeyValue(DEFINE_TABLET, 5, 11, e2),
-        createKeyValue(MUTATION, 8, 10, m1), createKeyValue(COMPACTION_START, 9, 10, "/t/f1"),
-        createKeyValue(MUTATION, 10, 10, m2), createKeyValue(COMPACTION_FINISH, 10, 10, null),
-        createKeyValue(MUTATION, 6, 11, m3), createKeyValue(COMPACTION_START, 7, 11, "/t/f2"),
-        createKeyValue(MUTATION, 8, 11, m4)};
+    KeyValue[] entries1 =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 7, 10, e1),
+            createKeyValue(DEFINE_TABLET, 5, 11, e2), createKeyValue(MUTATION, 8, 10, m1),
+            createKeyValue(COMPACTION_START, 9, 10, "/t/f1"), createKeyValue(MUTATION, 10, 10, m2),
+            createKeyValue(COMPACTION_FINISH, 10, 10, null), createKeyValue(MUTATION, 6, 11, m3),
+            createKeyValue(COMPACTION_START, 7, 11, "/t/f2"), createKeyValue(MUTATION, 8, 11, m4)};
 
     Arrays.sort(entries1);
 
@@ -789,13 +787,13 @@ public class SortedLogRecoveryTest {
     filesSet.addAll(Arrays.asList(tabletFiles));
     List<Mutation> mutations = recover(logs, filesSet, extent);
 
-    if (!startMatches) {
+    if (startMatches) {
+      assertEquals(1, mutations.size());
+      assertEquals(m2, mutations.get(0));
+    } else {
       assertEquals(2, mutations.size());
       assertEquals(m1, mutations.get(0));
       assertEquals(m2, mutations.get(1));
-    } else {
-      assertEquals(1, mutations.size());
-      assertEquals(m2, mutations.get(0));
     }
   }
 
@@ -873,9 +871,8 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries1", entries1);
 
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("consecutive " + LogEvents.COMPACTION_FINISH.name());
-    recover(logs, extent);
+    var e = assertThrows(IllegalStateException.class, () -> recover(logs, extent));
+    assertTrue(e.getMessage().contains("consecutive " + LogEvents.COMPACTION_FINISH.name()));
   }
 
   @Test
@@ -917,15 +914,15 @@ public class SortedLogRecoveryTest {
 
     KeyValue[] entries2 = {createKeyValue(OPEN, 0, -1, "1")};
 
-    KeyValue[] entries3 = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 105, 10, extent),
-        createKeyValue(COMPACTION_START, 107, 10, "/t/f1")};
+    KeyValue[] entries3 =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 105, 10, extent),
+            createKeyValue(COMPACTION_START, 107, 10, "/t/f1")};
 
     KeyValue[] entries4 = {};
 
-    KeyValue[] entries5 = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 107, 10, extent),
-        createKeyValue(COMPACTION_FINISH, 111, 10, null)};
+    KeyValue[] entries5 =
+        {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 107, 10, extent),
+            createKeyValue(COMPACTION_FINISH, 111, 10, null)};
 
     KeyValue[] entries6 = {createKeyValue(OPEN, 0, -1, "1"),
         createKeyValue(DEFINE_TABLET, 122, 10, extent), createKeyValue(MUTATION, 123, 10, m2)};
@@ -995,8 +992,7 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries1", entries1);
 
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("not " + LogEvents.OPEN);
-    recover(logs, extent);
+    var e = assertThrows(IllegalStateException.class, () -> recover(logs, extent));
+    assertTrue(e.getMessage().contains("not " + LogEvents.OPEN));
   }
 }

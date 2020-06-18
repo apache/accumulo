@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.bulkVer1;
 
@@ -35,8 +37,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -77,8 +82,8 @@ class CopyFailed extends MasterRepo {
         if (client != null && !client.isActive(tid))
           finished.add(server);
       } catch (TException ex) {
-        log.info(
-            "Ignoring error trying to check on tid " + tid + " from server " + server + ": " + ex);
+        log.info("Ignoring error trying to check on tid " + FateTxId.formatTid(tid)
+            + " from server " + server + ": " + ex);
       }
     }
     if (finished.containsAll(running))
@@ -90,7 +95,7 @@ class CopyFailed extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     // This needs to execute after the arbiter is stopped
     master.updateBulkImportStatus(source, BulkImportState.COPY_FILES);
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
 
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
@@ -115,14 +120,15 @@ class CopyFailed extends MasterRepo {
 
     // determine which failed files were loaded
     AccumuloClient client = master.getContext();
-    try (Scanner mscanner = new IsolatedScanner(
-        client.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
+    try (Scanner mscanner =
+        new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
 
       for (Entry<Key,Value> entry : mscanner) {
-        if (Long.parseLong(entry.getValue().toString()) == tid) {
-          FileRef loadedFile = new FileRef(fs, entry.getKey());
+        if (BulkFileColumnFamily.getBulkLoadTid(entry.getValue()) == tid) {
+          FileRef loadedFile = new FileRef(
+              TabletFileUtil.validate(entry.getKey().getColumnQualifierData().toString()));
           String absPath = failures.remove(loadedFile);
           if (absPath != null) {
             loadedFailures.put(loadedFile, absPath);
@@ -136,10 +142,10 @@ class CopyFailed extends MasterRepo {
       Path orig = new Path(failure);
       Path dest = new Path(error, orig.getName());
       fs.rename(orig, dest);
-      log.debug("tid " + tid + " renamed " + orig + " to " + dest + ": import failed");
+      log.debug(FateTxId.formatTid(tid) + " renamed " + orig + " to " + dest + ": import failed");
     }
 
-    if (loadedFailures.size() > 0) {
+    if (!loadedFailures.isEmpty()) {
       DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(
           Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
           master.getConfiguration());
@@ -155,7 +161,8 @@ class CopyFailed extends MasterRepo {
 
         bifCopyQueue.addWork(orig.getName(), (failure + "," + dest).getBytes(UTF_8));
         workIds.add(orig.getName());
-        log.debug("tid " + tid + " added to copyq: " + orig + " to " + dest + ": failed");
+        log.debug(
+            FateTxId.formatTid(tid) + " added to copyq: " + orig + " to " + dest + ": failed");
       }
 
       bifCopyQueue.waitUntilDone(workIds);

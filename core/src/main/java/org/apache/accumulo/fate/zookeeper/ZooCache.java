@@ -1,24 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
@@ -40,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
 /**
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
@@ -165,15 +167,17 @@ public class ZooCache {
         case None:
           switch (event.getState()) {
             case Disconnected:
-              if (log.isTraceEnabled())
+              if (log.isTraceEnabled()) {
                 log.trace("Zoo keeper connection disconnected, clearing cache");
+              }
               clear();
               break;
             case SyncConnected:
               break;
             case Expired:
-              if (log.isTraceEnabled())
+              if (log.isTraceEnabled()) {
                 log.trace("Zoo keeper connection expired, clearing cache");
+              }
               clear();
               break;
             default:
@@ -311,7 +315,7 @@ public class ZooCache {
   public List<String> getChildren(final String zPath) {
     Preconditions.checkState(!closed);
 
-    ZooRunnable<List<String>> zr = new ZooRunnable<List<String>>() {
+    ZooRunnable<List<String>> zr = new ZooRunnable<>() {
 
       @Override
       public List<String> run() throws KeeperException, InterruptedException {
@@ -332,7 +336,7 @@ public class ZooCache {
 
           List<String> children = zooKeeper.getChildren(zPath, watcher);
           if (children != null) {
-            children = ImmutableList.copyOf(children);
+            children = List.copyOf(children);
           }
           childrenCache.put(zPath, children);
           immutableCache = new ImmutableCacheCopies(++updateCount, immutableCache, childrenCache);
@@ -376,7 +380,7 @@ public class ZooCache {
    */
   public byte[] get(final String zPath, final ZcStat status) {
     Preconditions.checkState(!closed);
-    ZooRunnable<byte[]> zr = new ZooRunnable<byte[]>() {
+    ZooRunnable<byte[]> zr = new ZooRunnable<>() {
 
       @Override
       public byte[] run() throws KeeperException, InterruptedException {
@@ -557,4 +561,21 @@ public class ZooCache {
       cacheWriteLock.unlock();
     }
   }
+
+  public byte[] getLockData(String path) {
+
+    List<String> children = getChildren(path);
+
+    if (children == null || children.isEmpty()) {
+      return null;
+    }
+
+    children = new ArrayList<>(children);
+    Collections.sort(children);
+
+    String lockNode = children.get(0);
+
+    return get(path + "/" + lockNode);
+  }
+
 }

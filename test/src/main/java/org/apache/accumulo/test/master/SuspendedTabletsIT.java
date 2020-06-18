@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.master;
 
@@ -38,7 +40,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -67,7 +69,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.SetMultimap;
 
 public class SuspendedTabletsIT extends ConfigurableMacBase {
@@ -75,13 +76,18 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   private static final Random RANDOM = new SecureRandom();
   private static ExecutorService THREAD_POOL;
 
-  public static final int TSERVERS = 5;
-  public static final long SUSPEND_DURATION = MILLISECONDS.convert(30, SECONDS);
-  public static final int TABLETS = 100;
+  public static final int TSERVERS = 3;
+  public static final long SUSPEND_DURATION = 20;
+  public static final int TABLETS = 30;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "ms");
+    cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "s");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setNumTservers(TSERVERS);
@@ -91,19 +97,15 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   public void crashAndResumeTserver() throws Exception {
     // Run the test body. When we get to the point where we need a tserver to go away, get rid of it
     // via crashing
-    suspensionTestBody(new TServerKiller() {
-      @Override
-      public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
-          throws Exception {
-        List<ProcessReference> procs = new ArrayList<>(
-            getCluster().getProcesses().get(ServerType.TABLET_SERVER));
-        Collections.shuffle(procs);
+    suspensionTestBody((ctx, locs, count) -> {
+      List<ProcessReference> procs =
+          new ArrayList<>(getCluster().getProcesses().get(ServerType.TABLET_SERVER));
+      Collections.shuffle(procs);
 
-        for (int i = 0; i < count; ++i) {
-          ProcessReference pr = procs.get(i);
-          log.info("Crashing {}", pr.getProcess());
-          getCluster().killProcess(ServerType.TABLET_SERVER, pr);
-        }
+      for (int i = 0; i < count; ++i) {
+        ProcessReference pr = procs.get(i);
+        log.info("Crashing {}", pr.getProcess());
+        getCluster().killProcess(ServerType.TABLET_SERVER, pr);
       }
     });
   }
@@ -112,49 +114,45 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   public void shutdownAndResumeTserver() throws Exception {
     // Run the test body. When we get to the point where we need tservers to go away, stop them via
     // a clean shutdown.
-    suspensionTestBody(new TServerKiller() {
-      @Override
-      public void eliminateTabletServers(final ClientContext ctx, TabletLocations locs, int count)
-          throws Exception {
-        Set<TServerInstance> tserversSet = new HashSet<>();
-        for (TabletLocationState tls : locs.locationStates.values()) {
-          if (tls.current != null) {
-            tserversSet.add(tls.current);
-          }
+    suspensionTestBody((ctx, locs, count) -> {
+      Set<TServerInstance> tserversSet = new HashSet<>();
+      for (TabletLocationState tls : locs.locationStates.values()) {
+        if (tls.current != null) {
+          tserversSet.add(tls.current);
         }
-        List<TServerInstance> tserversList = new ArrayList<>(tserversSet);
-        Collections.shuffle(tserversList, RANDOM);
-
-        for (int i = 0; i < count; ++i) {
-          final String tserverName = tserversList.get(i).toString();
-          MasterClient.executeVoid(ctx, client -> {
-            log.info("Sending shutdown command to {} via MasterClientService", tserverName);
-            client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
-          });
-        }
-
-        log.info("Waiting for tserver process{} to die", count == 1 ? "" : "es");
-        for (int i = 0; i < 10; ++i) {
-          List<ProcessReference> deadProcs = new ArrayList<>();
-          for (ProcessReference pr : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
-            Process p = pr.getProcess();
-            if (!p.isAlive()) {
-              deadProcs.add(pr);
-            }
-          }
-          for (ProcessReference pr : deadProcs) {
-            log.info("Process {} is dead, informing cluster control about this", pr.getProcess());
-            getCluster().getClusterControl().killProcess(ServerType.TABLET_SERVER, pr);
-            --count;
-          }
-          if (count == 0) {
-            return;
-          } else {
-            Thread.sleep(MILLISECONDS.convert(2, SECONDS));
-          }
-        }
-        throw new IllegalStateException("Tablet servers didn't die!");
       }
+      List<TServerInstance> tserversList = new ArrayList<>(tserversSet);
+      Collections.shuffle(tserversList, RANDOM);
+
+      for (int i1 = 0; i1 < count; ++i1) {
+        final String tserverName = tserversList.get(i1).toString();
+        MasterClient.executeVoid(ctx, client -> {
+          log.info("Sending shutdown command to {} via MasterClientService", tserverName);
+          client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
+        });
+      }
+
+      log.info("Waiting for tserver process{} to die", count == 1 ? "" : "es");
+      for (int i2 = 0; i2 < 10; ++i2) {
+        List<ProcessReference> deadProcs = new ArrayList<>();
+        for (ProcessReference pr1 : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
+          Process p = pr1.getProcess();
+          if (!p.isAlive()) {
+            deadProcs.add(pr1);
+          }
+        }
+        for (ProcessReference pr2 : deadProcs) {
+          log.info("Process {} is dead, informing cluster control about this", pr2.getProcess());
+          getCluster().getClusterControl().killProcess(ServerType.TABLET_SERVER, pr2);
+          --count;
+        }
+        if (count == 0) {
+          return;
+        } else {
+          Thread.sleep(MILLISECONDS.convert(2, SECONDS));
+        }
+      }
+      throw new IllegalStateException("Tablet servers didn't die!");
     });
   }
 
@@ -182,8 +180,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       // Wait for all of the tablets to hosted ...
       log.info("Waiting on hosting and balance");
       TabletLocations ds;
-      for (ds = TabletLocations.retrieve(ctx,
-          tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
+      for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS;
+          ds = TabletLocations.retrieve(ctx, tableName)) {
         Thread.sleep(1000);
       }
 
@@ -232,27 +230,27 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
       log.info("Restarting " + restartedServer);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER,
-          ImmutableMap.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
+          Map.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
               Property.TSERV_PORTSEARCH.getKey(), "false"),
           1);
 
       // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
       log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
-      for (ds = TabletLocations.retrieve(ctx, tableName); ds.suspended.containsKey(restartedServer)
-          || ds.assignedCount != 0; ds = TabletLocations.retrieve(ctx, tableName)) {
+      while (ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0) {
         Thread.sleep(1000);
+        ds = TabletLocations.retrieve(ctx, tableName);
       }
       assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
 
       // Finally, after much longer, remaining suspended tablets should be reassigned.
       log.info("Awaiting tablet reassignment for remaining tablets");
-      for (ds = TabletLocations.retrieve(ctx,
-          tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
+      while (ds.hostedCount != TABLETS) {
         Thread.sleep(1000);
+        ds = TabletLocations.retrieve(ctx, tableName);
       }
 
       long recoverTime = System.nanoTime();
-      assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
+      assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, SECONDS));
     }
   }
 
@@ -265,12 +263,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
   @BeforeClass
   public static void init() {
-    THREAD_POOL = Executors.newCachedThreadPool(new ThreadFactory() {
-      @Override
-      public Thread newThread(Runnable r) {
-        return new Thread(r, "Scanning deadline thread #" + threadCounter.incrementAndGet());
-      }
-    });
+    THREAD_POOL = Executors.newCachedThreadPool(
+        r -> new Thread(r, "Scanning deadline thread #" + threadCounter.incrementAndGet()));
   }
 
   @AfterClass
@@ -317,7 +311,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     private void scan(ClientContext ctx, String tableName) {
       Map<String,String> idMap = ctx.tableOperations().tableIdMap();
       String tableId = Objects.requireNonNull(idMap.get(tableName));
-      try (MetaDataTableScanner scanner = new MetaDataTableScanner(ctx, new Range())) {
+      try (var scanner = new MetaDataTableScanner(ctx, new Range(), MetadataTable.NAME)) {
         while (scanner.hasNext()) {
           TabletLocationState tls = scanner.next();
 

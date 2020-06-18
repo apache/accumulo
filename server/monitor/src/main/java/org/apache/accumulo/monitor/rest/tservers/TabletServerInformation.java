@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.rest.tservers;
 
@@ -95,9 +97,9 @@ public class TabletServerInformation {
    * @param thriftStatus
    *          Thrift status to obtain information
    */
-  public TabletServerInformation(TabletServerStatus thriftStatus) {
+  public TabletServerInformation(Monitor monitor, TabletServerStatus thriftStatus) {
     TableInfo summary = TableInfoUtil.summarizeTableStats(thriftStatus);
-    updateTabletServerInfo(thriftStatus, summary);
+    updateTabletServerInfo(monitor, thriftStatus, summary);
   }
 
   /**
@@ -108,7 +110,8 @@ public class TabletServerInformation {
    * @param summary
    *          Table info summary
    */
-  public void updateTabletServerInfo(TabletServerStatus thriftStatus, TableInfo summary) {
+  public void updateTabletServerInfo(Monitor monitor, TabletServerStatus thriftStatus,
+      TableInfo summary) {
 
     long now = System.currentTimeMillis();
 
@@ -159,7 +162,7 @@ public class TabletServerInformation {
     this.ingestMB = cleanNumber(summary.ingestByteRate);
     this.queryMB = cleanNumber(summary.queryByteRate);
 
-    this.scansessions = Monitor.getLookupRate();
+    this.scansessions = monitor.getLookupRate();
     this.scanssessions = this.scansessions; // For backwards compatibility
 
     this.logRecoveries = new ArrayList<>(thriftStatus.logSorts.size());

@@ -1,25 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapreduce;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -45,7 +46,6 @@ import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -214,8 +214,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, String)
    */
   protected static AuthenticationToken getAuthenticationToken(JobContext context) {
-    AuthenticationToken token = OutputConfigurator.getAuthenticationToken(CLASS,
-        context.getConfiguration());
+    AuthenticationToken token =
+        OutputConfigurator.getAuthenticationToken(CLASS, context.getConfiguration());
     return OutputConfigurator.unwrapAuthenticationToken(context, token);
   }
 
@@ -550,21 +550,15 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
         mtbw.close();
       } catch (MutationsRejectedException e) {
         if (!e.getSecurityErrorCodes().isEmpty()) {
-          HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<>();
-          for (Entry<TabletId,Set<SecurityErrorCode>> ke : e.getSecurityErrorCodes().entrySet()) {
-            String tableId = ke.getKey().getTableId().toString();
-            Set<SecurityErrorCode> secCodes = tables.get(tableId);
-            if (secCodes == null) {
-              secCodes = new HashSet<>();
-              tables.put(tableId, secCodes);
-            }
-            secCodes.addAll(ke.getValue());
-          }
-
+          var tables = new HashMap<String,Set<SecurityErrorCode>>();
+          e.getSecurityErrorCodes().forEach((tabletId, secSet) -> {
+            var tableId = tabletId.getTableId().toString();
+            tables.computeIfAbsent(tableId, p -> new HashSet<>()).addAll(secSet);
+          });
           log.error("Not authorized to write to tables : " + tables);
         }
 
-        if (e.getConstraintViolationSummaries().size() > 0) {
+        if (!e.getConstraintViolationSummaries().isEmpty()) {
           log.error("Constraint violations : " + e.getConstraintViolationSummaries().size());
         }
         throw new IOException(e);

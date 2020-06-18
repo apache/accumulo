@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
@@ -40,10 +42,14 @@ public class ZooKeeperInstanceTest {
   private ZooCache zc;
   private ZooKeeperInstance zki;
 
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ID = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ID;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ID =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ID;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
 
   private void mockIdConstruction(ClientConfiguration config) {
     expect(config.get(INSTANCE_ID)).andReturn(IID_STRING);
@@ -180,8 +186,8 @@ public class ZooKeeperInstanceTest {
         .andReturn(IID_STRING.getBytes(UTF_8));
     expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn("yup".getBytes());
     replay(zc, factory);
-    ClientConfiguration cfg = ClientConfiguration.loadDefault().withInstance(instanceName)
-        .withZkHosts(zookeepers);
+    ClientConfiguration cfg =
+        ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeepers);
     ZooKeeperInstance zki = new ZooKeeperInstance(cfg, factory);
     assertEquals(zookeepers, zki.getZooKeepers());
     assertEquals(instanceName, zki.getInstanceName());

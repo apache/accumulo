@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.client.rfile;
 
 import static org.junit.Assert.assertEquals;
@@ -68,8 +69,6 @@ import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class RFileClientTest {
@@ -112,7 +111,7 @@ public class RFileClientTest {
           String qual = colStr(q);
           for (String v : vis) {
             Key k = new Key(row, fam, qual, v);
-            testData.put(k, new Value((k.hashCode() + "").getBytes()));
+            testData.put(k, new Value(k.hashCode() + ""));
           }
         }
       }
@@ -147,14 +146,14 @@ public class RFileClientTest {
     Range range1 = Range.exact(rowStr(5));
     scanner.setRange(range1);
     Iterator<Entry<Key,Value>> scnIter1 = scanner.iterator();
-    Iterator<Entry<Key,Value>> mapIter1 = testData.subMap(range1.getStartKey(), range1.getEndKey())
-        .entrySet().iterator();
+    Iterator<Entry<Key,Value>> mapIter1 =
+        testData.subMap(range1.getStartKey(), range1.getEndKey()).entrySet().iterator();
 
     Range range2 = new Range(rowStr(3), true, rowStr(4), true);
     scanner.setRange(range2);
     Iterator<Entry<Key,Value>> scnIter2 = scanner.iterator();
-    Iterator<Entry<Key,Value>> mapIter2 = testData.subMap(range2.getStartKey(), range2.getEndKey())
-        .entrySet().iterator();
+    Iterator<Entry<Key,Value>> mapIter2 =
+        testData.subMap(range2.getStartKey(), range2.getEndKey()).entrySet().iterator();
 
     while (scnIter1.hasNext() || scnIter2.hasNext()) {
       if (scnIter1.hasNext()) {
@@ -218,8 +217,8 @@ public class RFileClientTest {
     Map<String,String> props = new HashMap<>();
     props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K");
     props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), "1K");
-    RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs)
-        .withTableProperties(props).build();
+    RFileWriter writer =
+        RFile.newWriter().to(testFile).withFileSystem(localFs).withTableProperties(props).build();
 
     SortedMap<Key,Value> testData1 = createTestData(10, 10, 10);
     writer.append(testData1.entrySet());
@@ -326,9 +325,9 @@ public class RFileClientTest {
     Key k2 = new Key("r1", "f1", "q2", "A");
     Key k3 = new Key("r1", "f1", "q3");
 
-    Value v1 = new Value("p".getBytes());
-    Value v2 = new Value("c".getBytes());
-    Value v3 = new Value("t".getBytes());
+    Value v1 = new Value("p");
+    Value v2 = new Value("c");
+    Value v3 = new Value("t");
 
     writer.append(k1, v1);
     writer.append(k2, v2);
@@ -337,19 +336,19 @@ public class RFileClientTest {
 
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withAuthorizations(new Authorizations("A")).build();
-    assertEquals(ImmutableMap.of(k2, v2, k3, v3), toMap(scanner));
+    assertEquals(Map.of(k2, v2, k3, v3), toMap(scanner));
     assertEquals(new Authorizations("A"), scanner.getAuthorizations());
     scanner.close();
 
     scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withAuthorizations(new Authorizations("A", "B")).build();
-    assertEquals(ImmutableMap.of(k1, v1, k2, v2, k3, v3), toMap(scanner));
+    assertEquals(Map.of(k1, v1, k2, v2, k3, v3), toMap(scanner));
     assertEquals(new Authorizations("A", "B"), scanner.getAuthorizations());
     scanner.close();
 
     scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withAuthorizations(new Authorizations("B")).build();
-    assertEquals(ImmutableMap.of(k3, v3), toMap(scanner));
+    assertEquals(Map.of(k3, v3), toMap(scanner));
     assertEquals(new Authorizations("B"), scanner.getAuthorizations());
     scanner.close();
   }
@@ -367,8 +366,8 @@ public class RFileClientTest {
     k2.setTimestamp(6);
     k2.setDeleted(true);
 
-    Value v1 = new Value("p".getBytes());
-    Value v2 = new Value("".getBytes());
+    Value v1 = new Value("p");
+    Value v2 = new Value("");
 
     writer.append(k2, v2);
     writer.append(k1, v1);
@@ -378,9 +377,9 @@ public class RFileClientTest {
     assertFalse(scanner.iterator().hasNext());
     scanner.close();
 
-    scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withoutSystemIterators()
-        .build();
-    assertEquals(ImmutableMap.of(k2, v2, k1, v1), toMap(scanner));
+    scanner =
+        RFile.newScanner().from(testFile).withFileSystem(localFs).withoutSystemIterators().build();
+    assertEquals(Map.of(k2, v2, k1, v1), toMap(scanner));
     scanner.setRange(new Range("r2"));
     assertFalse(scanner.iterator().hasNext());
     scanner.close();
@@ -394,8 +393,8 @@ public class RFileClientTest {
 
     // set a lower bound row
     Range bounds = new Range(rowStr(3), false, null, true);
-    Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds)
-        .build();
+    Scanner scanner =
+        RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds).build();
     assertEquals(createTestData(4, 6, 0, 10, 10), toMap(scanner));
     scanner.close();
 
@@ -432,8 +431,8 @@ public class RFileClientTest {
     Key k2 = new Key("r1", "f1", "q1");
     k2.setTimestamp(6);
 
-    Value v1 = new Value("p".getBytes());
-    Value v2 = new Value("q".getBytes());
+    Value v1 = new Value("p");
+    Value v2 = new Value("q");
 
     writer.append(k2, v2);
     writer.append(k1, v1);
@@ -442,11 +441,11 @@ public class RFileClientTest {
     // pass in table config that has versioning iterator configured
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withTableProperties(ntc.getProperties()).build();
-    assertEquals(ImmutableMap.of(k2, v2), toMap(scanner));
+    assertEquals(Map.of(k2, v2), toMap(scanner));
     scanner.close();
 
     scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).build();
-    assertEquals(ImmutableMap.of(k2, v2, k1, v1), toMap(scanner));
+    assertEquals(Map.of(k2, v2, k1, v1), toMap(scanner));
     scanner.close();
   }
 
@@ -459,10 +458,10 @@ public class RFileClientTest {
     String testFile = createTmpTestFile();
 
     SamplerConfiguration sc = new SamplerConfiguration(RowSampler.class)
-        .setOptions(ImmutableMap.of("hasher", "murmur3_32", "modulus", "19"));
+        .setOptions(Map.of("hasher", "murmur3_32", "modulus", "19"));
 
-    RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).withSampler(sc)
-        .build();
+    RFileWriter writer =
+        RFile.newWriter().to(testFile).withFileSystem(localFs).withSampler(sc).build();
     writer.append(testData1.entrySet());
     writer.close();
 
@@ -534,8 +533,8 @@ public class RFileClientTest {
 
   @Test
   public void testSummaries() throws Exception {
-    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(VisibilitySummarizer.class)
-        .build();
+    SummarizerConfiguration sc1 =
+        SummarizerConfiguration.builder(VisibilitySummarizer.class).build();
     SummarizerConfiguration sc2 = SummarizerConfiguration.builder(FamilySummarizer.class).build();
 
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
@@ -543,8 +542,8 @@ public class RFileClientTest {
 
     SortedMap<Key,Value> testData1 = createTestData(0, 100, 0, 4, 1, "A&B", "A&B&C");
 
-    RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs)
-        .withSummarizers(sc1, sc2).build();
+    RFileWriter writer =
+        RFile.newWriter().to(testFile).withFileSystem(localFs).withSummarizers(sc1, sc2).build();
     writer.append(testData1.entrySet());
     writer.close();
 
@@ -558,12 +557,11 @@ public class RFileClientTest {
       CounterSummary counterSummary = new CounterSummary(summary);
       if (className.equals(FamilySummarizer.class.getName())) {
         Map<String,Long> counters = counterSummary.getCounters();
-        Map<String,Long> expected = ImmutableMap.of("0000", 200L, "0001", 200L, "0002", 200L,
-            "0003", 200L);
+        Map<String,Long> expected = Map.of("0000", 200L, "0001", 200L, "0002", 200L, "0003", 200L);
         assertEquals(expected, counters);
       } else if (className.equals(VisibilitySummarizer.class.getName())) {
         Map<String,Long> counters = counterSummary.getCounters();
-        Map<String,Long> expected = ImmutableMap.of("A&B", 400L, "A&B&C", 400L);
+        Map<String,Long> expected = Map.of("A&B", 400L, "A&B&C", 400L);
         assertEquals(expected, counters);
       } else {
         fail("Unexpected classname " + className);
@@ -578,8 +576,8 @@ public class RFileClientTest {
 
     String testFile2 = createTmpTestFile();
     SortedMap<Key,Value> testData2 = createTestData(100, 100, 0, 4, 1, "A&B", "A&B&C");
-    writer = RFile.newWriter().to(testFile2).withFileSystem(localFs).withSummarizers(sc1, sc2)
-        .build();
+    writer =
+        RFile.newWriter().to(testFile2).withFileSystem(localFs).withSummarizers(sc1, sc2).build();
     writer.append(testData2.entrySet());
     writer.close();
 
@@ -593,12 +591,11 @@ public class RFileClientTest {
       CounterSummary counterSummary = new CounterSummary(summary);
       if (className.equals(FamilySummarizer.class.getName())) {
         Map<String,Long> counters = counterSummary.getCounters();
-        Map<String,Long> expected = ImmutableMap.of("0000", 400L, "0001", 400L, "0002", 400L,
-            "0003", 400L);
+        Map<String,Long> expected = Map.of("0000", 400L, "0001", 400L, "0002", 400L, "0003", 400L);
         assertEquals(expected, counters);
       } else if (className.equals(VisibilitySummarizer.class.getName())) {
         Map<String,Long> counters = counterSummary.getCounters();
-        Map<String,Long> expected = ImmutableMap.of("A&B", 800L, "A&B&C", 800L);
+        Map<String,Long> expected = Map.of("A&B", 800L, "A&B&C", 800L);
         assertEquals(expected, counters);
       } else {
         fail("Unexpected classname " + className);
@@ -608,71 +605,71 @@ public class RFileClientTest {
     // verify reading a subset of summaries works
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 0);
+    checkSummaries(summaries, Map.of("A&B", 800L, "A&B&C", 800L), 0);
 
     // the following test check boundary conditions for start row and end row
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(99)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 400L, "A&B&C", 400L), 0);
+    checkSummaries(summaries, Map.of("A&B", 400L, "A&B&C", 400L), 0);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(98)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 1);
+    checkSummaries(summaries, Map.of("A&B", 800L, "A&B&C", 800L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(0)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 1);
+    checkSummaries(summaries, Map.of("A&B", 800L, "A&B&C", 800L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow("#").read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 0);
+    checkSummaries(summaries, Map.of("A&B", 800L, "A&B&C", 800L), 0);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(100)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 400L, "A&B&C", 400L), 1);
+    checkSummaries(summaries, Map.of("A&B", 400L, "A&B&C", 400L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).endRow(rowStr(99)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 400L, "A&B&C", 400L), 0);
+    checkSummaries(summaries, Map.of("A&B", 400L, "A&B&C", 400L), 0);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).endRow(rowStr(100)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 1);
+    checkSummaries(summaries, Map.of("A&B", 800L, "A&B&C", 800L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).endRow(rowStr(199)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 0);
+    checkSummaries(summaries, Map.of("A&B", 800L, "A&B&C", 800L), 0);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(50)).endRow(rowStr(150)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 2);
+    checkSummaries(summaries, Map.of("A&B", 800L, "A&B&C", 800L), 2);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(120)).endRow(rowStr(150)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 400L, "A&B&C", 400L), 1);
+    checkSummaries(summaries, Map.of("A&B", 400L, "A&B&C", 400L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(50)).endRow(rowStr(199)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 1);
+    checkSummaries(summaries, Map.of("A&B", 800L, "A&B&C", 800L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow("#").endRow(rowStr(150)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 1);
+    checkSummaries(summaries, Map.of("A&B", 800L, "A&B&C", 800L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(199)).read();
-    checkSummaries(summaries, ImmutableMap.of(), 0);
+    checkSummaries(summaries, Map.of(), 0);
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(200)).read();
-    checkSummaries(summaries, ImmutableMap.of(), 0);
+    checkSummaries(summaries, Map.of(), 0);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).endRow("#").read();
-    checkSummaries(summaries, ImmutableMap.of(), 0);
+    checkSummaries(summaries, Map.of(), 0);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).endRow(rowStr(0)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 400L, "A&B&C", 400L), 1);
+    checkSummaries(summaries, Map.of("A&B", 400L, "A&B&C", 400L), 1);
   }
 
   private void checkSummaries(Collection<Summary> summaries, Map<String,Long> expected, int extra) {
@@ -697,10 +694,10 @@ public class RFileClientTest {
   public void testOutOfOrder() throws Exception {
     // test that exception declared in API is thrown
     Key k1 = new Key("r1", "f1", "q1");
-    Value v1 = new Value("1".getBytes());
+    Value v1 = new Value("1");
 
     Key k2 = new Key("r2", "f1", "q1");
-    Value v2 = new Value("2".getBytes());
+    Value v2 = new Value("2");
 
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
@@ -714,10 +711,10 @@ public class RFileClientTest {
   public void testOutOfOrderIterable() throws Exception {
     // test that exception declared in API is thrown
     Key k1 = new Key("r1", "f1", "q1");
-    Value v1 = new Value("1".getBytes());
+    Value v1 = new Value("1");
 
     Key k2 = new Key("r2", "f1", "q1");
-    Value v2 = new Value("2".getBytes());
+    Value v2 = new Value("2");
 
     ArrayList<Entry<Key,Value>> data = new ArrayList<>();
     data.add(new AbstractMap.SimpleEntry<>(k2, v2));
@@ -739,7 +736,7 @@ public class RFileClientTest {
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startDefaultLocalityGroup();
       Key k1 = new Key("r1", "f1", "q1", "(A&(B");
-      writer.append(k1, new Value("".getBytes()));
+      writer.append(k1, new Value(""));
     }
   }
 
@@ -751,7 +748,7 @@ public class RFileClientTest {
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startDefaultLocalityGroup();
       Key k1 = new Key("r1", "f1", "q1", "(A&(B");
-      Entry<Key,Value> entry = new AbstractMap.SimpleEntry<>(k1, new Value("".getBytes()));
+      Entry<Key,Value> entry = new AbstractMap.SimpleEntry<>(k1, new Value(""));
       writer.append(Collections.singletonList(entry));
     }
   }
@@ -771,7 +768,7 @@ public class RFileClientTest {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
-      writer.append(new Key("r1", "f1", "q1"), new Value("1".getBytes()));
+      writer.append(new Key("r1", "f1", "q1"), new Value("1"));
       writer.startDefaultLocalityGroup();
     }
   }
@@ -782,7 +779,7 @@ public class RFileClientTest {
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       Key k1 = new Key("r1", "f1", "q1");
-      writer.append(k1, new Value("".getBytes()));
+      writer.append(k1, new Value(""));
       writer.startNewLocalityGroup("lg1", "fam1");
     }
   }
@@ -795,7 +792,7 @@ public class RFileClientTest {
       writer.startNewLocalityGroup("lg1", "fam1");
       Key k1 = new Key("r1", "f1", "q1");
       // should not be able to append the column family f1
-      writer.append(k1, new Value("".getBytes()));
+      writer.append(k1, new Value(""));
     }
   }
 
@@ -806,11 +803,11 @@ public class RFileClientTest {
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startNewLocalityGroup("lg1", "fam1");
       Key k1 = new Key("r1", "fam1", "q1");
-      writer.append(k1, new Value("".getBytes()));
+      writer.append(k1, new Value(""));
       writer.startDefaultLocalityGroup();
       // should not be able to append the column family fam1 to default locality group
       Key k2 = new Key("r1", "fam1", "q2");
-      writer.append(k2, new Value("".getBytes()));
+      writer.append(k2, new Value(""));
     }
   }
 
@@ -823,8 +820,8 @@ public class RFileClientTest {
   @Test
   public void testMultipleFilesAndCache() throws Exception {
     SortedMap<Key,Value> testData = createTestData(100, 10, 10);
-    List<String> files = Arrays.asList(createTmpTestFile(), createTmpTestFile(),
-        createTmpTestFile());
+    List<String> files =
+        Arrays.asList(createTmpTestFile(), createTmpTestFile(), createTmpTestFile());
 
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
 

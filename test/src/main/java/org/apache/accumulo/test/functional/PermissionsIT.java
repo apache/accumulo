@@ -1,29 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -70,7 +73,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
   @Override
   public int defaultTimeoutSeconds() {
-    return 60;
+    return 90;
   }
 
   @Before
@@ -108,8 +111,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
       loginAs(rootUser);
       c.securityOperations().createLocalUser(principal, passwordToken);
       loginAs(testUser);
-      try (AccumuloClient test_user_client = Accumulo.newClient().from(c.properties())
-          .as(principal, token).build()) {
+      try (AccumuloClient test_user_client =
+          Accumulo.newClient().from(c.properties()).as(principal, token).build()) {
         loginAs(rootUser);
         verifyHasNoSystemPermissions(c, principal, SystemPermission.values());
 
@@ -404,6 +407,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         String table2 = tableName + "2";
         loginAs(rootUser);
         root_client.tableOperations().create(tableName);
+        testArbitraryProperty(root_client, tableName, true);
         loginAs(testUser);
         test_user_client.tableOperations().setProperty(tableName,
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
@@ -489,8 +493,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
         test_user_client.namespaceOperations().setProperty(namespace,
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
         loginAs(rootUser);
-        Map<String,String> propies = map(
-            root_client.namespaceOperations().getProperties(namespace));
+        Map<String,String> propies =
+            map(root_client.namespaceOperations().getProperties(namespace));
         if (!propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
           throw new IllegalStateException("Should be able to set a table property");
         loginAs(testUser);
@@ -570,8 +574,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.securityOperations().createLocalUser(principal, passwordToken);
       loginAs(testUser);
-      try (AccumuloClient test_user_client = Accumulo.newClient().from(c.properties())
-          .as(principal, token).build()) {
+      try (AccumuloClient test_user_client =
+          Accumulo.newClient().from(c.properties()).as(principal, token).build()) {
 
         // check for read-only access to metadata table
         loginAs(rootUser);
@@ -611,7 +615,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
       // put in some initial data
       try (BatchWriter writer = c.createBatchWriter(tableName)) {
         Mutation m = new Mutation(new Text("row"));
-        m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes()));
+        m.put("cf", "cq", "val");
         writer.addMutation(m);
       }
 
@@ -647,10 +651,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
         try {
           try (BatchWriter bw = test_user_client.createBatchWriter(tableName)) {
             m = new Mutation(new Text("row"));
-            m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
+            m.put("a", "b", "c");
             bw.addMutation(m);
           } catch (MutationsRejectedException e1) {
-            if (e1.getSecurityErrorCodes().size() > 0)
+            if (!e1.getSecurityErrorCodes().isEmpty())
               throw new AccumuloSecurityException(test_user_client.whoami(),
                   org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode.PERMISSION_DENIED,
                   e1);
@@ -674,6 +678,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
             throw e;
         }
+        testArbitraryProperty(test_user_client, tableName, false);
         break;
       case DROP_TABLE:
         try {
@@ -717,15 +722,15 @@ public class PermissionsIT extends AccumuloClusterHarness {
     switch (perm) {
       case READ:
         try (Scanner scanner = test_user_client.createScanner(tableName, Authorizations.EMPTY)) {
-          Iterator<Entry<Key,Value>> iter = scanner.iterator();
-          while (iter.hasNext())
-            iter.next();
+          for (Entry<Key,Value> keyValueEntry : scanner) {
+            assertNotNull(keyValueEntry);
+          }
         }
         break;
       case WRITE:
         try (BatchWriter bw = test_user_client.createBatchWriter(tableName)) {
           Mutation m = new Mutation(new Text("row"));
-          m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
+          m.put("a", "b", "c");
           bw.addMutation(m);
         }
         break;
@@ -733,8 +738,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         // test for bulk import permission would go here
         break;
       case ALTER_TABLE:
-        Map<String,Set<Text>> groups = new HashMap<>();
-        groups.put("tgroup", new HashSet<>(Arrays.asList(new Text("t1"), new Text("t2"))));
+        testArbitraryProperty(test_user_client, tableName, true);
         break;
       case DROP_TABLE:
         test_user_client.tableOperations().delete(tableName);
@@ -744,8 +748,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
             TablePermission.GRANT);
         break;
       case GET_SUMMARIES:
-        List<Summary> summaries = test_user_client.tableOperations().summaries(tableName)
-            .retrieve();
+        List<Summary> summaries =
+            test_user_client.tableOperations().summaries(tableName).retrieve();
         // just make sure it's not blocked by permissions, the actual summaries are tested in
         // SummaryIT
         assertTrue(summaries.isEmpty());
@@ -779,5 +783,55 @@ public class PermissionsIT extends AccumuloClusterHarness {
       if (root_client.securityOperations().hasTablePermission(user, table, p))
         throw new IllegalStateException(
             user + " SHOULD NOT have table permission " + p + " for table " + table);
+  }
+
+  private void testArbitraryProperty(AccumuloClient c, String tableName, boolean havePerm)
+      throws AccumuloException, TableNotFoundException {
+    // Set variables for the property name to use and the initial value
+    String propertyName = "table.custom.description";
+    String description1 = "Description";
+
+    // Make sure the property name is valid
+    assertTrue(Property.isValidPropertyKey(propertyName));
+    // Set the property to the desired value
+    try {
+      c.tableOperations().setProperty(tableName, propertyName, description1);
+
+      // Loop through properties to make sure the new property is added to the list
+      int count = 0;
+      for (Entry<String,String> property : c.tableOperations().getProperties(tableName)) {
+        if (property.getKey().equals(propertyName) && property.getValue().equals(description1))
+          count++;
+      }
+      assertEquals(count, 1);
+
+      // Set the property as something different
+      String description2 = "set second";
+      c.tableOperations().setProperty(tableName, propertyName, description2);
+
+      // Loop through properties to make sure the new property is added to the list
+      count = 0;
+      for (Entry<String,String> property : c.tableOperations().getProperties(tableName)) {
+        if (property.getKey().equals(propertyName) && property.getValue().equals(description2))
+          count++;
+      }
+      assertEquals(count, 1);
+
+      // Remove the property and make sure there is no longer a value associated with it
+      c.tableOperations().removeProperty(tableName, propertyName);
+
+      // Loop through properties to make sure the new property is added to the list
+      count = 0;
+      for (Entry<String,String> property : c.tableOperations().getProperties(tableName)) {
+        if (property.getKey().equals(propertyName))
+          count++;
+      }
+      assertEquals(count, 0);
+      if (!havePerm)
+        throw new IllegalStateException("User should not been able to alter property.");
+    } catch (AccumuloSecurityException se) {
+      if (havePerm)
+        throw new IllegalStateException("User should have been able to alter property");
+    }
   }
 }

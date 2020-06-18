@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -81,6 +83,7 @@ public class VerifyIngest {
 
     public VerifyParams getVerifyParams() {
       VerifyParams params = new VerifyParams(getClientProps(), tableName);
+      populateIngestPrams(params);
       params.useGet = useGet;
       return params;
     }
@@ -92,8 +95,8 @@ public class VerifyIngest {
     if (opts.trace) {
       TraceUtil.enableClientTraces(null, null, new Properties());
     }
-    try (TraceScope clientSpan = Trace.startSpan(VerifyIngest.class.getSimpleName(),
-        Sampler.ALWAYS)) {
+    try (TraceScope clientSpan =
+        Trace.startSpan(VerifyIngest.class.getSimpleName(), Sampler.ALWAYS)) {
       Span span = clientSpan.getSpan();
       if (span != null)
         span.addKVAnnotation("cmdLine", Arrays.asList(args).toString());
@@ -267,15 +270,15 @@ public class VerifyIngest {
       throw new AccumuloException("saw " + errors + " errors ");
     }
 
-    if (expectedRow != (params.rows + params.startRow)) {
-      throw new AccumuloException("Did not read expected number of rows. Saw "
-          + (expectedRow - params.startRow) + " expected " + params.rows);
-    } else {
+    if (expectedRow == (params.rows + params.startRow)) {
       System.out.printf(
           "%,12d records read | %,8d records/sec | %,12d bytes read |"
               + " %,8d bytes/sec | %6.3f secs   %n",
           recsRead, (int) ((recsRead) / ((t2 - t1) / 1000.0)), bytesRead,
           (int) (bytesRead / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0);
+    } else {
+      throw new AccumuloException("Did not read expected number of rows. Saw "
+          + (expectedRow - params.startRow) + " expected " + params.rows);
     }
   }
 

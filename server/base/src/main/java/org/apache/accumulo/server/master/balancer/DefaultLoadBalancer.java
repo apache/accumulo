@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.master.balancer;
 
@@ -61,7 +63,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
 
   public TServerInstance getAssignment(SortedMap<TServerInstance,TabletServerStatus> locations,
       TServerInstance last) {
-    if (locations.size() == 0)
+    if (locations.isEmpty())
       return null;
 
     if (last != null) {
@@ -150,8 +152,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
       }
 
       // order from low to high
-      Collections.sort(totals);
-      Collections.reverse(totals);
+      totals.sort(Collections.reverseOrder());
       int even = total / totals.size();
       int numServersOverEven = total % totals.size();
 
@@ -205,10 +206,11 @@ public class DefaultLoadBalancer extends TabletBalancer {
   List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count,
       Map<TableId,Map<KeyExtent,TabletStats>> donerTabletStats) {
 
-    List<TabletMigration> result = new ArrayList<>();
-    if (count == 0)
-      return result;
+    if (count == 0) {
+      return Collections.emptyList();
+    }
 
+    List<TabletMigration> result = new ArrayList<>();
     // Copy counts so we can update them as we propose migrations
     Map<TableId,Integer> tooMuchMap = tabletCountsPerTable(tooMuch.status);
     Map<TableId,Integer> tooLittleMap = tabletCountsPerTable(tooLittle.status);
@@ -221,10 +223,9 @@ public class DefaultLoadBalancer extends TabletBalancer {
         // look for an uneven table count
         int biggestDifference = 0;
         TableId biggestDifferenceTable = null;
-        for (Entry<TableId,Integer> tableEntry : tooMuchMap.entrySet()) {
+        for (var tableEntry : tooMuchMap.entrySet()) {
           TableId tableID = tableEntry.getKey();
-          if (tooLittleMap.get(tableID) == null)
-            tooLittleMap.put(tableID, 0);
+          tooLittleMap.putIfAbsent(tableID, 0);
           int diff = tableEntry.getValue() - tooLittleMap.get(tableID);
           if (diff > biggestDifference) {
             biggestDifference = diff;
@@ -291,7 +292,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
   }
 
   static KeyExtent selectTablet(Map<KeyExtent,TabletStats> extents) {
-    if (extents.size() == 0)
+    if (extents.isEmpty())
       return null;
     KeyExtent mostRecentlySplit = null;
     long splitTime = 0;
@@ -334,9 +335,11 @@ public class DefaultLoadBalancer extends TabletBalancer {
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
       Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     // do we have any servers?
-    if (current.size() > 0) {
+    if (current.isEmpty()) {
+      constraintNotMet(NO_SERVERS);
+    } else {
       // Don't migrate if we have migrations in progress
-      if (migrations.size() == 0) {
+      if (migrations.isEmpty()) {
         resetBalancerErrors();
         if (getMigrations(current, migrationsOut))
           return 1 * 1000;
@@ -344,8 +347,6 @@ public class DefaultLoadBalancer extends TabletBalancer {
         outstandingMigrations.migrations = migrations;
         constraintNotMet(outstandingMigrations);
       }
-    } else {
-      constraintNotMet(NO_SERVERS);
     }
     return 5 * 1000;
   }

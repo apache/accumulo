@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.scan;
 
@@ -113,9 +115,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           if (isCancelled())
             interruptFlag.set(true);
 
-          lookupResult = tablet.lookup(entry.getValue(), session.columnSet, session.auths, results,
-              maxResultsSize - bytesAdded, session.ssiList, session.ssio, interruptFlag,
-              session.samplerConfig, session.batchTimeOut, session.context);
+          lookupResult = tablet.lookup(entry.getValue(), results, session.scanParams,
+              maxResultsSize - bytesAdded, interruptFlag);
 
           // if the tablet was closed it it possible that the
           // interrupt flag was set.... do not want it set for
@@ -130,7 +131,9 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
         bytesAdded += lookupResult.bytesAdded;
 
-        if (lookupResult.unfinishedRanges.size() > 0) {
+        if (lookupResult.unfinishedRanges.isEmpty()) {
+          fullScans.add(entry.getKey());
+        } else {
           if (lookupResult.closed) {
             failures.put(entry.getKey(), lookupResult.unfinishedRanges);
           } else {
@@ -139,8 +142,6 @@ public class LookupTask extends ScanTask<MultiScanResult> {
             partNextKey = lookupResult.unfinishedRanges.get(0).getStartKey();
             partNextKeyInclusive = lookupResult.unfinishedRanges.get(0).isStartKeyInclusive();
           }
-        } else {
-          fullScans.add(entry.getKey());
         }
       }
 
@@ -164,7 +165,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       }
       // add results to queue
       addResult(new MultiScanResult(retResults, retFailures, retFullScans, retPartScan,
-          retPartNextKey, partNextKeyInclusive, session.queries.size() != 0));
+          retPartNextKey, partNextKeyInclusive, !session.queries.isEmpty()));
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
         log.warn("Iteration interrupted, when scan not cancelled", iie);

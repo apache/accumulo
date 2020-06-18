@@ -1,22 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.replication;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.singletonMap;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -29,6 +31,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -51,6 +54,7 @@ import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -62,7 +66,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.conf.ColumnSet;
+import org.apache.accumulo.core.iteratorsImpl.conf.ColumnSet;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
@@ -101,6 +105,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,6 +123,7 @@ import com.google.protobuf.TextFormat;
  * MockReplicaSystem is used to "fake" the peer instance that we're replicating to. This lets us
  * test replication in a functional way without having to worry about two real systems.
  */
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class ReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationIT.class);
   private static final long MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS = 5000L;
@@ -148,15 +154,14 @@ public class ReplicationIT extends ConfigurableMacBase {
   private Multimap<String,TableId> getLogs(AccumuloClient client, ServerContext context)
       throws Exception {
     // Map of server to tableId
-    Multimap<TServerInstance,String> serverToTableID = HashMultimap.create();
+    Multimap<TServerInstance,TableId> serverToTableID = HashMultimap.create();
     try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
-        TServerInstance key = new TServerInstance(entry.getValue(),
-            entry.getKey().getColumnQualifier());
-        byte[] tableId = KeyExtent.tableOfMetadataRow(entry.getKey().getRow());
-        serverToTableID.put(key, new String(tableId, UTF_8));
+        var tServer = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier());
+        TableId tableId = KeyExtent.tableOfMetadataRow(entry.getKey().getRow());
+        serverToTableID.put(tServer, tableId);
       }
       // Map of logs to tableId
       Multimap<String,TableId> logs = HashMultimap.create();
@@ -164,8 +169,8 @@ public class ReplicationIT extends ConfigurableMacBase {
       for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
         for (UUID id : entry.getValue()) {
           Pair<WalState,Path> state = wals.state(entry.getKey(), id);
-          for (String tableId : serverToTableID.get(entry.getKey())) {
-            logs.put(state.getSecond().toString(), TableId.of(tableId));
+          for (TableId tableId : serverToTableID.get(entry.getKey())) {
+            logs.put(state.getSecond().toString(), tableId);
           }
         }
       }
@@ -202,8 +207,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     ZooCacheFactory zcf = new ZooCacheFactory();
     ClientInfo info = ClientInfo.from(client.properties());
     ZooCache zcache = zcf.getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-    String zkPath = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-        + Constants.ZGC_LOCK;
+    String zkPath =
+        ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZGC_LOCK;
     log.info("Looking for GC lock at {}", zkPath);
     byte[] data = ZooLock.getLockData(zcache, zkPath, null);
     while (data == null) {
@@ -237,8 +242,8 @@ public class ReplicationIT extends ConfigurableMacBase {
       assertTrue(iterators.get(ReplicationTable.COMBINER_NAME)
           .containsAll(EnumSet.allOf(IteratorScope.class)));
       for (IteratorScope scope : EnumSet.allOf(IteratorScope.class)) {
-        IteratorSetting is = tops.getIteratorSetting(ReplicationTable.NAME,
-            ReplicationTable.COMBINER_NAME, scope);
+        IteratorSetting is =
+            tops.getIteratorSetting(ReplicationTable.NAME, ReplicationTable.COMBINER_NAME, scope);
         assertEquals(30, is.getPriority());
         assertEquals(StatusCombiner.class.getName(), is.getIteratorClass());
         assertEquals(1, is.getOptions().size());
@@ -274,13 +279,13 @@ public class ReplicationIT extends ConfigurableMacBase {
           // look for locality group column family definitions
           if (key.equals(
               Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.STATUS_LG_NAME)
-              && val.equals(j.join(Iterables.transform(ReplicationTable.STATUS_LG_COLFAMS,
-                  text -> text.toString())))) {
+              && val.equals(j
+                  .join(Iterables.transform(ReplicationTable.STATUS_LG_COLFAMS, Text::toString)))) {
             foundLocalityGroupDef1 = true;
           } else if (key
               .equals(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.WORK_LG_NAME)
-              && val.equals(j.join(Iterables.transform(ReplicationTable.WORK_LG_COLFAMS,
-                  text -> text.toString())))) {
+              && val.equals(
+                  j.join(Iterables.transform(ReplicationTable.WORK_LG_COLFAMS, Text::toString)))) {
             foundLocalityGroupDef2 = true;
           }
         }
@@ -296,9 +301,9 @@ public class ReplicationIT extends ConfigurableMacBase {
   public void correctRecordsCompleteFile() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String table = "table1";
-      client.tableOperations().create(table);
-      // If we have more than one tserver, this is subject to a race condition.
-      client.tableOperations().setProperty(table, Property.TABLE_REPLICATION.getKey(), "true");
+      client.tableOperations().create(table, new NewTableConfiguration()
+          // If we have more than one tserver, this is subject to a race condition.
+          .setProperties(singletonMap(Property.TABLE_REPLICATION.getKey(), "true")));
 
       try (BatchWriter bw = client.createBatchWriter(table)) {
         for (int i = 0; i < 10; i++) {
@@ -563,28 +568,25 @@ public class ReplicationIT extends ConfigurableMacBase {
       });
 
       t.start();
+      HashMap<String,String> replicate_props = new HashMap<>();
+      replicate_props.put(Property.TABLE_REPLICATION.getKey(), "true");
+      replicate_props.put(Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
 
-      client.tableOperations().create(table1);
-      client.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
-      client.tableOperations().setProperty(table1,
-          Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+      client.tableOperations().create(table1,
+          new NewTableConfiguration().setProperties(replicate_props));
       Thread.sleep(2000);
 
       // Write some data to table1
       writeSomeData(client, table1, 200, 500);
 
-      client.tableOperations().create(table2);
-      client.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
-      client.tableOperations().setProperty(table2,
-          Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+      client.tableOperations().create(table2,
+          new NewTableConfiguration().setProperties(replicate_props));
       Thread.sleep(2000);
 
       writeSomeData(client, table2, 200, 500);
 
-      client.tableOperations().create(table3);
-      client.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
-      client.tableOperations().setProperty(table3,
-          Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+      client.tableOperations().create(table3,
+          new NewTableConfiguration().setProperties(replicate_props));
       Thread.sleep(2000);
 
       writeSomeData(client, table3, 200, 500);
@@ -709,19 +711,19 @@ public class ReplicationIT extends ConfigurableMacBase {
           TablePermission.WRITE);
       client.tableOperations().deleteRows(ReplicationTable.NAME, null, null);
 
+      Map<String,String> replicate_props = new HashMap<>();
+      replicate_props.put(Property.TABLE_REPLICATION.getKey(), "true");
+      replicate_props.put(Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+
       String table1 = "table1", table2 = "table2", table3 = "table3";
-      client.tableOperations().create(table1);
-      client.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
-      client.tableOperations().setProperty(table1,
-          Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
-      client.tableOperations().create(table2);
-      client.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
-      client.tableOperations().setProperty(table2,
-          Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
-      client.tableOperations().create(table3);
-      client.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
-      client.tableOperations().setProperty(table3,
-          Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+      client.tableOperations().create(table1,
+          new NewTableConfiguration().setProperties(replicate_props));
+
+      client.tableOperations().create(table2,
+          new NewTableConfiguration().setProperties(replicate_props));
+
+      client.tableOperations().create(table3,
+          new NewTableConfiguration().setProperties(replicate_props));
 
       writeSomeData(client, table1, 200, 500);
 
@@ -750,14 +752,16 @@ public class ReplicationIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       String table = "table";
-      client.tableOperations().create(table);
+      Map<String,String> replicate_props = new HashMap<>();
+      replicate_props.put(Property.TABLE_REPLICATION.getKey(), "true");
+      replicate_props.put(Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+
+      client.tableOperations().create(table,
+          new NewTableConfiguration().setProperties(replicate_props));
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
 
       assertNotNull(tableId);
 
-      client.tableOperations().setProperty(table, Property.TABLE_REPLICATION.getKey(), "true");
-      client.tableOperations().setProperty(table,
-          Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
       // just sleep
       client.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
           ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "50000"));
@@ -908,12 +912,12 @@ public class ReplicationIT extends ConfigurableMacBase {
       // ACCUMULO-2743 The Observer in the tserver has to be made aware of the change to get the
       // combiner (made by the master)
       for (int i = 0; i < 10 && !client.tableOperations().listIterators(ReplicationTable.NAME)
-          .keySet().contains(ReplicationTable.COMBINER_NAME); i++) {
+          .containsKey(ReplicationTable.COMBINER_NAME); i++) {
         sleepUninterruptibly(2, TimeUnit.SECONDS);
       }
 
       assertTrue("Combiner was never set on replication table", client.tableOperations()
-          .listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME));
+          .listIterators(ReplicationTable.NAME).containsKey(ReplicationTable.COMBINER_NAME));
 
       // Trigger the minor compaction, waiting for it to finish.
       // This should write the entry to metadata that the file has data
@@ -1150,29 +1154,27 @@ public class ReplicationIT extends ConfigurableMacBase {
       t.start();
 
       String table1 = "table1", table2 = "table2", table3 = "table3";
+      Map<String,String> replicate_props = new HashMap<>();
+      replicate_props.put(Property.TABLE_REPLICATION.getKey(), "true");
+      replicate_props.put(Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
 
       try {
-        client.tableOperations().create(table1);
-        client.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
-        client.tableOperations().setProperty(table1,
-            Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+        client.tableOperations().create(table1,
+            new NewTableConfiguration().setProperties(replicate_props));
+
         client.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
             ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, null));
 
         // Write some data to table1
         writeSomeData(client, table1, 200, 500);
 
-        client.tableOperations().create(table2);
-        client.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
-        client.tableOperations().setProperty(table2,
-            Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+        client.tableOperations().create(table2,
+            new NewTableConfiguration().setProperties(replicate_props));
 
         writeSomeData(client, table2, 200, 500);
 
-        client.tableOperations().create(table3);
-        client.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
-        client.tableOperations().setProperty(table3,
-            Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+        client.tableOperations().create(table3,
+            new NewTableConfiguration().setProperties(replicate_props));
 
         writeSomeData(client, table3, 200, 500);
 

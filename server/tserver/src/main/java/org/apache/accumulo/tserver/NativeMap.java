@@ -1,22 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver;
 
 import java.io.File;
+import java.lang.ref.Cleaner.Cleanable;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -43,7 +47,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.util.PreAllocatedArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -179,7 +183,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     return false;
   }
 
-  private long nmPointer;
+  private final AtomicLong nmPtr = new AtomicLong(0);
 
   private final ReadWriteLock rwLock;
   private final Lock rlock;
@@ -216,7 +220,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       allocatedNativeMaps = new HashSet<>();
 
       Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-        if (allocatedNativeMaps.size() > 0) {
+        if (!allocatedNativeMaps.isEmpty()) {
           log.info("There are {} allocated native maps", allocatedNativeMaps.size());
         }
         log.debug("{} native maps were allocated", totalAllocations);
@@ -248,6 +252,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
   }
 
+  // package private visibility for NativeMapCleanerUtil use,
+  // without affecting ABI of existing native interface
+  static void _deleteNativeMap(long nmPtr) {
+    deleteNativeMap(nmPtr);
+  }
+
   private static native long createNMI(long nmp, int[] fieldLens);
 
   private static native long createNMI(long nmp, byte[] row, byte[] cf, byte[] cq, byte[] cv,
@@ -261,6 +271,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   private static native long nmiGetTS(long nmiPointer);
 
   private static native void deleteNMI(long nmiPointer);
+
+  // package private visibility for NativeMapCleanerUtil use,
+  // without affecting ABI of existing native interface
+  static void _deleteNMI(long nmiPointer) {
+    deleteNMI(nmiPointer);
+  }
 
   private class ConcurrentIterator implements Iterator<Map.Entry<Key,Value>> {
 
@@ -314,8 +330,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       // as we keep filling, increase the read ahead buffer
       if (nextEntries.length < MAX_READ_AHEAD_ENTRIES)
-        nextEntries = new PreAllocatedArray<>(
-            Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
+        nextEntries =
+            new PreAllocatedArray<>(Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
 
       while (source.hasNext() && end < nextEntries.length) {
         Entry<Key,Value> ne = source.next();
@@ -363,11 +379,6 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       return ret;
     }
 
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
-
     public void delete() {
       source.delete();
     }
@@ -385,40 +396,42 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
      *
      */
 
-    private long nmiPointer;
+    private final AtomicLong nmiPtr = new AtomicLong(0);
     private boolean hasNext;
     private int expectedModCount;
     private int[] fieldsLens = new int[7];
     private byte[] lastRow;
+    private final Cleanable cleanableNMI;
 
     // it is assumed the read lock is held when this method is called
     NMIterator(Key key) {
 
-      if (nmPointer == 0) {
-        throw new IllegalStateException();
-      }
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
 
       expectedModCount = modCount;
 
-      nmiPointer = createNMI(nmPointer, key.getRowData().toArray(),
+      final long nmiPointer = createNMI(nmPointer, key.getRowData().toArray(),
           key.getColumnFamilyData().toArray(), key.getColumnQualifierData().toArray(),
           key.getColumnVisibilityData().toArray(), key.getTimestamp(), key.isDeleted(), fieldsLens);
 
       hasNext = nmiPointer != 0;
+
+      nmiPtr.set(nmiPointer);
+      cleanableNMI = NativeMapCleanerUtil.deleteNMIterator(this, nmiPtr);
     }
 
     // delete is synchronized on a per iterator basis want to ensure only one
     // thread deletes an iterator w/o acquiring the global write lock...
     // there is no contention among concurrent readers for deleting their iterators
     public synchronized void delete() {
-      if (nmiPointer == 0) {
-        return;
+      final long nmiPointer = nmiPtr.getAndSet(0);
+      if (nmiPointer != 0) {
+        // deregister cleanable, but it won't run because it checks
+        // the value of nmiPtr first, which is now 0
+        cleanableNMI.clean();
+        deleteNMI(nmiPointer);
       }
-
-      // log.debug("Deleting native map iterator pointer");
-
-      deleteNMI(nmiPointer);
-      nmiPointer = 0;
     }
 
     @Override
@@ -429,10 +442,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     // it is assumed the read lock is held when this method is called
     // this method only needs to be called once per read lock acquisition
     private void doNextPreCheck() {
-      if (nmPointer == 0) {
-        throw new IllegalStateException();
-      }
-
+      checkDeletedNM(nmPtr.get());
       if (modCount != expectedModCount) {
         throw new ConcurrentModificationException();
       }
@@ -448,6 +458,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         throw new NoSuchElementException();
       }
 
+      final long nmiPointer = nmiPtr.get();
       if (nmiPointer == 0) {
         throw new IllegalStateException("Native Map Iterator Deleted");
       }
@@ -475,41 +486,28 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       return new SimpleImmutableEntry<>(k, v);
     }
 
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-      super.finalize();
-      if (nmiPointer != 0) {
-        // log.debug("Deleting native map iterator pointer in finalize");
-        deleteNMI(nmiPointer);
-      }
-    }
-
   }
 
+  private final Cleanable cleanableNM;
+
   public NativeMap() {
-    nmPointer = createNativeMap();
+    final long nmPointer = createNativeMap();
+    nmPtr.set(nmPointer);
+    cleanableNM = NativeMapCleanerUtil.deleteNM(this, log, nmPtr);
     rwLock = new ReentrantReadWriteLock();
     rlock = rwLock.readLock();
     wlock = rwLock.writeLock();
     log.debug(String.format("Allocated native map 0x%016x", nmPointer));
   }
 
-  @Override
-  protected void finalize() throws Throwable {
-    super.finalize();
-    if (nmPointer != 0) {
-      log.warn(String.format("Deallocating native map 0x%016x in finalize", nmPointer));
-      deleteNativeMap(nmPointer);
+  private static void checkDeletedNM(final long nmPointer) {
+    if (nmPointer == 0) {
+      throw new IllegalStateException("Native Map Deleted");
     }
   }
 
-  private int _mutate(Mutation mutation, int mutationCount) {
-
+  // assumes wlock
+  private int _mutate(final long nmPointer, Mutation mutation, int mutationCount) {
     List<ColumnUpdate> updates = mutation.getUpdates();
     if (updates.size() == 1) {
       ColumnUpdate update = updates.get(0);
@@ -534,16 +532,15 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       wlock.lock();
       try {
-        if (nmPointer == 0) {
-          throw new IllegalStateException("Native Map Deleted");
-        }
+        final long nmPointer = nmPtr.get();
+        checkDeletedNM(nmPointer);
 
         modCount++;
 
         int count = 0;
         while (iter.hasNext() && count < 10) {
           Mutation mutation = iter.next();
-          mutationCount = _mutate(mutation, mutationCount);
+          mutationCount = _mutate(nmPointer, mutation, mutationCount);
           count += mutation.size();
         }
       } finally {
@@ -556,9 +553,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public void put(Key key, Value value) {
     wlock.lock();
     try {
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
 
       modCount++;
 
@@ -593,10 +589,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public int size() {
     rlock.lock();
     try {
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
-
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
       return sizeNM(nmPointer);
     } finally {
       rlock.unlock();
@@ -606,10 +600,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public long getMemoryUsed() {
     rlock.lock();
     try {
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
-
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
       return memoryUsedNM(nmPointer);
     } finally {
       rlock.unlock();
@@ -620,10 +612,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public Iterator<Map.Entry<Key,Value>> iterator() {
     rlock.lock();
     try {
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
-
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
       return new ConcurrentIterator();
     } finally {
       rlock.unlock();
@@ -633,11 +623,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public Iterator<Map.Entry<Key,Value>> iterator(Key startKey) {
     rlock.lock();
     try {
-
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
-
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
       return new ConcurrentIterator(startKey);
     } finally {
       rlock.unlock();
@@ -647,13 +634,13 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public void delete() {
     wlock.lock();
     try {
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
-
+      final long nmPointer = nmPtr.getAndSet(0);
+      checkDeletedNM(nmPointer);
+      // deregister cleanable, but it won't run because it checks
+      // the value of nmPtr first, which is now 0
+      cleanableNM.clean();
       log.debug(String.format("Deallocating native map 0x%016x", nmPointer));
       deleteNativeMap(nmPointer);
-      nmPointer = 0;
     } finally {
       wlock.unlock();
     }
@@ -704,7 +691,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     public void next() {
 
       if (entry == null)
-        throw new IllegalStateException();
+        throw new NoSuchElementException();
 
       // checking the interrupt flag for every call to next had bad a bad performance impact
       // so check it every 100th time
@@ -753,7 +740,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) {
-      throw new UnsupportedOperationException();
+      throw new UnsupportedOperationException("init");
     }
 
     @Override

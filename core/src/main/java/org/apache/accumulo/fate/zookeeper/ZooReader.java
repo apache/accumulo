@@ -1,58 +1,64 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.ZooKeeperConnectionInfo;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZooReader implements IZooReader {
+public class ZooReader {
   private static final Logger log = LoggerFactory.getLogger(ZooReader.class);
 
-  protected String keepers;
-  protected int timeout;
-  private final RetryFactory retryFactory;
-  private final ZooKeeperConnectionInfo info;
+  protected static final RetryFactory RETRY_FACTORY = Retry.builder().maxRetries(10)
+      .retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS).maxWait(5, TimeUnit.SECONDS)
+      .backOffFactor(1.5).logInterval(3, TimeUnit.MINUTES).createFactory();
 
-  protected ZooKeeper getSession(String keepers, int timeout, String scheme, byte[] auth) {
-    return ZooSession.getSession(keepers, timeout, scheme, auth);
+  protected final String keepers;
+  protected final int timeout;
+
+  public ZooReader(String keepers, int timeout) {
+    this.keepers = keepers;
+    this.timeout = timeout;
   }
 
   protected ZooKeeper getZooKeeper() {
-    return getSession(keepers, timeout, null, null);
+    return ZooSession.getAnonymousSession(keepers, timeout);
   }
 
   protected RetryFactory getRetryFactory() {
-    return retryFactory;
+    return RETRY_FACTORY;
   }
 
-  protected void retryOrThrow(Retry retry, KeeperException e) throws KeeperException {
+  protected static void retryOrThrow(Retry retry, KeeperException e) throws KeeperException {
     log.warn("Saw (possibly) transient exception communicating with ZooKeeper", e);
     if (retry.canRetry()) {
       retry.useRetry();
@@ -64,18 +70,11 @@ public class ZooReader implements IZooReader {
     throw e;
   }
 
-  @Override
   public byte[] getData(String zPath, Stat stat) throws KeeperException, InterruptedException {
-    return getData(zPath, false, stat);
-  }
-
-  @Override
-  public byte[] getData(String zPath, boolean watch, Stat stat)
-      throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
     while (true) {
       try {
-        return getZooKeeper().getData(zPath, watch, stat);
+        return getZooKeeper().getData(zPath, false, stat);
       } catch (KeeperException e) {
         final Code code = e.code();
         if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
@@ -90,7 +89,6 @@ public class ZooReader implements IZooReader {
     }
   }
 
-  @Override
   public byte[] getData(String zPath, Watcher watcher, Stat stat)
       throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
@@ -111,7 +109,6 @@ public class ZooReader implements IZooReader {
     }
   }
 
-  @Override
   public Stat getStatus(String zPath) throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
     while (true) {
@@ -131,7 +128,6 @@ public class ZooReader implements IZooReader {
     }
   }
 
-  @Override
   public Stat getStatus(String zPath, Watcher watcher)
       throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
@@ -152,7 +148,6 @@ public class ZooReader implements IZooReader {
     }
   }
 
-  @Override
   public List<String> getChildren(String zPath) throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
     while (true) {
@@ -172,7 +167,6 @@ public class ZooReader implements IZooReader {
     }
   }
 
-  @Override
   public List<String> getChildren(String zPath, Watcher watcher)
       throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
@@ -193,7 +187,6 @@ public class ZooReader implements IZooReader {
     }
   }
 
-  @Override
   public boolean exists(String zPath) throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
     while (true) {
@@ -213,7 +206,6 @@ public class ZooReader implements IZooReader {
     }
   }
 
-  @Override
   public boolean exists(String zPath, Watcher watcher)
       throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
@@ -234,7 +226,6 @@ public class ZooReader implements IZooReader {
     }
   }
 
-  @Override
   public void sync(final String path) throws KeeperException, InterruptedException {
     final AtomicInteger rc = new AtomicInteger();
     final CountDownLatch waiter = new CountDownLatch(1);
@@ -249,15 +240,4 @@ public class ZooReader implements IZooReader {
     }
   }
 
-  @Override
-  public List<ACL> getACL(String zPath, Stat stat) throws KeeperException, InterruptedException {
-    return ZooUtil.getACL(info, zPath, stat);
-  }
-
-  public ZooReader(String keepers, int timeout) {
-    this.keepers = keepers;
-    this.timeout = timeout;
-    this.retryFactory = ZooUtil.DEFAULT_RETRY;
-    this.info = new ZooKeeperConnectionInfo(keepers, timeout, null, null);
-  }
 }

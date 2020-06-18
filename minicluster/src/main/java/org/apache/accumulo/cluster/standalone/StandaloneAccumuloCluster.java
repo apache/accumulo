@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.cluster.standalone;
 
@@ -53,8 +55,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @SuppressWarnings("unused")
   private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
 
-  static final List<ServerType> ALL_SERVER_TYPES = Collections
-      .unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER,
+  static final List<ServerType> ALL_SERVER_TYPES =
+      Collections.unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER,
           ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
   private ClientInfo info;
@@ -74,7 +76,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     this.tmp = tmp;
     this.users = users;
     this.serverAccumuloConfDir = serverAccumuloConfDir;
-    siteConfig = new SiteConfiguration(new File(serverAccumuloConfDir, "accumulo.properties"));
+    siteConfig =
+        SiteConfiguration.fromFile(new File(serverAccumuloConfDir, "accumulo.properties")).build();
   }
 
   public String getAccumuloHome() {
@@ -132,7 +135,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public synchronized ServerContext getServerContext() {
     if (context == null) {
-      context = new ServerContext(siteConfig, getClientProperties());
+      context = ServerContext.override(siteConfig, info.getInstanceName(), info.getZooKeepers(),
+          info.getZooKeepersSessionTimeOut());
     }
     return context;
   }

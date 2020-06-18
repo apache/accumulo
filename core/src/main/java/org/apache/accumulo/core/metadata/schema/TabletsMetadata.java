@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
@@ -24,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
@@ -35,11 +37,13 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -49,9 +53,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.FetchedColumns;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -66,9 +71,10 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     private List<Text> families = new ArrayList<>();
     private List<ColumnFQ> qualifiers = new ArrayList<>();
-    private String table = MetadataTable.NAME;
+    private Ample.DataLevel level;
+    private String table;
     private Range range;
-    private EnumSet<FetchedColumns> fetchedCols = EnumSet.noneOf(FetchedColumns.class);
+    private EnumSet<ColumnType> fetchedCols = EnumSet.noneOf(ColumnType.class);
     private Text endRow;
     private boolean checkConsistency = false;
     private boolean saveKeyValues;
@@ -76,12 +82,28 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public TabletsMetadata build(AccumuloClient client) {
+      Preconditions.checkState(level == null ^ table == null);
+      if (level == DataLevel.ROOT) {
+        ClientContext ctx = ((ClientContext) client);
+        ZooCache zc = ctx.getZooCache();
+        String zkRoot = ctx.getZooKeeperRoot();
+        return new TabletsMetadata(getRootMetadata(zkRoot, zc));
+      } else {
+        return buildNonRoot(client);
+      }
+    }
+
+    private TabletsMetadata buildNonRoot(AccumuloClient client) {
       try {
-        Scanner scanner = new IsolatedScanner(client.createScanner(table, Authorizations.EMPTY));
+
+        String resolvedTable = table == null ? level.metaTable() : table;
+
+        Scanner scanner =
+            new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY));
         scanner.setRange(range);
 
-        if (checkConsistency && !fetchedCols.contains(FetchedColumns.PREV_ROW)) {
-          fetchPrev();
+        if (checkConsistency && !fetchedCols.contains(ColumnType.PREV_ROW)) {
+          fetch(ColumnType.PREV_ROW);
         }
 
         for (Text fam : families) {
@@ -92,12 +114,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           col.fetch(scanner);
         }
 
-        if (families.size() == 0 && qualifiers.size() == 0) {
-          fetchedCols = EnumSet.allOf(FetchedColumns.class);
+        if (families.isEmpty() && qualifiers.isEmpty()) {
+          fetchedCols = EnumSet.allOf(ColumnType.class);
         }
 
-        Iterable<TabletMetadata> tmi = TabletMetadata.convert(scanner, fetchedCols,
-            checkConsistency, saveKeyValues);
+        Iterable<TabletMetadata> tmi =
+            TabletMetadata.convert(scanner, fetchedCols, checkConsistency, saveKeyValues);
 
         if (endRow != null) {
           // create an iterable that will stop at the tablet which contains the endRow
@@ -118,103 +140,72 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
-    public Options fetchCloned() {
-      fetchedCols.add(FetchedColumns.CLONED);
-      families.add(ClonedColumnFamily.NAME);
+    public Options fetch(ColumnType... colsToFetch) {
+      Preconditions.checkArgument(colsToFetch.length > 0);
+
+      for (ColumnType colToFetch : colsToFetch) {
+
+        fetchedCols.add(colToFetch);
+
+        switch (colToFetch) {
+          case CLONED:
+            families.add(ClonedColumnFamily.NAME);
+            break;
+          case COMPACT_ID:
+            qualifiers.add(COMPACT_COLUMN);
+            break;
+          case DIR:
+            qualifiers.add(DIRECTORY_COLUMN);
+            break;
+          case FILES:
+            families.add(DataFileColumnFamily.NAME);
+            break;
+          case FLUSH_ID:
+            qualifiers.add(FLUSH_COLUMN);
+            break;
+          case LAST:
+            families.add(LastLocationColumnFamily.NAME);
+            break;
+          case LOADED:
+            families.add(BulkFileColumnFamily.NAME);
+            break;
+          case LOCATION:
+            families.add(CurrentLocationColumnFamily.NAME);
+            families.add(FutureLocationColumnFamily.NAME);
+            break;
+          case LOGS:
+            families.add(LogColumnFamily.NAME);
+            break;
+          case PREV_ROW:
+            qualifiers.add(PREV_ROW_COLUMN);
+            break;
+          case SCANS:
+            families.add(ScanFileColumnFamily.NAME);
+            break;
+          case TIME:
+            qualifiers.add(TIME_COLUMN);
+            break;
+          default:
+            throw new IllegalArgumentException("Unknown col type " + colToFetch);
+
+        }
+      }
+
       return this;
     }
 
     @Override
-    public Options fetchCompactId() {
-      fetchedCols.add(FetchedColumns.COMPACT_ID);
-      qualifiers.add(COMPACT_COLUMN);
-      return this;
-    }
-
-    @Override
-    public Options fetchDir() {
-      fetchedCols.add(FetchedColumns.DIR);
-      qualifiers.add(DIRECTORY_COLUMN);
-      return this;
-    }
-
-    @Override
-    public Options fetchFiles() {
-      fetchedCols.add(FetchedColumns.FILES);
-      families.add(DataFileColumnFamily.NAME);
-      return this;
-    }
-
-    @Override
-    public Options fetchFlushId() {
-      fetchedCols.add(FetchedColumns.FLUSH_ID);
-      qualifiers.add(FLUSH_COLUMN);
-      return this;
-    }
-
-    @Override
-    public Options fetchLast() {
-      fetchedCols.add(FetchedColumns.LAST);
-      families.add(LastLocationColumnFamily.NAME);
-      return this;
-    }
-
-    @Override
-    public Options fetchLoaded() {
-      fetchedCols.add(FetchedColumns.LOADED);
-      families.add(BulkFileColumnFamily.NAME);
-      return this;
-    }
-
-    @Override
-    public Options fetchLocation() {
-      fetchedCols.add(FetchedColumns.LOCATION);
-      families.add(CurrentLocationColumnFamily.NAME);
-      families.add(FutureLocationColumnFamily.NAME);
-      return this;
-    }
-
-    @Override
-    public Options fetchLogs() {
-      fetchedCols.add(FetchedColumns.LOGS);
-      families.add(LogColumnFamily.NAME);
-      return this;
-    }
-
-    @Override
-    public Options fetchPrev() {
-      fetchedCols.add(FetchedColumns.PREV_ROW);
-      qualifiers.add(PREV_ROW_COLUMN);
-      return this;
-    }
-
-    @Override
-    public Options fetchScans() {
-      fetchedCols.add(FetchedColumns.SCANS);
-      families.add(ScanFileColumnFamily.NAME);
-      return this;
-    }
-
-    @Override
-    public Options fetchTime() {
-      fetchedCols.add(FetchedColumns.TIME);
-      qualifiers.add(TIME_COLUMN);
+    public Options forLevel(DataLevel level) {
+      this.level = level;
+      this.range = TabletsSection.getRange();
       return this;
     }
 
     @Override
     public TableRangeOptions forTable(TableId tableId) {
-      Preconditions.checkArgument(!tableId.equals(RootTable.ID),
-          "Getting tablet metadata for " + RootTable.NAME + " not supported at this time.");
-      if (tableId.equals(MetadataTable.ID)) {
-        this.table = RootTable.NAME;
-      } else {
-        this.table = MetadataTable.NAME;
-      }
-
+      this.level = DataLevel.of(tableId);
       this.tableId = tableId;
       this.range = TabletsSection.getRange(tableId);
-
       return this;
     }
 
@@ -260,29 +251,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      */
     Options checkConsistency();
 
-    Options fetchCloned();
-
-    Options fetchCompactId();
-
-    Options fetchDir();
-
-    Options fetchFiles();
-
-    Options fetchFlushId();
-
-    Options fetchLast();
-
-    Options fetchLoaded();
-
-    Options fetchLocation();
-
-    Options fetchLogs();
-
-    Options fetchPrev();
-
-    Options fetchScans();
-
-    Options fetchTime();
+    Options fetch(ColumnType... columnsToFetch);
 
     /**
      * Saves the key values seen in the metadata table for each tablet.
@@ -295,6 +264,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   }
 
   public interface TableOptions {
+
+    /**
+     * Read all of the tablet metadata for this level.
+     */
+    Options forLevel(DataLevel level);
 
     /**
      * Get the tablet metadata for this extents end row. This should only ever return a single
@@ -378,9 +352,19 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     return new Builder();
   }
 
+  public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {
+    return RootTabletMetadata.fromJson(zc.get(zkRoot + RootTable.ZROOT_TABLET))
+        .convertToTabletMetadata();
+  }
+
   private Scanner scanner;
 
   private Iterable<TabletMetadata> tablets;
+
+  private TabletsMetadata(TabletMetadata tm) {
+    this.scanner = null;
+    this.tablets = Collections.singleton(tm);
+  }
 
   private TabletsMetadata(Scanner scanner, Iterable<TabletMetadata> tmi) {
     this.scanner = scanner;
@@ -389,7 +373,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
   @Override
   public void close() {
-    scanner.close();
+    if (scanner != null) {
+      scanner.close();
+    }
   }
 
   @Override

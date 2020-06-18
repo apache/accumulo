@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -123,7 +125,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     timedoutServers = Collections.synchronizedSet(new HashSet<>());
     this.timeout = timeout;
 
-    if (options.fetchedColumns.size() > 0) {
+    if (!options.fetchedColumns.isEmpty()) {
       ArrayList<Range> ranges2 = new ArrayList<>(ranges.size());
       for (Range range : ranges) {
         ranges2.add(range.bound(options.fetchedColumns.first(), options.fetchedColumns.last()));
@@ -177,8 +179,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             throw new RuntimeException(fatalException);
 
         if (queryThreadPool.isShutdown()) {
-          String shortMsg = "The BatchScanner was unexpectedly closed while"
-              + " this Iterator was still in use.";
+          String shortMsg =
+              "The BatchScanner was unexpectedly closed while" + " this Iterator was still in use.";
           log.error("{} Ensure that a reference to the BatchScanner is retained"
               + " so that it can be closed when this Iterator is exhausted. Not"
               + " retaining a reference to the BatchScanner guarantees that you are"
@@ -233,7 +235,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       binnedRanges.clear();
       List<Range> failures = tabletLocator.binRanges(context, ranges, binnedRanges);
 
-      if (failures.size() > 0) {
+      if (failures.isEmpty()) {
+        break;
+      } else {
         // tried to only do table state checks when failures.size() == ranges.size(), however this
         // did
         // not work because nothing ever invalidated entries in the tabletLocator cache... so even
@@ -258,8 +262,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
-      } else {
-        break;
       }
 
     }
@@ -358,7 +360,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
         doLookup(context, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns,
             options, authorizations, timeoutTracker);
-        if (tsFailures.size() > 0) {
+        if (!tsFailures.isEmpty()) {
           locator.invalidateCache(tsFailures.keySet());
           synchronized (failures) {
             failures.putAll(tsFailures);
@@ -380,10 +382,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         log.debug("AccumuloSecurityException thrown", e);
 
         Tables.clearCache(context);
-        if (!Tables.exists(context, tableId))
-          fatalException = new TableDeletedException(tableId.canonical());
-        else
+        if (Tables.exists(context, tableId))
           fatalException = e;
+        else
+          fatalException = new TableDeletedException(tableId.canonical());
       } catch (SampleNotPresentException e) {
         fatalException = e;
       } catch (Throwable t) {
@@ -397,7 +399,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         Thread.currentThread().setName(threadName);
         if (semaphore.tryAcquire(semaphoreSize)) {
           // finished processing all queries
-          if (fatalException == null && failures.size() > 0) {
+          if (fatalException == null && !failures.isEmpty()) {
             // there were some failures
             try {
               processFailures(failures, receiver, columns);
@@ -473,10 +475,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     Map<KeyExtent,List<Range>> failures = new HashMap<>();
 
-    if (timedoutServers.size() > 0) {
+    if (!timedoutServers.isEmpty()) {
       // go ahead and fail any timed out servers
-      for (Iterator<Entry<String,Map<KeyExtent,List<Range>>>> iterator = binnedRanges.entrySet()
-          .iterator(); iterator.hasNext();) {
+      for (Iterator<Entry<String,Map<KeyExtent,List<Range>>>> iterator =
+          binnedRanges.entrySet().iterator(); iterator.hasNext();) {
         Entry<String,Map<KeyExtent,List<Range>>> entry = iterator.next();
         if (timedoutServers.contains(entry.getKey())) {
           failures.putAll(entry.getValue());
@@ -503,16 +505,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         for (Entry<KeyExtent,List<Range>> entry : tabletsRanges.entrySet()) {
           tabletSubset.put(entry.getKey(), entry.getValue());
           if (tabletSubset.size() >= maxTabletsPerRequest) {
-            QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver,
-                columns);
+            QueryTask queryTask =
+                new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
             queryTasks.add(queryTask);
             tabletSubset = new HashMap<>();
           }
         }
 
-        if (tabletSubset.size() > 0) {
-          QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver,
-              columns);
+        if (!tabletSubset.isEmpty()) {
+          QueryTask queryTask =
+              new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
           queryTasks.add(queryTask);
         }
       }
@@ -537,8 +539,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     failures.putAll(retFailures);
 
     // translate full scans and remove them from unscanned
-    HashSet<KeyExtent> fullScans = new HashSet<>(
-        Translator.translate(scanResult.fullScans, Translators.TKET));
+    HashSet<KeyExtent> fullScans =
+        new HashSet<>(Translator.translate(scanResult.fullScans, Translators.TKET));
     unscanned.keySet().removeAll(fullScans);
 
     // remove partial scan from unscanned
@@ -628,7 +630,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       Authorizations authorizations, TimeoutTracker timeoutTracker)
       throws IOException, AccumuloSecurityException, AccumuloServerException {
 
-    if (requested.size() == 0) {
+    if (requested.isEmpty()) {
       return;
     }
 
@@ -671,8 +673,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested,
             Translators.KET, new Translator.ListTranslator<>(Translators.RT));
 
-        Map<String,String> execHints = options.executionHints.size() == 0 ? null
-            : options.executionHints;
+        Map<String,String> execHints =
+            options.executionHints.isEmpty() ? null : options.executionHints;
 
         InitialMultiScan imsr = client.startMultiScan(TraceUtil.traceInfo(), context.rpcCreds(),
             thriftTabletRanges, Translator.translate(columns, Translators.CT),
@@ -698,10 +700,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           entries.add(new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value)));
         }
 
-        if (entries.size() > 0)
+        if (!entries.isEmpty())
           receiver.receive(entries);
 
-        if (entries.size() > 0 || scanResult.fullScans.size() > 0)
+        if (!entries.isEmpty() || !scanResult.fullScans.isEmpty())
           timeoutTracker.madeProgress();
 
         trackScanning(failures, unscanned, scanResult);
@@ -733,10 +735,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             entries.add(new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value)));
           }
 
-          if (entries.size() > 0)
+          if (!entries.isEmpty())
             receiver.receive(entries);
 
-          if (entries.size() > 0 || scanResult.fullScans.size() > 0)
+          if (!entries.isEmpty() || !scanResult.fullScans.isEmpty())
             timeoutTracker.madeProgress();
 
           trackScanning(failures, unscanned, scanResult);

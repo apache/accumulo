@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl.mapreduce.lib;
 
@@ -28,6 +30,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,6 +64,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
@@ -250,8 +254,8 @@ public class InputConfigurator extends ConfiguratorBase {
   public static List<Range> getRanges(Class<?> implementingClass, Configuration conf)
       throws IOException {
 
-    Collection<String> encodedRanges = conf
-        .getStringCollection(enumToConfKey(implementingClass, ScanOpts.RANGES));
+    Collection<String> encodedRanges =
+        conf.getStringCollection(enumToConfKey(implementingClass, ScanOpts.RANGES));
     List<Range> ranges = new ArrayList<>();
     for (String rangeString : encodedRanges) {
       ByteArrayInputStream bais = new ByteArrayInputStream(Base64.getDecoder().decode(rangeString));
@@ -320,8 +324,8 @@ public class InputConfigurator extends ConfiguratorBase {
     conf.setStrings(enumToConfKey(implementingClass, ScanOpts.COLUMNS), columnStrings);
   }
 
-  public static String[] serializeColumns(
-      Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
+  public static String[]
+      serializeColumns(Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     checkArgument(columnFamilyColumnQualifierPairs != null,
         "columnFamilyColumnQualifierPairs is null");
     ArrayList<String> columnStrings = new ArrayList<>(columnFamilyColumnQualifierPairs.size());
@@ -357,9 +361,7 @@ public class InputConfigurator extends ConfiguratorBase {
     List<String> serialized = new ArrayList<>();
     if (confValue != null) {
       // Split and include any trailing empty strings to allow empty column families
-      for (String val : confValue.split(",", -1)) {
-        serialized.add(val);
-      }
+      Collections.addAll(serialized, confValue.split(",", -1));
     }
     return deserializeFetchedColumns(serialized);
   }
@@ -633,8 +635,9 @@ public class InputConfigurator extends ConfiguratorBase {
   public static void setInputTableConfigs(Class<?> implementingClass, Configuration conf,
       Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configs) {
     MapWritable mapWritable = new MapWritable();
-    for (Map.Entry<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfig : configs
-        .entrySet())
+    for (Map.Entry<String,
+        org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfig : configs
+            .entrySet())
       mapWritable.put(new Text(tableConfig.getKey()), tableConfig.getValue());
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -658,11 +661,12 @@ public class InputConfigurator extends ConfiguratorBase {
    * @return all of the table query configs for the job
    * @since 1.6.0
    */
-  public static Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> getInputTableConfigs(
-      Class<?> implementingClass, Configuration conf) {
-    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configs = new HashMap<>();
-    Map.Entry<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> defaultConfig = getDefaultInputTableConfig(
-        implementingClass, conf);
+  public static Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig>
+      getInputTableConfigs(Class<?> implementingClass, Configuration conf) {
+    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configs =
+        new HashMap<>();
+    Map.Entry<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> defaultConfig =
+        getDefaultInputTableConfig(implementingClass, conf);
     if (defaultConfig != null)
       configs.put(defaultConfig.getKey(), defaultConfig.getValue());
     String configString = conf.get(enumToConfKey(implementingClass, ScanOpts.TABLE_CONFIGS));
@@ -697,11 +701,20 @@ public class InputConfigurator extends ConfiguratorBase {
    * @return the table query config for the given table name (if it exists) and null if it does not
    * @since 1.6.0
    */
-  public static org.apache.accumulo.core.client.mapreduce.InputTableConfig getInputTableConfig(
-      Class<?> implementingClass, Configuration conf, String tableName) {
-    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> queryConfigs = getInputTableConfigs(
-        implementingClass, conf);
+  public static org.apache.accumulo.core.client.mapreduce.InputTableConfig
+      getInputTableConfig(Class<?> implementingClass, Configuration conf, String tableName) {
+    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> queryConfigs =
+        getInputTableConfigs(implementingClass, conf);
     return queryConfigs.get(tableName);
+  }
+
+  private static String extractNamespace(final String tableName) {
+    final int delimiterPos = tableName.indexOf('.');
+    if (delimiterPos < 1) {
+      return ""; // default namespace
+    } else {
+      return tableName.substring(0, delimiterPos);
+    }
   }
 
   /**
@@ -715,11 +728,11 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static void validatePermissions(Class<?> implementingClass, Configuration conf)
       throws IOException {
-    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> inputTableConfigs = getInputTableConfigs(
-        implementingClass, conf);
+    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> inputTableConfigs =
+        getInputTableConfigs(implementingClass, conf);
     try {
       AccumuloClient client = client(implementingClass, conf);
-      if (getInputTableConfigs(implementingClass, conf).size() == 0)
+      if (getInputTableConfigs(implementingClass, conf).isEmpty())
         throw new IOException("No table set.");
 
       String principal = getPrincipal(implementingClass, conf);
@@ -727,16 +740,24 @@ public class InputConfigurator extends ConfiguratorBase {
         principal = client.whoami();
       }
 
-      for (Map.Entry<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfig : inputTableConfigs
-          .entrySet()) {
-        if (!client.securityOperations().hasTablePermission(principal, tableConfig.getKey(),
-            TablePermission.READ))
+      for (Map.Entry<String,
+          org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfig : inputTableConfigs
+              .entrySet()) {
+        final String tableName = tableConfig.getKey();
+        final String namespace = extractNamespace(tableName);
+        final boolean hasTableRead = client.securityOperations().hasTablePermission(principal,
+            tableName, TablePermission.READ);
+        final boolean hasNamespaceRead = client.securityOperations()
+            .hasNamespacePermission(principal, namespace, NamespacePermission.READ);
+        if (!hasTableRead && !hasNamespaceRead) {
           throw new IOException("Unable to access table");
+        }
       }
-      for (Map.Entry<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfigEntry : inputTableConfigs
-          .entrySet()) {
-        org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig = tableConfigEntry
-            .getValue();
+      for (Map.Entry<String,
+          org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfigEntry : inputTableConfigs
+              .entrySet()) {
+        org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig =
+            tableConfigEntry.getValue();
         if (!tableConfig.shouldUseLocalIterators()) {
           if (tableConfig.getIterators() != null) {
             for (IteratorSetting iter : tableConfig.getIterators()) {
@@ -764,11 +785,12 @@ public class InputConfigurator extends ConfiguratorBase {
    * @return the config object built from the single input table properties set on the job
    * @since 1.6.0
    */
-  protected static Map.Entry<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> getDefaultInputTableConfig(
-      Class<?> implementingClass, Configuration conf) {
+  protected static Map.Entry<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig>
+      getDefaultInputTableConfig(Class<?> implementingClass, Configuration conf) {
     String tableName = getInputTableName(implementingClass, conf);
     if (tableName != null) {
-      org.apache.accumulo.core.client.mapreduce.InputTableConfig queryConfig = new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig queryConfig =
+          new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
       List<IteratorSetting> itrs = getIterators(implementingClass, conf);
       if (itrs != null)
         queryConfig.setIterators(itrs);
@@ -819,8 +841,8 @@ public class InputConfigurator extends ConfiguratorBase {
       else
         startRow = new Text();
 
-      Range metadataRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(),
-          true, null, false);
+      Range metadataRange =
+          new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null, false);
       Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);
@@ -869,19 +891,8 @@ public class InputConfigurator extends ConfiguratorBase {
           throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
         }
 
-        Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
-        if (tabletRanges == null) {
-          tabletRanges = new HashMap<>();
-          binnedRanges.put(last, tabletRanges);
-        }
-
-        List<Range> rangeList = tabletRanges.get(extent);
-        if (rangeList == null) {
-          rangeList = new ArrayList<>();
-          tabletRanges.put(extent, rangeList);
-        }
-
-        rangeList.add(range);
+        binnedRanges.computeIfAbsent(last, k -> new HashMap<>())
+            .computeIfAbsent(extent, k -> new ArrayList<>()).add(range);
 
         if (extent.getEndRow() == null
             || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {

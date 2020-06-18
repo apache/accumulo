@@ -1,42 +1,48 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
-import java.util.Objects;
-import java.util.Properties;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
+import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.conf.ZooConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
+import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -44,8 +50,6 @@ import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretM
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials
@@ -53,16 +57,13 @@ import org.slf4j.LoggerFactory;
  */
 public class ServerContext extends ClientContext {
 
-  private static final Logger log = LoggerFactory.getLogger(ServerContext.class);
-
   private final ServerInfo info;
+  private final ZooReaderWriter zooReaderWriter;
   private TableManager tableManager;
   private UniqueNameAllocator nameAllocator;
-  private ZooReaderWriter zooReaderWriter;
   private ServerConfigurationFactory serverConfFactory = null;
-  private String applicationName = null;
-  private String applicationClassName = null;
-  private String hostname = null;
+  private DefaultConfiguration defaultConfig = null;
+  private AccumuloConfiguration systemConfig = null;
   private AuthenticationTokenSecretManager secretManager;
   private CryptoService cryptoService = null;
 
@@ -70,62 +71,49 @@ public class ServerContext extends ClientContext {
     this(new ServerInfo(siteConfig));
   }
 
-  public ServerContext(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
-      int zooKeepersSessionTimeOut) {
-    this(new ServerInfo(siteConfig, instanceName, zooKeepers, zooKeepersSessionTimeOut));
-  }
-
-  public ServerContext(SiteConfiguration siteConfig, Properties clientProps) {
-    this(siteConfig, ClientInfo.from(clientProps));
-  }
-
-  private ServerContext(SiteConfiguration siteConfig, ClientInfo info) {
-    this(new ServerInfo(siteConfig, info.getInstanceName(), info.getZooKeepers(),
-        info.getZooKeepersSessionTimeOut()));
-  }
-
   private ServerContext(ServerInfo info) {
-    super(info, info.getSiteConfiguration());
+    super(SingletonReservation.noop(), info, info.getSiteConfiguration());
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
   }
 
-  public void setupServer(String appName, String appClassName, String hostname) {
-    applicationName = appName;
-    applicationClassName = appClassName;
-    this.hostname = hostname;
-    SecurityUtil.serverLogin(info.getSiteConfiguration());
-    log.info("Version " + Constants.VERSION);
-    log.info("Instance " + info.getInstanceID());
-    ServerUtil.init(this, applicationName);
-    MetricsSystemHelper.configure(applicationClassName);
-    TraceUtil.enableServerTraces(hostname, applicationName,
-        getServerConfFactory().getSystemConfiguration());
-    if (getSaslParams() != null) {
-      // Server-side "client" check to make sure we're logged in as a user we expect to be
-      enforceKerberosLogin();
-    }
+  /**
+   * Used during initialization to set the instance name and ID.
+   */
+  public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
+      String instanceID) {
+    return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID));
+  }
+
+  /**
+   * Override properties for testing
+   */
+  public static ServerContext override(SiteConfiguration siteConfig, String instanceName,
+      String zooKeepers, int zkSessionTimeOut) {
+    return new ServerContext(
+        new ServerInfo(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
+  }
+
+  @Override
+  public String getInstanceID() {
+    return info.getInstanceID();
   }
 
   /**
    * Should only be called by the Tablet server
    */
   public synchronized void setupCrypto() throws CryptoService.CryptoException {
-    if (cryptoService != null)
+    if (cryptoService != null) {
       throw new CryptoService.CryptoException("Crypto Service " + cryptoService.getClass().getName()
           + " already exists and cannot be setup again");
+    }
 
     AccumuloConfiguration acuConf = getConfiguration();
     cryptoService = CryptoServiceFactory.newInstance(acuConf, ClassloaderType.ACCUMULO);
   }
 
-  public void teardownServer() {
-    TraceUtil.disable();
-  }
-
-  public String getHostname() {
-    Objects.requireNonNull(hostname);
-    return hostname;
+  public SiteConfiguration getSiteConfiguration() {
+    return info.getSiteConfiguration();
   }
 
   public synchronized ServerConfigurationFactory getServerConfFactory() {
@@ -137,7 +125,26 @@ public class ServerContext extends ClientContext {
 
   @Override
   public AccumuloConfiguration getConfiguration() {
-    return getServerConfFactory().getSystemConfiguration();
+    if (systemConfig == null) {
+      ZooCache propCache = new ZooCache(getZooKeepers(), getZooKeepersSessionTimeOut());
+      systemConfig = new ZooConfiguration(this, propCache, getSiteConfiguration());
+    }
+    return systemConfig;
+  }
+
+  public TableConfiguration getTableConfiguration(TableId id) {
+    return getServerConfFactory().getTableConfiguration(id);
+  }
+
+  public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
+    return getServerConfFactory().getNamespaceConfiguration(namespaceId);
+  }
+
+  public DefaultConfiguration getDefaultConfiguration() {
+    if (defaultConfig == null) {
+      defaultConfig = DefaultConfiguration.getInstance();
+    }
+    return defaultConfig;
   }
 
   /**
@@ -148,8 +155,8 @@ public class ServerContext extends ClientContext {
   void enforceKerberosLogin() {
     final AccumuloConfiguration conf = getServerConfFactory().getSiteConfiguration();
     // Unwrap _HOST into the FQDN to make the kerberos principal we'll compare against
-    final String kerberosPrincipal = SecurityUtil
-        .getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
+    final String kerberosPrincipal =
+        SecurityUtil.getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
     UserGroupInformation loginUser;
     try {
       // The system user should be logged in via keytab when the process is started, not the
@@ -244,4 +251,10 @@ public class ServerContext extends ClientContext {
     }
     return cryptoService;
   }
+
+  @Override
+  public Ample getAmple() {
+    return new ServerAmpleImpl(this);
+  }
+
 }

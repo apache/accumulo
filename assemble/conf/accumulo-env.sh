@@ -1,19 +1,22 @@
 #! /usr/bin/env bash
-
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
 
 ## Before accumulo-env.sh is loaded, these environment variables are set and can be used in this file:
 
@@ -56,7 +59,7 @@ if [[ -n "$CLASSPATH" ]]; then
 else
   CLASSPATH="${conf}"
 fi
-CLASSPATH="${CLASSPATH}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${HADOOP_HOME}/share/hadoop/client/*"
+CLASSPATH="${CLASSPATH}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${ZOOKEEPER_HOME}/lib/*:${HADOOP_HOME}/share/hadoop/client/*"
 export CLASSPATH
 
 ##################################################################
@@ -65,9 +68,6 @@ export CLASSPATH
 
 ## JVM options set for all processes. Extra options can be passed in by setting ACCUMULO_JAVA_OPTS to an array of options.
 JAVA_OPTS=("${ACCUMULO_JAVA_OPTS[@]}"
-  '-XX:+UseConcMarkSweepGC'
-  '-XX:CMSInitiatingOccupancyFraction=75'
-  '-XX:+CMSClassUnloadingEnabled'
   '-XX:OnOutOfMemoryError=kill -9 %p'
   '-XX:-OmitStackTraceInFastThrow'
   '-Djava.net.preferIPv4Stack=true'
@@ -85,20 +85,20 @@ case "$cmd" in
   *)       JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms64m') ;;
 esac
 
-## JVM options set for logging. Review logj4 properties files to see how they are used.
+## JVM options set for logging. Review log4j2.properties file to see how they are used.
 JAVA_OPTS=("${JAVA_OPTS[@]}"
   "-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
-  "-Daccumulo.application=${cmd}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)")
+  "-Daccumulo.application=${cmd}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)"
+  "-Daccumulo.metrics.service.instance=${ACCUMULO_SERVICE_INSTANCE}"
+  "-Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+)
 
 case "$cmd" in
-  monitor)
-    JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=log4j-monitor.properties")
-    ;;
-  gc|master|proxy|tserver|tracer)
-    JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=log4j-service.properties")
+  monitor|gc|master|tserver|tracer)
+    JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configurationFile=log4j2-service.properties")
     ;;
   *)
-    # let log4j use its default behavior (log4j.xml, log4j.properties)
+    # let log4j use its default behavior (log4j2.properties, etc.)
     true
     ;;
 esac

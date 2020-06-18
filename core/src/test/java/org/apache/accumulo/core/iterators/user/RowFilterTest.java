@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -38,11 +40,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableSet;
 
 public class RowFilterTest {
 
@@ -180,8 +180,8 @@ public class RowFilterTest {
 
   @Test
   public void test1() throws Exception {
-    ColumnFamilySkippingIterator source = new ColumnFamilySkippingIterator(
-        new SortedMapIterator(createKeyValues()));
+    ColumnFamilySkippingIterator source =
+        new ColumnFamilySkippingIterator(new SortedMapIterator(createKeyValues()));
 
     RowFilter filter = new SummingRowFilter();
     filter.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
@@ -192,7 +192,7 @@ public class RowFilterTest {
 
     ByteSequence cf = new ArrayByteSequence("cf2");
 
-    filter.seek(new Range(), ImmutableSet.of(cf), true);
+    filter.seek(new Range(), Set.of(cf), true);
     assertEquals(new HashSet<>(Arrays.asList("1", "3", "0", "4")), getRows(filter));
 
     filter.seek(new Range("0", "4"), Collections.emptySet(), false);
@@ -204,7 +204,7 @@ public class RowFilterTest {
     filter.seek(new Range("4"), Collections.emptySet(), false);
     assertEquals(new HashSet<String>(), getRows(filter));
 
-    filter.seek(new Range("4"), ImmutableSet.of(cf), true);
+    filter.seek(new Range("4"), Set.of(cf), true);
     assertEquals(new HashSet<>(Arrays.asList("4")), getRows(filter));
 
   }

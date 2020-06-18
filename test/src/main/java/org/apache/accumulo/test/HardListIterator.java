@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -32,22 +34,23 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A wrapper making a list of hardcoded data into a SKVI. For testing.
  */
 public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
-  private static final Logger log = Logger.getLogger(HardListIterator.class);
+  private static final Logger log = LoggerFactory.getLogger(HardListIterator.class);
   public static final SortedMap<Key,Value> allEntriesToInject;
   static {
     SortedMap<Key,Value> t = new TreeMap<>();
     t.put(new Key(new Text("a1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
-        new Value("1".getBytes()));
+        new Value("1"));
     t.put(new Key(new Text("c1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
-        new Value("1".getBytes()));
+        new Value("1"));
     t.put(new Key(new Text("m1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
-        new Value("1".getBytes()));
+        new Value("1"));
     allEntriesToInject = Collections.unmodifiableSortedMap(t); // for safety
   }
 
@@ -57,13 +60,13 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) {
-    if (source != null)
-      log.info("HardListIterator ignores/replaces parent source passed in init(): " + source);
+    if (source != null) {
+      log.info("HardListIterator ignores/replaces parent source passed in init(): {}", source);
+    }
 
     IteratorUtil.IteratorScope scope = env.getIteratorScope();
-    log.debug(this.getClass() + ": init on scope " + scope
-        + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction()
-            : ""));
+    log.debug("{}: init on scope {}{}", this.getClass(), scope,
+        scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction() : "");
 
     // define behavior before seek as seek to start at negative infinity
     inner = new PeekingIterator<>(allEntriesToInject.entrySet().iterator());
@@ -73,7 +76,7 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     HardListIterator newInstance;
     try {
-      newInstance = HardListIterator.class.newInstance();
+      newInstance = HardListIterator.class.getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -85,8 +88,9 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
 
   @Override
   public boolean hasTop() {
-    if (!inner.hasNext())
+    if (!inner.hasNext()) {
       return false;
+    }
     Key k = inner.peek().getKey();
     return seekRng.contains(k); // do not return entries past the seek() range
   }
@@ -100,15 +104,16 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) {
     seekRng = range;
     // seek to first entry inside range
-    if (range.isInfiniteStartKey())
+    if (range.isInfiniteStartKey()) {
       inner = new PeekingIterator<>(allEntriesToInject.entrySet().iterator());
-    else if (range.isStartKeyInclusive())
+    } else if (range.isStartKeyInclusive()) {
       inner = new PeekingIterator<>(
           allEntriesToInject.tailMap(range.getStartKey()).entrySet().iterator());
-    else
+    } else {
       inner = new PeekingIterator<>(allEntriesToInject
           .tailMap(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME))
           .entrySet().iterator());
+    }
   }
 
   @Override

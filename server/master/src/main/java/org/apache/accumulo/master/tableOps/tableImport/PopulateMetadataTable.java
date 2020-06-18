@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.tableImport;
 
@@ -45,9 +47,6 @@ import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
-import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
@@ -66,48 +65,48 @@ class PopulateMetadataTable extends MasterRepo {
     this.tableInfo = ti;
   }
 
-  static Map<String,String> readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo)
-      throws Exception {
-
+  static void readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo, String importDir,
+      Map<String,String> fileNameMappings) throws Exception {
     try (BufferedReader in = new BufferedReader(
-        new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt")), UTF_8))) {
-      Map<String,String> map = new HashMap<>();
-
-      String line = null;
+        new InputStreamReader(fs.open(new Path(importDir, "mappings.txt")), UTF_8))) {
+      String line, prev;
       while ((line = in.readLine()) != null) {
         String[] sa = line.split(":", 2);
-        map.put(sa[0], sa[1]);
+        prev = fileNameMappings.put(sa[0], importDir + "/" + sa[1]);
+
+        if (prev != null) {
+          String msg = "File exists in multiple import directories: '"
+              + sa[0].replaceAll("[\r\n]", "") + "'";
+          log.warn(msg);
+          throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
+              tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER, msg);
+        }
       }
-
-      return map;
     }
-
   }
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
 
-    Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
+    Path path = new Path(tableInfo.exportFile);
 
     BatchWriter mbw = null;
     ZipInputStream zis = null;
 
     try {
-      VolumeManager fs = master.getFileSystem();
+      VolumeManager fs = master.getVolumeManager();
 
       mbw = master.getContext().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
       zis = new ZipInputStream(fs.open(path));
 
-      Map<String,String> fileNameMappings = readMappingFile(fs, tableInfo);
-
-      log.info("importDir is " + tableInfo.importDir);
-
-      // This is a directory already prefixed with proper volume information e.g.
-      // hdfs://localhost:8020/path/to/accumulo/tables/...
-      final String bulkDir = tableInfo.importDir;
-
-      final String[] volumes = ServerConstants.getBaseUris(master.getContext());
+      Map<String,String> fileNameMappings = new HashMap<>();
+      for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+        log.info("importDir is " + dm.importDir);
+        // mappings are prefixed with the proper volume information, e.g:
+        // hdfs://localhost:8020/path/to/accumulo/tables/...
+        readMappingFile(fs, tableInfo, dm.importDir, fileNameMappings);
+      }
 
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
@@ -140,7 +139,7 @@ class PopulateMetadataTable extends MasterRepo {
                     "File " + oldName + " does not exist in import dir");
               }
 
-              cq = new Text(bulkDir + "/" + newName);
+              cq = new Text(newName);
             } else {
               cq = key.getColumnQualifier();
             }
@@ -152,12 +151,8 @@ class PopulateMetadataTable extends MasterRepo {
                   FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
                   UTF_8);
 
-              // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-              String absolutePath = getClonedTabletDir(master, endRow, volumes, tabletDir);
-
               m = new Mutation(metadataRow);
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
-                  new Value(absolutePath.getBytes(UTF_8)));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
               currentRow = metadataRow;
             }
 
@@ -170,12 +165,8 @@ class PopulateMetadataTable extends MasterRepo {
                   FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
                   UTF_8);
 
-              // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-              String absolutePath = getClonedTabletDir(master, endRow, volumes, tabletDir);
-
               m = new Mutation(metadataRow);
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
-                  new Value(absolutePath.getBytes(UTF_8)));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
             }
 
             m.put(key.getColumnFamily(), cq, val);
@@ -210,23 +201,6 @@ class PopulateMetadataTable extends MasterRepo {
         mbw.close();
       }
     }
-  }
-
-  /**
-   * Given options for tables (across multiple volumes), construct an absolute path using the unique
-   * name within the chosen volume
-   *
-   * @return An absolute, unique path for the imported table
-   */
-  protected String getClonedTabletDir(Master master, Text endRow, String[] volumes,
-      String tabletDir) {
-    // We can try to spread out the tablet dirs across all volumes
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(tableInfo.tableId,
-        endRow, master.getContext());
-    String volume = master.getFileSystem().choose(chooserEnv, volumes);
-
-    // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-    return volume + "/" + ServerConstants.TABLE_DIR + "/" + tableInfo.tableId + "/" + tabletDir;
   }
 
   @Override

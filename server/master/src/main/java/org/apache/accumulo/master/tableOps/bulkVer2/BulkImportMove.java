@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.bulkVer2;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +31,11 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -72,18 +77,21 @@ class BulkImportMove extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     final Path sourceDir = new Path(bulkInfo.sourceDir);
-    log.debug(" tid {} sourceDir {}", tid, sourceDir);
 
-    VolumeManager fs = master.getFileSystem();
+    String fmtTid = FateTxId.formatTid(tid);
+
+    log.debug("{} sourceDir {}", fmtTid, sourceDir);
+
+    VolumeManager fs = master.getVolumeManager();
 
     if (bulkInfo.tableState == TableState.ONLINE) {
       ZooArbitrator.start(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     }
 
     try {
-      Map<String,String> oldToNewNameMap = BulkSerialize.readRenameMap(bulkDir.toString(),
-          p -> fs.open(p));
-      moveFiles(String.format("%016x", tid), sourceDir, bulkDir, master, fs, oldToNewNameMap);
+      Map<String,String> oldToNewNameMap =
+          BulkSerialize.readRenameMap(bulkDir.toString(), fs::open);
+      moveFiles(tid, sourceDir, bulkDir, master, fs, oldToNewNameMap);
 
       return new LoadFiles(bulkInfo);
     } catch (Exception ex) {
@@ -96,22 +104,49 @@ class BulkImportMove extends MasterRepo {
   /**
    * For every entry in renames, move the file from the key path to the value path
    */
-  private void moveFiles(String fmtTid, Path sourceDir, Path bulkDir, Master master,
+  private void moveFiles(long tid, Path sourceDir, Path bulkDir, Master master,
       final VolumeManager fs, Map<String,String> renames) throws Exception {
     MetadataTableUtil.addBulkLoadInProgressFlag(master.getContext(),
-        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
+        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
 
-    int workerCount = master.getConfiguration().getCount(Property.MASTER_BULK_RENAME_THREADS);
+    AccumuloConfiguration aConf = master.getConfiguration();
+    @SuppressWarnings("deprecation")
+    int workerCount = aConf.getCount(
+        aConf.resolve(Property.MASTER_RENAME_THREADS, Property.MASTER_BULK_RENAME_THREADS));
     SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulkDir move");
     List<Future<Boolean>> results = new ArrayList<>();
+
+    String fmtTid = FateTxId.formatTid(tid);
 
     for (Map.Entry<String,String> renameEntry : renames.entrySet()) {
       results.add(workers.submit(() -> {
         final Path originalPath = new Path(sourceDir, renameEntry.getKey());
         Path newPath = new Path(bulkDir, renameEntry.getValue());
-        boolean success = fs.rename(originalPath, newPath);
+        boolean success;
+        try {
+          success = fs.rename(originalPath, newPath);
+        } catch (IOException e) {
+          // The rename could have failed because this is the second time its running (failures
+          // could cause this to run multiple times).
+          if (!fs.exists(newPath) || fs.exists(originalPath)) {
+            throw e;
+          }
+
+          log.debug(
+              "Ignoring rename exception because destination already exists. {} orig: {} new: {}",
+              fmtTid, originalPath, newPath, e);
+          success = true;
+        }
+
+        if (!success && fs.exists(newPath) && !fs.exists(originalPath)) {
+          log.debug(
+              "Ignoring rename failure because destination already exists. {} orig: {} new: {}",
+              fmtTid, originalPath, newPath);
+          success = true;
+        }
+
         if (success && log.isTraceEnabled())
-          log.trace("tid {} moved {} to {}", fmtTid, originalPath, newPath);
+          log.trace("{} moved {} to {}", fmtTid, originalPath, newPath);
         return success;
       }));
     }

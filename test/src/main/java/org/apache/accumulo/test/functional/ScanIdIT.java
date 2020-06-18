@@ -1,22 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -371,11 +372,11 @@ public class ScanIdIT extends AccumuloClusterHarness {
         Text rowId = new Text(String.format("%d", ((random.nextInt(10) * 100) + i)));
 
         Mutation m = new Mutation(rowId);
-        m.put(new Text("fam1"), new Text("count"), new Value(Integer.toString(i).getBytes(UTF_8)));
+        m.put("fam1", "count", Integer.toString(i));
         m.put(new Text("fam1"), new Text("positive"), vis,
-            new Value(Integer.toString(NUM_DATA_ROWS - i).getBytes(UTF_8)));
+            new Value(Integer.toString(NUM_DATA_ROWS - i)));
         m.put(new Text("fam1"), new Text("negative"), vis,
-            new Value(Integer.toString(i - NUM_DATA_ROWS).getBytes(UTF_8)));
+            new Value(Integer.toString(i - NUM_DATA_ROWS)));
 
         log.trace("Added row {}", rowId);
 
@@ -398,8 +399,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
   private void attachSlowIterator(AccumuloClient accumuloClient, final String tablename) {
     try {
 
-      IteratorSetting slowIter = new IteratorSetting(50, "slowIter",
-          "org.apache.accumulo.test.functional.SlowIterator");
+      IteratorSetting slowIter =
+          new IteratorSetting(50, "slowIter", "org.apache.accumulo.test.functional.SlowIterator");
       slowIter.addOption("sleepTime", "200");
       slowIter.addOption("seekSleepTime", "200");
 

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.mapred;
 
@@ -163,7 +165,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       try (BatchWriter bw = c.createBatchWriter(table)) {
         for (int i = 0; i < 100; i++) {
           Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-          m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+          m.put("", "", String.format("%09x", i));
           bw.addMutation(m);
         }
       }
@@ -177,8 +179,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
@@ -190,7 +193,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       try (BatchWriter bw = c.createBatchWriter(TEST_TABLE_3)) {
         for (int i = 0; i < 100; i++) {
           Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-          m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+          m.put("", "", String.format("%09x", i));
           bw.addMutation(m);
         }
       }
@@ -217,8 +220,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections
-        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
@@ -237,7 +240,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       org.apache.accumulo.core.client.mapred.AccumuloInputFormat.fetchColumns(job, fetchColumns);
       org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setLogLevel(job, level);
 
-      org.apache.accumulo.core.client.mapred.AccumuloInputFormat aif = new org.apache.accumulo.core.client.mapred.AccumuloInputFormat();
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat aif =
+          new org.apache.accumulo.core.client.mapred.AccumuloInputFormat();
 
       InputSplit[] splits = aif.getSplits(job, 1);
 
@@ -247,7 +251,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       assertEquals(org.apache.accumulo.core.client.mapred.RangeInputSplit.class, split.getClass());
 
-      org.apache.accumulo.core.client.mapred.RangeInputSplit risplit = (org.apache.accumulo.core.client.mapred.RangeInputSplit) split;
+      org.apache.accumulo.core.client.mapred.RangeInputSplit risplit =
+          (org.apache.accumulo.core.client.mapred.RangeInputSplit) split;
 
       assertEquals(table, risplit.getTableName());
       assertEquals(isolated, risplit.isIsolatedScan());

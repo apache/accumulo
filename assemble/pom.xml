@@ -1,26 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
 
       http://www.apache.org/licenses/LICENSE-2.0
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
@@ -79,6 +83,11 @@
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
+      <artifactId>failureaccess</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <optional>true</optional>
     </dependency>
@@ -88,13 +97,18 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <groupId>com.lmax</groupId>
+      <artifactId>disruptor</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>com.sun.xml.bind</groupId>
       <artifactId>jaxb-core</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>com.sun.xml.bind</groupId>
-      <artifactId>jaxb-impl</artifactId>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -108,23 +122,8 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>commons-collections</groupId>
-      <artifactId>commons-collections</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>commons-configuration</groupId>
-      <artifactId>commons-configuration</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>commons-lang</groupId>
-      <artifactId>commons-lang</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -134,7 +133,7 @@
     </dependency>
     <dependency>
       <groupId>javax.activation</groupId>
-      <artifactId>activation</artifactId>
+      <artifactId>javax.activation-api</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -170,11 +169,6 @@
     <dependency>
       <groupId>jline</groupId>
       <artifactId>jline</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -215,11 +209,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-proxy</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-server-base</artifactId>
       <optional>true</optional>
     </dependency>
@@ -235,11 +224,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-test</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-tracer</artifactId>
       <optional>true</optional>
     </dependency>
@@ -250,7 +234,27 @@
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
+      <artifactId>commons-collections4</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-configuration2</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -266,6 +270,31 @@
     <dependency>
       <groupId>org.apache.htrace</groupId>
       <artifactId>htrace-core4</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-1.2-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-web</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -340,7 +369,17 @@
     </dependency>
     <dependency>
       <groupId>org.glassfish.hk2.external</groupId>
-      <artifactId>javax.inject</artifactId>
+      <artifactId>jakarta.inject</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jaxb</groupId>
+      <artifactId>jaxb-core</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jaxb</groupId>
+      <artifactId>jaxb-runtime</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -419,7 +458,7 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>org.hibernate</groupId>
+      <groupId>org.hibernate.validator</groupId>
       <artifactId>hibernate-validator</artifactId>
       <optional>true</optional>
     </dependency>
@@ -438,13 +477,24 @@
       <artifactId>slf4j-api</artifactId>
       <optional>true</optional>
     </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-      <optional>true</optional>
-    </dependency>
   </dependencies>
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>com.mycila</groupId>
+          <artifactId>license-maven-plugin</artifactId>
+          <configuration>
+            <mapping>
+              <accumulo-cluster>SCRIPT_STYLE</accumulo-cluster>
+              <accumulo-service>SCRIPT_STYLE</accumulo-service>
+              <accumulo-util>SCRIPT_STYLE</accumulo-util>
+              <accumulo>SCRIPT_STYLE</accumulo>
+            </mapping>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -516,23 +566,6 @@
           </plugin>
         </plugins>
       </build>
-    </profile>
-    <profile>
-      <!-- create shaded test jar appropriate for running ITs on MapReduce -->
-      <id>mrit</id>
-      <activation>
-        <property>
-          <name>mrit</name>
-        </property>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.accumulo</groupId>
-          <artifactId>accumulo-test</artifactId>
-          <classifier>mrit</classifier>
-          <optional>true</optional>
-        </dependency>
-      </dependencies>
     </profile>
   </profiles>
 </project>

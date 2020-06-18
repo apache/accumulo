@@ -1,29 +1,37 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.fate;
 
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
+import org.apache.accumulo.core.logging.FateLogger;
+import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,8 +52,8 @@ public class Fate<T> {
   private T environment;
   private ExecutorService executor;
 
-  private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(TStatus.FAILED,
-      TStatus.SUCCESSFUL, TStatus.UNKNOWN);
+  private static final EnumSet<TStatus> FINISHED_STATES =
+      EnumSet.of(TStatus.FAILED, TStatus.SUCCESSFUL, TStatus.UNKNOWN);
 
   private AtomicBoolean keepRunning = new AtomicBoolean(true);
 
@@ -74,6 +82,7 @@ public class Fate<T> {
                 continue;
 
             } catch (Exception e) {
+              blockIfHadoopShutdown(tid, e);
               transitionToFailed(tid, e);
               continue;
             }
@@ -108,9 +117,51 @@ public class Fate<T> {
       }
     }
 
+    private boolean isIOException(Throwable e) {
+      if (e == null)
+        return false;
+
+      if (e instanceof IOException)
+        return true;
+
+      for (Throwable suppressed : e.getSuppressed())
+        if (isIOException(suppressed))
+          return true;
+
+      return isIOException(e.getCause());
+    }
+
+    /**
+     * The Hadoop Filesystem registers a java shutdown hook that closes the file system. This can
+     * cause threads to get spurious IOException. If this happens, instead of failing a FATE
+     * transaction just wait for process to die. When the master start elsewhere the FATE
+     * transaction can resume.
+     */
+    private void blockIfHadoopShutdown(long tid, Exception e) {
+      if (ShutdownUtil.isShutdownInProgress()) {
+        String tidStr = FateTxId.formatTid(tid);
+
+        if (e instanceof AcceptableException) {
+          log.debug("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", tidStr, e);
+        } else if (isIOException(e)) {
+          log.info("Ignoring exception likely caused by Hadoop Shutdown hook. {} ", tidStr, e);
+        } else {
+          // sometimes code will catch an IOException caused by the hadoop shutdown hook and throw
+          // another exception without setting the cause.
+          log.warn("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", tidStr, e);
+        }
+
+        while (true) {
+          // Nothing is going to work well at this point, so why even try. Just wait for the end,
+          // preventing this FATE thread from processing further work and likely failing.
+          UtilWaitThread.sleepUninterruptibly(1, TimeUnit.MINUTES);
+        }
+      }
+    }
+
     private void transitionToFailed(long tid, Exception e) {
-      String tidStr = String.format("%016x", tid);
-      final String msg = "Failed to execute Repo, tid=" + tidStr;
+      String tidStr = FateTxId.formatTid(tid);
+      final String msg = "Failed to execute Repo, " + tidStr;
       // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
       // as a warning. They're a normal, handled failure condition.
       if (e instanceof AcceptableException) {
@@ -120,7 +171,7 @@ public class Fate<T> {
       }
       store.setProperty(tid, EXCEPTION_PROP, e);
       store.setStatus(tid, TStatus.FAILED_IN_PROGRESS);
-      log.info("Updated status for Repo with tid={} to FAILED_IN_PROGRESS", tidStr);
+      log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", tidStr);
     }
 
     private void processFailed(long tid, Repo<T> op) {
@@ -151,7 +202,7 @@ public class Fate<T> {
       try {
         op.undo(tid, environment);
       } catch (Exception e) {
-        log.warn("Failed to undo Repo, tid=" + String.format("%016x", tid), e);
+        log.warn("Failed to undo Repo, " + FateTxId.formatTid(tid), e);
       }
     }
 
@@ -162,9 +213,12 @@ public class Fate<T> {
    * <p>
    * Note: Users of this class should call {@link #startTransactionRunners(int)} to launch the
    * worker threads after creating a Fate object.
+   *
+   * @param toLogStrFunc
+   *          A function that converts Repo to Strings that are suitable for logging
    */
-  public Fate(T environment, TStore<T> store) {
-    this.store = store;
+  public Fate(T environment, TStore<T> store, Function<Repo<T>,String> toLogStrFunc) {
+    this.store = FateLogger.wrap(store, toLogStrFunc);
     this.environment = environment;
   }
 
@@ -174,8 +228,8 @@ public class Fate<T> {
   public void startTransactionRunners(int numThreads) {
     final AtomicInteger runnerCount = new AtomicInteger(0);
     executor = Executors.newFixedThreadPool(numThreads, r -> {
-      Thread t = new Thread(new LoggingRunnable(log, r),
-          "Repo runner " + runnerCount.getAndIncrement());
+      Thread t =
+          new Thread(new LoggingRunnable(log, r), "Repo runner " + runnerCount.getAndIncrement());
       t.setDaemon(true);
       return t;
     });
@@ -202,6 +256,7 @@ public class Fate<T> {
             // this should not happen
             throw new RuntimeException(e);
           }
+
         }
 
         if (autoCleanUp)
@@ -235,7 +290,7 @@ public class Fate<T> {
         case FAILED_IN_PROGRESS:
         case IN_PROGRESS:
           throw new IllegalStateException(
-              "Can not delete in progress transaction " + String.format("%016x", tid));
+              "Can not delete in progress transaction " + FateTxId.formatTid(tid));
         case UNKNOWN:
           // nothing to do, it does not exist
           break;
@@ -250,7 +305,7 @@ public class Fate<T> {
     try {
       if (store.getStatus(tid) != TStatus.SUCCESSFUL)
         throw new IllegalStateException("Tried to get exception when transaction "
-            + String.format("%016x", tid) + " not in successful state");
+            + FateTxId.formatTid(tid) + " not in successful state");
       return (String) store.getProperty(tid, RETURN_PROP);
     } finally {
       store.unreserve(tid, 0);
@@ -263,7 +318,7 @@ public class Fate<T> {
     try {
       if (store.getStatus(tid) != TStatus.FAILED)
         throw new IllegalStateException("Tried to get exception when transaction "
-            + String.format("%016x", tid) + " not in failed state");
+            + FateTxId.formatTid(tid) + " not in failed state");
       return (Exception) store.getProperty(tid, EXCEPTION_PROP);
     } finally {
       store.unreserve(tid, 0);

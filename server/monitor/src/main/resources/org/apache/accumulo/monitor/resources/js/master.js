@@ -1,19 +1,21 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 
 /**
  * Creates master initial table
@@ -57,7 +59,7 @@ function recoveryList() {
   var data = sessionStorage.recoveryList === undefined ?
       [] : JSON.parse(sessionStorage.recoveryList);
 
-  $('#recoveryList tr').remove();
+  clearTableBody('recoveryList');
 
   // If there is no recovery list data, hide the table
   if (data.length === 0 || data.recoveryList.length === 0) {
@@ -70,14 +72,14 @@ function recoveryList() {
       var items = [];
       items.push(createFirstCell(val.server, val.server));
       items.push(createRightCell(val.log, val.log));
-      var date = new Date(parseInt(val.runtime));
-      var dateStr = date.toLocaleString().split(' ').join('&nbsp;');
-      items.push(createRightCell(val.runtime, dateStr));
-      items.push(createRightCell(val.progress, val.progress));
+      var duration = timeDuration(parseInt(val.time));
+      items.push(createRightCell(val.time, duration));
+      var percentProgress = (val.progress * 100).toFixed(2) + '%';
+      items.push(createRightCell(val.progress, percentProgress));
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#recoveryList');
+      }).appendTo('#recoveryList tbody');
     });
   }
 }
@@ -91,7 +93,7 @@ function refreshMasterTable() {
 
   // Hide the banner and the master table
   $('#masterBanner').hide();
-  $('#masterStatus tr:gt(0)').remove();
+  clearTableBody('masterStatus');
   $('#masterStatus').hide();
 
   // If master status is error, show banner, otherwise, create master table
@@ -108,10 +110,12 @@ function refreshMasterTable() {
 
     items.push(createRightCell(data.totalTabletServers,
         data.totalTabletServers));
+    var date = data.lastGC;
+    //this will be a finish time or a status of Running, Waiting, or down
+    if (!isNaN(date))
+        date = new Date(parseInt(data.lastGC)).toLocaleString().split(' ').join('&nbsp;');
 
-    var date = new Date(parseInt(data.lastGC));
-    date = date.toLocaleString().split(' ').join('&nbsp;');
-    items.push(createLeftCell(data.lasGC, '<a href="/gc">' + date + '</a>'));
+    items.push(createLeftCell(data.lastGC, '<a href="/gc">' + date + '</a>'));
 
     items.push(createRightCell(data.tablets,
         bigNumberForQuantity(data.tablets)));
@@ -137,6 +141,6 @@ function refreshMasterTable() {
 
     $('<tr/>', {
      html: items.join('')
-    }).appendTo('#masterStatus');
+    }).appendTo('#masterStatus tbody');
   }
 }

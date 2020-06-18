@@ -1,23 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -61,6 +66,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
@@ -75,7 +81,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   @Override
   public int defaultTimeoutSeconds() {
-    return 30;
+    return 90;
   }
 
   @Before
@@ -94,24 +100,20 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     accumuloClient.tableOperations().create(tableName);
-    List<DiskUsage> diskUsage = accumuloClient.tableOperations()
-        .getDiskUsage(Collections.singleton(tableName));
+    List<DiskUsage> diskUsage =
+        accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsage.size());
     assertEquals(0, (long) diskUsage.get(0).getUsage());
     assertEquals(tableName, diskUsage.get(0).getTables().iterator().next());
 
     accumuloClient.securityOperations().revokeTablePermission(getAdminPrincipal(), tableName,
         TablePermission.READ);
-    try {
-      accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName));
-      fail("Should throw securityexception");
-    } catch (AccumuloSecurityException e) {}
+    assertThrows(AccumuloSecurityException.class,
+        () -> accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName)));
 
     accumuloClient.tableOperations().delete(tableName);
-    try {
-      accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName));
-      fail("Should throw tablenotfound");
-    } catch (TableNotFoundException e) {}
+    assertThrows(TableNotFoundException.class,
+        () -> accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName)));
   }
 
   @Test
@@ -122,8 +124,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     accumuloClient.tableOperations().create(tableName);
 
     // verify 0 disk usage
-    List<DiskUsage> diskUsages = accumuloClient.tableOperations()
-        .getDiskUsage(Collections.singleton(tableName));
+    List<DiskUsage> diskUsages =
+        accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsages.size());
     assertEquals(1, diskUsages.get(0).getTables().size());
     assertEquals(Long.valueOf(0), diskUsages.get(0).getUsage());
@@ -132,7 +134,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     // add some data
     try (BatchWriter bw = accumuloClient.createBatchWriter(tableName)) {
       Mutation m = new Mutation("a");
-      m.put("b", "c", new Value("abcde".getBytes()));
+      m.put("b", "c", new Value("abcde"));
       bw.addMutation(m);
       bw.flush();
     }
@@ -179,12 +181,29 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     accumuloClient.tableOperations().create(tableName);
-    Iterable<Map.Entry<String,String>> itrProps = accumuloClient.tableOperations()
-        .getProperties(tableName);
+    Iterable<Map.Entry<String,String>> itrProps =
+        accumuloClient.tableOperations().getProperties(tableName);
     Map<String,String> props = propsToMap(itrProps);
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     accumuloClient.tableOperations().delete(tableName);
+  }
+
+  @Test
+  public void createTableWithTableNameLengthLimit()
+      throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    TableOperations tableOps = accumuloClient.tableOperations();
+    String t0 = StringUtils.repeat('a', MAX_TABLE_NAME_LEN - 1);
+    tableOps.create(t0);
+    assertTrue(tableOps.exists(t0));
+
+    String t1 = StringUtils.repeat('b', MAX_TABLE_NAME_LEN);
+    tableOps.create(t1);
+    assertTrue(tableOps.exists(t1));
+
+    String t2 = StringUtils.repeat('c', MAX_TABLE_NAME_LEN + 1);
+    assertThrows(IllegalArgumentException.class, () -> tableOps.create(t2));
+    assertFalse(tableOps.exists(t2));
   }
 
   @Test
@@ -193,8 +212,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     String originalTable = names[0];
     TableOperations tops = accumuloClient.tableOperations();
 
-    TreeSet<Text> splits = Sets
-        .newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d")));
+    TreeSet<Text> splits =
+        Sets.newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d")));
 
     tops.create(originalTable);
     tops.addSplits(originalTable, splits);

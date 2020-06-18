@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -28,6 +30,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -37,7 +40,7 @@ import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
-import org.apache.accumulo.server.master.state.ZooTabletStateStore;
+import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +73,8 @@ public class FindOfflineTablets {
     tservers.startListeningForTabletServerChanges();
     scanning.set(true);
 
-    Iterator<TabletLocationState> zooScanner = new ZooTabletStateStore(context).iterator();
+    Iterator<TabletLocationState> zooScanner =
+        TabletStateStore.getStoreForLevel(DataLevel.ROOT, context).iterator();
 
     int offline = 0;
 
@@ -82,8 +86,8 @@ public class FindOfflineTablets {
       return 0;
 
     System.out.println("Scanning " + RootTable.NAME);
-    Iterator<TabletLocationState> rootScanner = new MetaDataTableScanner(context,
-        MetadataSchema.TabletsSection.getRange(), RootTable.NAME);
+    Iterator<TabletLocationState> rootScanner =
+        new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), RootTable.NAME);
     if ((offline = checkTablets(context, rootScanner, tservers)) > 0)
       return offline;
 
@@ -98,8 +102,8 @@ public class FindOfflineTablets {
       range = new KeyExtent(tableId, null, null).toMetadataRange();
     }
 
-    try (MetaDataTableScanner metaScanner = new MetaDataTableScanner(context, range,
-        MetadataTable.NAME)) {
+    try (MetaDataTableScanner metaScanner =
+        new MetaDataTableScanner(context, range, MetadataTable.NAME)) {
       return checkTablets(context, metaScanner, tservers);
     }
   }
@@ -111,8 +115,9 @@ public class FindOfflineTablets {
     while (scanner.hasNext() && !System.out.checkError()) {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
-      if (state != null && state != TabletState.HOSTED && context.getTableManager()
-          .getTableState(locationState.extent.getTableId()) != TableState.OFFLINE) {
+      if (state != null && state != TabletState.HOSTED
+          && context.getTableManager().getTableState(locationState.extent.getTableId())
+              != TableState.OFFLINE) {
         System.out
             .println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
         offline++;

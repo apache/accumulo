@@ -1,29 +1,35 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.bulkVer2;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -40,6 +46,7 @@ import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -51,6 +58,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -81,14 +89,15 @@ class LoadFiles extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master master) throws Exception {
-    if (master.onlineTabletServers().size() == 0) {
-      log.warn("There are no tablet server to process bulkDir import, waiting (tid = " + tid + ")");
+    if (master.onlineTabletServers().isEmpty()) {
+      log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
+          + FateTxId.formatTid(tid) + ")");
       return 100;
     }
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
-    try (LoadMappingIterator lmi = BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(),
-        bulkInfo.tableId, p -> fs.open(p))) {
+    try (LoadMappingIterator lmi =
+        BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
       return loadFiles(bulkInfo.tableId, bulkDir, lmi, master, tid);
     }
   }
@@ -140,7 +149,7 @@ class LoadFiles extends MasterRepo {
       super.start(bulkDir, master, tid, setTime);
 
       timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
-      fmtTid = String.format("%016x", tid);
+      fmtTid = FateTxId.formatTid(tid);
 
       loadMsgs = new MapCounter<>();
 
@@ -152,7 +161,7 @@ class LoadFiles extends MasterRepo {
         loadQueue.forEach((server, tabletFiles) -> {
 
           if (log.isTraceEnabled()) {
-            log.trace("tid {} asking {} to bulk import {} files for {} tablets", fmtTid, server,
+            log.trace("{} asking {} to bulk import {} files for {} tablets", fmtTid, server,
                 tabletFiles.values().stream().mapToInt(Map::size).sum(), tabletFiles.size());
           }
 
@@ -162,8 +171,7 @@ class LoadFiles extends MasterRepo {
             client.loadFiles(TraceUtil.traceInfo(), master.getContext().rpcCreds(), tid,
                 bulkDir.toString(), tabletFiles, setTime);
           } catch (TException ex) {
-            log.debug("rpc failed server: " + server + ", tid:" + fmtTid + " " + ex.getMessage(),
-                ex);
+            log.debug("rpc failed server: " + server + ", " + fmtTid + " " + ex.getMessage(), ex);
           } finally {
             ThriftUtil.returnClient(client);
           }
@@ -206,14 +214,15 @@ class LoadFiles extends MasterRepo {
           server = location.getHostAndPort();
         }
 
-        Set<String> loadedFiles = tablet.getLoaded();
+        Set<TabletFile> loadedFiles = tablet.getLoaded().keySet();
 
         Map<String,MapFileInfo> thriftImports = new HashMap<>();
 
         for (final Bulk.FileInfo fileInfo : files) {
-          String fullPath = new Path(bulkDir, fileInfo.getFileName()).toString();
+          Path fullPath = new Path(bulkDir, fileInfo.getFileName());
+          TabletFile bulkFile = new TabletFile(fullPath);
 
-          if (!loadedFiles.contains(fullPath)) {
+          if (!loadedFiles.contains(bulkFile)) {
             thriftImports.put(fileInfo.getFileName(), new MapFileInfo(fileInfo.getEstFileSize()));
           }
         }
@@ -274,8 +283,8 @@ class LoadFiles extends MasterRepo {
 
         for (final Bulk.FileInfo fileInfo : files) {
           String fullPath = new Path(bulkDir, fileInfo.getFileName()).toString();
-          byte[] val = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries())
-              .encode();
+          byte[] val =
+              new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries()).encode();
           mutation.put(fam, fullPath.getBytes(UTF_8), val);
         }
 
@@ -311,9 +320,9 @@ class LoadFiles extends MasterRepo {
 
     Text startRow = loadMapEntry.getKey().getPrevEndRow();
 
-    Iterator<TabletMetadata> tabletIter = TabletsMetadata.builder().forTable(tableId)
-        .overlapping(startRow, null).checkConsistency().fetchPrev().fetchLocation().fetchLoaded()
-        .build(master.getContext()).iterator();
+    Iterator<TabletMetadata> tabletIter =
+        TabletsMetadata.builder().forTable(tableId).overlapping(startRow, null).checkConsistency()
+            .fetch(PREV_ROW, LOCATION, LOADED).build(master.getContext()).iterator();
 
     Loader loader;
     if (bulkInfo.tableState == TableState.ONLINE) {
@@ -339,27 +348,53 @@ class LoadFiles extends MasterRepo {
     return sleepTime;
   }
 
+  private static final Comparator<Text> PREV_COMP = Comparator.nullsFirst(Text::compareTo);
+  private static final Comparator<Text> END_COMP = Comparator.nullsLast(Text::compareTo);
+
   /**
    * Find all the tablets within the provided bulk load mapping range.
    */
   private List<TabletMetadata> findOverlappingTablets(KeyExtent loadRange,
       Iterator<TabletMetadata> tabletIter) {
-    List<TabletMetadata> tablets = new ArrayList<>();
-    TabletMetadata currentTablet = tabletIter.next();
 
-    // skip tablets until we find the prevEndRow of loadRange
-    while (!Objects.equals(currentTablet.getPrevEndRow(), loadRange.getPrevEndRow())) {
-      currentTablet = tabletIter.next();
-    }
-    // we have found the first tablet in the range, add it to the list
-    tablets.add(currentTablet);
+    TabletMetadata currTablet = null;
 
-    // find the remaining tablets within the loadRange by
-    // adding tablets to the list until the endRow matches the loadRange
-    while (!Objects.equals(currentTablet.getEndRow(), loadRange.getEndRow())) {
-      currentTablet = tabletIter.next();
-      tablets.add(currentTablet);
+    try {
+
+      List<TabletMetadata> tablets = new ArrayList<>();
+      currTablet = tabletIter.next();
+
+      int cmp;
+
+      // skip tablets until we find the prevEndRow of loadRange
+      while ((cmp = PREV_COMP.compare(currTablet.getPrevEndRow(), loadRange.getPrevEndRow())) < 0) {
+        currTablet = tabletIter.next();
+      }
+
+      if (cmp != 0) {
+        throw new IllegalStateException("Unexpected prev end row " + currTablet + " " + loadRange);
+      }
+
+      // we have found the first tablet in the range, add it to the list
+      tablets.add(currTablet);
+
+      // find the remaining tablets within the loadRange by
+      // adding tablets to the list until the endRow matches the loadRange
+      while ((cmp = END_COMP.compare(currTablet.getEndRow(), loadRange.getEndRow())) < 0) {
+        currTablet = tabletIter.next();
+        tablets.add(currTablet);
+      }
+
+      if (cmp != 0) {
+        throw new IllegalStateException("Unexpected end row " + currTablet + " " + loadRange);
+      }
+
+      return tablets;
+    } catch (NoSuchElementException e) {
+      NoSuchElementException ne2 = new NoSuchElementException(
+          "Failed to find overlapping tablets " + currTablet + " " + loadRange);
+      ne2.initCause(e);
+      throw ne2;
     }
-    return tablets;
   }
 }

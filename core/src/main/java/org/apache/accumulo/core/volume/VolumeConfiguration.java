@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.volume;
 
@@ -21,6 +23,10 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -32,11 +38,9 @@ public class VolumeConfiguration {
 
   public static Volume getVolume(String path, Configuration conf, AccumuloConfiguration acuconf)
       throws IOException {
-    requireNonNull(path);
-
-    if (path.contains(":")) {
+    if (requireNonNull(path).contains(":")) {
       // An absolute path
-      return create(new Path(path), conf);
+      return new VolumeImpl(new Path(path), conf);
     } else {
       // A relative path
       return getDefaultVolume(conf, acuconf);
@@ -85,18 +89,17 @@ public class VolumeConfiguration {
     return baseDir;
   }
 
-  public static String[] getVolumeUris(AccumuloConfiguration conf, Configuration hadoopConfig) {
+  public static Set<String> getVolumeUris(AccumuloConfiguration conf, Configuration hadoopConfig) {
     String ns = conf.get(Property.INSTANCE_VOLUMES);
 
-    String[] configuredBaseDirs;
+    // preserve configuration order using LinkedHashSet
+    ArrayList<String> configuredBaseDirs = new ArrayList<>();
 
     if (ns == null || ns.isEmpty()) {
       // Fall back to using the old config values
-      configuredBaseDirs = new String[] {getConfiguredBaseDir(conf, hadoopConfig)};
+      configuredBaseDirs.add(getConfiguredBaseDir(conf, hadoopConfig));
     } else {
       String[] namespaces = ns.split(",");
-      configuredBaseDirs = new String[namespaces.length];
-      int i = 0;
       for (String namespace : namespaces) {
         if (!namespace.contains(":")) {
           throw new IllegalArgumentException("Expected fully qualified URI for "
@@ -105,7 +108,7 @@ public class VolumeConfiguration {
 
         try {
           // pass through URI to unescape hex encoded chars (e.g. convert %2C to "," char)
-          configuredBaseDirs[i++] = new Path(new URI(namespace)).toString();
+          configuredBaseDirs.add(new Path(new URI(namespace)).toString());
         } catch (URISyntaxException e) {
           throw new IllegalArgumentException(Property.INSTANCE_VOLUMES.getKey() + " contains "
               + namespace + " which has a syntax error", e);
@@ -113,21 +116,23 @@ public class VolumeConfiguration {
       }
     }
 
-    return configuredBaseDirs;
+    LinkedHashSet<String> deduplicated = new LinkedHashSet<>();
+    deduplicated.addAll(configuredBaseDirs);
+    if (deduplicated.isEmpty()) {
+      throw new IllegalArgumentException(
+          Property.INSTANCE_VOLUMES.getKey() + " contains no volumes (" + ns + ")");
+    }
+    if (deduplicated.size() < configuredBaseDirs.size()) {
+      throw new IllegalArgumentException(
+          Property.INSTANCE_VOLUMES.getKey() + " contains duplicate volumes (" + ns + ")");
+    }
+    return deduplicated;
   }
 
-  public static String[] prefix(String[] bases, String suffix) {
-    if (suffix.startsWith("/"))
-      suffix = suffix.substring(1);
-    String[] result = new String[bases.length];
-    for (int i = 0; i < bases.length; i++) {
-      if (bases[i].endsWith("/")) {
-        result[i] = bases[i] + suffix;
-      } else {
-        result[i] = bases[i] + "/" + suffix;
-      }
-    }
-    return result;
+  public static Set<String> prefix(Set<String> bases, String suffix) {
+    String actualSuffix = suffix.startsWith("/") ? suffix.substring(1) : suffix;
+    return bases.stream().map(base -> base + (base.endsWith("/") ? "" : "/") + actualSuffix)
+        .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
   /**
@@ -142,14 +147,6 @@ public class VolumeConfiguration {
     String dfsDir = acuconf.get(Property.INSTANCE_DFS_DIR);
     return new VolumeImpl(fs,
         dfsDir == null ? Property.INSTANCE_DFS_DIR.getDefaultValue() : dfsDir);
-  }
-
-  public static <T extends FileSystem> Volume create(T fs, String basePath) {
-    return new VolumeImpl(fs, basePath);
-  }
-
-  public static Volume create(Path path, Configuration conf) throws IOException {
-    return new VolumeImpl(path, conf);
   }
 
 }

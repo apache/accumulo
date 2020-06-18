@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -27,7 +29,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.Property;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -36,7 +37,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClientContextTest {
 
-  private static boolean isCredentialProviderAvailable = false;
   private static final String keystoreName = "/site-cfg.jceks";
 
   // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
@@ -47,20 +47,9 @@ public class ClientContextTest {
       justification = "provided keystoreUrl path isn't user provided")
   @BeforeClass
   public static void setUpBeforeClass() {
-    try {
-      Class.forName(CredentialProviderFactoryShim.HADOOP_CRED_PROVIDER_CLASS_NAME);
-      isCredentialProviderAvailable = true;
-    } catch (Exception e) {
-      isCredentialProviderAvailable = false;
-    }
-
-    if (isCredentialProviderAvailable) {
-      URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
-
-      assertNotNull("Could not find " + keystoreName, keystoreUrl);
-
-      keystore = new File(keystoreUrl.getFile());
-    }
+    URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
+    assertNotNull("Could not find " + keystoreName, keystoreUrl);
+    keystore = new File(keystoreUrl.getFile());
   }
 
   protected String getKeyStoreUrl(File absoluteFilePath) {
@@ -69,10 +58,6 @@ public class ClientContextTest {
 
   @Test
   public void loadSensitivePropertyFromCredentialProvider() {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     String absPath = getKeyStoreUrl(keystore);
     Properties props = new Properties();
     props.setProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
@@ -82,9 +67,6 @@ public class ClientContextTest {
 
   @Test
   public void defaultValueForSensitiveProperty() {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
     Properties props = new Properties();
     AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(props);
     assertEquals(Property.INSTANCE_SECRET.getDefaultValue(),
@@ -93,10 +75,6 @@ public class ClientContextTest {
 
   @Test
   public void sensitivePropertiesIncludedInProperties() {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     String absPath = getKeyStoreUrl(keystore);
     Properties clientProps = new Properties();
     clientProps.setProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);

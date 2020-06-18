@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -22,6 +24,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -78,8 +81,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   private File volDirBase;
   @SuppressWarnings("unused")
   private Path v1, v2, v3, v4;
-  public static String[] alpha_rows = "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z"
-      .split(",");
+  public static String[] alpha_rows =
+      "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
   private String namespace1;
   private String namespace2;
   private String systemPreferredVolumes;
@@ -122,6 +125,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     siteConfig.put(getPerTableProp(ChooserScope.LOGGER), PreferredVolumeChooser.class.getName());
     siteConfig.put(getPreferredProp(ChooserScope.LOGGER), v2.toString());
+    siteConfig.put(getPerTableProp(ChooserScope.INIT), PreferredVolumeChooser.class.getName());
+    siteConfig.put(getPreferredProp(ChooserScope.INIT), systemPreferredVolumes);
     cfg.setSiteConfig(siteConfig);
 
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in
@@ -175,8 +180,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       throws Exception {
     // Verify the new files are written to the Volumes specified
     ArrayList<String> volumes = new ArrayList<>();
-    for (String s : vol.split(","))
-      volumes.add(s);
+    Collections.addAll(volumes, vol.split(","));
 
     TreeSet<String> volumesSeen = new TreeSet<>();
     int fileCount = 0;
@@ -243,8 +247,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       throws TableNotFoundException {
     // Verify the new files are written to the Volumes specified
     ArrayList<String> volumes = new ArrayList<>();
-    for (String s : vol.split(","))
-      volumes.add(s);
+    Collections.addAll(volumes, vol.split(","));
 
     TreeSet<String> volumesSeen = new TreeSet<>();
     try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {

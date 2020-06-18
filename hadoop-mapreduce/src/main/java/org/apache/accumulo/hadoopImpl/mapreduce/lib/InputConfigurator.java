@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
@@ -258,8 +260,8 @@ public class InputConfigurator extends ConfiguratorBase {
   public static List<Range> getRanges(Class<?> implementingClass, Configuration conf)
       throws IOException {
 
-    Collection<String> encodedRanges = conf
-        .getStringCollection(enumToConfKey(implementingClass, ScanOpts.RANGES));
+    Collection<String> encodedRanges =
+        conf.getStringCollection(enumToConfKey(implementingClass, ScanOpts.RANGES));
     List<Range> ranges = new ArrayList<>();
     for (String rangeString : encodedRanges) {
       ByteArrayInputStream bais = new ByteArrayInputStream(Base64.getDecoder().decode(rangeString));
@@ -310,8 +312,8 @@ public class InputConfigurator extends ConfiguratorBase {
     conf.setStrings(enumToConfKey(implementingClass, ScanOpts.COLUMNS), columnStrings);
   }
 
-  public static String[] serializeColumns(
-      Collection<IteratorSetting.Column> columnFamilyColumnQualifierPairs) {
+  public static String[]
+      serializeColumns(Collection<IteratorSetting.Column> columnFamilyColumnQualifierPairs) {
     checkArgument(columnFamilyColumnQualifierPairs != null,
         "columnFamilyColumnQualifierPairs is null");
     ArrayList<String> columnStrings = new ArrayList<>(columnFamilyColumnQualifierPairs.size());
@@ -341,15 +343,13 @@ public class InputConfigurator extends ConfiguratorBase {
     List<String> serialized = new ArrayList<>();
     if (confValue != null) {
       // Split and include any trailing empty strings to allow empty column families
-      for (String val : confValue.split(",", -1)) {
-        serialized.add(val);
-      }
+      Collections.addAll(serialized, confValue.split(",", -1));
     }
     return deserializeFetchedColumns(serialized);
   }
 
-  public static Set<IteratorSetting.Column> deserializeFetchedColumns(
-      Collection<String> serialized) {
+  public static Set<IteratorSetting.Column>
+      deserializeFetchedColumns(Collection<String> serialized) {
     Set<IteratorSetting.Column> columns = new HashSet<>();
 
     if (serialized == null) {
@@ -656,8 +656,8 @@ public class InputConfigurator extends ConfiguratorBase {
   private static Map<String,InputTableConfig> getInputTableConfigs(Class<?> implementingClass,
       Configuration conf, String tableName) {
     Map<String,InputTableConfig> configs = new HashMap<>();
-    Map.Entry<String,InputTableConfig> defaultConfig = getDefaultInputTableConfig(implementingClass,
-        conf, tableName);
+    Map.Entry<String,InputTableConfig> defaultConfig =
+        getDefaultInputTableConfig(implementingClass, conf, tableName);
     if (defaultConfig != null)
       configs.put(defaultConfig.getKey(), defaultConfig.getValue());
     String configString = conf.get(enumToConfKey(implementingClass, ScanOpts.TABLE_CONFIGS));
@@ -693,8 +693,8 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static InputTableConfig getInputTableConfig(Class<?> implementingClass, Configuration conf,
       String tableName) {
-    Map<String,InputTableConfig> queryConfigs = getInputTableConfigs(implementingClass, conf,
-        tableName);
+    Map<String,InputTableConfig> queryConfigs =
+        getInputTableConfigs(implementingClass, conf, tableName);
     return queryConfigs.get(tableName);
   }
 
@@ -732,7 +732,7 @@ public class InputConfigurator extends ConfiguratorBase {
       AccumuloClient client) throws IOException {
     Map<String,InputTableConfig> inputTableConfigs = getInputTableConfigs(implementingClass, conf);
     try {
-      if (getInputTableConfigs(implementingClass, conf).size() == 0)
+      if (getInputTableConfigs(implementingClass, conf).isEmpty())
         throw new IOException("No table set.");
 
       Properties props = getClientProperties(implementingClass, conf);
@@ -774,13 +774,13 @@ public class InputConfigurator extends ConfiguratorBase {
    * @return the config object built from the single input table properties set on the job
    * @since 1.6.0
    */
-  protected static Map.Entry<String,InputTableConfig> getDefaultInputTableConfig(
-      Class<?> implementingClass, Configuration conf, String tableName) {
+  protected static Map.Entry<String,InputTableConfig>
+      getDefaultInputTableConfig(Class<?> implementingClass, Configuration conf, String tableName) {
     if (tableName != null) {
       InputTableConfig queryConfig = new InputTableConfig();
       List<IteratorSetting> itrs = getIterators(implementingClass, conf);
       if (itrs != null)
-        itrs.forEach(itr -> queryConfig.addIterator(itr));
+        itrs.forEach(queryConfig::addIterator);
       Set<IteratorSetting.Column> columns = getFetchedColumns(implementingClass, conf);
       if (columns != null)
         queryConfig.fetchColumns(columns);
@@ -828,8 +828,8 @@ public class InputConfigurator extends ConfiguratorBase {
       else
         startRow = new Text();
 
-      Range metadataRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(),
-          true, null, false);
+      Range metadataRange =
+          new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null, false);
       Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);
@@ -878,19 +878,8 @@ public class InputConfigurator extends ConfiguratorBase {
           throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
         }
 
-        Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
-        if (tabletRanges == null) {
-          tabletRanges = new HashMap<>();
-          binnedRanges.put(last, tabletRanges);
-        }
-
-        List<Range> rangeList = tabletRanges.get(extent);
-        if (rangeList == null) {
-          rangeList = new ArrayList<>();
-          tabletRanges.put(extent, rangeList);
-        }
-
-        rangeList.add(range);
+        binnedRanges.computeIfAbsent(last, k -> new HashMap<>())
+            .computeIfAbsent(extent, k -> new ArrayList<>()).add(range);
 
         if (extent.getEndRow() == null
             || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {

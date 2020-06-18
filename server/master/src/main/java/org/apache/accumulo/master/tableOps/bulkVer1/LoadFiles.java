@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.bulkVer1;
 
@@ -47,6 +49,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -82,7 +85,7 @@ class LoadFiles extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master master) {
-    if (master.onlineTabletServers().size() == 0)
+    if (master.onlineTabletServers().isEmpty())
       return 500;
     return 0;
   }
@@ -102,12 +105,10 @@ class LoadFiles extends MasterRepo {
     master.updateBulkImportStatus(source, BulkImportState.LOADING);
     ExecutorService executor = getThreadPool(master);
     final AccumuloConfiguration conf = master.getConfiguration();
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
     List<FileStatus> files = new ArrayList<>();
-    for (FileStatus entry : fs.listStatus(new Path(bulk))) {
-      files.add(entry);
-    }
-    log.debug("tid " + tid + " importing " + files.size() + " files");
+    Collections.addAll(files, fs.listStatus(new Path(bulk)));
+    log.debug(FateTxId.formatTid(tid) + " importing " + files.size() + " files");
 
     Path writable = new Path(this.errorDir, ".iswritable");
     if (!fs.createNewFile(writable)) {
@@ -125,13 +126,14 @@ class LoadFiles extends MasterRepo {
       filesToLoad.add(f.getPath().toString());
 
     final int RETRIES = Math.max(1, conf.getCount(Property.MASTER_BULK_RETRIES));
-    for (int attempt = 0; attempt < RETRIES && filesToLoad.size() > 0; attempt++) {
+    for (int attempt = 0; attempt < RETRIES && !filesToLoad.isEmpty(); attempt++) {
       List<Future<Void>> results = new ArrayList<>();
 
-      if (master.onlineTabletServers().size() == 0)
-        log.warn("There are no tablet server to process bulk import, waiting (tid = " + tid + ")");
+      if (master.onlineTabletServers().isEmpty())
+        log.warn("There are no tablet server to process bulk import, waiting (tid = "
+            + FateTxId.formatTid(tid) + ")");
 
-      while (master.onlineTabletServers().size() == 0) {
+      while (master.onlineTabletServers().isEmpty()) {
         sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       }
 
@@ -150,7 +152,7 @@ class LoadFiles extends MasterRepo {
             subset.add(t);
           }
         });
-        if (subset.size() == 0) {
+        if (subset.isEmpty()) {
           log.warn("There are no tablet servers online that match supplied regex: {}",
               conf.get(Property.MASTER_BULK_TSERVER_REGEX));
         }
@@ -165,20 +167,21 @@ class LoadFiles extends MasterRepo {
               // get a connection to a random tablet server, do not prefer cached connections
               // because this is running on the master and there are lots of connections to tablet
               // servers serving the metadata tablets
-              long timeInMillis = master.getConfiguration()
-                  .getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
+              long timeInMillis =
+                  master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
               server = servers[random.nextInt(servers.length)].getLocation();
               client = ThriftUtil.getTServerClient(server, master.getContext(), timeInMillis);
               List<String> attempt1 = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);
-              List<String> fail = client.bulkImportFiles(TraceUtil.traceInfo(),
-                  master.getContext().rpcCreds(), tid, tableId.canonical(), attempt1, errorDir,
-                  setTime);
+              List<String> fail =
+                  client.bulkImportFiles(TraceUtil.traceInfo(), master.getContext().rpcCreds(), tid,
+                      tableId.canonical(), attempt1, errorDir, setTime);
               if (fail.isEmpty()) {
                 loaded.add(file);
               }
             } catch (Exception ex) {
-              log.error("rpc failed server:" + server + ", tid:" + tid + " " + ex);
+              log.error(
+                  "rpc failed server:" + server + ", tid:" + FateTxId.formatTid(tid) + " " + ex);
             } finally {
               ThriftUtil.returnClient(client);
             }
@@ -190,14 +193,14 @@ class LoadFiles extends MasterRepo {
         f.get();
       }
       filesToLoad.removeAll(loaded);
-      if (filesToLoad.size() > 0) {
-        log.debug("tid " + tid + " attempt " + (attempt + 1) + " " + sampleList(filesToLoad, 10)
-            + " failed");
+      if (!filesToLoad.isEmpty()) {
+        log.debug(FateTxId.formatTid(tid) + " attempt " + (attempt + 1) + " "
+            + sampleList(filesToLoad, 10) + " failed");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       }
     }
 
-    FSDataOutputStream failFile = fs.create(new Path(errorDir, BulkImport.FAILURES_TXT), true);
+    FSDataOutputStream failFile = fs.overwrite(new Path(errorDir, BulkImport.FAILURES_TXT));
     try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(failFile, UTF_8))) {
       for (String f : filesToLoad) {
         out.write(f);

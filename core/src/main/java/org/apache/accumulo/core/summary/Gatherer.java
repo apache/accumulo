@@ -1,23 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.summary;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,6 +51,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ServerClient;
+import org.apache.accumulo.core.clientImpl.Translator;
+import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -55,6 +62,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -160,18 +168,17 @@ public class Gatherer {
    * @return A map of the form : {@code map<tserver location, map<path, list<range>>} . The ranges
    *         associated with a file represent the tablets that use the file.
    */
-  private Map<String,Map<String,List<TRowRange>>> getFilesGroupedByLocation(
-      Predicate<String> fileSelector) {
+  private Map<String,Map<TabletFile,List<TRowRange>>>
+      getFilesGroupedByLocation(Predicate<TabletFile> fileSelector) {
 
     Iterable<TabletMetadata> tmi = TabletsMetadata.builder().forTable(tableId)
-        .overlapping(startRow, endRow).fetchFiles().fetchLocation().fetchLast().fetchPrev()
-        .build(ctx);
+        .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build(ctx);
 
     // get a subset of files
-    Map<String,List<TabletMetadata>> files = new HashMap<>();
+    Map<TabletFile,List<TabletMetadata>> files = new HashMap<>();
 
     for (TabletMetadata tm : tmi) {
-      for (String file : tm.getFiles()) {
+      for (TabletFile file : tm.getFiles()) {
         if (fileSelector.test(file)) {
           // TODO push this filtering to server side and possibly use batch scanner
           files.computeIfAbsent(file, s -> new ArrayList<>()).add(tm);
@@ -181,11 +188,11 @@ public class Gatherer {
 
     // group by location, then file
 
-    Map<String,Map<String,List<TRowRange>>> locations = new HashMap<>();
+    Map<String,Map<TabletFile,List<TRowRange>>> locations = new HashMap<>();
 
     List<String> tservers = null;
 
-    for (Entry<String,List<TabletMetadata>> entry : files.entrySet()) {
+    for (Entry<TabletFile,List<TabletMetadata>> entry : files.entrySet()) {
 
       String location = entry.getValue().stream().filter(tm -> tm.getLocation() != null) // filter
                                                                                          // tablets
@@ -207,16 +214,21 @@ public class Gatherer {
 
         // When no location, the approach below will consistently choose the same tserver for the
         // same file (as long as the set of tservers is stable).
-        int idx = Math.abs(Hashing.murmur3_32().hashString(entry.getKey(), UTF_8).asInt())
-            % tservers.size();
+        int idx =
+            Math.abs(Hashing.murmur3_32().hashString(entry.getKey().getPathStr(), UTF_8).asInt())
+                % tservers.size();
         location = tservers.get(idx);
       }
 
       // merge contiguous ranges
       List<Range> merged = Range
           .mergeOverlapping(Lists.transform(entry.getValue(), tm -> tm.getExtent().toDataRange()));
-      List<TRowRange> ranges = merged.stream().map(r -> toClippedExtent(r).toThrift())
-          .collect(Collectors.toList()); // clip ranges to queried range
+      List<TRowRange> ranges =
+          merged.stream().map(r -> toClippedExtent(r).toThrift()).collect(Collectors.toList()); // clip
+                                                                                                // ranges
+                                                                                                // to
+                                                                                                // queried
+                                                                                                // range
 
       locations.computeIfAbsent(location, s -> new HashMap<>()).put(entry.getKey(), ranges);
     }
@@ -233,7 +245,7 @@ public class Gatherer {
     return () -> {
       Iterator<Entry<K,V>> esi = map.entrySet().iterator();
 
-      return new Iterator<Map<K,V>>() {
+      return new Iterator<>() {
         @Override
         public boolean hasNext() {
           return esi.hasNext();
@@ -254,7 +266,7 @@ public class Gatherer {
 
   private static class ProcessedFiles {
     final SummaryCollection summaries;
-    final Set<String> failedFiles;
+    final Set<TabletFile> failedFiles;
 
     public ProcessedFiles() {
       this.summaries = new SummaryCollection();
@@ -279,12 +291,12 @@ public class Gatherer {
   private class FilesProcessor implements Supplier<ProcessedFiles> {
 
     HostAndPort location;
-    Map<String,List<TRowRange>> allFiles;
+    Map<TabletFile,List<TRowRange>> allFiles;
     private TInfo tinfo;
     private AtomicBoolean cancelFlag;
 
-    public FilesProcessor(TInfo tinfo, HostAndPort location, Map<String,List<TRowRange>> allFiles,
-        AtomicBoolean cancelFlag) {
+    public FilesProcessor(TInfo tinfo, HostAndPort location,
+        Map<TabletFile,List<TRowRange>> allFiles, AtomicBoolean cancelFlag) {
       this.location = location;
       this.allFiles = allFiles;
       this.tinfo = tinfo;
@@ -299,8 +311,8 @@ public class Gatherer {
       try {
         client = ThriftUtil.getTServerClient(location, ctx);
         // partition files into smaller chunks so that not too many are sent to a tserver at once
-        for (Map<String,List<TRowRange>> files : partition(allFiles, 500)) {
-          if (pfiles.failedFiles.size() > 0) {
+        for (Map<TabletFile,List<TRowRange>> files : partition(allFiles, 500)) {
+          if (!pfiles.failedFiles.isEmpty()) {
             // there was a previous failure on this tserver, so just fail the rest of the files
             pfiles.failedFiles.addAll(files.keySet());
             continue;
@@ -308,7 +320,7 @@ public class Gatherer {
 
           try {
             TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(),
-                getRequest(), files);
+                getRequest(), Translator.translate(files, Translators.TFT));
             while (!tSums.finished && !cancelFlag.get()) {
               tSums = client.contiuneGetSummaries(tinfo, tSums.sessionId);
             }
@@ -356,12 +368,13 @@ public class Gatherer {
 
     private synchronized void initiateProcessing(ProcessedFiles previousWork) {
       try {
-        Predicate<String> fileSelector = file -> Math
-            .abs(Hashing.murmur3_32().hashString(file, UTF_8).asInt()) % modulus == remainder;
+        Predicate<TabletFile> fileSelector =
+            file -> Math.abs(Hashing.murmur3_32().hashString(file.getPathStr(), UTF_8).asInt())
+                % modulus == remainder;
         if (previousWork != null) {
           fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }
-        Map<String,Map<String,List<TRowRange>>> filesGBL;
+        Map<String,Map<TabletFile,List<TRowRange>>> filesGBL;
         filesGBL = getFilesGroupedByLocation(fileSelector);
 
         List<CompletableFuture<ProcessedFiles>> futures = new ArrayList<>();
@@ -370,9 +383,9 @@ public class Gatherer {
               .completedFuture(new ProcessedFiles(previousWork.summaries, factory)));
         }
 
-        for (Entry<String,Map<String,List<TRowRange>>> entry : filesGBL.entrySet()) {
+        for (Entry<String,Map<TabletFile,List<TRowRange>>> entry : filesGBL.entrySet()) {
           HostAndPort location = HostAndPort.fromString(entry.getKey());
-          Map<String,List<TRowRange>> allFiles = entry.getValue();
+          Map<TabletFile,List<TRowRange>> allFiles = entry.getValue();
 
           futures.add(CompletableFuture
               .supplyAsync(new FilesProcessor(tinfo, location, allFiles, cancelFlag), execSrv));
@@ -406,7 +419,7 @@ public class Gatherer {
       if (future.isDone()) {
         if (!future.isCancelled() && !future.isCompletedExceptionally()) {
           ProcessedFiles pf = _get();
-          if (pf.failedFiles.size() > 0) {
+          if (!pf.failedFiles.isEmpty()) {
             initiateProcessing(pf);
           }
         }
@@ -443,7 +456,7 @@ public class Gatherer {
         }
 
         ProcessedFiles pf = _get();
-        if (pf.failedFiles.size() == 0) {
+        if (pf.failedFiles.isEmpty()) {
           return true;
         } else {
           updateFuture();
@@ -457,7 +470,7 @@ public class Gatherer {
     public SummaryCollection get() throws InterruptedException, ExecutionException {
       CompletableFuture<ProcessedFiles> futureRef = updateFuture();
       ProcessedFiles processedFiles = futureRef.get();
-      while (processedFiles.failedFiles.size() > 0) {
+      while (!processedFiles.failedFiles.isEmpty()) {
         futureRef = updateFuture();
         processedFiles = futureRef.get();
       }
@@ -474,7 +487,7 @@ public class Gatherer {
       ProcessedFiles processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);
       t2 = System.nanoTime();
       nanosLeft -= (t2 - t1);
-      while (processedFiles.failedFiles.size() > 0) {
+      while (!processedFiles.failedFiles.isEmpty()) {
         futureRef = updateFuture();
         t1 = System.nanoTime();
         processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);
@@ -492,8 +505,8 @@ public class Gatherer {
    */
   public Future<SummaryCollection> processPartition(ExecutorService execSrv, int modulus,
       int remainder) {
-    PartitionFuture future = new PartitionFuture(TraceUtil.traceInfo(), execSrv, modulus,
-        remainder);
+    PartitionFuture future =
+        new PartitionFuture(TraceUtil.traceInfo(), execSrv, modulus, remainder);
     future.initiateProcessing();
     return future;
   }
@@ -522,8 +535,8 @@ public class Gatherer {
 
   private int countFiles() {
     // TODO use a batch scanner + iterator to parallelize counting files
-    return TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow).fetchFiles()
-        .fetchPrev().build(ctx).stream().mapToInt(tm -> tm.getFiles().size()).sum();
+    return TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow)
+        .fetch(FILES, PREV_ROW).build(ctx).stream().mapToInt(tm -> tm.getFiles().size()).sum();
   }
 
   private class GatherRequest implements Supplier<SummaryCollection> {
@@ -547,8 +560,8 @@ public class Gatherer {
       TSummaries tSums;
       try {
         tSums = ServerClient.execute(ctx, new TabletClientService.Client.Factory(), client -> {
-          TSummaries tsr = client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus,
-              remainder);
+          TSummaries tsr =
+              client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
           while (!tsr.finished && !cancelFlag.get()) {
             tsr = client.contiuneGetSummaries(tinfo, tsr.sessionId);
           }

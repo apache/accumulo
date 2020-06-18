@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.replication;
 
@@ -55,8 +57,8 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
       throws RemoteReplicationException {
     final LogFileKey key = new LogFileKey();
     final LogFileValue value = new LogFileValue();
-    final long memoryInBytes = context.getConfiguration()
-        .getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
+    final long memoryInBytes =
+        context.getConfiguration().getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
 
     BatchWriter bw = null;
     long mutationsApplied = 0L;
@@ -105,10 +107,10 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
               long timestamp;
 
               // If the update doesn't have a timestamp, pull it from the ServerMutation
-              if (!update.hasTimestamp()) {
-                timestamp = origServer.getSystemTimestamp();
-              } else {
+              if (update.hasTimestamp()) {
                 timestamp = update.getTimestamp();
+              } else {
+                timestamp = origServer.getSystemTimestamp();
               }
 
               // TODO ACCUMULO-2937 cache the CVs

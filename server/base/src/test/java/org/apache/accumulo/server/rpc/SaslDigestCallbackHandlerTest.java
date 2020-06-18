@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.rpc;
 
@@ -72,8 +74,8 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testIdentifierSerialization() throws IOException {
-    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 100L,
-        1000L, "instanceid");
+    AuthenticationTokenIdentifier identifier =
+        new AuthenticationTokenIdentifier("user", 1, 100L, 1000L, "instanceid");
     byte[] serialized = identifier.getBytes();
     String name = handler.encodeIdentifier(serialized);
 
@@ -88,12 +90,12 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testTokenSerialization() throws Exception {
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
-        "instanceid", 1000L);
+    AuthenticationTokenSecretManager secretManager =
+        new AuthenticationTokenSecretManager("instanceid", 1000L);
 
     secretManager.addKey(new AuthenticationKey(1, 0L, 100L, keyGen.generateKey()));
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry = secretManager
-        .generateToken("user", cfg);
+    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry =
+        secretManager.generateToken("user", cfg);
     byte[] password = entry.getKey().getPassword();
     char[] encodedPassword = handler.encodePassword(password);
 
@@ -104,12 +106,12 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testTokenAndIdentifierSerialization() throws Exception {
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
-        "instanceid", 1000L);
+    AuthenticationTokenSecretManager secretManager =
+        new AuthenticationTokenSecretManager("instanceid", 1000L);
 
     secretManager.addKey(new AuthenticationKey(1, 0L, 1000 * 100L, keyGen.generateKey()));
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry = secretManager
-        .generateToken("user", cfg);
+    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry =
+        secretManager.generateToken("user", cfg);
     byte[] password = entry.getKey().getPassword();
     char[] encodedPassword = handler.encodePassword(password);
     String name = handler.encodeIdentifier(entry.getValue().getBytes());

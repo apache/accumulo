@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -45,7 +47,7 @@ public class CheckForMetadataProblems {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
 
-    if (tablets.size() == 0) {
+    if (tablets.isEmpty()) {
       System.out.println("No entries found in metadata table for table " + tablename);
       sawProblems = true;
       return;
@@ -117,8 +119,8 @@ public class CheckForMetadataProblems {
 
         count++;
 
-        String tableName = (new KeyExtent(entry.getKey().getRow(), (Text) null)).getTableId()
-            .canonical();
+        String tableName =
+            (new KeyExtent(entry.getKey().getRow(), (Text) null)).getTableId().canonical();
 
         TreeSet<KeyExtent> tablets = tables.get(tableName);
         if (tablets == null) {
@@ -167,8 +169,8 @@ public class CheckForMetadataProblems {
 
   public static void main(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(CheckForMetadataProblems.class.getName(),
-        args)) {
+    try (TraceScope clientSpan =
+        opts.parseArgsAndTrace(CheckForMetadataProblems.class.getName(), args)) {
 
       checkMetadataAndRootTableEntries(RootTable.NAME, opts);
       checkMetadataAndRootTableEntries(MetadataTable.NAME, opts);

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -89,27 +91,26 @@ public class ConfigCommand extends Command {
         throw new BadArgumentException("Invalid '=' operator in delete operation.", fullCommand,
             fullCommand.indexOf('='));
       }
+      String invalidTablePropFormatString =
+          "Invalid per-table property : {}, still removing from zookeeper if it's there.";
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property)) {
-          Shell.log.warn("Invalid per-table property : " + property
-              + ", still removing from zookeeper if it's there.");
+          Shell.log.warn(invalidTablePropFormatString, property);
         }
         shellState.getAccumuloClient().tableOperations().removeProperty(tableName, property);
         Shell.log.debug("Successfully deleted table configuration option.");
       } else if (namespace != null) {
         if (!Property.isValidTablePropertyKey(property)) {
-          Shell.log.warn("Invalid per-table property : " + property
-              + ", still removing from zookeeper if it's there.");
+          Shell.log.warn(invalidTablePropFormatString, property);
         }
         shellState.getAccumuloClient().namespaceOperations().removeProperty(namespace, property);
         Shell.log.debug("Successfully deleted namespace configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
-          Shell.log.warn("Invalid per-table property : " + property
-              + ", still removing from zookeeper if it's there.");
+          Shell.log.warn(invalidTablePropFormatString, property);
         }
         shellState.getAccumuloClient().instanceOperations().removeProperty(property);
-        Shell.log.debug("Successfully deleted system configuration option");
+        Shell.log.debug("Successfully deleted system configuration option.");
       }
     } else if (cl.hasOption(setOpt.getOpt())) {
       // set property on table
@@ -149,7 +150,7 @@ public class ConfigCommand extends Command {
               fullCommand.indexOf(property));
         }
         shellState.getAccumuloClient().instanceOperations().setProperty(property, value);
-        Shell.log.debug("Successfully set system configuration option");
+        Shell.log.debug("Successfully set system configuration option.");
       }
     } else {
       // display properties
@@ -178,8 +179,8 @@ public class ConfigCommand extends Command {
         }
       }
 
-      Iterable<Entry<String,String>> acuconf = shellState.getAccumuloClient().instanceOperations()
-          .getSystemConfiguration().entrySet();
+      Iterable<Entry<String,String>> acuconf =
+          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration().entrySet();
       if (tableName != null) {
         acuconf = shellState.getAccumuloClient().tableOperations().getProperties(tableName);
       } else if (namespace != null) {
@@ -294,8 +295,8 @@ public class ConfigCommand extends Command {
   }
 
   private void printConfFooter(List<String> output) {
-    int col3 = Math.max(1,
-        Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
+    int col3 =
+        Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
     output.add(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%-" + col3 + "s",
         Shell.repeat("-", COL1), Shell.repeat("-", COL2), Shell.repeat("-", col3)));
   }
@@ -319,8 +320,8 @@ public class ConfigCommand extends Command {
         "show only properties that contain this string in their name.");
     filterWithValuesOpt = new Option("fv", "filter-with-values", true,
         "show only properties that contain this string in their name or value");
-    disablePaginationOpt = new Option("np", "no-pagination", false,
-        "disables pagination of output");
+    disablePaginationOpt =
+        new Option("np", "no-pagination", false, "disables pagination of output");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");

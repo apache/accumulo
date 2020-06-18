@@ -7,18 +7,16 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.file.blockfile.cache.impl;
-
-import java.util.Properties;
 
 /**
  * Class for determining the "size" of a class, an attempt to calculate the actual bytes that an
@@ -63,8 +61,7 @@ public class ClassSize {
    */
   static {
     // Figure out whether this is a 32 or 64 bit machine.
-    Properties sysProps = System.getProperties();
-    String arcModel = sysProps.getProperty("sun.arch.data.model");
+    String arcModel = System.getProperty("sun.arch.data.model");
 
     // Default value is set to 8, covering the case when arcModel is unknown
     REFERENCE = arcModel.equals(THIRTY_TWO) ? 4 : 8;
@@ -80,8 +77,8 @@ public class ClassSize {
 
     CONCURRENT_HASHMAP = align((2 * SizeConstants.SIZEOF_INT) + ARRAY + (6 * REFERENCE) + OBJECT);
 
-    CONCURRENT_HASHMAP_ENTRY = align(
-        REFERENCE + OBJECT + (3 * REFERENCE) + (2 * SizeConstants.SIZEOF_INT));
+    CONCURRENT_HASHMAP_ENTRY =
+        align(REFERENCE + OBJECT + (3 * REFERENCE) + (2 * SizeConstants.SIZEOF_INT));
 
     CONCURRENT_HASHMAP_SEGMENT = align(
         REFERENCE + OBJECT + (3 * SizeConstants.SIZEOF_INT) + SizeConstants.SIZEOF_FLOAT + ARRAY);

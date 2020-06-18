@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -25,8 +27,8 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.hadoop.security.authentication.util.KerberosName;
@@ -89,10 +91,10 @@ public class ClientConfConverter {
   }
 
   @SuppressWarnings("deprecation")
-  public static org.apache.accumulo.core.client.ClientConfiguration toClientConf(
-      Properties properties) {
-    org.apache.accumulo.core.client.ClientConfiguration config = org.apache.accumulo.core.client.ClientConfiguration
-        .create();
+  public static org.apache.accumulo.core.client.ClientConfiguration
+      toClientConf(Properties properties) {
+    org.apache.accumulo.core.client.ClientConfiguration config =
+        org.apache.accumulo.core.client.ClientConfiguration.create();
     for (Object keyObj : properties.keySet()) {
       String propKey = (String) keyObj;
       String val = properties.getProperty(propKey);
@@ -112,8 +114,8 @@ public class ClientConfConverter {
   }
 
   @SuppressWarnings("deprecation")
-  public static Properties toProperties(
-      org.apache.accumulo.core.client.ClientConfiguration clientConf) {
+  public static Properties
+      toProperties(org.apache.accumulo.core.client.ClientConfiguration clientConf) {
     Properties props = new Properties();
     Iterator<String> clientConfIter = clientConf.getKeys();
     while (clientConfIter.hasNext()) {
@@ -150,8 +152,8 @@ public class ClientConfConverter {
    * @return the client configuration presented in the form of an {@link AccumuloConfiguration}
    */
   @SuppressWarnings("deprecation")
-  public static AccumuloConfiguration toAccumuloConf(
-      final org.apache.accumulo.core.client.ClientConfiguration config) {
+  public static AccumuloConfiguration
+      toAccumuloConf(final org.apache.accumulo.core.client.ClientConfiguration config) {
 
     final AccumuloConfiguration defaults = DefaultConfiguration.getInstance();
 
@@ -165,8 +167,7 @@ public class ClientConfConverter {
         if (property.isSensitive()) {
           org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
           if (hadoopConf != null) {
-            char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
-                key);
+            char[] value = HadoopCredentialProvider.getValue(hadoopConf, key);
             if (value != null) {
               log.trace("Loaded sensitive value for {} from CredentialProvider", key);
               return new String(value);
@@ -177,9 +178,9 @@ public class ClientConfConverter {
           }
         }
 
-        if (config.containsKey(key))
+        if (config.containsKey(key)) {
           return config.getString(key);
-        else {
+        } else {
           // Reconstitute the server kerberos property from the client config
           if (property == Property.GENERAL_KERBEROS_PRINCIPAL) {
             if (config.containsKey(
@@ -203,8 +204,9 @@ public class ClientConfConverter {
         Iterator<String> keyIter = config.getKeys();
         while (keyIter.hasNext()) {
           String key = keyIter.next();
-          if (filter.test(key))
+          if (filter.test(key)) {
             props.put(key, config.getString(key));
+          }
         }
 
         // Two client props that don't exist on the server config. Client doesn't need to know about
@@ -226,13 +228,12 @@ public class ClientConfConverter {
         // Attempt to load sensitive properties from a CredentialProvider, if configured
         org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
         if (hadoopConf != null) {
-          for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
+          for (String key : HadoopCredentialProvider.getKeys(hadoopConf)) {
             if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
               continue;
             }
             if (filter.test(key)) {
-              char[] value = CredentialProviderFactoryShim
-                  .getValueFromCredentialProvider(hadoopConf, key);
+              char[] value = HadoopCredentialProvider.getValue(hadoopConf, key);
               if (value != null) {
                 props.put(key, new String(value));
               }
@@ -242,11 +243,11 @@ public class ClientConfConverter {
       }
 
       private org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
-        String credProviderPaths = config
-            .getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+        String credProviderPaths =
+            config.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
         if (credProviderPaths != null && !credProviderPaths.isEmpty()) {
           org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
-          hConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPaths);
+          HadoopCredentialProvider.setPath(hConf, credProviderPaths);
           return hConf;
         }
 
@@ -258,10 +259,10 @@ public class ClientConfConverter {
   }
 
   @SuppressWarnings("deprecation")
-  public static org.apache.accumulo.core.client.ClientConfiguration toClientConf(
-      AccumuloConfiguration conf) {
-    org.apache.accumulo.core.client.ClientConfiguration clientConf = org.apache.accumulo.core.client.ClientConfiguration
-        .create();
+  public static org.apache.accumulo.core.client.ClientConfiguration
+      toClientConf(AccumuloConfiguration conf) {
+    org.apache.accumulo.core.client.ClientConfiguration clientConf =
+        org.apache.accumulo.core.client.ClientConfiguration.create();
 
     // Servers will only have the full principal in their configuration -- parse the
     // primary and realm from it.

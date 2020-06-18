@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.harness;
 
@@ -28,6 +30,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
@@ -41,7 +44,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Convenience class which starts a single MAC instance for a test to leverage.
+ * Integration-Test base class which starts one MAC for the entire Integration Test. This IT type is
+ * faster and more geared for testing typical, expected behavior of a cluster. For more advanced
+ * testing see {@link AccumuloClusterHarness}
  *
  * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the
  * logical place) because we need to start the MiniAccumuloCluster in a static BeforeClass-annotated
@@ -204,12 +209,24 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   @Override
   public ClusterUser getUser(int offset) {
     if (krb == null) {
-      String user = SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_"
-          + offset;
+      String user =
+          SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_" + offset;
       // Password is the username
       return new ClusterUser(user, user);
     } else {
       return krb.getClientPrincipal(offset);
     }
+  }
+
+  public static ClientInfo getClientInfo() {
+    return ClientInfo.from(cluster.getClientProperties());
+  }
+
+  public static boolean saslEnabled() {
+    return getClientInfo().saslEnabled();
+  }
+
+  public static String getAdminPrincipal() {
+    return cluster.getConfig().getRootUserName();
   }
 }

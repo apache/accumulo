@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
@@ -36,6 +37,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy;
 import org.junit.Test;
 
+@SuppressWarnings("removal")
 public class TooManyDeletesIT extends AccumuloClusterHarness {
   @Test
   public void tooManyDeletesCompactionStrategyIT() throws Exception {
@@ -67,8 +69,8 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
         }
       }
 
-      List<Summary> summaries = c.tableOperations().summaries(table).flush(true)
-          .withConfiguration(sc).retrieve();
+      List<Summary> summaries =
+          c.tableOperations().summaries(table).flush(true).withConfiguration(sc).retrieve();
       assertEquals(1, summaries.size());
 
       Summary summary = summaries.get(0);
@@ -108,8 +110,8 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
       // wait for the compaction to happen
       while (true) {
         // the flush should cause
-        summaries = c.tableOperations().summaries(table).flush(false).withConfiguration(sc)
-            .retrieve();
+        summaries =
+            c.tableOperations().summaries(table).flush(false).withConfiguration(sc).retrieve();
         assertEquals(1, summaries.size());
 
         summary = summaries.get(0);

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.master.state;
 
@@ -29,10 +31,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
-public class MetaDataStateStore extends TabletStateStore {
+class MetaDataStateStore implements TabletStateStore {
 
   private static final int THREADS = 4;
   private static final int LATENCY = 1000;
@@ -48,16 +49,8 @@ public class MetaDataStateStore extends TabletStateStore {
     this.targetTableName = targetTableName;
   }
 
-  public MetaDataStateStore(ClientContext context, CurrentState state) {
+  MetaDataStateStore(ClientContext context, CurrentState state) {
     this(context, state, MetadataTable.NAME);
-  }
-
-  protected MetaDataStateStore(ServerContext context, String tableName) {
-    this(context, null, tableName);
-  }
-
-  public MetaDataStateStore(ServerContext context) {
-    this(context, MetadataTable.NAME);
   }
 
   @Override
@@ -123,11 +116,17 @@ public class MetaDataStateStore extends TabletStateStore {
   @Override
   public void unassign(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
-    suspend(tablets, logsForDeadServers, -1);
+    unassign(tablets, logsForDeadServers, -1);
   }
 
   @Override
   public void suspend(Collection<TabletLocationState> tablets,
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      throws DistributedStoreException {
+    unassign(tablets, logsForDeadServers, suspensionTimestamp);
+  }
+
+  private void unassign(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
     BatchWriter writer = createBatchWriter();
@@ -140,15 +139,15 @@ public class MetaDataStateStore extends TabletStateStore {
             List<Path> logs = logsForDeadServers.get(tls.current);
             if (logs != null) {
               for (Path log : logs) {
-                LogEntry entry = new LogEntry(tls.extent, 0, tls.current.hostPort(),
-                    log.toString());
+                LogEntry entry =
+                    new LogEntry(tls.extent, 0, tls.current.hostPort(), log.toString());
                 m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
               }
             }
           }
           if (suspensionTimestamp >= 0) {
-            SuspendingTServer suspender = new SuspendingTServer(tls.current.getLocation(),
-                suspensionTimestamp);
+            SuspendingTServer suspender =
+                new SuspendingTServer(tls.current.getLocation(), suspensionTimestamp);
             suspender.setSuspension(m);
           }
         }

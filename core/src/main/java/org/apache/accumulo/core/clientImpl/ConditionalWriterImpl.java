@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.clientImpl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -30,7 +31,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
@@ -80,8 +80,8 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
-import org.apache.commons.collections.map.LRUMap;
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.collections4.map.LRUMap;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.Trace;
 import org.apache.thrift.TApplicationException;
@@ -93,8 +93,8 @@ import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool = new ThreadPoolExecutor(1, 1, 3,
-      TimeUnit.SECONDS, new LinkedBlockingQueue<>(), r -> {
+  private static ThreadPoolExecutor cleanupThreadPool =
+      new ThreadPoolExecutor(1, 1, 3, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), r -> {
         Thread t = new Thread(r, "Conditional Writer Cleanup Thread");
         t.setDaemon(true);
         return t;
@@ -110,8 +110,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   private Authorizations auths;
   private VisibilityEvaluator ve;
-  @SuppressWarnings("unchecked")
-  private Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap(1000));
+  private Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap<>(1000));
   private final ClientContext context;
   private TabletLocator locator;
   private final TableId tableId;
@@ -280,12 +279,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
         }
       }
 
-      if (mutations2.size() > 0)
+      if (!mutations2.isEmpty())
         failedMutations.addAll(mutations2);
 
     } else {
-      for (QCMutation qcm : mutations)
-        qcm.resetDelay();
+      mutations.forEach(QCMutation::resetDelay);
       failedMutations.addAll(mutations);
     }
   }
@@ -304,21 +302,17 @@ class ConditionalWriterImpl implements ConditionalWriter {
           throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
     } catch (Exception e) {
-      for (QCMutation qcm : mutations)
-        qcm.queueResult(new Result(e, qcm, null));
+      mutations.forEach(qcm -> qcm.queueResult(new Result(e, qcm, null)));
 
       // do not want to queue anything that was put in before binMutations() failed
       failures.clear();
       binnedMutations.clear();
     }
 
-    if (failures.size() > 0)
+    if (!failures.isEmpty())
       queueRetry(failures, null);
 
-    for (Entry<String,TabletServerMutations<QCMutation>> entry : binnedMutations.entrySet()) {
-      queue(entry.getKey(), entry.getValue());
-    }
-
+    binnedMutations.forEach(this::queue);
   }
 
   private void queue(String location, TabletServerMutations<QCMutation> mutations) {
@@ -343,25 +337,24 @@ class ConditionalWriterImpl implements ConditionalWriter {
     // this code reschedules the the server for processing later... there may be other queues with
     // more data that need to be processed... also it will give the current server time to build
     // up more data... the thinking is that rescheduling instead or processing immediately will
-    // result
-    // in bigger batches and less RPC overhead
+    // result in bigger batches and less RPC overhead
 
     synchronized (serverQueue) {
-      if (serverQueue.queue.size() > 0)
-        threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
-      else
+      if (serverQueue.queue.isEmpty())
         serverQueue.taskQueued = false;
+      else
+        threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
     }
 
   }
 
   private TabletServerMutations<QCMutation> dequeue(String location) {
-    BlockingQueue<TabletServerMutations<QCMutation>> queue = getServerQueue(location).queue;
+    var queue = getServerQueue(location).queue;
 
-    ArrayList<TabletServerMutations<QCMutation>> mutations = new ArrayList<>();
+    var mutations = new ArrayList<TabletServerMutations<QCMutation>>();
     queue.drainTo(mutations);
 
-    if (mutations.size() == 0)
+    if (mutations.isEmpty())
       return null;
 
     if (mutations.size() == 1) {
@@ -371,10 +364,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
       TabletServerMutations<QCMutation> tsm = mutations.get(0);
 
       for (int i = 1; i < mutations.size(); i++) {
-        for (Entry<KeyExtent,List<QCMutation>> entry : mutations.get(i).getMutations().entrySet()) {
-          tsm.getMutations().computeIfAbsent(entry.getKey(), k -> new ArrayList<>())
-              .addAll(entry.getValue());
-        }
+        mutations.get(i).getMutations().forEach((keyExtent, mutationList) -> tsm.getMutations()
+            .computeIfAbsent(keyExtent, k -> new ArrayList<>()).addAll(mutationList));
       }
 
       return tsm;
@@ -397,7 +388,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     Runnable failureHandler = () -> {
       List<QCMutation> mutations = new ArrayList<>();
       failedMutations.drainTo(mutations);
-      if (mutations.size() > 0)
+      if (!mutations.isEmpty())
         queue(mutations);
     };
 
@@ -421,7 +412,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       ConditionalMutation mut = mutations.next();
       count++;
 
-      if (mut.getConditions().size() == 0)
+      if (mut.getConditions().isEmpty())
         throw new IllegalArgumentException(
             "ConditionalMutation had no conditions " + new String(mut.getRow(), UTF_8));
 
@@ -439,7 +430,6 @@ class ConditionalWriterImpl implements ConditionalWriter {
     queue(mutationList);
 
     return new RQIterator(resultQueue, count);
-
   }
 
   private class SendTask implements Runnable {
@@ -498,11 +488,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
         if (sid.reserved)
           throw new IllegalStateException();
 
-        if (!sid.isActive()) {
-          cachedSessionIDs.remove(location);
-        } else {
+        if (sid.isActive()) {
           sid.reserved = true;
           return sid;
+        } else {
+          cachedSessionIDs.remove(location);
         }
       }
     }
@@ -615,13 +605,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
       queueRetry(ignored, location);
 
     } catch (ThriftSecurityException tse) {
-      AccumuloSecurityException ase = new AccumuloSecurityException(
-          context.getCredentials().getPrincipal(), tse.getCode(),
-          Tables.getPrintableTableInfoFromId(context, tableId), tse);
+      AccumuloSecurityException ase =
+          new AccumuloSecurityException(context.getCredentials().getPrincipal(), tse.getCode(),
+              Tables.getPrintableTableInfoFromId(context, tableId), tse);
       queueException(location, cmidToCm, ase);
-    } catch (TTransportException e) {
-      locator.invalidateCache(context, location.toString());
-      invalidateSession(location, cmidToCm, sessionId);
     } catch (TApplicationException tae) {
       queueException(location, cmidToCm, new AccumuloServerException(location.toString(), tae));
     } catch (TException e) {
@@ -742,34 +729,31 @@ class ConditionalWriterImpl implements ConditionalWriter {
       MutableLong cmid, Map<TKeyExtent,List<TConditionalMutation>> tmutations,
       CompressedIterators compressedIters) {
 
-    for (Entry<KeyExtent,List<QCMutation>> entry : mutations.getMutations().entrySet()) {
-      TKeyExtent tke = entry.getKey().toThrift();
-      ArrayList<TConditionalMutation> tcondMutaions = new ArrayList<>();
+    mutations.getMutations().forEach((keyExtent, mutationList) -> {
+      var tcondMutaions = new ArrayList<TConditionalMutation>();
 
-      List<QCMutation> condMutations = entry.getValue();
-
-      for (QCMutation cm : condMutations) {
+      for (var cm : mutationList) {
         TMutation tm = cm.toThrift();
 
         List<TCondition> conditions = convertConditions(cm, compressedIters);
 
-        cmidToCm.put(cmid.longValue(), new CMK(entry.getKey(), cm));
+        cmidToCm.put(cmid.longValue(), new CMK(keyExtent, cm));
         TConditionalMutation tcm = new TConditionalMutation(conditions, tm, cmid.longValue());
         cmid.increment();
         tcondMutaions.add(tcm);
       }
 
-      tmutations.put(tke, tcondMutaions);
-    }
+      tmutations.put(keyExtent.toThrift(), tcondMutaions);
+    });
   }
 
-  private static final Comparator<Long> TIMESTAMP_COMPARATOR = Comparator
-      .nullsFirst(Comparator.reverseOrder());
+  private static final Comparator<Long> TIMESTAMP_COMPARATOR =
+      Comparator.nullsFirst(Comparator.reverseOrder());
 
-  static final Comparator<Condition> CONDITION_COMPARATOR = Comparator
-      .comparing(Condition::getFamily).thenComparing(Condition::getQualifier)
-      .thenComparing(Condition::getVisibility)
-      .thenComparing(Condition::getTimestamp, TIMESTAMP_COMPARATOR);
+  static final Comparator<Condition> CONDITION_COMPARATOR =
+      Comparator.comparing(Condition::getFamily).thenComparing(Condition::getQualifier)
+          .thenComparing(Condition::getVisibility)
+          .thenComparing(Condition::getTimestamp, TIMESTAMP_COMPARATOR);
 
   private List<TCondition> convertConditions(ConditionalMutation cm,
       CompressedIterators compressedIters) {

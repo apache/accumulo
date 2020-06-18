@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.rest.replication;
 
@@ -25,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -66,6 +69,9 @@ import org.slf4j.LoggerFactory;
 public class ReplicationResource {
   private static final Logger log = LoggerFactory.getLogger(ReplicationResource.class);
 
+  @Inject
+  private Monitor monitor;
+
   /**
    * Generates the replication table as a JSON object
    *
@@ -74,7 +80,7 @@ public class ReplicationResource {
   @GET
   public List<ReplicationInformation> getReplicationInformation()
       throws AccumuloException, AccumuloSecurityException {
-    final AccumuloClient client = Monitor.getContext();
+    final AccumuloClient client = monitor.getContext();
 
     final TableOperations tops = client.tableOperations();
 
@@ -93,7 +99,7 @@ public class ReplicationResource {
         String peerName = property.getKey().substring(definedPeersPrefix.length());
         ReplicaSystem replica;
         try {
-          replica = replicaSystemFactory.get(Monitor.getContext(), property.getValue());
+          replica = replicaSystemFactory.get(monitor.getContext(), property.getValue());
         } catch (Exception e) {
           log.warn("Could not instantiate ReplicaSystem for {} with configuration {}",
               property.getKey(), property.getValue(), e);
@@ -112,7 +118,7 @@ public class ReplicationResource {
     // Number of files per target we have to replicate
     Map<ReplicationTarget,Long> targetCounts = new HashMap<>();
 
-    Map<String,TableId> tableNameToId = Tables.getNameToIdMap(Monitor.getContext());
+    Map<String,TableId> tableNameToId = Tables.getNameToIdMap(monitor.getContext());
     Map<TableId,String> tableIdToName = invert(tableNameToId);
 
     for (String table : tops.list()) {

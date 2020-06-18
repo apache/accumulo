@@ -1,24 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.fate.util;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+import java.security.SecureRandom;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -38,12 +42,16 @@ public class Retry {
   private long waitIncrement; // not final for testing
   private long maxWait; // not final for testing
   private final long logIntervalNanoSec;
-
+  private double backOffFactor;
   private long retriesDone;
   private long currentWait;
+  private long initialWait;
 
   private boolean hasNeverLogged;
   private long lastRetryLog;
+  private static Random rand = new SecureRandom();
+  private double currentBackOffFactor;
+  private boolean doTimeJitter = true;
 
   /**
    * @param maxRetries
@@ -57,16 +65,33 @@ public class Retry {
    * @param logInterval
    *          The amount of time (ms) between logging retries
    */
-  private Retry(long maxRetries, long startWait, long waitIncrement, long maxWait,
-      long logInterval) {
+  private Retry(long maxRetries, long startWait, long waitIncrement, long maxWait, long logInterval,
+      double backOffFactor) {
     this.maxRetries = maxRetries;
     this.maxWait = maxWait;
     this.waitIncrement = waitIncrement;
     this.retriesDone = 0;
     this.currentWait = startWait;
+    this.initialWait = startWait;
     this.logIntervalNanoSec = MILLISECONDS.toNanos(logInterval);
     this.hasNeverLogged = true;
     this.lastRetryLog = -1;
+    this.backOffFactor = backOffFactor;
+    this.currentBackOffFactor = this.backOffFactor;
+
+  }
+
+  // Visible for testing
+  @VisibleForTesting
+  public void setBackOffFactor(double baskOffFactor) {
+    this.backOffFactor = baskOffFactor;
+    this.currentBackOffFactor = this.backOffFactor;
+  }
+
+  // Visible for testing
+  @VisibleForTesting
+  public double getWaitFactor() {
+    return backOffFactor;
   }
 
   // Visible for testing
@@ -103,6 +128,7 @@ public class Retry {
   @VisibleForTesting
   void setStartWait(long startWait) {
     this.currentWait = startWait;
+    this.initialWait = startWait;
   }
 
   // Visible for testing
@@ -115,6 +141,12 @@ public class Retry {
   @VisibleForTesting
   void setMaxWait(long maxWait) {
     this.maxWait = maxWait;
+  }
+
+  // Visible for testing
+  @VisibleForTesting
+  void setDoTimeJitter(boolean jitter) {
+    doTimeJitter = jitter;
   }
 
   public boolean hasInfiniteRetries() {
@@ -133,7 +165,6 @@ public class Retry {
     if (!canRetry()) {
       throw new IllegalStateException("No retries left");
     }
-
     retriesDone++;
   }
 
@@ -146,9 +177,22 @@ public class Retry {
   }
 
   public void waitForNextAttempt() throws InterruptedException {
+
+    double waitFactor = (1 + (rand.nextDouble() - 0.5) / 10.0) * currentBackOffFactor;
+    if (!doTimeJitter)
+      waitFactor = currentBackOffFactor;
+    currentBackOffFactor = currentBackOffFactor * backOffFactor;
+
     log.debug("Sleeping for {}ms before retrying operation", currentWait);
+
     sleep(currentWait);
-    currentWait = Math.min(maxWait, currentWait + waitIncrement);
+
+    if (backOffFactor == 1)
+      currentWait = Math.min(maxWait, currentWait + waitIncrement);
+    else if (backOffFactor > 1.0) {
+      waitIncrement = (long) (Math.ceil(waitFactor * this.initialWait));
+      currentWait = Math.min(maxWait, initialWait + waitIncrement);
+    }
   }
 
   protected void sleep(long wait) throws InterruptedException {
@@ -244,7 +288,16 @@ public class Retry {
      *          incremented; input is converted to milliseconds, rounded down to the nearest
      * @return this builder with a maximum time limit set
      */
-    NeedsLogInterval maxWait(long duration, TimeUnit unit);
+    NeedsBackOffFactor maxWait(long duration, TimeUnit unit);
+  }
+
+  public interface NeedsBackOffFactor {
+    /**
+     * @param backOffFactor
+     *          the number that the wait increment will be successively multiplied by to make the
+     *          time between retries to be exponentially increasing. The default value will be one.
+     */
+    NeedsLogInterval backOffFactor(double backOffFactor);
   }
 
   public interface NeedsLogInterval {
@@ -288,8 +341,9 @@ public class Retry {
     return new RetryFactoryBuilder();
   }
 
-  private static class RetryFactoryBuilder implements NeedsRetries, NeedsRetryDelay,
-      NeedsTimeIncrement, NeedsMaxWait, NeedsLogInterval, BuilderDone, RetryFactory {
+  private static class RetryFactoryBuilder
+      implements NeedsRetries, NeedsRetryDelay, NeedsTimeIncrement, NeedsMaxWait, NeedsLogInterval,
+      NeedsBackOffFactor, BuilderDone, RetryFactory {
 
     private boolean modifiable = true;
     private long maxRetries;
@@ -297,6 +351,7 @@ public class Retry {
     private long maxWait;
     private long waitIncrement;
     private long logInterval;
+    private double backOffFactor = 1.5;
 
     RetryFactoryBuilder() {}
 
@@ -338,7 +393,16 @@ public class Retry {
     }
 
     @Override
-    public NeedsLogInterval maxWait(long duration, TimeUnit unit) {
+    public NeedsLogInterval backOffFactor(double factor) {
+      checkState();
+      Preconditions.checkArgument(factor >= 1,
+          "backOffFactor exponent that increases the wait between each retry and must greater than one");
+      this.backOffFactor = factor;
+      return this;
+    }
+
+    @Override
+    public NeedsBackOffFactor maxWait(long duration, TimeUnit unit) {
       checkState();
       this.maxWait = unit.toMillis(duration);
       Preconditions.checkArgument(maxWait >= initialWait,
@@ -363,7 +427,7 @@ public class Retry {
 
     @Override
     public Retry createRetry() {
-      return new Retry(maxRetries, initialWait, waitIncrement, maxWait, logInterval);
+      return new Retry(maxRetries, initialWait, waitIncrement, maxWait, logInterval, backOffFactor);
     }
 
   }

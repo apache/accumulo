@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -34,11 +36,11 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -59,10 +61,6 @@ import com.google.gson.JsonSerializer;
  * Manage FATE transactions
  */
 public class FateCommand extends Command {
-
-  private static final String SCHEME = "digest";
-
-  private static final String USER = "accumulo";
 
   // this class serializes references to interfaces with the concrete class name
   private static class InterfaceSerializer<T> implements JsonSerializer<T> {
@@ -109,11 +107,19 @@ public class FateCommand extends Command {
   private Option statusOption;
   private Option disablePaginationOpt;
 
+  private long parseTxid(String s) {
+    if (FateTxId.isFormatedTid(s)) {
+      return FateTxId.fromString(s);
+    } else {
+      return Long.parseLong(s, 16);
+    }
+  }
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException {
     ClientContext context = shellState.getContext();
-    SiteConfiguration siteConfig = new SiteConfiguration();
+    var siteConfig = SiteConfiguration.auto();
     String[] args = cl.getArgs();
     if (args.length <= 0) {
       throw new ParseException("Must provide a command to execute");
@@ -125,8 +131,8 @@ public class FateCommand extends Command {
 
     String path = context.getZooKeeperRoot() + Constants.ZFATE;
     String masterPath = context.getZooKeeperRoot() + Constants.ZMASTER_LOCK;
-    IZooReaderWriter zk = getZooReaderWriter(context, siteConfig,
-        cl.getOptionValue(secretOption.getOpt()));
+    ZooReaderWriter zk =
+        getZooReaderWriter(context, siteConfig, cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
 
     if ("fail".equals(cmd)) {
@@ -158,7 +164,7 @@ public class FateCommand extends Command {
         filterTxid = new HashSet<>(args.length);
         for (int i = 1; i < args.length; i++) {
           try {
-            Long val = Long.parseLong(args[i], 16);
+            Long val = parseTxid(args[i]);
             filterTxid.add(val);
           } catch (NumberFormatException nfe) {
             // Failed to parse, will exit instead of displaying everything since the intention was
@@ -174,11 +180,11 @@ public class FateCommand extends Command {
       if (cl.hasOption(statusOption.getOpt())) {
         filterStatus = EnumSet.noneOf(TStatus.class);
         String[] tstat = cl.getOptionValues(statusOption.getOpt());
-        for (int i = 0; i < tstat.length; i++) {
+        for (String element : tstat) {
           try {
-            filterStatus.add(TStatus.valueOf(tstat[i]));
+            filterStatus.add(TStatus.valueOf(element));
           } catch (IllegalArgumentException iae) {
-            System.out.printf("Invalid transaction status name: %s%n", tstat[i]);
+            System.out.printf("Invalid transaction status name: %s%n", element);
             return 1;
           }
         }
@@ -198,15 +204,15 @@ public class FateCommand extends Command {
       } else {
         txids = new ArrayList<>();
         for (int i = 1; i < args.length; i++) {
-          txids.add(Long.parseLong(args[i], 16));
+          txids.add(parseTxid(args[i]));
         }
       }
 
-      Gson gson = new GsonBuilder()
-          .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
-          .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
-          .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
-          .create();
+      Gson gson =
+          new GsonBuilder().registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
+              .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
+              .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
+              .create();
 
       List<FateStack> txStacks = new ArrayList<>();
 
@@ -223,7 +229,7 @@ public class FateCommand extends Command {
     return failedCommand ? 1 : 0;
   }
 
-  protected synchronized IZooReaderWriter getZooReaderWriter(ClientContext context,
+  protected synchronized ZooReaderWriter getZooReaderWriter(ClientContext context,
       SiteConfiguration siteConfig, String secret) {
 
     if (secret == null) {
@@ -231,7 +237,7 @@ public class FateCommand extends Command {
     }
 
     return new ZooReaderWriter(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
-        SCHEME, (USER + ":" + secret).getBytes());
+        secret);
   }
 
   @Override
@@ -256,8 +262,8 @@ public class FateCommand extends Command {
     statusOption.setArgs(Option.UNLIMITED_VALUES);
     statusOption.setOptionalArg(false);
     o.addOption(statusOption);
-    disablePaginationOpt = new Option("np", "no-pagination", false,
-        "disables pagination of output");
+    disablePaginationOpt =
+        new Option("np", "no-pagination", false, "disables pagination of output");
     o.addOption(disablePaginationOpt);
     return o;
   }

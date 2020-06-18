@@ -1,19 +1,21 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 
 /**
  * Creates garbage collector initial table
@@ -47,7 +49,7 @@ function refreshGCTable() {
 
   // Hides the banner, removes any rows from the table and hides the table
   $('#gcBanner').hide();
-  $('#gcActivity tr:gt(0)').remove();
+  clearTableBody('gcActivity');
   $('#gcActivity').hide();
 
   /* Check if the status of the gc is an error, if so, show banner, otherwise,
@@ -68,7 +70,7 @@ function refreshGCTable() {
 
       $('<tr/>', {
         html: item
-      }).appendTo('#gcActivity');
+      }).appendTo('#gcActivity tbody');
     } else {
 
       var gc = {'File&nbsp;Collection,&nbsp;Last&nbsp;Cycle' : data.files.lastCycle,
@@ -102,7 +104,7 @@ function refreshGCTable() {
 
           $('<tr/>', {
             html: items.join('')
-          }).appendTo('#gcActivity');
+          }).appendTo('#gcActivity tbody');
         }
       });
     }

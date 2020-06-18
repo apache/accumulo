@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.replication;
 
@@ -55,10 +57,12 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.easymock.EasyMock;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplIT.class);
 
@@ -389,8 +393,10 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.close();
 
     log.info("Reading metadata first time");
-    for (Entry<Key,Value> e : client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      log.info("{}", e.getKey());
+    try (var scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> e : scanner) {
+        log.info("{}", e.getKey());
+      }
     }
 
     final AtomicBoolean done = new AtomicBoolean(false);
@@ -423,8 +429,10 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.close();
 
     log.info("Reading metadata second time");
-    for (Entry<Key,Value> e : client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      log.info("{}", e.getKey());
+    try (var scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> e : scanner) {
+        log.info("{}", e.getKey());
+      }
     }
 
     bw = ReplicationTable.getBatchWriter(client);

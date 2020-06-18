@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.mapred;
 
@@ -61,8 +63,9 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
       @Override
       public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter) {
         try {
-          String tableName = ((org.apache.accumulo.core.client.mapred.RangeInputSplit) reporter
-              .getInputSplit()).getTableName();
+          String tableName =
+              ((org.apache.accumulo.core.client.mapred.RangeInputSplit) reporter.getInputSplit())
+                  .getTableName();
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
           assertEquals(new Text(String.format("%s_%09x", tableName, count + 1)), k.getRow());
@@ -111,10 +114,13 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
       org.apache.accumulo.core.client.mapred.AccumuloMultiTableInputFormat.setConnectorInfo(job,
           ci.getPrincipal(), ci.getAuthenticationToken());
 
-      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig1 = new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
-      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig2 = new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig1 =
+          new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig2 =
+          new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
 
-      Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configMap = new HashMap<>();
+      Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configMap =
+          new HashMap<>();
       configMap.put(table1, tableConfig1);
       configMap.put(table2, tableConfig2);
 
@@ -152,12 +158,10 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
           BatchWriter bw2 = c.createBatchWriter(table2)) {
         for (int i = 0; i < 100; i++) {
           Mutation t1m = new Mutation(new Text(String.format("%s_%09x", table1, i + 1)));
-          t1m.put(new Text(), new Text(),
-              new Value(String.format("%s_%09x", table1, i).getBytes()));
+          t1m.put("", "", String.format("%s_%09x", table1, i));
           bw.addMutation(t1m);
           Mutation t2m = new Mutation(new Text(String.format("%s_%09x", table2, i + 1)));
-          t2m.put(new Text(), new Text(),
-              new Value(String.format("%s_%09x", table2, i).getBytes()));
+          t2m.put("", "", String.format("%s_%09x", table2, i));
           bw2.addMutation(t2m);
         }
       }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile;
 
@@ -573,10 +575,10 @@ public class MultiLevelIndex {
 
       out.writeInt(totalAdded);
       // save root node
-      if (levels.size() > 0) {
-        levels.get(levels.size() - 1).write(out);
-      } else {
+      if (levels.isEmpty()) {
         new IndexBlock(0, 0).write(out);
+      } else {
+        levels.get(levels.size() - 1).write(out);
       }
 
     }
@@ -605,8 +607,8 @@ public class MultiLevelIndex {
       }
 
       private Node lookup(Key key) throws IOException {
-        int pos = Collections.binarySearch(indexBlock.getKeyIndex(), key,
-            Comparator.naturalOrder());
+        int pos =
+            Collections.binarySearch(indexBlock.getKeyIndex(), key, Comparator.naturalOrder());
 
         if (pos < 0)
           pos = (pos * -1) - 1;
@@ -717,10 +719,10 @@ public class MultiLevelIndex {
         if (node == null)
           return false;
 
-        if (!liter.hasNext()) {
-          return node.indexBlock.hasNext();
-        } else {
+        if (liter.hasNext()) {
           return true;
+        } else {
+          return node.indexBlock.hasNext();
         }
 
       }
@@ -752,10 +754,10 @@ public class MultiLevelIndex {
         if (node == null)
           return false;
 
-        if (!liter.hasPrevious()) {
-          return node.indexBlock.getOffset() > 0;
-        } else {
+        if (liter.hasPrevious()) {
           return true;
+        } else {
+          return node.indexBlock.getOffset() > 0;
         }
       }
 
@@ -804,8 +806,8 @@ public class MultiLevelIndex {
 
     private IndexBlock getIndexBlock(IndexEntry ie) throws IOException {
       IndexBlock iblock = new IndexBlock();
-      CachableBlockFile.CachedBlockRead in = blockStore.getMetaBlock(ie.getOffset(),
-          ie.getCompressedSize(), ie.getRawSize());
+      CachableBlockFile.CachedBlockRead in =
+          blockStore.getMetaBlock(ie.getOffset(), ie.getCompressedSize(), ie.getRawSize());
       iblock.readFields(in, version);
       in.close();
 

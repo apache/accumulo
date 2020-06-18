@@ -1,41 +1,45 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.clientImpl.InstanceOperationsImpl;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -123,59 +127,19 @@ public class ZooKeeperInstance implements Instance {
   @Override
   public String getInstanceID() {
     if (instanceId == null) {
-      // want the instance id to be stable for the life of this instance object,
-      // so only get it once
-      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-      byte[] iidb = zooCache.get(instanceNamePath);
-      if (iidb == null) {
-        throw new RuntimeException(
-            "Instance name " + instanceName + " does not exist in zookeeper. "
-                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
-      }
-      instanceId = new String(iidb, UTF_8);
+      instanceId = ClientContext.getInstanceID(zooCache, instanceName);
     }
-
-    if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
-      if (instanceName == null)
-        throw new RuntimeException("Instance id " + instanceId + " does not exist in zookeeper");
-      throw new RuntimeException("Instance id " + instanceId + " pointed to by the name "
-          + instanceName + " does not exist in zookeeper");
-    }
-
+    ClientContext.verifyInstanceId(zooCache, instanceId, instanceName);
     return instanceId;
   }
 
   @Override
   public List<String> getMasterLocations() {
-    String masterLocPath = ZooUtil.getRoot(getInstanceID()) + Constants.ZMASTER_LOCK;
-
-    OpTimer timer = null;
-
-    if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up master location in zookeeper.", Thread.currentThread().getId());
-      timer = new OpTimer().start();
-    }
-
-    byte[] loc = ZooUtil.getLockData(zooCache, masterLocPath);
-
-    if (timer != null) {
-      timer.stop();
-      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(),
-          (loc == null ? "null" : new String(loc, UTF_8)),
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
-    }
-
-    if (loc == null) {
-      return Collections.emptyList();
-    }
-
-    return Collections.singletonList(new String(loc, UTF_8));
+    return ClientContext.getMasterLocations(zooCache, getInstanceID());
   }
 
   @Override
   public String getRootTabletLocation() {
-    String zRootLocPath = ZooUtil.getRoot(getInstanceID()) + RootTable.ZROOT_TABLET_LOCATION;
-
     OpTimer timer = null;
 
     if (log.isTraceEnabled()) {
@@ -184,27 +148,27 @@ public class ZooKeeperInstance implements Instance {
       timer = new OpTimer().start();
     }
 
-    byte[] loc = zooCache.get(zRootLocPath);
+    Location loc =
+        TabletsMetadata.getRootMetadata(ZooUtil.getRoot(getInstanceID()), zooCache).getLocation();
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(),
-          (loc == null ? "null" : new String(loc, UTF_8)),
+      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
-    if (loc == null) {
+    if (loc == null || loc.getType() != LocationType.CURRENT) {
       return null;
     }
 
-    return new String(loc, UTF_8).split("\\|")[0];
+    return loc.getHostAndPort().toString();
   }
 
   @Override
   public String getInstanceName() {
     if (instanceName == null)
-      instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache,
-          UUID.fromString(getInstanceID()));
+      instanceName =
+          InstanceOperationsImpl.lookupInstanceName(zooCache, UUID.fromString(getInstanceID()));
 
     return instanceName;
   }
@@ -225,8 +189,10 @@ public class ZooKeeperInstance implements Instance {
     Properties properties = ClientConfConverter.toProperties(clientConf);
     properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
     properties.setProperty(ClientProperty.INSTANCE_NAME.getKey(), getInstanceName());
+    ClientInfo info = new ClientInfoImpl(properties, token);
+    AccumuloConfiguration serverConf = ClientConfConverter.toAccumuloConf(properties);
     return new org.apache.accumulo.core.clientImpl.ConnectorImpl(
-        new ClientContext(new ClientInfoImpl(properties, token)));
+        new ClientContext(SingletonReservation.noop(), info, serverConf));
   }
 
   @Override

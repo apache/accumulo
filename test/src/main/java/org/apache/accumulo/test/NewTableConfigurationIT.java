@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -42,8 +44,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableSet;
 
 public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
@@ -87,8 +87,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
           "newerval1");
       assertEquals(props.get(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "newerprop2"),
           "newerval2");
-      assertFalse(props.keySet().contains(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1"));
-      assertFalse(props.keySet().contains(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2"));
+      assertFalse(props.containsKey(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1"));
+      assertFalse(props.containsKey(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2"));
     }
   }
 
@@ -102,8 +102,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   public void testOverlappingGroupsFail() {
     NewTableConfiguration ntc = new NewTableConfiguration();
     Map<String,Set<Text>> lgroups = new HashMap<>();
-    lgroups.put("lg1", ImmutableSet.of(new Text("colFamA"), new Text("colFamB")));
-    lgroups.put("lg2", ImmutableSet.of(new Text("colFamC"), new Text("colFamB")));
+    lgroups.put("lg1", Set.of(new Text("colFamA"), new Text("colFamB")));
+    lgroups.put("lg2", Set.of(new Text("colFamC"), new Text("colFamB")));
     ntc.setLocalityGroups(lgroups);
   }
 
@@ -118,19 +118,17 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       NewTableConfiguration ntc = new NewTableConfiguration();
       // set locality groups map
       Map<String,Set<Text>> lgroups = new HashMap<>();
-      lgroups.put("lg1", ImmutableSet.of(new Text("dog"), new Text("cat")));
-      lgroups.put("lg2", ImmutableSet.of(new Text("lion"), new Text("tiger")));
+      lgroups.put("lg1", Set.of(new Text("dog"), new Text("cat")));
+      lgroups.put("lg2", Set.of(new Text("lion"), new Text("tiger")));
       // set groups via NewTableConfiguration
       ntc.setLocalityGroups(lgroups);
       client.tableOperations().create(tableName, ntc);
       // verify
-      Map<String,Set<Text>> createdLocalityGroups = client.tableOperations()
-          .getLocalityGroups(tableName);
+      Map<String,Set<Text>> createdLocalityGroups =
+          client.tableOperations().getLocalityGroups(tableName);
       assertEquals(2, createdLocalityGroups.size());
-      assertEquals(createdLocalityGroups.get("lg1"),
-          ImmutableSet.of(new Text("dog"), new Text("cat")));
-      assertEquals(createdLocalityGroups.get("lg2"),
-          ImmutableSet.of(new Text("lion"), new Text("tiger")));
+      assertEquals(createdLocalityGroups.get("lg1"), Set.of(new Text("dog"), new Text("cat")));
+      assertEquals(createdLocalityGroups.get("lg2"), Set.of(new Text("lion"), new Text("tiger")));
     }
   }
 
@@ -145,19 +143,18 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       NewTableConfiguration ntc = new NewTableConfiguration();
       // set first locality groups map
       Map<String,Set<Text>> initalGroup = new HashMap<>();
-      initalGroup.put("lg1", ImmutableSet.of(new Text("dog"), new Text("cat")));
+      initalGroup.put("lg1", Set.of(new Text("dog"), new Text("cat")));
       ntc.setLocalityGroups(initalGroup);
       // set a second locality groups map and set in method call
       Map<String,Set<Text>> secondGroup = new HashMap<>();
-      secondGroup.put("lg1", ImmutableSet.of(new Text("blue"), new Text("red")));
+      secondGroup.put("lg1", Set.of(new Text("blue"), new Text("red")));
       ntc.setLocalityGroups(secondGroup);
       client.tableOperations().create(tableName, ntc);
       // verify
-      Map<String,Set<Text>> createdLocalityGroups = client.tableOperations()
-          .getLocalityGroups(tableName);
+      Map<String,Set<Text>> createdLocalityGroups =
+          client.tableOperations().getLocalityGroups(tableName);
       assertEquals(1, createdLocalityGroups.size());
-      assertEquals(createdLocalityGroups.get("lg1"),
-          ImmutableSet.of(new Text("red"), new Text("blue")));
+      assertEquals(createdLocalityGroups.get("lg1"), Set.of(new Text("red"), new Text("blue")));
     }
   }
 
@@ -177,7 +174,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       ntc.setProperties(props);
 
       Map<String,Set<Text>> lgroups = new HashMap<>();
-      lgroups.put("lg1", ImmutableSet.of(new Text("dog")));
+      lgroups.put("lg1", Set.of(new Text("dog")));
       ntc.setLocalityGroups(lgroups);
       client.tableOperations().create(tableName, ntc);
       // verify
@@ -201,10 +198,10 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
         }
       }
       assertEquals(4, count);
-      Map<String,Set<Text>> createdLocalityGroups = client.tableOperations()
-          .getLocalityGroups(tableName);
+      Map<String,Set<Text>> createdLocalityGroups =
+          client.tableOperations().getLocalityGroups(tableName);
       assertEquals(1, createdLocalityGroups.size());
-      assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("dog")));
+      assertEquals(createdLocalityGroups.get("lg1"), Set.of(new Text("dog")));
     }
   }
 
@@ -238,16 +235,16 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
 
       Map<String,Set<Text>> lgroups = new HashMap<>();
-      lgroups.put("lg1", ImmutableSet.of(new Text("colF")));
+      lgroups.put("lg1", Set.of(new Text("colF")));
       ntc.setLocalityGroups(lgroups);
       client.tableOperations().create(tableName, ntc);
       // verify groups and verify no iterators
-      Map<String,Set<Text>> createdLocalityGroups = client.tableOperations()
-          .getLocalityGroups(tableName);
+      Map<String,Set<Text>> createdLocalityGroups =
+          client.tableOperations().getLocalityGroups(tableName);
       assertEquals(1, createdLocalityGroups.size());
-      assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("colF")));
-      Map<String,EnumSet<IteratorScope>> iterators = client.tableOperations()
-          .listIterators(tableName);
+      assertEquals(createdLocalityGroups.get("lg1"), Set.of(new Text("colF")));
+      Map<String,EnumSet<IteratorScope>> iterators =
+          client.tableOperations().listIterators(tableName);
       assertEquals(0, iterators.size());
     }
   }
@@ -267,8 +264,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
           EnumSet.of(IteratorScope.scan));
       client.tableOperations().create(tableName, ntc);
 
-      Map<String,EnumSet<IteratorScope>> iteratorList = client.tableOperations()
-          .listIterators(tableName);
+      Map<String,EnumSet<IteratorScope>> iteratorList =
+          client.tableOperations().listIterators(tableName);
       // should count the created iterator plus the default iterator
       assertEquals(2, iteratorList.size());
       verifyIterators(client, tableName,
@@ -296,8 +293,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       ntc.attachIterator(setting);
       client.tableOperations().create(tableName, ntc);
 
-      Map<String,EnumSet<IteratorScope>> iteratorList = client.tableOperations()
-          .listIterators(tableName);
+      Map<String,EnumSet<IteratorScope>> iteratorList =
+          client.tableOperations().listIterators(tableName);
       // should count the created iterator plus the default iterator
       assertEquals(2, iteratorList.size());
       verifyIterators(client, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"},
@@ -305,8 +302,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       client.tableOperations().removeIterator(tableName, "someName",
           EnumSet.allOf((IteratorScope.class)));
       verifyIterators(client, tableName, new String[] {}, true);
-      Map<String,EnumSet<IteratorScope>> iteratorList2 = client.tableOperations()
-          .listIterators(tableName);
+      Map<String,EnumSet<IteratorScope>> iteratorList2 =
+          client.tableOperations().listIterators(tableName);
       assertEquals(1, iteratorList2.size());
     }
   }
@@ -328,8 +325,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
       verifyIterators(client, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"},
           true);
-      Map<String,EnumSet<IteratorScope>> iteratorList = client.tableOperations()
-          .listIterators(tableName);
+      Map<String,EnumSet<IteratorScope>> iteratorList =
+          client.tableOperations().listIterators(tableName);
       assertEquals(2, iteratorList.size());
       assertEquals(iteratorList.get("someName"), EnumSet.of(IteratorScope.scan));
       client.tableOperations().removeIterator(tableName, "someName",
@@ -377,16 +374,16 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       ntc.attachIterator(setting);
       client.tableOperations().create(tableName, ntc);
 
-      Map<String,EnumSet<IteratorScope>> iteratorList = client.tableOperations()
-          .listIterators(tableName);
+      Map<String,EnumSet<IteratorScope>> iteratorList =
+          client.tableOperations().listIterators(tableName);
       assertEquals(1, iteratorList.size());
       verifyIterators(client, tableName,
           new String[] {"table.iterator.scan.myIterator=10,my.class"}, false);
       client.tableOperations().removeIterator(tableName, "myIterator",
           EnumSet.allOf(IteratorScope.class));
       verifyIterators(client, tableName, new String[] {}, false);
-      Map<String,EnumSet<IteratorScope>> iteratorList2 = client.tableOperations()
-          .listIterators(tableName);
+      Map<String,EnumSet<IteratorScope>> iteratorList2 =
+          client.tableOperations().listIterators(tableName);
       assertEquals(0, iteratorList2.size());
     }
   }
@@ -526,7 +523,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1", "val1");
       ntc.setProperties(props);
       Map<String,Set<Text>> lgroups = new HashMap<>();
-      lgroups.put("lg1", ImmutableSet.of(new Text("colF")));
+      lgroups.put("lg1", Set.of(new Text("colF")));
       ntc.setLocalityGroups(lgroups);
       client.tableOperations().create(tableName, ntc);
       // verify user table properties
@@ -539,10 +536,10 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       }
       assertEquals(1, count);
       // verify locality groups
-      Map<String,Set<Text>> createdLocalityGroups = client.tableOperations()
-          .getLocalityGroups(tableName);
+      Map<String,Set<Text>> createdLocalityGroups =
+          client.tableOperations().getLocalityGroups(tableName);
       assertEquals(1, createdLocalityGroups.size());
-      assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("colF")));
+      assertEquals(createdLocalityGroups.get("lg1"), Set.of(new Text("colF")));
       // verify iterators
       verifyIterators(client, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"},
           true);
@@ -561,18 +558,18 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(2)[0];
 
-      IteratorSetting setting = new IteratorSetting(10, "anIterator", "it.class",
-          Collections.emptyMap());
+      IteratorSetting setting =
+          new IteratorSetting(10, "anIterator", "it.class", Collections.emptyMap());
       Map<String,Set<Text>> lgroups = new HashMap<>();
-      lgroups.put("lgp", ImmutableSet.of(new Text("col")));
+      lgroups.put("lgp", Set.of(new Text("col")));
 
       NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators()
           .attachIterator(setting, EnumSet.of(IteratorScope.scan)).setLocalityGroups(lgroups);
 
       client.tableOperations().create(tableName, ntc);
 
-      Map<String,EnumSet<IteratorScope>> iteratorList = client.tableOperations()
-          .listIterators(tableName);
+      Map<String,EnumSet<IteratorScope>> iteratorList =
+          client.tableOperations().listIterators(tableName);
       assertEquals(1, iteratorList.size());
       verifyIterators(client, tableName,
           new String[] {"table.iterator.scan.anIterator=10,it.class"}, false);
@@ -594,10 +591,10 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
         }
       }
       assertEquals(2, count);
-      Map<String,Set<Text>> createdLocalityGroups = client.tableOperations()
-          .getLocalityGroups(tableName);
+      Map<String,Set<Text>> createdLocalityGroups =
+          client.tableOperations().getLocalityGroups(tableName);
       assertEquals(1, createdLocalityGroups.size());
-      assertEquals(createdLocalityGroups.get("lgp"), ImmutableSet.of(new Text("col")));
+      assertEquals(createdLocalityGroups.get("lgp"), Set.of(new Text("col")));
     }
   }
 
@@ -609,7 +606,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     NewTableConfiguration ntc = new NewTableConfiguration();
 
     Map<String,Set<Text>> lgroups = new HashMap<>();
-    lgroups.put("lg1", ImmutableSet.of(new Text("dog")));
+    lgroups.put("lg1", Set.of(new Text("dog")));
     ntc.setLocalityGroups(lgroups);
 
     Map<String,String> props = new HashMap<>();
@@ -630,7 +627,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     ntc.setProperties(props);
 
     Map<String,Set<Text>> lgroups = new HashMap<>();
-    lgroups.put("lg1", ImmutableSet.of(new Text("dog")));
+    lgroups.put("lg1", Set.of(new Text("dog")));
     ntc.setLocalityGroups(lgroups);
   }
 
@@ -676,8 +673,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
   private Map<String,String> getProperties(AccumuloClient accumuloClient, String tableName)
       throws AccumuloException, TableNotFoundException {
-    Iterable<Entry<String,String>> properties = accumuloClient.tableOperations()
-        .getProperties(tableName);
+    Iterable<Entry<String,String>> properties =
+        accumuloClient.tableOperations().getProperties(tableName);
     Map<String,String> propertyMap = new HashMap<>();
     for (Entry<String,String> entry : properties) {
       propertyMap.put(entry.getKey(), entry.getValue());

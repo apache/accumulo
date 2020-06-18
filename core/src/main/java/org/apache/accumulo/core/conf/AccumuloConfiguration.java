@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
@@ -28,11 +30,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.Pair;
@@ -171,7 +174,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
           Map<String,String> propMap = new HashMap<>();
           // The reason this caching exists is to avoid repeatedly making this expensive call.
           getProperties(propMap, key -> key.startsWith(property.getKey()));
-          propMap = ImmutableMap.copyOf(propMap);
+          propMap = Map.copyOf(propMap);
 
           // So that locking is not needed when reading from enum map, always create a new one.
           // Construct and populate map using a local var so its not visible
@@ -194,6 +197,16 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     return prefixProps.props;
+  }
+
+  public Map<String,String> getAllPropertiesWithPrefixStripped(Property prefix) {
+    var builder = ImmutableMap.<String,String>builder();
+    getAllPropertiesWithPrefix(prefix).forEach((k, v) -> {
+      String optKey = k.substring(prefix.getKey().length());
+      builder.put(optKey, v);
+    });
+
+    return builder.build();
   }
 
   /**
@@ -289,15 +302,15 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       ports = new int[1];
       try {
         int port = Integer.parseInt(portString);
-        if (port != 0) {
+        if (port == 0) {
+          ports[0] = port;
+        } else {
           if (port < 1024 || port > 65535) {
             log.error("Invalid port number {}; Using default {}", port, property.getDefaultValue());
             ports[0] = Integer.parseInt(property.getDefaultValue());
           } else {
             ports[0] = port;
           }
-        } else {
-          ports[0] = port;
         }
       } catch (NumberFormatException e1) {
         throw new IllegalArgumentException("Invalid port syntax. Must be a single positive "
@@ -325,27 +338,25 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Gets a property of type {@link PropertyType#PATH}, interpreting the value properly, replacing
-   * supported environment variables.
+   * Gets a property of type {@link PropertyType#PATH}.
    *
    * @param property
    *          property to get
    * @return property value
    * @throws IllegalArgumentException
    *           if the property is of the wrong type
-   * @see Constants#PATH_PROPERTY_ENV_VARS
    */
   public String getPath(Property property) {
     checkType(property, PropertyType.PATH);
 
     String pathString = get(property);
-    if (pathString == null)
+    if (pathString == null) {
       return null;
+    }
 
-    for (String replaceableEnvVar : Constants.PATH_PROPERTY_ENV_VARS) {
-      String envValue = System.getenv(replaceableEnvVar);
-      if (envValue != null)
-        pathString = pathString.replace("$" + replaceableEnvVar, envValue);
+    if (pathString.contains("$ACCUMULO_")) {
+      throw new IllegalArgumentException("Environment variable interpolation not supported here. "
+          + "Consider using '${env:ACCUMULO_HOME}' or similar in your configuration file.");
     }
 
     return pathString;
@@ -438,6 +449,90 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return null;
   }
 
+  private static class RefCount<T> {
+    T obj;
+    long count;
+
+    RefCount(long c, T r) {
+      this.count = c;
+      this.obj = r;
+    }
+  }
+
+  private class DeriverImpl<T> implements Deriver<T> {
+
+    private final AtomicReference<RefCount<T>> refref = new AtomicReference<>();
+    private final Function<AccumuloConfiguration,T> converter;
+
+    DeriverImpl(Function<AccumuloConfiguration,T> converter) {
+      this.converter = converter;
+    }
+
+    /**
+     * This method was written with the goal of avoiding thread contention and minimizing
+     * recomputation. Configuration can be accessed frequently by many threads. Ideally, threads
+     * working on unrelated task would not impeded each other because of accessing config.
+     *
+     * To avoid thread contention, synchronization and needless calls to compare and set were
+     * avoided. For example if 100 threads are all calling compare and set in a loop this could
+     * cause significant contention.
+     */
+    @Override
+    public T derive() {
+
+      // very important to obtain this before possibly recomputing object
+      long uc = getUpdateCount();
+
+      RefCount<T> rc = refref.get();
+
+      if (rc == null || rc.count != uc) {
+        T newObj = converter.apply(AccumuloConfiguration.this);
+
+        // very important to record the update count that was obtained before recomputing.
+        RefCount<T> nrc = new RefCount<>(uc, newObj);
+
+        /*
+         * The return value of compare and set is intentionally ignored here. This code could loop
+         * calling compare and set inorder to avoid returning a stale object. However after this
+         * function returns, the object could immediately become stale. So in the big picture stale
+         * objects can not be prevented. Looping here could cause thread contention, but it would
+         * not solve the overall stale object problem. That is why the return value was ignored. The
+         * following line is a least effort attempt to make the result of this recomputation
+         * available to the next caller.
+         */
+        refref.compareAndSet(rc, nrc);
+
+        return nrc.obj;
+      }
+
+      return rc.obj;
+    }
+  }
+
+  /**
+   * Automatically regenerates an object whenever configuration changes. When configuration is not
+   * changing, keeps returning the same object. Implementations should be thread safe and eventually
+   * consistent. See {@link AccumuloConfiguration#newDeriver(Function)}
+   */
+  public interface Deriver<T> {
+    T derive();
+  }
+
+  /**
+   * Enables deriving an object from configuration and automatically deriving a new object any time
+   * configuration changes.
+   *
+   * @param converter
+   *          This functions is used to create an object from configuration. A reference to this
+   *          function will be kept and called by the returned deriver.
+   * @return The returned supplier will automatically re-derive the object any time this
+   *         configuration changes. When configuration is not changing, the same object is returned.
+   *
+   */
+  public <T> Deriver<T> newDeriver(Function<AccumuloConfiguration,T> converter) {
+    return new DeriverImpl<>(converter);
+  }
+
   private static final String SCAN_EXEC_THREADS = "threads";
   private static final String SCAN_EXEC_PRIORITY = "priority";
   private static final String SCAN_EXEC_PRIORITIZER = "prioritizer";
@@ -452,8 +547,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     for (Entry<String,String> entry : getAllPropertiesWithPrefix(
         Property.TSERV_SCAN_EXECUTORS_PREFIX).entrySet()) {
 
-      String suffix = entry.getKey()
-          .substring(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey().length());
+      String suffix =
+          entry.getKey().substring(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey().length());
       String[] tokens = suffix.split("\\.", 2);
       String name = tokens[0];
 

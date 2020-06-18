@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.rest.trace;
 
@@ -29,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import javax.inject.Inject;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -63,7 +66,6 @@ import org.apache.accumulo.tracer.TraceDump;
 import org.apache.accumulo.tracer.TraceFormatter;
 import org.apache.accumulo.tracer.thrift.Annotation;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -75,6 +77,9 @@ import org.apache.hadoop.security.UserGroupInformation;
 @Path("/trace")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class TracesResource {
+
+  @Inject
+  private Monitor monitor;
 
   /**
    * Generates a trace summary
@@ -255,8 +260,8 @@ public class TracesResource {
       }
       if (hasAnnotations) {
         for (Annotation entry : node.annotations) {
-          AnnotationInformation annotations = new AnnotationInformation(entry.getMsg(),
-              entry.getTime() - finalStart);
+          AnnotationInformation annotations =
+              new AnnotationInformation(entry.getMsg(), entry.getTime() - finalStart);
           addlData.addAnnotations(annotations);
         }
       }
@@ -276,10 +281,6 @@ public class TracesResource {
     long startTime = endTime - millisSince;
 
     String startHexTime = Long.toHexString(startTime), endHexTime = Long.toHexString(endTime);
-    if (startHexTime.length() < endHexTime.length()) {
-      StringUtils.leftPad(startHexTime, endHexTime.length(), '0');
-    }
-
     return new Range(new Text("start:" + startHexTime), new Text("start:" + endHexTime));
   }
 
@@ -295,16 +296,16 @@ public class TracesResource {
   }
 
   protected Pair<AccumuloClient,UserGroupInformation> getClient() {
-    AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
+    AccumuloConfiguration conf = monitor.getContext().getConfiguration();
     final boolean saslEnabled = conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED);
     UserGroupInformation traceUgi = null;
     final String principal;
     final AuthenticationToken at;
-    Map<String,String> loginMap = conf
-        .getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+    Map<String,String> loginMap =
+        conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     // May be null
     String keytab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
-    if (keytab == null || keytab.length() == 0) {
+    if (keytab == null || keytab.isEmpty()) {
       keytab = conf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
     }
 
@@ -319,7 +320,9 @@ public class TracesResource {
       principal = conf.get(Property.TRACE_USER);
     }
 
-    if (!saslEnabled) {
+    if (saslEnabled) {
+      at = null;
+    } else {
       if (loginMap.isEmpty()) {
         Property p = Property.TRACE_PASSWORD;
         at = new PasswordToken(conf.get(p).getBytes(UTF_8));
@@ -335,11 +338,9 @@ public class TracesResource {
         token.init(props);
         at = token;
       }
-    } else {
-      at = null;
     }
 
-    java.util.Properties props = Monitor.getContext().getProperties();
+    java.util.Properties props = monitor.getContext().getProperties();
     AccumuloClient client;
     if (traceUgi != null) {
       try {
@@ -362,7 +363,7 @@ public class TracesResource {
 
   private Scanner getScanner(AccumuloClient client) throws AccumuloException {
     try {
-      AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
+      AccumuloConfiguration conf = monitor.getContext().getConfiguration();
       final String table = conf.get(Property.TRACE_TABLE);
       if (!client.tableOperations().exists(table)) {
         return null;

@@ -1,22 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.newBufferedReader;
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -33,7 +37,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
@@ -94,7 +97,6 @@ import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -252,7 +254,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         assertEquals(errorMsg, 0, shell.getExitCode());
       }
 
-      if (s.length() > 0)
+      if (!s.isEmpty())
         assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
             output.get().contains(s));
     }
@@ -264,7 +266,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         assertTrue(errorMsg, shell.getExitCode() > 0);
       }
 
-      if (s.length() > 0)
+      if (!s.isEmpty())
         assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
             output.get().contains(s));
       shell.resetExitCode();
@@ -389,8 +391,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       fs.mkdirs(importDir);
 
       // Implement a poor-man's DistCp
-      try (BufferedReader reader = new BufferedReader(
-          new FileReader(new File(exportDir, "distcp.txt")))) {
+      try (BufferedReader reader =
+          new BufferedReader(new FileReader(new File(exportDir, "distcp.txt")))) {
         for (String line; (line = reader.readLine()) != null;) {
           Path exportedFile = new Path(line);
           // There isn't a cp on FileSystem??
@@ -501,15 +503,20 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table);
   }
 
+  /*
+   * This test should be deleted when the debug command is removed
+   */
+  @Deprecated
   @Test
   public void debug() throws Exception {
-    ts.exec("debug", true, "off", true);
-    ts.exec("debug on", true);
-    ts.exec("debug", true, "on", true);
-    ts.exec("debug off", true);
-    ts.exec("debug", true, "off", true);
-    ts.exec("debug debug", false);
-    ts.exec("debug debug debug", false);
+    String expectMsg = "The debug command is deprecated";
+    ts.exec("debug", false, expectMsg);
+    ts.exec("debug on", false, expectMsg);
+    ts.exec("debug", false, expectMsg);
+    ts.exec("debug off", false, expectMsg);
+    ts.exec("debug", false, expectMsg);
+    ts.exec("debug debug", false, expectMsg);
+    ts.exec("debug debug debug", false, expectMsg);
   }
 
   @Test
@@ -829,8 +836,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void classpath() throws Exception {
     // classpath
-    ts.exec("classpath", true, "Level 2: Java Classloader (loads everything"
-        + " defined by java classpath) URL classpath items are", true);
+    ts.exec("classpath", true,
+        "Level 2: Java Classloader (loads everything defined by java classpath)", true);
   }
 
   @Test
@@ -857,6 +864,29 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", true, "value", true);
     ts.exec("clonetable " + table + " " + clone);
     // verify constraint, config, and splits were cloned
+    ts.exec("table " + clone);
+    ts.exec("scan", true, "value", true);
+    ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
+    ts.exec("config -t " + clone + " -np", true, "123M", true);
+    ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
+    ts.exec("deletetable -f " + table);
+    ts.exec("deletetable -f " + clone);
+  }
+
+  @Test
+  public void clonetableOffline() throws Exception {
+    final String table = name.getMethodName(), clone = table + "_clone";
+
+    // clonetable
+    ts.exec("createtable " + table + " -evc");
+    ts.exec("config -t " + table + " -s table.split.threshold=123M", true);
+    ts.exec("addsplits -t " + table + " a b c", true);
+    ts.exec("insert a b c value");
+    ts.exec("scan", true, "value", true);
+    ts.exec("clonetable " + table + " " + clone + " -o");
+    // verify constraint, config, and splits were cloned
+    ts.exec("table " + clone);
+    ts.exec("scan", false, "TableOfflineException", true);
     ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
     ts.exec("config -t " + clone + " -np", true, "123M", true);
     ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
@@ -1376,7 +1406,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  // @Test(timeout = 45000)
+  @Test
   public void history() throws Exception {
     final String table = name.getMethodName();
 
@@ -1413,7 +1443,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");
     Text cq = new Text("cq");
-    Value value = new Value("value".getBytes());
+    Value value = new Value("value");
     for (int i = 0; i < 100; i += 2) {
       Key key = new Key(new Text(String.format("%8d", i)), cf, cq, timestamp);
       evenWriter.append(key, value);
@@ -1805,8 +1835,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
     ts.exec("createtable t");
     // Assert that the TabletServer does not know anything about our class
-    String result = ts
-        .exec("setiter -scan -n reverse -t t -p 21 -class " + VALUE_REVERSING_ITERATOR);
+    String result =
+        ts.exec("setiter -scan -n reverse -t t -p 21 -class " + VALUE_REVERSING_ITERATOR);
     assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
@@ -1921,18 +1951,59 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table);
   }
 
+  /**
+   * Validate importdirectory command accepts adding -t tablename option or the accepts original
+   * format that uses the current working table. Currently this test does not validate the actual
+   * import - only the command syntax.
+   *
+   * @throws Exception
+   *           any exception is a test failure.
+   */
+  @Test
+  public void importDirectoryCmdFmt() throws Exception {
+    final String table = name.getMethodName();
+
+    File importDir = new File(rootPath, "import_" + table);
+    assertTrue(importDir.mkdir());
+    File errorsDir = new File(rootPath, "errors_" + table);
+    assertTrue(errorsDir.mkdir());
+
+    // expect fail - table does not exist.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), false,
+        "TableNotFoundException");
+
+    ts.exec(String.format("table %s", table), false, "TableNotFoundException");
+
+    ts.exec("createtable " + table, true);
+
+    // validate -t option is used.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
+
+    // validate original cmd format.
+    ts.exec(String.format("table %s", table), true);
+    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), true);
+
+    // expect fail - invalid command,
+    ts.exec("importdirectory false", false, "Expected 2 or 3 arguments. There was 1.");
+
+    // expect fail - original cmd without a table.
+    ts.exec("notable", true);
+    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), false,
+        "java.lang.IllegalStateException: Not in a table context.");
+  }
+
   private static final String FAKE_CONTEXT = "FAKE";
   private static final String FAKE_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
       + "/target/" + ShellServerIT.class.getSimpleName() + "-fake-iterators.jar";
   private static final String REAL_CONTEXT = "REAL";
   private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
       + "/target/" + ShellServerIT.class.getSimpleName() + "-real-iterators.jar";
-  private static final String VALUE_REVERSING_ITERATOR = "org.apache.accumulo.test."
-      + "functional.ValueReversingIterator";
-  private static final String SUMMING_COMBINER_ITERATOR = "org.apache.accumulo.core."
-      + "iterators.user.SummingCombiner";
-  private static final String COLUMN_FAMILY_COUNTER_ITERATOR = "org.apache.accumulo.core.iterators"
-      + ".ColumnFamilyCounter";
+  private static final String VALUE_REVERSING_ITERATOR =
+      "org.apache.accumulo.test." + "functional.ValueReversingIterator";
+  private static final String SUMMING_COMBINER_ITERATOR =
+      "org.apache.accumulo.core." + "iterators.user.SummingCombiner";
+  private static final String COLUMN_FAMILY_COUNTER_ITERATOR =
+      "org.apache.accumulo.core.iterators" + ".ColumnFamilyCounter";
 
   private void setupRealContextPath() throws IOException {
     // Copy the test iterators jar to tmp
@@ -1991,7 +2062,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     log.debug("countFiles(): {}", ts.output.get());
 
-    String[] lines = StringUtils.split(ts.output.get(), "\n");
+    String[] lines = ts.output.get().split("\n");
     ts.output.clear();
 
     if (lines.length == 0) {
@@ -2176,8 +2247,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table + " -l locg1=fam1,fam2 locg2=colfam1", true);
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       Map<String,Set<Text>> lMap = accumuloClient.tableOperations().getLocalityGroups(table);
-      assertTrue(lMap.keySet().contains("locg1"));
-      assertTrue(lMap.keySet().contains("locg2"));
+      assertTrue(lMap.containsKey("locg1"));
+      assertTrue(lMap.containsKey("locg2"));
       Set<Text> expectedColFams1 = new HashSet<>(Arrays.asList(new Text("fam1"), new Text("fam2")));
       Set<Text> expectedColFams2 = new HashSet<>(Arrays.asList(new Text("colfam1")));
       assertTrue(lMap.get("locg1").containsAll(expectedColFams1));
@@ -2722,7 +2793,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     if (sort)
       sortedSplits = new TreeSet<>(randomSplits);
 
-    try (BufferedWriter writer = Files.newBufferedWriter(splitsPath, Charset.forName("UTF-8"))) {
+    try (BufferedWriter writer = Files.newBufferedWriter(splitsPath, UTF_8)) {
       int cnt = 0;
       Collection<Text> splits;
       if (sort)
@@ -2770,13 +2841,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private static String encode(final Text text, final boolean encode) {
-    if (StringUtils.isBlank(text.toString()))
+    if (text.toString().isBlank())
       return null;
     return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text)) : text.toString();
   }
 
   private Text decode(final String text, final boolean decode) {
-    if (StringUtils.isBlank(text))
+    if (requireNonNull(text).isBlank())
       return null;
     return decode ? new Text(Base64.getDecoder().decode(text)) : new Text(text);
   }

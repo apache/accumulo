@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.problems;
 
@@ -45,10 +47,10 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +59,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
 
   private static final Logger log = LoggerFactory.getLogger(ProblemReports.class);
 
-  private final LRUMap problemReports = new LRUMap(1000);
+  private final LRUMap<ProblemReport,Long> problemReports = new LRUMap<>(1000);
 
   /**
    * use a thread pool so that reporting a problem never blocks
@@ -85,28 +87,23 @@ public class ProblemReports implements Iterable<ProblemReport> {
       problemReports.put(pr, System.currentTimeMillis());
     }
 
-    Runnable r = new Runnable() {
+    Runnable r = () -> {
 
-      @Override
-      public void run() {
+      log.debug("Filing problem report {} {} {}", pr.getTableId(), pr.getProblemType(),
+          pr.getResource());
 
-        log.debug("Filing problem report {} {} {}", pr.getTableId(), pr.getProblemType(),
-            pr.getResource());
-
-        try {
-          if (isMeta(pr.getTableId())) {
-            // file report in zookeeper
-            pr.saveToZooKeeper(context);
-          } else {
-            // file report in metadata table
-            pr.saveToMetadataTable(context);
-          }
-        } catch (Exception e) {
-          log.error("Failed to file problem report " + pr.getTableId() + " " + pr.getProblemType()
-              + " " + pr.getResource(), e);
+      try {
+        if (isMeta(pr.getTableId())) {
+          // file report in zookeeper
+          pr.saveToZooKeeper(context);
+        } else {
+          // file report in metadata table
+          pr.saveToMetadataTable(context);
         }
+      } catch (Exception e) {
+        log.error("Failed to file problem report " + pr.getTableId() + " " + pr.getProblemType()
+            + " " + pr.getResource(), e);
       }
-
     };
 
     try {
@@ -128,22 +125,18 @@ public class ProblemReports implements Iterable<ProblemReport> {
   public void deleteProblemReport(TableId table, ProblemType pType, String resource) {
     final ProblemReport pr = new ProblemReport(table, pType, resource, null);
 
-    Runnable r = new Runnable() {
-
-      @Override
-      public void run() {
-        try {
-          if (isMeta(pr.getTableId())) {
-            // file report in zookeeper
-            pr.removeFromZooKeeper(context);
-          } else {
-            // file report in metadata table
-            pr.removeFromMetadataTable(context);
-          }
-        } catch (Exception e) {
-          log.error("Failed to delete problem report {} {} {}", pr.getTableId(),
-              pr.getProblemType(), pr.getResource(), e);
+    Runnable r = () -> {
+      try {
+        if (isMeta(pr.getTableId())) {
+          // file report in zookeeper
+          pr.removeFromZooKeeper(context);
+        } else {
+          // file report in metadata table
+          pr.removeFromMetadataTable(context);
         }
+      } catch (Exception e) {
+        log.error("Failed to delete problem report {} {} {}", pr.getTableId(), pr.getProblemType(),
+            pr.getResource(), e);
       }
     };
 
@@ -180,8 +173,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
       delMut.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
     }
 
-    if (hasProblems)
+    if (hasProblems) {
       MetadataTableUtil.getMetadataTable(context).update(delMut);
+    }
   }
 
   private static boolean isMeta(TableId tableId) {
@@ -191,9 +185,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
   public Iterator<ProblemReport> iterator(final TableId table) {
     try {
 
-      return new Iterator<ProblemReport>() {
+      return new Iterator<>() {
 
-        IZooReaderWriter zoo = context.getZooReaderWriter();
+        ZooReaderWriter zoo = context.getZooReaderWriter();
         private int iter1Count = 0;
         private Iterator<String> iter1;
 
@@ -296,7 +290,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   }
 
   public static void main(String[] args) {
-    ServerContext context = new ServerContext(new SiteConfiguration());
+    var context = new ServerContext(SiteConfiguration.auto());
     getInstance(context).printProblems();
   }
 

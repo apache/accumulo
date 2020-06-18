@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -110,8 +112,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       this.term = term;
       this.notFlag = notFlag;
       // The desired column families for this source is the term itself
-      this.seekColfams = Collections
-          .singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
+      this.seekColfams =
+          Collections.singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
     }
 
     public String getTermString() {
@@ -199,8 +201,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
             break;
           }
         }
-        int partitionCompare = currentPartition
-            .compareTo(getPartition(sources[sourceID].iter.getTopKey()));
+        int partitionCompare =
+            currentPartition.compareTo(getPartition(sources[sourceID].iter.getTopKey()));
         // check if this source is already at or beyond currentRow
         // if not, then seek to at least the current row
 
@@ -220,8 +222,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         // now we must make sure we're in the right columnFamily in the current row
         // Note: Iterators are auto-magically set to the correct columnFamily
         if (sources[sourceID].term != null) {
-          int termCompare = sources[sourceID].term
-              .compareTo(getTerm(sources[sourceID].iter.getTopKey()));
+          int termCompare =
+              sources[sourceID].term.compareTo(getTerm(sources[sourceID].iter.getTopKey()));
           // check if this source is already on the right columnFamily
           // if not, then seek forwards to the right columnFamily
           if (termCompare > 0) {
@@ -284,8 +286,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
             return true;
           }
         }
-        int partitionCompare = currentPartition
-            .compareTo(getPartition(sources[sourceID].iter.getTopKey()));
+        int partitionCompare =
+            currentPartition.compareTo(getPartition(sources[sourceID].iter.getTopKey()));
         // check if this source is already at or beyond currentRow
         // if not, then seek to at least the current row
         if (partitionCompare > 0) {
@@ -308,8 +310,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         // Note: Iterators are auto-magically set to the correct columnFamily
 
         if (sources[sourceID].term != null) {
-          int termCompare = sources[sourceID].term
-              .compareTo(getTerm(sources[sourceID].iter.getTopKey()));
+          int termCompare =
+              sources[sourceID].term.compareTo(getTerm(sources[sourceID].iter.getTopKey()));
           // check if this source is already on the right columnFamily
           // if not, then seek forwards to the right columnFamily
           if (termCompare > 0) {

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -33,22 +35,22 @@ public class DeleteScanIterCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
-    Shell.log.warn("Deprecated, use " + new DeleteShellIterCommand().getName());
+    Shell.log.warn("Deprecated, use {}", new DeleteShellIterCommand().getName());
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     if (cl.hasOption(allOpt.getOpt())) {
-      final List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions
-          .remove(tableName);
+      final List<IteratorSetting> tableScanIterators =
+          shellState.scanIteratorOptions.remove(tableName);
       if (tableScanIterators == null) {
-        Shell.log.info("No scan iterators set on table " + tableName);
+        Shell.log.info("No scan iterators set on table {}", tableName);
       } else {
-        Shell.log.info("Removed the following scan iterators from table " + tableName + ":"
-            + tableScanIterators);
+        Shell.log.info("Removed the following scan iterators from table {}:{}", tableName,
+            tableScanIterators);
       }
     } else if (cl.hasOption(nameOpt.getOpt())) {
       final String name = cl.getOptionValue(nameOpt.getOpt());
-      final List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions
-          .get(tableName);
+      final List<IteratorSetting> tableScanIterators =
+          shellState.scanIteratorOptions.get(tableName);
       if (tableScanIterators != null) {
         boolean found = false;
         for (Iterator<IteratorSetting> iter = tableScanIterators.iterator(); iter.hasNext();) {
@@ -58,17 +60,17 @@ public class DeleteScanIterCommand extends Command {
             break;
           }
         }
-        if (!found) {
-          Shell.log.info("No iterator named " + name + " found for table " + tableName);
-        } else {
-          Shell.log.info("Removed scan iterator " + name + " from table " + tableName + " ("
-              + shellState.scanIteratorOptions.get(tableName).size() + " left)");
-          if (shellState.scanIteratorOptions.get(tableName).size() == 0) {
+        if (found) {
+          Shell.log.info("Removed scan iterator {} from table {} ({} left)", name, tableName,
+              shellState.scanIteratorOptions.get(tableName).size());
+          if (shellState.scanIteratorOptions.get(tableName).isEmpty()) {
             shellState.scanIteratorOptions.remove(tableName);
           }
+        } else {
+          Shell.log.info("No iterator named {} found for table {}", name, tableName);
         }
       } else {
-        Shell.log.info("No iterator named " + name + " found for table " + tableName);
+        Shell.log.info("No iterator named {} found for table {}", name, tableName);
       }
     }
 

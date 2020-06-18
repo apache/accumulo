@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security;
 
@@ -79,35 +81,33 @@ public class SecurityOperation {
 
   static SecurityOperation instance;
 
-  public static synchronized SecurityOperation getInstance(ServerContext context,
-      boolean initialize) {
+  public static synchronized SecurityOperation getInstance(ServerContext context) {
     if (instance == null) {
-      instance = new SecurityOperation(context, getAuthorizor(context, initialize),
-          getAuthenticator(context, initialize), getPermHandler(context, initialize));
+      instance = new SecurityOperation(context, getAuthorizor(context), getAuthenticator(context),
+          getPermHandler(context));
     }
     return instance;
   }
 
-  protected static Authorizor getAuthorizor(ServerContext context, boolean initialize) {
+  protected static Authorizor getAuthorizor(ServerContext context) {
     Authorizor toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
-        Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, ZKAuthorizor.getInstance());
-    toRet.initialize(context, initialize);
+        Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, new ZKAuthorizor());
+    toRet.initialize(context);
     return toRet;
   }
 
-  protected static Authenticator getAuthenticator(ServerContext context, boolean initialize) {
+  protected static Authenticator getAuthenticator(ServerContext context) {
     Authenticator toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
-        Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class,
-        ZKAuthenticator.getInstance());
-    toRet.initialize(context, initialize);
+        Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class, new ZKAuthenticator());
+    toRet.initialize(context);
     return toRet;
   }
 
-  protected static PermissionHandler getPermHandler(ServerContext context, boolean initialize) {
+  protected static PermissionHandler getPermHandler(ServerContext context) {
     PermissionHandler toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class,
-        ZKPermHandler.getInstance());
-    toRet.initialize(context, initialize);
+        new ZKPermHandler());
+    toRet.initialize(context);
     return toRet;
   }
 
@@ -888,7 +888,7 @@ public class SecurityOperation {
     return hasTablePermission(credentials, tableId, namespaceId, TablePermission.READ, false);
   }
 
-  public boolean canImport(TCredentials credentials, String tableName, String importDir,
+  public boolean canImport(TCredentials credentials, String tableName, Set<String> importDir,
       NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.CREATE_TABLE,

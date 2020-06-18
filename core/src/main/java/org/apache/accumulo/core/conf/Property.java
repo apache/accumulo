@@ -1,37 +1,39 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
-import java.io.File;
 import java.lang.annotation.Annotation;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.system.DeletingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
@@ -39,14 +41,10 @@ import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.commons.configuration.MapConfiguration;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public enum Property {
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
@@ -128,6 +126,10 @@ public enum Property {
           + "currently in use, run 'accumulo admin volumes -l'. To use a comma or "
           + "other reserved characters in a URI use standard URI hex encoding. For "
           + "example replace commas with %2C."),
+  INSTANCE_VOLUMES_UPGRADE_RELATIVE("instance.volumes.upgrade.relative", "", PropertyType.STRING,
+      "The volume dfs uri containing relative tablet file paths. Relative paths may exist in the metadata from "
+          + "versions prior to 1.6. This property is only required if a relative path is detected "
+          + "during the upgrade process and will only be used once."),
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user "
@@ -178,10 +180,17 @@ public enum Property {
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but"
           + " do not have to be consistent throughout a cloud."),
+  @Deprecated
   GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME,
       AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE, PropertyType.STRING,
-      "A list of all of the places where changes in jars or classes will force "
-          + "a reload of the classloader."),
+      "This property is deprecated since 2.0.0. A list of all of the places where changes "
+          + "in jars or classes will force a reload of the classloader. Built-in dynamic class "
+          + "loading will be removed in a future version. If this is needed, consider overriding "
+          + "the Java system class loader with one that has this feature "
+          + "(https://docs.oracle.com/javase/8/docs/api/java/lang/ClassLoader.html#getSystemClassLoader--). "
+          + "Additionally, this property no longer does property interpolation of environment "
+          + "variables, such as '$ACCUMULO_HOME'. Use commons-configuration syntax,"
+          + "'${env:ACCUMULO_HOME}' instead."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
       "Time to wait on I/O for simple, short RPC calls"),
   @Experimental
@@ -212,9 +221,6 @@ public enum Property {
       "The class that will be used to select which volume will be used to create new files."),
   GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS("general.security.credential.provider.paths", "",
       PropertyType.STRING, "Comma-separated list of paths to CredentialProviders"),
-  GENERAL_LEGACY_METRICS("general.legacy.metrics", "false", PropertyType.BOOLEAN,
-      "Use the old metric infrastructure configured by accumulo-metrics.xml,"
-          + " instead of Hadoop Metrics2"),
   GENERAL_ARBITRARY_PROP_PREFIX("general.custom.", null, PropertyType.PREFIX,
       "Prefix to be used for user defined system-wide properties. This may be"
           + " particularly useful for system-wide configuration for various"
@@ -244,8 +250,12 @@ public enum Property {
       "The number of threads to use when coordinating a bulk import."),
   MASTER_BULK_TIMEOUT("master.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request"),
+  MASTER_RENAME_THREADS("master.rename.threadpool.size", "20", PropertyType.COUNT,
+      "The number of threads to use when renaming user files during table import or bulk ingest."),
+  @Deprecated
+  @ReplacedBy(property = MASTER_RENAME_THREADS)
   MASTER_BULK_RENAME_THREADS("master.bulk.rename.threadpool.size", "20", PropertyType.COUNT,
-      "The number of threads to use when moving user files to bulk ingest "
+      "This property is deprecated since 2.1.0. The number of threads to use when moving user files to bulk ingest "
           + "directories under accumulo control"),
   MASTER_BULK_TSERVER_REGEX("master.bulk.tserver.regex", "", PropertyType.STRING,
       "Regular expression that defines the set of Tablet Servers that will perform bulk imports"),
@@ -262,6 +272,10 @@ public enum Property {
   MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation",
       "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log"),
+  MASTER_FATE_METRICS_ENABLED("master.fate.metrics.enabled", "true", PropertyType.BOOLEAN,
+      "Enable reporting of FATE metrics in JMX (and logging with Hadoop Metrics2"),
+  MASTER_FATE_METRICS_MIN_UPDATE_INTERVAL("master.fate.metrics.min.update.interval", "60s",
+      PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run fault-tolerant executions (FATE)."
           + " These are primarily table operations like merge."),
@@ -282,7 +296,18 @@ public enum Property {
   MASTER_METADATA_SUSPENDABLE("master.metadata.suspendable", "false", PropertyType.BOOLEAN,
       "Allow tablets for the " + MetadataTable.NAME
           + " table to be suspended via table.suspend.duration."),
-
+  MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT("master.startup.tserver.avail.min.count", "0",
+      PropertyType.COUNT,
+      "Minimum number of tservers that need to be registered before master will "
+          + "start tablet assignment - checked at master initialization, when master gets lock. "
+          + " When set to 0 or less, no blocking occurs. Default is 0 (disabled) to keep original "
+          + " behaviour. Added with version 1.10"),
+  MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT("master.startup.tserver.avail.max.wait", "0",
+      PropertyType.TIMEDURATION,
+      "Maximum time master will wait for tserver available threshold "
+          + "to be reached before continuing. When set to 0 or less, will block "
+          + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
+          + "threshold is set greater than 0. Added with version 1.10"),
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the tablet servers"),
@@ -336,10 +361,6 @@ public enum Property {
   TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION("tserver.walog.maximum.wait.duration", "5m",
       PropertyType.TIMEDURATION,
       "The maximum amount of time to wait after a failure to create or write a write-ahead log."),
-  TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
-      "Time a tablet server will sleep between checking which tablets need compaction."),
-  TSERV_MAJC_THREAD_MAXOPEN("tserver.compaction.major.thread.files.open.max", "10",
-      PropertyType.COUNT, "Max number of RFiles a major compaction thread can open at once. "),
   TSERV_SCAN_MAX_OPENFILES("tserver.scan.files.open.max", "100", PropertyType.COUNT,
       "Maximum total RFiles that all tablets in a tablet server can open for scans. "),
   TSERV_MAX_IDLE("tserver.files.open.idle", "1m", PropertyType.TIMEDURATION,
@@ -387,6 +408,53 @@ public enum Property {
       "The number of threads for the metadata table scan executor."),
   TSERV_MIGRATE_MAXCONCURRENT("tserver.migrations.concurrent.max", "1", PropertyType.COUNT,
       "The maximum number of concurrent tablet migrations for a tablet server"),
+  TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
+      "Time a tablet server will sleep between checking which tablets need compaction."),
+  TSERV_COMPACTION_SERVICE_PREFIX("tserver.compaction.major.service.", null, PropertyType.PREFIX,
+      "Prefix for compaction services."),
+  TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
+      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
+      "Compaction planner for root tablet service"),
+  TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
+      "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
+      "The maximum number of files a compaction will open"),
+  TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
+      "tserver.compaction.major.service.root.planner.opts.executors",
+      "[{'name':'small','maxSize':'32M','numThreads':1},"
+          + "{'name':'huge','numThreads':1}]".replaceAll("'", "\""),
+      PropertyType.STRING,
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
+  TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
+      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
+      "Compaction planner for metadata table"),
+  TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
+      "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
+      "The maximum number of files a compaction will open"),
+  TSERV_COMPACTION_SERVICE_META_EXECUTORS(
+      "tserver.compaction.major.service.meta.planner.opts.executors",
+      "[{'name':'small','maxSize':'32M','numThreads':2},"
+          + "{'name':'huge','numThreads':2}]".replaceAll("'", "\""),
+      PropertyType.STRING,
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
+  TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
+      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
+      "Planner for default compaction service."),
+  TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
+      "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
+      "The maximum number of files a compaction will open"),
+  TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
+      "tserver.compaction.major.service.default.planner.opts.executors",
+      "[{'name':'small','maxSize':'32M','numThreads':2},"
+          + "{'name':'medium','maxSize':'128M','numThreads':2},"
+          + "{'name':'large','numThreads':2}]".replaceAll("'", "\""),
+      PropertyType.STRING,
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = Property.TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN)
+  TSERV_MAJC_THREAD_MAXOPEN("tserver.compaction.major.thread.files.open.max", "10",
+      PropertyType.COUNT, "Max number of RFiles a major compaction thread can open at once. "),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS)
   TSERV_MAJC_MAXCONCURRENT("tserver.compaction.major.concurrent.max", "3", PropertyType.COUNT,
       "The maximum number of concurrent major compactions for a tablet server"),
   TSERV_MAJC_THROUGHPUT("tserver.compaction.major.throughput", "0B", PropertyType.BYTES,
@@ -403,7 +471,7 @@ public enum Property {
   TSERV_BLOOM_LOAD_MAXCONCURRENT("tserver.bloom.load.concurrent.max", "4", PropertyType.COUNT,
       "The number of concurrent threads that will load bloom filters in the background. "
           + "Setting this to zero will make bloom filters load in the foreground."),
-  TSERV_MONITOR_FS("tserver.monitor.fs", "true", PropertyType.BOOLEAN,
+  TSERV_MONITOR_FS("tserver.monitor.fs", "false", PropertyType.BOOLEAN,
       "When enabled the tserver will monitor file systems and kill itself when"
           + " one switches from rw to ro. This is usually and indication that Linux has"
           + " detected a bad disk."),
@@ -433,6 +501,11 @@ public enum Property {
       "The time between adjustments of the server thread pool."),
   TSERV_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server."),
+  TSERV_LOG_BUSY_TABLETS_COUNT("tserver.log.busy.tablets.count", "0", PropertyType.COUNT,
+      "Number of busiest tablets to log. Logged at interval controlled by "
+          + "tserver.log.busy.tablets.interval. If <= 0, logging of busy tablets is disabled"),
+  TSERV_LOG_BUSY_TABLETS_INTERVAL("tserver.log.busy.tablets.interval", "1h",
+      PropertyType.TIMEDURATION, "Time interval between logging out busy tablets information."),
   TSERV_HOLD_TIME_SUICIDE("tserver.hold.time.max", "5m", PropertyType.TIMEDURATION,
       "The maximum time for a tablet server to be in the \"memory full\" state."
           + " If the tablet server cannot write out memory in this much time, it will"
@@ -505,14 +578,21 @@ public enum Property {
       "Do not use the Trash, even if it is configured."),
   GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION,
       "Percent of gc cycles to trace"),
+  GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
+      "Provides listing of files to be deleted but does not delete any files"),
+  GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
+      "When the gc runs it can make a lot of changes to the metadata, on completion, "
+          + " to force the changes to be written to disk, the metadata and root tables can be flushed"
+          + " and possibly compacted. Legal values are: compact - which both flushes and compacts the"
+          + " metadata; flush - which flushes only (compactions may be triggered if required); or none"),
+  GC_METRICS_ENABLED("gc.metrics.enabled", "true", PropertyType.BOOLEAN,
+      "Enable detailed gc metrics reporting with hadoop metrics."),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the monitor web server."),
   MONITOR_PORT("monitor.port.client", "9995", PropertyType.PORT,
       "The listening port for the monitor's http service"),
-  MONITOR_LOG4J_PORT("monitor.port.log4j", "4560", PropertyType.PORT,
-      "The listening port for the monitor's log4j logging collection."),
   MONITOR_SSL_KEYSTORE("monitor.ssl.keyStore", "", PropertyType.PATH,
       "The keystore for enabling monitor SSL."),
   @Sensitive
@@ -589,9 +669,8 @@ public enum Property {
       "Prefix to be used for user defined arbitrary properties."),
   TABLE_MAJC_RATIO("table.compaction.major.ratio", "3", PropertyType.FRACTION,
       "Minimum ratio of total input size to maximum input RFile size for"
-          + " running a major compaction. When adjusting this property you may want to"
-          + " also adjust table.file.max. Want to avoid the situation where only"
-          + " merging minor compactions occur."),
+          + " running a major compaction. "),
+  @Deprecated(since = "2.1.0", forRemoval = true)
   TABLE_MAJC_COMPACTALL_IDLETIME("table.compaction.major.everything.idle", "1h",
       PropertyType.TIMEDURATION,
       "After a tablet has been idle (no mutations) for this time period it may"
@@ -611,10 +690,30 @@ public enum Property {
       "After a tablet has been idle (no mutations) for this time period it may have its "
           + "in-memory map flushed to disk in a minor compaction. There is no guarantee an idle "
           + "tablet will be compacted."),
-  TABLE_MINC_MAX_MERGE_FILE_SIZE("table.compaction.minor.merge.file.size.max", "0",
-      PropertyType.BYTES,
-      "The max RFile size used for a merging minor compaction. The default"
-          + " value of 0 disables a max file size."),
+  TABLE_COMPACTION_DISPATCHER("table.compaction.dispatcher",
+      SimpleCompactionDispatcher.class.getName(), PropertyType.CLASSNAME,
+      "A configurable dispatcher that decides what comaction service a table should use."),
+  TABLE_COMPACTION_DISPATCHER_OPTS("table.compaction.dispatcher.opts.", null, PropertyType.PREFIX,
+      "Options for the table compaction dispatcher"),
+  TABLE_COMPACTION_SELECTOR("table.compaction.selector", "", PropertyType.CLASSNAME,
+      "A configurable selector for a table that can periodically select file for mandatory "
+          + "compaction, even if the files do not meet the compaction ratio."),
+  TABLE_COMPACTION_SELECTOR_OPTS("table.compaction.selector.opts.", null, PropertyType.PREFIX,
+      "Options for the table compaction dispatcher"),
+  TABLE_COMPACTION_CONFIGURER("table.compaction.configurer", "", PropertyType.CLASSNAME,
+      "A plugin that can dynamically configure compaction output files based on input files."),
+  TABLE_COMPACTION_CONFIGURER_OPTS("table.compaction.configurer.opts.", null, PropertyType.PREFIX,
+      "Options for the table compaction configuror"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = TABLE_COMPACTION_SELECTOR)
+  TABLE_COMPACTION_STRATEGY("table.majc.compaction.strategy",
+      "org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy", PropertyType.CLASSNAME,
+      "Deprecated since 2.1.0 See {% jlink -f org.apache.accumulo.core.spi.compaction}"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = TABLE_COMPACTION_SELECTOR_OPTS)
+  TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null,
+      PropertyType.PREFIX,
+      "Properties in this category are used to configure the compaction strategy."),
   TABLE_SCAN_DISPATCHER("table.scan.dispatcher", SimpleScanDispatcher.class.getName(),
       PropertyType.CLASSNAME,
       "This class is used to dynamically dispatch scans to configured scan executors.  Configured "
@@ -680,6 +779,9 @@ public enum Property {
           + " perform specialized parsing of the key. "),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING,
       "The bloom filter hash type"),
+  TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "0", PropertyType.COUNT,
+      "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited. "
+          + "This property is only enforced in the new bulk import API"),
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY,
       "The durability used to write to the write-ahead log. Legal values are:"
           + " none, which skips the write-ahead log; log, which sends the data to the"
@@ -751,12 +853,6 @@ public enum Property {
       PropertyType.STRING, "The ScanInterpreter class to apply on scan arguments in the shell"),
   TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING,
       "Per table classpath context"),
-  TABLE_COMPACTION_STRATEGY("table.majc.compaction.strategy",
-      "org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy", PropertyType.CLASSNAME,
-      "A customizable major compaction strategy."),
-  TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null,
-      PropertyType.PREFIX,
-      "Properties in this category are used to configure the compaction strategy."),
   TABLE_REPLICATION("table.replication", "false", PropertyType.BOOLEAN,
       "Is replication enabled for the given table"),
   TABLE_REPLICATION_TARGET("table.replication.target.", null, PropertyType.PREFIX,
@@ -800,6 +896,9 @@ public enum Property {
           + "constraint."),
 
   // VFS ClassLoader properties
+
+  // this property shouldn't be used directly; it exists solely to document the default value
+  // defined by its use in AccumuloVFSClassLoader when generating the property documentation
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
       AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
       "Configuration for a system level vfs classloader. Accumulo jar can be"
@@ -815,14 +914,16 @@ public enum Property {
           + " `general.vfs.context.classpath.<name>.delegation=post`, where `<name>` is"
           + " your context name. If delegation is not specified, it defaults to loading"
           + " from parent classloader first."),
-  @Interpolated
-  VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR,
-      "${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}",
+
+  // this property shouldn't be used directly; it exists solely to document the default value
+  // defined by its use in AccumuloVFSClassLoader when generating the property documentation
+  VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR, "${java.io.tmpdir}",
       PropertyType.ABSOLUTEPATH,
-      "Directory to use for the vfs cache. The cache will keep a soft reference"
-          + " to all of the classes loaded in the VM. This should be on local disk on"
-          + " each node with sufficient space. It defaults to"
-          + " ${java.io.tmpdir}/accumulo-vfs-cache-${user.name}"),
+      "The base directory to use for the vfs cache. The actual cached files will be located"
+          + " in a subdirectory, `accumulo-vfs-cache-<jvmProcessName>-${user.name}`, where"
+          + " `<jvmProcessName>` is determined by the JVM's internal management engine."
+          + " The cache will keep a soft reference to all of the classes loaded in the VM."
+          + " This should be on local disk on each node with sufficient space."),
 
   // General properties for configuring replication
   REPLICATION_PREFIX("replication.", null, PropertyType.PREFIX,
@@ -923,14 +1024,11 @@ public enum Property {
 
   private String key;
   private String defaultValue;
-  private String computedDefaultValue;
   private String description;
   private boolean annotationsComputed = false;
-  private boolean defaultValueComputed = false;
   private boolean isSensitive;
   private boolean isDeprecated;
   private boolean isExperimental;
-  private boolean isInterpolated;
   private Property replacedBy = null;
   private PropertyType type;
 
@@ -956,47 +1054,13 @@ public enum Property {
   }
 
   /**
-   * Gets the default value for this property exactly as provided in its definition (i.e., without
-   * interpolation or conversion to absolute paths).
-   *
-   * @return raw default value
-   */
-  public String getRawDefaultValue() {
-    return this.defaultValue;
-  }
-
-  /**
    * Gets the default value for this property. System properties are interpolated into the value if
    * necessary.
    *
    * @return default value
    */
   public String getDefaultValue() {
-    Preconditions.checkState(defaultValueComputed,
-        "precomputeDefaultValue() must be called before calling this method");
-    return computedDefaultValue;
-  }
-
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "code runs in same security context as user who providing the file")
-  private void precomputeDefaultValue() {
-    String v;
-    if (isInterpolated()) {
-      PropertiesConfiguration pconf = new PropertiesConfiguration();
-      Properties systemProperties = System.getProperties();
-      synchronized (systemProperties) {
-        pconf.append(new MapConfiguration(systemProperties));
-      }
-      pconf.addProperty("hack_default_value", this.defaultValue);
-      v = pconf.getString("hack_default_value");
-    } else {
-      v = getRawDefaultValue();
-    }
-    if (this.type == PropertyType.ABSOLUTEPATH && !(v.trim().equals("")))
-      v = new File(v).getAbsolutePath();
-
-    computedDefaultValue = v;
-    defaultValueComputed = true;
+    return this.defaultValue;
   }
 
   /**
@@ -1015,12 +1079,6 @@ public enum Property {
    */
   public String getDescription() {
     return this.description;
-  }
-
-  private boolean isInterpolated() {
-    Preconditions.checkState(annotationsComputed,
-        "precomputeAnnotations() must be called before calling this method");
-    return isInterpolated;
   }
 
   /**
@@ -1063,14 +1121,12 @@ public enum Property {
   }
 
   private void precomputeAnnotations() {
-    isSensitive = hasAnnotation(Sensitive.class)
-        || hasPrefixWithAnnotation(getKey(), Sensitive.class);
-    isDeprecated = hasAnnotation(Deprecated.class)
-        || hasPrefixWithAnnotation(getKey(), Deprecated.class);
-    isExperimental = hasAnnotation(Experimental.class)
-        || hasPrefixWithAnnotation(getKey(), Experimental.class);
-    isInterpolated = hasAnnotation(Interpolated.class)
-        || hasPrefixWithAnnotation(getKey(), Interpolated.class);
+    isSensitive =
+        hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
+    isDeprecated =
+        hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
+    isExperimental =
+        hasAnnotation(Experimental.class) || hasPrefixWithAnnotation(getKey(), Experimental.class);
     if (hasAnnotation(ReplacedBy.class)) {
       ReplacedBy rb = getAnnotation(ReplacedBy.class);
       if (rb != null) {
@@ -1107,9 +1163,11 @@ public enum Property {
   private <T extends Annotation> boolean hasAnnotation(Class<T> annotationType) {
     Logger log = LoggerFactory.getLogger(getClass());
     try {
-      for (Annotation a : getClass().getField(name()).getAnnotations())
-        if (annotationType.isInstance(a))
+      for (Annotation a : getClass().getField(name()).getAnnotations()) {
+        if (annotationType.isInstance(a)) {
           return true;
+        }
+      }
     } catch (SecurityException | NoSuchFieldException e) {
       log.error("{}", e.getMessage(), e);
     }
@@ -1152,8 +1210,9 @@ public enum Property {
 
   private static boolean isKeyValidlyPrefixed(String key) {
     for (String prefix : validPrefixes) {
-      if (key.startsWith(prefix))
+      if (key.startsWith(prefix)) {
         return true;
+      }
     }
 
     return false;
@@ -1169,6 +1228,17 @@ public enum Property {
    */
   public static boolean isValidPropertyKey(String key) {
     return validProperties.contains(key) || isKeyValidlyPrefixed(key);
+  }
+
+  /**
+   * Checks if the given property key is a valid property and is of type boolean.
+   *
+   * @param key
+   *          property key
+   * @return true if key is valid and is of type boolean, false otherwise
+   */
+  public static boolean isValidBooleanPropertyKey(String key) {
+    return validProperties.contains(key) && getPropertyByKey(key).getType() == PropertyType.BOOLEAN;
   }
 
   /**
@@ -1191,12 +1261,15 @@ public enum Property {
             || key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey())
             || key.startsWith(TABLE_SAMPLER_OPTS.getKey())
             || key.startsWith(TABLE_SUMMARIZER_PREFIX.getKey())
-            || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())));
+            || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())
+            || key.startsWith(TABLE_COMPACTION_DISPATCHER_OPTS.getKey())
+            || key.startsWith(TABLE_COMPACTION_CONFIGURER_OPTS.getKey())
+            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey())));
   }
 
-  private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
-      Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,
-      Property.MASTER_CLIENTPORT, Property.GC_PORT);
+  private static final EnumSet<Property> fixedProperties =
+      EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
+          Property.TSERV_SCAN_MAX_OPENFILES, Property.MASTER_CLIENTPORT, Property.GC_PORT);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
@@ -1245,10 +1318,12 @@ public enum Property {
    * @return true if this is property is a class property
    */
   public static boolean isClassProperty(String key) {
-    return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey()) && key
-        .substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length == 1)
-        || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) && key
-            .substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length == 2)
+    return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
+        && key.substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length
+            == 1)
+        || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
+            && key.substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length
+                == 2)
         || key.equals(Property.TABLE_LOAD_BALANCER.getKey());
   }
 
@@ -1305,8 +1380,8 @@ public enum Property {
    *         from each key
    */
   public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
-    Map<String,String> longNames = tableConf
-        .getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
+    Map<String,String> longNames =
+        tableConf.getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
     Map<String,String> result = new HashMap<>();
     for (Entry<String,String> entry : longNames.entrySet()) {
       result.put(
@@ -1344,7 +1419,6 @@ public enum Property {
     // order is very important here the following code relies on the maps and sets populated above
     for (Property p : Property.values()) {
       p.precomputeAnnotations();
-      p.precomputeDefaultValue();
     }
   }
 }

@@ -1,26 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
 
       http://www.apache.org/licenses/LICENSE-2.0
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-test</artifactId>
   <name>Apache Accumulo Testing</name>
@@ -55,16 +59,8 @@
       <artifactId>commons-cli</artifactId>
     </dependency>
     <dependency>
-      <groupId>commons-configuration</groupId>
-      <artifactId>commons-configuration</artifactId>
-    </dependency>
-    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>commons-lang</groupId>
-      <artifactId>commons-lang</artifactId>
     </dependency>
     <dependency>
       <groupId>jline</groupId>
@@ -73,10 +69,6 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -105,10 +97,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-proxy</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-server-base</artifactId>
     </dependency>
     <dependency>
@@ -126,6 +114,10 @@
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-tserver</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-configuration2</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -147,11 +139,6 @@
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-minikdc</artifactId>
       <exclusions>
-        <!-- Pulls in an older bouncycastle version -->
-        <exclusion>
-          <groupId>bouncycastle</groupId>
-          <artifactId>bcprov-jdk15</artifactId>
-        </exclusion>
         <!-- avoid vuln in JOSE library see https://nvd.nist.gov/vuln/detail/CVE-2017-12974 -->
         <exclusion>
           <groupId>com.nimbusds</groupId>
@@ -162,6 +149,10 @@
     <dependency>
       <groupId>org.apache.htrace</groupId>
       <artifactId>htrace-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-1.2-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.thrift</groupId>
@@ -184,10 +175,6 @@
       <artifactId>easymock</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-core</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
@@ -202,8 +189,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -211,13 +198,12 @@
     <pluginManagement>
       <plugins>
         <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
+          <groupId>com.mycila</groupId>
+          <artifactId>license-maven-plugin</artifactId>
           <configuration>
-            <excludes>
-              <exclude>compat/japi-compliance/exclude_classes.txt</exclude>
-              <exclude>system/bench/lib/*splits</exclude>
-            </excludes>
+            <mapping>
+              <shellit>SCRIPT_STYLE</shellit>
+            </mapping>
           </configuration>
         </plugin>
         <plugin>
@@ -308,64 +294,6 @@
                 <configuration>
                   <executable>${basedir}/src/main/scripts/generate-thrift.sh</executable>
                 </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <!-- create shaded test jar appropriate for running ITs on MapReduce -->
-      <id>mrit</id>
-      <activation>
-        <property>
-          <name>mrit</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-shade-plugin</artifactId>
-            <configuration>
-              <artifactSet>
-                <excludes>
-                  <exclude>com.google.auto.service</exclude>
-                  <exclude>com.google.auto</exclude>
-                  <exclude>javax.servlet:servlet-api</exclude>
-                  <exclude>org.apache.accumulo:accumulo-native</exclude>
-                  <exclude>org.slf4j:slf4j-log4j12</exclude>
-                </excludes>
-              </artifactSet>
-              <shadedArtifactAttached>true</shadedArtifactAttached>
-              <shadedClassifierName>mrit</shadedClassifierName>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
-              <filters>
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>META-INF/*.DSA</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>META-INF/DEPENDENCIES</exclude>
-                  </excludes>
-                </filter>
-              </filters>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <manifestEntries>
-                    <Sealed>false</Sealed>
-                    <Main-Class>org.apache.accumulo.test.mrit.IntegrationTestMapReduce</Main-Class>
-                  </manifestEntries>
-                </transformer>
-              </transformers>
-            </configuration>
-            <executions>
-              <execution>
-                <id>create-shaded-mrit</id>
-                <goals>
-                  <goal>shade</goal>
-                </goals>
               </execution>
             </executions>
           </plugin>

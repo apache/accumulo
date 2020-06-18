@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.gc;
 
@@ -275,10 +277,10 @@ public class GarbageCollectionTest {
     gce.candidates.add("/c/t-0");
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/d/t-0");
 
-    gce.addDirReference("4", null, "/t-0");
-    gce.addDirReference("5", null, "/t-0");
-    gce.addDirReference("6", null, "hdfs://foo.com:6000/accumulo/tables/6/t-0");
-    gce.addDirReference("7", null, "hdfs://foo.com:6000/accumulo/tables/7/t-0");
+    gce.addDirReference("4", null, "t-0");
+    gce.addDirReference("5", null, "t-0");
+    gce.addDirReference("6", null, "t-0");
+    gce.addDirReference("7", null, "t-0");
 
     gce.addFileReference("8", "m", "/t-0/F00.rf");
     gce.addFileReference("9", "m", "/t-0/F00.rf");
@@ -339,10 +341,10 @@ public class GarbageCollectionTest {
     gce.candidates.add("/c/t-0");
     gce.candidates.add("hdfs://foo:6000/user/foo/tables/d/t-0");
 
-    gce.addDirReference("4", null, "/t-0");
-    gce.addDirReference("5", null, "/t-0");
-    gce.addDirReference("6", null, "hdfs://foo.com:6000/user/foo/tables/6/t-0");
-    gce.addDirReference("7", null, "hdfs://foo.com:6000/user/foo/tables/7/t-0");
+    gce.addDirReference("4", null, "t-0");
+    gce.addDirReference("5", null, "t-0");
+    gce.addDirReference("6", null, "t-0");
+    gce.addDirReference("7", null, "t-0");
 
     gce.addFileReference("8", "m", "/t-0/F00.rf");
     gce.addFileReference("9", "m", "/t-0/F00.rf");
@@ -464,7 +466,7 @@ public class GarbageCollectionTest {
 
     TestGCE gce = new TestGCE();
     gce.candidates.add("/1636/default_tablet");
-    gce.addDirReference("1636", null, "/default_tablet");
+    gce.addDirReference("1636", null, "default_tablet");
     gca.collect(gce);
     assertRemoved(gce);
 
@@ -481,7 +483,7 @@ public class GarbageCollectionTest {
     // have an indirect file reference
     gce = new TestGCE();
     gce.addFileReference("1636", null, "../9/default_tablet/someFile");
-    gce.addDirReference("1636", null, "/default_tablet");
+    gce.addDirReference("1636", null, "default_tablet");
     gce.candidates.add("/9/default_tablet/someFile");
     gca.collect(gce);
     assertRemoved(gce);
@@ -520,7 +522,7 @@ public class GarbageCollectionTest {
     gce.candidates.add("/6/t-0");
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/7/t-0/");
 
-    gce.addDirReference("7", null, "hdfs://foo.com:6000/accumulo/tables/7/t-0");
+    gce.addDirReference("7", null, "t-0");
 
     gca.collect(gce);
 

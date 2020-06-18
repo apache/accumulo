@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.hadoop.its.mapreduce;
 
@@ -222,7 +224,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       String row = String.format("%09d", i);
 
       Mutation m = new Mutation(new Text(row));
-      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(("" + i).getBytes()));
+      m.put(new Text("cf1"), new Text("cq1"), ts, new Value("" + i));
       bw.addMutation(m);
     }
     bw.close();
@@ -288,8 +290,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       assertionErrors.put(table + "_cleanup", new AssertionError("Dummy_cleanup"));
 
       @SuppressWarnings("unchecked")
-      Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class
-          .forName(inputFormatClassName);
+      Class<? extends InputFormat<?,?>> inputFormatClass =
+          (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
 
       Job job = Job.getInstance(getConf(),
           this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
@@ -298,9 +300,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(inputFormatClass);
 
-      InputFormatOptions<Job> opts = AccumuloInputFormat.configure()
-          .clientProperties(getClientInfo().getProperties()).table(table)
-          .auths(Authorizations.EMPTY);
+      InputFormatOptions<Job> opts =
+          AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties())
+              .table(table).auths(Authorizations.EMPTY);
       if (sample)
         opts = opts.samplerConfiguration(SAMPLER_CONFIG);
 
@@ -335,7 +337,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     BatchWriter bw = client.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put("", "", String.format("%09x", i));
       bw.addMutation(m);
     }
     bw.close();
@@ -346,8 +348,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_cleanup").size());
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
@@ -358,7 +361,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     BatchWriter bw = client.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put("", "", String.format("%09x", i));
       bw.addMutation(m);
     }
     bw.close();
@@ -389,7 +392,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     BatchWriter bw = client.createBatchWriter(TEST_TABLE_2, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put("", "", String.format("%09x", i));
       bw.addMutation(m);
     }
     bw.close();
@@ -406,10 +409,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<IteratorSetting.Column> fetchColumns = Collections
-        .singleton(new IteratorSetting.Column(new Text("foo"), new Text("bar")));
-    Collection<Pair<Text,Text>> fetchColumnsText = Collections
-        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<IteratorSetting.Column> fetchColumns =
+        Collections.singleton(new IteratorSetting.Column(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumnsText =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
 
     client.tableOperations().create(table);
 
@@ -442,7 +445,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put("", "", String.format("%09x", i));
       bw.addMutation(m);
     }
     bw.close();
@@ -465,11 +468,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // Copy only the necessary information
       for (InputSplit oldSplit : oldSplits) {
-        // @formatter:off
-        RangeInputSplit newSplit =
-          new RangeInputSplit(
-            (RangeInputSplit) oldSplit);
-        // @formatter:on
+        RangeInputSplit newSplit = new RangeInputSplit((RangeInputSplit) oldSplit);
         newSplits.add(newSplit);
       }
 

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.master.balancer;
 
@@ -23,7 +25,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -89,20 +90,22 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
         TestDefaultBalancer.class.getName());
   }
 
-  private static SiteConfiguration siteConfg = new SiteConfiguration();
+  private static SiteConfiguration siteConfg = SiteConfiguration.auto();
 
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
 
     final ServerContext context;
+    private ConfigurationCopy config;
 
     public TestServerConfigurationFactory(ServerContext context) {
       super(context, siteConfg);
       this.context = context;
+      this.config = new ConfigurationCopy(DEFAULT_TABLE_PROPERTIES);
     }
 
     @Override
     public synchronized AccumuloConfiguration getSystemConfiguration() {
-      return new ConfigurationCopy(DEFAULT_TABLE_PROPERTIES);
+      return config;
     }
 
     @Override
@@ -114,16 +117,12 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       return new TableConfiguration(context, tableId, dummyConf) {
         @Override
         public String get(Property property) {
-          return DEFAULT_TABLE_PROPERTIES.get(property.name());
+          return getSystemConfiguration().get(property.name());
         }
 
         @Override
         public void getProperties(Map<String,String> props, Predicate<String> filter) {
-          for (Entry<String,String> e : DEFAULT_TABLE_PROPERTIES.entrySet()) {
-            if (filter.test(e.getKey())) {
-              props.put(e.getKey(), e.getValue());
-            }
-          }
+          getSystemConfiguration().getProperties(props, filter);
         }
 
         @Override
@@ -256,10 +255,11 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
         && (host.equals("192.168.0.6") || host.equals("192.168.0.7") || host.equals("192.168.0.8")
             || host.equals("192.168.0.9") || host.equals("192.168.0.10"))) {
       return true;
-    } else
+    } else {
       return tid.equals("3") && (host.equals("192.168.0.11") || host.equals("192.168.0.12")
           || host.equals("192.168.0.13") || host.equals("192.168.0.14")
           || host.equals("192.168.0.15"));
+    }
   }
 
   protected String idToTableName(TableId id) {

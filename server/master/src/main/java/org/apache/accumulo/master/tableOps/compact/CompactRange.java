@@ -1,45 +1,46 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.compact;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.clientImpl.UserCompactionUtils.isDefault;
 
-import java.util.List;
+import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.CompactionStrategyConfigUtil;
+import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
-import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableUtils;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,33 +55,37 @@ public class CompactRange extends MasterRepo {
   private byte[] endRow;
   private byte[] config;
 
-  public CompactRange(NamespaceId namespaceId, TableId tableId, byte[] startRow, byte[] endRow,
-      List<IteratorSetting> iterators, CompactionStrategyConfig compactionStrategy)
+  public CompactRange(NamespaceId namespaceId, TableId tableId, CompactionConfig compactionConfig)
       throws AcceptableThriftTableOperationException {
 
     requireNonNull(namespaceId, "Invalid argument: null namespaceId");
     requireNonNull(tableId, "Invalid argument: null tableId");
-    requireNonNull(iterators, "Invalid argument: null iterator list");
-    requireNonNull(compactionStrategy, "Invalid argument: null compactionStrategy");
+    requireNonNull(compactionConfig, "Invalid argument: null compaction config");
 
     this.tableId = tableId;
     this.namespaceId = namespaceId;
-    this.startRow = startRow.length == 0 ? null : startRow;
-    this.endRow = endRow.length == 0 ? null : endRow;
 
-    if (iterators.size() > 0
-        || !compactionStrategy.equals(CompactionStrategyConfigUtil.DEFAULT_STRATEGY)) {
-      this.config = WritableUtils.toByteArray(
-          new UserCompactionConfig(this.startRow, this.endRow, iterators, compactionStrategy));
+    if (!compactionConfig.getIterators().isEmpty()
+        || !CompactionStrategyConfigUtil.isDefault(compactionConfig)
+        || !compactionConfig.getExecutionHints().isEmpty()
+        || !isDefault(compactionConfig.getConfigurer())
+        || !isDefault(compactionConfig.getSelector())) {
+      this.config = UserCompactionUtils.encode(compactionConfig);
     } else {
-      log.info("No iterators or compaction strategy");
+      log.debug(
+          "Using default compaction strategy. No user iterators or compaction strategy provided.");
     }
 
-    if (this.startRow != null && this.endRow != null
-        && new Text(startRow).compareTo(new Text(endRow)) >= 0)
+    if (compactionConfig.getStartRow() != null && compactionConfig.getEndRow() != null
+        && compactionConfig.getStartRow().compareTo(compactionConfig.getEndRow()) >= 0)
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.BAD_RANGE,
           "start row must be less than end row");
+
+    this.startRow =
+        Optional.ofNullable(compactionConfig.getStartRow()).map(TextUtil::getBytes).orElse(null);
+    this.endRow =
+        Optional.ofNullable(compactionConfig.getEndRow()).map(TextUtil::getBytes).orElse(null);
   }
 
   @Override
@@ -94,7 +99,7 @@ public class CompactRange extends MasterRepo {
     String zTablePath = Constants.ZROOT + "/" + env.getInstanceID() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_COMPACT_ID;
 
-    IZooReaderWriter zoo = env.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = env.getContext().getZooReaderWriter();
     byte[] cid;
     try {
       cid = zoo.mutate(zTablePath, null, null, new Mutator() {
@@ -147,7 +152,7 @@ public class CompactRange extends MasterRepo {
     String zTablePath = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
         + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
 
-    IZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
 
     zoo.mutate(zTablePath, null, null, new Mutator() {
       @Override

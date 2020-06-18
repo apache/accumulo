@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.metadata.schema;
 
@@ -25,9 +27,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Describes the table schema used for metadata tables
@@ -86,11 +92,15 @@ public class MetadataSchema {
       /**
        * A temporary field in case a split fails and we need to roll back
        */
-      public static final ColumnFQ OLD_PREV_ROW_COLUMN = new ColumnFQ(NAME, new Text("oldprevrow"));
+      public static final String OLD_PREV_ROW_QUAL = "oldprevrow";
+      public static final ColumnFQ OLD_PREV_ROW_COLUMN =
+          new ColumnFQ(NAME, new Text(OLD_PREV_ROW_QUAL));
       /**
        * A temporary field for splits to optimize certain operations
        */
-      public static final ColumnFQ SPLIT_RATIO_COLUMN = new ColumnFQ(NAME, new Text("splitRatio"));
+      public static final String SPLIT_RATIO_QUAL = "splitRatio";
+      public static final ColumnFQ SPLIT_RATIO_COLUMN =
+          new ColumnFQ(NAME, new Text(SPLIT_RATIO_QUAL));
     }
 
     /**
@@ -104,6 +114,27 @@ public class MetadataSchema {
        */
       public static final String DIRECTORY_QUAL = "dir";
       public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text(DIRECTORY_QUAL));
+      /**
+       * Initial tablet directory name for the default tablet in all tables
+       */
+      public static final String DEFAULT_TABLET_DIR_NAME = "default_tablet";
+
+      /**
+       * @return true if dirName is a valid value for the {@link #DIRECTORY_COLUMN} in the metadata
+       *         table. Returns false otherwise.
+       */
+      public static boolean isValidDirCol(String dirName) {
+        return !dirName.contains("/");
+      }
+
+      /**
+       * @throws IllegalArgumentException
+       *           when {@link #isValidDirCol(String)} returns false.
+       */
+      public static void validateDirCol(String dirName) {
+        Preconditions.checkArgument(isValidDirCol(dirName), "Invalid dir name %s", dirName);
+      }
+
       /**
        * Holds the {@link TimeType}
        */
@@ -157,8 +188,8 @@ public class MetadataSchema {
      */
     public static class SuspendLocationColumn {
       public static final String STR_NAME = "suspend";
-      public static final ColumnFQ SUSPEND_COLUMN = new ColumnFQ(new Text("suspend"),
-          new Text("loc"));
+      public static final ColumnFQ SUSPEND_COLUMN =
+          new ColumnFQ(new Text("suspend"), new Text("loc"));
     }
 
     /**
@@ -167,6 +198,20 @@ public class MetadataSchema {
     public static class BulkFileColumnFamily {
       public static final String STR_NAME = "loaded";
       public static final Text NAME = new Text(STR_NAME);
+
+      public static long getBulkLoadTid(Value v) {
+        return getBulkLoadTid(v.toString());
+      }
+
+      public static long getBulkLoadTid(String vs) {
+        if (FateTxId.isFormatedTid(vs)) {
+          return FateTxId.fromString(vs);
+        } else {
+          // a new serialization format was introduce in 2.0. This code support deserializing the
+          // old format.
+          return Long.parseLong(vs);
+        }
+      }
     }
 
     /**
@@ -232,15 +277,30 @@ public class MetadataSchema {
    * Holds delete markers for potentially unused files/directories
    */
   public static class DeletesSection {
-    private static final Section section = new Section(RESERVED_PREFIX + "del", true,
-        RESERVED_PREFIX + "dem", false);
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "del", true, RESERVED_PREFIX + "dem", false);
+
+    private static final int encoded_prefix_length =
+        section.getRowPrefix().length() + SortSkew.SORTSKEW_LENGTH;
 
     public static Range getRange() {
       return section.getRange();
     }
 
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
+    public static String encodeRow(String value) {
+      return section.getRowPrefix() + SortSkew.getCode(value) + value;
+    }
+
+    public static String decodeRow(String row) {
+      return row.substring(encoded_prefix_length);
+    }
+
+    /**
+     * Value to indicate that the row has been skewed/encoded.
+     */
+    public static class SkewedKeyValue {
+      public static final String STR_NAME = "skewed";
+      public static final Value NAME = new Value(STR_NAME);
     }
 
   }
@@ -249,8 +309,8 @@ public class MetadataSchema {
    * Holds bulk-load-in-progress processing flags
    */
   public static class BlipSection {
-    private static final Section section = new Section(RESERVED_PREFIX + "blip", true,
-        RESERVED_PREFIX + "bliq", false);
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "blip", true, RESERVED_PREFIX + "bliq", false);
 
     public static Range getRange() {
       return section.getRange();
@@ -274,8 +334,8 @@ public class MetadataSchema {
   public static class ReplicationSection {
     public static final Text COLF = new Text("stat");
     private static final ArrayByteSequence COLF_BYTE_SEQ = new ArrayByteSequence(COLF.toString());
-    private static final Section section = new Section(RESERVED_PREFIX + "repl", true,
-        RESERVED_PREFIX + "repm", false);
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
 
     public static Range getRange() {
       return section.getRange();

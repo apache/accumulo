@@ -1,23 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
 import java.nio.file.Path;
 import java.util.Collections;
@@ -55,6 +59,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.AmpleImpl;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.Authorizations;
@@ -120,28 +128,18 @@ public class ClientContext implements AccumuloClient {
     return () -> Suppliers.memoizeWithExpiration(s::get, 100, TimeUnit.MILLISECONDS).get();
   }
 
-  public ClientContext(Properties clientProperties) {
-    this(ClientInfo.from(clientProperties));
-  }
-
-  public ClientContext(SingletonReservation reservation, ClientInfo info) {
-    this(reservation, info, ClientConfConverter.toAccumuloConf(info.getProperties()));
-  }
-
-  public ClientContext(ClientInfo info) {
-    this(info, ClientConfConverter.toAccumuloConf(info.getProperties()));
-  }
-
-  public ClientContext(ClientInfo info, AccumuloConfiguration serverConf) {
-    this(SingletonReservation.noop(), info, serverConf);
-  }
-
+  /**
+   * Create a client context with the provided configuration. Legacy client code must provide a
+   * no-op SingletonReservation to preserve behavior prior to 2.x. Clients since 2.x should call
+   * Accumulo.newClient() builder, which will create a client reservation in
+   * {@link ClientBuilderImpl#buildClient}
+   */
   public ClientContext(SingletonReservation reservation, ClientInfo info,
       AccumuloConfiguration serverConf) {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
-    zooCache = new ZooCacheFactory().getZooCache(info.getZooKeepers(),
-        info.getZooKeepersSessionTimeOut());
+    zooCache =
+        new ZooCacheFactory().getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
     this.serverConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
@@ -198,6 +196,11 @@ public class ClientContext implements AccumuloClient {
         return org.apache.accumulo.core.client.Connector.from(context);
       }
     };
+  }
+
+  public Ample getAmple() {
+    ensureOpen();
+    return new AmpleImpl(this);
   }
 
   /**
@@ -325,7 +328,6 @@ public class ClientContext implements AccumuloClient {
    */
   public String getRootTabletLocation() {
     ensureOpen();
-    String zRootLocPath = getZooKeeperRoot() + RootTable.ZROOT_TABLET_LOCATION;
 
     OpTimer timer = null;
 
@@ -335,20 +337,19 @@ public class ClientContext implements AccumuloClient {
       timer = new OpTimer().start();
     }
 
-    byte[] loc = zooCache.get(zRootLocPath);
+    Location loc = getAmple().readTablet(RootTable.EXTENT, LOCATION).getLocation();
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(),
-          (loc == null ? "null" : new String(loc, UTF_8)),
+      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
-    if (loc == null) {
+    if (loc == null || loc.getType() != LocationType.CURRENT) {
       return null;
     }
 
-    return new String(loc, UTF_8).split("\\|")[0];
+    return loc.getHostAndPort().toString();
   }
 
   /**
@@ -358,7 +359,12 @@ public class ClientContext implements AccumuloClient {
    */
   public List<String> getMasterLocations() {
     ensureOpen();
-    String masterLocPath = getZooKeeperRoot() + Constants.ZMASTER_LOCK;
+    return getMasterLocations(zooCache, getInstanceID());
+  }
+
+  // available only for sharing code with old ZooKeeperInstance
+  public static List<String> getMasterLocations(ZooCache zooCache, String instanceId) {
+    String masterLocPath = ZooUtil.getRoot(instanceId) + Constants.ZMASTER_LOCK;
 
     OpTimer timer = null;
 
@@ -367,7 +373,7 @@ public class ClientContext implements AccumuloClient {
       timer = new OpTimer().start();
     }
 
-    byte[] loc = ZooUtil.getLockData(zooCache, masterLocPath);
+    byte[] loc = zooCache.getLockData(masterLocPath);
 
     if (timer != null) {
       timer.stop();
@@ -392,26 +398,34 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     final String instanceName = info.getInstanceName();
     if (instanceId == null) {
-      // want the instance id to be stable for the life of this instance object,
-      // so only get it once
-      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-      byte[] iidb = zooCache.get(instanceNamePath);
-      if (iidb == null) {
-        throw new RuntimeException(
-            "Instance name " + instanceName + " does not exist in zookeeper. "
-                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
-      }
-      instanceId = new String(iidb, UTF_8);
+      instanceId = getInstanceID(zooCache, instanceName);
     }
-
-    if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
-      if (instanceName == null)
-        throw new RuntimeException("Instance id " + instanceId + " does not exist in zookeeper");
-      throw new RuntimeException("Instance id " + instanceId + " pointed to by the name "
-          + instanceName + " does not exist in zookeeper");
-    }
-
+    verifyInstanceId(zooCache, instanceId, instanceName);
     return instanceId;
+  }
+
+  // available only for sharing code with old ZooKeeperInstance
+  public static String getInstanceID(ZooCache zooCache, String instanceName) {
+    requireNonNull(zooCache, "zooCache cannot be null");
+    requireNonNull(instanceName, "instanceName cannot be null");
+    String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+    byte[] data = zooCache.get(instanceNamePath);
+    if (data == null) {
+      throw new RuntimeException("Instance name " + instanceName + " does not exist in zookeeper. "
+          + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+    }
+    return new String(data, UTF_8);
+  }
+
+  // available only for sharing code with old ZooKeeperInstance
+  public static void verifyInstanceId(ZooCache zooCache, String instanceId, String instanceName) {
+    requireNonNull(zooCache, "zooCache cannot be null");
+    requireNonNull(instanceId, "instanceId cannot be null");
+    if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
+      throw new RuntimeException("Instance id " + instanceId
+          + (instanceName == null ? "" : " pointed to by the name " + instanceName)
+          + " does not exist in zookeeper");
+    }
   }
 
   public String getZooKeeperRoot() {
@@ -474,8 +488,8 @@ public class ClientContext implements AccumuloClient {
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException {
-    Integer numQueryThreads = ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS
-        .getInteger(getProperties());
+    Integer numQueryThreads =
+        ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS.getInteger(getProperties());
     Objects.requireNonNull(numQueryThreads);
     ensureOpen();
     return createBatchScanner(tableName, authorizations, numQueryThreads);
@@ -660,7 +674,9 @@ public class ClientContext implements AccumuloClient {
       SingletonReservation reservation = SingletonManager.getClientReservation();
       try {
         // ClientContext closes reservation unless a RuntimeException is thrown
-        return new ClientContext(reservation, cbi.getClientInfo());
+        ClientInfo info = cbi.getClientInfo();
+        AccumuloConfiguration config = ClientConfConverter.toAccumuloConf(info.getProperties());
+        return new ClientContext(reservation, info, config);
       } catch (RuntimeException e) {
         reservation.close();
         throw e;

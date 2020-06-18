@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertTrue;
@@ -32,15 +33,19 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +53,8 @@ import org.slf4j.LoggerFactory;
 public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ManyWriteAheadLogsIT.class);
+
+  private String majcDelay, walogSize;
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -69,6 +76,38 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
   @Override
   protected int defaultTimeoutSeconds() {
     return 10 * 60;
+  }
+
+  @Before
+  public void alterConfig() throws Exception {
+    if (getClusterType() == ClusterType.MINI) {
+      return;
+    }
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      InstanceOperations iops = client.instanceOperations();
+      Map<String,String> conf = iops.getSystemConfiguration();
+      majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
+      walogSize = conf.get(Property.TSERV_WALOG_MAX_SIZE.getKey());
+
+      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1");
+      iops.setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1M");
+
+      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    }
+  }
+
+  @After
+  public void resetConfig() throws Exception {
+    if (majcDelay != null) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+        InstanceOperations iops = client.instanceOperations();
+        iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+        iops.setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), walogSize);
+      }
+      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    }
   }
 
   /**
@@ -159,16 +198,34 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
   }
 
   private void addOpenWals(ServerContext c, Set<String> allWalsSeen) throws Exception {
-    Map<String,WalState> wals = WALSunnyDayIT._getWals(c);
-    Set<Entry<String,WalState>> es = wals.entrySet();
+
     int open = 0;
-    for (Entry<String,WalState> entry : es) {
-      if (entry.getValue() == WalState.OPEN) {
-        open++;
-        allWalsSeen.add(entry.getKey());
+    int attempts = 0;
+    boolean foundWal = false;
+
+    while (open == 0) {
+      attempts++;
+      Map<String,WalState> wals = WALSunnyDayIT._getWals(c);
+      Set<Entry<String,WalState>> es = wals.entrySet();
+      for (Entry<String,WalState> entry : es) {
+        if (entry.getValue() == WalState.OPEN) {
+          open++;
+          allWalsSeen.add(entry.getKey());
+          foundWal = true;
+        } else {
+          // log CLOSED or UNREFERENCED to help debug this test
+          log.debug("The WalState for {} is {}", entry.getKey(), entry.getValue());
+        }
+      }
+
+      if (!foundWal) {
+        Thread.sleep(50);
+        if (attempts % 50 == 0)
+          log.debug("No open WALs found in {} attempts.", attempts);
       }
     }
 
+    log.debug("It took {} attempt(s) to find {} open WALs", attempts, open);
     assertTrue("Open WALs not in expected range " + open, open > 0 && open < 4);
   }
 

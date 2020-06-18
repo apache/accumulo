@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.fate.util;
 
@@ -23,8 +25,8 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.concurrent.TimeUnit;
 
@@ -36,9 +38,7 @@ import org.apache.accumulo.fate.util.Retry.NeedsTimeIncrement;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.easymock.EasyMock;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 
 public class RetryTest {
@@ -46,22 +46,20 @@ public class RetryTest {
   private Retry retry;
   private static final long INITIAL_WAIT = 1000;
   private static final long WAIT_INC = 1000;
+  private static final double BACKOFF_FACTOR = 1.0;
   private static final long MAX_RETRIES = 5;
   private static final long LOG_INTERVAL = 1000;
   private Retry unlimitedRetry;
   private static final TimeUnit MS = MILLISECONDS;
 
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
-
   @Before
   public void setup() {
     retry = Retry.builder().maxRetries(MAX_RETRIES).retryAfter(INITIAL_WAIT, MS)
-        .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).logInterval(LOG_INTERVAL, MS)
-        .createRetry();
+        .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).backOffFactor(BACKOFF_FACTOR)
+        .logInterval(LOG_INTERVAL, MS).createRetry();
     unlimitedRetry = Retry.builder().infiniteRetries().retryAfter(INITIAL_WAIT, MS)
-        .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).logInterval(LOG_INTERVAL, MS)
-        .createRetry();
+        .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).backOffFactor(BACKOFF_FACTOR)
+        .logInterval(LOG_INTERVAL, MS).createRetry();
   }
 
   @Test
@@ -100,9 +98,7 @@ public class RetryTest {
     assertFalse(retry.canRetry());
 
     // Calling useRetry when canRetry returns false throws an exception
-    exception.expect(IllegalStateException.class);
-    retry.useRetry();
-    fail("previous command should have thrown IllegalStateException");
+    assertThrows(IllegalStateException.class, () -> retry.useRetry());
   }
 
   @Test
@@ -112,12 +108,45 @@ public class RetryTest {
     retry.setStartWait(INITIAL_WAIT);
     retry.setWaitIncrement(WAIT_INC);
     retry.setMaxWait(MAX_RETRIES * 1000);
+    retry.setBackOffFactor(1);
+    retry.setDoTimeJitter(false);
 
     long currentWait = INITIAL_WAIT;
     for (int i = 1; i <= MAX_RETRIES; i++) {
       retry.sleep(currentWait);
       EasyMock.expectLastCall();
       currentWait += WAIT_INC;
+    }
+
+    EasyMock.replay(retry);
+
+    while (retry.canRetry()) {
+      retry.useRetry();
+      retry.waitForNextAttempt();
+    }
+
+    EasyMock.verify(retry);
+  }
+
+  @Test
+  public void testBackOffFactor() throws InterruptedException {
+    retry = EasyMock.createMockBuilder(Retry.class).addMockedMethod("sleep").createStrictMock();
+    retry.setMaxRetries(MAX_RETRIES);
+    retry.setBackOffFactor(1.5);
+    retry.setStartWait(INITIAL_WAIT);
+    long waitIncrement = 0, currentWait = INITIAL_WAIT;
+    retry.setWaitIncrement(WAIT_INC);
+    retry.setMaxWait(MAX_RETRIES * 128000);
+    retry.setDoTimeJitter(false);
+    double backOfFactor = 1.5, originalBackoff = 1.5;
+
+    for (int i = 1; i <= MAX_RETRIES; i++) {
+      retry.sleep(currentWait);
+      double waitFactor = backOfFactor;
+      backOfFactor *= originalBackoff;
+      waitIncrement = (long) (Math.ceil(waitFactor * WAIT_INC));
+      currentWait = Math.min(retry.getMaxWait(), INITIAL_WAIT + waitIncrement);
+      EasyMock.expectLastCall();
     }
 
     EasyMock.replay(retry);
@@ -138,6 +167,8 @@ public class RetryTest {
     retry.setWaitIncrement(WAIT_INC);
     // Make the last retry not increment in length
     retry.setMaxWait((MAX_RETRIES - 1) * 1000);
+    retry.setBackOffFactor(1);
+    retry.setDoTimeJitter(false);
 
     long currentWait = INITIAL_WAIT;
     for (int i = 1; i <= MAX_RETRIES; i++) {
@@ -207,9 +238,8 @@ public class RetryTest {
     NeedsRetries builder = Retry.builder();
     builder.maxRetries(10);
     builder.maxRetries(0);
-    exception.expect(IllegalArgumentException.class);
-    builder.maxRetries(-1);
-    fail("Should not allow negative retries");
+    assertThrows("Should not allow negative retries", IllegalArgumentException.class,
+        () -> builder.maxRetries(-1));
   }
 
   @Test
@@ -222,9 +252,8 @@ public class RetryTest {
     builder.retryAfter(0, MILLISECONDS);
     builder.retryAfter(0, DAYS);
 
-    exception.expect(IllegalArgumentException.class);
-    builder.retryAfter(-1, NANOSECONDS);
-    fail("Should not allow negative wait times");
+    assertThrows("Should not allow negative wait times", IllegalArgumentException.class,
+        () -> builder.retryAfter(-1, NANOSECONDS));
   }
 
   @Test
@@ -237,27 +266,25 @@ public class RetryTest {
     builder.incrementBy(0, HOURS);
     builder.incrementBy(0, NANOSECONDS);
 
-    exception.expect(IllegalArgumentException.class);
-    builder.incrementBy(-1, NANOSECONDS);
-    fail("Should not allow negative increments");
+    assertThrows("Should not allow negative increments", IllegalArgumentException.class,
+        () -> builder.incrementBy(-1, NANOSECONDS));
   }
 
   @Test
   public void testMaxWait() {
-    NeedsMaxWait builder = Retry.builder().maxRetries(10).retryAfter(15, MILLISECONDS)
-        .incrementBy(10, MILLISECONDS);
+    NeedsMaxWait builder =
+        Retry.builder().maxRetries(10).retryAfter(15, MILLISECONDS).incrementBy(10, MILLISECONDS);
     builder.maxWait(15, MILLISECONDS);
     builder.maxWait(16, MILLISECONDS);
 
-    exception.expect(IllegalArgumentException.class);
-    builder.maxWait(14, MILLISECONDS);
-    fail("Max wait time should be greater than or equal to initial wait time");
+    assertThrows("Max wait time should be greater than or equal to initial wait time",
+        IllegalArgumentException.class, () -> builder.maxWait(14, MILLISECONDS));
   }
 
   @Test
   public void testLogInterval() {
     NeedsLogInterval builder = Retry.builder().maxRetries(10).retryAfter(15, MILLISECONDS)
-        .incrementBy(10, MILLISECONDS).maxWait(16, MINUTES);
+        .incrementBy(10, MILLISECONDS).maxWait(16, MINUTES).backOffFactor(1);
     builder.logInterval(10, DAYS);
     builder.logInterval(10, HOURS);
     builder.logInterval(10, NANOSECONDS);
@@ -265,9 +292,8 @@ public class RetryTest {
     builder.logInterval(0, HOURS);
     builder.logInterval(0, NANOSECONDS);
 
-    exception.expect(IllegalArgumentException.class);
-    builder.logInterval(-1, NANOSECONDS);
-    fail("Log interval must not be negative");
+    assertThrows("Log interval must not be negative", IllegalArgumentException.class,
+        () -> builder.logInterval(-1, NANOSECONDS));
   }
 
   @Test
@@ -275,8 +301,8 @@ public class RetryTest {
     long maxRetries = 10, startWait = 50L, maxWait = 5000L, waitIncrement = 500L,
         logInterval = 10000L;
     RetryFactory factory = Retry.builder().maxRetries(maxRetries).retryAfter(startWait, MS)
-        .incrementBy(waitIncrement, MS).maxWait(maxWait, MS).logInterval(logInterval, MS)
-        .createFactory();
+        .incrementBy(waitIncrement, MS).maxWait(maxWait, MS).backOffFactor(1)
+        .logInterval(logInterval, MS).createFactory();
     Retry retry = factory.createRetry();
 
     assertEquals(maxRetries, retry.getMaxRetries());
@@ -289,9 +315,10 @@ public class RetryTest {
   @Test
   public void properArgumentsInUnlimitedRetry() {
     long startWait = 50L, maxWait = 5000L, waitIncrement = 500L, logInterval = 10000L;
+    double waitFactor = 1.0;
     RetryFactory factory = Retry.builder().infiniteRetries().retryAfter(startWait, MS)
-        .incrementBy(waitIncrement, MS).maxWait(maxWait, MS).logInterval(logInterval, MS)
-        .createFactory();
+        .incrementBy(waitIncrement, MS).maxWait(maxWait, MS).backOffFactor(waitFactor)
+        .logInterval(logInterval, MS).createFactory();
     Retry retry = factory.createRetry();
 
     assertEquals(-1, retry.getMaxRetries());

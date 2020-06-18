@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -100,7 +102,7 @@ import com.google.common.base.Joiner;
  *   + when a mutation enters the system memory is incremented
  *   + when a mutation successfully leaves the system memory is decremented
  */
-public class TabletServerBatchWriter {
+public class TabletServerBatchWriter implements AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchWriter.class);
 
@@ -121,8 +123,8 @@ public class TabletServerBatchWriter {
 
   // latency timers
   private final Timer jtimer = new Timer("BatchWriterLatencyTimer", true);
-  private final Map<String,TimeoutTracker> timeoutTrackers = Collections
-      .synchronizedMap(new HashMap<>());
+  private final Map<String,TimeoutTracker> timeoutTrackers =
+      Collections.synchronizedMap(new HashMap<>());
 
   // stats
   private long totalMemUsed = 0;
@@ -211,8 +213,8 @@ public class TabletServerBatchWriter {
         public void run() {
           try {
             synchronized (TabletServerBatchWriter.this) {
-              if ((System.currentTimeMillis()
-                  - lastProcessingStartTime) > TabletServerBatchWriter.this.maxLatency)
+              if ((System.currentTimeMillis() - lastProcessingStartTime)
+                  > TabletServerBatchWriter.this.maxLatency)
                 startProcessing();
             }
           } catch (Throwable t) {
@@ -324,6 +326,7 @@ public class TabletServerBatchWriter {
     }
   }
 
+  @Override
   public synchronized void close() throws MutationsRejectedException {
 
     if (closed)
@@ -474,7 +477,7 @@ public class TabletServerBatchWriter {
   // BEGIN code for handling unrecoverable errors
 
   private void updatedConstraintViolations(List<ConstraintViolationSummary> cvsList) {
-    if (cvsList.size() > 0) {
+    if (!cvsList.isEmpty()) {
       synchronized (this) {
         somethingFailed = true;
         violations.add(cvsList);
@@ -492,7 +495,7 @@ public class TabletServerBatchWriter {
   }
 
   private void updateAuthorizationFailures(Map<KeyExtent,SecurityErrorCode> authorizationFailures) {
-    if (authorizationFailures.size() > 0) {
+    if (!authorizationFailures.isEmpty()) {
 
       // was a table deleted?
       HashSet<TableId> tableIds = new HashSet<>();
@@ -514,14 +517,9 @@ public class TabletServerBatchWriter {
 
   private void mergeAuthorizationFailures(Map<KeyExtent,Set<SecurityErrorCode>> source,
       Map<KeyExtent,SecurityErrorCode> addition) {
-    for (Entry<KeyExtent,SecurityErrorCode> entry : addition.entrySet()) {
-      Set<SecurityErrorCode> secs = source.get(entry.getKey());
-      if (secs == null) {
-        secs = new HashSet<>();
-        source.put(entry.getKey(), secs);
-      }
-      secs.add(entry.getValue());
-    }
+    addition.forEach((ke, sec) -> {
+      source.computeIfAbsent(ke, p -> new HashSet<>()).add(sec);
+    });
   }
 
   private synchronized void updateServerErrors(String server, Exception e) {
@@ -546,7 +544,8 @@ public class TabletServerBatchWriter {
   private void checkForFailures() throws MutationsRejectedException {
     if (somethingFailed) {
       List<ConstraintViolationSummary> cvsList = violations.asList();
-      HashMap<TabletId,Set<org.apache.accumulo.core.client.security.SecurityErrorCode>> af = new HashMap<>();
+      HashMap<TabletId,Set<org.apache.accumulo.core.client.security.SecurityErrorCode>> af =
+          new HashMap<>();
       for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : authorizationFailures.entrySet()) {
         HashSet<org.apache.accumulo.core.client.security.SecurityErrorCode> codes = new HashSet<>();
 
@@ -678,7 +677,7 @@ public class TabletServerBatchWriter {
             ArrayList<Mutation> tableFailures = new ArrayList<>();
             locator.binMutations(context, tableMutations, binnedMutations, tableFailures);
 
-            if (tableFailures.size() > 0) {
+            if (!tableFailures.isEmpty()) {
               failedMutations.add(tableId, tableFailures);
 
               if (tableFailures.size() == tableMutations.size())
@@ -736,8 +735,8 @@ public class TabletServerBatchWriter {
       addMutations(binnedMutations);
     }
 
-    private synchronized void addMutations(
-        Map<String,TabletServerMutations<Mutation>> binnedMutations) {
+    private synchronized void
+        addMutations(Map<String,TabletServerMutations<Mutation>> binnedMutations) {
 
       int count = 0;
 
@@ -888,7 +887,7 @@ public class TabletServerBatchWriter {
     private MutationSet sendMutationsToTabletServer(String location,
         Map<KeyExtent,List<Mutation>> tabMuts, TimeoutTracker timeoutTracker)
         throws IOException, AccumuloSecurityException, AccumuloServerException {
-      if (tabMuts.size() == 0) {
+      if (tabMuts.isEmpty()) {
         return new MutationSet();
       }
       TInfo tinfo = TraceUtil.traceInfo();
@@ -923,8 +922,8 @@ public class TabletServerBatchWriter {
             timeoutTracker.madeProgress();
           } else {
 
-            long usid = client.startUpdate(tinfo, context.rpcCreds(),
-                DurabilityImpl.toThrift(durability));
+            long usid =
+                client.startUpdate(tinfo, context.rpcCreds(), DurabilityImpl.toThrift(durability));
 
             List<TMutation> updates = new ArrayList<>();
             for (Entry<KeyExtent,List<Mutation>> entry : tabMuts.entrySet()) {
@@ -945,8 +944,8 @@ public class TabletServerBatchWriter {
 
             UpdateErrors updateErrors = client.closeUpdate(tinfo, usid);
 
-            Map<KeyExtent,Long> failures = Translator.translate(updateErrors.failedExtents,
-                Translators.TKET);
+            Map<KeyExtent,Long> failures =
+                Translator.translate(updateErrors.failedExtents, Translators.TKET);
             updatedConstraintViolations(
                 Translator.translate(updateErrors.violationSummaries, Translators.TCVST));
             updateAuthorizationFailures(
@@ -1006,14 +1005,7 @@ public class TabletServerBatchWriter {
     }
 
     void addMutation(TableId table, Mutation mutation) {
-      List<Mutation> tabMutList = mutations.get(table);
-      if (tabMutList == null) {
-        tabMutList = new ArrayList<>();
-        mutations.put(table, tabMutList);
-      }
-
-      tabMutList.add(mutation);
-
+      mutations.computeIfAbsent(table, k -> new ArrayList<>()).add(mutation);
       memoryUsed += mutation.estimatedMemoryUsed();
     }
 

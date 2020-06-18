@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security;
 
@@ -23,11 +25,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.junit.BeforeClass;
@@ -42,9 +41,9 @@ public class SystemCredentialsTest {
   @Rule
   public TestName test = new TestName();
 
-  private static SiteConfiguration siteConfig = new SiteConfiguration();
-  private String instanceId = UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
-      .toString();
+  private static SiteConfiguration siteConfig = SiteConfiguration.auto();
+  private String instanceId =
+      UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString();
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "input not from a user")
   @BeforeClass
@@ -69,11 +68,13 @@ public class SystemCredentialsTest {
   }
 
   /**
-   * This is a test to ensure the string literal in
-   * {@link ClientContext#ClientContext(SingletonReservation, ClientInfo)} is kept up-to-date if we
-   * move the {@link SystemToken}<br>
-   * This check will not be needed after ACCUMULO-1578
+   * This is a test to ensure the SYSTEM_TOKEN_NAME string literal in
+   * {@link org.apache.accumulo.core.clientImpl.ConnectorImpl} is kept up-to-date if we move the
+   * {@link SystemToken}<br>
+   *
+   * @deprecated This check will not be needed after Connector is removed
    */
+  @Deprecated
   @Test
   public void testSystemToken() {
     assertEquals("org.apache.accumulo.server.security.SystemCredentials$SystemToken",

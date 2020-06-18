@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.problems;
 
@@ -88,16 +90,16 @@ public class ProblemReportTest {
     ProblemReport r2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertEquals(r, r2);
     assertEquals(r2, r);
-    ProblemReport rx1 = new ProblemReport(MetadataTable.ID, ProblemType.FILE_READ, RESOURCE, SERVER,
-        null);
+    ProblemReport rx1 =
+        new ProblemReport(MetadataTable.ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertNotEquals(r, rx1);
     ProblemReport rx2 = new ProblemReport(TABLE_ID, ProblemType.FILE_WRITE, RESOURCE, SERVER, null);
     assertNotEquals(r, rx2);
-    ProblemReport rx3 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE + "x", SERVER,
-        null);
+    ProblemReport rx3 =
+        new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE + "x", SERVER, null);
     assertNotEquals(r, rx3);
-    ProblemReport re1 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x",
-        null);
+    ProblemReport re1 =
+        new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x", null);
     assertEquals(r, re1);
     ProblemReport re2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER,
         new IllegalArgumentException("yikes"));
@@ -115,8 +117,8 @@ public class ProblemReportTest {
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     ProblemReport r2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertEquals(r.hashCode(), r2.hashCode());
-    ProblemReport re1 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x",
-        null);
+    ProblemReport re1 =
+        new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x", null);
     assertEquals(r.hashCode(), re1.hashCode());
     ProblemReport re2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER,
         new IllegalArgumentException("yikes"));

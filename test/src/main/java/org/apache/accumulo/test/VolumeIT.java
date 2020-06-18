@@ -1,22 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -42,9 +43,10 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
-import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -55,12 +57,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
@@ -69,7 +69,9 @@ import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -157,8 +159,8 @@ public class VolumeIT extends ConfigurableMacBase {
           fileCount++;
         }
         assertEquals(4, fileCount);
-        List<DiskUsage> diskUsage = client.tableOperations()
-            .getDiskUsage(Collections.singleton(tableName));
+        List<DiskUsage> diskUsage =
+            client.tableOperations().getDiskUsage(Collections.singleton(tableName));
         assertEquals(1, diskUsage.size());
         long usage = diskUsage.get(0).getUsage();
         log.debug("usage {}", usage);
@@ -185,102 +187,18 @@ public class VolumeIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void testRelativePaths() throws Exception {
-
-    List<String> expected = new ArrayList<>();
-
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName,
-          new NewTableConfiguration().withoutDefaultIterators());
-
-      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-
-      SortedSet<Text> partitions = new TreeSet<>();
-      // with some splits
-      for (String s : "c,g,k,p,s,v".split(","))
-        partitions.add(new Text(s));
-
-      client.tableOperations().addSplits(tableName, partitions);
-
-      BatchWriter bw = client.createBatchWriter(tableName);
-
-      // create two files in each tablet
-      for (String s : VolumeChooserIT.alpha_rows) {
-        Mutation m = new Mutation(s);
-        m.put("cf1", "cq1", "1");
-        bw.addMutation(m);
-        expected.add(s + ":cf1:cq1:1");
-      }
-
-      bw.flush();
-      client.tableOperations().flush(tableName, null, null, true);
-
-      for (String s : VolumeChooserIT.alpha_rows) {
-        Mutation m = new Mutation(s);
-        m.put("cf1", "cq1", "2");
-        bw.addMutation(m);
-        expected.add(s + ":cf1:cq1:2");
-      }
-
-      bw.close();
-      client.tableOperations().flush(tableName, null, null, true);
-
-      verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
-
-      client.tableOperations().offline(tableName, true);
-
-      client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
-          TablePermission.WRITE);
-
-      try (Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-        metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
-
-        try (BatchWriter mbw = client.createBatchWriter(MetadataTable.NAME)) {
-          for (Entry<Key,Value> entry : metaScanner) {
-            String cq = entry.getKey().getColumnQualifier().toString();
-            if (cq.startsWith(v1.toString())) {
-              Path path = new Path(cq);
-              String relPath = "/" + path.getParent().getName() + "/" + path.getName();
-              Mutation fileMut = new Mutation(entry.getKey().getRow());
-              fileMut.putDelete(entry.getKey().getColumnFamily(),
-                  entry.getKey().getColumnQualifier());
-              fileMut.put(entry.getKey().getColumnFamily().toString(), relPath,
-                  entry.getValue().toString());
-              mbw.addMutation(fileMut);
-            }
-          }
-        }
-
-        client.tableOperations().online(tableName, true);
-
-        verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
-
-        client.tableOperations().compact(tableName, null, null, true, true);
-
-        verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
-
-        for (Entry<Key,Value> entry : metaScanner) {
-          String cq = entry.getKey().getColumnQualifier().toString();
-          Path path = new Path(cq);
-          assertTrue("relative path not deleted " + path, path.depth() > 2);
-        }
-      }
-    }
-  }
-
-  @Test
   public void testAddVolumes() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = getUniqueNames(2);
 
-      PropertiesConfiguration conf = new PropertiesConfiguration();
+      String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
-      String uuid = verifyAndShutdownCluster(client, conf, tableNames[0]);
-
-      conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2 + "," + v3);
-      conf.save(cluster.getAccumuloPropertiesPath());
+      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
+              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
+      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
+          v1 + "," + v2 + "," + v3);
+      propsBuilder.save();
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -295,8 +213,7 @@ public class VolumeIT extends ConfigurableMacBase {
   }
 
   // grab uuid before shutting down cluster
-  private String verifyAndShutdownCluster(AccumuloClient c, PropertiesConfiguration conf,
-      String tableName) throws Exception {
+  private String verifyAndShutdownCluster(AccumuloClient c, String tableName) throws Exception {
     String uuid = c.instanceOperations().getInstanceID();
 
     verifyVolumesUsed(c, tableName, false, v1, v2);
@@ -304,7 +221,6 @@ public class VolumeIT extends ConfigurableMacBase {
     assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     cluster.stop();
 
-    conf.load(cluster.getAccumuloPropertiesPath());
     return uuid;
   }
 
@@ -312,13 +228,17 @@ public class VolumeIT extends ConfigurableMacBase {
   public void testNonConfiguredVolumes() throws Exception {
 
     String[] tableNames = getUniqueNames(2);
-    PropertiesConfiguration conf = new PropertiesConfiguration();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String uuid = verifyAndShutdownCluster(client, conf, tableNames[0]);
 
-      conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
-      conf.save(cluster.getAccumuloPropertiesPath());
+      String uuid = verifyAndShutdownCluster(client, tableNames[0]);
+
+      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
+              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
+      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
+          v2 + "," + v3);
+      propsBuilder.save();
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -384,21 +304,13 @@ public class VolumeIT extends ConfigurableMacBase {
 
     TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
     try (Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(metaScanner);
       metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
       int[] counts = new int[paths.length];
 
       outer: for (Entry<Key,Value> entry : metaScanner) {
-        String cf = entry.getKey().getColumnFamily().toString();
-        String cq = entry.getKey().getColumnQualifier().toString();
-
-        String path;
-        if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString()))
-          path = cq;
-        else
-          path = entry.getValue().toString();
+        String path = entry.getKey().getColumnQualifier().toString();
 
         for (int i = 0; i < paths.length; i++) {
           if (path.startsWith(paths[i].toString())) {
@@ -445,7 +357,7 @@ public class VolumeIT extends ConfigurableMacBase {
         sum += count;
       }
 
-      assertEquals(200, sum);
+      assertEquals(100, sum);
     }
   }
 
@@ -459,10 +371,12 @@ public class VolumeIT extends ConfigurableMacBase {
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       cluster.stop();
 
-      PropertiesConfiguration conf = new PropertiesConfiguration();
-      conf.load(cluster.getAccumuloPropertiesPath());
-      conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
-      conf.save(cluster.getAccumuloPropertiesPath());
+      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
+              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
+      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
+          v2.toString());
+      propsBuilder.save();
 
       // start cluster and verify that volume was decommissioned
       cluster.start();
@@ -471,12 +385,17 @@ public class VolumeIT extends ConfigurableMacBase {
 
       verifyVolumesUsed(client, tableNames[0], true, v2);
 
+      client.tableOperations().compact(RootTable.NAME, new CompactionConfig().setWait(true));
+
       // check that root tablet is not on volume 1
-      ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-      String zpath = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-          + RootTable.ZROOT_TABLET_PATH;
-      String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
-      assertTrue(rootTabletDir.startsWith(v2.toString()));
+      int count = 0;
+      for (StoredTabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
+          .getFiles()) {
+        assertTrue(file.getMetaUpdateDelete().startsWith(v2.toString()));
+        count++;
+      }
+
+      assertTrue(count > 0);
 
       client.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<>(),
           new HashSet<>());
@@ -496,8 +415,10 @@ public class VolumeIT extends ConfigurableMacBase {
     verifyVolumesUsed(client, tableNames[0], false, v1, v2);
 
     // write to 2nd table, but do not flush data to disk before shutdown
-    writeData(tableNames[1],
-        cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD)));
+    try (AccumuloClient c2 =
+        cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
+      writeData(tableNames[1], c2);
+    }
 
     if (cleanShutdown)
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
@@ -514,12 +435,14 @@ public class VolumeIT extends ConfigurableMacBase {
     assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
     Path v9 = new Path(v9f.toURI());
 
-    PropertiesConfiguration conf = new PropertiesConfiguration();
-    conf.load(cluster.getAccumuloPropertiesPath());
+    FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+        new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
+            new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
+    PropertiesConfiguration conf = propsBuilder.getConfiguration();
     conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
     conf.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
         v1 + " " + v8 + "," + v2 + " " + v9);
-    conf.save(cluster.getAccumuloPropertiesPath());
+    propsBuilder.save();
 
     // start cluster and verify that volumes were replaced
     cluster.start();
@@ -534,12 +457,18 @@ public class VolumeIT extends ConfigurableMacBase {
     verifyVolumesUsed(client, tableNames[0], true, v8, v9);
     verifyVolumesUsed(client, tableNames[1], true, v8, v9);
 
+    client.tableOperations().compact(RootTable.NAME, new CompactionConfig().setWait(true));
+
     // check that root tablet is not on volume 1 or 2
-    ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-        + RootTable.ZROOT_TABLET_PATH;
-    String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
-    assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
+    int count = 0;
+    for (StoredTabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
+        .getFiles()) {
+      assertTrue(file.getMetaUpdateDelete().startsWith(v8.toString())
+          || file.getMetaUpdateDelete().startsWith(v9.toString()));
+      count++;
+    }
+
+    assertTrue(count > 0);
 
     client.tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<>(),
         new HashSet<>());

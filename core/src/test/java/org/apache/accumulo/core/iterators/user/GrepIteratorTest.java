@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -46,26 +48,26 @@ public class GrepIteratorTest {
   public void init() {
     input = new TreeMap<>();
     output = new TreeMap<>();
-    input.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz".getBytes()));
-    output.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz".getBytes()));
+    input.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz"));
+    output.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz"));
 
-    input.put(new Key("bdf", "ace", "xyz", 0), new Value("xyz".getBytes()));
-    input.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz".getBytes()));
-    output.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz".getBytes()));
-    input.put(new Key("bdf", "xyz", "xyz", 0), new Value("xyz".getBytes()));
+    input.put(new Key("bdf", "ace", "xyz", 0), new Value("xyz"));
+    input.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz"));
+    output.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz"));
+    input.put(new Key("bdf", "xyz", "xyz", 0), new Value("xyz"));
 
-    input.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz".getBytes()));
-    output.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz".getBytes()));
-    input.put(new Key("ceg", "xyz", "xyz", 0), new Value("xyz".getBytes()));
+    input.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz"));
+    output.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz"));
+    input.put(new Key("ceg", "xyz", "xyz", 0), new Value("xyz"));
 
-    input.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef".getBytes()));
-    output.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef".getBytes()));
-    input.put(new Key("dfh", "xyz", "xyz", 1), new Value("xyz".getBytes()));
+    input.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef"));
+    output.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef"));
+    input.put(new Key("dfh", "xyz", "xyz", 1), new Value("xyz"));
 
     Key k = new Key("dfh", "xyz", "xyz", 1);
     k.setDeleted(true);
-    input.put(k, new Value("xyz".getBytes()));
-    output.put(k, new Value("xyz".getBytes()));
+    input.put(k, new Value("xyz"));
+    output.put(k, new Value("xyz"));
   }
 
   public static void checkEntries(SortedKeyValueIterator<Key,Value> skvi, SortedMap<Key,Value> map)

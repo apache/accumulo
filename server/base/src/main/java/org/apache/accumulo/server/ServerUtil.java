@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server;
 
@@ -113,10 +115,7 @@ public class ServerUtil {
     log.info("Data Version {}", dataVersion);
     ServerUtil.waitForZookeeperAndHdfs(context);
 
-    if (!(canUpgradeFromDataVersion(dataVersion))) {
-      throw new RuntimeException("This version of accumulo (" + Constants.VERSION
-          + ") is not compatible with files stored using data version " + dataVersion);
-    }
+    ensureDataVersionCompatible(dataVersion);
 
     TreeMap<String,String> sortedProps = new TreeMap<>();
     for (Entry<String,String> entry : conf)
@@ -152,14 +151,13 @@ public class ServerUtil {
   }
 
   /**
-   * Sanity check that the current persistent version is allowed to upgrade to the version of
-   * Accumulo running.
-   *
-   * @param dataVersion
-   *          the version that is persisted in the backing Volumes
+   * Check to see if this version of Accumulo can run against or upgrade the passed in data version.
    */
-  public static boolean canUpgradeFromDataVersion(final int dataVersion) {
-    return ServerConstants.CAN_UPGRADE.get(dataVersion);
+  public static void ensureDataVersionCompatible(int dataVersion) {
+    if (!(ServerConstants.CAN_RUN.contains(dataVersion))) {
+      throw new IllegalStateException("This version of accumulo (" + Constants.VERSION
+          + ") is not compatible with files stored using data version " + dataVersion);
+    }
   }
 
   /**
@@ -167,7 +165,7 @@ public class ServerUtil {
    * something?
    */
   public static boolean persistentVersionNeedsUpgrade(final int accumuloPersistentVersion) {
-    return ServerConstants.NEEDS_UPGRADE.get(accumuloPersistentVersion);
+    return ServerConstants.NEEDS_UPGRADE.contains(accumuloPersistentVersion);
   }
 
   public static void monitorSwappiness(AccumuloConfiguration config) {
@@ -262,8 +260,9 @@ public class ServerUtil {
    */
   public static void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyTStore<ServerUtil> fate = new ReadOnlyStore<>(new ZooStore<>(
-          context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
+      final ReadOnlyTStore<ServerUtil> fate =
+          new ReadOnlyStore<>(new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
+              context.getZooReaderWriter()));
       if (!(fate.list().isEmpty())) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.admin;
 
@@ -66,7 +68,16 @@ public interface TableOperations {
   boolean exists(String tableName);
 
   /**
-   * Create a table with no special configuration
+   * Create a table with no special configuration. A safe way to ignore tables that do something
+   * like the following:
+   *
+   * <pre>
+   * try {
+   *   connector.tableOperations().create("mynamespace.mytable");
+   * } catch (TableExistsException e) {
+   *   // ignore or log
+   * }
+   * </pre>
    *
    * @param tableName
    *          the name of the table
@@ -131,6 +142,17 @@ public interface TableOperations {
   }
 
   /**
+   * Create a table with specified configuration. A safe way to ignore tables that do exist would be
+   * to do something like the following:
+   *
+   * <pre>
+   * try {
+   *   connector.tableOperations().create("mynamespace.mytable");
+   * } catch (TableExistsException e) {
+   *   // ignore or log
+   * }
+   * </pre>
+   *
    * @param tableName
    *          the name of the table
    * @param ntc
@@ -155,10 +177,25 @@ public interface TableOperations {
    * @param tableName
    *          Name of a table to create and import into.
    * @param importDir
-   *          Directory that contains the files copied by distcp from exportTable
+   *          A directory containing the files copied by distcp from exportTable
    * @since 1.5.0
+   *
    */
-  void importTable(String tableName, String importDir)
+  default void importTable(String tableName, String importDir)
+      throws TableExistsException, AccumuloException, AccumuloSecurityException {
+    importTable(tableName, Set.of(importDir));
+  }
+
+  /**
+   * Imports a table exported via exportTable and copied via hadoop distcp.
+   *
+   * @param tableName
+   *          Name of a table to create and import into.
+   * @param importDirs
+   *          A set of directories containing the files copied by distcp from exportTable
+   * @since 2.1.0
+   */
+  void importTable(String tableName, Set<String> importDirs)
       throws TableExistsException, AccumuloException, AccumuloSecurityException;
 
   /**
@@ -462,6 +499,26 @@ public interface TableOperations {
       AccumuloSecurityException, TableNotFoundException, TableExistsException;
 
   /**
+   * Clone a table from an existing table. The cloned table will have the same data as the source
+   * table it was created from. After cloning, the two tables can mutate independently. Initially
+   * the cloned table should not use any extra space, however as the source table and cloned table
+   * major compact extra space will be used by the clone.
+   *
+   * Initially the cloned table is only readable and writable by the user who created it.
+   *
+   * @param srcTableName
+   *          the table to clone
+   * @param newTableName
+   *          the name of the clone
+   * @param config
+   *          the clone command configuration
+   * @since 1.10 and 2.1
+   */
+  void clone(String srcTableName, String newTableName, CloneConfiguration config)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      TableExistsException;
+
+  /**
    * Rename a table
    *
    * @param oldTableName
@@ -487,7 +544,7 @@ public interface TableOperations {
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
-   *           if a general error occurs
+   *           if a general error occurs. Wrapped TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
@@ -523,7 +580,7 @@ public interface TableOperations {
    * @param value
    *          the value to set a per-table property to
    * @throws AccumuloException
-   *           if a general error occurs
+   *           if a general error occurs. Wrapped TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
@@ -541,7 +598,7 @@ public interface TableOperations {
    * @param property
    *          the name of a per-table property
    * @throws AccumuloException
-   *           if a general error occurs
+   *           if a general error occurs. Wrapped TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */

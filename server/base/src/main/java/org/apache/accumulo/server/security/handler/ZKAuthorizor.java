@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security.handler;
 
@@ -26,7 +28,6 @@ import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -38,7 +39,6 @@ import org.slf4j.LoggerFactory;
 
 public class ZKAuthorizor implements Authorizor {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthorizor.class);
-  private static Authorizor zkAuthorizorInstance = null;
 
   private final String ZKUserAuths = "/Authorizations";
 
@@ -46,14 +46,8 @@ public class ZKAuthorizor implements Authorizor {
   private String ZKUserPath;
   private ZooCache zooCache;
 
-  public static synchronized Authorizor getInstance() {
-    if (zkAuthorizorInstance == null)
-      zkAuthorizorInstance = new ZKAuthorizor();
-    return zkAuthorizorInstance;
-  }
-
   @Override
-  public void initialize(ServerContext context, boolean initialize) {
+  public void initialize(ServerContext context) {
     this.context = context;
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
     ZKUserPath = ZKSecurityTool.getInstancePath(context.getInstanceID()) + "/users";
@@ -94,7 +88,7 @@ public class ZKAuthorizor implements Authorizor {
 
   @Override
   public void initUser(String user) throws AccumuloSecurityException {
-    IZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooReaderWriter();
     try {
       zoo.putPersistentData(ZKUserPath + "/" + user, new byte[0], NodeExistsPolicy.SKIP);
     } catch (KeeperException e) {
@@ -110,7 +104,7 @@ public class ZKAuthorizor implements Authorizor {
   public void dropUser(String user) throws AccumuloSecurityException {
     try {
       synchronized (zooCache) {
-        IZooReaderWriter zoo = context.getZooReaderWriter();
+        ZooReaderWriter zoo = context.getZooReaderWriter();
         zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserAuths, NodeMissingPolicy.SKIP);
         zooCache.clear(ZKUserPath + "/" + user);
       }

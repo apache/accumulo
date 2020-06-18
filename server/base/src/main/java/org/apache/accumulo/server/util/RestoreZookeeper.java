@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -28,11 +30,8 @@ import javax.xml.parsers.SAXParserFactory;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
@@ -44,11 +43,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class RestoreZookeeper {
 
   private static class Restore extends DefaultHandler {
-    IZooReaderWriter zk = null;
+    ZooReaderWriter zk = null;
     Stack<String> cwd = new Stack<>();
     boolean overwrite = false;
 
-    Restore(IZooReaderWriter zk, boolean overwrite) {
+    Restore(ZooReaderWriter zk, boolean overwrite) {
       this.zk = zk;
       this.overwrite = overwrite;
     }
@@ -57,21 +56,24 @@ public class RestoreZookeeper {
     public void startElement(String uri, String localName, String name, Attributes attributes) {
       if ("node".equals(name)) {
         String child = attributes.getValue("name");
-        if (child == null)
+        if (child == null) {
           throw new RuntimeException("name attribute not set");
+        }
         String encoding = attributes.getValue("encoding");
         String value = attributes.getValue("value");
-        if (value == null)
+        if (value == null) {
           value = "";
+        }
         String path = cwd.lastElement() + "/" + child;
         create(path, value, encoding);
         cwd.push(path);
       } else if ("dump".equals(name)) {
         String root = attributes.getValue("root");
-        if (root.equals("/"))
+        if (root.equals("/")) {
           cwd.push("");
-        else
+        } else {
           cwd.push(root);
+        }
         create(root, "", UTF_8.name());
       } else if ("ephemeral".equals(name)) {
         cwd.push("");
@@ -86,15 +88,17 @@ public class RestoreZookeeper {
     // assume UTF-8 if not "base64"
     private void create(String path, String value, String encoding) {
       byte[] data = value.getBytes(UTF_8);
-      if ("base64".equals(encoding))
+      if ("base64".equals(encoding)) {
         data = Base64.getDecoder().decode(data);
+      }
       try {
         try {
           zk.putPersistentData(path, data,
               overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);
         } catch (KeeperException e) {
-          if (e.code().equals(KeeperException.Code.NODEEXISTS))
+          if (e.code().equals(KeeperException.Code.NODEEXISTS)) {
             throw new RuntimeException(path + " exists.  Remove it first.");
+          }
           throw e;
         }
       } catch (Exception e) {
@@ -113,11 +117,10 @@ public class RestoreZookeeper {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input")
   public static void main(String[] args) throws Exception {
-    Logger.getRootLogger().setLevel(Level.WARN);
     Opts opts = new Opts();
     opts.parseArgs(RestoreZookeeper.class.getName(), args);
 
-    ZooReaderWriter zoo = new ZooReaderWriter(new SiteConfiguration());
+    var zoo = new ZooReaderWriter(SiteConfiguration.auto());
 
     InputStream in = System.in;
     if (opts.file != null) {

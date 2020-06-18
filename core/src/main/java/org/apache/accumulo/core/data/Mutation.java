@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.data;
 
@@ -1000,8 +1002,6 @@ public class Mutation implements Writable {
    * The following is an example if using {@code at()} to put and delete. Notice how the example
    * mixes {@code String} and {@code byte[]}.
    *
-   * <p>
-   *
    * <pre>
    * <code>
    *   Mutation m = new Mutation("row0017");
@@ -1565,9 +1565,7 @@ public class Mutation implements Writable {
     entries = WritableUtils.readVInt(in);
 
     boolean valuesPresent = (first & 0x01) == 0x01;
-    if (!valuesPresent) {
-      values = null;
-    } else {
+    if (valuesPresent) {
       values = new ArrayList<>();
       int numValues = WritableUtils.readVInt(in);
       for (int i = 0; i < numValues; i++) {
@@ -1576,6 +1574,8 @@ public class Mutation implements Writable {
         in.readFully(val);
         values.add(val);
       }
+    } else {
+      values = null;
     }
 
     if ((first & 0x02) == 0x02) {
@@ -1605,9 +1605,7 @@ public class Mutation implements Writable {
 
     List<byte[]> localValues;
     boolean valuesPresent = in.readBoolean();
-    if (!valuesPresent) {
-      localValues = null;
-    } else {
+    if (valuesPresent) {
       localValues = new ArrayList<>();
       int numValues = in.readInt();
       for (int i = 0; i < numValues; i++) {
@@ -1616,6 +1614,8 @@ public class Mutation implements Writable {
         in.readFully(val);
         localValues.add(val);
       }
+    } else {
+      localValues = null;
     }
 
     // convert data to new format
@@ -1755,8 +1755,8 @@ public class Mutation implements Writable {
       this.serialize();
     }
     ByteBuffer data = serializedSnapshot();
-    TMutation tmutation = new TMutation(ByteBuffer.wrap(row), data,
-        ByteBufferUtil.toByteBuffers(values), entries);
+    TMutation tmutation =
+        new TMutation(ByteBuffer.wrap(row), data, ByteBufferUtil.toByteBuffers(values), entries);
     if (!this.replicationSources.isEmpty()) {
       tmutation.setSources(new ArrayList<>(replicationSources));
     }

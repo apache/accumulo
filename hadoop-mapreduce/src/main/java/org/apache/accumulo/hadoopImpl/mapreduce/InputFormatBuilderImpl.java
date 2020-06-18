@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
@@ -39,9 +41,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
 public class InputFormatBuilderImpl<T>
     implements InputFormatBuilder, InputFormatBuilder.ClientParams<T>,
     InputFormatBuilder.TableParams<T>, InputFormatBuilder.InputFormatOptions<T> {
@@ -58,23 +57,24 @@ public class InputFormatBuilderImpl<T>
 
   @Override
   public InputFormatBuilder.TableParams<T> clientProperties(Properties clientProperties) {
-    this.clientProps = Objects.requireNonNull(clientProperties,
-        "clientProperties must not be null");
+    this.clientProps =
+        Objects.requireNonNull(clientProperties, "clientProperties must not be null");
     return this;
   }
 
   @Override
   public TableParams<T> clientPropertiesPath(String clientPropsPath) {
-    this.clientPropsPath = Objects.requireNonNull(clientPropsPath,
-        "clientPropsPath must not be null");
+    this.clientPropsPath =
+        Objects.requireNonNull(clientPropsPath, "clientPropsPath must not be null");
     return this;
   }
 
   @Override
   public InputFormatBuilder.InputFormatOptions<T> table(String tableName) {
     this.currentTable = Objects.requireNonNull(tableName, "Table name must not be null");
-    if (tableConfigMap.isEmpty())
+    if (tableConfigMap.isEmpty()) {
       tableConfigMap = new LinkedHashMap<>();
+    }
     tableConfigMap.put(currentTable, new InputTableConfig());
     return this;
   }
@@ -94,21 +94,23 @@ public class InputFormatBuilderImpl<T>
 
   @Override
   public InputFormatBuilder.InputFormatOptions<T> ranges(Collection<Range> ranges) {
-    List<Range> newRanges = ImmutableList
-        .copyOf(Objects.requireNonNull(ranges, "Collection of ranges is null"));
-    if (newRanges.size() == 0)
+    List<Range> newRanges =
+        List.copyOf(Objects.requireNonNull(ranges, "Collection of ranges is null"));
+    if (newRanges.isEmpty()) {
       throw new IllegalArgumentException("Specified collection of ranges is empty.");
+    }
     tableConfigMap.get(currentTable).setRanges(newRanges);
     return this;
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions<T> fetchColumns(
-      Collection<IteratorSetting.Column> fetchColumns) {
-    Collection<IteratorSetting.Column> newFetchColumns = ImmutableList
-        .copyOf(Objects.requireNonNull(fetchColumns, "Collection of fetch columns is null"));
-    if (newFetchColumns.size() == 0)
+  public InputFormatBuilder.InputFormatOptions<T>
+      fetchColumns(Collection<IteratorSetting.Column> fetchColumns) {
+    Collection<IteratorSetting.Column> newFetchColumns =
+        List.copyOf(Objects.requireNonNull(fetchColumns, "Collection of fetch columns is null"));
+    if (newFetchColumns.isEmpty()) {
       throw new IllegalArgumentException("Specified collection of fetch columns is empty.");
+    }
     tableConfigMap.get(currentTable).fetchColumns(newFetchColumns);
     return this;
   }
@@ -123,17 +125,18 @@ public class InputFormatBuilderImpl<T>
 
   @Override
   public InputFormatBuilder.InputFormatOptions<T> executionHints(Map<String,String> hints) {
-    Map<String,String> newHints = ImmutableMap
-        .copyOf(Objects.requireNonNull(hints, "Map of execution hints must not be null."));
-    if (newHints.size() == 0)
+    Map<String,String> newHints =
+        Map.copyOf(Objects.requireNonNull(hints, "Map of execution hints must not be null."));
+    if (newHints.isEmpty()) {
       throw new IllegalArgumentException("Specified map of execution hints is empty.");
+    }
     tableConfigMap.get(currentTable).setExecutionHints(newHints);
     return this;
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions<T> samplerConfiguration(
-      SamplerConfiguration samplerConfig) {
+  public InputFormatBuilder.InputFormatOptions<T>
+      samplerConfiguration(SamplerConfiguration samplerConfig) {
     tableConfigMap.get(currentTable).setSamplerConfiguration(samplerConfig);
     return this;
   }
@@ -165,8 +168,9 @@ public class InputFormatBuilderImpl<T>
   @Override
   public InputFormatOptions<T> batchScan(boolean value) {
     tableConfigMap.get(currentTable).setUseBatchScan(value);
-    if (value)
+    if (value) {
       tableConfigMap.get(currentTable).setAutoAdjustRanges(true);
+    }
     return this;
   }
 
@@ -190,7 +194,7 @@ public class InputFormatBuilderImpl<T>
 
   private void _store(Configuration conf) throws AccumuloException, AccumuloSecurityException {
     InputConfigurator.setClientProperties(callingClass, conf, clientProps, clientPropsPath);
-    if (tableConfigMap.size() == 0) {
+    if (tableConfigMap.isEmpty()) {
       throw new IllegalArgumentException("At least one Table must be configured for job.");
     }
     // if only one table use the single table configuration method
@@ -207,19 +211,25 @@ public class InputFormatBuilderImpl<T>
       }
       InputConfigurator.setScanAuthorizations(callingClass, conf, config.getScanAuths().get());
       // all optional values
-      if (config.getContext().isPresent())
+      if (config.getContext().isPresent()) {
         InputConfigurator.setClassLoaderContext(callingClass, conf, config.getContext().get());
-      if (config.getRanges().size() > 0)
+      }
+      if (!config.getRanges().isEmpty()) {
         InputConfigurator.setRanges(callingClass, conf, config.getRanges());
-      if (config.getIterators().size() > 0)
+      }
+      if (!config.getIterators().isEmpty()) {
         InputConfigurator.writeIteratorsToConf(callingClass, conf, config.getIterators());
-      if (config.getFetchedColumns().size() > 0)
+      }
+      if (!config.getFetchedColumns().isEmpty()) {
         InputConfigurator.fetchColumns(callingClass, conf, config.getFetchedColumns());
-      if (config.getSamplerConfiguration() != null)
+      }
+      if (config.getSamplerConfiguration() != null) {
         InputConfigurator.setSamplerConfiguration(callingClass, conf,
             config.getSamplerConfiguration());
-      if (config.getExecutionHints().size() > 0)
+      }
+      if (!config.getExecutionHints().isEmpty()) {
         InputConfigurator.setExecutionHints(callingClass, conf, config.getExecutionHints());
+      }
       InputConfigurator.setAutoAdjustRanges(callingClass, conf, config.shouldAutoAdjustRanges());
       InputConfigurator.setScanIsolation(callingClass, conf, config.shouldUseIsolatedScanners());
       InputConfigurator.setLocalIterators(callingClass, conf, config.shouldUseLocalIterators());

@@ -1,22 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.mapred;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -86,7 +87,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       batchConfig.setMaxWriteThreads(1);
       // set the max memory so that we ensure we don't flush on the write.
       batchConfig.setMaxMemory(Long.MAX_VALUE);
-      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat outputFormat = new org.apache.accumulo.core.client.mapred.AccumuloOutputFormat();
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat outputFormat =
+          new org.apache.accumulo.core.client.mapred.AccumuloOutputFormat();
       ClientInfo ci = ClientInfo.from(props);
       org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setZooKeeperInstance(job,
           ci.getInstanceName(), ci.getZooKeepers());
@@ -100,7 +102,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
         for (int i = 0; i < 3; i++) {
           Mutation m = new Mutation(new Text(String.format("%08d", i)));
           for (int j = 0; j < 3; j++) {
-            m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
+            m.put("cf1", "cq" + j, i + "_" + j);
           }
           writer.write(new Text(testName.getMethodName()), m);
         }
@@ -226,7 +228,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       try (BatchWriter bw = c.createBatchWriter(table1)) {
         for (int i = 0; i < 100; i++) {
           Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-          m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+          m.put("", "", String.format("%09x", i));
           bw.addMutation(m);
         }
       }

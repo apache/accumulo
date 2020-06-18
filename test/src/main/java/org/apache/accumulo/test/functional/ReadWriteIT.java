@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
@@ -21,7 +23,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
@@ -118,9 +119,9 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Test(expected = RuntimeException.class)
   public void invalidInstanceName() {
-    try (AccumuloClient client = Accumulo.newClient()
-        .to("fake_instance_name", cluster.getZooKeepers()).as(getAdminPrincipal(), getAdminToken())
-        .build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().to("fake_instance_name", cluster.getZooKeepers())
+            .as(getAdminPrincipal(), getAdminToken()).build()) {
       client.instanceOperations().getTabletServers();
     }
   }
@@ -145,32 +146,21 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           Thread.sleep(2000);
         }
       }
-      String scheme = "http://";
       if (getCluster() instanceof StandaloneAccumuloCluster) {
-        StandaloneAccumuloCluster standaloneCluster = (StandaloneAccumuloCluster) getCluster();
-        File accumuloProps = new File(standaloneCluster.getServerAccumuloConfDir(),
-            "accumulo.properties");
-        if (accumuloProps.isFile()) {
-          Configuration conf = new Configuration(false);
-          conf.addResource(new Path(accumuloProps.toURI()));
-          String monitorSslKeystore = conf.get(Property.MONITOR_SSL_KEYSTORE.getKey());
-          if (monitorSslKeystore != null) {
-            log.info("Using HTTPS since monitor ssl keystore configuration was observed in {}",
-                accumuloProps);
-            scheme = "https://";
-            SSLContext ctx = SSLContext.getInstance("TLSv1.2");
-            TrustManager[] tm = {new TestTrustManager()};
-            ctx.init(new KeyManager[0], tm, new SecureRandom());
-            SSLContext.setDefault(ctx);
-            HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
-            HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
-          }
-        } else {
-          log.info("{} is not a normal file, not checking for monitor running with SSL",
-              accumuloProps);
+        String monitorSslKeystore =
+            getCluster().getSiteConfiguration().get(Property.MONITOR_SSL_KEYSTORE.getKey());
+        if (monitorSslKeystore != null && !monitorSslKeystore.isEmpty()) {
+          log.info(
+              "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");
+          SSLContext ctx = SSLContext.getInstance("TLSv1.2");
+          TrustManager[] tm = {new TestTrustManager()};
+          ctx.init(new KeyManager[0], tm, new SecureRandom());
+          SSLContext.setDefault(ctx);
+          HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
+          HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
         }
       }
-      URL url = new URL(scheme + monitorLocation);
+      URL url = new URL(monitorLocation);
       log.debug("Fetching web page {}", url);
       String result = FunctionalTestUtils.readAll(url.openStream());
       assertTrue(result.length() > 100);
@@ -317,7 +307,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   public static Mutation m(String row, String cf, String cq, String value) {
     Mutation m = new Mutation(t(row));
-    m.put(t(cf), t(cq), new Value(value.getBytes()));
+    m.put(t(cf), t(cq), new Value(value));
     return m;
   }
 
@@ -389,8 +379,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     ingest(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
     verify(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
     accumuloClient.tableOperations().flush(tableName, null, null, true);
-    try (BatchScanner bscanner = accumuloClient.createBatchScanner(MetadataTable.NAME,
-        Authorizations.EMPTY, 1)) {
+    try (BatchScanner bscanner =
+        accumuloClient.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
       String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
       bscanner.setRanges(
           Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));

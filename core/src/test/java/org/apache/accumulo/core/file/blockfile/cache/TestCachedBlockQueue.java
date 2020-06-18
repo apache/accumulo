@@ -7,13 +7,14 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
@@ -59,8 +60,8 @@ public class TestCachedBlockQueue {
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = queue
-        .getList();
+    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
+        queue.getList();
     assertEquals(blocks.poll().getName(), "cb1");
     assertEquals(blocks.poll().getName(), "cb2");
     assertEquals(blocks.poll().getName(), "cb3");
@@ -112,8 +113,8 @@ public class TestCachedBlockQueue {
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = queue
-        .getList();
+    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
+        queue.getList();
     assertEquals(blocks.poll().getName(), "cb0");
     assertEquals(blocks.poll().getName(), "cb1");
     assertEquals(blocks.poll().getName(), "cb2");

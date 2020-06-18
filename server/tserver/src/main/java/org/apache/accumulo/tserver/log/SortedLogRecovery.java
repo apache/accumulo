@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.log;
 
@@ -99,8 +101,8 @@ public class SortedLogRecovery {
   private int findMaxTabletId(KeyExtent extent, List<Path> recoveryLogs) throws IOException {
     int tabletId = -1;
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(fs, recoveryLogs,
-        minKey(DEFINE_TABLET), maxKey(DEFINE_TABLET))) {
+    try (RecoveryLogsIterator rli =
+        new RecoveryLogsIterator(fs, recoveryLogs, minKey(DEFINE_TABLET), maxKey(DEFINE_TABLET))) {
 
       KeyExtent alternative = extent;
       if (extent.isRootTablet()) {
@@ -141,22 +143,16 @@ public class SortedLogRecovery {
 
     for (Path wal : recoveryLogs) {
       int tabletId = findMaxTabletId(extent, Collections.singletonList(wal));
-      if (tabletId != -1) {
-        List<Path> perIdList = logsThatDefineTablet.get(tabletId);
-        if (perIdList == null) {
-          perIdList = new ArrayList<>();
-          logsThatDefineTablet.put(tabletId, perIdList);
-
-        }
-        perIdList.add(wal);
-        log.debug("Found tablet {} with id {} in recovery log {}", extent, tabletId, wal.getName());
-      } else {
+      if (tabletId == -1) {
         log.debug("Did not find tablet {} in recovery log {}", extent, wal.getName());
+      } else {
+        logsThatDefineTablet.computeIfAbsent(tabletId, k -> new ArrayList<>()).add(wal);
+        log.debug("Found tablet {} with id {} in recovery log {}", extent, tabletId, wal.getName());
       }
     }
 
     if (logsThatDefineTablet.isEmpty()) {
-      return new AbstractMap.SimpleEntry<>(-1, Collections.<Path> emptyList());
+      return new AbstractMap.SimpleEntry<>(-1, Collections.<Path>emptyList());
     } else {
       return Collections.max(logsThatDefineTablet.entrySet(),
           (o1, o2) -> Integer.compare(o1.getKey(), o2.getKey()));

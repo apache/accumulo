@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tracer;
 
@@ -20,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
@@ -50,13 +53,11 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.ServerUtil;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -82,7 +83,6 @@ import org.slf4j.LoggerFactory;
 public class TraceServer implements Watcher, AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(TraceServer.class);
-  private final ServerConfigurationFactory serverConfiguration;
   private final ServerContext context;
   private final TServer server;
   private final AtomicReference<BatchWriter> writer;
@@ -145,13 +145,12 @@ public class TraceServer implements Watcher, AutoCloseable {
       Mutation indexMutation = new Mutation(new Text("idx:" + s.svc + ":" + startString));
       long diff = s.stop - s.start;
       indexMutation.put(new Text(s.description), new Text(s.sender),
-          new Value((idString + ":" + Long.toHexString(diff)).getBytes(UTF_8)));
+          new Value(idString + ":" + Long.toHexString(diff)));
       ByteArrayTransport transport = new ByteArrayTransport();
       TCompactProtocol protocol = new TCompactProtocol(transport);
       s.write(protocol);
-      String parentString = s.getParentIdsSize() == 0 ? ""
-          : s.getParentIds().stream().map(x -> Long.toHexString(x)).collect(Collectors.toList())
-              .toString();
+      String parentString = s.getParentIdsSize() == 0 ? "" : s.getParentIds().stream()
+          .map(Long::toHexString).collect(Collectors.toList()).toString();
       put(spanMutation, "span", parentString + ":" + Long.toHexString(s.spanId), transport.get(),
           transport.len());
       // Map the root span to time so we can look up traces by time
@@ -172,8 +171,9 @@ public class TraceServer implements Watcher, AutoCloseable {
         }
         writer.addMutation(spanMutation);
         writer.addMutation(indexMutation);
-        if (timeMutation != null)
+        if (timeMutation != null) {
           writer.addMutation(timeMutation);
+        }
       } catch (MutationsRejectedException exception) {
         log.warn("Unable to write mutation to table; discarding span. set log"
             + " level to DEBUG for span information and stacktrace. cause: " + exception);
@@ -195,10 +195,9 @@ public class TraceServer implements Watcher, AutoCloseable {
 
   public TraceServer(ServerContext context, String hostname) throws Exception {
     this.context = context;
-    this.serverConfiguration = context.getServerConfFactory();
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", context.getInstanceID());
-    AccumuloConfiguration conf = serverConfiguration.getSystemConfiguration();
+    AccumuloConfiguration conf = context.getConfiguration();
     tableName = conf.get(Property.TRACE_TABLE);
     accumuloClient = ensureTraceTableExists(conf);
 
@@ -223,8 +222,14 @@ public class TraceServer implements Watcher, AutoCloseable {
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
-    registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort(),
-        conf.get(Property.TRACE_ZK_PATH));
+    // if sock is bound to the wildcard address, the local address will be 0.0.0.0.
+    // check for this, and try using InetAddress.getLocalHost instead.
+    // the problem is registering 0.0.0.0 in zookeeper doesn't work for non-local
+    // services (like remote tablet servers)
+    String hostAddr = sock.getInetAddress().getHostAddress();
+    if ("0.0.0.0".equals(hostAddr))
+      hostAddr = InetAddress.getLocalHost().getHostAddress();
+    registerInZooKeeper(hostAddr + ":" + sock.getLocalPort(), conf.get(Property.TRACE_ZK_PATH));
     writer = new AtomicReference<>(this.accumuloClient.createBatchWriter(tableName,
         new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS)));
   }
@@ -234,40 +239,35 @@ public class TraceServer implements Watcher, AutoCloseable {
    * misconfigurations that aren't likely to change on retry).
    *
    * @return a working Connection that can be reused
-   * @throws ClassNotFoundException
-   *           if TRACE_TOKEN_TYPE is set to a class that we can't load.
-   * @throws InstantiationException
+   * @throws ReflectiveOperationException
    *           if we fail to create an instance of TRACE_TOKEN_TYPE.
-   * @throws IllegalAccessException
-   *           if the class pointed to by TRACE_TOKEN_TYPE is private.
    * @throws AccumuloSecurityException
    *           if the trace user has the wrong permissions
    */
   private AccumuloClient ensureTraceTableExists(final AccumuloConfiguration conf)
-      throws AccumuloSecurityException, ClassNotFoundException, InstantiationException,
-      IllegalAccessException {
+      throws AccumuloSecurityException, ReflectiveOperationException {
     AccumuloClient accumuloClient = null;
     while (true) {
       try {
-        final boolean isDefaultTokenType = conf.get(Property.TRACE_TOKEN_TYPE)
-            .equals(Property.TRACE_TOKEN_TYPE.getDefaultValue());
+        final boolean isDefaultTokenType =
+            conf.get(Property.TRACE_TOKEN_TYPE).equals(Property.TRACE_TOKEN_TYPE.getDefaultValue());
         String principal = conf.get(Property.TRACE_USER);
         if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
           // Make sure that we replace _HOST if it exists in the principal
           principal = SecurityUtil.getServerPrincipal(principal);
         }
         AuthenticationToken at;
-        Map<String,String> loginMap = conf
-            .getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+        Map<String,String> loginMap =
+            conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
         if (loginMap.isEmpty() && isDefaultTokenType) {
           // Assume the old type of user/password specification
           Property p = Property.TRACE_PASSWORD;
           at = new PasswordToken(conf.get(p).getBytes(UTF_8));
         } else {
           Properties props = new Properties();
-          AuthenticationToken token = AccumuloVFSClassLoader.getClassLoader()
-              .loadClass(conf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class)
-              .newInstance();
+          AuthenticationToken token =
+              AccumuloVFSClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE))
+                  .asSubclass(AuthenticationToken.class).getDeclaredConstructor().newInstance();
 
           int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
           for (Entry<String,String> entry : loginMap.entrySet()) {
@@ -277,8 +277,8 @@ public class TraceServer implements Watcher, AutoCloseable {
           at = token;
         }
 
-        accumuloClient = Accumulo.newClient().from(context.getProperties()).as(principal, at)
-            .build();
+        accumuloClient =
+            Accumulo.newClient().from(context.getProperties()).as(principal, at).build();
 
         if (!accumuloClient.tableOperations().exists(tableName)) {
           accumuloClient.tableOperations().create(tableName);
@@ -303,8 +303,8 @@ public class TraceServer implements Watcher, AutoCloseable {
   }
 
   public void run() {
-    SimpleTimer.getInstance(serverConfiguration.getSystemConfiguration()).schedule(() -> flush(),
-        SCHEDULE_DELAY, SCHEDULE_PERIOD);
+    SimpleTimer.getInstance(context.getConfiguration()).schedule(this::flush, SCHEDULE_DELAY,
+        SCHEDULE_PERIOD);
     server.serve();
   }
 
@@ -353,7 +353,7 @@ public class TraceServer implements Watcher, AutoCloseable {
   }
 
   private void registerInZooKeeper(String name, String root) throws Exception {
-    IZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooReaderWriter();
     zoo.putPersistentData(root, new byte[0], NodeExistsPolicy.SKIP);
     log.info("Registering tracer {} at {}", name, root);
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes(UTF_8));
@@ -365,38 +365,40 @@ public class TraceServer implements Watcher, AutoCloseable {
       Class<? extends AuthenticationToken> traceTokenType = AccumuloVFSClassLoader.getClassLoader()
           .loadClass(acuConf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class);
 
-      if (!(KerberosToken.class.isAssignableFrom(traceTokenType))) {
-        // We're not using Kerberos to talk to Accumulo, but we might still need it for talking to
-        // HDFS/ZK for
-        // instance information.
-        log.info("Handling login under the assumption that Accumulo users are not using Kerberos.");
-        SecurityUtil.serverLogin(acuConf);
-      } else {
+      if (KerberosToken.class.isAssignableFrom(traceTokenType)) {
         // We're using Kerberos to talk to Accumulo, so check for trace user specific auth details.
         // We presume this same user will have the needed access for the service to interact with
         // HDFS/ZK for
         // instance information.
         log.info("Handling login under the assumption that Accumulo users are using Kerberos.");
-        Map<String,String> loginMap = acuConf
-            .getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+        Map<String,String> loginMap =
+            acuConf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
         String keyTab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
-        if (keyTab == null || keyTab.length() == 0) {
+        if (keyTab == null || keyTab.isEmpty()) {
           keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
         }
-        if (keyTab == null || keyTab.length() == 0)
+        if (keyTab == null || keyTab.isEmpty()) {
           return;
+        }
 
         String principalConfig = acuConf.get(Property.TRACE_USER);
-        if (principalConfig == null || principalConfig.length() == 0)
+        if (principalConfig == null || principalConfig.isEmpty()) {
           return;
+        }
 
         log.info("Attempting to login as {} with {}", principalConfig, keyTab);
         SecurityUtil.serverLogin(acuConf, keyTab, principalConfig);
+      } else {
+        // We're not using Kerberos to talk to Accumulo, but we might still need it for talking to
+        // HDFS/ZK for
+        // instance information.
+        log.info("Handling login under the assumption that Accumulo users are not using Kerberos.");
+        SecurityUtil.serverLogin(acuConf);
       }
     } catch (IOException | ClassNotFoundException exception) {
-      final String msg = String.format(
-          "Failed to retrieve trace user token information based on property %1s.",
-          Property.TRACE_TOKEN_TYPE);
+      final String msg =
+          String.format("Failed to retrieve trace user token information based on property %1s.",
+              Property.TRACE_TOKEN_TYPE);
       log.error(msg, exception);
       throw new RuntimeException(msg, exception);
     }
@@ -408,7 +410,6 @@ public class TraceServer implements Watcher, AutoCloseable {
     opts.parseArgs(app, args);
     ServerContext context = new ServerContext(opts.getSiteConfiguration());
     loginTracer(context.getConfiguration());
-    MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
     ServerUtil.init(context, app);
     try (TraceServer server = new TraceServer(context, opts.getAddress())) {
       server.run();
@@ -430,8 +431,9 @@ public class TraceServer implements Watcher, AutoCloseable {
     }
     if (event.getPath() != null) {
       try {
-        if (context.getZooReaderWriter().exists(event.getPath(), this))
+        if (context.getZooReaderWriter().exists(event.getPath(), this)) {
           return;
+        }
       } catch (Exception ex) {
         log.error("{}", ex.getMessage(), ex);
       }

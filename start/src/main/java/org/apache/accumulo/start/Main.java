@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.start;
 
@@ -43,13 +45,12 @@ public class Main {
   public static void main(final String[] args) {
     try {
       // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when
-      // using
-      // the VFSClassLoader with jars in HDFS.
+      // using the VFSClassLoader with jars in HDFS.
       ClassLoader loader = getClassLoader();
       Class<?> confClass = null;
       try {
-        confClass = AccumuloClassLoader.getClassLoader()
-            .loadClass("org.apache.hadoop.conf.Configuration");
+        confClass =
+            AccumuloClassLoader.getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
       } catch (ClassNotFoundException e) {
         log.error("Unable to find Hadoop Configuration class on classpath, check configuration.",
             e);
@@ -57,14 +58,14 @@ public class Main {
       }
       Object conf = null;
       try {
-        conf = confClass.newInstance();
+        conf = confClass.getDeclaredConstructor().newInstance();
       } catch (Exception e) {
         log.error("Error creating new instance of Hadoop Configuration", e);
         System.exit(1);
       }
       try {
-        Method getClassByNameOrNullMethod = conf.getClass().getMethod("getClassByNameOrNull",
-            String.class);
+        Method getClassByNameOrNullMethod =
+            conf.getClass().getMethod("getClassByNameOrNull", String.class);
         getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
         getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
       } catch (Exception e) {
@@ -103,8 +104,7 @@ public class Main {
       try {
         classLoader = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
         Thread.currentThread().setContextClassLoader(classLoader);
-      } catch (ClassNotFoundException | IOException | IllegalAccessException
-          | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+      } catch (IOException | IllegalArgumentException | ReflectiveOperationException
           | SecurityException e) {
         log.error("Problem initializing the class loader", e);
         System.exit(1);
@@ -208,8 +208,8 @@ public class Main {
   }
 
   public static void printUsage() {
-    TreeSet<KeywordExecutable> executables = new TreeSet<>(
-        Comparator.comparing(KeywordExecutable::keyword));
+    TreeSet<KeywordExecutable> executables =
+        new TreeSet<>(Comparator.comparing(KeywordExecutable::keyword));
     executables.addAll(getExecutables(getClassLoader()).values());
 
     System.out.println("\nUsage: accumulo <command> [--help] (<argument> ...)\n\n"
@@ -236,18 +236,18 @@ public class Main {
     return servicesMap;
   }
 
-  public static Map<String,KeywordExecutable> checkDuplicates(
-      final Iterable<? extends KeywordExecutable> services) {
-    TreeSet<String> blacklist = new TreeSet<>();
+  public static Map<String,KeywordExecutable>
+      checkDuplicates(final Iterable<? extends KeywordExecutable> services) {
+    TreeSet<String> banList = new TreeSet<>();
     TreeMap<String,KeywordExecutable> results = new TreeMap<>();
     for (KeywordExecutable service : services) {
       String keyword = service.keyword();
-      if (blacklist.contains(keyword)) {
+      if (banList.contains(keyword)) {
         // subsequent times a duplicate is found, just warn and exclude it
         warnDuplicate(service);
       } else if (results.containsKey(keyword)) {
-        // the first time a duplicate is found, blacklist it and warn
-        blacklist.add(keyword);
+        // the first time a duplicate is found, banList it and warn
+        banList.add(keyword);
         warnDuplicate(results.remove(keyword));
         warnDuplicate(service);
       } else {

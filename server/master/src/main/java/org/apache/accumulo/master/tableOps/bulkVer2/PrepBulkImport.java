@@ -1,41 +1,47 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.bulkVer2;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.fate.Repo;
@@ -47,6 +53,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -54,7 +61,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterators;
 
 /**
  * Prepare bulk import directory. This REPO creates a bulk directory in Accumulo, list all the files
@@ -86,7 +92,7 @@ public class PrepBulkImport extends MasterRepo {
     if (!Utils.getReadLock(master, bulkInfo.tableId, tid).tryLock())
       return 100;
 
-    if (master.onlineTabletServers().size() == 0)
+    if (master.onlineTabletServers().isEmpty())
       return 500;
     Tables.clearCache(master.getContext());
 
@@ -102,19 +108,26 @@ public class PrepBulkImport extends MasterRepo {
     return Objects.equals(extractor.apply(ke1), extractor.apply(ke2));
   }
 
+  /**
+   * Checks a load mapping to ensure all of the rows in the mapping exists in the table and that no
+   * file goes to too many tablets.
+   */
   @VisibleForTesting
-  static void checkForMerge(String tableId, Iterator<KeyExtent> lmi,
-      TabletIterFactory tabletIterFactory) throws Exception {
-    KeyExtent currRange = lmi.next();
+  static void sanityCheckLoadMapping(String tableId, LoadMappingIterator lmi,
+      TabletIterFactory tabletIterFactory, int maxNumTablets, long tid) throws Exception {
+    var currRange = lmi.next();
 
-    Text startRow = currRange.getPrevEndRow();
+    Text startRow = currRange.getKey().getPrevEndRow();
 
     Iterator<KeyExtent> tabletIter = tabletIterFactory.newTabletIter(startRow);
 
     KeyExtent currTablet = tabletIter.next();
 
-    if (!tabletIter.hasNext() && equals(KeyExtent::getPrevEndRow, currTablet, currRange)
-        && equals(KeyExtent::getEndRow, currTablet, currRange))
+    var fileCounts = new HashMap<String,Integer>();
+    int count;
+
+    if (!tabletIter.hasNext() && equals(KeyExtent::getPrevEndRow, currTablet, currRange.getKey())
+        && equals(KeyExtent::getEndRow, currTablet, currRange.getKey()))
       currRange = null;
 
     while (tabletIter.hasNext()) {
@@ -126,91 +139,95 @@ public class PrepBulkImport extends MasterRepo {
         currRange = lmi.next();
       }
 
-      while (!equals(KeyExtent::getPrevEndRow, currTablet, currRange) && tabletIter.hasNext()) {
+      while (!equals(KeyExtent::getPrevEndRow, currTablet, currRange.getKey())
+          && tabletIter.hasNext()) {
         currTablet = tabletIter.next();
       }
 
-      boolean matchedPrevRow = equals(KeyExtent::getPrevEndRow, currTablet, currRange);
+      boolean matchedPrevRow = equals(KeyExtent::getPrevEndRow, currTablet, currRange.getKey());
+      count = matchedPrevRow ? 1 : 0;
 
-      while (!equals(KeyExtent::getEndRow, currTablet, currRange) && tabletIter.hasNext()) {
+      while (!equals(KeyExtent::getEndRow, currTablet, currRange.getKey())
+          && tabletIter.hasNext()) {
         currTablet = tabletIter.next();
+        count++;
       }
 
-      if (!matchedPrevRow || !equals(KeyExtent::getEndRow, currTablet, currRange)) {
+      if (!matchedPrevRow || !equals(KeyExtent::getEndRow, currTablet, currRange.getKey())) {
         break;
       }
 
+      if (maxNumTablets > 0) {
+        int fc = count;
+        currRange.getValue()
+            .forEach(fileInfo -> fileCounts.merge(fileInfo.getFileName(), fc, Integer::sum));
+      }
       currRange = null;
     }
 
     if (currRange != null || lmi.hasNext()) {
-      // a merge happened between the time the mapping was generated and the table lock was
-      // acquired
+      // merge happened after the mapping was generated and before the table lock was acquired
       throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
-          TableOperationExceptionType.OTHER, "Concurrent merge happened"); // TODO need to handle
-                                                                           // this on the client
-                                                                           // side
+          TableOperationExceptionType.BULK_CONCURRENT_MERGE, "Concurrent merge happened");
+    }
+
+    if (maxNumTablets > 0) {
+      fileCounts.values().removeIf(c -> c <= maxNumTablets);
+      if (!fileCounts.isEmpty()) {
+        throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+            TableOperationExceptionType.OTHER, "Files overlap the configured max (" + maxNumTablets
+                + ") number of tablets: " + new TreeMap<>(fileCounts));
+      }
     }
   }
 
-  private void checkForMerge(final Master master) throws Exception {
+  private void checkForMerge(final long tid, final Master master) throws Exception {
 
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
-    try (LoadMappingIterator lmi = BulkSerialize.readLoadMapping(bulkDir.toString(),
-        bulkInfo.tableId, p -> fs.open(p))) {
+
+    int maxTablets = Integer.parseInt(master.getContext().getTableConfiguration(bulkInfo.tableId)
+        .get(Property.TABLE_BULK_MAX_TABLETS));
+
+    try (LoadMappingIterator lmi =
+        BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
 
       TabletIterFactory tabletIterFactory = startRow -> TabletsMetadata.builder()
-          .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetchPrev()
+          .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetch(PREV_ROW)
           .build(master.getContext()).stream().map(TabletMetadata::getExtent).iterator();
 
-      checkForMerge(bulkInfo.tableId.canonical(), Iterators.transform(lmi, entry -> entry.getKey()),
-          tabletIterFactory);
+      sanityCheckLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets, tid);
     }
   }
 
   @Override
   public Repo<Master> call(final long tid, final Master master) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
-    checkForMerge(master);
+    checkForMerge(tid, master);
 
     bulkInfo.tableState = Tables.getTableState(master.getContext(), bulkInfo.tableId);
 
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
     final UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
     Path sourceDir = new Path(bulkInfo.sourceDir);
-    FileStatus[] files = fs.listStatus(sourceDir);
+    List<FileStatus> files = BulkImport.filterInvalid(fs.listStatus(sourceDir));
 
     Path bulkDir = createNewBulkDir(master.getContext(), fs, bulkInfo.tableId);
     Path mappingFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
 
     Map<String,String> oldToNewNameMap = new HashMap<>();
-    for (FileStatus file : files) {
-      final FileStatus fileStatus = file;
-      final Path originalPath = fileStatus.getPath();
-      String[] fileNameParts = originalPath.getName().split("\\.");
-      String extension = "";
-      boolean invalidFileName;
-      if (fileNameParts.length > 1) {
-        extension = fileNameParts[fileNameParts.length - 1];
-        invalidFileName = !FileOperations.getValidExtensions().contains(extension);
-      } else {
-        invalidFileName = true;
-      }
-      if (invalidFileName) {
-        log.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
-        continue;
-      }
 
-      String newName = "I" + namer.getNextName() + "." + extension;
-      Path newPath = new Path(bulkDir, newName);
-      oldToNewNameMap.put(originalPath.getName(), newPath.getName());
+    for (FileStatus file : files) {
+      // since these are only valid files we know it has an extension
+      String newName =
+          "I" + namer.getNextName() + "." + FilenameUtils.getExtension(file.getPath().getName());
+      oldToNewNameMap.put(file.getPath().getName(), new Path(bulkDir, newName).getName());
     }
 
     // also have to move mapping file
-    Path newMappingFile = new Path(bulkDir, mappingFile.getName());
-    oldToNewNameMap.put(mappingFile.getName(), newMappingFile.getName());
-    BulkSerialize.writeRenameMap(oldToNewNameMap, bulkDir.toString(), p -> fs.create(p));
+    oldToNewNameMap.put(mappingFile.getName(), new Path(bulkDir, mappingFile.getName()).getName());
+
+    BulkSerialize.writeRenameMap(oldToNewNameMap, bulkDir.toString(), fs::create);
 
     bulkInfo.bulkDir = bulkDir.toString();
     // return the next step, which will move files
@@ -219,8 +236,8 @@ public class PrepBulkImport extends MasterRepo {
 
   private Path createNewBulkDir(ServerContext context, VolumeManager fs, TableId tableId)
       throws IOException {
-    Path tempPath = fs.matchingFileSystem(new Path(bulkInfo.sourceDir),
-        ServerConstants.getTablesDirs(context));
+    Path tempPath =
+        fs.matchingFileSystem(new Path(bulkInfo.sourceDir), ServerConstants.getTablesDirs(context));
     if (tempPath == null)
       throw new IOException(bulkInfo.sourceDir + " is not in a volume configured for Accumulo");
 

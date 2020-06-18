@@ -1,29 +1,34 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.start.classloader.vfs;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.apache.commons.vfs2.FileChangeEvent;
 import org.apache.commons.vfs2.FileListener;
@@ -100,12 +105,17 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
               }
 
             }
+
             // There is a chance that the listener was removed from the top level directory or
             // its children if they were deleted within some time window. Re-add files to be
             // monitored. The Monitor will ignore files that are already/still being monitored.
-            for (FileObject file : files) {
-              monitor.addFile(file);
-            }
+            // forEachCatchRTEs will capture a stream of thrown exceptions.
+            // and can collect them to list or reduce into one exception
+
+            forEachCatchRTEs(Arrays.stream(files), o -> {
+              addFileToMonitor(o);
+              log.debug("monitoring {}", o);
+            });
           }
 
           log.debug("Rebuilding dynamic classloader using files- {}", stringify(files));
@@ -182,11 +192,54 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     monitor = new DefaultFileMonitor(this);
     monitor.setDelay(monitorDelay);
     monitor.setRecursive(false);
-    for (FileObject file : pathsToMonitor) {
-      monitor.addFile(file);
-      log.debug("monitoring {}", file);
-    }
+
+    forEachCatchRTEs(pathsToMonitor.stream(), o -> {
+      addFileToMonitor(o);
+      log.debug("monitoring {}", o);
+    });
+
     monitor.start();
+  }
+
+  private void addFileToMonitor(FileObject file) throws RuntimeException {
+    try {
+      if (monitor != null)
+        monitor.addFile(file);
+    } catch (RuntimeException re) {
+      if (re.getMessage().contains("files-cache"))
+        log.error("files-cache error adding {} to VFS monitor. "
+            + "There is no implementation for files-cache in VFS2", file, re);
+      else
+        log.error("Runtime error adding {} to VFS monitor", file, re);
+
+      throw re;
+    }
+  }
+
+  private void removeFile(FileObject file) throws RuntimeException {
+    try {
+      if (monitor != null)
+        monitor.removeFile(file);
+    } catch (RuntimeException re) {
+      log.error("Error removing file from VFS cache {}", file, re);
+      throw re;
+    }
+  }
+
+  public static <T> void forEachCatchRTEs(Stream<T> stream, Consumer<T> consumer) {
+    stream.flatMap(o -> {
+      try {
+        consumer.accept(o);
+        return null;
+      } catch (RuntimeException e) {
+        return Stream.of(e);
+      }
+    }).reduce((e1, e2) -> {
+      e1.addSuppressed(e2);
+      return e1;
+    }).ifPresent(e -> {
+      throw e;
+    });
   }
 
   public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs,
@@ -199,6 +252,12 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
    * thread
    */
   public void close() {
+
+    forEachCatchRTEs(Stream.of(files), o -> {
+      removeFile(o);
+      log.debug("Removing file from monitoring {}", o);
+    });
+
     executor.shutdownNow();
     monitor.stop();
   }
@@ -206,21 +265,21 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   @Override
   public void fileCreated(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug("{} created, recreating classloader", event.getFile().getURL());
+      log.debug("{} created, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();
   }
 
   @Override
   public void fileDeleted(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug("{} deleted, recreating classloader", event.getFile().getURL());
+      log.debug("{} deleted, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();
   }
 
   @Override
   public void fileChanged(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug("{} changed, recreating classloader", event.getFile().getURL());
+      log.debug("{} changed, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();
   }
 

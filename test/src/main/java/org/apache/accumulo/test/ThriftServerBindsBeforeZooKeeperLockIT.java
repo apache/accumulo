@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to you under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -22,6 +24,7 @@ import java.net.Socket;
 import java.net.URL;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -44,8 +47,6 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -54,20 +55,21 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @Category({MiniClusterOnlyTests.class})
 public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarness {
-  private static final Logger LOG = LoggerFactory
-      .getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);
 
   @Override
   public boolean canRunTest(ClusterType type) {
     return type == ClusterType.MINI;
   }
 
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "url is not from user")
   @Test
   public void testMonitorService() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     Collection<ProcessReference> monitors = cluster.getProcesses().get(ServerType.MONITOR);
     // Need to start one monitor and let it become active.
-    if (monitors == null || monitors.size() == 0) {
+    if (monitors == null || monitors.isEmpty()) {
       getClusterControl().start(ServerType.MONITOR, "localhost");
     }
 
@@ -83,47 +85,45 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
 
     LOG.debug("Found active monitor");
 
-    while (true) {
-      int freePort = PortUtils.getRandomFreePort();
-      String monitorUrl = "http://localhost:" + freePort;
-      Process monitor = null;
-      try {
-        LOG.debug("Starting standby monitor on {}", freePort);
-        monitor = startProcess(cluster, ServerType.MONITOR, freePort);
+    int freePort = PortUtils.getRandomFreePort();
+    String monitorUrl = "http://localhost:" + freePort;
+    Process monitor = null;
+    try {
+      LOG.debug("Starting standby monitor on {}", freePort);
+      monitor = startProcess(cluster, ServerType.MONITOR, freePort);
 
-        while (true) {
-          URL url = new URL(monitorUrl);
-          try {
-            HttpURLConnection cnxn = (HttpURLConnection) url.openConnection();
-            final int responseCode = cnxn.getResponseCode();
-            String errorText;
-            // This is our "assertion", but we want to re-check it if it's not what we expect
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-              return;
-            } else {
-              errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
-            }
-            LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'",
-                responseCode, errorText);
-          } catch (Exception e) {
-            LOG.debug("Caught exception trying to fetch monitor info", e);
+      while (true) {
+        URL url = new URL(monitorUrl);
+        try {
+          HttpURLConnection cnxn = (HttpURLConnection) url.openConnection();
+          final int responseCode = cnxn.getResponseCode();
+          String errorText;
+          // This is our "assertion", but we want to re-check it if it's not what we expect
+          if (responseCode == HttpURLConnection.HTTP_OK) {
+            return;
+          } else {
+            errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
           }
-          // Wait before trying again
-          Thread.sleep(1000);
-          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually
-          // free and the process
-          // died trying to bind it. Pick a new port and restart it in that case.
-          if (!monitor.isAlive()) {
-            freePort = PortUtils.getRandomFreePort();
-            monitorUrl = "http://localhost:" + freePort;
-            LOG.debug("Monitor died, restarting it listening on {}", freePort);
-            monitor = startProcess(cluster, ServerType.MONITOR, freePort);
-          }
+          LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'",
+              responseCode, errorText);
+        } catch (Exception e) {
+          LOG.debug("Caught exception trying to fetch monitor info", e);
         }
-      } finally {
-        if (monitor != null) {
-          monitor.destroyForcibly();
+        // Wait before trying again
+        Thread.sleep(1000);
+        // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually
+        // free and the process
+        // died trying to bind it. Pick a new port and restart it in that case.
+        if (!monitor.isAlive()) {
+          freePort = PortUtils.getRandomFreePort();
+          monitorUrl = "http://localhost:" + freePort;
+          LOG.debug("Monitor died, restarting it listening on {}", freePort);
+          monitor = startProcess(cluster, ServerType.MONITOR, freePort);
         }
+      }
+    } finally {
+      if (monitor != null) {
+        monitor.destroyForcibly();
       }
     }
   }
@@ -140,9 +140,9 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       while (true) {
         final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
-          List<String> locks = reader
-              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMASTER_LOCK);
-          if (locks.size() > 0) {
+          List<String> locks =
+              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMASTER_LOCK);
+          if (!locks.isEmpty()) {
             break;
           }
         } catch (Exception e) {
@@ -153,44 +153,36 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
 
       LOG.debug("Found active master");
 
-      while (true) {
-        int freePort = PortUtils.getRandomFreePort();
-        Process master = null;
-        try {
-          LOG.debug("Starting standby master on {}", freePort);
-          master = startProcess(cluster, ServerType.MASTER, freePort);
+      int freePort = PortUtils.getRandomFreePort();
+      Process master = null;
+      try {
+        LOG.debug("Starting standby master on {}", freePort);
+        master = startProcess(cluster, ServerType.MASTER, freePort);
 
-          while (true) {
-            Socket s = null;
-            try {
-              s = new Socket("localhost", freePort);
-              if (s.isConnected()) {
-                // Pass
-                return;
-              }
-            } catch (Exception e) {
-              LOG.debug("Caught exception trying to connect to Master", e);
-            } finally {
-              if (s != null) {
-                s.close();
-              }
+        while (true) {
+          try (Socket s = new Socket("localhost", freePort)) {
+            if (s.isConnected()) {
+              // Pass
+              return;
             }
-            // Wait before trying again
-            Thread.sleep(1000);
-            // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
-            // actually
-            // free and the process
-            // died trying to bind it. Pick a new port and restart it in that case.
-            if (!master.isAlive()) {
-              freePort = PortUtils.getRandomFreePort();
-              LOG.debug("Master died, restarting it listening on {}", freePort);
-              master = startProcess(cluster, ServerType.MASTER, freePort);
-            }
+          } catch (Exception e) {
+            LOG.debug("Caught exception trying to connect to Master", e);
           }
-        } finally {
-          if (master != null) {
-            master.destroyForcibly();
+          // Wait before trying again
+          Thread.sleep(1000);
+          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
+          // actually
+          // free and the process
+          // died trying to bind it. Pick a new port and restart it in that case.
+          if (!master.isAlive()) {
+            freePort = PortUtils.getRandomFreePort();
+            LOG.debug("Master died, restarting it listening on {}", freePort);
+            master = startProcess(cluster, ServerType.MASTER, freePort);
           }
+        }
+      } finally {
+        if (master != null) {
+          master.destroyForcibly();
         }
       }
     }
@@ -208,9 +200,9 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       while (true) {
         final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
-          List<String> locks = reader
-              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
-          if (locks.size() > 0) {
+          List<String> locks =
+              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
+          if (!locks.isEmpty()) {
             break;
           }
         } catch (Exception e) {
@@ -221,44 +213,36 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
 
       LOG.debug("Found active gc");
 
-      while (true) {
-        int freePort = PortUtils.getRandomFreePort();
-        Process master = null;
-        try {
-          LOG.debug("Starting standby gc on {}", freePort);
-          master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
+      int freePort = PortUtils.getRandomFreePort();
+      Process master = null;
+      try {
+        LOG.debug("Starting standby gc on {}", freePort);
+        master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
 
-          while (true) {
-            Socket s = null;
-            try {
-              s = new Socket("localhost", freePort);
-              if (s.isConnected()) {
-                // Pass
-                return;
-              }
-            } catch (Exception e) {
-              LOG.debug("Caught exception trying to connect to GC", e);
-            } finally {
-              if (s != null) {
-                s.close();
-              }
+        while (true) {
+          try (Socket s = new Socket("localhost", freePort)) {
+            if (s.isConnected()) {
+              // Pass
+              return;
             }
-            // Wait before trying again
-            Thread.sleep(1000);
-            // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
-            // actually
-            // free and the process
-            // died trying to bind it. Pick a new port and restart it in that case.
-            if (!master.isAlive()) {
-              freePort = PortUtils.getRandomFreePort();
-              LOG.debug("GC died, restarting it listening on {}", freePort);
-              master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
-            }
+          } catch (Exception e) {
+            LOG.debug("Caught exception trying to connect to GC", e);
           }
-        } finally {
-          if (master != null) {
-            master.destroyForcibly();
+          // Wait before trying again
+          Thread.sleep(1000);
+          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
+          // actually
+          // free and the process
+          // died trying to bind it. Pick a new port and restart it in that case.
+          if (!master.isAlive()) {
+            freePort = PortUtils.getRandomFreePort();
+            LOG.debug("GC died, restarting it listening on {}", freePort);
+            master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
           }
+        }
+      } finally {
+        if (master != null) {
+          master.destroyForcibly();
         }
       }
     }
@@ -285,8 +269,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
         throw new IllegalArgumentException("Irrelevant server type for test");
     }
 
-    return cluster
-        ._exec(service, serverType, ImmutableMap.of(property.getKey(), Integer.toString(port)))
+    return cluster._exec(service, serverType, Map.of(property.getKey(), Integer.toString(port)))
         .getProcess();
   }
 }

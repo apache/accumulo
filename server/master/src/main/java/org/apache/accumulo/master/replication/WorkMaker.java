@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.replication;
 
@@ -113,7 +115,7 @@ public class WorkMaker {
         }
 
         // Get the table configuration for the table specified by the status record
-        tableConf = context.getServerConfFactory().getTableConfiguration(tableId);
+        tableConf = context.getTableConfiguration(tableId);
 
         // getTableConfiguration(String) returns null if the table no longer exists
         if (tableConf == null) {
@@ -127,12 +129,12 @@ public class WorkMaker {
         // If we have targets, we need to make a work record
         // TODO Don't replicate if it's a only a newFile entry (nothing to replicate yet)
         // -- Another scanner over the WorkSection can make this relatively cheap
-        if (!replicationTargets.isEmpty()) {
+        if (replicationTargets.isEmpty()) {
+          log.warn("No configured targets for table with ID {}", tableId);
+        } else {
           try (TraceScope workSpan = Trace.startSpan("createWorkMutations")) {
             addWorkRecord(file, entry.getValue(), replicationTargets, tableId);
           }
-        } else {
-          log.warn("No configured targets for table with ID {}", tableId);
         }
       }
     }
@@ -143,8 +145,8 @@ public class WorkMaker {
   }
 
   protected Map<String,String> getReplicationTargets(TableConfiguration tableConf) {
-    final Map<String,String> props = tableConf
-        .getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET);
+    final Map<String,String> props =
+        tableConf.getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET);
     final Map<String,String> targets = new HashMap<>();
     final int propKeyLength = Property.TABLE_REPLICATION_TARGET.getKey().length();
 

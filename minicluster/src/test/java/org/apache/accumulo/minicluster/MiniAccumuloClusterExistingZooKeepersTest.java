@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.minicluster;
 
@@ -39,21 +41,21 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterExistingZooKeepersTest {
   private static final File BASE_DIR = new File(System.getProperty("user.dir")
       + "/target/mini-tests/" + MiniAccumuloClusterExistingZooKeepersTest.class.getName());
 
   private static final String SECRET = "superSecret";
 
-  private static final Logger log = LoggerFactory
-      .getLogger(MiniAccumuloClusterExistingZooKeepersTest.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(MiniAccumuloClusterExistingZooKeepersTest.class);
   private TestingServer zooKeeper;
   private MiniAccumuloCluster accumulo;
 
   @Rule
   public TestName testName = new TestName();
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "intput determined by test")
   @Before
   public void setupTestCluster() throws Exception {
     assertTrue(BASE_DIR.mkdirs() || BASE_DIR.isDirectory());
@@ -61,6 +63,8 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 
+    // disable adminServer, which runs on port 8080 by default and we don't need
+    System.setProperty("zookeeper.admin.enableServer", "false");
     zooKeeper = new TestingServer();
 
     MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, SECRET);
@@ -101,8 +105,8 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
 
     String zkTablePath = String.format("/accumulo/%s/tables/%s/name",
         conn.getInstance().getInstanceID(), tableIds.get(tableName));
-    try (CuratorFramework client = CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(),
-        new RetryOneTime(1))) {
+    try (CuratorFramework client =
+        CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(), new RetryOneTime(1))) {
       client.start();
       assertNotNull(client.checkExists().forPath(zkTablePath));
       assertEquals(tableName, new String(client.getData().forPath(zkTablePath)));

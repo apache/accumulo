@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.master.state;
 
@@ -21,40 +23,37 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
- *
- * ZooTabletStateStore: information about the root tablet is stored in ZooKeeper MetaDataStateStore:
- * information about the other tablets are stored in the metadata table
  */
-public abstract class TabletStateStore implements Iterable<TabletLocationState> {
+public interface TabletStateStore extends Iterable<TabletLocationState> {
 
   /**
    * Identifying name for this tablet state store.
    */
-  public abstract String name();
+  String name();
 
   /**
    * Scan the information about the tablets covered by this store
    */
   @Override
-  public abstract ClosableIterator<TabletLocationState> iterator();
+  ClosableIterator<TabletLocationState> iterator();
 
   /**
    * Store the assigned locations in the data store.
    */
-  public abstract void setFutureLocations(Collection<Assignment> assignments)
-      throws DistributedStoreException;
+  void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException;
 
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online
    */
-  public abstract void setLocations(Collection<Assignment> assignments)
-      throws DistributedStoreException;
+  void setLocations(Collection<Assignment> assignments) throws DistributedStoreException;
 
   /**
    * Mark the tablets as having no known or future location.
@@ -64,22 +63,21 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
    * @param logsForDeadServers
    *          a cache of logs in use by servers when they died
    */
-  public abstract void unassign(Collection<TabletLocationState> tablets,
+  void unassign(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException;
 
   /**
    * Mark tablets as having no known or future location, but desiring to be returned to their
    * previous tserver.
    */
-  public abstract void suspend(Collection<TabletLocationState> tablets,
+  void suspend(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException;
 
   /**
    * Remove a suspension marker for a collection of tablets, moving them to being simply unassigned.
    */
-  public abstract void unsuspend(Collection<TabletLocationState> tablets)
-      throws DistributedStoreException;
+  void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException;
 
   public static void unassign(ServerContext context, TabletLocationState tls,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
@@ -100,13 +98,32 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
         .setLocations(Collections.singletonList(assignment));
   }
 
-  protected static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {
-    if (extent.isRootTablet()) {
-      return new ZooTabletStateStore(context);
-    } else if (extent.isMeta()) {
-      return new RootTabletStateStore(context);
-    } else {
-      return new MetaDataStateStore(context);
+  static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {
+    return getStoreForLevel(DataLevel.of(extent.getTableId()), context);
+  }
+
+  public static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context) {
+    return getStoreForLevel(level, context, null);
+  }
+
+  public static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context,
+      CurrentState state) {
+
+    TabletStateStore tss;
+    switch (level) {
+      case ROOT:
+        tss = new ZooTabletStateStore(context.getAmple());
+        break;
+      case METADATA:
+        tss = new RootTabletStateStore(context, state);
+        break;
+      case USER:
+        tss = new MetaDataStateStore(context, state);
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown level " + level);
     }
+
+    return new LoggingTabletStateStore(tss);
   }
 }

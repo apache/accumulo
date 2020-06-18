@@ -1,33 +1,33 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -35,8 +35,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
 
 public class TabletServerSyncCheckTest {
   private static final String DFS_SUPPORT_APPEND = "dfs.support.append";
@@ -47,10 +45,9 @@ public class TabletServerSyncCheckTest {
     conf.set(DFS_SUPPORT_APPEND, "false");
 
     FileSystem fs = new TestFileSystem(conf);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(
-        ImmutableMap.of("foo", new VolumeImpl(fs, "/")));
-
-    vm.ensureSyncIsEnabled();
+    try (var vm = new TestVolumeManagerImpl(Map.of("foo", new VolumeImpl(fs, "/")))) {
+      vm.ensureSyncIsEnabled();
+    }
   }
 
   private class TestFileSystem extends DistributedFileSystem {
@@ -90,7 +87,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public FSDataOutputStream create(Path path, boolean b) {
+    public FSDataOutputStream overwrite(Path path) {
       return null;
     }
 
@@ -131,12 +128,12 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public Volume getVolumeByPath(Path path) {
+    public FileSystem getFileSystemByPath(Path path) {
       return null;
     }
 
     @Override
-    public Path matchingFileSystem(Path source, String[] options) {
+    public Path matchingFileSystem(Path source, Set<String> options) {
       return null;
     }
 
@@ -181,27 +178,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public Path getFullPath(Key key) {
-      return null;
-    }
-
-    @Override
-    public Path getFullPath(TableId tableId, String path) {
-      return null;
-    }
-
-    @Override
-    public Path getFullPath(FileType fileType, String fileName) {
-      return null;
-    }
-
-    @Override
-    public ContentSummary getContentSummary(Path dir) {
-      return null;
-    }
-
-    @Override
-    public String choose(VolumeChooserEnvironment env, String[] options) {
+    public String choose(VolumeChooserEnvironment env, Set<String> options) {
       return null;
     }
 

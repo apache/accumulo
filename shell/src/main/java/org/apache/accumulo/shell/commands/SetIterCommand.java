@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -45,7 +47,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.commons.lang.StringUtils;
 
 import jline.console.ConsoleReader;
 
@@ -60,8 +61,8 @@ public class SetIterCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
       ShellCommandException {
 
-    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt())
-        || !shellState.getTableName().isEmpty();
+    boolean tables =
+        cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
     final int priority = Integer.parseInt(cl.getOptionValue(priorityOpt.getOpt()));
@@ -85,15 +86,14 @@ public class SetIterCommand extends Command {
     // we are setting a shell iterator). If so, temporarily set the table state to an
     // existing table such as accumulo.metadata. This allows the command to complete successfully.
     // After completion reassign the table to its original value and continue.
-    String currentTableName = null;
+    String currentTableName = shellState.getTableName();
     String tmpTable = null;
     String configuredName;
     try {
-      if (profileOpt != null && StringUtils.isBlank(shellState.getTableName())) {
-        currentTableName = shellState.getTableName();
+      if (profileOpt != null && (currentTableName == null || currentTableName.isBlank())) {
         tmpTable = "accumulo.metadata";
         shellState.setTableName(tmpTable);
-        tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
+        tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !currentTableName.isEmpty();
       }
       ClassLoader classloader = shellState.getClassLoader(cl, shellState);
       // Get the iterator options, with potentially a name provided by the OptionDescriber impl or
@@ -205,8 +205,8 @@ public class SetIterCommand extends Command {
     Class<? extends SortedKeyValueIterator> clazz;
     try {
       clazz = classloader.loadClass(className).asSubclass(SortedKeyValueIterator.class);
-      untypedInstance = clazz.newInstance();
-    } catch (ClassNotFoundException e) {
+      untypedInstance = clazz.getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
       StringBuilder msg = new StringBuilder("Unable to load ").append(className);
       if (className.indexOf('.') < 0) {
         msg.append("; did you use a fully qualified package name?");
@@ -214,8 +214,6 @@ public class SetIterCommand extends Command {
         msg.append("; class not found.");
       }
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, msg.toString());
-    } catch (InstantiationException | IllegalAccessException e) {
-      throw new IllegalArgumentException(e.getMessage());
     } catch (ClassCastException e) {
       String msg = className + " loaded successfully but does not implement SortedKeyValueIterator."
           + " This class cannot be used with this command.";
@@ -287,7 +285,7 @@ public class SetIterCommand extends Command {
                 input = new String(input);
               }
 
-              if (input.length() == 0)
+              if (input.isEmpty())
                 break;
 
               String[] sa = input.split(" ", 2);
@@ -309,7 +307,7 @@ public class SetIterCommand extends Command {
       if (iteratorName == null) {
         reader.println();
         throw new IOException("Input stream closed");
-      } else if (StringUtils.isWhitespace(iteratorName)) {
+      } else if (iteratorName.isBlank()) {
         // Treat whitespace or empty string as no name provided
         iteratorName = null;
       }
@@ -325,7 +323,7 @@ public class SetIterCommand extends Command {
         if (input == null) {
           reader.println();
           throw new IOException("Input stream closed");
-        } else if (StringUtils.isWhitespace(input)) {
+        } else if (input.isBlank()) {
           break;
         }
 
@@ -374,14 +372,14 @@ public class SetIterCommand extends Command {
   }
 
   private void setScopeOptions(Options o) {
-    allScopeOpt = new Option("all", "all-scopes", false,
-        "applied at scan time, minor and major compactions");
+    allScopeOpt =
+        new Option("all", "all-scopes", false, "applied at scan time, minor and major compactions");
     mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false,
         "applied at minor compaction");
     majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false,
         "applied at major compaction");
-    scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false,
-        "applied at scan time");
+    scanScopeOpt =
+        new Option(IteratorScope.scan.name(), "scan-time", false, "applied at scan time");
     o.addOption(allScopeOpt);
     o.addOption(mincScopeOpt);
     o.addOption(majcScopeOpt);

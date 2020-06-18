@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.gc;
 
@@ -21,7 +23,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
@@ -48,11 +50,10 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.master.LiveTServerSet;
-import org.apache.accumulo.server.master.state.MetaDataStateStore;
-import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
+import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -84,18 +85,17 @@ public class GarbageCollectWriteAheadLogs {
    * @param useTrash
    *          true to move files to trash rather than delete them
    */
-  GarbageCollectWriteAheadLogs(final ServerContext context, VolumeManager fs, boolean useTrash) {
+  GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
+      final LiveTServerSet liveServers, boolean useTrash) {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
-    this.liveServers = new LiveTServerSet(context, (current, deleted, added) -> {
-      log.debug("New tablet servers noticed: {}", added);
-      log.debug("Tablet servers removed: {}", deleted);
-    });
-    liveServers.startListeningForTabletServerChanges();
+    this.liveServers = liveServers;
     this.walMarker = new WalStateManager(context);
-    this.store = () -> Iterators.concat(new RootTabletStateStore(context).iterator(),
-        new MetaDataStateStore(context).iterator());
+    this.store = () -> Iterators.concat(
+        TabletStateStore.getStoreForLevel(DataLevel.ROOT, context).iterator(),
+        TabletStateStore.getStoreForLevel(DataLevel.METADATA, context).iterator(),
+        TabletStateStore.getStoreForLevel(DataLevel.USER, context).iterator());
   }
 
   /**
@@ -151,6 +151,7 @@ public class GarbageCollectWriteAheadLogs {
       }
 
       // now it's safe to get the liveServers
+      liveServers.scanServers();
       Set<TServerInstance> currentServers = liveServers.getCurrentServers();
 
       Map<UUID,TServerInstance> uuidToTServer;
@@ -283,10 +284,7 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     // remove any entries if there's a log reference (recovery hasn't finished)
-    Iterator<TabletLocationState> states = store.iterator();
-    while (states.hasNext()) {
-      TabletLocationState state = states.next();
-
+    for (TabletLocationState state : store) {
       // Tablet is still assigned to a dead server. Master has moved markers and reassigned it
       // Easiest to just ignore all the WALs for the dead server.
       if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {

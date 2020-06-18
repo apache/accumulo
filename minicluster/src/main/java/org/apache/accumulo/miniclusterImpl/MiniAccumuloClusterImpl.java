@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.miniclusterImpl;
 
@@ -28,7 +30,6 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,7 +72,7 @@ import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -83,7 +84,6 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.commons.io.IOUtils;
@@ -146,8 +146,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public ProcessInfo exec(Class<?> clazz, List<String> jvmArgs, String... args) throws IOException {
     ArrayList<String> jvmArgs2 = new ArrayList<>(1 + (jvmArgs == null ? 0 : jvmArgs.size()));
     jvmArgs2.add("-Xmx" + config.getDefaultMemory());
-    if (jvmArgs != null)
+    if (jvmArgs != null) {
       jvmArgs2.addAll(jvmArgs);
+    }
     return _exec(clazz, jvmArgs2, args);
   }
 
@@ -155,9 +156,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     StringBuilder classpathBuilder = new StringBuilder();
     classpathBuilder.append(config.getConfDir().getAbsolutePath());
 
-    if (config.getHadoopConfDir() != null)
+    if (config.getHadoopConfDir() != null) {
       classpathBuilder.append(File.pathSeparator)
           .append(config.getHadoopConfDir().getAbsolutePath());
+    }
 
     if (config.getClasspathItems() == null) {
       String javaClassPath = System.getProperty("java.class.path");
@@ -166,8 +168,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
       classpathBuilder.append(File.pathSeparator).append(javaClassPath);
     } else {
-      for (String s : config.getClasspathItems())
+      for (String s : config.getClasspathItems()) {
         classpathBuilder.append(File.pathSeparator).append(s);
+      }
     }
 
     return classpathBuilder.toString();
@@ -189,14 +192,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     public String readStdOut() {
       try (InputStream in = new FileInputStream(stdOut)) {
-        return IOUtils.toString(in, StandardCharsets.UTF_8);
+        return IOUtils.toString(in, UTF_8);
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
     }
   }
 
-  @SuppressFBWarnings(value = "COMMAND_INJECTION",
+  @SuppressFBWarnings(value = {"COMMAND_INJECTION", "PATH_TRAVERSAL_IN"},
       justification = "mini runs in the same security context as user providing the args")
   private ProcessInfo _exec(Class<?> clazz, List<String> extraJvmOpts, String... args)
       throws IOException {
@@ -214,8 +217,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
     // @formatter:off
     argList.addAll(Arrays.asList(
-        "-XX:+UseConcMarkSweepGC",
-        "-XX:CMSInitiatingOccupancyFraction=75",
         "-Dapple.awt.UIElement=true",
         "-Djava.net.preferIPv4Stack=true",
         "-XX:+PerfDisableSharedMem",
@@ -236,14 +237,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     // if we're running under accumulo.start, we forward these env vars
     String env = System.getenv("HADOOP_HOME");
-    if (env != null)
+    if (env != null) {
       builder.environment().put("HADOOP_HOME", env);
+    }
     env = System.getenv("ZOOKEEPER_HOME");
-    if (env != null)
+    if (env != null) {
       builder.environment().put("ZOOKEEPER_HOME", env);
+    }
     builder.environment().put("ACCUMULO_CONF_DIR", config.getConfDir().getAbsolutePath());
-    if (config.getHadoopConfDir() != null)
+    if (config.getHadoopConfDir() != null) {
       builder.environment().put("HADOOP_CONF_DIR", config.getHadoopConfDir().getAbsolutePath());
+    }
 
     log.debug("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName()
         + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath + "\n, args: " + argList
@@ -264,10 +268,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public ProcessInfo _exec(Class<?> clazz, ServerType serverType,
       Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
+    if (serverType == ServerType.ZOOKEEPER) {
+      // disable zookeeper's log4j 1.2 jmx support, which depends on log4j 1.2 on the class path,
+      // which we don't need or expect to be there
+      jvmOpts.add("-Dzookeeper.jmx.log4j.disable=true");
+    }
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
     if (configOverrides != null && !configOverrides.isEmpty()) {
-      File siteFile = Files.createTempFile(config.getConfDir().toPath(), "accumulo", ".properties")
-          .toFile();
+      File siteFile =
+          Files.createTempFile(config.getConfDir().toPath(), "accumulo", ".properties").toFile();
       Map<String,String> confMap = new HashMap<>();
       confMap.putAll(config.getSiteConfig());
       confMap.putAll(configOverrides);
@@ -311,8 +320,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     mkdirs(config.getLibExtDir());
 
     if (!config.useExistingInstance()) {
-      if (!config.useExistingZooKeepers())
+      if (!config.useExistingZooKeepers()) {
         mkdirs(config.getZooKeeperDir());
+      }
       mkdirs(config.getAccumuloDir());
     }
 
@@ -333,10 +343,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
       String oldTestBuildData = System.setProperty("test.build.data", dfs.getAbsolutePath());
       miniDFS = new MiniDFSCluster.Builder(conf).build();
-      if (oldTestBuildData == null)
+      if (oldTestBuildData == null) {
         System.clearProperty("test.build.data");
-      else
+      } else {
         System.setProperty("test.build.data", oldTestBuildData);
+      }
       miniDFS.waitClusterUp();
       InetSocketAddress dfsAddress = miniDFS.getNameNode().getNameNodeAddress();
       dfsUri = "hdfs://" + dfsAddress.getHostName() + ":" + dfsAddress.getPort();
@@ -376,7 +387,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     File siteFile = new File(config.getConfDir(), "accumulo.properties");
     writeConfigProperties(siteFile, config.getSiteConfig());
-    siteConfig = new SiteConfiguration(siteFile);
+    siteConfig = SiteConfiguration.fromFile(siteFile).build();
 
     if (!config.useExistingInstance() && !config.useExistingZooKeepers()) {
       zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
@@ -392,6 +403,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       zooCfg.setProperty("clientPort", config.getZooKeeperPort() + "");
       zooCfg.setProperty("maxClientCnxns", "1000");
       zooCfg.setProperty("dataDir", config.getZooKeeperDir().getAbsolutePath());
+      zooCfg.setProperty("4lw.commands.whitelist", "ruok,wchs");
+      zooCfg.setProperty("admin.enableServer", "false");
       zooCfg.store(fileWriter, null);
 
       fileWriter.close();
@@ -411,8 +424,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     fileWriter.append("<configuration>\n");
 
     for (Entry<String,String> entry : settings) {
-      String value = entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">",
-          "&gt;");
+      String value =
+          entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
       fileWriter.append(
           "<property><name>" + entry.getKey() + "</name><value>" + value + "</value></property>\n");
     }
@@ -423,8 +436,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private void writeConfigProperties(File file, Map<String,String> settings) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
 
-    for (Entry<String,String> entry : settings.entrySet())
+    for (Entry<String,String> entry : settings.entrySet()) {
       fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
+    }
     fileWriter.close();
   }
 
@@ -446,18 +460,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       Configuration hadoopConf = config.getHadoopConfiguration();
 
       ConfigurationCopy cc = new ConfigurationCopy(acuConf);
-      VolumeManager fs;
-      try {
-        fs = VolumeManagerImpl.get(cc, hadoopConf);
+      Path instanceIdPath;
+      try (var fs = VolumeManagerImpl.get(cc, hadoopConf)) {
+        instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(fs);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-      Path instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(fs);
 
-      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
-      IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(
-          cc.get(Property.INSTANCE_ZK_HOST), (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
-          cc.get(Property.INSTANCE_SECRET));
+      String instanceIdFromFile =
+          VolumeManager.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
+      ZooReaderWriter zrw = new ZooReaderWriter(cc.get(Property.INSTANCE_ZK_HOST),
+          (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET));
 
       String rootPath = ZooUtil.getRoot(instanceIdFromFile);
 
@@ -474,13 +487,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       } catch (KeeperException e) {
         throw new RuntimeException("Unable to read instance name from zookeeper.", e);
       }
-      if (instanceName == null)
+      if (instanceName == null) {
         throw new RuntimeException("Unable to read instance name from zookeeper.");
+      }
 
       config.setInstanceName(instanceName);
-      if (!AccumuloStatus.isAccumuloOffline(zrw, rootPath))
+      if (!AccumuloStatus.isAccumuloOffline(zrw, rootPath)) {
         throw new RuntimeException(
             "The Accumulo instance being used is already running. Aborting.");
+      }
     } else {
       if (!initialized) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -494,24 +509,24 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         }));
       }
 
-      if (!config.useExistingZooKeepers())
+      if (!config.useExistingZooKeepers()) {
         control.start(ServerType.ZOOKEEPER);
+      }
 
       if (!initialized) {
         if (!config.useExistingZooKeepers()) {
           // sleep a little bit to let zookeeper come up before calling init, seems to work better
           long startTime = System.currentTimeMillis();
           while (true) {
-            Socket s = null;
-            try {
-              s = new Socket("localhost", config.getZooKeeperPort());
+            try (Socket s = new Socket("localhost", config.getZooKeeperPort())) {
               s.setReuseAddress(true);
               s.getOutputStream().write("ruok\n".getBytes());
               s.getOutputStream().flush();
               byte[] buffer = new byte[100];
               int n = s.getInputStream().read(buffer);
-              if (n >= 4 && new String(buffer, 0, 4).equals("imok"))
+              if (n >= 4 && new String(buffer, 0, 4).equals("imok")) {
                 break;
+              }
             } catch (Exception e) {
               if (System.currentTimeMillis() - startTime >= config.getZooKeeperStartupTime()) {
                 throw new ZooKeeperBindException("Zookeeper did not start within "
@@ -520,9 +535,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               }
               // Don't spin absurdly fast
               sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
-            } finally {
-              if (s != null)
-                s.close();
             }
           }
         }
@@ -535,8 +547,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         args.add("--clear-instance-name");
 
         // If we aren't using SASL, add in the root password
-        final String saslEnabled = config.getSiteConfig()
-            .get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
+        final String saslEnabled =
+            config.getSiteConfig().get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
         if (saslEnabled == null || !Boolean.parseBoolean(saslEnabled)) {
           args.add("--password");
           args.add(config.getRootPassword());
@@ -561,8 +573,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     for (int i = 0; i < 5; i++) {
       ret = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString())
           .getProcess().waitFor();
-      if (ret == 0)
+      if (ret == 0) {
         break;
+      }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
     if (ret != 0) {
@@ -670,8 +683,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       executor = null;
     }
 
-    if (config.useMiniDFS() && miniDFS != null)
+    if (config.useMiniDFS() && miniDFS != null) {
       miniDFS.shutdown();
+    }
     for (Process p : cleanup) {
       p.destroy();
       p.waitFor();
@@ -701,8 +715,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public synchronized Properties getClientProperties() {
     if (clientProperties == null) {
-      clientProperties = Accumulo.newClientProperties().from(config.getClientPropsFile().toPath())
-          .build();
+      clientProperties =
+          Accumulo.newClientProperties().from(config.getClientPropsFile().toPath()).build();
     }
     return clientProperties;
   }

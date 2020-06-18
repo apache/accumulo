@@ -1,26 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -37,21 +37,15 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
-import org.apache.accumulo.test.categories.PerformanceTests;
-import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
-@Category({MiniClusterOnlyTests.class, PerformanceTests.class})
+@Category({MiniClusterOnlyTests.class})
 public class DurabilityIT extends ConfigurableMacBase {
-  private static final Logger log = LoggerFactory.getLogger(DurabilityIT.class);
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -60,9 +54,9 @@ public class DurabilityIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
   }
 
-  @BeforeClass
-  public static void checkMR() {
-    assumeFalse(IntegrationTestMapReduce.isMapReduce());
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
   }
 
   static final long N = 100000;
@@ -91,33 +85,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     c.tableOperations().create(tableName);
   }
 
-  @Test(timeout = 2 * 60 * 1000)
-  public void testWriteSpeed() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      TableOperations tableOps = client.tableOperations();
-      String[] tableNames = init(client);
-      // write some gunk, delete the table to keep that table from messing with the performance
-      // numbers of successive calls
-      // sync
-      long t0 = writeSome(client, tableNames[0], N);
-      tableOps.delete(tableNames[0]);
-      // flush
-      long t1 = writeSome(client, tableNames[1], N);
-      tableOps.delete(tableNames[1]);
-      // log
-      long t2 = writeSome(client, tableNames[2], N);
-      tableOps.delete(tableNames[2]);
-      // none
-      long t3 = writeSome(client, tableNames[3], N);
-      tableOps.delete(tableNames[3]);
-      System.out.println(String.format("sync %d flush %d log %d none %d", t0, t1, t2, t3));
-      assertTrue("flush should be faster than sync", t0 > t1);
-      assertTrue("log should be faster than flush", t1 > t2);
-      assertTrue("no durability should be faster than log", t2 > t3);
-    }
-  }
-
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testSync() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -129,7 +97,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testFlush() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -141,7 +109,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testLog() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -154,7 +122,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testNone() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = init(client);
@@ -167,7 +135,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testIncreaseDurability() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -192,7 +160,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     return result;
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testMetaDurability() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -218,27 +186,17 @@ public class DurabilityIT extends ConfigurableMacBase {
     cluster.start();
   }
 
-  private long writeSome(AccumuloClient c, String table, long count) throws Exception {
-    int iterations = 5;
-    long[] attempts = new long[iterations];
-    for (int attempt = 0; attempt < iterations; attempt++) {
-      long now = System.currentTimeMillis();
-      try (BatchWriter bw = c.createBatchWriter(table)) {
-        for (int i = 1; i < count + 1; i++) {
-          Mutation m = new Mutation("" + i);
-          m.put("", "", "");
-          bw.addMutation(m);
-          if (i % (Math.max(1, count / 100)) == 0) {
-            bw.flush();
-          }
+  private void writeSome(AccumuloClient c, String table, long count) throws Exception {
+    try (BatchWriter bw = c.createBatchWriter(table)) {
+      for (int i = 1; i < count + 1; i++) {
+        Mutation m = new Mutation("" + i);
+        m.put("", "", "");
+        bw.addMutation(m);
+        if (i % (Math.max(1, count / 100)) == 0) {
+          bw.flush();
         }
       }
-      attempts[attempt] = System.currentTimeMillis() - now;
     }
-    Arrays.sort(attempts);
-    log.info("Attempt durations: {}", Arrays.toString(attempts));
-    // Return the median duration
-    return attempts[2];
   }
 
 }

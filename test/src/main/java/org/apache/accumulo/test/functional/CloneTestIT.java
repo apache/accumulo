@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
@@ -35,21 +37,27 @@ import java.util.TreeSet;
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -101,6 +109,12 @@ public class CloneTestIT extends AccumuloClusterHarness {
     }
   }
 
+  private void assertTableState(String tableName, AccumuloClient c, TableState expected) {
+    String tableId = c.tableOperations().tableIdMap().get(tableName);
+    TableState tableState = Tables.getTableState((ClientContext) c, TableId.of(tableId));
+    assertEquals(expected, tableState);
+  }
+
   private void checkData(String table2, AccumuloClient c) throws TableNotFoundException {
     try (Scanner scanner = c.createScanner(table2, Authorizations.EMPTY)) {
 
@@ -150,11 +164,10 @@ public class CloneTestIT extends AccumuloClusterHarness {
               MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
                   .getColumnQualifier(),
               cq);
-          Path tabletDir = new Path(entry.getValue().toString());
-          Path tableDir = tabletDir.getParent();
-          Path tablesDir = tableDir.getParent();
 
-          assertEquals(ServerConstants.TABLE_DIR, tablesDir.getName());
+          String dirName = entry.getValue().toString();
+
+          assertTrue("Bad dir name " + dirName, dirName.matches("[tc]-[0-9a-z]+"));
         } else {
           fail("Got unexpected key-value: " + entry);
           throw new RuntimeException();
@@ -191,6 +204,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
       exclude.add(Property.TABLE_FILE_MAX.getKey());
 
       c.tableOperations().clone(table1, table2, true, props, exclude);
+
+      assertTableState(table2, c, TableState.ONLINE);
 
       Mutation m3 = new Mutation("009");
       m3.put("data", "x", "1");
@@ -252,6 +267,37 @@ public class CloneTestIT extends AccumuloClusterHarness {
   }
 
   @Test
+  public void testOfflineClone() throws Exception {
+    String[] tableNames = getUniqueNames(3);
+    String table1 = tableNames[0];
+    String table2 = tableNames[1];
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      AccumuloCluster cluster = getCluster();
+      Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
+
+      c.tableOperations().create(table1);
+
+      writeData(table1, c);
+
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
+
+      Set<String> exclude = new HashSet<>();
+      exclude.add(Property.TABLE_FILE_MAX.getKey());
+
+      c.tableOperations().clone(table1, table2, CloneConfiguration.builder().setFlush(true)
+          .setPropertiesToSet(props).setPropertiesToExclude(exclude).setKeepOffline(true).build());
+
+      assertTableState(table2, c, TableState.OFFLINE);
+
+      // delete tables
+      c.tableOperations().delete(table1);
+      c.tableOperations().delete(table2);
+    }
+  }
+
+  @Test
   public void testCloneWithSplits() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
@@ -285,6 +331,20 @@ public class CloneTestIT extends AccumuloClusterHarness {
       }
 
       assertEquals(rows, actualRows);
+    }
+  }
+
+  @Test(expected = AccumuloException.class)
+  public void testCloneRootTable() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().clone(RootTable.NAME, "rc1", true, null, null);
+    }
+  }
+
+  @Test(expected = AccumuloException.class)
+  public void testCloneMetadataTable() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().clone(MetadataTable.NAME, "mc1", true, null, null);
     }
   }
 }

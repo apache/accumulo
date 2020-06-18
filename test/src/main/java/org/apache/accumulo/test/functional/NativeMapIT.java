@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
@@ -65,7 +67,7 @@ public class NativeMapIT {
   }
 
   private Value newValue(int v) {
-    return new Value(String.format("r%09d", v).getBytes(UTF_8));
+    return new Value(String.format("r%09d", v));
   }
 
   public static File nativeMapLocation() {
@@ -135,15 +137,15 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = 0; ts < num; ts++) {
               Key key = newKey(i, j, k, l, ts, true);
-              Value value = new Value(
-                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run)
+              Value value =
+                  new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run)
                       .getBytes(UTF_8));
 
               nm.put(key, value);
 
               key = newKey(i, j, k, l, ts, false);
-              value = new Value(
-                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run)
+              value =
+                  new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run)
                       .getBytes(UTF_8));
 
               nm.put(key, value);
@@ -161,8 +163,8 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = num - 1; ts >= 0; ts--) {
               Key key = newKey(i, j, k, l, ts, true);
-              Value value = new Value(
-                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run)
+              Value value =
+                  new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run)
                       .getBytes(UTF_8));
 
               assertTrue(iter.hasNext());
@@ -171,8 +173,8 @@ public class NativeMapIT {
               assertEquals(value, entry.getValue());
 
               key = newKey(i, j, k, l, ts, false);
-              value = new Value(
-                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run)
+              value =
+                  new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run)
                       .getBytes(UTF_8));
 
               assertTrue(iter.hasNext());
@@ -193,8 +195,8 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = 0; ts < num; ts++) {
               Key key = newKey(i, j, k, l, ts, true);
-              Value value = new Value(
-                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run)
+              Value value =
+                  new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run)
                       .getBytes(UTF_8));
 
               assertEquals(value, nm.get(key));
@@ -206,8 +208,8 @@ public class NativeMapIT {
               assertEquals(value, entry.getValue());
 
               key = newKey(i, j, k, l, ts, false);
-              value = new Value(
-                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run)
+              value =
+                  new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run)
                       .getBytes(UTF_8));
 
               assertEquals(value, nm.get(key));
@@ -492,7 +494,7 @@ public class NativeMapIT {
     for (int i = 0; i < 2; i++) {
 
       // sort data
-      Collections.sort(testData, Comparator.comparing(Pair::getFirst));
+      testData.sort(Comparator.comparing(Pair::getFirst));
 
       // verify
       Iterator<Entry<Key,Value>> iter1 = nm.iterator();

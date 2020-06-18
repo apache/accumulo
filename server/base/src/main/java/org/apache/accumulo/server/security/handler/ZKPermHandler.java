@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security.handler;
 
@@ -50,7 +52,6 @@ import org.slf4j.LoggerFactory;
 
 public class ZKPermHandler implements PermissionHandler {
   private static final Logger log = LoggerFactory.getLogger(ZKPermHandler.class);
-  private static PermissionHandler zkPermHandlerInstance = null;
 
   private ZooReaderWriter zoo;
   private String ZKUserPath;
@@ -61,14 +62,8 @@ public class ZKPermHandler implements PermissionHandler {
   private final String ZKUserTablePerms = "/Tables";
   private final String ZKUserNamespacePerms = "/Namespaces";
 
-  public static synchronized PermissionHandler getInstance() {
-    if (zkPermHandlerInstance == null)
-      zkPermHandlerInstance = new ZKPermHandler();
-    return zkPermHandlerInstance;
-  }
-
   @Override
-  public void initialize(ServerContext context, boolean initialize) {
+  public void initialize(ServerContext context) {
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
     zoo = context.getZooReaderWriter();
     String instanceId = context.getInstanceID();
@@ -170,8 +165,8 @@ public class ZKPermHandler implements PermissionHandler {
   @Override
   public boolean hasCachedNamespacePermission(String user, String namespace,
       NamespacePermission permission) {
-    byte[] serializedPerms = zooCache
-        .get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
+    byte[] serializedPerms =
+        zooCache.get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
     if (serializedPerms != null) {
       return ZKSecurityTool.convertNamespacePermissions(serializedPerms).contains(permission);
     }
@@ -237,8 +232,8 @@ public class ZKPermHandler implements PermissionHandler {
   public void grantNamespacePermission(String user, String namespace,
       NamespacePermission permission) throws AccumuloSecurityException {
     Set<NamespacePermission> namespacePerms;
-    byte[] serializedPerms = zooCache
-        .get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
+    byte[] serializedPerms =
+        zooCache.get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
     if (serializedPerms != null)
       namespacePerms = ZKSecurityTool.convertNamespacePermissions(serializedPerms);
     else
@@ -303,7 +298,7 @@ public class ZKPermHandler implements PermissionHandler {
     try {
       if (tablePerms.remove(permission)) {
         zooCache.clear();
-        if (tablePerms.size() == 0)
+        if (tablePerms.isEmpty())
           zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table,
               NodeMissingPolicy.SKIP);
         else
@@ -322,19 +317,19 @@ public class ZKPermHandler implements PermissionHandler {
   @Override
   public void revokeNamespacePermission(String user, String namespace,
       NamespacePermission permission) throws AccumuloSecurityException {
-    byte[] serializedPerms = zooCache
-        .get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
+    byte[] serializedPerms =
+        zooCache.get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
 
     // User had no namespace permission, nothing to revoke.
     if (serializedPerms == null)
       return;
 
-    Set<NamespacePermission> namespacePerms = ZKSecurityTool
-        .convertNamespacePermissions(serializedPerms);
+    Set<NamespacePermission> namespacePerms =
+        ZKSecurityTool.convertNamespacePermissions(serializedPerms);
     try {
       if (namespacePerms.remove(permission)) {
         zooCache.clear();
-        if (namespacePerms.size() == 0)
+        if (namespacePerms.isEmpty())
           zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace,
               NodeMissingPolicy.SKIP);
         else
@@ -394,8 +389,7 @@ public class ZKPermHandler implements PermissionHandler {
     // create the root user with all system privileges, no table privileges, and no record-level
     // authorizations
     Set<SystemPermission> rootPerms = new TreeSet<>();
-    for (SystemPermission p : SystemPermission.values())
-      rootPerms.add(p);
+    Collections.addAll(rootPerms, SystemPermission.values());
     Map<TableId,Set<TablePermission>> tablePerms = new HashMap<>();
     // Allow the root user to flush the system tables
     tablePerms.put(RootTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));

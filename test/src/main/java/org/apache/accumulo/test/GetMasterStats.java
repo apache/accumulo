@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -41,7 +43,7 @@ public class GetMasterStats {
   public static void main(String[] args) throws Exception {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
-    ServerContext context = new ServerContext(new SiteConfiguration());
+    var context = new ServerContext(SiteConfiguration.auto());
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);
@@ -51,20 +53,21 @@ public class GetMasterStats {
         // Let it loop, fetching a new location
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
-        if (client != null)
+        if (client != null) {
           MasterClient.close(client);
+        }
       }
     }
     out(0, "State: " + stats.state.name());
     out(0, "Goal State: " + stats.goalState.name());
-    if (stats.serversShuttingDown != null && stats.serversShuttingDown.size() > 0) {
+    if (stats.serversShuttingDown != null && !stats.serversShuttingDown.isEmpty()) {
       out(0, "Servers to shutdown");
       for (String server : stats.serversShuttingDown) {
         out(1, "%s", server);
       }
     }
     out(0, "Unassigned tablets: %d", stats.unassignedTablets);
-    if (stats.badTServers != null && stats.badTServers.size() > 0) {
+    if (stats.badTServers != null && !stats.badTServers.isEmpty()) {
       out(0, "Bad servers");
 
       for (Entry<String,Byte> entry : stats.badTServers.entrySet()) {
@@ -83,7 +86,7 @@ public class GetMasterStats {
       out(2, "Bulk state %s", bulk.state);
       out(2, "Bulk start %s", bulk.startTime);
     }
-    if (stats.tableMap != null && stats.tableMap.size() > 0) {
+    if (stats.tableMap != null && !stats.tableMap.isEmpty()) {
       out(0, "Tables");
       for (Entry<String,TableInfo> entry : stats.tableMap.entrySet()) {
         TableInfo v = entry.getValue();
@@ -96,7 +99,7 @@ public class GetMasterStats {
         out(2, "Query Rate: %.2f", v.queryRate);
       }
     }
-    if (stats.tServerInfo != null && stats.tServerInfo.size() > 0) {
+    if (stats.tServerInfo != null && !stats.tServerInfo.isEmpty()) {
       out(0, "Tablet Servers");
       long now = System.currentTimeMillis();
       for (TabletServerStatus server : stats.tServerInfo) {
@@ -109,9 +112,10 @@ public class GetMasterStats {
         out(2, "Time Difference: %.1f", ((now - server.lastContact) / 1000.));
         out(2, "Total Records: %d", summary.recs);
         out(2, "Lookups: %d", server.lookups);
-        if (server.holdTime > 0)
+        if (server.holdTime > 0) {
           out(2, "Hold Time: %d", server.holdTime);
-        if (server.tableMap != null && server.tableMap.size() > 0) {
+        }
+        if (server.tableMap != null && !server.tableMap.isEmpty()) {
           out(2, "Tables");
           for (Entry<String,TableInfo> status : server.tableMap.entrySet()) {
             TableInfo info = status.getValue();

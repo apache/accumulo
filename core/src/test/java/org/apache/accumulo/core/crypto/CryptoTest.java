@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.crypto;
 
 import static org.apache.accumulo.core.file.rfile.RFileTest.getAccumuloConfig;
@@ -22,7 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -72,9 +73,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Iterables;
 
@@ -86,14 +85,11 @@ public class CryptoTest {
   public static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
   public static final String CRYPTO_ON_CONF = "ON";
   public static final String CRYPTO_OFF_CONF = "OFF";
-  public static final String keyPath = System.getProperty("user.dir")
-      + "/target/CryptoTest-testkeyfile";
-  public static final String emptyKeyPath = System.getProperty("user.dir")
-      + "/target/CryptoTest-emptykeyfile";
+  public static final String keyPath =
+      System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile";
+  public static final String emptyKeyPath =
+      System.getProperty("user.dir") + "/target/CryptoTest-emptykeyfile";
   private static Configuration hadoopConf = new Configuration();
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   @BeforeClass
   public static void setupKeyFiles() throws Exception {
@@ -181,8 +177,8 @@ public class CryptoTest {
     byte[] encryptedBytes = encrypt(cs, Scope.WAL, CRYPTO_OFF_CONF);
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
-    String stringifiedMarkerBytes = getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING,
-        MARKER_INT);
+    String stringifiedMarkerBytes =
+        getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
@@ -195,8 +191,8 @@ public class CryptoTest {
     byte[] encryptedBytes = encrypt(cs, Scope.RFILE, CRYPTO_OFF_CONF);
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
-    String stringifiedMarkerBytes = getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING,
-        MARKER_INT);
+    String stringifiedMarkerBytes =
+        getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
@@ -208,8 +204,8 @@ public class CryptoTest {
     AccumuloConfiguration cryptoOnConf = getAccumuloConfig(CRYPTO_ON_CONF);
     FileSystem fs = FileSystem.getLocal(hadoopConf);
     ArrayList<Key> keys = testData();
-    SummarizerConfiguration sumConf = SummarizerConfiguration.builder(KeyCounter.class.getName())
-        .build();
+    SummarizerConfiguration sumConf =
+        SummarizerConfiguration.builder(KeyCounter.class.getName()).build();
 
     String file = "target/testFile1.rf";
     fs.delete(new Path(file), true);
@@ -222,14 +218,14 @@ public class CryptoTest {
       }
     }
 
-    Scanner iter = RFile.newScanner().from(file).withFileSystem(fs)
-        .withTableProperties(cryptoOnConf).build();
+    Scanner iter =
+        RFile.newScanner().from(file).withFileSystem(fs).withTableProperties(cryptoOnConf).build();
     ArrayList<Key> keysRead = new ArrayList<>();
     iter.forEach(e -> keysRead.add(e.getKey()));
     assertEquals(keys, keysRead);
 
-    Collection<Summary> summaries = RFile.summaries().from(file).withFileSystem(fs)
-        .withTableProperties(cryptoOnConf).read();
+    Collection<Summary> summaries =
+        RFile.summaries().from(file).withFileSystem(fs).withTableProperties(cryptoOnConf).read();
     Summary summary = Iterables.getOnlyElement(summaries);
     assertEquals(keys.size(), (long) summary.getStatistics().get("keys"));
     assertEquals(1, summary.getStatistics().size());
@@ -248,8 +244,8 @@ public class CryptoTest {
 
     String file = "target/testFile2.rf";
     fs.delete(new Path(file), true);
-    try (RFileWriter writer = RFile.newWriter().to(file).withFileSystem(fs)
-        .withTableProperties(cryptoOffConf).build()) {
+    try (RFileWriter writer =
+        RFile.newWriter().to(file).withFileSystem(fs).withTableProperties(cryptoOffConf).build()) {
       Value empty = new Value(new byte[] {});
       writer.startDefaultLocalityGroup();
       for (Key key : keys) {
@@ -257,16 +253,15 @@ public class CryptoTest {
       }
     }
 
-    Scanner iter = RFile.newScanner().from(file).withFileSystem(fs)
-        .withTableProperties(cryptoOnConf).build();
+    Scanner iter =
+        RFile.newScanner().from(file).withFileSystem(fs).withTableProperties(cryptoOnConf).build();
     ArrayList<Key> keysRead = new ArrayList<>();
     iter.forEach(e -> keysRead.add(e.getKey()));
     assertEquals(keys, keysRead);
   }
 
   @Test
-  public void testMissingConfigProperties()
-      throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+  public void testMissingConfigProperties() throws ReflectiveOperationException {
     ConfigurationCopy aconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     Configuration conf = new Configuration(false);
     for (Map.Entry<String,String> e : conf) {
@@ -275,29 +270,35 @@ public class CryptoTest {
     aconf.set(Property.INSTANCE_CRYPTO_SERVICE,
         "org.apache.accumulo.core.cryptoImpl.AESCryptoService");
     String configuredClass = aconf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
-    Class<? extends CryptoService> clazz = AccumuloVFSClassLoader.loadClass(configuredClass,
-        CryptoService.class);
-    CryptoService cs = clazz.newInstance();
+    Class<? extends CryptoService> clazz =
+        AccumuloVFSClassLoader.loadClass(configuredClass, CryptoService.class);
+    CryptoService cs = clazz.getDeclaredConstructor().newInstance();
 
-    exception.expect(NullPointerException.class);
-    cs.init(aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
     assertEquals(AESCryptoService.class, cs.getClass());
+    assertThrows(NullPointerException.class,
+        () -> cs.init(aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
   }
 
-  @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is being tested")
   @Test
   public void testAESKeyUtilsGeneratesKey() throws NoSuchAlgorithmException,
       NoSuchProviderException, NoSuchPaddingException, InvalidKeyException {
     SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
-    java.security.Key key;
-    key = AESKeyUtils.generateKey(sr, 16);
-    Cipher.getInstance("AES/CBC/NoPadding").init(Cipher.ENCRYPT_MODE, key);
+    // verify valid key sizes (corresponds to 128, 192, and 256 bits)
+    for (int i : new int[] {16, 24, 32}) {
+      verifyKeySizeForCBC(sr, i);
+    }
+    // verify invalid key sizes
+    for (int i : new int[] {1, 2, 8, 11, 15, 64, 128}) {
+      assertThrows(InvalidKeyException.class, () -> verifyKeySizeForCBC(sr, i));
+    }
+  }
 
-    key = AESKeyUtils.generateKey(sr, 24);
-    key = AESKeyUtils.generateKey(sr, 32);
-    key = AESKeyUtils.generateKey(sr, 11);
-
-    exception.expect(InvalidKeyException.class);
+  // this has to be a separate method, for spotbugs, because spotbugs annotation doesn't seem to
+  // apply to the lambda inline
+  @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is being tested")
+  private void verifyKeySizeForCBC(SecureRandom sr, int sizeInBytes)
+      throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
+    java.security.Key key = AESKeyUtils.generateKey(sr, sizeInBytes);
     Cipher.getInstance("AES/CBC/NoPadding").init(Cipher.ENCRYPT_MODE, key);
   }
 
@@ -324,9 +325,7 @@ public class CryptoTest {
     java.security.Key wrongKek = new SecretKeySpec(wrongBytes, "AES");
 
     byte[] wrapped = AESKeyUtils.wrapKey(fek, kek);
-    exception.expect(CryptoException.class);
-    java.security.Key unwrapped = AESKeyUtils.unwrapKey(wrapped, wrongKek);
-    fail("creation of " + unwrapped + " should fail");
+    assertThrows(CryptoException.class, () -> AESKeyUtils.unwrapKey(wrapped, wrongKek));
   }
 
   @Test
@@ -341,17 +340,13 @@ public class CryptoTest {
 
   @Test
   public void testAESKeyUtilsLoadKekFromUriInvalidUri() {
-    exception.expect(CryptoException.class);
-    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(
-        System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile-doesnt-exist");
-    fail("creation of " + fileKey + " should fail");
+    assertThrows(CryptoException.class, () -> AESKeyUtils.loadKekFromUri(
+        System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile-doesnt-exist"));
   }
 
   @Test
   public void testAESKeyUtilsLoadKekFromEmptyFile() {
-    exception.expect(CryptoException.class);
-    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(emptyKeyPath);
-    fail("creation of " + fileKey + " should fail");
+    assertThrows(CryptoException.class, () -> AESKeyUtils.loadKekFromUri(emptyKeyPath));
   }
 
   private ArrayList<Key> testData() {
@@ -376,8 +371,8 @@ public class CryptoTest {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DataOutputStream dataOut = new DataOutputStream(out);
     CryptoUtils.writeParams(params, dataOut);
-    DataOutputStream encrypted = new DataOutputStream(
-        encrypter.encryptStream(new NoFlushOutputStream(dataOut)));
+    DataOutputStream encrypted =
+        new DataOutputStream(encrypter.encryptStream(new NoFlushOutputStream(dataOut)));
     assertNotNull(encrypted);
 
     encrypted.writeUTF(MARKER_STRING);

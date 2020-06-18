@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -20,7 +22,6 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
@@ -63,27 +64,20 @@ public class GetSplitsCommand extends Command {
     final boolean encode = cl.hasOption(base64Opt.getOpt());
     final boolean verbose = cl.hasOption(verboseOpt.getOpt());
 
-    try (PrintLine p = outputFile == null ? new PrintShell(shellState.getReader())
-        : new PrintFile(outputFile)) {
-      if (!verbose) {
-        for (Text row : maxSplits > 0
-            ? shellState.getAccumuloClient().tableOperations().listSplits(tableName, maxSplits)
-            : shellState.getAccumuloClient().tableOperations().listSplits(tableName)) {
-          p.print(encode(encode, row));
-        }
-      } else {
-        String systemTableToCheck = MetadataTable.NAME.equals(tableName) ? RootTable.NAME
-            : MetadataTable.NAME;
-        final Scanner scanner = shellState.getAccumuloClient().createScanner(systemTableToCheck,
-            Authorizations.EMPTY);
+    try (PrintLine p =
+        outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile)) {
+      if (verbose) {
+        String systemTableToCheck =
+            MetadataTable.NAME.equals(tableName) ? RootTable.NAME : MetadataTable.NAME;
+        final Scanner scanner =
+            shellState.getAccumuloClient().createScanner(systemTableToCheck, Authorizations.EMPTY);
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-        final Text start = new Text(
-            shellState.getAccumuloClient().tableOperations().tableIdMap().get(tableName));
+        final Text start =
+            new Text(shellState.getAccumuloClient().tableOperations().tableIdMap().get(tableName));
         final Text end = new Text(start);
         end.append(new byte[] {'<'}, 0, 1);
         scanner.setRange(new Range(start, end));
-        for (Iterator<Entry<Key,Value>> iterator = scanner.iterator(); iterator.hasNext();) {
-          final Entry<Key,Value> next = iterator.next();
+        for (final Entry<Key,Value> next : scanner) {
           if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(next.getKey())) {
             KeyExtent extent = new KeyExtent(next.getKey().getRow(), next.getValue());
             final String pr = encode(encode, extent.getPrevEndRow());
@@ -93,6 +87,12 @@ public class GetSplitsCommand extends Command {
                 er == null ? ") Default Tablet " : "]");
             p.print(line);
           }
+        }
+      } else {
+        for (Text row : maxSplits > 0
+            ? shellState.getAccumuloClient().tableOperations().listSplits(tableName, maxSplits)
+            : shellState.getAccumuloClient().tableOperations().listSplits(tableName)) {
+          p.print(encode(encode, row));
         }
       }
 
@@ -140,14 +140,14 @@ public class GetSplitsCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the splits to");
     outputFileOpt.setArgName("file");
 
-    maxSplitsOpt = new Option("m", "max", true,
-        "maximum number of splits to return (evenly spaced)");
+    maxSplitsOpt =
+        new Option("m", "max", true, "maximum number of splits to return (evenly spaced)");
     maxSplitsOpt.setArgName("num");
 
     base64Opt = new Option("b64", "base64encoded", false, "encode the split points");
 
-    verboseOpt = new Option("v", "verbose", false,
-        "print out the tablet information with start/end rows");
+    verboseOpt =
+        new Option("v", "verbose", false, "print out the tablet information with start/end rows");
 
     opts.addOption(outputFileOpt);
     opts.addOption(maxSplitsOpt);

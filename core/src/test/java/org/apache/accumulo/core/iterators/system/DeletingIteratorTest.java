@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.system;
 
@@ -33,7 +35,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.DeletingIterator.Behavior;
+import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator.Behavior;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -45,9 +48,9 @@ public class DeletingIteratorTest {
   public void test1() {
     Text colf = new Text("a");
     Text colq = new Text("b");
-    Value dvOld = new Value("old".getBytes());
-    Value dvDel = new Value("old".getBytes());
-    Value dvNew = new Value("new".getBytes());
+    Value dvOld = new Value("old");
+    Value dvDel = new Value("old");
+    Value dvNew = new Value("new");
 
     TreeMap<Key,Value> tm = new TreeMap<>();
     Key k;
@@ -71,8 +74,8 @@ public class DeletingIteratorTest {
 
     Text checkRow = new Text("000");
     try {
-      SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
-          Behavior.PROCESS);
+      SortedKeyValueIterator<Key,Value> it =
+          DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.PROCESS);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
 
       TreeMap<Key,Value> tmOut = new TreeMap<>();
@@ -94,8 +97,8 @@ public class DeletingIteratorTest {
     }
 
     try {
-      SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), true,
-          Behavior.PROCESS);
+      SortedKeyValueIterator<Key,Value> it =
+          DeletingIterator.wrap(new SortedMapIterator(tm), true, Behavior.PROCESS);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
       TreeMap<Key,Value> tmOut = new TreeMap<>();
       while (it.hasTop()) {
@@ -132,8 +135,8 @@ public class DeletingIteratorTest {
     newKeyValue(tm, "r000", 2, true, "v2");
     newKeyValue(tm, "r000", 1, false, "v1");
 
-    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
-        Behavior.PROCESS);
+    SortedKeyValueIterator<Key,Value> it =
+        DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.PROCESS);
 
     // SEEK two keys before delete
     it.seek(newRange("r000", 4), EMPTY_COL_FAMS, false);
@@ -184,8 +187,8 @@ public class DeletingIteratorTest {
     newKeyValue(tm, "r000", 2, true, "");
     newKeyValue(tm, "r000", 1, false, "v1");
 
-    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
-        Behavior.PROCESS);
+    SortedKeyValueIterator<Key,Value> it =
+        DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.PROCESS);
     it.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(it.hasTop());
@@ -211,8 +214,8 @@ public class DeletingIteratorTest {
     newKeyValue(tm, "r000", 2, true, "");
     newKeyValue(tm, "r000", 1, false, "v1");
 
-    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
-        Behavior.PROCESS);
+    SortedKeyValueIterator<Key,Value> it =
+        DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.PROCESS);
 
     it.seek(newRange("r000", 3), EMPTY_COL_FAMS, false);
 
@@ -238,8 +241,8 @@ public class DeletingIteratorTest {
     newKeyValue(tm, "r000", 2, true, "");
     newKeyValue(tm, "r000", 1, false, "v1");
 
-    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
-        Behavior.FAIL);
+    SortedKeyValueIterator<Key,Value> it =
+        DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.FAIL);
     it.seek(new Range(), EMPTY_COL_FAMS, false);
     try {
       while (it.hasTop()) {
@@ -266,6 +269,6 @@ public class DeletingIteratorTest {
       String val) {
     Key k = newKey(row, ts);
     k.setDeleted(deleted);
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
   }
 }

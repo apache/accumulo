@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.replication;
 
@@ -98,10 +100,10 @@ public class StatusCombinerTest {
     Status newFile = StatusUtil.fileCreated(100), firstSync = StatusUtil.ingestedUntil(100),
         secondSync = StatusUtil.ingestedUntil(200);
 
-    Status order1 = combiner.typedReduce(key,
-        Arrays.asList(newFile, firstSync, secondSync).iterator()),
-        order2 = combiner.typedReduce(key,
-            Arrays.asList(secondSync, firstSync, newFile).iterator());
+    Status order1 =
+        combiner.typedReduce(key, Arrays.asList(newFile, firstSync, secondSync).iterator()),
+        order2 =
+            combiner.typedReduce(key, Arrays.asList(secondSync, firstSync, newFile).iterator());
 
     assertEquals(order1, order2);
   }
@@ -112,10 +114,10 @@ public class StatusCombinerTest {
         firstSync = StatusUtil.ingestedUntil(builder, 100),
         secondSync = StatusUtil.ingestedUntil(builder, 200);
 
-    Status order1 = combiner.typedReduce(key,
-        Arrays.asList(newFile, firstSync, secondSync).iterator()),
-        order2 = combiner.typedReduce(key,
-            Arrays.asList(secondSync, firstSync, newFile).iterator());
+    Status order1 =
+        combiner.typedReduce(key, Arrays.asList(newFile, firstSync, secondSync).iterator()),
+        order2 =
+            combiner.typedReduce(key, Arrays.asList(secondSync, firstSync, newFile).iterator());
 
     assertEquals(order1, order2);
   }
@@ -125,10 +127,10 @@ public class StatusCombinerTest {
     Status newFile = StatusUtil.fileCreated(100), firstSync = StatusUtil.ingestedUntil(100),
         secondSync = StatusUtil.ingestedUntil(200);
 
-    Status order1 = combiner.typedReduce(key,
-        Arrays.asList(newFile, firstSync, secondSync).iterator()),
-        order2 = combiner.typedReduce(key,
-            Arrays.asList(newFile, secondSync, firstSync).iterator());
+    Status order1 =
+        combiner.typedReduce(key, Arrays.asList(newFile, firstSync, secondSync).iterator()),
+        order2 =
+            combiner.typedReduce(key, Arrays.asList(newFile, secondSync, firstSync).iterator());
 
     assertEquals(order1, order2);
   }
@@ -139,10 +141,10 @@ public class StatusCombinerTest {
         firstSync = StatusUtil.ingestedUntil(builder, 100),
         secondSync = StatusUtil.ingestedUntil(builder, 200);
 
-    Status order1 = combiner.typedReduce(key,
-        Arrays.asList(newFile, firstSync, secondSync).iterator()),
-        order2 = combiner.typedReduce(key,
-            Arrays.asList(newFile, secondSync, firstSync).iterator());
+    Status order1 =
+        combiner.typedReduce(key, Arrays.asList(newFile, firstSync, secondSync).iterator()),
+        order2 =
+            combiner.typedReduce(key, Arrays.asList(newFile, secondSync, firstSync).iterator());
 
     assertEquals(order1, order2);
   }
@@ -152,8 +154,8 @@ public class StatusCombinerTest {
     Status newFile = StatusUtil.fileCreated(100), closed = StatusUtil.fileClosed(),
         secondSync = StatusUtil.ingestedUntil(200);
 
-    Status order1 = combiner.typedReduce(key,
-        Arrays.asList(newFile, closed, secondSync).iterator()),
+    Status order1 =
+        combiner.typedReduce(key, Arrays.asList(newFile, closed, secondSync).iterator()),
         order2 = combiner.typedReduce(key, Arrays.asList(newFile, secondSync, closed).iterator());
 
     assertEquals(order1, order2);
@@ -164,8 +166,8 @@ public class StatusCombinerTest {
     Status newFile = StatusUtil.fileCreated(100), closed = StatusUtil.fileClosed(),
         secondSync = StatusUtil.ingestedUntil(builder, 200);
 
-    Status order1 = combiner.typedReduce(key,
-        Arrays.asList(newFile, closed, secondSync).iterator()),
+    Status order1 =
+        combiner.typedReduce(key, Arrays.asList(newFile, closed, secondSync).iterator()),
         order2 = combiner.typedReduce(key, Arrays.asList(newFile, secondSync, closed).iterator());
 
     assertEquals(order1, order2);
@@ -247,8 +249,8 @@ public class StatusCombinerTest {
   public void fileClosedTimePropagated() {
     Status stat1 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false)
         .setCreatedTime(50).build();
-    Status stat2 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false)
-        .build();
+    Status stat2 =
+        Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).build();
 
     Status combined = combiner.typedReduce(key, Arrays.asList(stat1, stat2).iterator());
 

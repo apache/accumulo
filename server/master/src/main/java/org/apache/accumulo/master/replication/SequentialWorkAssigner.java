@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.replication;
 
@@ -93,8 +95,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
     log.info("Restoring replication work queue state from zookeeper");
 
     for (String work : existingWork) {
-      Entry<String,ReplicationTarget> entry = DistributedWorkQueueWorkAssignerHelper
-          .fromQueueKey(work);
+      Entry<String,ReplicationTarget> entry =
+          DistributedWorkQueueWorkAssignerHelper.fromQueueKey(work);
       String filename = entry.getKey();
       String peerName = entry.getValue().getPeerName();
       TableId sourceTableId = entry.getValue().getSourceTableId();
@@ -102,13 +104,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
       log.debug("In progress replication of {} from table with ID {} to peer {}", filename,
           sourceTableId, peerName);
 
-      Map<TableId,String> replicationForPeer = queuedWorkByPeerName.get(peerName);
-      if (replicationForPeer == null) {
-        replicationForPeer = new HashMap<>();
-        queuedWorkByPeerName.put(peerName, replicationForPeer);
-      }
-
-      replicationForPeer.put(sourceTableId, work);
+      queuedWorkByPeerName.computeIfAbsent(peerName, k -> new HashMap<>()).put(sourceTableId, work);
     }
   }
 
@@ -117,8 +113,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
    */
   @Override
   protected void cleanupFinishedWork() {
-    final Iterator<Entry<String,Map<TableId,String>>> queuedWork = queuedWorkByPeerName.entrySet()
-        .iterator();
+    final Iterator<Entry<String,Map<TableId,String>>> queuedWork =
+        queuedWorkByPeerName.entrySet().iterator();
     final String instanceId = client.instanceOperations().getInstanceID();
 
     int elementsRemoved = 0;
@@ -171,11 +167,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   @Override
   protected boolean queueWork(Path path, ReplicationTarget target) {
     String queueKey = DistributedWorkQueueWorkAssignerHelper.getQueueKey(path.getName(), target);
-    Map<TableId,String> workForPeer = this.queuedWorkByPeerName.get(target.getPeerName());
-    if (workForPeer == null) {
-      workForPeer = new HashMap<>();
-      this.queuedWorkByPeerName.put(target.getPeerName(), workForPeer);
-    }
+    Map<TableId,String> workForPeer =
+        this.queuedWorkByPeerName.computeIfAbsent(target.getPeerName(), k -> new HashMap<>());
 
     String queuedWork = workForPeer.get(target.getSourceTableId());
     if (queuedWork == null) {

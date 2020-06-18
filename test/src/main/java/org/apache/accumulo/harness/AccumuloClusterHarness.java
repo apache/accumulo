@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.harness;
 
@@ -57,8 +59,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * General Integration-Test base class that provides access to an Accumulo instance for testing.
- * This instance could be MAC or a standalone instance.
+ * Integration-Test base class that provides a MAC instance per test. WARNING: This IT type will
+ * setup and teardown an entire cluster for every test annotated with @Test and is reserved for more
+ * advanced ITs that do crazy things. For more typical, expected behavior of a cluster see
+ * {@link SharedMiniClusterBase}. This instance can be MAC or a standalone instance.
  */
 @Category(StandaloneCapableClusterTests.class)
 public abstract class AccumuloClusterHarness extends AccumuloITBase
@@ -131,25 +135,28 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
         }
         break;
       case STANDALONE:
-        // @formatter:off
         StandaloneAccumuloClusterConfiguration conf =
-          (StandaloneAccumuloClusterConfiguration) clusterConf;
-        // @formatter:on
-        StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(
-            conf.getClientInfo(), conf.getTmpDirectory(), conf.getUsers(),
-            conf.getServerAccumuloConfDir());
+            (StandaloneAccumuloClusterConfiguration) clusterConf;
+        StandaloneAccumuloCluster standaloneCluster =
+            new StandaloneAccumuloCluster(conf.getClientInfo(), conf.getTmpDirectory(),
+                conf.getUsers(), conf.getServerAccumuloConfDir());
         // If these are provided in the configuration, pass them into the cluster
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
         standaloneCluster.setClientAccumuloConfDir(conf.getClientAccumuloConfDir());
         standaloneCluster.setHadoopConfDir(conf.getHadoopConfDir());
-        standaloneCluster.setServerCmdPrefix(conf.getServerCmdPrefix());
-        standaloneCluster.setClientCmdPrefix(conf.getClientCmdPrefix());
+        // If these were not provided then ensure they are not null
+        standaloneCluster
+            .setServerCmdPrefix(conf.getServerCmdPrefix() == null ? "" : conf.getServerCmdPrefix());
+        standaloneCluster
+            .setClientCmdPrefix(conf.getClientCmdPrefix() == null ? "" : conf.getClientCmdPrefix());
         cluster = standaloneCluster;
 
         // For SASL, we need to get the Hadoop configuration files as well otherwise UGI will log in
         // as SIMPLE instead of KERBEROS
-        Configuration hadoopConfiguration = standaloneCluster.getHadoopConfiguration();
         if (saslEnabled()) {
+          // Note that getting the Hadoop config creates a servercontext which wacks up the
+          // AccumuloClientIT test so if SASL is enabled then the testclose() will fail
+          Configuration hadoopConfiguration = standaloneCluster.getHadoopConfiguration();
           UserGroupInformation.setConfiguration(hadoopConfiguration);
           // Login as the admin user to start the tests
           UserGroupInformation.loginUserFromKeytab(conf.getAdminPrincipal(),
@@ -183,8 +190,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           // permissions to)
           UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
               systemUser.getKeytab().getAbsolutePath());
-          AccumuloClient c = cluster.createAccumuloClient(systemUser.getPrincipal(),
-              new KerberosToken());
+          AccumuloClient c =
+              cluster.createAccumuloClient(systemUser.getPrincipal(), new KerberosToken());
           c.close();
 
           // Then, log back in as the "root" user and do the grant
@@ -325,8 +332,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           return krb.getClientPrincipal(offset);
         } else {
           // Come up with a mostly unique name
-          String principal = getClass().getSimpleName() + "_" + testName.getMethodName() + "_"
-              + offset;
+          String principal =
+              getClass().getSimpleName() + "_" + testName.getMethodName() + "_" + offset;
           // Username and password are the same
           return new ClusterUser(principal, principal);
         }

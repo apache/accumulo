@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.init;
 
@@ -34,7 +36,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -94,7 +95,7 @@ public class InitializeTest {
     expect(zoo.exists("/")).andReturn(false);
     replay(zoo);
 
-    assertFalse(Initialize.checkInit(conf, fs, sconf, conf));
+    assertFalse(Initialize.checkInit(fs, sconf, conf));
   }
 
   @SuppressWarnings("deprecation")
@@ -109,26 +110,7 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
     replay(fs);
 
-    assertFalse(Initialize.checkInit(conf, fs, sconf, conf));
-  }
-
-  // Cannot test, need to mock static FileSystem.getDefaultUri()
-  @SuppressWarnings("deprecation")
-  @Ignore
-  @Test
-  public void testCheckInit_AlreadyInit_DefaultUri() throws Exception {
-    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("").anyTimes();
-    expect(sconf.get(Property.INSTANCE_DFS_DIR)).andReturn("/bar");
-    expect(sconf.get(Property.INSTANCE_SECRET))
-        .andReturn(Property.INSTANCE_SECRET.getDefaultValue());
-    replay(sconf);
-    expect(zoo.exists("/")).andReturn(true);
-    replay(zoo);
-    // expect(fs.getUri()).andReturn(new URI("hdfs://default"));
-    expect(fs.exists(anyObject(Path.class))).andReturn(true);
-    replay(fs);
-
-    assertFalse(Initialize.checkInit(conf, fs, sconf, conf));
+    assertFalse(Initialize.checkInit(fs, sconf, conf));
   }
 
   @SuppressWarnings("deprecation")
@@ -144,7 +126,7 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andThrow(new IOException());
     replay(fs);
 
-    Initialize.checkInit(conf, fs, sconf, conf);
+    Initialize.checkInit(fs, sconf, conf);
   }
 
   @SuppressWarnings("deprecation")
@@ -160,6 +142,6 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andReturn(false);
     replay(fs);
 
-    assertTrue(Initialize.checkInit(conf, fs, sconf, conf));
+    assertTrue(Initialize.checkInit(fs, sconf, conf));
   }
 }

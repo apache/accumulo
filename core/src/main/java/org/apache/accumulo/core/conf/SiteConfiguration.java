@@ -1,23 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -26,14 +29,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
-import org.apache.commons.configuration.CompositeConfiguration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.AbstractConfiguration;
+import org.apache.commons.configuration2.CompositeConfiguration;
+import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -55,119 +61,171 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
 
-  private final ImmutableMap<String,String> config;
-
-  public SiteConfiguration() {
-    this(getAccumuloPropsLocation());
+  public interface Buildable {
+    SiteConfiguration build();
   }
 
-  public SiteConfiguration(Map<String,String> overrides) {
-    this(getAccumuloPropsLocation(), overrides);
+  public interface OverridesOption extends Buildable {
+    Buildable withOverrides(Map<String,String> overrides);
   }
 
-  public SiteConfiguration(File accumuloPropsFile) {
-    this(accumuloPropsFile, Collections.emptyMap());
-  }
+  static class Builder implements OverridesOption, Buildable {
+    private URL url = null;
+    private Map<String,String> overrides = Collections.emptyMap();
 
-  public SiteConfiguration(File accumuloPropsFile, Map<String,String> overrides) {
-    this(toURL(accumuloPropsFile), overrides);
-  }
+    // visible to package-private for testing only
+    Builder() {}
 
-  public SiteConfiguration(URL accumuloPropsLocation) {
-    this(accumuloPropsLocation, Collections.emptyMap());
-  }
-
-  public SiteConfiguration(URL accumuloPropsLocation, Map<String,String> overrides) {
-    config = createMap(accumuloPropsLocation, overrides);
-    ConfigSanityCheck.validate(config.entrySet());
-  }
-
-  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
-      justification = "location of props is specified by an admin")
-  private static ImmutableMap<String,String> createMap(URL accumuloPropsLocation,
-      Map<String,String> overrides) {
-    CompositeConfiguration config = new CompositeConfiguration();
-    config.setThrowExceptionOnMissing(false);
-    config.setDelimiterParsingDisabled(true);
-    PropertiesConfiguration propsConfig = new PropertiesConfiguration();
-    propsConfig.setDelimiterParsingDisabled(true);
-    if (accumuloPropsLocation != null) {
-      try {
-        propsConfig.load(accumuloPropsLocation.openStream());
-      } catch (IOException | ConfigurationException e) {
-        throw new IllegalArgumentException(e);
-      }
+    // exists for testing only
+    OverridesOption noFile() {
+      return this;
     }
-    config.addConfiguration(propsConfig);
 
-    // Add all properties in config file
-    Map<String,String> result = new HashMap<>();
-    config.getKeys().forEachRemaining(key -> result.put(key, config.getString(key)));
+    // exists for testing only
+    OverridesOption fromUrl(URL propertiesFileUrl) {
+      url = requireNonNull(propertiesFileUrl);
+      return this;
+    }
 
-    // Add all overrides
-    overrides.forEach(result::put);
+    public OverridesOption fromEnv() {
+      URL siteUrl = SiteConfiguration.class.getClassLoader().getResource("accumulo-site.xml");
+      if (siteUrl != null) {
+        throw new IllegalArgumentException("Found deprecated config file 'accumulo-site.xml' on "
+            + "classpath. Since 2.0.0, this file was replaced by 'accumulo.properties'. Run the "
+            + "following command to convert an old 'accumulo-site.xml' file to the new format: "
+            + "accumulo convert-config -x /old/accumulo-site.xml -p /new/accumulo.properties");
+      }
 
-    // Add sensitive properties from credential provider (if set)
-    String credProvider = result.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
-    if (credProvider != null) {
-      org.apache.hadoop.conf.Configuration hadoopConf = new org.apache.hadoop.conf.Configuration();
-      hadoopConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProvider);
-      for (Property property : Property.values()) {
-        if (property.isSensitive()) {
-          char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
-              property.getKey());
-          if (value != null) {
-            result.put(property.getKey(), new String(value));
-          }
+      String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
+      if (configFile.startsWith("file://")) {
+        File f;
+        try {
+          f = new File(new URI(configFile));
+        } catch (URISyntaxException e) {
+          throw new IllegalArgumentException(
+              "Failed to load Accumulo configuration from " + configFile, e);
         }
-      }
-    }
-    return ImmutableMap.copyOf(result);
-  }
-
-  private static URL toURL(File f) {
-    try {
-      return f.toURI().toURL();
-    } catch (MalformedURLException e) {
-      throw new IllegalArgumentException(e);
-    }
-  }
-
-  public static URL getAccumuloPropsLocation() {
-
-    URL siteUrl = SiteConfiguration.class.getClassLoader().getResource("accumulo-site.xml");
-    if (siteUrl != null) {
-      throw new IllegalArgumentException("Found deprecated config file 'accumulo-site.xml' on "
-          + "classpath. Since 2.0.0, this file was replaced by 'accumulo.properties'. Run the "
-          + "following command to convert an old 'accumulo-site.xml' file to the new format: "
-          + "accumulo convert-config -x /old/accumulo-site.xml -p /new/accumulo.properties");
-    }
-
-    String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
-    if (configFile.startsWith("file://")) {
-      try {
-        File f = new File(new URI(configFile));
         if (f.exists() && !f.isDirectory()) {
           log.info("Found Accumulo configuration at {}", configFile);
-          return f.toURI().toURL();
+          return fromFile(f);
         } else {
           throw new IllegalArgumentException(
               "Failed to load Accumulo configuration at " + configFile);
         }
-      } catch (MalformedURLException | URISyntaxException e) {
-        throw new IllegalArgumentException(
-            "Failed to load Accumulo configuration from " + configFile, e);
-      }
-    } else {
-      URL accumuloConfigUrl = SiteConfiguration.class.getClassLoader().getResource(configFile);
-      if (accumuloConfigUrl == null) {
-        throw new IllegalArgumentException(
-            "Failed to load Accumulo configuration '" + configFile + "' from classpath");
       } else {
-        log.info("Found Accumulo configuration on classpath at {}", accumuloConfigUrl.getFile());
-        return accumuloConfigUrl;
+        URL accumuloConfigUrl = SiteConfiguration.class.getClassLoader().getResource(configFile);
+        if (accumuloConfigUrl == null) {
+          throw new IllegalArgumentException(
+              "Failed to load Accumulo configuration '" + configFile + "' from classpath");
+        } else {
+          log.info("Found Accumulo configuration on classpath at {}", accumuloConfigUrl.getFile());
+          url = accumuloConfigUrl;
+          return this;
+        }
       }
     }
+
+    public OverridesOption fromFile(File propertiesFileLocation) {
+      try {
+        url = requireNonNull(propertiesFileLocation).toURI().toURL();
+      } catch (MalformedURLException e) {
+        throw new IllegalArgumentException(e);
+      }
+      return this;
+    }
+
+    @Override
+    public Buildable withOverrides(Map<String,String> overrides) {
+      this.overrides = requireNonNull(overrides);
+      return this;
+    }
+
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+        justification = "location of props is specified by an admin")
+    @Override
+    public SiteConfiguration build() {
+      // load properties from configuration file
+      var propsFileConfig = getPropsFileConfig(url);
+
+      // load properties from command-line overrides
+      var overrideConfig = new MapConfiguration(overrides);
+
+      // load credential provider property
+      var credProviderProps = new HashMap<String,String>();
+      for (var c : new AbstractConfiguration[] {propsFileConfig, overrideConfig}) {
+        var credProvider =
+            c.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+        if (credProvider != null && !credProvider.isEmpty()) {
+          loadCredProviderProps(credProvider, credProviderProps);
+          break;
+        }
+      }
+      var credProviderConfig = new MapConfiguration(credProviderProps);
+
+      var config = new CompositeConfiguration();
+      // add in specific order; use credential provider first, then overrides, then properties file
+      config.addConfiguration(credProviderConfig);
+      config.addConfiguration(overrideConfig);
+      config.addConfiguration(propsFileConfig);
+
+      var result = new HashMap<String,String>();
+      config.getKeys().forEachRemaining(k -> result.put(k, config.getString(k)));
+      return new SiteConfiguration(Collections.unmodifiableMap(result));
+    }
+  }
+
+  /**
+   * Build a SiteConfiguration from the environmental configuration with the option to override.
+   */
+  public static SiteConfiguration.OverridesOption fromEnv() {
+    return new SiteConfiguration.Builder().fromEnv();
+  }
+
+  /**
+   * Build a SiteConfiguration from the provided properties file with the option to override.
+   */
+  public static SiteConfiguration.OverridesOption fromFile(File propertiesFileLocation) {
+    return new SiteConfiguration.Builder().fromFile(propertiesFileLocation);
+  }
+
+  /**
+   * Build a SiteConfiguration from the environmental configuration and no overrides.
+   */
+  public static SiteConfiguration auto() {
+    return new SiteConfiguration.Builder().fromEnv().build();
+  }
+
+  private final Map<String,String> config;
+
+  private SiteConfiguration(Map<String,String> config) {
+    ConfigSanityCheck.validate(config.entrySet());
+    this.config = config;
+  }
+
+  // load properties from config file
+  private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
+    if (accumuloPropsLocation != null) {
+      var propsBuilder = new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
+          .configure(new Parameters().properties().setURL(accumuloPropsLocation));
+      try {
+        return propsBuilder.getConfiguration();
+      } catch (ConfigurationException e) {
+        throw new IllegalArgumentException(e);
+      }
+    }
+    return new PropertiesConfiguration();
+  }
+
+  // load sensitive properties from Hadoop credential provider
+  private static void loadCredProviderProps(String provider, Map<String,String> props) {
+    var hadoopConf = new org.apache.hadoop.conf.Configuration();
+    HadoopCredentialProvider.setPath(hadoopConf, provider);
+    Stream.of(Property.values()).filter(Property::isSensitive).forEach(p -> {
+      char[] value = HadoopCredentialProvider.getValue(hadoopConf, p.getKey());
+      if (value != null) {
+        props.put(p.getKey(), new String(value));
+      }
+    });
   }
 
   @Override
@@ -199,8 +257,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
       parent.getProperties(props, filter);
     }
     config.keySet().forEach(k -> {
-      if (filter.test(k))
+      if (filter.test(k)) {
         props.put(k, config.get(k));
+      }
     });
   }
 }

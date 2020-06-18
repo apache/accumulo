@@ -1,22 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -84,7 +85,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
       Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
-      m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(UTF_8)));
+      m.put("cf", "cq", "1");
       bw.addMutation(m);
 
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
@@ -115,7 +116,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
           int row = i * NUM_TO_FLUSH + j;
 
           Mutation m = new Mutation(new Text(String.format("r_%10d", row)));
-          m.put(new Text("cf"), new Text("cq"), new Value(("" + row).getBytes()));
+          m.put("cf", "cq", "" + row);
           bw.addMutation(m);
         }
 
@@ -197,7 +198,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         for (int j = 0; j < NUM_TO_FLUSH; j++) {
           int row = i * NUM_TO_FLUSH + j;
           Mutation m = new Mutation(new Text(String.format("%10d", row)));
-          m.put(new Text("cf" + i), new Text("cq"), new Value(("" + row).getBytes()));
+          m.put("cf" + i, "cq", "" + row);
           data.add(m);
         }
       }

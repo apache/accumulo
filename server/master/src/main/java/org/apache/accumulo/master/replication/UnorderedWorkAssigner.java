@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.replication;
 
@@ -141,8 +143,9 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
     while (work.hasNext()) {
       String filename = work.next();
       // Null equates to the work was finished
-      if (zooCache.get(ZooUtil.getRoot(instanceId) + ReplicationConstants.ZOO_WORK_QUEUE + "/"
-          + filename) == null) {
+      if (zooCache
+          .get(ZooUtil.getRoot(instanceId) + ReplicationConstants.ZOO_WORK_QUEUE + "/" + filename)
+          == null) {
         work.remove();
       }
     }
@@ -161,10 +164,10 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   @Override
   protected Set<String> getQueuedWork(ReplicationTarget target) {
-    String desiredQueueKeySuffix = DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getSourceTableId();
+    String desiredQueueKeySuffix =
+        DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getPeerName()
+            + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier()
+            + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();
     Set<String> queuedWorkForTarget = new HashSet<>();
     for (String queuedWork : this.queuedWork) {
       if (queuedWork.endsWith(desiredQueueKeySuffix)) {

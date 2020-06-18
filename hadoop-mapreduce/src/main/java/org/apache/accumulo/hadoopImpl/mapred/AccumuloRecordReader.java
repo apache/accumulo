@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.hadoopImpl.mapred;
 
@@ -138,8 +140,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
 
     // in case the table name changed, we can still use the previous name for terms of
     // configuration, but the scanner will use the table id resolved at job setup time
-    InputTableConfig tableConfig = InputConfigurator.getInputTableConfig(CLASS, job,
-        baseSplit.getTableName());
+    InputTableConfig tableConfig =
+        InputConfigurator.getInputTableConfig(CLASS, job, baseSplit.getTableName());
 
     log.debug("Created client with user: " + context.whoami());
     log.debug("Creating scanner for table: " + table);
@@ -235,7 +237,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     }
 
     Map<String,String> executionHints = baseSplit.getExecutionHints();
-    if (executionHints == null || executionHints.size() == 0) {
+    if (executionHints == null || executionHints.isEmpty()) {
       executionHints = tableConfig.getExecutionHints();
     }
 
@@ -288,8 +290,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
 
     Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
-    Map<String,InputTableConfig> tableConfigs = InputConfigurator.getInputTableConfigs(callingClass,
-        job);
+    Map<String,InputTableConfig> tableConfigs =
+        InputConfigurator.getInputTableConfigs(callingClass, job);
     try (AccumuloClient client = createClient(job, callingClass)) {
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
         String tableName = tableConfigEntry.getKey();
@@ -316,8 +318,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
           throw new IllegalArgumentException(
               "AutoAdjustRanges must be enabled when using BatchScanner optimization");
 
-        List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges())
-            : tableConfig.getRanges();
+        List<Range> ranges =
+            autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
         if (ranges.isEmpty()) {
           ranges = new ArrayList<>(1);
           ranges.add(new Range());
@@ -382,8 +384,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
               for (Range r : extentRanges.getValue())
                 clippedRanges.add(ke.clip(r));
 
-              BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
-                  new String[] {location});
+              BatchInputSplit split =
+                  new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
               SplitUtils.updateSplit(split, tableConfig);
 
               splits.add(split);

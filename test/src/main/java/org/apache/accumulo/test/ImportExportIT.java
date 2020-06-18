@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -24,9 +26,11 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -62,6 +66,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
 
+  private SecureRandom r = new SecureRandom();
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 60;
@@ -92,7 +98,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
       FileSystem fs = cluster.getFileSystem();
       Path tmp = cluster.getTemporaryPath();
       log.info("Using FileSystem: " + fs);
-      Path baseDir = new Path(tmp, getClass().getName());
+      Path baseDir = new Path(fs.getUri().toString() + tmp, getClass().getName());
+      fs.deleteOnExit(baseDir);
       if (fs.exists(baseDir)) {
         log.info("{} exists on filesystem, deleting", baseDir);
         assertTrue("Failed to deleted " + baseDir, fs.delete(baseDir, true));
@@ -100,13 +107,21 @@ public class ImportExportIT extends AccumuloClusterHarness {
       log.info("Creating {}", baseDir);
       assertTrue("Failed to create " + baseDir, fs.mkdirs(baseDir));
       Path exportDir = new Path(baseDir, "export");
-      Path importDir = new Path(baseDir, "import");
-      for (Path p : new Path[] {exportDir, importDir}) {
+      fs.deleteOnExit(exportDir);
+      Path importDirA = new Path(baseDir, "import-a");
+      Path importDirB = new Path(baseDir, "import-b");
+      fs.deleteOnExit(importDirA);
+      fs.deleteOnExit(importDirB);
+      for (Path p : new Path[] {exportDir, importDirA, importDirB}) {
         assertTrue("Failed to create " + baseDir, fs.mkdirs(p));
       }
 
+      Set<String> importDirs = Set.of(importDirA.toString(), importDirB.toString());
+
+      Path[] importDirAry = new Path[] {importDirA, importDirB};
+
       log.info("Exporting table to {}", exportDir);
-      log.info("Importing table from {}", importDir);
+      log.info("Importing table from {}", importDirs);
 
       // Offline the table
       client.tableOperations().offline(srcTable, true);
@@ -115,16 +130,18 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       // Make sure the distcp.txt file that exporttable creates is available
       Path distcp = new Path(exportDir, "distcp.txt");
+      fs.deleteOnExit(distcp);
       assertTrue("Distcp file doesn't exist", fs.exists(distcp));
       FSDataInputStream is = fs.open(distcp);
       BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 
-      // Copy each file that was exported to the import directory
+      // Copy each file that was exported to one of the imports directory
       String line;
+
       while ((line = reader.readLine()) != null) {
         Path p = new Path(line.substring(5));
         assertTrue("File doesn't exist: " + p, fs.exists(p));
-
+        Path importDir = importDirAry[r.nextInt(importDirAry.length)];
         Path dest = new Path(importDir, p.getName());
         assertFalse("Did not expect " + dest + " to exist", fs.exists(dest));
         FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
@@ -132,10 +149,11 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       reader.close();
 
-      log.info("Import dir: {}", Arrays.toString(fs.listStatus(importDir)));
+      log.info("Import dir A: {}", Arrays.toString(fs.listStatus(importDirA)));
+      log.info("Import dir B: {}", Arrays.toString(fs.listStatus(importDirB)));
 
       // Import the exported data into a new table
-      client.tableOperations().importTable(destTable, importDir.toString());
+      client.tableOperations().importTable(destTable, importDirs);
 
       // Get the table ID for the table that the importtable command created
       final String tableId = client.tableOperations().tableIdMap().get(destTable);
@@ -178,8 +196,9 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
   private void verifyTableEquality(AccumuloClient client, String srcTable, String destTable)
       throws Exception {
-    Iterator<Entry<Key,Value>> src = client.createScanner(srcTable, Authorizations.EMPTY)
-        .iterator(), dest = client.createScanner(destTable, Authorizations.EMPTY).iterator();
+    Iterator<Entry<Key,Value>> src =
+        client.createScanner(srcTable, Authorizations.EMPTY).iterator(),
+        dest = client.createScanner(destTable, Authorizations.EMPTY).iterator();
     assertTrue("Could not read any data from source table", src.hasNext());
     assertTrue("Could not read any data from destination table", dest.hasNext());
     while (src.hasNext() && dest.hasNext()) {

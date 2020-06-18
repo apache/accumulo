@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -25,6 +27,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -40,8 +43,8 @@ import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
-import org.apache.accumulo.core.iterators.system.VisibilityFilter;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnQualifierFilter;
+import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
@@ -356,8 +359,8 @@ public class FilterTest {
     }
     assertEquals(1000, tm.size());
 
-    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm),
-        hsc);
+    SortedKeyValueIterator<Key,Value> a =
+        ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(1000, size(a));
 
@@ -394,8 +397,8 @@ public class FilterTest {
     }
     assertEquals(1000, tm.size());
 
-    SortedKeyValueIterator<Key,Value> a = VisibilityFilter.wrap(new SortedMapIterator(tm), auths,
-        le2.getExpression());
+    SortedKeyValueIterator<Key,Value> a =
+        VisibilityFilter.wrap(new SortedMapIterator(tm), auths, le2.getExpression());
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
     assertEquals(750, size);
@@ -405,12 +408,10 @@ public class FilterTest {
       throws IOException {
     HashSet<Column> hsc = new HashSet<>();
 
-    for (Column column : columns) {
-      hsc.add(column);
-    }
+    Collections.addAll(hsc, columns);
 
-    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm),
-        hsc);
+    SortedKeyValueIterator<Key,Value> a =
+        ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     return a;
   }

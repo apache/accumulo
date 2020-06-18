@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.iterator;
 
@@ -32,8 +34,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
-
 public class RegExTest {
 
   private static TreeMap<Key,Value> data = new TreeMap<>();
@@ -42,18 +42,20 @@ public class RegExTest {
   public static void setupTests() {
 
     ArrayList<Character> chars = new ArrayList<>();
-    for (char c = 'a'; c <= 'z'; c++)
+    for (char c = 'a'; c <= 'z'; c++) {
       chars.add(c);
+    }
 
-    for (char c = '0'; c <= '9'; c++)
+    for (char c = '0'; c <= '9'; c++) {
       chars.add(c);
+    }
 
     // insert some data into accumulo
     for (Character rc : chars) {
       String row = "r" + rc;
       for (Character cfc : chars) {
         for (Character cqc : chars) {
-          Value v = new Value(("v" + rc + cfc + cqc).getBytes());
+          Value v = new Value("v" + rc + cfc + cqc);
           data.put(new Key(row, "cf" + cfc, "cq" + cqc, "", 9), v);
         }
       }
@@ -61,8 +63,9 @@ public class RegExTest {
   }
 
   private void check(String regex, String val) throws Exception {
-    if (regex != null && !val.matches(regex))
+    if (regex != null && !val.matches(regex)) {
       throw new Exception(" " + val + " does not match " + regex);
+    }
   }
 
   private void check(String regex, Text val) throws Exception {
@@ -112,7 +115,7 @@ public class RegExTest {
       String valRegEx, int expected) throws Exception {
 
     SortedKeyValueIterator<Key,Value> source = new SortedMapIterator(data);
-    Set<ByteSequence> es = ImmutableSet.of();
+    Set<ByteSequence> es = Set.of();
     IteratorSetting is = new IteratorSetting(50, "regex", RegExFilter.class);
     RegExFilter.setRegexs(is, rowRegEx, cfRegEx, cqRegEx, valRegEx, false);
     RegExFilter iter = new RegExFilter();

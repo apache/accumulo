@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver;
 
@@ -85,8 +87,8 @@ public class LargestFirstMemoryManagerTest {
     mgr.init(config);
     MemoryManagementActions result;
     // nothing to do
-    result = mgr
-        .getMemoryManagementActions(tablets(t(k("x"), ZERO, 1000, 0), t(k("y"), ZERO, 2000, 0)));
+    result =
+        mgr.getMemoryManagementActions(tablets(t(k("x"), ZERO, 1000, 0), t(k("y"), ZERO, 2000, 0)));
     assertEquals(0, result.tabletsToMinorCompact.size());
     // one tablet is really big
     result = mgr
@@ -193,12 +195,10 @@ public class LargestFirstMemoryManagerTest {
   @Test
   public void testDeletedTable() {
     final String deletedTableId = "1";
-    Function<TableId,Boolean> existenceCheck = tableId -> !deletedTableId
-        .contentEquals(tableId.canonical());
-    // @formatter:off
+    Function<TableId,Boolean> existenceCheck =
+        tableId -> !deletedTableId.contentEquals(tableId.canonical());
     LargestFirstMemoryManagerWithExistenceCheck mgr =
-      new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
-    // @formatter:on
+        new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
     ServerConfiguration config = new ServerConfiguration() {
       ServerConfigurationFactory delegate = context.getServerConfFactory();
 

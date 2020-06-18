@@ -1,25 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -42,7 +43,7 @@ public class SetScanIterCommand extends SetIterCommand {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
       ShellCommandException {
-    Shell.log.warn("Deprecated, use " + new SetShellIterCommand().getName());
+    Shell.log.warn("Deprecated, use {}", new SetShellIterCommand().getName());
     return super.execute(fullCommand, cl, shellState);
   }
 
@@ -58,18 +59,15 @@ public class SetScanIterCommand extends SetIterCommand {
 
     options.values().removeIf(v -> v == null || v.isEmpty());
 
-    List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
-    if (tableScanIterators == null) {
-      tableScanIterators = new ArrayList<>();
-      shellState.scanIteratorOptions.put(tableName, tableScanIterators);
-    }
+    List<IteratorSetting> tableScanIterators =
+        shellState.scanIteratorOptions.computeIfAbsent(tableName, k -> new ArrayList<>());
     final IteratorSetting setting = new IteratorSetting(priority, name, classname);
     setting.addOptions(options);
 
     // initialize a scanner to ensure the new setting does not conflict with existing settings
     final String user = shellState.getAccumuloClient().whoami();
-    final Authorizations auths = shellState.getAccumuloClient().securityOperations()
-        .getUserAuthorizations(user);
+    final Authorizations auths =
+        shellState.getAccumuloClient().securityOperations().getUserAuthorizations(user);
     final Scanner scanner = shellState.getAccumuloClient().createScanner(tableName, auths);
     for (IteratorSetting s : tableScanIterators) {
       scanner.addScanIterator(s);
@@ -78,7 +76,7 @@ public class SetScanIterCommand extends SetIterCommand {
 
     // if no exception has been thrown, it's safe to add it to the list
     tableScanIterators.add(setting);
-    Shell.log.debug("Scan iterators :" + shellState.scanIteratorOptions.get(tableName));
+    Shell.log.debug("Scan iterators :{}", shellState.scanIteratorOptions.get(tableName));
   }
 
   @Override
@@ -93,8 +91,7 @@ public class SetScanIterCommand extends SetIterCommand {
     final HashSet<OptionGroup> groups = new HashSet<>();
     final Options parentOptions = super.getOptions();
     final Options modifiedOptions = new Options();
-    for (Iterator<?> it = parentOptions.getOptions().iterator(); it.hasNext();) {
-      Option o = (Option) it.next();
+    for (Option o : parentOptions.getOptions()) {
       if (!IteratorScope.majc.name().equals(o.getOpt())
           && !IteratorScope.minc.name().equals(o.getOpt())
           && !IteratorScope.scan.name().equals(o.getOpt())) {

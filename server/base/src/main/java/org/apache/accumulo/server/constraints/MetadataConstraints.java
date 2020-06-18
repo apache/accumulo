@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.constraints;
 
@@ -34,12 +36,14 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -52,29 +56,29 @@ import org.slf4j.LoggerFactory;
 
 public class MetadataConstraints implements Constraint {
 
+  private static final Logger log = LoggerFactory.getLogger(MetadataConstraints.class);
+
   private ZooCache zooCache = null;
   private String zooRoot = null;
 
-  private static final Logger log = LoggerFactory.getLogger(MetadataConstraints.class);
-
-  private static boolean[] validTableNameChars = new boolean[256];
-
-  {
+  private static final boolean[] validTableNameChars = new boolean[256];
+  static {
     for (int i = 0; i < 256; i++) {
-      validTableNameChars[i] = ((i >= 'a' && i <= 'z') || (i >= '0' && i <= '9')) || i == '!'
-          || i == '+';
+      validTableNameChars[i] =
+          ((i >= 'a' && i <= 'z') || (i >= '0' && i <= '9')) || i == '!' || i == '+';
     }
   }
 
-  private static final HashSet<ColumnFQ> validColumnQuals = new HashSet<>(Arrays.asList(
-      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
-      TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN,
-      TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN,
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
-      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
-      TabletsSection.ServerColumnFamily.TIME_COLUMN, TabletsSection.ServerColumnFamily.LOCK_COLUMN,
-      TabletsSection.ServerColumnFamily.FLUSH_COLUMN,
-      TabletsSection.ServerColumnFamily.COMPACT_COLUMN));
+  private static final HashSet<ColumnFQ> validColumnQuals =
+      new HashSet<>(Arrays.asList(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
+          TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN,
+          TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN,
+          TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
+          TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
+          TabletsSection.ServerColumnFamily.TIME_COLUMN,
+          TabletsSection.ServerColumnFamily.LOCK_COLUMN,
+          TabletsSection.ServerColumnFamily.FLUSH_COLUMN,
+          TabletsSection.ServerColumnFamily.COMPACT_COLUMN));
 
   private static final HashSet<Text> validColumnFams = new HashSet<>(Arrays.asList(
       TabletsSection.BulkFileColumnFamily.NAME, LogColumnFamily.NAME, ScanFileColumnFamily.NAME,
@@ -138,13 +142,13 @@ public class MetadataConstraints implements Constraint {
       }
     }
 
-    if (!containsSemiC) {
-      // see if last row char is <
-      if (row.length == 0 || row[row.length - 1] != '<') {
+    if (containsSemiC) {
+      if (row.length == 0) {
         violations = addIfNotPresent(violations, 4);
       }
     } else {
-      if (row.length == 0) {
+      // see if last row char is <
+      if (row.length == 0 || row[row.length - 1] != '<') {
         violations = addIfNotPresent(violations, 4);
       }
     }
@@ -228,7 +232,7 @@ public class MetadataConstraints implements Constraint {
           }
 
           if (!isSplitMutation && !isLocationMutation) {
-            long tid = Long.parseLong(tidString);
+            long tid = BulkFileColumnFamily.getBulkLoadTid(new Value(tidString));
 
             try {
               if (otherTidCount > 0 || !dataFiles.equals(loadedFiles) || !getArbitrator(context)
@@ -253,8 +257,8 @@ public class MetadataConstraints implements Constraint {
 
           Text per = KeyExtent.decodePrevEndRow(new Value(columnUpdate.getValue()));
 
-          boolean prevEndRowLessThanEndRow = per == null || ke.getEndRow() == null
-              || per.compareTo(ke.getEndRow()) < 0;
+          boolean prevEndRowLessThanEndRow =
+              per == null || ke.getEndRow() == null || per.compareTo(ke.getEndRow()) < 0;
 
           if (!prevEndRowLessThanEndRow) {
             violations = addViolation(violations, 3);
@@ -263,6 +267,7 @@ public class MetadataConstraints implements Constraint {
             .equals(TabletsSection.ServerColumnFamily.LOCK_COLUMN)) {
           if (zooCache == null) {
             zooCache = new ZooCache(context.getZooReaderWriter(), null);
+            CleanerUtil.zooCacheClearer(this, zooCache);
           }
 
           if (zooRoot == null) {
@@ -325,9 +330,4 @@ public class MetadataConstraints implements Constraint {
     return null;
   }
 
-  @Override
-  protected void finalize() {
-    if (zooCache != null)
-      zooCache.clear();
-  }
 }

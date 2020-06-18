@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.gc;
 
@@ -31,6 +33,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -128,8 +131,8 @@ public class GarbageCollectionAlgorithm {
     boolean checkForBulkProcessingFiles = false;
     Iterator<String> relativePaths = candidateMap.keySet().iterator();
     while (!checkForBulkProcessingFiles && relativePaths.hasNext())
-      checkForBulkProcessingFiles |= relativePaths.next().toLowerCase(Locale.ENGLISH)
-          .contains(Constants.BULK_PREFIX);
+      checkForBulkProcessingFiles |=
+          relativePaths.next().toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
 
     if (checkForBulkProcessingFiles) {
       Iterator<String> blipiter = gce.getBlipIterator();
@@ -165,7 +168,18 @@ public class GarbageCollectionAlgorithm {
     while (iter.hasNext()) {
       Reference ref = iter.next();
 
-      if (!ref.isDir) {
+      if (ref.isDir) {
+        String tableID = ref.id.toString();
+        String dirName = ref.ref;
+        ServerColumnFamily.validateDirCol(dirName);
+
+        String dir = "/" + tableID + "/" + dirName;
+
+        dir = makeRelative(dir, 2);
+
+        if (candidateMap.remove(dir) != null)
+          log.debug("Candidate was still in use: {}", dir);
+      } else {
 
         String reference = ref.ref;
         if (reference.startsWith("/")) {
@@ -185,19 +199,6 @@ public class GarbageCollectionAlgorithm {
         if (candidateMap.remove(dir) != null)
           log.debug("Candidate was still in use: {}", reference);
 
-      } else {
-        String tableID = ref.id.toString();
-        String dir = ref.ref;
-        if (!dir.contains(":")) {
-          if (!dir.startsWith("/"))
-            throw new RuntimeException("Bad directory " + dir);
-          dir = "/" + tableID + dir;
-        }
-
-        dir = makeRelative(dir, 2);
-
-        if (candidateMap.remove(dir) != null)
-          log.debug("Candidate was still in use: {}", dir);
       }
     }
 
@@ -208,10 +209,10 @@ public class GarbageCollectionAlgorithm {
   protected void confirmDeletesFromReplication(
       Iterator<Entry<String,Status>> replicationNeededIterator,
       Iterator<Entry<String,String>> candidateMapIterator) {
-    PeekingIterator<Entry<String,Status>> pendingReplication = Iterators
-        .peekingIterator(replicationNeededIterator);
-    PeekingIterator<Entry<String,String>> candidates = Iterators
-        .peekingIterator(candidateMapIterator);
+    PeekingIterator<Entry<String,Status>> pendingReplication =
+        Iterators.peekingIterator(replicationNeededIterator);
+    PeekingIterator<Entry<String,String>> candidates =
+        Iterators.peekingIterator(candidateMapIterator);
     while (pendingReplication.hasNext() && candidates.hasNext()) {
       Entry<String,Status> pendingReplica = pendingReplication.peek();
       Entry<String,String> candidate = candidates.peek();
@@ -297,7 +298,7 @@ public class GarbageCollectionAlgorithm {
 
       outOfMemory = getCandidates(gce, lastCandidate, candidates);
 
-      if (candidates.size() == 0)
+      if (candidates.isEmpty())
         break;
       else
         lastCandidate = candidates.get(candidates.size() - 1);

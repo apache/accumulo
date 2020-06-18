@@ -7,18 +7,16 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.file;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -48,6 +46,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.keyfunctor.KeyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -134,7 +133,7 @@ public class BloomFilterLayer {
         else
           clazz = AccumuloVFSClassLoader.loadClass(classname, KeyFunctor.class);
 
-        transformer = clazz.newInstance();
+        transformer = clazz.getDeclaredConstructor().newInstance();
 
       } catch (Exception e) {
         LOG.error("Failed to find KeyFunctor: " + acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), e);
@@ -245,7 +244,7 @@ public class BloomFilterLayer {
                 KeyFunctor.class);
           else
             clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
-          transformer = clazz.newInstance();
+          transformer = clazz.getDeclaredConstructor().newInstance();
 
           /**
            * read in bloom filter
@@ -257,26 +256,23 @@ public class BloomFilterLayer {
         } catch (NoSuchMetaStoreException nsme) {
           // file does not have a bloom filter, ignore it
         } catch (IOException ioe) {
-          if (!closed)
-            LOG.warn("Can't open BloomFilter", ioe);
-          else
+          if (closed)
             LOG.debug("Can't open BloomFilter, file closed : {}", ioe.getMessage());
+          else
+            LOG.warn("Can't open BloomFilter", ioe);
 
           bloomFilter = null;
         } catch (ClassNotFoundException e) {
           LOG.error("Failed to find KeyFunctor in config: " + sanitize(ClassName), e);
           bloomFilter = null;
-        } catch (InstantiationException e) {
+        } catch (ReflectiveOperationException e) {
           LOG.error("Could not instantiate KeyFunctor: " + sanitize(ClassName), e);
           bloomFilter = null;
-        } catch (IllegalAccessException e) {
-          LOG.error("Illegal acess exception", e);
-          bloomFilter = null;
         } catch (RuntimeException rte) {
-          if (!closed)
-            throw rte;
-          else
+          if (closed)
             LOG.debug("Can't open BloomFilter, RTE after closed ", rte);
+          else
+            throw rte;
         } finally {
           if (in != null) {
             try {
@@ -376,11 +372,11 @@ public class BloomFilterLayer {
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
         throws IOException {
 
-      if (!bfl.probablyHasKey(range)) {
-        checkSuper = false;
-      } else {
+      if (bfl.probablyHasKey(range)) {
         reader.seek(range, columnFamilies, inclusive);
         checkSuper = true;
+      } else {
+        checkSuper = false;
       }
     }
 
@@ -401,8 +397,8 @@ public class BloomFilterLayer {
     }
 
     @Override
-    public SortedKeyValueIterator<org.apache.accumulo.core.data.Key,Value> deepCopy(
-        IteratorEnvironment env) {
+    public SortedKeyValueIterator<org.apache.accumulo.core.data.Key,Value>
+        deepCopy(IteratorEnvironment env) {
       return new BloomFilterLayer.Reader((FileSKVIterator) reader.deepCopy(env), bfl);
     }
 
@@ -448,6 +444,10 @@ public class BloomFilterLayer {
       return new BloomFilterLayer.Reader(reader.getSample(sampleConfig), bfl);
     }
 
+    @Override
+    public void setCacheProvider(CacheProvider cacheProvider) {
+      reader.setCacheProvider(cacheProvider);
+    }
   }
 
   public static void main(String[] args) throws IOException {
@@ -488,9 +488,9 @@ public class BloomFilterLayer {
     for (Integer i : vals) {
       String fi = String.format("%010d", i);
       bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1")),
-          new Value(("v" + fi).getBytes(UTF_8)));
+          new Value("v" + fi));
       bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf2")),
-          new Value(("v" + fi).getBytes(UTF_8)));
+          new Value("v" + fi));
     }
 
     long t2 = System.currentTimeMillis();
@@ -513,8 +513,8 @@ public class BloomFilterLayer {
       int row = r.nextInt(Integer.MAX_VALUE);
       String fi = String.format("%010d", row);
       // bmfr.seek(new Range(new Text("r"+fi)));
-      org.apache.accumulo.core.data.Key k1 = new org.apache.accumulo.core.data.Key(
-          new Text("r" + fi), new Text("cf1"));
+      org.apache.accumulo.core.data.Key k1 =
+          new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1"));
       bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false),
           new ArrayList<>(), false);
       if (valsSet.contains(row)) {
@@ -538,8 +538,8 @@ public class BloomFilterLayer {
       String fi = String.format("%010d", row);
       // bmfr.seek(new Range(new Text("r"+fi)));
 
-      org.apache.accumulo.core.data.Key k1 = new org.apache.accumulo.core.data.Key(
-          new Text("r" + fi), new Text("cf1"));
+      org.apache.accumulo.core.data.Key k1 =
+          new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1"));
       bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false),
           new ArrayList<>(), false);
 

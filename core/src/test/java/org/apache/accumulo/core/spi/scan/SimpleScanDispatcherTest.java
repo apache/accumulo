@@ -1,21 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.spi.scan;
 
+import static org.apache.accumulo.core.spi.scan.ScanDirectives.CacheUsage.DISABLED;
+import static org.apache.accumulo.core.spi.scan.ScanDirectives.CacheUsage.ENABLED;
+import static org.apache.accumulo.core.spi.scan.ScanDirectives.CacheUsage.OPPORTUNISTIC;
+import static org.apache.accumulo.core.spi.scan.ScanDirectives.CacheUsage.TABLE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -26,11 +32,10 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters;
+import org.apache.accumulo.core.spi.scan.ScanDirectives.CacheUsage;
+import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
 import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
 
 public class SimpleScanDispatcherTest {
   @Test
@@ -41,7 +46,7 @@ public class SimpleScanDispatcherTest {
         .endsWith(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME + ".prioritizer"));
   }
 
-  private static class DispatchParametersImps implements DispatchParmaters {
+  private static class DispatchParametersImps implements DispatchParameters {
 
     private ScanInfo si;
     private Map<String,ScanExecutor> se;
@@ -69,7 +74,7 @@ public class SimpleScanDispatcherTest {
   }
 
   private void runTest(Map<String,String> opts, Map<String,String> hints, String expectedSingle,
-      String expectedMulti) {
+      String expectedMulti, CacheUsage expectedIndexCU, CacheUsage expectedDataCU) {
     TestScanInfo msi = new TestScanInfo("a", Type.MULTI, 4);
     msi.executionHints = hints;
     TestScanInfo ssi = new TestScanInfo("a", Type.SINGLE, 4);
@@ -100,12 +105,19 @@ public class SimpleScanDispatcherTest {
     executors.put("E2", null);
     executors.put("E3", null);
 
-    assertEquals(expectedMulti, ssd1.dispatch(new DispatchParametersImps(msi, executors)));
-    assertEquals(expectedSingle, ssd1.dispatch(new DispatchParametersImps(ssi, executors)));
+    ScanDirectives multiPrefs = ssd1.dispatch(new DispatchParametersImps(msi, executors));
+    assertEquals(expectedMulti, multiPrefs.getExecutorName());
+    assertEquals(expectedIndexCU, multiPrefs.getIndexCacheUsage());
+    assertEquals(expectedDataCU, multiPrefs.getDataCacheUsage());
+
+    ScanDirectives singlePrefs = ssd1.dispatch(new DispatchParametersImps(ssi, executors));
+    assertEquals(expectedSingle, singlePrefs.getExecutorName());
+    assertEquals(expectedIndexCU, singlePrefs.getIndexCacheUsage());
+    assertEquals(expectedDataCU, singlePrefs.getDataCacheUsage());
   }
 
   private void runTest(Map<String,String> opts, String expectedSingle, String expectedMulti) {
-    runTest(opts, Collections.emptyMap(), expectedSingle, expectedMulti);
+    runTest(opts, Collections.emptyMap(), expectedSingle, expectedMulti, TABLE, TABLE);
   }
 
   @Test
@@ -113,22 +125,42 @@ public class SimpleScanDispatcherTest {
     String dname = SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME;
 
     runTest(Collections.emptyMap(), dname, dname);
-    runTest(ImmutableMap.of("executor", "E1"), "E1", "E1");
-    runTest(ImmutableMap.of("single_executor", "E2"), "E2", dname);
-    runTest(ImmutableMap.of("multi_executor", "E3"), dname, "E3");
-    runTest(ImmutableMap.of("executor", "E1", "single_executor", "E2"), "E2", "E1");
-    runTest(ImmutableMap.of("executor", "E1", "multi_executor", "E3"), "E1", "E3");
-    runTest(ImmutableMap.of("single_executor", "E2", "multi_executor", "E3"), "E2", "E3");
-    runTest(ImmutableMap.of("executor", "E1", "single_executor", "E2", "multi_executor", "E3"),
-        "E2", "E3");
+    runTest(Map.of("executor", "E1"), "E1", "E1");
+    runTest(Map.of("single_executor", "E2"), "E2", dname);
+    runTest(Map.of("multi_executor", "E3"), dname, "E3");
+    runTest(Map.of("executor", "E1", "single_executor", "E2"), "E2", "E1");
+    runTest(Map.of("executor", "E1", "multi_executor", "E3"), "E1", "E3");
+    runTest(Map.of("single_executor", "E2", "multi_executor", "E3"), "E2", "E3");
+    runTest(Map.of("executor", "E1", "single_executor", "E2", "multi_executor", "E3"), "E2", "E3");
   }
 
   @Test
   public void testHints() {
-    runTest(ImmutableMap.of("executor", "E1"), ImmutableMap.of("scan_type", "quick"), "E1", "E1");
-    runTest(ImmutableMap.of("executor", "E1", "executor.quick", "E2"),
-        ImmutableMap.of("scan_type", "quick"), "E2", "E2");
-    runTest(ImmutableMap.of("executor", "E1", "executor.quick", "E2", "executor.slow", "E3"),
-        ImmutableMap.of("scan_type", "slow"), "E3", "E3");
+    runTest(Map.of("executor", "E1"), Map.of("scan_type", "quick"), "E1", "E1", TABLE, TABLE);
+    runTest(Map.of("executor", "E1", "executor.quick", "E2"), Map.of("scan_type", "quick"), "E2",
+        "E2", TABLE, TABLE);
+    runTest(Map.of("executor", "E1", "executor.quick", "E2", "executor.slow", "E3"),
+        Map.of("scan_type", "slow"), "E3", "E3", TABLE, TABLE);
+  }
+
+  @Test
+  public void testCache() {
+    String dname = SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME;
+
+    runTest(
+        Map.of("executor", "E1", "cacheUsage.slow.index", "opportunistic", "cacheUsage.slow.data",
+            "disabled", "cacheUsage.fast", "enabled", "executor.slow", "E2"),
+        Map.of("scan_type", "slow"), "E2", "E2", OPPORTUNISTIC, DISABLED);
+    runTest(
+        Map.of("single_executor", "E1", "cacheUsage.slow.index", "opportunistic",
+            "cacheUsage.slow.data", "disabled", "cacheUsage.fast", "enabled"),
+        Map.of("scan_type", "fast"), "E1", dname, ENABLED, ENABLED);
+    runTest(
+        Map.of("executor", "E1", "cacheUsage.slow.index", "opportunistic", "cacheUsage.slow.data",
+            "disabled", "cacheUsage.fast", "enabled"),
+        Map.of("scan_type", "notconfigured"), "E1", "E1", TABLE, TABLE);
+    runTest(Map.of("executor", "E1", "cacheUsage.slow.index", "opportunistic",
+        "cacheUsage.slow.data", "disabled", "cacheUsage.fast", "enabled"), Map.of(), "E1", "E1",
+        TABLE, TABLE);
   }
 }

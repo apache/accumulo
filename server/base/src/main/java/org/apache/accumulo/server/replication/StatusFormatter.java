@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.replication;
 
@@ -48,14 +50,15 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class StatusFormatter implements Formatter {
   private static final Logger log = LoggerFactory.getLogger(StatusFormatter.class);
 
-  private static final Set<Text> REPLICATION_COLFAMS = Collections.unmodifiableSet(Sets.newHashSet(
-      ReplicationSection.COLF, StatusSection.NAME, WorkSection.NAME, OrderSection.NAME));
+  private static final Set<Text> REPLICATION_COLFAMS =
+      Collections.unmodifiableSet(Sets.newHashSet(ReplicationSection.COLF, StatusSection.NAME,
+          WorkSection.NAME, OrderSection.NAME));
 
   private Iterator<Entry<Key,Value>> iterator;
   private FormatterConfig config;
 
   /* so a new date object doesn't get created for every record in the scan result */
-  private static ThreadLocal<Date> tmpDate = new ThreadLocal<Date>() {
+  private static ThreadLocal<Date> tmpDate = new ThreadLocal<>() {
     @Override
     protected Date initialValue() {
       return new Date();
@@ -70,8 +73,8 @@ public class StatusFormatter implements Formatter {
   @Override
   public String next() {
     Entry<Key,Value> entry = iterator.next();
-    DateFormat timestampFormat = config.willPrintTimestamps() ? config.getDateFormatSupplier().get()
-        : null;
+    DateFormat timestampFormat =
+        config.willPrintTimestamps() ? config.getDateFormatSupplier().get() : null;
 
     // If we expected this to be a protobuf, try to parse it, adding a message when it fails to
     // parse

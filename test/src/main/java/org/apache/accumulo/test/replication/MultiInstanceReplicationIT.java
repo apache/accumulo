@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.replication;
 
@@ -39,6 +41,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -68,6 +71,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +81,7 @@ import com.google.common.collect.Iterators;
 /**
  * Replication tests which start at least two MAC instances and replicate data between them
  */
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class MultiInstanceReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MultiInstanceReplicationIT.class);
 
@@ -84,7 +89,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {
-    return 10 * 60;
+    return 15 * 60;
   }
 
   @Before
@@ -139,8 +144,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       if (keystorePassword != null) {
         peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
       }
-      String truststorePassword = primarySiteConfig
-          .get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+      String truststorePassword =
+          primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
       if (truststorePassword != null) {
         peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
       }
@@ -150,8 +155,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     }
 
     // Use the CredentialProvider if the primary also uses one
-    String credProvider = primarySiteConfig
-        .get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    String credProvider =
+        primarySiteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
     if (credProvider != null) {
       Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
       peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(),
@@ -160,7 +165,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 10 * 60 * 1000)
+  @Test
   public void dataWasReplicatedToThePeer() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
         createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
@@ -176,8 +181,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peerCluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peerCluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
       ReplicationTable.setOnline(clientMaster);
 
@@ -202,11 +207,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       final String masterTable = "master", peerTable = "peer";
 
-      clientMaster.tableOperations().create(masterTable);
-      String masterTableId = clientMaster.tableOperations().tableIdMap().get(masterTable);
-      assertNotNull(masterTableId);
-
-      clientPeer.tableOperations().create(peerTable);
+      clientPeer.tableOperations().create(peerTable, new NewTableConfiguration());
       String peerTableId = clientPeer.tableOperations().tableIdMap().get(peerTable);
       assertNotNull(peerTableId);
 
@@ -214,10 +215,14 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
           TablePermission.WRITE);
 
       // Replicate this table to the peerClusterName in a table with the peerTableId table id
-      clientMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(),
-          "true");
-      clientMaster.tableOperations().setProperty(masterTable,
-          Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_REPLICATION.getKey(), "true");
+      props.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
+
+      clientMaster.tableOperations().create(masterTable,
+          new NewTableConfiguration().setProperties(props));
+      String masterTableId = clientMaster.tableOperations().tableIdMap().get(masterTable);
+      assertNotNull(masterTableId);
 
       // Write some data to table1
       try (BatchWriter bw = clientMaster.createBatchWriter(masterTable)) {
@@ -233,8 +238,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       log.info("Wrote all data to master cluster");
 
-      final Set<String> filesNeedingReplication = clientMaster.replicationOperations()
-          .referencedFiles(masterTable);
+      final Set<String> filesNeedingReplication =
+          clientMaster.replicationOperations().referencedFiles(masterTable);
 
       log.info("Files to replicate: " + filesNeedingReplication);
 
@@ -349,8 +354,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peer1Cluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peer1Cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
       String peerClusterName = "peer";
       String peerUserName = "peer", peerPassword = "foo";
 
@@ -374,38 +379,36 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
           peerTable2 = "peer2";
 
       // Create tables
-      clientMaster.tableOperations().create(masterTable1);
-      String masterTableId1 = clientMaster.tableOperations().tableIdMap().get(masterTable1);
-      assertNotNull(masterTableId1);
-
-      clientMaster.tableOperations().create(masterTable2);
-      String masterTableId2 = clientMaster.tableOperations().tableIdMap().get(masterTable2);
-      assertNotNull(masterTableId2);
-
-      clientPeer.tableOperations().create(peerTable1);
+      clientPeer.tableOperations().create(peerTable1, new NewTableConfiguration());
       String peerTableId1 = clientPeer.tableOperations().tableIdMap().get(peerTable1);
       assertNotNull(peerTableId1);
 
-      clientPeer.tableOperations().create(peerTable2);
+      clientPeer.tableOperations().create(peerTable2, new NewTableConfiguration());
       String peerTableId2 = clientPeer.tableOperations().tableIdMap().get(peerTable2);
       assertNotNull(peerTableId2);
 
-      // Grant write permission
+      Map<String,String> props1 = new HashMap<>();
+      props1.put(Property.TABLE_REPLICATION.getKey(), "true");
+      props1.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId1);
+
+      clientMaster.tableOperations().create(masterTable1,
+          new NewTableConfiguration().setProperties(props1));
+      String masterTableId1 = clientMaster.tableOperations().tableIdMap().get(masterTable1);
+      assertNotNull(masterTableId1);
+      Map<String,String> props2 = new HashMap<>();
+      props2.put(Property.TABLE_REPLICATION.getKey(), "true");
+      props2.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
+
+      clientMaster.tableOperations().create(masterTable2,
+          new NewTableConfiguration().setProperties(props2));
+      String masterTableId2 = clientMaster.tableOperations().tableIdMap().get(masterTable2);
+      assertNotNull(masterTableId2);
+
+      // Give our replication user the ability to write to the tables
       clientPeer.securityOperations().grantTablePermission(peerUserName, peerTable1,
           TablePermission.WRITE);
       clientPeer.securityOperations().grantTablePermission(peerUserName, peerTable2,
           TablePermission.WRITE);
-
-      // Replicate this table to the peerClusterName in a table with the peerTableId table id
-      clientMaster.tableOperations().setProperty(masterTable1, Property.TABLE_REPLICATION.getKey(),
-          "true");
-      clientMaster.tableOperations().setProperty(masterTable1,
-          Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId1);
-
-      clientMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION.getKey(),
-          "true");
-      clientMaster.tableOperations().setProperty(masterTable2,
-          Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
       // Write some data to table1
       long masterTable1Records = 0L;
@@ -507,8 +510,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peerCluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peerCluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
       String peerUserName = "repl";
       String peerPassword = "passwd";
@@ -534,12 +537,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
           .setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + peerClusterName, peerPassword);
 
       String masterTable = "master", peerTable = "peer";
-
-      clientMaster.tableOperations().create(masterTable);
-      String masterTableId = clientMaster.tableOperations().tableIdMap().get(masterTable);
-      assertNotNull(masterTableId);
-
-      clientPeer.tableOperations().create(peerTable);
+      clientPeer.tableOperations().create(peerTable, new NewTableConfiguration());
       String peerTableId = clientPeer.tableOperations().tableIdMap().get(peerTable);
       assertNotNull(peerTableId);
 
@@ -547,11 +545,14 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       clientPeer.securityOperations().grantTablePermission(peerUserName, peerTable,
           TablePermission.WRITE);
 
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_REPLICATION.getKey(), "true");
       // Replicate this table to the peerClusterName in a table with the peerTableId table id
-      clientMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(),
-          "true");
-      clientMaster.tableOperations().setProperty(masterTable,
-          Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
+      props.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
+      clientMaster.tableOperations().create(masterTable,
+          new NewTableConfiguration().setProperties(props));
+      String masterTableId = clientMaster.tableOperations().tableIdMap().get(masterTable);
+      assertNotNull(masterTableId);
 
       // Write some data to table1
       try (BatchWriter bw = clientMaster.createBatchWriter(masterTable)) {
@@ -626,8 +627,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peer1Cluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peer1Cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
       String peerClusterName = "peer";
 
@@ -654,22 +655,32 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       String masterTable1 = "master1", peerTable1 = "peer1", masterTable2 = "master2",
           peerTable2 = "peer2";
-
-      clientMaster.tableOperations().create(masterTable1);
-      String masterTableId1 = clientMaster.tableOperations().tableIdMap().get(masterTable1);
-      assertNotNull(masterTableId1);
-
-      clientMaster.tableOperations().create(masterTable2);
-      String masterTableId2 = clientMaster.tableOperations().tableIdMap().get(masterTable2);
-      assertNotNull(masterTableId2);
-
-      clientPeer.tableOperations().create(peerTable1);
+      // Create tables
+      clientPeer.tableOperations().create(peerTable1, new NewTableConfiguration());
       String peerTableId1 = clientPeer.tableOperations().tableIdMap().get(peerTable1);
       assertNotNull(peerTableId1);
 
-      clientPeer.tableOperations().create(peerTable2);
+      clientPeer.tableOperations().create(peerTable2, new NewTableConfiguration());
       String peerTableId2 = clientPeer.tableOperations().tableIdMap().get(peerTable2);
       assertNotNull(peerTableId2);
+
+      Map<String,String> props1 = new HashMap<>();
+      props1.put(Property.TABLE_REPLICATION.getKey(), "true");
+      props1.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
+
+      clientMaster.tableOperations().create(masterTable1,
+          new NewTableConfiguration().setProperties(props1));
+      String masterTableId1 = clientMaster.tableOperations().tableIdMap().get(masterTable1);
+      assertNotNull(masterTableId1);
+
+      Map<String,String> props2 = new HashMap<>();
+      props2.put(Property.TABLE_REPLICATION.getKey(), "true");
+      props2.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
+
+      clientMaster.tableOperations().create(masterTable2,
+          new NewTableConfiguration().setProperties(props2));
+      String masterTableId2 = clientMaster.tableOperations().tableIdMap().get(masterTable2);
+      assertNotNull(masterTableId2);
 
       // Give our replication user the ability to write to the tables
       clientPeer.securityOperations().grantTablePermission(peerUserName, peerTable1,
@@ -678,13 +689,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
           TablePermission.WRITE);
 
       // Replicate this table to the peerClusterName in a table with the peerTableId table id
-      clientMaster.tableOperations().setProperty(masterTable1, Property.TABLE_REPLICATION.getKey(),
-          "true");
       clientMaster.tableOperations().setProperty(masterTable1,
           Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId1);
-
-      clientMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION.getKey(),
-          "true");
       clientMaster.tableOperations().setProperty(masterTable2,
           Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 

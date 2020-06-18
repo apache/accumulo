@@ -1,21 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 
@@ -31,9 +35,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
@@ -41,8 +43,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.NamespaceConfiguration;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
@@ -50,12 +50,9 @@ import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
 public class TableLoadBalancerTest {
 
-  private static Map<String,String> TABLE_ID_MAP = ImmutableMap.of("t1", "a1", "t2", "b12", "t3",
-      "c4");
+  private static Map<String,String> TABLE_ID_MAP = Map.of("t1", "a1", "t2", "b12", "t3", "c4");
 
   private static TServerInstance mkts(String address, String session) {
     return new TServerInstance(HostAndPort.fromParts(address, 1234), session);
@@ -127,49 +124,32 @@ public class TableLoadBalancerTest {
 
     @Override
     protected TableOperations getTableOperations() {
-      TableOperations tops = EasyMock.createMock(TableOperations.class);
-      EasyMock.expect(tops.tableIdMap()).andReturn(TABLE_ID_MAP).anyTimes();
+      TableOperations tops = createMock(TableOperations.class);
+      expect(tops.tableIdMap()).andReturn(TABLE_ID_MAP).anyTimes();
       replay(tops);
       return tops;
     }
   }
 
   private ServerContext createMockContext() {
-    ServerContext context = EasyMock.createMock(ServerContext.class);
-    final String instanceId = UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
-        .toString();
-    EasyMock.expect(context.getProperties()).andReturn(new Properties()).anyTimes();
-    EasyMock.expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-    EasyMock.expect(context.getZooKeepers()).andReturn("10.0.0.1:1234").anyTimes();
-    EasyMock.expect(context.getZooKeepersSessionTimeOut()).andReturn(30_000).anyTimes();
-    EasyMock.expect(context.getZooKeeperRoot()).andReturn("/root/").anyTimes();
+    ServerContext context = createMock(ServerContext.class);
+    final String instanceId =
+        UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString();
+    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
+    expect(context.getZooKeepers()).andReturn("10.0.0.1:1234").anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(30_000).anyTimes();
+    expect(context.getZooKeeperRoot()).andReturn("/root/").anyTimes();
     return context;
   }
 
   @Test
   public void test() {
     final ServerContext context = createMockContext();
-    replay(context);
-    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(context,
-        new SiteConfiguration()) {
-      @Override
-      public TableConfiguration getTableConfiguration(TableId tableId) {
-        // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
-        // constructor
-        NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, context, null);
-        return new TableConfiguration(context, tableId, dummyConf) {
-          @Override
-          public String get(Property property) {
-            // fake the get table configuration so the test doesn't try to look in zookeeper for
-            // per-table classpath stuff
-            return DefaultConfiguration.getInstance().get(property);
-          }
-        };
-      }
-    };
-    final ServerContext context2 = createMockContext();
-    EasyMock.expect(context2.getServerConfFactory()).andReturn(confFactory).anyTimes();
-    replay(context2);
+    TableConfiguration conf = createMock(TableConfiguration.class);
+    expect(conf.get(Property.TABLE_CLASSPATH)).andReturn("").anyTimes();
+    expect(context.getTableConfiguration(EasyMock.anyObject())).andReturn(conf).anyTimes();
+    replay(context, conf);
 
     String t1Id = TABLE_ID_MAP.get("t1"), t2Id = TABLE_ID_MAP.get("t2"),
         t3Id = TABLE_ID_MAP.get("t3");
@@ -180,13 +160,13 @@ public class TableLoadBalancerTest {
     Set<KeyExtent> migrations = Collections.emptySet();
     List<TabletMigration> migrationsOut = new ArrayList<>();
     TableLoadBalancer tls = new TableLoadBalancer();
-    tls.init(context2);
+    tls.init(context);
     tls.balance(state, migrations, migrationsOut);
     assertEquals(0, migrationsOut.size());
 
     state.put(mkts("10.0.0.2", "0x02030405"), status());
     tls = new TableLoadBalancer();
-    tls.init(context2);
+    tls.init(context);
     tls.balance(state, migrations, migrationsOut);
     int count = 0;
     Map<TableId,Integer> movedByTable = new HashMap<>();
@@ -194,8 +174,9 @@ public class TableLoadBalancerTest {
     movedByTable.put(TableId.of(t2Id), 0);
     movedByTable.put(TableId.of(t3Id), 0);
     for (TabletMigration migration : migrationsOut) {
-      if (migration.oldServer.equals(svr))
+      if (migration.oldServer.equals(svr)) {
         count++;
+      }
       TableId key = migration.tablet.getTableId();
       movedByTable.put(key, movedByTable.get(key) + 1);
     }

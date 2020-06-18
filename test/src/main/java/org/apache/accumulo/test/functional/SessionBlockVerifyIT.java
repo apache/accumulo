@@ -1,22 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -90,7 +91,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
         for (int i = 0; i < 1000; i++) {
           Mutation m = new Mutation(new Text(String.format("%08d", i)));
           for (int j = 0; j < 3; j++)
-            m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
+            m.put("cf1", "cq" + j, i + "_" + j);
 
           bw.addMutation(m);
         }
@@ -146,7 +147,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
         for (ActiveScan scan : scans) {
           // only here to minimize chance of seeing meta extent scans
 
-          if (tableName.equals(scan.getTable()) && scan.getSsiList().size() > 0) {
+          if (tableName.equals(scan.getTable()) && !scan.getSsiList().isEmpty()) {
             assertEquals("Not the expected iterator", 1, scan.getSsiList().size());
             assertTrue("Not the expected iterator",
                 scan.getSsiList().iterator().next().contains("SlowIterator"));

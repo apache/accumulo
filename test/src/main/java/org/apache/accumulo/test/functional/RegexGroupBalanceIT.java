@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.test.functional;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -28,6 +30,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -52,11 +55,15 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
     cfg.setNumTservers(4);
   }
 
-  @Test(timeout = 120000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void testBalancing() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tablename = getUniqueNames(1)[0];
-      client.tableOperations().create(tablename);
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("01a"));
@@ -73,16 +80,14 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
       splits.add(new Text("03m"));
       splits.add(new Text("03r"));
 
-      client.tableOperations().setProperty(tablename, RegexGroupBalancer.REGEX_PROPERTY,
-          "(\\d\\d).*");
-      client.tableOperations().setProperty(tablename, RegexGroupBalancer.DEFAUT_GROUP_PROPERTY,
-          "03");
-      client.tableOperations().setProperty(tablename, RegexGroupBalancer.WAIT_TIME_PROPERTY,
-          "50ms");
-      client.tableOperations().setProperty(tablename, Property.TABLE_LOAD_BALANCER.getKey(),
-          RegexGroupBalancer.class.getName());
+      HashMap<String,String> props = new HashMap<>();
+      props.put(RegexGroupBalancer.REGEX_PROPERTY, "(\\d\\d).*");
+      props.put(RegexGroupBalancer.DEFAUT_GROUP_PROPERTY, "03");
+      props.put(RegexGroupBalancer.WAIT_TIME_PROPERTY, "50ms");
+      props.put(Property.TABLE_LOAD_BALANCER.getKey(), RegexGroupBalancer.class.getName());
 
-      client.tableOperations().addSplits(tablename, splits);
+      client.tableOperations().create(tablename,
+          new NewTableConfiguration().setProperties(props).withSplits(splits));
 
       while (true) {
         Thread.sleep(250);
@@ -164,7 +169,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
   private boolean checkGroup(Table<String,String,MutableInt> groupLocationCounts, String group,
       int min, int max, int tsevers) {
     Collection<MutableInt> counts = groupLocationCounts.row(group).values();
-    if (counts.size() == 0) {
+    if (counts.isEmpty()) {
       return min == 0 && max == 0 && tsevers == 0;
     }
     return min == Collections.min(counts).intValue() && max == Collections.max(counts).intValue()
@@ -187,8 +192,8 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
         } else {
           group = group.substring(tableId.canonical().length() + 1).substring(0, 2);
         }
-        String loc = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier())
-            .toString();
+        String loc =
+            new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier()).toString();
 
         MutableInt count = groupLocationCounts.get(group, loc);
         if (count == null) {

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell;
 
@@ -44,6 +46,7 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -84,7 +87,6 @@ import org.apache.accumulo.shell.commands.CreateNamespaceCommand;
 import org.apache.accumulo.shell.commands.CreateTableCommand;
 import org.apache.accumulo.shell.commands.CreateUserCommand;
 import org.apache.accumulo.shell.commands.DUCommand;
-import org.apache.accumulo.shell.commands.DebugCommand;
 import org.apache.accumulo.shell.commands.DeleteAuthsCommand;
 import org.apache.accumulo.shell.commands.DeleteCommand;
 import org.apache.accumulo.shell.commands.DeleteIterCommand;
@@ -168,8 +170,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.vfs2.FileSystemException;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
@@ -186,8 +188,8 @@ import jline.console.history.FileHistory;
  */
 @AutoService(KeywordExecutable.class)
 public class Shell extends ShellOptions implements KeywordExecutable {
-  public static final Logger log = Logger.getLogger(Shell.class);
-  private static final Logger audit = Logger.getLogger(Shell.class.getName() + ".audit");
+  public static final Logger log = LoggerFactory.getLogger(Shell.class);
+  private static final Logger audit = LoggerFactory.getLogger(Shell.class.getName() + ".audit");
 
   public static final Charset CHARSET = ISO_8859_1;
   public static final int NO_FIXED_ARG_LENGTH_CHECK = -1;
@@ -258,8 +260,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    *           if problems occur creating the ConsoleReader
    */
   public boolean config(String... args) throws IOException {
-    if (this.reader == null)
+    if (this.reader == null) {
       this.reader = new ConsoleReader();
+    }
     ShellOptionsJC options = new ShellOptionsJC();
     JCommander jc = new JCommander();
 
@@ -287,7 +290,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       return false;
     }
 
-    setDebugging(options.isDebugEnabled());
+    if (options.isDebugEnabled()) {
+      log.warn("Configure debugging through your logging configuration file");
+    }
     authTimeout = TimeUnit.MINUTES.toNanos(options.getAuthTimeout());
     disableAuthTimeout = options.isAuthTimeoutDisabled();
 
@@ -327,7 +332,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         Runtime.getRuntime()
             .addShutdownHook(new Thread(() -> reader.getTerminal().setEchoEnabled(true)));
         // Read password if the user explicitly asked for it, or didn't specify anything at all
-        if ("stdin".equals(password) || password == null) {
+        if (PasswordConverter.STDIN.equals(password) || password == null) {
           password = reader.readLine("Password: ", '*');
         }
         if (password == null) {
@@ -368,14 +373,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(),
         new EGrepCommand(), new FormatterCommand(), new InterpreterCommand(), new GrepCommand(),
         new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
-    Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(),
-        new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(), new PingCommand(),
-        new ListBulkCommand()};
-    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(),
-        new ScriptCommand()};
+    @SuppressWarnings("deprecation")
+    Command[] debuggingCommands = {new ClasspathCommand(),
+        new org.apache.accumulo.shell.commands.DebugCommand(), new ListScansCommand(),
+        new ListCompactionsCommand(), new TraceCommand(), new PingCommand(), new ListBulkCommand()};
+    Command[] execCommands =
+        {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(), new ScriptCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
-    Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(),
-        new QuestionCommand()};
+    Command[] helpCommands =
+        {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
     Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(),
         new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand(),
         new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellIterCommand()};
@@ -411,8 +417,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     commandGrouping.put("-- User Administration Commands ---------", userCommands);
 
     for (Command[] cmds : commandGrouping.values()) {
-      for (Command cmd : cmds)
+      for (Command cmd : cmds) {
         commandFactory.put(cmd.getName(), cmd);
+      }
     }
     for (Command cmd : otherCommands) {
       commandFactory.put(cmd.getName(), cmd);
@@ -428,8 +435,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException, IOException,
       FileSystemException {
 
-    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt())
-        || !shellState.getTableName().isEmpty();
+    boolean tables =
+        cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
     String classpath = null;
@@ -462,8 +469,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
       try {
 
-        final Map<String,String> systemConfig = shellState.getAccumuloClient().instanceOperations()
-            .getSystemConfiguration();
+        final Map<String,String> systemConfig =
+            shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
 
         AccumuloVFSClassLoader.getContextManager()
             .setContextConfig(new ContextManager.DefaultContextsConfig() {
@@ -521,19 +528,24 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     new Shell(new ConsoleReader()).execute(args);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "user-provided paths intentional")
   public int start() throws IOException {
     String input;
-    if (isVerbose())
+    if (isVerbose()) {
       printInfo();
+    }
 
     String home = System.getProperty("HOME");
-    if (home == null)
+    if (home == null) {
       home = System.getenv("HOME");
+    }
     String configDir = home + "/" + HISTORY_DIR_NAME;
     String historyPath = configDir + "/" + HISTORY_FILE_NAME;
     File accumuloDir = new File(configDir);
-    if (!accumuloDir.exists() && !accumuloDir.mkdirs())
-      log.warn("Unable to make directory for history at " + accumuloDir);
+    if (!accumuloDir.exists() && !accumuloDir.mkdirs()) {
+      log.warn("Unable to make directory for history at {}", accumuloDir);
+    }
     try {
       final FileHistory history = new FileHistory(new File(historyPath));
       reader.setHistory(history);
@@ -546,7 +558,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         }
       }));
     } catch (IOException e) {
-      log.warn("Unable to load history file at " + historyPath);
+      log.warn("Unable to load history file at {}", historyPath);
     }
 
     // Turn Ctrl+C into Exception instead of JVM exit
@@ -555,7 +567,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     ShellCompletor userCompletor = null;
 
     if (execFile != null) {
-      try (java.util.Scanner scanner = new java.util.Scanner(execFile, UTF_8.name())) {
+      try (java.util.Scanner scanner = new java.util.Scanner(execFile, UTF_8)) {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
         }
@@ -569,13 +581,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     while (true) {
       try {
-        if (hasExited())
+        if (hasExited()) {
           return exitCode;
+        }
 
         // If tab completion is true we need to reset
         if (tabCompletion) {
-          if (userCompletor != null)
+          if (userCompletor != null) {
             reader.removeCompleter(userCompletor);
+          }
 
           userCompletor = setupCompletion();
           reader.addCompleter(userCompletor);
@@ -625,14 +639,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   public void printVerboseInfo() throws IOException {
     StringBuilder sb = new StringBuilder("-\n");
     sb.append("- Current user: ").append(accumuloClient.whoami()).append("\n");
-    if (execFile != null)
+    if (execFile != null) {
       sb.append("- Executing commands from: ").append(execFile).append("\n");
-    if (disableAuthTimeout)
+    }
+    if (disableAuthTimeout) {
       sb.append("- Authorization timeout: disabled\n");
-    else
+    } else {
       sb.append("- Authorization timeout: ")
           .append(String.format("%ds%n", TimeUnit.NANOSECONDS.toSeconds(authTimeout)));
-    sb.append("- Debug: ").append(isDebuggingEnabled() ? "on" : "off").append("\n");
+    }
     if (!scanIteratorOptions.isEmpty()) {
       for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
         sb.append("- Session scan iterators for table ").append(entry.getKey()).append(":\n");
@@ -670,7 +685,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt)
       throws IOException {
-    audit.log(Level.INFO, sanitize(getDefaultPrompt() + input));
+    audit.info("{}", sanitize(getDefaultPrompt() + input));
     if (echoPrompt) {
       reader.print(getDefaultPrompt());
       reader.println(input);
@@ -688,14 +703,18 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       ++exitCode;
       return;
     }
-    if (fields.length == 0)
+    if (fields.length == 0) {
       return;
+    }
 
     String command = fields[0];
     fields = fields.length > 1 ? Arrays.copyOfRange(fields, 1, fields.length) : new String[] {};
 
     Command sc = null;
-    if (command.length() > 0) {
+    if (command.isEmpty()) {
+      ++exitCode;
+      printException(new BadArgumentException("Unrecognized empty command", command, -1));
+    } else {
       try {
         // Obtain the command from the command table
         sc = commandFactory.get(command);
@@ -727,8 +746,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
               printException(e);
             }
 
-            if (authFailed)
+            if (authFailed) {
               reader.print("Invalid password. ");
+            }
           } while (authFailed);
           lastUserActivity = System.nanoTime();
         }
@@ -764,8 +784,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         printConstraintViolationException(e);
       } catch (TableNotFoundException e) {
         ++exitCode;
-        if (getTableName().equals(e.getTableName()))
+        if (getTableName().equals(e.getTableName())) {
           setTableName("");
+        }
         printException(e);
       } catch (ParseException e) {
         // not really an error if the exception is a missing required
@@ -783,9 +804,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         ++exitCode;
         printException(e);
       }
-    } else {
-      ++exitCode;
-      printException(new BadArgumentException("Unrecognized empty command", command, -1));
     }
     reader.flush();
   }
@@ -824,17 +842,20 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Map<Command.CompletionSet,Set<String>> options = new HashMap<>();
 
     Set<String> commands = new HashSet<>();
-    for (String a : commandFactory.keySet())
+    for (String a : commandFactory.keySet()) {
       commands.add(a);
+    }
 
     Set<String> modifiedUserlist = new HashSet<>();
     Set<String> modifiedTablenames = new HashSet<>();
     Set<String> modifiedNamespaces = new HashSet<>();
 
-    for (String a : tableNames)
+    for (String a : tableNames) {
       modifiedTablenames.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
-    for (String a : userlist)
+    }
+    for (String a : userlist) {
       modifiedUserlist.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
+    }
     for (String a : namespaces) {
       String b = a.replaceAll("([\\s'\"])", "\\\\$1");
       modifiedNamespaces.add(b.isEmpty() ? "\"\"" : b);
@@ -1019,14 +1040,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     String peek = null;
     while (lines.hasNext()) {
       String nextLine = lines.next();
-      if (nextLine == null)
+      if (nextLine == null) {
         continue;
+      }
       for (String line : nextLine.split("\\n")) {
         if (out == null) {
           if (peek != null) {
             reader.println(peek);
             if (paginate) {
-              linesPrinted += peek.length() == 0 ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
+              linesPrinted += peek.isEmpty() ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
 
               // check if displaying the next line would result in
               // scrolling off the screen
@@ -1074,32 +1096,35 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public static String repeat(String s, int c) {
     StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < c; i++)
+    for (int i = 0; i < c; i++) {
       sb.append(s);
+    }
     return sb.toString();
   }
 
   public void checkTableState() {
-    if (getTableName().isEmpty())
+    if (getTableName().isEmpty()) {
       throw new IllegalStateException("Not in a table context. Please use"
           + " 'table <tableName>' to switch to a table, or use '-t' to specify a"
           + " table if option is available.");
+    }
   }
 
   private final void printConstraintViolationException(ConstraintViolationException cve) {
     printException(cve, "");
     int COL1 = 50, COL2 = 14;
-    int col3 = Math.max(1,
-        Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
+    int col3 =
+        Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
     logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
         repeat("-", COL2), repeat("-", col3)));
     logError(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s%n",
         "Constraint class", "Violation code", "Violation Description"));
     logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
         repeat("-", COL2), repeat("-", col3)));
-    for (TConstraintViolationSummary cvs : cve.violationSummaries)
+    for (TConstraintViolationSummary cvs : cve.violationSummaries) {
       logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s%n",
           cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
+    }
     logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
         repeat("-", COL2), repeat("-", col3)));
   }
@@ -1110,18 +1135,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   private final void printException(Exception e, String msg) {
     logError(e.getClass().getName() + (msg != null ? ": " + msg : ""));
-    log.debug(e.getClass().getName() + (msg != null ? ": " + msg : ""), e);
-  }
-
-  public static final void setDebugging(boolean debuggingEnabled) {
-    Logger.getLogger(Constants.CORE_PACKAGE_NAME)
-        .setLevel(debuggingEnabled ? Level.TRACE : Level.INFO);
-    Logger.getLogger(Shell.class.getPackage().getName())
-        .setLevel(debuggingEnabled ? Level.TRACE : Level.INFO);
-  }
-
-  public static final boolean isDebuggingEnabled() {
-    return Logger.getLogger(Constants.CORE_PACKAGE_NAME).isTraceEnabled();
+    log.debug("{}{}", e.getClass().getName(), msg != null ? ": " + msg : "", e);
   }
 
   private final void printHelp(String usage, String description, Options opts) throws IOException {
@@ -1213,7 +1227,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   private void logError(String s) {
-    log.error(s);
+    log.error("{}", s);
     if (logErrorsToConsole) {
       try {
         reader.println("ERROR: " + s);

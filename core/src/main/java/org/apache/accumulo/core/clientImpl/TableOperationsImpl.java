@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -22,6 +24,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.BufferedReader;
@@ -37,6 +42,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -69,6 +76,7 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
@@ -76,11 +84,14 @@ import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
+import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
+import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
@@ -127,7 +138,6 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.SystemIteratorUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.util.Retry;
@@ -211,6 +221,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(ntc != null, "ntc is null");
+    checkArgument(tableName.length() <= MAX_TABLE_NAME_LEN,
+        "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
 
     List<ByteBuffer> args = new ArrayList<>();
     args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
@@ -324,14 +336,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   public String doBulkFateOperation(List<ByteBuffer> args, String tableName)
-      throws AccumuloSecurityException, AccumuloException {
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     try {
       return doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(),
           tableName);
-    } catch (TableExistsException | TableNotFoundException | NamespaceNotFoundException
-        | NamespaceExistsException e) {
+    } catch (TableExistsException | NamespaceExistsException e) {
       // should not happen
       throw new AssertionError(e);
+    } catch (NamespaceNotFoundException ne) {
+      throw new TableNotFoundException(null, tableName, "Namespace not found", ne);
     }
   }
 
@@ -381,6 +394,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         case OFFLINE:
           throw new TableOfflineException(
               Tables.getTableOfflineMsg(context, Tables.getTableId(context, tableOrNamespaceName)));
+        case BULK_CONCURRENT_MERGE:
+          throw new AccumuloBulkMergeException(e);
         default:
           throw new AccumuloException(e.description, e);
       }
@@ -433,8 +448,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         if (splits.size() <= 2) {
           addSplits(env.tableName, new TreeSet<>(splits), env.tableId);
-          for (int i = 0; i < splits.size(); i++)
-            env.latch.countDown();
+          splits.forEach(s -> env.latch.countDown());
           return;
         }
 
@@ -469,8 +483,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     CountDownLatch latch = new CountDownLatch(splits.size());
     AtomicReference<Throwable> exception = new AtomicReference<>(null);
 
-    ExecutorService executor = Executors.newFixedThreadPool(16,
-        new NamingThreadFactory("addSplits"));
+    ExecutorService executor =
+        Executors.newFixedThreadPool(16, new NamingThreadFactory("addSplits"));
     try {
       executor.execute(
           new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
@@ -667,7 +681,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw (AccumuloSecurityException) e.getCause();
         }
 
-        log.info("{} ... retrying ...", e.getMessage());
+        log.info("{} ... retrying ...", e, e);
         sleepUninterruptibly(3, TimeUnit.SECONDS);
       }
     }
@@ -731,23 +745,37 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
+    clone(srcTableName, newTableName,
+        CloneConfiguration.builder().setFlush(flush).setPropertiesToSet(propertiesToSet)
+            .setPropertiesToExclude(propertiesToExclude).setKeepOffline(false).build());
+  }
+
+  @Override
+  public void clone(String srcTableName, String newTableName, CloneConfiguration config)
+      throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
+      TableExistsException {
 
     checkArgument(srcTableName != null, "srcTableName is null");
     checkArgument(newTableName != null, "newTableName is null");
+    checkArgument(newTableName.length() <= MAX_TABLE_NAME_LEN,
+        "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
 
     TableId srcTableId = Tables.getTableId(context, srcTableName);
 
-    if (flush)
+    if (config.isFlush())
       _flush(srcTableId, null, null, true);
 
+    Set<String> propertiesToExclude = config.getPropertiesToExclude();
     if (propertiesToExclude == null)
       propertiesToExclude = Collections.emptySet();
 
+    Map<String,String> propertiesToSet = config.getPropertiesToSet();
     if (propertiesToSet == null)
       propertiesToSet = Collections.emptyMap();
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.canonical().getBytes(UTF_8)),
-        ByteBuffer.wrap(newTableName.getBytes(UTF_8)));
+        ByteBuffer.wrap(newTableName.getBytes(UTF_8)),
+        ByteBuffer.wrap(Boolean.toString(config.isKeepOffline()).getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
     for (Entry<String,String> entry : propertiesToSet.entrySet()) {
       if (entry.getKey().startsWith(CLONE_EXCLUDE_PREFIX))
@@ -766,7 +794,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException,
       TableNotFoundException, AccumuloException, TableExistsException {
-
+    checkArgument(newTableName.length() <= MAX_TABLE_NAME_LEN,
+        "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(UTF_8)),
         ByteBuffer.wrap(newTableName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
@@ -810,7 +839,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void compact(String tableName, CompactionConfig config)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
     checkArgument(tableName != null, "tableName is null");
-    ByteBuffer EMPTY = ByteBuffer.allocate(0);
 
     // Ensure compaction iterators exist on a tabletserver
     final String skviName = SortedKeyValueIterator.class.getName();
@@ -821,14 +849,23 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
 
-    // Make sure the specified compaction strategy exists on a tabletserver
-    final String compactionStrategyName = config.getCompactionStrategy().getClassName();
-    if (!CompactionStrategyConfigUtil.DEFAULT_STRATEGY.getClassName()
-        .equals(compactionStrategyName)) {
-      if (!testClassLoad(tableName, compactionStrategyName,
-          "org.apache.accumulo.tserver.compaction.CompactionStrategy")) {
+    ensureStrategyCanLoad(tableName, config);
+
+    if (!UserCompactionUtils.isDefault(config.getConfigurer())) {
+      if (!testClassLoad(tableName, config.getConfigurer().getClassName(),
+          CompactionConfigurer.class.getName())) {
         throw new AccumuloException(
-            "TabletServer could not load CompactionStrategy class " + compactionStrategyName);
+            "TabletServer could not load " + CompactionConfigurer.class.getSimpleName() + " class "
+                + config.getConfigurer().getClassName());
+      }
+    }
+
+    if (!UserCompactionUtils.isDefault(config.getSelector())) {
+      if (!testClassLoad(tableName, config.getSelector().getClassName(),
+          CompactionSelector.class.getName())) {
+        throw new AccumuloException(
+            "TabletServer could not load " + CompactionSelector.class.getSimpleName() + " class "
+                + config.getSelector().getClassName());
       }
     }
 
@@ -841,10 +878,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       _flush(tableId, start, end, true);
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
-        start == null ? EMPTY : TextUtil.getByteBuffer(start),
-        end == null ? EMPTY : TextUtil.getByteBuffer(end),
-        ByteBuffer.wrap(SystemIteratorUtil.encodeIteratorSettings(config.getIterators())),
-        ByteBuffer.wrap(CompactionStrategyConfigUtil.encode(config.getCompactionStrategy())));
+        ByteBuffer.wrap(UserCompactionUtils.encode(config)));
 
     Map<String,String> opts = new HashMap<>();
     try {
@@ -854,6 +888,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new AssertionError(e);
     } catch (NamespaceNotFoundException e) {
       throw new TableNotFoundException(null, tableName, "Namespace not found", e);
+    }
+  }
+
+  @SuppressWarnings("removal")
+  private void ensureStrategyCanLoad(String tableName, CompactionConfig config)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    // Make sure the specified compaction strategy exists on a tabletserver
+    if (!CompactionStrategyConfigUtil.isDefault(config.getCompactionStrategy())) {
+      if (!testClassLoad(tableName, config.getCompactionStrategy().getClassName(),
+          "org.apache.accumulo.tserver.compaction.CompactionStrategy")) {
+        throw new AccumuloException("TabletServer could not load CompactionStrategy class "
+            + config.getCompactionStrategy().getClassName());
+      }
     }
   }
 
@@ -889,8 +936,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         MasterClientService.Iface client = null;
         try {
           client = MasterClient.getConnectionWithRetry(context);
-          flushID = client.initiateFlush(TraceUtil.traceInfo(), context.rpcCreds(),
-              tableId.canonical());
+          flushID =
+              client.initiateFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
@@ -1155,8 +1202,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> props = context.instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
 
-    FileSystem fs = VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf)
-        .getFileSystem();
+    FileSystem fs =
+        VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf).getFileSystem();
 
     if (dir.contains(":")) {
       ret = new Path(dir);
@@ -1167,11 +1214,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     try {
       if (!fs.getFileStatus(ret).isDirectory()) {
         throw new AccumuloException(
-            kind + " import " + type + " directory " + dir + " is not a directory!");
+            kind + " import " + type + " directory " + ret + " is not a directory!");
       }
     } catch (FileNotFoundException fnf) {
       throw new AccumuloException(
-          kind + " import " + type + " directory " + dir + " does not exist!");
+          kind + " import " + type + " directory " + ret + " does not exist!");
     }
 
     if (type.equals("failure")) {
@@ -1240,7 +1287,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         range = new Range(startRow, lastRow);
 
       TabletsMetadata tablets = TabletsMetadata.builder().scanMetadataTable().overRange(range)
-          .fetchLocation().fetchPrev().build(context);
+          .fetch(LOCATION, PREV_ROW).build(context);
 
       KeyExtent lastExtent = null;
 
@@ -1378,8 +1425,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    TabletLocator tabLocator = TabletLocator.getLocator(context,
-        Tables.getTableId(context, tableName));
+    TabletLocator tabLocator =
+        TabletLocator.getLocator(context, Tables.getTableId(context, tableName));
     tabLocator.invalidateCache();
   }
 
@@ -1411,7 +1458,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         // this operation may us a lot of memory... its likely that connections to tabletservers
         // hosting metadata tablets will be cached, so do not use cached
         // connections
-        pair = ServerClient.getConnection(context, false);
+        pair = ServerClient.getConnection(context, new ClientService.Client.Factory(), false);
         diskUsages = pair.getSecond().getDiskUsage(tableNames, context.rpcCreds());
       } catch (ThriftTableOperationException e) {
         switch (e.getType()) {
@@ -1450,6 +1497,49 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return finalUsages;
   }
 
+  /**
+   * Search multiple directories for exportMetadata.zip, the control file used for the importable
+   * command.
+   *
+   * @param context
+   *          used to obtain filesystem based on configuration
+   * @param importDirs
+   *          the set of directories to search.
+   * @return the Path representing the location of the file.
+   * @throws AccumuloException
+   *           if zero or more than one copy of the exportMetadata.zip file are found in the
+   *           directories provided.
+   */
+  public static Path findExportFile(ClientContext context, Set<String> importDirs)
+      throws AccumuloException {
+    LinkedHashSet<Path> exportFiles = new LinkedHashSet<>();
+    for (String importDir : importDirs) {
+      Path exportFilePath = null;
+      try {
+        FileSystem fs = new Path(importDir).getFileSystem(context.getHadoopConf());
+        exportFilePath = new Path(importDir, Constants.EXPORT_FILE);
+        log.debug("Looking for export metadata in {}", exportFilePath);
+        if (fs.exists(exportFilePath)) {
+          log.debug("Found export metadata in {}", exportFilePath);
+          exportFiles.add(exportFilePath);
+        }
+      } catch (IOException ioe) {
+        log.warn("Non-Fatal IOException reading export file: {}", exportFilePath, ioe);
+      }
+    }
+
+    if (exportFiles.size() > 1) {
+      String fileList = Arrays.toString(exportFiles.toArray());
+      log.warn("Found multiple export metadata files: " + fileList);
+      throw new AccumuloException("Found multiple export metadata files: " + fileList);
+    } else if (exportFiles.isEmpty()) {
+      log.warn("Unable to locate export metadata");
+      throw new AccumuloException("Unable to locate export metadata");
+    }
+
+    return exportFiles.iterator().next();
+  }
+
   public static Map<String,String> getExportedProps(FileSystem fs, Path path) throws IOException {
     HashMap<String,String> props = new HashMap<>();
 
@@ -1473,20 +1563,26 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void importTable(String tableName, String importDir)
+  public void importTable(String tableName, Set<String> importDirs)
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
-    checkArgument(importDir != null, "importDir is null");
+    checkArgument(importDirs != null, "importDir is null");
+    checkArgument(tableName.length() <= MAX_TABLE_NAME_LEN,
+        "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
 
+    Set<String> checkedImportDirs = new HashSet<String>();
     try {
-      importDir = checkPath(importDir, "Table", "").toString();
+      for (String s : importDirs) {
+        checkedImportDirs.add(checkPath(s, "Table", "").toString());
+      }
     } catch (IOException e) {
       throw new AccumuloException(e);
     }
 
     try {
-      FileSystem fs = new Path(importDir).getFileSystem(context.getHadoopConf());
-      Map<String,String> props = getExportedProps(fs, new Path(importDir, Constants.EXPORT_FILE));
+      Path exportFilePath = findExportFile(context, checkedImportDirs);
+      FileSystem fs = exportFilePath.getFileSystem(context.getHadoopConf());
+      Map<String,String> props = getExportedProps(fs, exportFilePath);
 
       for (Entry<String,String> entry : props.entrySet()) {
         if (Property.isClassProperty(entry.getKey())
@@ -1496,15 +1592,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
               sanitize(entry.getKey()), sanitize(entry.getValue()));
         }
       }
-
     } catch (IOException ioe) {
       LoggerFactory.getLogger(this.getClass()).warn(
           "Failed to check if imported table references external java classes : {}",
           ioe.getMessage());
     }
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(importDir.getBytes(UTF_8)));
+    Stream<String> argStream = Stream.concat(Stream.of(tableName), checkedImportDirs.stream());
+    List<ByteBuffer> args =
+        argStream.map(String::getBytes).map(ByteBuffer::wrap).collect(Collectors.toList());
 
     Map<String,String> opts = Collections.emptyMap();
 
@@ -1631,8 +1727,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     clearSamplerOptions(tableName);
 
-    List<Pair<String,String>> props = new SamplerConfigurationImpl(samplerConfiguration)
-        .toTableProperties();
+    List<Pair<String,String>> props =
+        new SamplerConfigurationImpl(samplerConfiguration).toTableProperties();
     for (Pair<String,String> pair : props) {
       setProperty(tableName, pair.getFirst(), pair.getSecond());
     }
@@ -1656,13 +1752,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return sci.toSamplerConfiguration();
   }
 
-  private static class LoctionsImpl implements Locations {
+  private static class LocationsImpl implements Locations {
 
     private Map<Range,List<TabletId>> groupedByRanges;
     private Map<TabletId,List<Range>> groupedByTablets;
     private Map<TabletId,String> tabletLocations;
 
-    public LoctionsImpl(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
+    public LocationsImpl(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
       groupedByTablets = new HashMap<>();
       groupedByRanges = null;
       tabletLocations = new HashMap<>();
@@ -1673,8 +1769,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         for (Entry<KeyExtent,List<Range>> entry2 : entry.getValue().entrySet()) {
           TabletIdImpl tabletId = new TabletIdImpl(entry2.getKey());
           tabletLocations.put(tabletId, location);
-          List<Range> prev = groupedByTablets.put(tabletId,
-              Collections.unmodifiableList(entry2.getValue()));
+          List<Range> prev =
+              groupedByTablets.put(tabletId, Collections.unmodifiableList(entry2.getValue()));
           if (prev != null) {
             throw new RuntimeException(
                 "Unexpected : tablet at multiple locations : " + location + " " + tabletId);
@@ -1695,17 +1791,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
       if (groupedByRanges == null) {
         Map<Range,List<TabletId>> tmp = new HashMap<>();
 
-        for (Entry<TabletId,List<Range>> entry : groupedByTablets.entrySet()) {
-          for (Range range : entry.getValue()) {
-            List<TabletId> tablets = tmp.get(range);
-            if (tablets == null) {
-              tablets = new ArrayList<>();
-              tmp.put(range, tablets);
-            }
-
-            tablets.add(entry.getKey());
+        groupedByTablets.forEach((table, rangeList) -> {
+          for (Range range : rangeList) {
+            tmp.computeIfAbsent(range, k -> new ArrayList<>()).add(table);
           }
-        }
+        });
 
         Map<Range,List<TabletId>> tmp2 = new HashMap<>();
         for (Entry<Range,List<TabletId>> entry : tmp.entrySet()) {
@@ -1745,8 +1835,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     locator.invalidateCache();
 
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-        .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).logInterval(3, TimeUnit.MINUTES)
-        .createRetry();
+        .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
+        .logInterval(3, TimeUnit.MINUTES).createRetry();
 
     while (!locator.binRanges(context, rangeList, binnedRanges).isEmpty()) {
 
@@ -1766,7 +1856,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       locator.invalidateCache();
     }
 
-    return new LoctionsImpl(binnedRanges);
+    return new LocationsImpl(binnedRanges);
   }
 
   @Override
@@ -1803,18 +1893,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
           throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
-        TRowRange range = new TRowRange(TextUtil.getByteBuffer(startRow),
-            TextUtil.getByteBuffer(endRow));
-        TSummaryRequest request = new TSummaryRequest(tableId.canonical(), range, summariesToFetch,
-            summarizerClassRegex);
+        TRowRange range =
+            new TRowRange(TextUtil.getByteBuffer(startRow), TextUtil.getByteBuffer(endRow));
+        TSummaryRequest request =
+            new TSummaryRequest(tableId.canonical(), range, summariesToFetch, summarizerClassRegex);
         if (flush) {
           _flush(tableId, startRow, endRow, true);
         }
 
-        TSummaries ret = ServerClient.execute(context, new TabletClientService.Client.Factory(),
-            client -> {
-              TSummaries tsr = client.startGetSummaries(TraceUtil.traceInfo(), context.rpcCreds(),
-                  request);
+        TSummaries ret =
+            ServerClient.execute(context, new TabletClientService.Client.Factory(), client -> {
+              TSummaries tsr =
+                  client.startGetSummaries(TraceUtil.traceInfo(), context.rpcCreds(), request);
               while (!tsr.finished) {
                 tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.sessionId);
               }
@@ -1874,14 +1964,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void addSummarizers(String tableName, SummarizerConfiguration... newConfigs)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    HashSet<SummarizerConfiguration> currentConfigs = new HashSet<>(
-        SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
+    HashSet<SummarizerConfiguration> currentConfigs =
+        new HashSet<>(SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
     HashSet<SummarizerConfiguration> newConfigSet = new HashSet<>(Arrays.asList(newConfigs));
 
     newConfigSet.removeIf(currentConfigs::contains);
 
-    Set<String> newIds = newConfigSet.stream().map(SummarizerConfiguration::getPropertyId)
-        .collect(toSet());
+    Set<String> newIds =
+        newConfigSet.stream().map(SummarizerConfiguration::getPropertyId).collect(toSet());
 
     for (SummarizerConfiguration csc : currentConfigs) {
       if (newIds.contains(csc.getPropertyId())) {
@@ -1889,8 +1979,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
 
-    Set<Entry<String,String>> es = SummarizerConfiguration.toTableProperties(newConfigSet)
-        .entrySet();
+    Set<Entry<String,String>> es =
+        SummarizerConfiguration.toTableProperties(newConfigSet).entrySet();
     for (Entry<String,String> entry : es) {
       setProperty(tableName, entry.getKey(), entry.getValue());
     }
@@ -1899,8 +1989,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void removeSummarizers(String tableName, Predicate<SummarizerConfiguration> predicate)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    Collection<SummarizerConfiguration> summarizerConfigs = SummarizerConfiguration
-        .fromTableProperties(getProperties(tableName));
+    Collection<SummarizerConfiguration> summarizerConfigs =
+        SummarizerConfiguration.fromTableProperties(getProperties(tableName));
     for (SummarizerConfiguration sc : summarizerConfigs) {
       if (predicate.test(sc)) {
         Set<String> ks = sc.toTableProperties().keySet();

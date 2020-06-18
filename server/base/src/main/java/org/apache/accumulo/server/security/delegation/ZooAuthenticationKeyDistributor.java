@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security.delegation;
 
@@ -66,11 +68,7 @@ public class ZooAuthenticationKeyDistributor {
       return;
     }
 
-    if (!zk.exists(baseNode)) {
-      if (!zk.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL)) {
-        throw new AssertionError("Got false from putPrivatePersistentData method");
-      }
-    } else {
+    if (zk.exists(baseNode)) {
       List<ACL> acls = zk.getACL(baseNode, new Stat());
       if (acls.size() == 1) {
         ACL actualAcl = acls.get(0), expectedAcl = ZooUtil.PRIVATE.get(0);
@@ -88,6 +86,10 @@ public class ZooAuthenticationKeyDistributor {
       log.error("Expected {} to have ACLs {} but was {}", baseNode, ZooUtil.PRIVATE, acls);
       throw new IllegalStateException(
           "Delegation token secret key node in ZooKeeper is not protected.");
+    } else {
+      if (!zk.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL)) {
+        throw new AssertionError("Got false from putPrivatePersistentData method");
+      }
     }
 
     initialized.set(true);

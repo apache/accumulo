@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.miniclusterImpl;
 
@@ -38,14 +40,15 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterImplTest {
   public static File testDir;
 
@@ -58,16 +61,14 @@ public class MiniAccumuloClusterImplTest {
 
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
-    Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
-
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     testDir = new File(baseDir, MiniAccumuloClusterImplTest.class.getName());
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(testDir, "superSecret")
-        .setJDWPEnabled(true);
+    MiniAccumuloConfigImpl config =
+        new MiniAccumuloConfigImpl(testDir, "superSecret").setJDWPEnabled(true);
     // expressly set number of tservers since we assert it later, in case the default changes
     config.setNumTservers(NUM_TSERVERS);
     accumulo = new MiniAccumuloClusterImpl(config);
@@ -120,11 +121,11 @@ public class MiniAccumuloClusterImplTest {
         validGoals.contains(stats.goalState));
     assertNotNull("should have a table map.", stats.tableMap);
     assertTrue("root table should exist in " + stats.tableMap.keySet(),
-        stats.tableMap.keySet().contains(RootTable.ID.canonical()));
+        stats.tableMap.containsKey(RootTable.ID.canonical()));
     assertTrue("meta table should exist in " + stats.tableMap.keySet(),
-        stats.tableMap.keySet().contains(MetadataTable.ID.canonical()));
+        stats.tableMap.containsKey(MetadataTable.ID.canonical()));
     assertTrue("our test table should exist in " + stats.tableMap.keySet(),
-        stats.tableMap.keySet().contains(testTableID));
+        stats.tableMap.containsKey(testTableID));
     assertNotNull("there should be tservers.", stats.tServerInfo);
     assertEquals(NUM_TSERVERS, stats.tServerInfo.size());
   }

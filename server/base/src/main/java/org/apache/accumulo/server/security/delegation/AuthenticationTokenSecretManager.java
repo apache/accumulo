@@ -7,15 +7,15 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.server.security.delegation;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -150,8 +150,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
    *          A configuration object for obtaining the delegation token
    * @return A delegation token for {@code username} created using the {@link #currentKey}.
    */
-  public Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> generateToken(
-      String username, DelegationTokenConfig cfg) throws AccumuloException {
+  public Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier>
+      generateToken(String username, DelegationTokenConfig cfg) throws AccumuloException {
     requireNonNull(username);
     requireNonNull(cfg);
 
@@ -171,8 +171,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     }
     // The use of the ServiceLoader inside Token doesn't work to automatically get the Identifier
     // Explicitly returning the identifier also saves an extra deserialization
-    Token<AuthenticationTokenIdentifier> token = new Token<>(id.getBytes(), password, id.getKind(),
-        new Text(svcName.toString()));
+    Token<AuthenticationTokenIdentifier> token =
+        new Token<>(id.getBytes(), password, id.getKind(), new Text(svcName.toString()));
     return Maps.immutableEntry(token, id);
   }
 

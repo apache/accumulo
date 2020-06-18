@@ -1,21 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.nio.ByteBuffer;
@@ -71,8 +77,8 @@ import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -100,8 +106,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
     implements MasterClientService.Iface {
 
   private static final Logger log = Master.log;
-  private static final Logger drainLog = LoggerFactory
-      .getLogger("org.apache.accumulo.master.MasterDrainImpl");
+  private static final Logger drainLog =
+      LoggerFactory.getLogger("org.apache.accumulo.master.MasterDrainImpl");
 
   protected MasterClientServiceHandler(Master master) {
     super(master);
@@ -117,7 +123,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     String zTablePath = Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_FLUSH_ID;
 
-    IZooReaderWriter zoo = master.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
     byte[] fid;
     try {
       fid = zoo.mutate(zTablePath, null, null, new Mutator() {
@@ -179,9 +185,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
       serversToFlush.clear();
 
-      try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(tableId)
-          .overlapping(startRow, endRow).fetchFlushId().fetchLocation().fetchLogs().fetchPrev()
-          .build(master.getContext())) {
+      try (TabletsMetadata tablets =
+          TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow)
+              .fetch(FLUSH_ID, LOCATION, LOGS, PREV_ROW).build(master.getContext())) {
         int tabletsToWaitFor = 0;
         int tabletCount = 0;
 
@@ -482,8 +488,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
     final DelegationTokenConfig config = DelegationTokenConfigSerializer.deserialize(tConfig);
     final AuthenticationTokenSecretManager secretManager = master.getContext().getSecretManager();
     try {
-      Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager
-          .generateToken(credentials.principal, config);
+      Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair =
+          secretManager.generateToken(credentials.principal, config);
 
       return new TDelegationToken(ByteBuffer.wrap(pair.getKey().getPassword()),
           pair.getValue().getThriftIdentifier());
@@ -567,11 +573,11 @@ public class MasterClientServiceHandler extends FateServiceHandler
         }
 
         // Skip files that we didn't observe when we started (new files/data)
-        if (!relevantLogs.contains(file)) {
+        if (relevantLogs.contains(file)) {
+          drainLog.trace("Found file that we *do* care about {}", file);
+        } else {
           drainLog.trace("Found file that we didn't care about {}", file);
           continue;
-        } else {
-          drainLog.trace("Found file that we *do* care about {}", file);
         }
 
         try {

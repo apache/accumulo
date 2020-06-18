@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -38,13 +40,14 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 import org.apache.htrace.TraceScope;
 
@@ -88,7 +91,11 @@ public class RemoveEntriesForMissingFiles {
     @SuppressWarnings("unchecked")
     public void run() {
       try {
-        if (!fs.exists(path)) {
+        if (fs.exists(path)) {
+          synchronized (processing) {
+            cache.put(path, path);
+          }
+        } else {
           missing.incrementAndGet();
 
           Mutation m = new Mutation(key.getRow());
@@ -98,10 +105,6 @@ public class RemoveEntriesForMissingFiles {
             System.out.println("Reference " + path + " removed from " + key.getRow());
           } else {
             System.out.println("File " + path + " is missing");
-          }
-        } else {
-          synchronized (processing) {
-            cache.put(path, path);
           }
         }
       } catch (Exception e) {
@@ -143,7 +146,7 @@ public class RemoveEntriesForMissingFiles {
 
       count++;
       Key key = entry.getKey();
-      Path map = fs.getFullPath(key);
+      Path map = new Path(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
 
       synchronized (processing) {
         while (processing.size() >= 64 || processing.contains(map))
@@ -163,7 +166,7 @@ public class RemoveEntriesForMissingFiles {
     threadPool.shutdown();
 
     synchronized (processing) {
-      while (processing.size() > 0)
+      while (!processing.isEmpty())
         processing.wait();
     }
 
@@ -179,8 +182,8 @@ public class RemoveEntriesForMissingFiles {
   }
 
   static int checkAllTables(ServerContext context, boolean fix) throws Exception {
-    int missing = checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(),
-        fix);
+    int missing =
+        checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
 
     if (missing == 0)
       return checkTable(context, MetadataTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
@@ -202,8 +205,8 @@ public class RemoveEntriesForMissingFiles {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    try (TraceScope clientSpan = opts
-        .parseArgsAndTrace(RemoveEntriesForMissingFiles.class.getName(), args)) {
+    try (TraceScope clientSpan =
+        opts.parseArgsAndTrace(RemoveEntriesForMissingFiles.class.getName(), args)) {
       checkAllTables(opts.getServerContext(), opts.fix);
     }
   }

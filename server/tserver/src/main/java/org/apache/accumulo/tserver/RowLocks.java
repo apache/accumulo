@@ -1,26 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -29,9 +32,15 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.ConditionalMutationSet.DeferFilter;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 
+import com.google.common.base.Preconditions;
+
 class RowLocks {
 
-  private Map<ByteSequence,RowLock> rowLocks = new HashMap<>();
+  // The compute function in Concurrent Hash Map supports atomic execution of the remapping function
+  // and will only execute it once. Properly computing the reference counts relies on this specific
+  // behavior. Not all concurrent map implementations have the desired behavior. For example
+  // ConcurrentSkipListMap.compute is not atomic and may execute the function multiple times.
+  private final Map<ByteSequence,RowLock> rowLocks = new ConcurrentHashMap<>();
 
   static class RowLock {
     ReentrantLock rlock;
@@ -40,7 +49,7 @@ class RowLocks {
 
     RowLock(ReentrantLock rlock, ByteSequence rowSeq) {
       this.rlock = rlock;
-      this.count = 0;
+      this.count = 1;
       this.rowSeq = rowSeq;
     }
 
@@ -58,43 +67,39 @@ class RowLocks {
   }
 
   private RowLock getRowLock(ArrayByteSequence rowSeq) {
-    RowLock lock = rowLocks.get(rowSeq);
-    if (lock == null) {
-      lock = new RowLock(new ReentrantLock(), rowSeq);
-      rowLocks.put(rowSeq, lock);
-    }
-
-    lock.count++;
-    return lock;
+    return rowLocks.compute(rowSeq, (key, value) -> {
+      if (value == null) {
+        return new RowLock(new ReentrantLock(), rowSeq);
+      }
+      value.count++;
+      return value;
+    });
   }
 
   private void returnRowLock(RowLock lock) {
-    if (lock.count == 0)
-      throw new IllegalStateException();
-    lock.count--;
-
-    if (lock.count == 0) {
-      rowLocks.remove(lock.rowSeq);
-    }
+    Objects.requireNonNull(lock);
+    rowLocks.compute(lock.rowSeq, (key, value) -> {
+      Preconditions.checkState(value == lock);
+      Preconditions.checkState(value.count > 0);
+      return (--value.count > 0) ? value : null;
+    });
   }
 
   List<RowLock> acquireRowlocks(Map<KeyExtent,List<ServerConditionalMutation>> updates,
       Map<KeyExtent,List<ServerConditionalMutation>> deferred) {
     ArrayList<RowLock> locks = new ArrayList<>();
 
-    // assume that mutations are in sorted order to avoid deadlock
-    synchronized (rowLocks) {
-      for (List<ServerConditionalMutation> scml : updates.values()) {
-        for (ServerConditionalMutation scm : scml) {
-          locks.add(getRowLock(new ArrayByteSequence(scm.getRow())));
-        }
+    for (List<ServerConditionalMutation> scml : updates.values()) {
+      for (ServerConditionalMutation scm : scml) {
+        locks.add(getRowLock(new ArrayByteSequence(scm.getRow())));
       }
     }
 
     HashSet<ByteSequence> rowsNotLocked = null;
 
-    // acquire as many locks as possible, not blocking on rows that are already locked
     if (locks.size() > 1) {
+      // Assuming mutations are in sorted order which avoids deadlock. Acquire as many locks as
+      // possible, not blocking on rows that are already locked.
       for (RowLock rowLock : locks) {
         if (!rowLock.tryLock()) {
           if (rowsNotLocked == null)
@@ -135,10 +140,8 @@ class RowLocks {
         }
       }
 
-      synchronized (rowLocks) {
-        for (RowLock rowLock : locksToReturn) {
-          returnRowLock(rowLock);
-        }
+      for (RowLock rowLock : locksToReturn) {
+        returnRowLock(rowLock);
       }
 
       locks = filteredLocks;
@@ -151,10 +154,8 @@ class RowLocks {
       rowLock.unlock();
     }
 
-    synchronized (rowLocks) {
-      for (RowLock rowLock : locks) {
-        returnRowLock(rowLock);
-      }
+    for (RowLock rowLock : locks) {
+      returnRowLock(rowLock);
     }
   }
 

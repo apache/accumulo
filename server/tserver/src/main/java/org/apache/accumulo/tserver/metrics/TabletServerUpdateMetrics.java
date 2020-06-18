@@ -1,155 +1,83 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.metrics;
 
-import javax.management.ObjectName;
+import org.apache.hadoop.metrics2.lib.MetricsRegistry;
+import org.apache.hadoop.metrics2.lib.MutableCounterLong;
+import org.apache.hadoop.metrics2.lib.MutableStat;
 
-import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
+public class TabletServerUpdateMetrics extends TServerMetrics {
 
-public class TabletServerUpdateMetrics extends AbstractMetricsImpl
-    implements TabletServerUpdateMetricsMBean {
+  private final MutableCounterLong permissionErrorsCounter;
+  private final MutableCounterLong unknownTabletErrorsCounter;
+  private final MutableCounterLong constraintViolationsCounter;
 
-  static final org.slf4j.Logger log = org.slf4j.LoggerFactory
-      .getLogger(TabletServerUpdateMetrics.class);
+  private final MutableStat commitPrepStat;
+  private final MutableStat walogWriteTimeStat;
+  private final MutableStat commitTimeStat;
+  private final MutableStat mutationArraySizeStat;
 
-  private static final String METRICS_PREFIX = "tserver.update";
+  public TabletServerUpdateMetrics() {
+    super("Updates");
 
-  private ObjectName OBJECT_NAME = null;
+    MetricsRegistry registry = super.getRegistry();
+    permissionErrorsCounter = registry.newCounter("permissionErrors", "Permission Errors", 0L);
+    unknownTabletErrorsCounter =
+        registry.newCounter("unknownTabletErrors", "Unknown Tablet Errors", 0L);
+    constraintViolationsCounter =
+        registry.newCounter("constraintViolations", "Table Constraint Violations", 0L);
 
-  TabletServerUpdateMetrics() {
-    super();
-    reset();
-    try {
-      OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=TServerInfo,"
-          + "name=TabletServerUpdateMetricsMBean,instance=" + Thread.currentThread().getName());
-    } catch (Exception e) {
-      log.error("Exception setting MBean object name", e);
-    }
+    commitPrepStat =
+        registry.newStat("commitPrep", "preparing to commit mutations", "Ops", "Time", true);
+    walogWriteTimeStat =
+        registry.newStat("waLogWriteTime", "writing mutations to WAL", "Ops", "Time", true);
+    commitTimeStat = registry.newStat("commitTime", "committing mutations", "Ops", "Time", true);
+    mutationArraySizeStat =
+        registry.newStat("mutationArraysSize", "mutation array", "ops", "Size", true);
   }
 
-  @Override
-  protected ObjectName getObjectName() {
-    return OBJECT_NAME;
+  public void addPermissionErrors(long value) {
+    permissionErrorsCounter.incr(value);
   }
 
-  @Override
-  protected String getMetricsPrefix() {
-    return METRICS_PREFIX;
+  public void addUnknownTabletErrors(long value) {
+    unknownTabletErrorsCounter.incr(value);
   }
 
-  @Override
-  public long getPermissionErrorCount() {
-    return this.getMetricCount(PERMISSION_ERRORS);
+  public void addMutationArraySize(long value) {
+    mutationArraySizeStat.add(value);
   }
 
-  @Override
-  public long getUnknownTabletErrorCount() {
-    return this.getMetricCount(UNKNOWN_TABLET_ERRORS);
+  public void addCommitPrep(long value) {
+    commitPrepStat.add(value);
   }
 
-  @Override
-  public long getMutationArrayAvgSize() {
-    return this.getMetricAvg(MUTATION_ARRAY_SIZE);
+  public void addConstraintViolations(long value) {
+    constraintViolationsCounter.incr(value);
   }
 
-  @Override
-  public long getMutationArrayMinSize() {
-    return this.getMetricMin(MUTATION_ARRAY_SIZE);
+  public void addWalogWriteTime(long value) {
+    walogWriteTimeStat.add(value);
   }
 
-  @Override
-  public long getMutationArrayMaxSize() {
-    return this.getMetricMax(MUTATION_ARRAY_SIZE);
-  }
-
-  @Override
-  public long getCommitPrepCount() {
-    return this.getMetricCount(COMMIT_PREP);
-  }
-
-  @Override
-  public long getCommitPrepMinTime() {
-    return this.getMetricMin(COMMIT_PREP);
-  }
-
-  @Override
-  public long getCommitPrepMaxTime() {
-    return this.getMetricMax(COMMIT_PREP);
-  }
-
-  @Override
-  public long getCommitPrepAvgTime() {
-    return this.getMetricAvg(COMMIT_PREP);
-  }
-
-  @Override
-  public long getConstraintViolationCount() {
-    return this.getMetricCount(CONSTRAINT_VIOLATIONS);
-  }
-
-  @Override
-  public long getWALogWriteCount() {
-    return this.getMetricCount(WALOG_WRITE_TIME);
-  }
-
-  @Override
-  public long getWALogWriteMinTime() {
-    return this.getMetricMin(WALOG_WRITE_TIME);
-  }
-
-  @Override
-  public long getWALogWriteMaxTime() {
-    return this.getMetricMax(WALOG_WRITE_TIME);
-  }
-
-  @Override
-  public long getWALogWriteAvgTime() {
-    return this.getMetricAvg(WALOG_WRITE_TIME);
-  }
-
-  @Override
-  public long getCommitCount() {
-    return this.getMetricCount(COMMIT_TIME);
-  }
-
-  @Override
-  public long getCommitMinTime() {
-    return this.getMetricMin(COMMIT_TIME);
-  }
-
-  @Override
-  public long getCommitMaxTime() {
-    return this.getMetricMax(COMMIT_TIME);
-  }
-
-  @Override
-  public long getCommitAvgTime() {
-    return this.getMetricAvg(COMMIT_TIME);
-  }
-
-  @Override
-  public void reset() {
-    createMetric(PERMISSION_ERRORS);
-    createMetric(UNKNOWN_TABLET_ERRORS);
-    createMetric(MUTATION_ARRAY_SIZE);
-    createMetric(COMMIT_PREP);
-    createMetric(CONSTRAINT_VIOLATIONS);
-    createMetric(WALOG_WRITE_TIME);
-    createMetric(COMMIT_TIME);
+  public void addCommitTime(long value) {
+    commitTimeStat.add(value);
   }
 
 }

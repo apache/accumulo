@@ -1,26 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
 
       http://www.apache.org/licenses/LICENSE-2.0
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-core</artifactId>
   <name>Apache Accumulo Core</name>
@@ -46,26 +50,20 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>listenablefuture</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
     </dependency>
     <dependency>
-      <groupId>commons-collections</groupId>
-      <artifactId>commons-collections</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>commons-configuration</groupId>
-      <artifactId>commons-configuration</artifactId>
-    </dependency>
-    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>commons-lang</groupId>
-      <artifactId>commons-lang</artifactId>
     </dependency>
     <dependency>
       <groupId>commons-logging</groupId>
@@ -76,12 +74,20 @@
       <artifactId>jline</artifactId>
     </dependency>
     <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-collections4</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-configuration2</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -96,12 +102,32 @@
       <artifactId>htrace-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-1.2-api</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.thrift</groupId>
       <artifactId>libthrift</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpcore</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.zookeeper</groupId>
+      <artifactId>zookeeper-jute</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -123,13 +149,13 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.easymock</groupId>
-      <artifactId>easymock</artifactId>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <groupId>org.easymock</groupId>
+      <artifactId>easymock</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -147,13 +173,25 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>com.mycila</groupId>
+          <artifactId>license-maven-plugin</artifactId>
+          <configuration>
+            <excludes>
+              <exclude>src/main/java/org/apache/accumulo/core/bloomfilter/*.java</exclude>
+              <exclude>src/main/java/org/apache/accumulo/core/util/HostAndPort.java</exclude>
+              <exclude>src/test/resources/*.jceks</exclude>
+              <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/*.rf</exclude>
+            </excludes>
+          </configuration>
+        </plugin>
+        <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/test/resources/shelltest.txt</exclude>
-              <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/*.rf</exclude>
+              <exclude>src/main/java/org/apache/accumulo/core/bloomfilter/*.java</exclude>
               <exclude>src/test/resources/*.jceks</exclude>
+              <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/*.rf</exclude>
             </excludes>
           </configuration>
         </plugin>
@@ -174,6 +212,7 @@
                 <include>org[.]apache[.]accumulo[.]core[.]client[.].*</include>
                 <include>org[.]apache[.]accumulo[.]core[.]data[.].*</include>
                 <include>org[.]apache[.]accumulo[.]core[.]security[.].*</include>
+                <include>org[.]apache[.]accumulo[.]core[.]iterators[.].*</include>
                 <!-- The following types are not advertised as in API, but are
 		     used in a such a way by API classes that we want to
 		     ensure they do not reference non public API types.
@@ -181,7 +220,6 @@
 		     API.  These types were not placed in the allows set
 		     because no analysis is done on types in that set. -->
                 <include>org[.]apache[.]accumulo[.]core[.]util[.](Pair|ComparablePair)</include>
-                <include>org[.]apache[.]accumulo[.]core[.]iterators[.]IteratorUtil[$]IteratorScope</include>
               </includes>
               <excludes>
                 <exclude>.*[.]impl[.].*</exclude>
@@ -201,14 +239,10 @@
                 <allow>org[.]apache[.]hadoop[.]mapred[.](JobConf|RecordReader|InputSplit|RecordWriter|Reporter)</allow>
                 <allow>org[.]apache[.]hadoop[.]mapreduce[.](Job|JobContext|RecordReader|InputSplit|TaskAttemptContext|RecordWriter|OutputCommitter|TaskInputOutputContext)</allow>
                 <allow>org[.]apache[.]hadoop[.]util[.]Progressable</allow>
-                <!--ugghhh-->
-                <allow>org[.]apache[.]log4j[.](Level|Logger)</allow>
                 <!-- allow javax security exceptions for Authentication tokens -->
                 <allow>javax[.]security[.]auth[.]DestroyFailedException</allow>
                 <!-- allow questionable Hadoop exceptions for mapreduce -->
                 <allow>org[.]apache[.]hadoop[.]mapred[.](FileAlreadyExistsException|InvalidJobConfException)</allow>
-                <!-- allow lexicoders to throw iterator exceptions -->
-                <allow>org[.]apache[.]accumulo[.]core[.]iterators[.]ValueFormatException</allow>
               </allows>
             </configuration>
           </execution>
@@ -225,9 +259,9 @@
               <excludes />
               <allows>
                 <allow>org[.]apache[.]hadoop[.]io[.]Text</allow>
-                <allow>org[.]apache[.]accumulo[.]core[.]client(?!.*[.](impl|thrift)[.].*)[.].*</allow>
-                <allow>org[.]apache[.]accumulo[.]core[.]data(?!.*[.](impl|thrift)[.].*)[.].*</allow>
-                <allow>org[.]apache[.]accumulo[.]core[.]security(?!.*[.](crypto)[.].*)[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]client[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]data[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]security[.].*</allow>
               </allows>
             </configuration>
           </execution>

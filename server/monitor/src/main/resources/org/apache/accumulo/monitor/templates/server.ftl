@@ -1,18 +1,22 @@
 <#--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 -->
       <script>
       /**
@@ -81,13 +85,16 @@
         <div class="col-xs-12">
           <table id="tServerDetail" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">${server}</span></caption>
-            <tbody>
-              <tr><th class="firstcell">Hosted&nbsp;Tablets&nbsp;</th>
+            <thead>
+              <tr>
+                <th class="firstcell">Hosted&nbsp;Tablets&nbsp;</th>
                 <th>Entries&nbsp;</th>
                 <th>Minor&nbsp;Compacting&nbsp;</th>
                 <th>Major&nbsp;Compacting&nbsp;</th>
-                <th>Splitting&nbsp;</th></tr>
-            </tbody>
+                <th>Splitting&nbsp;</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
           </table>
         </div>
       </div>
@@ -95,16 +102,19 @@
         <div class="col-xs-12">
           <table id="opHistoryDetails" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">All-Time&nbsp;Tablet&nbsp;Operation&nbsp;Results</span></caption>
-            <tbody>
-              <tr><th class="firstcell">Operation&nbsp;</th>
+            <thead>
+              <tr>
+                <th class="firstcell">Operation&nbsp;</th>
                 <th>Success&nbsp;</th>
                 <th>Failure&nbsp;</th>
                 <th>Average<br/>Queue&nbsp;Time&nbsp;</th>
                 <th>Std.&nbsp;Dev.<br/>Queue&nbsp;Time&nbsp;</th>
                 <th>Average<br/>Time&nbsp;</th>
                 <th>Std.&nbsp;Dev.<br/>Time&nbsp;</th>
-                <th>Percentage&nbsp;Time&nbsp;Spent&nbsp;</th></tr>
-            </tbody>
+                <th>Percentage&nbsp;Time&nbsp;Spent&nbsp;</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
           </table>
         </div>
       </div>
@@ -112,12 +122,15 @@
         <div class="col-xs-12">
           <table id="currentTabletOps" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Current&nbsp;Tablet&nbsp;Operation&nbsp;Results</span></caption>
-            <tbody>
-              <tr><th class="firstcell">Minor&nbsp;Average&nbsp;</th>
+            <thead>
+              <tr>
+                <th class="firstcell">Minor&nbsp;Average&nbsp;</th>
                 <th>Minor&nbsp;Std&nbsp;Dev&nbsp;</th>
                 <th>Major&nbsp;Avg&nbsp;</th>
-                <th>Major&nbsp;Std&nbsp;Dev&nbsp;</th></tr>
-            </tbody>
+                <th>Major&nbsp;Std&nbsp;Dev&nbsp;</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
           </table>
         </div>
       </div>
@@ -126,7 +139,8 @@
           <table id="perTabletResults" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Detailed Tablet Operations</span></caption>
             <thead>
-              <tr><th>Table&nbsp;</th>
+              <tr>
+                <th>Table&nbsp;</th>
                 <th>Tablet&nbsp;</th>
                 <th class="big-num">Entries&nbsp;</th>
                 <th class="big-num">Ingest&nbsp;</th>
@@ -136,7 +150,8 @@
                 <th class="big-num">Minor&nbsp;Avg&nbsp;e/s&nbsp;</th>
                 <th class="duration">Major&nbsp;Avg&nbsp;</th>
                 <th class="duration">Major&nbsp;Std&nbsp;Dev&nbsp;</th>
-                <th class="big-num">Major&nbsp;Avg&nbsp;e/s&nbsp;</th></tr>
+                <th class="big-num">Major&nbsp;Avg&nbsp;e/s&nbsp;</th>
+              </tr>
             </thead>
             <tbody></tbody>
           </table>

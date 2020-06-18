@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -43,8 +45,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.collect.ImmutableMap;
-
 public class ScannerOptions implements ScannerBase {
 
   protected List<IterInfo> serverSideIteratorList = Collections.emptyList();
@@ -73,37 +73,36 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public synchronized void addScanIterator(IteratorSetting si) {
     checkArgument(si != null, "si is null");
-    if (serverSideIteratorList.size() == 0)
+    if (serverSideIteratorList.isEmpty()) {
       serverSideIteratorList = new ArrayList<>();
+    }
 
     for (IterInfo ii : serverSideIteratorList) {
-      if (ii.iterName.equals(si.getName()))
+      if (ii.iterName.equals(si.getName())) {
         throw new IllegalArgumentException("Iterator name is already in use " + si.getName());
-      if (ii.getPriority() == si.getPriority())
+      }
+      if (ii.getPriority() == si.getPriority()) {
         throw new IllegalArgumentException(
             "Iterator priority is already in use " + si.getPriority());
+      }
     }
 
     serverSideIteratorList.add(new IterInfo(si.getPriority(), si.getIteratorClass(), si.getName()));
 
-    if (serverSideIteratorOptions.size() == 0)
+    if (serverSideIteratorOptions.isEmpty()) {
       serverSideIteratorOptions = new HashMap<>();
-
-    Map<String,String> opts = serverSideIteratorOptions.get(si.getName());
-
-    if (opts == null) {
-      opts = new HashMap<>();
-      serverSideIteratorOptions.put(si.getName(), opts);
     }
-    opts.putAll(si.getOptions());
+    serverSideIteratorOptions.computeIfAbsent(si.getName(), k -> new HashMap<>())
+        .putAll(si.getOptions());
   }
 
   @Override
   public synchronized void removeScanIterator(String iteratorName) {
     checkArgument(iteratorName != null, "iteratorName is null");
     // if no iterators are set, we don't have it, so it is already removed
-    if (serverSideIteratorList.size() == 0)
+    if (serverSideIteratorList.isEmpty()) {
       return;
+    }
 
     for (IterInfo ii : serverSideIteratorList) {
       if (ii.iterName.equals(iteratorName)) {
@@ -120,16 +119,10 @@ public class ScannerOptions implements ScannerBase {
     checkArgument(iteratorName != null, "iteratorName is null");
     checkArgument(key != null, "key is null");
     checkArgument(value != null, "value is null");
-    if (serverSideIteratorOptions.size() == 0)
+    if (serverSideIteratorOptions.isEmpty()) {
       serverSideIteratorOptions = new HashMap<>();
-
-    Map<String,String> opts = serverSideIteratorOptions.get(iteratorName);
-
-    if (opts == null) {
-      opts = new HashMap<>();
-      serverSideIteratorOptions.put(iteratorName, opts);
     }
-    opts.put(key, value);
+    serverSideIteratorOptions.computeIfAbsent(iteratorName, k -> new HashMap<>()).put(key, value);
   }
 
   @Override
@@ -179,8 +172,9 @@ public class ScannerOptions implements ScannerBase {
 
         dst.serverSideIteratorOptions = new HashMap<>();
         Set<Entry<String,Map<String,String>>> es = src.serverSideIteratorOptions.entrySet();
-        for (Entry<String,Map<String,String>> entry : es)
+        for (Entry<String,Map<String,String>> entry : es) {
           dst.serverSideIteratorOptions.put(entry.getKey(), new HashMap<>(entry.getValue()));
+        }
 
         dst.samplerConfig = src.samplerConfig;
         dst.batchTimeOut = src.batchTimeOut;
@@ -202,10 +196,11 @@ public class ScannerOptions implements ScannerBase {
       throw new IllegalArgumentException("TimeOut must be positive : " + timeOut);
     }
 
-    if (timeout == 0)
+    if (timeout == 0) {
       this.timeOut = Long.MAX_VALUE;
-    else
+    } else {
       this.timeOut = timeUnit.toMillis(timeout);
+    }
   }
 
   @Override
@@ -274,7 +269,7 @@ public class ScannerOptions implements ScannerBase {
 
   @Override
   public synchronized void setExecutionHints(Map<String,String> hints) {
-    this.executionHints = ImmutableMap.copyOf(Objects.requireNonNull(hints));
+    this.executionHints = Map.copyOf(Objects.requireNonNull(hints));
   }
 
 }

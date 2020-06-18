@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security;
 
@@ -33,7 +35,6 @@ import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.io.Writable;
 
 /**
@@ -61,8 +62,8 @@ public final class SystemCredentials extends Credentials {
       // principal in the SystemToken as it would break equality when
       // different Accumulo servers are using different kerberos principals are their accumulo
       // principal
-      principal = SecurityUtil
-          .getServerPrincipal(siteConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL));
+      principal =
+          SecurityUtil.getServerPrincipal(siteConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL));
     }
     return new SystemCredentials(instanceID, principal, SystemToken.get(instanceID, siteConfig));
   }
@@ -81,6 +82,12 @@ public final class SystemCredentials extends Credentials {
    * @since 1.6.0
    */
   public static final class SystemToken extends PasswordToken {
+
+    /**
+     * Accumulo servers will only communicate with each other when this is the same. Bumped for 2.0
+     * to prevent 1.9 and 2.0 servers from communicating.
+     */
+    private static final Integer INTERNAL_WIRE_VERSION = 4;
 
     /**
      * A Constructor for {@link Writable}.
@@ -102,7 +109,7 @@ public final class SystemCredentials extends Credentials {
       }
 
       // seed the config with the version and instance id, so at least it's not empty
-      md.update(ServerConstants.WIRE_VERSION.toString().getBytes(UTF_8));
+      md.update(INTERNAL_WIRE_VERSION.toString().getBytes(UTF_8));
       md.update(instanceIdBytes);
 
       for (Entry<String,String> entry : siteConfig) {
@@ -114,7 +121,7 @@ public final class SystemCredentials extends Credentials {
       }
       confChecksum = md.digest();
 
-      int wireVersion = ServerConstants.WIRE_VERSION;
+      int wireVersion = INTERNAL_WIRE_VERSION;
 
       ByteArrayOutputStream bytes = new ByteArrayOutputStream(
           3 * (Integer.SIZE / Byte.SIZE) + instanceIdBytes.length + confChecksum.length);

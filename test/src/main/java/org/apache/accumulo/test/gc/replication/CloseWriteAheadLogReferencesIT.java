@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.gc.replication;
 
@@ -50,7 +52,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -58,10 +59,12 @@ import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
   private WrappedCloseWriteAheadLogReferences refs;
@@ -97,9 +100,6 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   public void setupEasyMockStuff() {
     SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
     final AccumuloConfiguration systemConf = new ConfigurationCopy(new HashMap<>());
-    ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
-    expect(factory.getSystemConfiguration()).andReturn(systemConf).anyTimes();
-    expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
     // Just make the SiteConfiguration delegate to our AccumuloConfiguration
     // Presently, we only need get(Property) and iterator().
@@ -112,9 +112,8 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
       return systemConf.getBoolean((Property) args[0]);
     }).anyTimes();
 
-    EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConf.iterator()).anyTimes();
+    EasyMock.expect(siteConfig.iterator()).andAnswer(systemConf::iterator).anyTimes();
     ServerContext context = createMock(ServerContext.class);
-    expect(context.getServerConfFactory()).andReturn(factory).anyTimes();
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn("localhost").anyTimes();
     expect(context.getInstanceName()).andReturn("test").anyTimes();
@@ -122,7 +121,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     expect(context.getInstanceID()).andReturn("1111").anyTimes();
     expect(context.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
 
-    replay(factory, siteConfig, context);
+    replay(siteConfig, context);
 
     refs = new WrappedCloseWriteAheadLogReferences(context);
   }
@@ -131,8 +130,8 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   public void unclosedWalsLeaveStatusOpen() throws Exception {
     Set<String> wals = Collections.emptySet();
     try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
-      Mutation m = new Mutation(
-          ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
+      Mutation m =
+          new Mutation(ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
       m.put(ReplicationSection.COLF, new Text("1"),
           StatusUtil.fileCreatedValue(System.currentTimeMillis()));
       bw.addMutation(m);

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.performance;
 
@@ -52,6 +54,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
@@ -67,10 +71,11 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.state.Assignment;
-import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.server.master.state.TabletStateStore;
+import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -289,15 +294,16 @@ public class NullTserver {
     opts.parseArgs(NullTserver.class.getName(), args);
 
     // modify metadata
-    int zkTimeOut = (int) DefaultConfiguration.getInstance()
-        .getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    SiteConfiguration siteConfig = new SiteConfiguration();
-    ServerContext context = new ServerContext(siteConfig, opts.iname, opts.keepers, zkTimeOut);
+    int zkTimeOut =
+        (int) DefaultConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    var siteConfig = SiteConfiguration.auto();
+    ServerContext context = ServerContext.override(siteConfig, opts.iname, opts.keepers, zkTimeOut);
     TransactionWatcher watcher = new TransactionWatcher(context);
     ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);
-    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor,
-        "NullTServer", "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1,
+    TServerUtils.startTServer(Metrics.initSystem(NullTserver.class.getSimpleName()),
+        context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer",
+        "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1,
         HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
@@ -307,7 +313,7 @@ public class NullTserver {
     // read the locations for the table
     Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();
     List<Assignment> assignments = new ArrayList<>();
-    try (MetaDataTableScanner s = new MetaDataTableScanner(context, tableRange)) {
+    try (var s = new MetaDataTableScanner(context, tableRange, MetadataTable.NAME)) {
       long randomSessionID = opts.port;
       TServerInstance instance = new TServerInstance(addr, randomSessionID);
 
@@ -317,7 +323,7 @@ public class NullTserver {
       }
     }
     // point them to this server
-    MetaDataStateStore store = new MetaDataStateStore(context);
+    TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
     store.setLocations(assignments);
 
     while (true) {

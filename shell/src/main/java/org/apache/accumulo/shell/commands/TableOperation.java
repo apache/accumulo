@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -62,9 +65,7 @@ public abstract class TableOperation extends Command {
         tableSet.add(Tables.getTableName(shellState.getContext(), tableId));
       }
     } else if (useCommandLine && cl.getArgs().length > 0) {
-      for (String tableName : cl.getArgs()) {
-        tableSet.add(tableName);
-      }
+      Collections.addAll(tableSet, cl.getArgs());
     } else {
       shellState.checkTableState();
       tableSet.add(shellState.getTableName());
@@ -85,8 +86,8 @@ public abstract class TableOperation extends Command {
       boolean operate = true;
       if (!force) {
         shellState.getReader().flush();
-        String line = shellState.getReader()
-            .readLine(getName() + " { " + tableName + " } (yes|no)? ");
+        String line =
+            shellState.getReader().readLine(getName() + " { " + tableName + " } (yes|no)? ");
         more = line != null;
         operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       }
@@ -119,12 +120,12 @@ public abstract class TableOperation extends Command {
   public Options getOptions() {
     final Options o = new Options();
 
-    optTablePattern = new Option("p", "pattern", true,
-        "regex pattern of table names to operate on");
+    optTablePattern =
+        new Option("p", "pattern", true, "regex pattern of table names to operate on");
     optTablePattern.setArgName("pattern");
 
-    optTableName = new Option(ShellOptions.tableOption, "table", true,
-        "name of a table to operate on");
+    optTableName =
+        new Option(ShellOptions.tableOption, "table", true, "name of a table to operate on");
     optTableName.setArgName("tableName");
 
     optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true,

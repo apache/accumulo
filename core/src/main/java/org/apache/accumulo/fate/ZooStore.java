@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.fate;
 
@@ -36,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
@@ -55,7 +57,7 @@ public class ZooStore<T> implements TStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
   private String path;
-  private IZooReaderWriter zk;
+  private ZooReaderWriter zk;
   private String lastReserved = "";
   private Set<Long> reserved;
   private Map<Long,Long> defered;
@@ -98,7 +100,7 @@ public class ZooStore<T> implements TStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  public ZooStore(String path, IZooReaderWriter zk) throws KeeperException, InterruptedException {
+  public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
 
     this.path = path;
     this.zk = zk;
@@ -140,7 +142,7 @@ public class ZooStore<T> implements TStore<T> {
         Collections.sort(txdirs);
 
         synchronized (this) {
-          if (txdirs.size() > 0 && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0)
+          if (!txdirs.isEmpty() && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0)
             lastReserved = "";
         }
 
@@ -160,18 +162,19 @@ public class ZooStore<T> implements TStore<T> {
               else
                 continue;
             }
-            if (!reserved.contains(tid)) {
+            if (reserved.contains(tid))
+              continue;
+            else {
               reserved.add(tid);
               lastReserved = txdir;
-            } else
-              continue;
+            }
           }
 
           // have reserved id, status should not change
 
           try {
-            TStatus status = TStatus
-                .valueOf(new String(zk.getData(path + "/" + txdir, null), UTF_8));
+            TStatus status =
+                TStatus.valueOf(new String(zk.getData(path + "/" + txdir, null), UTF_8));
             if (status == TStatus.IN_PROGRESS || status == TStatus.FAILED_IN_PROGRESS) {
               return tid;
             } else {
@@ -189,13 +192,14 @@ public class ZooStore<T> implements TStore<T> {
         synchronized (this) {
           // suppress lgtm alert - synchronized variable is not always true
           if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
-            if (defered.size() > 0) {
+            if (defered.isEmpty())
+              this.wait(5000);
+            else {
               Long minTime = Collections.min(defered.values());
               long waitTime = minTime - System.currentTimeMillis();
               if (waitTime > 0)
                 this.wait(Math.min(waitTime, 5000));
-            } else
-              this.wait(5000);
+            }
           }
         }
       }
@@ -227,7 +231,7 @@ public class ZooStore<T> implements TStore<T> {
     synchronized (this) {
       if (!reserved.remove(tid))
         throw new IllegalStateException(
-            "Tried to unreserve id that was not reserved " + String.format("%016x", tid));
+            "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
 
       // do not want this unreserve to unesc wake up threads in reserve()... this leads to infinite
       // loop when tx is stuck in NEW...
@@ -246,7 +250,7 @@ public class ZooStore<T> implements TStore<T> {
     synchronized (this) {
       if (!reserved.remove(tid))
         throw new IllegalStateException(
-            "Tried to unreserve id that was not reserved " + String.format("%016x", tid));
+            "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
 
       if (deferTime > 0)
         defered.put(tid, System.currentTimeMillis() + deferTime);
@@ -260,7 +264,7 @@ public class ZooStore<T> implements TStore<T> {
     synchronized (this) {
       if (!reserved.contains(tid))
         throw new IllegalStateException(
-            "Tried to operate on unreserved transaction " + String.format("%016x", tid));
+            "Tried to operate on unreserved transaction " + FateTxId.formatTid(tid));
     }
   }
 
@@ -341,7 +345,7 @@ public class ZooStore<T> implements TStore<T> {
       String txpath = getTXPath(tid);
       String top = findTop(txpath);
       if (top == null)
-        throw new IllegalStateException("Tried to pop when empty " + tid);
+        throw new IllegalStateException("Tried to pop when empty " + FateTxId.formatTid(tid));
       zk.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -490,7 +494,7 @@ public class ZooStore<T> implements TStore<T> {
       }
 
       ops = new ArrayList<>(ops);
-      Collections.sort(ops, Collections.reverseOrder());
+      ops.sort(Collections.reverseOrder());
 
       ArrayList<ReadOnlyRepo<T>> dops = new ArrayList<>();
 

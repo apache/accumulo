@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.replication;
 
@@ -57,6 +59,7 @@ import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -69,6 +72,7 @@ import com.google.common.collect.Iterables;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
 @Category(MiniClusterOnlyTests.class)
 public class CyclicReplicationIT {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
@@ -92,8 +96,8 @@ public class CyclicReplicationIT {
   private File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    File testDir = new File(baseDir,
-        this.getClass().getName() + "_" + testName.getMethodName() + "_" + name);
+    File testDir =
+        new File(baseDir, this.getClass().getName() + "_" + testName.getMethodName() + "_" + name);
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     return testDir;
@@ -135,8 +139,8 @@ public class CyclicReplicationIT {
       if (keystorePassword != null) {
         peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
       }
-      String truststorePassword = primarySiteConfig
-          .get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+      String truststorePassword =
+          primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
       if (truststorePassword != null) {
         peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
       }
@@ -146,8 +150,8 @@ public class CyclicReplicationIT {
     }
 
     // Use the CredentialProvider if the primary also uses one
-    String credProvider = primarySiteConfig
-        .get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    String credProvider =
+        primarySiteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
     if (credProvider != null) {
       Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
       peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(),
@@ -215,8 +219,8 @@ public class CyclicReplicationIT {
     }
 
     try {
-      AccumuloClient clientMaster1 = master1Cluster.createAccumuloClient("root",
-          new PasswordToken(password)),
+      AccumuloClient clientMaster1 =
+          master1Cluster.createAccumuloClient("root", new PasswordToken(password)),
           clientMaster2 = master2Cluster.createAccumuloClient("root", new PasswordToken(password));
 
       String master1UserName = "master1", master1Password = "foo";

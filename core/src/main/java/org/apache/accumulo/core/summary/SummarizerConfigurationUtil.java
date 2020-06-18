@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.summary;
 
 import java.util.ArrayList;
@@ -36,7 +37,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
 public class SummarizerConfigurationUtil {
 
   public static Map<String,String> toTablePropertiesMap(List<SummarizerConfiguration> summarizers) {
-    if (summarizers.size() == 0) {
+    if (summarizers.isEmpty()) {
       return Collections.emptyMap();
     }
 
@@ -64,8 +65,8 @@ public class SummarizerConfigurationUtil {
     return props;
   }
 
-  public static List<SummarizerConfiguration> getSummarizerConfigs(
-      Iterable<Entry<String,String>> props) {
+  public static List<SummarizerConfiguration>
+      getSummarizerConfigs(Iterable<Entry<String,String>> props) {
     TreeMap<String,String> filteredMap = new TreeMap<>();
     for (Entry<String,String> entry : props) {
       if (entry.getKey().startsWith(Property.TABLE_SUMMARIZER_PREFIX.getKey())) {
@@ -81,9 +82,9 @@ public class SummarizerConfigurationUtil {
     return getSummarizerConfigsFiltered(new TreeMap<>(sprops));
   }
 
-  private static List<SummarizerConfiguration> getSummarizerConfigsFiltered(
-      SortedMap<String,String> sprops) {
-    if (sprops.size() == 0) {
+  private static List<SummarizerConfiguration>
+      getSummarizerConfigsFiltered(SortedMap<String,String> sprops) {
+    if (sprops.isEmpty()) {
       return Collections.emptyList();
     }
 

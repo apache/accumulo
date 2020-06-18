@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server;
 
@@ -31,7 +33,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 
 public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
@@ -54,12 +55,23 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
     }
 
     @Override
+    public boolean isSet(String key) {
+      Property prop = Property.getPropertyByKey(key);
+      if (prop != null) {
+        return acfg.isPropertySet(prop, false);
+      } else {
+        return acfg.get(key) != null;
+      }
+    }
+
+    @Override
     public String get(String key) {
       // Get prop to check if sensitive, also looking up by prop may be more efficient.
       Property prop = Property.getPropertyByKey(key);
       if (prop != null) {
-        if (prop.isSensitive())
+        if (prop.isSensitive()) {
           return null;
+        }
         return acfg.get(prop);
       } else {
         return acfg.get(key);
@@ -68,8 +80,9 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
     @Override
     public Map<String,String> getCustom() {
-      if (customProps == null)
+      if (customProps == null) {
         customProps = buildCustom(Property.GENERAL_ARBITRARY_PROP_PREFIX);
+      }
 
       return customProps;
     }
@@ -81,8 +94,9 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
     @Override
     public Map<String,String> getTableCustom() {
-      if (tableCustomProps == null)
+      if (tableCustomProps == null) {
         tableCustomProps = buildCustom(Property.TABLE_ARBITRARY_PROP_PREFIX);
+      }
 
       return tableCustomProps;
     }
@@ -95,7 +109,7 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
     private Map<String,String> buildCustom(Property customPrefix) {
       // This could be optimized as described in #947
       Map<String,String> props = acfg.getAllPropertiesWithPrefix(customPrefix);
-      Builder<String,String> builder = ImmutableMap.builder();
+      var builder = ImmutableMap.<String,String>builder();
       props.forEach((k, v) -> {
         builder.put(k.substring(customPrefix.getKey().length()), v);
       });
@@ -117,7 +131,7 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   @Override
   public Configuration getConfiguration(TableId tableId) {
-    return new ConfigurationImpl(srvCtx.getServerConfFactory().getTableConfiguration(tableId));
+    return new ConfigurationImpl(srvCtx.getTableConfiguration(tableId));
   }
 
   @Override
@@ -127,15 +141,14 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   @Override
   public <T> T instantiate(String className, Class<T> base)
-      throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
+      throws ReflectiveOperationException, IOException {
     return ConfigurationTypeHelper.getClassInstance(null, className, base);
   }
 
   @Override
   public <T> T instantiate(TableId tableId, String className, Class<T> base)
-      throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
-    String ctx = srvCtx.getServerConfFactory().getTableConfiguration(tableId)
-        .get(Property.TABLE_CLASSPATH);
+      throws ReflectiveOperationException, IOException {
+    String ctx = srvCtx.getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
     return ConfigurationTypeHelper.getClassInstance(ctx, className, base);
   }
 }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -29,6 +31,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 
@@ -43,6 +46,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -61,7 +65,7 @@ public class TServerUtilsTest {
     private ConfigurationCopy conf = null;
 
     public TestServerConfigurationFactory(ServerContext context) {
-      super(context, new SiteConfiguration());
+      super(context, SiteConfiguration.auto());
       conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     }
 
@@ -123,8 +127,8 @@ public class TServerUtilsTest {
     // not dying is enough
   }
 
-  private static AccumuloConfiguration config = new ConfigurationCopy(
-      DefaultConfiguration.getInstance());
+  private static AccumuloConfiguration config =
+      new ConfigurationCopy(DefaultConfiguration.getInstance());
 
   private static ServerContext createMockContext() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
@@ -144,8 +148,8 @@ public class TServerUtilsTest {
     return context;
   }
 
-  private static final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(
-      createReplayMockInfo());
+  private static final TestServerConfigurationFactory factory =
+      new TestServerConfigurationFactory(createReplayMockInfo());
 
   @After
   public void resetProperty() {
@@ -222,6 +226,72 @@ public class TServerUtilsTest {
       server = address.getServer();
       assertNotNull(server);
       assertEquals(port[1], address.getAddress().getPort());
+    } finally {
+      if (null != server) {
+        TServerUtils.stopTServer(server);
+      }
+
+    }
+  }
+
+  @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
+  @Test
+  public void testStartServerNonDefaultPorts() throws Exception {
+    TServer server = null;
+
+    // This test finds 6 free ports in more-or-less a contiguous way and then
+    // uses those port numbers to Accumulo services in the below (ascending) sequence
+    // 0. TServer default client port (this test binds to this port to force a port search)
+    // 1. GC
+    // 2. Master
+    // 3. Monitor
+    // 4. Master Replication Coordinator
+    // 5. One free port - this is the one that we expect the TServer to finally use
+    int[] ports = findTwoFreeSequentialPorts(1024);
+    int tserverDefaultPort = ports[0];
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT,
+        Integer.toString(tserverDefaultPort));
+    int gcPort = ports[1];
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.GC_PORT,
+        Integer.toString(gcPort));
+
+    ports = findTwoFreeSequentialPorts(gcPort + 1);
+    int masterPort = ports[0];
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.MASTER_CLIENTPORT,
+        Integer.toString(masterPort));
+    int monitorPort = ports[1];
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.MONITOR_PORT,
+        Integer.toString(monitorPort));
+
+    ports = findTwoFreeSequentialPorts(monitorPort + 1);
+    int masterReplCoordPort = ports[0];
+    ((ConfigurationCopy) factory.getSystemConfiguration())
+        .set(Property.MASTER_REPLICATION_COORDINATOR_PORT, Integer.toString(masterReplCoordPort));
+    int tserverFinalPort = ports[1];
+
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_PORTSEARCH, "true");
+
+    // Ensure that the TServer client port we set above is NOT in the reserved ports
+    Map<Integer,Property> reservedPorts =
+        TServerUtils.getReservedPorts(factory.getSystemConfiguration());
+    assertTrue(!reservedPorts.containsKey(tserverDefaultPort));
+
+    // Ensure that all the ports we assigned (GC, Master, Monitor) are included in the reserved
+    // ports as returned by TServerUtils
+    assertTrue(reservedPorts.containsKey(gcPort));
+    assertTrue(reservedPorts.containsKey(masterPort));
+    assertTrue(reservedPorts.containsKey(monitorPort));
+    assertTrue(reservedPorts.containsKey(masterReplCoordPort));
+
+    InetAddress addr = InetAddress.getByName("localhost");
+    try (ServerSocket s = new ServerSocket(tserverDefaultPort, 50, addr)) {
+      ServerAddress address = startServer();
+      assertNotNull(address);
+      server = address.getServer();
+      assertNotNull(server);
+
+      // Finally ensure that the TServer is using the last port (i.e. port search worked)
+      assertTrue(address.getAddress().getPort() == tserverFinalPort);
     } finally {
       if (null != server) {
         TServerUtils.stopTServer(server);
@@ -320,9 +390,10 @@ public class TServerUtilsTest {
     // misconfiguration)
     String hostname = "localhost";
 
-    return TServerUtils.startServer(ctx, hostname, Property.TSERV_CLIENTPORT, processor,
-        "TServerUtilsTest", "TServerUtilsTestThread", Property.TSERV_PORTSEARCH,
-        Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+    return TServerUtils.startServer(Metrics.initSystem(getClass().getSimpleName()), ctx, hostname,
+        Property.TSERV_CLIENTPORT, processor, "TServerUtilsTest", "TServerUtilsTestThread",
+        Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK,
+        Property.GENERAL_MAX_MESSAGE_SIZE);
 
   }
 }

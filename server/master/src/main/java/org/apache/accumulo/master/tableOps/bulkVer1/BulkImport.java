@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.tableOps.bulkVer1;
 
@@ -30,12 +32,14 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -108,12 +112,14 @@ public class BulkImport extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    log.debug(" tid {} sourceDir {}", tid, sourceDir);
+    String fmtTid = FateTxId.formatTid(tid);
+
+    log.debug(" {} sourceDir {}", fmtTid, sourceDir);
 
     Utils.getReadLock(master, tableId, tid).lock();
 
     // check that the error directory exists and is empty
-    VolumeManager fs = master.getFileSystem();
+    VolumeManager fs = master.getVolumeManager();
 
     Path errorPath = new Path(errorDir);
     FileStatus errorStatus = null;
@@ -139,8 +145,8 @@ public class BulkImport extends MasterRepo {
     master.updateBulkImportStatus(sourceDir, BulkImportState.MOVING);
     // move the files into the directory
     try {
-      String bulkDir = prepareBulkImport(master.getContext(), fs, sourceDir, tableId);
-      log.debug(" tid {} bulkDir {}", tid, bulkDir);
+      String bulkDir = prepareBulkImport(master.getContext(), fs, sourceDir, tableId, tid);
+      log.debug(" {} bulkDir {}", tid, bulkDir);
       return new LoadFiles(tableId, sourceDir, bulkDir, errorDir, setTime);
     } catch (IOException ex) {
       log.error("error preparing the bulk import directory", ex);
@@ -152,8 +158,8 @@ public class BulkImport extends MasterRepo {
 
   private static Path createNewBulkDir(ServerContext context, VolumeManager fs, String sourceDir,
       TableId tableId) throws IOException {
-    Path tempPath = fs.matchingFileSystem(new Path(sourceDir),
-        ServerConstants.getTablesDirs(context));
+    Path tempPath =
+        fs.matchingFileSystem(new Path(sourceDir), ServerConstants.getTablesDirs(context));
     if (tempPath == null)
       throw new IOException(sourceDir + " is not in a volume configured for Accumulo");
 
@@ -185,18 +191,21 @@ public class BulkImport extends MasterRepo {
 
   @VisibleForTesting
   public static String prepareBulkImport(ServerContext master, final VolumeManager fs, String dir,
-      TableId tableId) throws Exception {
+      TableId tableId, long tid) throws Exception {
     final Path bulkDir = createNewBulkDir(master, fs, dir, tableId);
 
     MetadataTableUtil.addBulkLoadInProgressFlag(master,
-        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
+        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
 
     Path dirPath = new Path(dir);
     FileStatus[] mapFiles = fs.listStatus(dirPath);
 
     final UniqueNameAllocator namer = master.getUniqueNameAllocator();
 
-    int workerCount = master.getConfiguration().getCount(Property.MASTER_BULK_RENAME_THREADS);
+    AccumuloConfiguration serverConfig = master.getConfiguration();
+    @SuppressWarnings("deprecation")
+    int workerCount = serverConfig.getCount(
+        serverConfig.resolve(Property.MASTER_RENAME_THREADS, Property.MASTER_BULK_RENAME_THREADS));
     SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulk move");
     List<Future<Exception>> results = new ArrayList<>();
 
@@ -230,8 +239,8 @@ public class BulkImport extends MasterRepo {
               return null;
             }
             try {
-              FileStatus dataStatus = fs
-                  .getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
+              FileStatus dataStatus =
+                  fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
               if (dataStatus.isDirectory()) {
                 log.warn("{} is not a map file, ignoring", fileStatus.getPath());
                 return null;

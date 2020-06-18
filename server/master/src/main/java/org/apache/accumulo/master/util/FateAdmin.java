@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.master.util;
 
@@ -27,7 +29,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerContext;
 
@@ -77,11 +79,11 @@ public class FateAdmin {
 
     AdminUtil<Master> admin = new AdminUtil<>();
 
-    try (ServerContext context = new ServerContext(new SiteConfiguration())) {
+    try (var context = new ServerContext(SiteConfiguration.auto())) {
       final String zkRoot = context.getZooKeeperRoot();
       String path = zkRoot + Constants.ZFATE;
       String masterPath = zkRoot + Constants.ZMASTER_LOCK;
-      IZooReaderWriter zk = context.getZooReaderWriter();
+      ZooReaderWriter zk = context.getZooReaderWriter();
       ZooStore<Master> zs = new ZooStore<>(path, zk);
 
       if (jc.getParsedCommand().equals("fail")) {

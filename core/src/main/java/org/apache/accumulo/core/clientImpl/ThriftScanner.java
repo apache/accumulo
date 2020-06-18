@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -77,8 +79,8 @@ import org.slf4j.LoggerFactory;
 public class ThriftScanner {
   private static final Logger log = LoggerFactory.getLogger(ThriftScanner.class);
 
-  public static final Map<TabletType,Set<String>> serversWaitedForWrites = new EnumMap<>(
-      TabletType.class);
+  public static final Map<TabletType,Set<String>> serversWaitedForWrites =
+      new EnumMap<>(TabletType.class);
   private static Random secureRandom = new SecureRandom();
 
   static {
@@ -213,7 +215,7 @@ public class ThriftScanner {
 
       this.batchTimeOut = batchTimeOut;
 
-      if (executionHints == null || executionHints.size() == 0)
+      if (executionHints == null || executionHints.isEmpty())
         this.executionHints = null; // avoid thrift serialization for empty map
       else
         this.executionHints = executionHints;
@@ -241,8 +243,8 @@ public class ThriftScanner {
     String error = null;
     int tooManyFilesCount = 0;
     long sleepMillis = 100;
-    final long maxSleepTime = context.getConfiguration()
-        .getTimeInMillis(Property.GENERAL_MAX_SCANNER_RETRY_PERIOD);
+    final long maxSleepTime =
+        context.getConfiguration().getTimeInMillis(Property.GENERAL_MAX_SCANNER_RETRY_PERIOD);
 
     List<KeyValue> results = null;
 
@@ -361,15 +363,15 @@ public class ThriftScanner {
           scanState.scanID = null;
         } catch (TooManyFilesException e) {
           error = "Tablet has too many files " + loc + " retrying...";
-          if (!error.equals(lastError)) {
-            log.debug("{}", error);
-            tooManyFilesCount = 0;
-          } else {
+          if (error.equals(lastError)) {
             tooManyFilesCount++;
             if (tooManyFilesCount == 300)
               log.warn("{}", error);
             else if (log.isTraceEnabled())
               log.trace("{}", error);
+          } else {
+            log.debug("{}", error);
+            tooManyFilesCount = 0;
           }
           lastError = error;
 
@@ -406,7 +408,7 @@ public class ThriftScanner {
         }
       }
 
-      if (results != null && results.size() == 0 && scanState.finished) {
+      if (results != null && results.isEmpty() && scanState.finished) {
         results = null;
       }
 
@@ -453,14 +455,14 @@ public class ThriftScanner {
         TabletType ttype = TabletType.type(loc.tablet_extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
 
-        InitialScan is = client.startScan(tinfo, scanState.context.rpcCreds(),
-            loc.tablet_extent.toThrift(), scanState.range.toThrift(),
-            Translator.translate(scanState.columns, Translators.CT), scanState.size,
-            scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
-            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
-            scanState.readaheadThreshold,
-            SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
-            scanState.classLoaderContext, scanState.executionHints);
+        InitialScan is =
+            client.startScan(tinfo, scanState.context.rpcCreds(), loc.tablet_extent.toThrift(),
+                scanState.range.toThrift(), Translator.translate(scanState.columns, Translators.CT),
+                scanState.size, scanState.serverSideIteratorList,
+                scanState.serverSideIteratorOptions, scanState.authorizations.getAuthorizationsBB(),
+                waitForWrites, scanState.isolated, scanState.readaheadThreshold,
+                SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
+                scanState.classLoaderContext, scanState.executionHints);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
 
@@ -473,8 +475,8 @@ public class ThriftScanner {
 
       } else {
         // log.debug("Calling continue scan : "+scanState.range+" loc = "+loc);
-        String msg = "Continuing scan tserver=" + loc.tablet_location + " scanid="
-            + scanState.scanID;
+        String msg =
+            "Continuing scan tserver=" + loc.tablet_location + " scanid=" + scanState.scanID;
         Thread.currentThread().setName(msg);
 
         if (log.isTraceEnabled()) {
@@ -489,7 +491,15 @@ public class ThriftScanner {
         }
       }
 
-      if (!sr.more) {
+      if (sr.more) {
+        if (timer != null) {
+          timer.stop();
+          log.trace("tid={} Finished scan in {} #results={} scanid={}",
+              Thread.currentThread().getId(),
+              String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)), sr.results.size(),
+              scanState.scanID);
+        }
+      } else {
         // log.debug("No more : tab end row = "+loc.tablet_extent.getEndRow()+" range =
         // "+scanState.range);
         if (loc.tablet_extent.getEndRow() == null) {
@@ -522,19 +532,11 @@ public class ThriftScanner {
                 String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)), sr.results.size());
           }
         }
-      } else {
-        if (timer != null) {
-          timer.stop();
-          log.trace("tid={} Finished scan in {} #results={} scanid={}",
-              Thread.currentThread().getId(),
-              String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)), sr.results.size(),
-              scanState.scanID);
-        }
       }
 
       Key.decompress(sr.results);
 
-      if (sr.results.size() > 0 && !scanState.finished)
+      if (!sr.results.isEmpty() && !scanState.finished)
         scanState.range = new Range(new Key(sr.results.get(sr.results.size() - 1).key), false,
             scanState.range.getEndKey(), scanState.range.isEndKeyInclusive());
 

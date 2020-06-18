@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapreduce;
 
@@ -109,8 +111,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
           // just look at the column family progress
           return getProgress(range.getStartKey().getColumnFamilyData(),
               range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
-        } else if (range.getStartKey().compareTo(range.getEndKey(),
-            PartialKey.ROW_COLFAM_COLQUAL) != 0) {
+        } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL)
+            != 0) {
           // just look at the column qualifier progress
           return getProgress(range.getStartKey().getColumnQualifierData(),
               range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
@@ -179,8 +181,9 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
     if (in.readBoolean()) {
       int ordinal = in.readInt();
-      this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource
-          .values()[ordinal];
+      this.tokenSource =
+          org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource
+              .values()[ordinal];
 
       switch (this.tokenSource) {
         case INLINE:
@@ -359,8 +362,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
     return getInstance(org.apache.accumulo.core.client.ClientConfiguration.loadDefault());
   }
 
-  public org.apache.accumulo.core.client.Instance getInstance(
-      org.apache.accumulo.core.client.ClientConfiguration base) {
+  public org.apache.accumulo.core.client.Instance
+      getInstance(org.apache.accumulo.core.client.ClientConfiguration base) {
     if (null == instanceName) {
       return null;
     }
@@ -402,12 +405,14 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   public void setToken(AuthenticationToken token) {
-    this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.INLINE;
+    this.tokenSource =
+        org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.INLINE;
     this.token = token;
   }
 
   public void setToken(String tokenFile) {
-    this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.FILE;
+    this.tokenSource =
+        org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.FILE;
     this.tokenFile = tokenFile;
   }
 

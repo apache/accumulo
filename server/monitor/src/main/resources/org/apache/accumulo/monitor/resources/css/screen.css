@@ -1,19 +1,22 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 /* basic screen style for all pages */
 body {
   font-family: verdana, arial, sans-serif;
@@ -139,8 +142,6 @@ td {
   border-bottom: 0;
   border-left: 0;
   border-right: 0;
-  border-spacing-top: 0;
-  border-spacing-bottom: 0;
   padding-left: 0.5em;
   padding-right: 0.5em;
   padding-top: 0.15em;
@@ -153,8 +154,6 @@ th {
   border-bottom: 3px #333333 solid;
   border-left: 1px #333333 dotted;
   border-right: 0;
-  border-spacing-top: 0;
-  border-spacing-bottom: 0;
   text-align: center;
   font-variant: small-caps;
   padding-left: 0.5em;
@@ -223,9 +222,6 @@ pre.logevent {
 
 .noborder {
   border: 0;
-  border-spacing: 0;
-  border-bottom: 0;
-  border-right: 0;
 }
 
 .table-caption {
@@ -285,14 +281,9 @@ pre.logevent {
   min-width: 1em;
   height: 1em;
   padding: 3px 7px;
-  font-size: @font-size-small;
-  font-weight: @badge-font-weight;
-  color: @badge-color;
-  line-height: @badge-line-height;
   vertical-align: middle;
   white-space: nowrap;
   text-align: center;
-  background-color: @badge-bg;
   border-radius: 1em;
 }
 
@@ -377,11 +368,8 @@ pre.logevent {
 }
 
 #filters, #tables {
-  /*overflow-y: scroll;*/
-  /*height: 100%;*/
   width: 80%;
   margin-left: 15%;
-  /*float: left;*/
 }
 
 #accumulo-avatar {
@@ -427,10 +415,7 @@ pre.logevent {
 
 .legend
 {
-  /*padding: 5px;*/
   font: 10px sans-serif;
-  /*background: yellow;
-  box-shadow: 2px 2px 1px #888;*/
 }
 
 /* gently lighten the bootstrap text color for the navbar */

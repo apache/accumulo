@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.rest.tables;
 
@@ -25,6 +27,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.ws.rs.GET;
@@ -37,6 +40,7 @@ import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -49,7 +53,6 @@ import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.TableInfoUtil;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -61,6 +64,9 @@ import org.apache.hadoop.io.Text;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class TablesResource {
 
+  @Inject
+  private Monitor monitor;
+
   private static final TabletServerStatus NO_STATUS = new TabletServerStatus();
 
   /**
@@ -69,20 +75,29 @@ public class TablesResource {
    * @return list with all tables
    */
   @GET
-  public static TableInformationList getTables() {
+  public TableInformationList getTables() {
+    return getTables(monitor);
+  }
 
+  public static TableInformationList getTables(Monitor monitor) {
     TableInformationList tableList = new TableInformationList();
+    MasterMonitorInfo mmi = monitor.getMmi();
+    if (mmi == null) {
+      return tableList;
+    }
     SortedMap<TableId,TableInfo> tableStats = new TreeMap<>();
 
-    if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
-      for (Map.Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
+    if (mmi.tableMap != null) {
+      for (Map.Entry<String,TableInfo> te : mmi.tableMap.entrySet()) {
         tableStats.put(TableId.of(te.getKey()), te.getValue());
+      }
+    }
 
-    Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
-    TableManager tableManager = Monitor.getContext().getTableManager();
+    Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(mmi);
+    TableManager tableManager = monitor.getContext().getTableManager();
 
     // Add tables to the list
-    for (Map.Entry<String,TableId> entry : Tables.getNameToIdMap(Monitor.getContext()).entrySet()) {
+    for (Map.Entry<String,TableId> entry : Tables.getNameToIdMap(monitor.getContext()).entrySet()) {
       String tableName = entry.getKey();
       TableId tableId = entry.getValue();
       TableInfo tableInfo = tableStats.get(tableId);
@@ -90,8 +105,9 @@ public class TablesResource {
 
       if (tableInfo != null && !tableState.equals(TableState.OFFLINE)) {
         Double holdTime = compactingByTable.get(tableId.canonical());
-        if (holdTime == null)
+        if (holdTime == null) {
           holdTime = 0.;
+        }
 
         tableList.addTable(
             new TableInformation(tableName, tableId, tableInfo, holdTime, tableState.name()));
@@ -113,12 +129,17 @@ public class TablesResource {
   @GET
   public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(
       regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
-    String rootTabletLocation = Monitor.getContext().getRootTabletLocation();
+    String rootTabletLocation = monitor.getContext().getRootTabletLocation();
     TableId tableId = TableId.of(tableIdStr);
+    MasterMonitorInfo mmi = monitor.getMmi();
+    // fail fast if unable to get monitor info
+    if (mmi == null) {
+      return new TabletServers();
+    }
 
-    TabletServers tabletServers = new TabletServers(Monitor.getMmi().tServerInfo.size());
+    TabletServers tabletServers = new TabletServers(mmi.tServerInfo.size());
 
-    if (StringUtils.isBlank(tableIdStr)) {
+    if (tableIdStr.isBlank()) {
       return tabletServers;
     }
 
@@ -126,9 +147,9 @@ public class TablesResource {
     if (RootTable.ID.equals(tableId)) {
       locs.add(rootTabletLocation);
     } else {
-      String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME
-          : MetadataTable.NAME;
-      MetaDataTableScanner scanner = new MetaDataTableScanner(Monitor.getContext(),
+      String systemTableName =
+          MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
+      MetaDataTableScanner scanner = new MetaDataTableScanner(monitor.getContext(),
           new Range(TabletsSection.getRow(tableId, new Text()),
               TabletsSection.getRow(tableId, null)),
           systemTableName);
@@ -148,35 +169,33 @@ public class TablesResource {
     }
 
     List<TabletServerStatus> tservers = new ArrayList<>();
-    if (Monitor.getMmi() != null) {
-      for (TabletServerStatus tss : Monitor.getMmi().tServerInfo) {
-        try {
-          if (tss.name != null && locs.contains(tss.name))
-            tservers.add(tss);
-        } catch (Exception ex) {
-          return tabletServers;
+    for (TabletServerStatus tss : mmi.tServerInfo) {
+      try {
+        if (tss.name != null && locs.contains(tss.name)) {
+          tservers.add(tss);
         }
+      } catch (Exception ex) {
+        return tabletServers;
       }
     }
 
     // Adds tservers to the list
     for (TabletServerStatus status : tservers) {
-      if (status == null)
+      if (status == null) {
         status = NO_STATUS;
-      TableInfo summary = TableInfoUtil.summarizeTableStats(status);
-      if (tableId != null)
-        summary = status.tableMap.get(tableId.canonical());
-      if (summary == null)
+      }
+      TableInfo summary = status.tableMap.get(tableId.canonical());
+      if (summary == null) {
         continue;
+      }
 
       TabletServer tabletServerInfo = new TabletServer();
-      tabletServerInfo.updateTabletServerInfo(status, summary);
+      tabletServerInfo.server.updateTabletServerInfo(monitor, status, summary);
 
       tabletServers.addTablet(tabletServerInfo);
     }
 
     return tabletServers;
-
   }
 
 }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators;
 
@@ -34,7 +36,7 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.conf.ColumnSet;
+import org.apache.accumulo.core.iteratorsImpl.conf.ColumnSet;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,15 +77,13 @@ import com.google.common.collect.Lists;
  */
 public abstract class Combiner extends WrappingIterator implements OptionDescriber {
 
-  static final Logger sawDeleteLog = LoggerFactory
-      .getLogger(Combiner.class.getName() + ".SawDelete");
+  static final Logger sawDeleteLog =
+      LoggerFactory.getLogger(Combiner.class.getName() + ".SawDelete");
 
   protected static final String COLUMNS_OPTION = "columns";
   protected static final String ALL_OPTION = "all";
-  // @formatter:off
   protected static final String REDUCE_ON_FULL_COMPACTION_ONLY_OPTION =
-    "reduceOnFullCompactionOnly";
-  // @formatter:on
+      "reduceOnFullCompactionOnly";
 
   private boolean isMajorCompaction;
   private boolean reduceOnFullCompactionOnly;
@@ -183,8 +183,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   private Key workKey = new Key();
 
   @VisibleForTesting
-  static final Cache<String,Boolean> loggedMsgCache = CacheBuilder.newBuilder()
-      .expireAfterWrite(1, TimeUnit.HOURS).maximumSize(10000).build();
+  static final Cache<String,Boolean> loggedMsgCache =
+      CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
     if (isMajorCompaction && !reduceOnFullCompactionOnly) {
@@ -285,7 +285,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
 
     String encodedColumns = options.get(COLUMNS_OPTION);
-    if (encodedColumns.length() == 0)
+    if (encodedColumns.isEmpty())
       throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
 
     combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
@@ -312,7 +312,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     // TODO test
     Combiner newInstance;
     try {
-      newInstance = this.getClass().newInstance();
+      newInstance = this.getClass().getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -356,7 +356,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
           "options must include " + ALL_OPTION + " or " + COLUMNS_OPTION);
 
     String encodedColumns = options.get(COLUMNS_OPTION);
-    if (encodedColumns.length() == 0)
+    if (encodedColumns.isEmpty())
       throw new IllegalArgumentException("empty columns specified in option " + COLUMNS_OPTION);
 
     for (String columns : Splitter.on(",").split(encodedColumns)) {

@@ -1,25 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -37,6 +38,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Ensures that all threads spawned for ZooKeeper and Thrift connectivity are reaped after calling
@@ -73,9 +76,9 @@ public class CleanUpIT extends SharedMiniClusterBase {
 
     // CleanUp was created to clean up after connectors. This test intentionally creates a connector
     // instead of an AccumuloClient
-    org.apache.accumulo.core.client.Connector conn = new org.apache.accumulo.core.client.ZooKeeperInstance(
-        getCluster().getInstanceName(), getCluster().getZooKeepers()).getConnector(getPrincipal(),
-            getToken());
+    org.apache.accumulo.core.client.Connector conn =
+        new org.apache.accumulo.core.client.ZooKeeperInstance(getCluster().getInstanceName(),
+            getCluster().getZooKeepers()).getConnector(getPrincipal(), getToken());
 
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
@@ -129,12 +132,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
       }
 
       try {
-        count = 0;
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        while (iter.hasNext()) {
-          iter.next();
-          count++;
-        }
+        count = Iterables.size(scanner);
         fail("scanner did not fail");
       } catch (Exception e) {
 

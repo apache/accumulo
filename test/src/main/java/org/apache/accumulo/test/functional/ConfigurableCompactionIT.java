@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -23,7 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeSet;
@@ -32,6 +35,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -60,9 +64,10 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
+    cfg.setSiteConfig(singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
   }
 
+  @SuppressWarnings("removal")
   public static class SimpleCompactionStrategy extends CompactionStrategy {
 
     @Override
@@ -89,37 +94,40 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       final String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
-          SimpleCompactionStrategy.class.getName());
+
+      c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(singletonMap(
+          Property.TABLE_COMPACTION_STRATEGY.getKey(), SimpleCompactionStrategy.class.getName())));
       runTest(c, tableName, 3);
+
       c.tableOperations().setProperty(tableName,
           Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey() + "count", "" + 5);
       runTest(c, tableName, 5);
     }
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testPerTableClasspath() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       final String tableName = getUniqueNames(1)[0];
-      File destFile = installJar(getCluster().getConfig().getAccumuloDir(),
-          "/TestCompactionStrat.jar");
-      c.tableOperations().create(tableName);
+      File destFile =
+          installJar(getCluster().getConfig().getAccumuloDir(), "/TestCompactionStrat.jar");
       c.instanceOperations().setProperty(
           Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
-      c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_MAJC_RATIO.getKey(), "10");
+      props.put(Property.TABLE_CLASSPATH.getKey(), "context1");
       // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
       // compacted.
-      c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
+      props.put(Property.TABLE_COMPACTION_STRATEGY.getKey(),
           "org.apache.accumulo.test.EfgCompactionStrat");
-
-      c.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("efg"))));
+      c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props)
+          .withSplits(new TreeSet<>(Arrays.asList(new Text("efg")))));
 
       for (char ch = 'a'; ch < 'l'; ch++)
         writeFlush(c, tableName, ch + "");

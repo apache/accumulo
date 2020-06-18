@@ -7,13 +7,14 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
@@ -26,7 +27,6 @@ import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.spi.cache.CacheType;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 
 public final class LruBlockCacheConfiguration {
 
@@ -98,16 +98,16 @@ public final class LruBlockCacheConfiguration {
 
     this.acceptableFactor = get(ACCEPTABLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
         .orElse(DEFAULT_ACCEPTABLE_FACTOR);
-    this.minFactor = get(MIN_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
-        .orElse(DEFAULT_MIN_FACTOR);
+    this.minFactor =
+        get(MIN_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MIN_FACTOR);
     this.singleFactor = get(SINGLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
         .orElse(DEFAULT_SINGLE_FACTOR);
     this.multiFactor = get(MULTI_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
         .orElse(DEFAULT_MULTI_FACTOR);
     this.memoryFactor = get(MEMORY_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
         .orElse(DEFAULT_MEMORY_FACTOR);
-    this.mapLoadFactor = get(MAP_LOAD_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
-        .orElse(DEFAULT_LOAD_FACTOR);
+    this.mapLoadFactor =
+        get(MAP_LOAD_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_LOAD_FACTOR);
     this.mapConcurrencyLevel = get(MAP_CONCURRENCY_PROPERTY).map(Integer::valueOf)
         .filter(i -> i > 0).orElse(DEFAULT_CONCURRENCY_LEVEL);
     this.useEvictionThread = get(EVICTION_THREAD_PROPERTY).map(Boolean::valueOf).orElse(true);
@@ -216,7 +216,7 @@ public final class LruBlockCacheConfiguration {
     }
 
     public Map<String,String> buildMap() {
-      return ImmutableMap.copyOf(props);
+      return Map.copyOf(props);
     }
   }
 
