@@ -24,18 +24,23 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CancelCompactions extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
   private TableId tableId;
   private NamespaceId namespaceId;
+
+  private static final Logger log = LoggerFactory.getLogger(CancelCompactions.class);
 
   public CancelCompactions(NamespaceId namespaceId, TableId tableId) {
     this.tableId = tableId;
@@ -68,10 +73,15 @@ public class CancelCompactions extends MasterRepo {
       public byte[] mutate(byte[] currentValue) {
         long cid = Long.parseLong(new String(currentValue, UTF_8));
 
-        if (cid < flushID)
+        if (cid < flushID) {
+          log.debug("{} setting cancel compaction id to {} for {}", FateTxId.formatTid(tid),
+              flushID, tableId);
           return Long.toString(flushID).getBytes(UTF_8);
-        else
+        } else {
+          log.debug("{} leaving cancel compaction id as {} for {}", FateTxId.formatTid(tid), cid,
+              tableId);
           return Long.toString(cid).getBytes(UTF_8);
+        }
       }
     });
 

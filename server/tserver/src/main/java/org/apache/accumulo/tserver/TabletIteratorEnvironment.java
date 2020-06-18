@@ -38,11 +38,11 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
-import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.hadoop.fs.Path;
 
 public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
@@ -107,7 +107,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   }
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope, boolean fullMajC,
-      AccumuloConfiguration tableConfig, TableId tableId, MajorCompactionReason reason) {
+      AccumuloConfiguration tableConfig, TableId tableId, CompactionKind kind) {
     if (scope != IteratorScope.majc)
       throw new IllegalArgumentException(
           "Tried to set maj compaction type when scope was " + scope);
@@ -119,7 +119,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.tableConfig = tableConfig;
     this.tableId = tableId;
     this.fullMajorCompaction = fullMajC;
-    this.userCompaction = reason.equals(MajorCompactionReason.USER);
+    this.userCompaction = kind.equals(CompactionKind.USER);
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
   }

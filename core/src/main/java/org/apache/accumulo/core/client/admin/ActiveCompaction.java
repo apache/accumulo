@@ -35,9 +35,9 @@ public abstract class ActiveCompaction {
      */
     MINOR,
     /**
-     * compaction to flush a tablets memory and merge it with the tablets smallest file. This type
-     * compaction is done when a tablet has too many files
+     * Accumulo no longer does merging minor compactions.
      */
+    @Deprecated(since = "2.1.0", forRemoval = true)
     MERGE,
     /**
      * compaction that merges a subset of a tablets files into one file

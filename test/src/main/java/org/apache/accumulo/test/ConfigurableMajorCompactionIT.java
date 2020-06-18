@@ -45,6 +45,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
+@SuppressWarnings("removal")
 public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
 
   @Override

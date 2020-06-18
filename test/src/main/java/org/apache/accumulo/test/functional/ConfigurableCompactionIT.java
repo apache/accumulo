@@ -67,6 +67,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     cfg.setSiteConfig(singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
   }
 
+  @SuppressWarnings("removal")
   public static class SimpleCompactionStrategy extends CompactionStrategy {
 
     @Override
@@ -93,6 +94,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
@@ -108,6 +110,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     }
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testPerTableClasspath() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {

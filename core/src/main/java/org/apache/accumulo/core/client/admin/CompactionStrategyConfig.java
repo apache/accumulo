@@ -20,8 +20,6 @@ package org.apache.accumulo.core.client.admin;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -30,10 +28,22 @@ import java.util.Map;
  * {@link CompactionConfig}.
  *
  * @since 1.7.0
+ * @deprecated since 2.1.0 CompactionStrategies were deprecated for multiple reasons. First, they do
+ *             not support the new compaction execution model. Second, they bind selection and
+ *             output file configuration into a single entity when users need to configure these
+ *             independently. Third, they use internal Accumulo types and ensuring their stability
+ *             requires manual effort that may never happen. Fourth, writing a correct compaction
+ *             strategy was exceedingly difficult as it required knowledge of internal tablet server
+ *             synchronization in order to avoid causing scans to hang. Fifth although measure were
+ *             taken to execute compaction strategies in the same manner as before, their execution
+ *             in the new model has subtle differences that may result in suboptimal compactions.
+ *             Please migrate to using {@link CompactionConfig#setSelector(PluginConfig)} and
+ *             {@link CompactionConfig#setConfigurer(PluginConfig)} as soon as possible.
  */
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class CompactionStrategyConfig {
   private String className;
-  private Map<String,String> options = Collections.emptyMap();
+  private Map<String,String> options = Map.of();
 
   /**
    * @param className
@@ -42,8 +52,7 @@ public class CompactionStrategyConfig {
    *          tservers.
    */
   public CompactionStrategyConfig(String className) {
-    requireNonNull(className);
-    this.className = className;
+    this.className = requireNonNull(className);
   }
 
   /**
@@ -61,8 +70,7 @@ public class CompactionStrategyConfig {
    * @return this
    */
   public CompactionStrategyConfig setOptions(Map<String,String> opts) {
-    requireNonNull(opts);
-    this.options = new HashMap<>(opts);
+    this.options = Map.copyOf(opts);
     return this;
   }
 
@@ -70,7 +78,7 @@ public class CompactionStrategyConfig {
    * @return The previously set options. Returns an unmodifiable map. The default is an empty map.
    */
   public Map<String,String> getOptions() {
-    return Collections.unmodifiableMap(options);
+    return options;
   }
 
   @Override
