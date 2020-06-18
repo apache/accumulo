@@ -262,7 +262,6 @@ public class TableConfiguration extends AccumuloConfiguration {
     });
 
     return newDispatcher;
-
   }
 
   public ScanDispatcher getScanDispatcher() {
