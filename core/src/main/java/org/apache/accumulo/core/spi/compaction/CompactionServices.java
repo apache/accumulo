@@ -21,6 +21,8 @@ package org.apache.accumulo.core.spi.compaction;
 import java.util.Set;
 
 /**
+ * Provider of information about configured compaction services.
+ *
  * @since 2.1.0
  */
 public interface CompactionServices {

@@ -44,8 +44,8 @@ public class UserCompactionUtils {
   private static final int SELECTOR_MAGIC = 0xae9270bf;
   private static final int CONFIGURER_MAGIC = 0xf93e570a;
 
-  public static final PluginConfig DEFAULT_CCC = new PluginConfig("", Map.of());
-  public static final PluginConfig DEFAULT_CSC = new PluginConfig("", Map.of());
+  public static final PluginConfig DEFAULT_CONFIGURER = new PluginConfig("", Map.of());
+  public static final PluginConfig DEFAULT_SELECTOR = new PluginConfig("", Map.of());
 
   public static void encode(DataOutput dout, Map<String,String> options) {
     try {
@@ -282,7 +282,7 @@ public class UserCompactionUtils {
   }
 
   public static boolean isDefault(PluginConfig configurer) {
-    return configurer.equals(DEFAULT_CCC);
+    return configurer.equals(DEFAULT_CONFIGURER);
   }
 
   public static CompactionConfig decodeCompactionConfig(byte[] bytes) {

@@ -50,8 +50,8 @@ public class CompactionConfig {
   @SuppressWarnings("removal")
   private CompactionStrategyConfig compactionStrategy = DEFAULT_STRATEGY;
   private Map<String,String> hints = Map.of();
-  private PluginConfig selectorConfig = UserCompactionUtils.DEFAULT_CSC;
-  private PluginConfig configurerConfig = UserCompactionUtils.DEFAULT_CCC;
+  private PluginConfig selectorConfig = UserCompactionUtils.DEFAULT_SELECTOR;
+  private PluginConfig configurerConfig = UserCompactionUtils.DEFAULT_CONFIGURER;
 
   /**
    * @param start
