@@ -616,9 +616,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         if (containsPrevRow && containsEndRow) {
           mappings.get(ke).merge(mappings.remove(oke));
         } else {
-          throw new RuntimeException("Unable to execute merge. Key extent "
-                  + oke.toString() + " extends beyond the range of Key extent "
-                  + ke.toString() + ". Out of range data would be lost.");
+          throw new RuntimeException("Unable to execute merge. Key extent " + oke.toString()
+              + " extends beyond the range of Key extent " + ke.toString()
+              + ". Out of range data would be lost.");
         }
       }
     }
