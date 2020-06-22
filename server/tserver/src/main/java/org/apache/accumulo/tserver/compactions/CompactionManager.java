@@ -97,6 +97,10 @@ public class CompactionManager {
       return false;
     }
 
+    @Override
+    public int hashCode() {
+      return Objects.hash(planners, options);
+    }
   }
 
   private void mainLoop() {
