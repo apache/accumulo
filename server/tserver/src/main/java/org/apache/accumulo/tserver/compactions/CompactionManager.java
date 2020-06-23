@@ -34,6 +34,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionServices;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +56,8 @@ public class CompactionManager {
   private Config currentCfg;
 
   private long lastConfigCheckTime = System.nanoTime();
+
+  private CompactionExecutorsMetrics ceMetrics;
 
   public static final CompactionServiceId DEFAULT_SERVICE = CompactionServiceId.of("default");
 
@@ -173,19 +176,23 @@ public class CompactionManager {
     }
   }
 
-  public CompactionManager(Iterable<Compactable> compactables, ServerContext ctx) {
+  public CompactionManager(Iterable<Compactable> compactables, ServerContext ctx,
+      CompactionExecutorsMetrics ceMetrics) {
     this.compactables = compactables;
 
     this.currentCfg = new Config(ctx.getConfiguration());
 
     this.ctx = ctx;
 
+    this.ceMetrics = ceMetrics;
+
     Map<CompactionServiceId,CompactionService> tmpServices = new HashMap<>();
 
     currentCfg.planners.forEach((serviceName, plannerClassName) -> {
       try {
-        tmpServices.put(CompactionServiceId.of(serviceName), new CompactionService(serviceName,
-            plannerClassName, currentCfg.options.getOrDefault(serviceName, Map.of()), ctx));
+        tmpServices.put(CompactionServiceId.of(serviceName),
+            new CompactionService(serviceName, plannerClassName,
+                currentCfg.options.getOrDefault(serviceName, Map.of()), ctx, ceMetrics));
       } catch (RuntimeException e) {
         log.error("Failed to create compaction service {} with planner:{} options:{}", serviceName,
             plannerClassName, currentCfg.options.getOrDefault(serviceName, Map.of()));
@@ -221,7 +228,7 @@ public class CompactionManager {
             var service = services.get(csid);
             if (service == null) {
               tmpServices.put(csid, new CompactionService(serviceName, plannerClassName,
-                  tmpCfg.options.getOrDefault(serviceName, Map.of()), ctx));
+                  tmpCfg.options.getOrDefault(serviceName, Map.of()), ctx, ceMetrics));
             } else {
               service.configurationChanged(plannerClassName,
                   tmpCfg.options.getOrDefault(serviceName, Map.of()));
@@ -267,5 +274,13 @@ public class CompactionManager {
   public boolean isCompactionQueued(KeyExtent extent, Set<CompactionServiceId> servicesUsed) {
     return servicesUsed.stream().map(services::get).filter(Objects::nonNull)
         .anyMatch(compactionService -> compactionService.isCompactionQueued(extent));
+  }
+
+  public int getCompactionsRunning() {
+    return services.values().stream().mapToInt(CompactionService::getCompactionsRunning).sum();
+  }
+
+  public int getCompactionsQueued() {
+    return services.values().stream().mapToInt(CompactionService::getCompactionsQueued).sum();
   }
 }

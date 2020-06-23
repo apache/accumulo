@@ -142,6 +142,7 @@ import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.log.TabletServerLogger;
 import org.apache.accumulo.tserver.mastermessage.MasterMessage;
 import org.apache.accumulo.tserver.mastermessage.SplitReportMessage;
+import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
@@ -185,6 +186,7 @@ public class TabletServer extends AbstractServer {
   final TabletServerUpdateMetrics updateMetrics;
   final TabletServerScanMetrics scanMetrics;
   final TabletServerMinCMetrics mincMetrics;
+  final CompactionExecutorsMetrics ceMetrics;
 
   public TabletServerScanMetrics getScanMetrics() {
     return scanMetrics;
@@ -343,6 +345,7 @@ public class TabletServer extends AbstractServer {
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
+    ceMetrics = new CompactionExecutorsMetrics();
     SimpleTimer.getInstance(aconf).schedule(TabletLocator::clearLocators, jitter(), jitter());
     walMarker = new WalStateManager(context);
 
@@ -707,6 +710,7 @@ public class TabletServer extends AbstractServer {
       mincMetrics.register(metricsSystem);
       scanMetrics.register(metricsSystem);
       updateMetrics.register(metricsSystem);
+      ceMetrics.register(metricsSystem);
     } catch (Exception e) {
       log.error("Error registering metrics", e);
     }
@@ -731,7 +735,7 @@ public class TabletServer extends AbstractServer {
         return Iterators.transform(onlineTablets.snapshot().values().iterator(),
             Tablet::asCompactable);
       }
-    }, getContext());
+    }, getContext(), ceMetrics);
     compactionManager.start();
 
     try {

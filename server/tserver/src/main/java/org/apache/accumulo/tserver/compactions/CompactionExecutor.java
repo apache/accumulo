@@ -18,7 +18,10 @@
  */
 package org.apache.accumulo.tserver.compactions;
 
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -32,6 +35,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
+import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.htrace.wrappers.TraceExecutorService;
 import org.apache.htrace.wrappers.TraceRunnable;
 import org.slf4j.Logger;
@@ -49,6 +53,14 @@ public class CompactionExecutor {
   private AtomicLong cancelCount = new AtomicLong();
   private ThreadPoolExecutor rawExecutor;
 
+  // This exist to provide an accurate count of queued compactions for metrics. The PriorityQueue is
+  // not used because it size may be off because it contains cancelled compactions. The collection
+  // below should not contain cancelled compactions. A conncurrent set was not used because those do
+  // not have constant time size operations.
+  private Set<CompactionTask> queuedTask = Collections.synchronizedSet(new HashSet<>());
+
+  private AutoCloseable metricCloser;
+
   private class CompactionTask extends SubmittedJob implements Runnable {
 
     private AtomicReference<Status> status = new AtomicReference<>(Status.QUEUED);
@@ -62,6 +74,7 @@ public class CompactionExecutor {
       this.compactable = compactable;
       this.csid = csid;
       this.completionCallback = completionCallback;
+      queuedTask.add(this);
     }
 
     @Override
@@ -69,6 +82,7 @@ public class CompactionExecutor {
 
       try {
         if (status.compareAndSet(Status.QUEUED, Status.RUNNING)) {
+          queuedTask.remove(this);
           compactable.compact(csid, getJob());
           completionCallback.accept(compactable);
         }
@@ -94,8 +108,11 @@ public class CompactionExecutor {
         canceled = status.compareAndSet(expectedStatus, Status.CANCELED);
       }
 
+      if (canceled)
+        queuedTask.remove(this);
+
       if (canceled && cancelCount.incrementAndGet() % 1024 == 0) {
-        // nMeed to occasionally clean the queue, it could have canceled task with low priority that
+        // need to occasionally clean the queue, it could have canceled task with low priority that
         // hang around. Avoid cleaning it every time something is canceled as that could be
         // expensive.
         queue.removeIf(runnable -> ((CompactionTask) runnable).getStatus() == Status.CANCELED);
@@ -118,7 +135,7 @@ public class CompactionExecutor {
     throw new IllegalArgumentException("Unknown runnable type " + r.getClass().getName());
   }
 
-  CompactionExecutor(CompactionExecutorId ceid, int threads) {
+  CompactionExecutor(CompactionExecutorId ceid, int threads, CompactionExecutorsMetrics ceMetrics) {
     this.ceid = ceid;
     var comparator =
         Comparator.comparing(CompactionExecutor::getJob, CompactionJobPrioritizer.JOB_COMPARATOR);
@@ -131,6 +148,8 @@ public class CompactionExecutor {
 
     rawExecutor = tp;
     executor = new TraceExecutorService(tp);
+
+    metricCloser = ceMetrics.addExecutor(ceid, () -> tp.getActiveCount(), () -> queuedTask.size());
 
     log.debug("Created compaction executor {} with {} threads", ceid, threads);
   }
@@ -163,8 +182,21 @@ public class CompactionExecutor {
     }
   }
 
+  public int getCompactionsRunning() {
+    return rawExecutor.getActiveCount();
+  }
+
+  public int getCompactionsQueued() {
+    return queuedTask.size();
+  }
+
   public void stop() {
     executor.shutdownNow();
     log.debug("Stopped compaction executor {}", ceid);
+    try {
+      metricCloser.close();
+    } catch (Exception e) {
+      log.warn("Failed to close metrics {}", ceid, e);
+    }
   }
 }
