@@ -262,7 +262,7 @@ public enum Property {
       "Regular expression that defines the set of Tablet Servers that will perform bulk imports"),
   MASTER_MINTHREADS("master.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests."),
-  MASTER_MINTHREADS_ALLOW_TIMEOUT("master.server.thread.timeout.allowed", "false",
+  MASTER_MINTHREADS_ALLOW_TIMEOUT("master.server.threads.timeout.allowed", "false",
       PropertyType.BOOLEAN,
       "True if the incoming request threads are allowed to timeout with no work available."),
   MASTER_THREADCHECK("master.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
