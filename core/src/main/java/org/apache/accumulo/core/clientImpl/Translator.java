@@ -45,7 +45,6 @@ public abstract class Translator<IT,OT> {
     public KeyExtent translate(TKeyExtent input) {
       return new KeyExtent(input);
     }
-
   }
 
   public static class KeyExtentTranslator extends Translator<KeyExtent,TKeyExtent> {

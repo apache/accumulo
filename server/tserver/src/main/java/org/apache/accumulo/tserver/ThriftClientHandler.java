@@ -37,6 +37,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -668,15 +669,27 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
 
   @Override
   public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent tkeyExtent,
-      List<TMutation> tmutations) {
+      List<TMutation> tmutations) throws TException {
     UpdateSession us = (UpdateSession) server.sessionManager.reserveSession(updateID);
     if (us == null) {
       return;
     }
 
+    Semaphore semaphoreCopy = null;
     boolean reserved = true;
+
     try {
       KeyExtent keyExtent = new KeyExtent(tkeyExtent);
+
+      if (TabletType.type(keyExtent) == TabletType.USER) {
+        semaphoreCopy = server.getSemaphore();
+        if (!semaphoreCopy.tryAcquire()) {
+          throw new TException("Mutation failed. No threads available.");
+        } else {
+          log.trace("Available permits: {}", semaphoreCopy.availablePermits());
+        }
+      }
+
       setUpdateTablet(us, keyExtent);
 
       if (us.currentTablet != null) {
@@ -704,6 +717,8 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
         }
       }
     } finally {
+      if (semaphoreCopy != null)
+        semaphoreCopy.release();
       if (reserved) {
         server.sessionManager.unreserveSession(us);
       }

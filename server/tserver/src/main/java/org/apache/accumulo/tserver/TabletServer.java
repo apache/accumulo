@@ -46,6 +46,7 @@ import java.util.TreeSet;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -237,6 +238,9 @@ public class TabletServer extends AbstractServer {
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
 
+  private int maxThreadPermits = 0;
+  private Semaphore sem;
+
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
       tserver.runServer();
@@ -375,6 +379,17 @@ public class TabletServer extends AbstractServer {
     return (long) ((1. + (r.nextDouble() / 10)) * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 
+  public Semaphore getSemaphore() {
+    int writeThreads = getServerConfig().getConfiguration().getCount(Property.TSERV_MAX_WRITETHREADS);
+    if (writeThreads == 0) writeThreads = Integer.MAX_VALUE;
+    if (sem == null || maxThreadPermits != writeThreads) {
+      synchronized (this) {
+        maxThreadPermits = writeThreads;
+        sem = new Semaphore(maxThreadPermits);
+      }
+    }
+    return sem;
+  }
   final SessionManager sessionManager;
 
   private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
