@@ -246,7 +246,7 @@ public enum Property {
       "The number of attempts to bulk import a RFile before giving up."),
   MASTER_BULK_THREADPOOL_SIZE("master.bulk.threadpool.size", "5", PropertyType.COUNT,
       "The number of threads to use when coordinating a bulk import."),
-  MASTER_BULK_THREADPOOL_ALLOW_TIMEOUT("master.bulk.thread.timeout.allowed", "false",
+  MASTER_BULK_THREADPOOL_ALLOW_TIMEOUT("master.bulk.threadpool.timeout.allowed", "false",
       PropertyType.BOOLEAN,
       "True if the bulk import threads are allowed to timeout with no work available."),
   MASTER_BULK_TIMEOUT("master.bulk.timeout", "5m", PropertyType.TIMEDURATION,
