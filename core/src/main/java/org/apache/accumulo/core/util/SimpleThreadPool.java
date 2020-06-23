@@ -28,15 +28,19 @@ import java.util.concurrent.TimeUnit;
  */
 public class SimpleThreadPool extends ThreadPoolExecutor {
 
+  // the number of seconds before we allow a thread to terminate with non-use.
+  private static long TIMEOUT_SECS = 180L;
+
   public SimpleThreadPool(int coreAndMax, boolean allowCoreThreadTimeOut, final String name) {
-    super(coreAndMax, coreAndMax, 4L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
+    super(coreAndMax, coreAndMax, TIMEOUT_SECS, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
         new NamingThreadFactory(name));
     allowCoreThreadTimeOut(allowCoreThreadTimeOut);
   }
 
   public SimpleThreadPool(int coreAndMax, boolean allowCoreThreadTimeOut, final String name,
       BlockingQueue<Runnable> queue) {
-    super(coreAndMax, coreAndMax, 4L, TimeUnit.SECONDS, queue, new NamingThreadFactory(name));
+    super(coreAndMax, coreAndMax, TIMEOUT_SECS, TimeUnit.SECONDS, queue,
+        new NamingThreadFactory(name));
     allowCoreThreadTimeOut(allowCoreThreadTimeOut);
   }
 
