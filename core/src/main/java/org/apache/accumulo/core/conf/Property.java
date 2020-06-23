@@ -458,7 +458,7 @@ public enum Property {
       "The time to wait for a tablet server to process a bulk import request."),
   TSERV_MINTHREADS("tserver.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests."),
-  TSERV_MINTHREADS_ALLOW_TIMEOUT("tserver.server.thread.timeout.allowed", "false",
+  TSERV_MINTHREADS_ALLOW_TIMEOUT("tserver.server.threads.timeout.allowed", "false",
       PropertyType.BOOLEAN,
       "True if the incoming request threads are allowed to timeout with no work available."),
   TSERV_THREADCHECK("tserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
