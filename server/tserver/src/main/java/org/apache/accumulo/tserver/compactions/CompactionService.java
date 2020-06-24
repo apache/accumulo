@@ -21,13 +21,19 @@ package org.apache.accumulo.tserver.compactions;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
@@ -64,6 +70,8 @@ public class CompactionService {
   private String plannerClassName;
   private Map<String,String> plannerOpts;
   private CompactionExecutorsMetrics ceMetrics;
+  private ExecutorService planningExecutor;
+  private Map<CompactionKind,ConcurrentMap<KeyExtent,Compactable>> queuedForPlanning;
 
   private static final Logger log = LoggerFactory.getLogger(CompactionService.class);
 
@@ -130,6 +138,13 @@ public class CompactionService {
 
     this.executors = Map.copyOf(tmpExecutors);
 
+    this.planningExecutor = Executors.newSingleThreadExecutor();
+
+    this.queuedForPlanning = new EnumMap<>(CompactionKind.class);
+    for (CompactionKind kind : CompactionKind.values()) {
+      queuedForPlanning.put(kind, new ConcurrentHashMap<KeyExtent,Compactable>());
+    }
+
     log.debug("Created new compaction service id:{} planner:{} planner options:{}", myId,
         plannerClass, plannerOptions);
   }
@@ -165,6 +180,26 @@ public class CompactionService {
   }
 
   public void compact(CompactionKind kind, Compactable compactable,
+      Consumer<Compactable> completionCallback) {
+    Objects.requireNonNull(compactable);
+
+    if (queuedForPlanning.get(kind).putIfAbsent(compactable.getExtent(), compactable) == null) {
+      try {
+        planningExecutor.execute(() -> {
+          try {
+            planCompaction(kind, compactable, completionCallback);
+          } finally {
+            queuedForPlanning.get(kind).remove(compactable.getExtent());
+          }
+        });
+      } catch (RejectedExecutionException e) {
+        queuedForPlanning.get(kind).remove(compactable.getExtent());
+        throw e;
+      }
+    }
+  }
+
+  private void planCompaction(CompactionKind kind, Compactable compactable,
       Consumer<Compactable> completionCallback) {
     var files = compactable.getFiles(myId, kind);
 
