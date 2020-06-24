@@ -107,7 +107,6 @@ public class CompactionService {
 
   }
 
-  // TODO ISSUE change thread pool sizes if compaction service config changes
   public CompactionService(String serviceName, String plannerClass,
       Map<String,String> plannerOptions, ServerContext sctx) {
 
