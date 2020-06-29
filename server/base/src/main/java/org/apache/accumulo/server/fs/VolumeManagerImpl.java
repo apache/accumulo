@@ -295,9 +295,10 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public List<Future<Boolean>> bulkRename(Map<Path,Path> oldToNewPathMap,
-      SimpleThreadPool workerPool, String transactionId) throws InterruptedException {
+  public List<Future<Boolean>> bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize,
+      String poolName, String transactionId) throws InterruptedException {
     List<Future<Boolean>> results = new ArrayList<>();
+    SimpleThreadPool workerPool = new SimpleThreadPool(poolSize, poolName);
     oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
       boolean success;
       try {

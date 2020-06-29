@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.ServerConstants;
@@ -155,7 +154,7 @@ public interface VolumeManager extends AutoCloseable {
 
   // rename lots of files at once in a thread pool
   // returns the results once all the threads have completed
-  List<Future<Boolean>> bulkRename(Map<Path,Path> oldToNewPathMap, SimpleThreadPool workerPool,
+  List<Future<Boolean>> bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
       String transactionId) throws Exception;
 
   // forward to the appropriate FileSystem object

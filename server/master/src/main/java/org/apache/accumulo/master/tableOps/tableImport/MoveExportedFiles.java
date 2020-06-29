@@ -33,7 +33,6 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -110,8 +109,8 @@ class MoveExportedFiles extends MasterRepo {
         }
       }
     }
-    List<Future<Boolean>> results = fs.bulkRename(oldToNewPaths,
-        new SimpleThreadPool(workerCount, "importtable rename"), fmtTid);
+    List<Future<Boolean>> results =
+        fs.bulkRename(oldToNewPaths, workerCount, "importtable rename", fmtTid);
 
     for (Future<Boolean> future : results) {
       try {

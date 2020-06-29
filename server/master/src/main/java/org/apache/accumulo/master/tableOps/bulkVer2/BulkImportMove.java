@@ -32,7 +32,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -120,7 +119,7 @@ class BulkImportMove extends MasterRepo {
       Path newPath = new Path(bulkDir, renameEntry.getValue());
       oldToNewMap.put(originalPath, newPath);
     }
-    results = fs.bulkRename(oldToNewMap, new SimpleThreadPool(workerCount, "bulkDir move"), fmtTid);
+    results = fs.bulkRename(oldToNewMap, workerCount, "bulkDir move", fmtTid);
 
     for (Future<Boolean> future : results) {
       try {
