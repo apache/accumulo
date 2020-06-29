@@ -26,6 +26,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -63,23 +64,44 @@ public class CompactionManager {
 
   private static class Config {
     Map<String,String> planners = new HashMap<>();
+    Map<String,Long> throughput = new HashMap<>();
     Map<String,Map<String,String>> options = new HashMap<>();
+    long defaultThroughput = 0;
+
+    @SuppressWarnings("removal")
+    private static long getDefaultThroughput(AccumuloConfiguration aconf) {
+      if (aconf.isPropertySet(Property.TSERV_MAJC_THROUGHPUT, true)) {
+        return aconf.getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
+      }
+
+      return ConfigurationTypeHelper
+          .getMemoryAsBytes(Property.TSERV_COMPACTION_SERVICE_DEFAULT_THROUGHPUT.getDefaultValue());
+    }
 
     Config(AccumuloConfiguration aconf) {
       Map<String,String> configs =
           aconf.getAllPropertiesWithPrefix(Property.TSERV_COMPACTION_SERVICE_PREFIX);
 
       configs.forEach((prop, val) -> {
+
         var suffix = prop.substring(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey().length());
         String[] tokens = suffix.split("\\.");
         if (tokens.length == 4 && tokens[1].equals("planner") && tokens[2].equals("opts")) {
           options.computeIfAbsent(tokens[0], k -> new HashMap<>()).put(tokens[3], val);
         } else if (tokens.length == 2 && tokens[1].equals("planner")) {
           planners.put(tokens[0], val);
+        } else if (tokens.length == 2 && tokens[1].equals("throughput")) {
+          var eprop = Property.getPropertyByKey(prop);
+          if (eprop == null || aconf.isPropertySet(eprop, true)
+              || !isDeprecatedThroughputSet(aconf)) {
+            throughput.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
+          }
         } else {
           throw new IllegalArgumentException("Malformed compaction service property " + prop);
         }
       });
+
+      defaultThroughput = getDefaultThroughput(aconf);
 
       var diff = Sets.difference(options.keySet(), planners.keySet());
 
@@ -90,11 +112,21 @@ public class CompactionManager {
 
     }
 
+    @SuppressWarnings("removal")
+    private boolean isDeprecatedThroughputSet(AccumuloConfiguration aconf) {
+      return aconf.isPropertySet(Property.TSERV_MAJC_THROUGHPUT, true);
+    }
+
+    public long getThroughput(String serviceName) {
+      return throughput.getOrDefault(serviceName, defaultThroughput);
+    }
+
     @Override
     public boolean equals(Object o) {
       if (o instanceof Config) {
         var oc = (Config) o;
-        return planners.equals(oc.planners) && options.equals(oc.options);
+        return planners.equals(oc.planners) && options.equals(oc.options)
+            && throughput.equals(oc.throughput);
       }
 
       return false;
@@ -102,7 +134,7 @@ public class CompactionManager {
 
     @Override
     public int hashCode() {
-      return Objects.hash(planners, options);
+      return Objects.hash(planners, options, throughput);
     }
   }
 
@@ -192,6 +224,7 @@ public class CompactionManager {
       try {
         tmpServices.put(CompactionServiceId.of(serviceName),
             new CompactionService(serviceName, plannerClassName,
+                currentCfg.getThroughput(serviceName),
                 currentCfg.options.getOrDefault(serviceName, Map.of()), ctx, ceMetrics));
       } catch (RuntimeException e) {
         log.error("Failed to create compaction service {} with planner:{} options:{}", serviceName,
@@ -227,10 +260,12 @@ public class CompactionManager {
             var csid = CompactionServiceId.of(serviceName);
             var service = services.get(csid);
             if (service == null) {
-              tmpServices.put(csid, new CompactionService(serviceName, plannerClassName,
-                  tmpCfg.options.getOrDefault(serviceName, Map.of()), ctx, ceMetrics));
+              tmpServices.put(csid,
+                  new CompactionService(serviceName, plannerClassName,
+                      tmpCfg.getThroughput(serviceName),
+                      tmpCfg.options.getOrDefault(serviceName, Map.of()), ctx, ceMetrics));
             } else {
-              service.configurationChanged(plannerClassName,
+              service.configurationChanged(plannerClassName, tmpCfg.getThroughput(serviceName),
                   tmpCfg.options.getOrDefault(serviceName, Map.of()));
               tmpServices.put(csid, service);
             }

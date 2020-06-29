@@ -35,6 +35,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.htrace.wrappers.TraceExecutorService;
 import org.apache.htrace.wrappers.TraceRunnable;
@@ -61,6 +62,9 @@ public class CompactionExecutor {
 
   private AutoCloseable metricCloser;
 
+  private RateLimiter readLimiter;
+  private RateLimiter writeLimiter;
+
   private class CompactionTask extends SubmittedJob implements Runnable {
 
     private AtomicReference<Status> status = new AtomicReference<>(Status.QUEUED);
@@ -83,7 +87,7 @@ public class CompactionExecutor {
       try {
         if (status.compareAndSet(Status.QUEUED, Status.RUNNING)) {
           queuedTask.remove(this);
-          compactable.compact(csid, getJob());
+          compactable.compact(csid, getJob(), readLimiter, writeLimiter);
           completionCallback.accept(compactable);
         }
       } catch (Exception e) {
@@ -135,7 +139,8 @@ public class CompactionExecutor {
     throw new IllegalArgumentException("Unknown runnable type " + r.getClass().getName());
   }
 
-  CompactionExecutor(CompactionExecutorId ceid, int threads, CompactionExecutorsMetrics ceMetrics) {
+  CompactionExecutor(CompactionExecutorId ceid, int threads, CompactionExecutorsMetrics ceMetrics,
+      RateLimiter readLimiter, RateLimiter writeLimiter) {
     this.ceid = ceid;
     var comparator =
         Comparator.comparing(CompactionExecutor::getJob, CompactionJobPrioritizer.JOB_COMPARATOR);
@@ -150,6 +155,9 @@ public class CompactionExecutor {
     executor = new TraceExecutorService(tp);
 
     metricCloser = ceMetrics.addExecutor(ceid, () -> tp.getActiveCount(), () -> queuedTask.size());
+
+    this.readLimiter = readLimiter;
+    this.writeLimiter = writeLimiter;
 
     log.debug("Created compaction executor {} with {} threads", ceid, threads);
   }

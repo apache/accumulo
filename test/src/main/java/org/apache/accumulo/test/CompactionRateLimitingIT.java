@@ -21,13 +21,16 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertTrue;
 
 import java.security.SecureRandom;
+import java.util.Map;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
@@ -37,50 +40,74 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
   public static final long BYTES_TO_WRITE = 10 * 1024 * 1024;
   public static final long RATE = 1 * 1024 * 1024;
 
+  protected Property getThroughputProp() {
+    return Property.TSERV_COMPACTION_SERVICE_DEFAULT_THROUGHPUT;
+  }
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TSERV_MAJC_THROUGHPUT, RATE + "B");
+    cfg.setProperty(getThroughputProp(), RATE + "B");
     cfg.setProperty(Property.TABLE_MAJC_RATIO, "20");
     cfg.setProperty(Property.TABLE_FILE_COMPRESSION_TYPE, "none");
+
+    cfg.setProperty("tserver.compaction.major.service.test.throughput", RATE + "B");
+    cfg.setProperty("tserver.compaction.major.service.test.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.test.planner.opts.executors",
+        "[{'name':'all','numThreads':2}]".replaceAll("'", "\""));
+
   }
 
   @Test
   public void majorCompactionsAreRateLimited() throws Exception {
     long bytesWritten = 0;
-    String tableName = getUniqueNames(1)[0];
-    AccumuloClient client =
-        getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
-    client.tableOperations().create(tableName);
-    try (BatchWriter bw = client.createBatchWriter(tableName)) {
-      Random r = new SecureRandom();
-      while (bytesWritten < BYTES_TO_WRITE) {
-        byte[] rowKey = new byte[32];
-        r.nextBytes(rowKey);
+    String[] tableNames = getUniqueNames(1);
 
-        byte[] qual = new byte[32];
-        r.nextBytes(qual);
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
-        byte[] value = new byte[1024];
-        r.nextBytes(value);
+      for (int i = 0; i < tableNames.length; i++) {
+        String tableName = tableNames[i];
 
-        Mutation m = new Mutation(rowKey);
-        m.put(new byte[0], qual, value);
-        bw.addMutation(m);
+        NewTableConfiguration ntc = new NewTableConfiguration();
+        if (i == 1) {
+          ntc.setProperties(Map.of("table.compaction.dispatcher.opts.service", "test"));
+        }
 
-        bytesWritten += rowKey.length + qual.length + value.length;
+        client.tableOperations().create(tableName, ntc);
+        try (BatchWriter bw = client.createBatchWriter(tableName)) {
+          Random r = new SecureRandom();
+          while (bytesWritten < BYTES_TO_WRITE) {
+            byte[] rowKey = new byte[32];
+            r.nextBytes(rowKey);
+
+            byte[] qual = new byte[32];
+            r.nextBytes(qual);
+
+            byte[] value = new byte[1024];
+            r.nextBytes(value);
+
+            Mutation m = new Mutation(rowKey);
+            m.put(new byte[0], qual, value);
+            bw.addMutation(m);
+
+            bytesWritten += rowKey.length + qual.length + value.length;
+          }
+        }
+
+        client.tableOperations().flush(tableName, null, null, true);
+
+        long compactionStart = System.currentTimeMillis();
+        client.tableOperations().compact(tableName, null, null, false, true);
+        long duration = System.currentTimeMillis() - compactionStart;
+        // The rate will be "bursty", try to account for that by taking 80% of the expected rate
+        // (allow
+        // for 20% under the maximum expected duration)
+        assertTrue(String.format(
+            "Expected a compaction rate of no more than %,d bytes/sec, but saw a rate of %,f bytes/sec",
+            (int) 0.8d * RATE, 1000.0 * bytesWritten / duration),
+            duration > 1000L * 0.8 * BYTES_TO_WRITE / RATE);
       }
     }
-
-    client.tableOperations().flush(tableName, null, null, true);
-
-    long compactionStart = System.currentTimeMillis();
-    client.tableOperations().compact(tableName, null, null, false, true);
-    long duration = System.currentTimeMillis() - compactionStart;
-    // The rate will be "bursty", try to account for that by taking 80% of the expected rate (allow
-    // for 20% under the maximum expected duration)
-    assertTrue(String.format(
-        "Expected a compaction rate of no more than %,d bytes/sec, but saw a rate of %,f bytes/sec",
-        (int) 0.8d * RATE, 1000.0 * bytesWritten / duration),
-        duration > 1000L * 0.8 * BYTES_TO_WRITE / RATE);
   }
 }

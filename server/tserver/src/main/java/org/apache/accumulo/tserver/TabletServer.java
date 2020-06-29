@@ -86,9 +86,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
-import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
-import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory.RateProvider;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
@@ -1361,27 +1358,6 @@ public class TabletServer extends AbstractServer {
 
   public void removeBulkImportState(List<String> files) {
     bulkImportStatus.removeBulkImportStatus(files);
-  }
-
-  private static final String MAJC_READ_LIMITER_KEY = "tserv_majc_read";
-  private static final String MAJC_WRITE_LIMITER_KEY = "tserv_majc_write";
-  private final RateProvider rateProvider =
-      () -> getConfiguration().getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
-
-  /**
-   * Get the {@link RateLimiter} for reads during major compactions on this tserver. All writes
-   * performed during major compactions are throttled to conform to this RateLimiter.
-   */
-  public final RateLimiter getMajorCompactionReadLimiter() {
-    return SharedRateLimiterFactory.getInstance().create(MAJC_READ_LIMITER_KEY, rateProvider);
-  }
-
-  /**
-   * Get the RateLimiter for writes during major compactions on this tserver. All reads performed
-   * during major compactions are throttled to conform to this RateLimiter.
-   */
-  public final RateLimiter getMajorCompactionWriteLimiter() {
-    return SharedRateLimiterFactory.getInstance().create(MAJC_WRITE_LIMITER_KEY, rateProvider);
   }
 
   public CompactionManager getCompactionManager() {

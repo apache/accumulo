@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
@@ -51,6 +52,8 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlanner.PlanningParamet
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.ExecutorManager;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.tserver.compactions.SubmittedJob.Status;
@@ -72,6 +75,10 @@ public class CompactionService {
   private CompactionExecutorsMetrics ceMetrics;
   private ExecutorService planningExecutor;
   private Map<CompactionKind,ConcurrentMap<KeyExtent,Compactable>> queuedForPlanning;
+
+  private RateLimiter readLimiter;
+  private RateLimiter writeLimiter;
+  private AtomicLong throughput = new AtomicLong(0);
 
   private static final Logger log = LoggerFactory.getLogger(CompactionService.class);
 
@@ -117,8 +124,10 @@ public class CompactionService {
 
   }
 
-  public CompactionService(String serviceName, String plannerClass,
+  public CompactionService(String serviceName, String plannerClass, Long maxThroughput,
       Map<String,String> plannerOptions, ServerContext sctx, CompactionExecutorsMetrics ceMetrics) {
+
+    Preconditions.checkArgument(maxThroughput >= 0);
 
     this.myId = CompactionServiceId.of(serviceName);
     this.serverCtx = sctx;
@@ -132,8 +141,16 @@ public class CompactionService {
 
     Map<CompactionExecutorId,CompactionExecutor> tmpExecutors = new HashMap<>();
 
+    this.throughput.set(maxThroughput);
+
+    this.readLimiter = SharedRateLimiterFactory.getInstance().create("CS_" + serviceName + "_read",
+        () -> throughput.get());
+    this.writeLimiter = SharedRateLimiterFactory.getInstance()
+        .create("CS_" + serviceName + "_write", () -> throughput.get());
+
     initParams.requestedExecutors.forEach((ceid, numThreads) -> {
-      tmpExecutors.put(ceid, new CompactionExecutor(ceid, numThreads, ceMetrics));
+      tmpExecutors.put(ceid,
+          new CompactionExecutor(ceid, numThreads, ceMetrics, readLimiter, writeLimiter));
     });
 
     this.executors = Map.copyOf(tmpExecutors);
@@ -145,8 +162,8 @@ public class CompactionService {
       queuedForPlanning.put(kind, new ConcurrentHashMap<KeyExtent,Compactable>());
     }
 
-    log.debug("Created new compaction service id:{} planner:{} planner options:{}", myId,
-        plannerClass, plannerOptions);
+    log.debug("Created new compaction service id:{} throughput: {} planner:{} planner options:{}",
+        myId, maxThroughput, plannerClass, plannerOptions);
   }
 
   private CompactionPlanner createPlanner(String plannerClass) {
@@ -327,7 +344,14 @@ public class CompactionService {
         .anyMatch(job -> job.getStatus() == Status.QUEUED);
   }
 
-  public void configurationChanged(String plannerClassName, Map<String,String> plannerOptions) {
+  public void configurationChanged(String plannerClassName, Long maxThroughput,
+      Map<String,String> plannerOptions) {
+    Preconditions.checkArgument(maxThroughput >= 0);
+
+    var old = this.throughput.getAndSet(maxThroughput);
+    if (old != maxThroughput)
+      log.debug("Updated compaction service id:{} throughput:{}", myId, maxThroughput);
+
     if (this.plannerClassName.equals(plannerClassName) && this.plannerOpts.equals(plannerOptions))
       return;
 
@@ -340,7 +364,7 @@ public class CompactionService {
     initParams.requestedExecutors.forEach((ceid, numThreads) -> {
       var executor = executors.get(ceid);
       if (executor == null) {
-        executor = new CompactionExecutor(ceid, numThreads, ceMetrics);
+        executor = new CompactionExecutor(ceid, numThreads, ceMetrics, readLimiter, writeLimiter);
       } else {
         executor.setThreads(numThreads);
       }
