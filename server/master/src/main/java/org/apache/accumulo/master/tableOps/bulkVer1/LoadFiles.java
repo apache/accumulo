@@ -93,10 +93,9 @@ class LoadFiles extends MasterRepo {
   private static synchronized ExecutorService getThreadPool(Master master) {
     if (threadPool == null) {
       int threadPoolSize = master.getConfiguration().getCount(Property.MASTER_BULK_THREADPOOL_SIZE);
-      boolean allowCoreThreadTimeOut =
-          master.getConfiguration().getBoolean(Property.MASTER_BULK_THREADPOOL_ALLOW_TIMEOUT);
-      ThreadPoolExecutor pool =
-          new SimpleThreadPool(threadPoolSize, allowCoreThreadTimeOut, "bulk import");
+      long threadTimeOut =
+          master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_THREADPOOL_TIMEOUT);
+      ThreadPoolExecutor pool = new SimpleThreadPool(threadPoolSize, threadTimeOut, "bulk import");
       threadPool = new TraceExecutorService(pool);
     }
     return threadPool;

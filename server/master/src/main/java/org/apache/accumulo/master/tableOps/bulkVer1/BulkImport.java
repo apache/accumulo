@@ -206,7 +206,7 @@ public class BulkImport extends MasterRepo {
     @SuppressWarnings("deprecation")
     int workerCount = serverConfig.getCount(
         serverConfig.resolve(Property.MASTER_RENAME_THREADS, Property.MASTER_BULK_RENAME_THREADS));
-    SimpleThreadPool workers = new SimpleThreadPool(workerCount, true, "bulk move");
+    SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulk move");
     List<Future<Exception>> results = new ArrayList<>();
 
     for (FileStatus file : mapFiles) {
