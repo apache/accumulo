@@ -114,11 +114,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
-  /**
-   * A fraction representing how much of the JVM's available memory should be used for gathering
-   * candidates.
-   */
-  static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
+  // effectively an 8MB batch size, since this number is the number of Chars
+  public static final long CANDIDATE_BATCH_SIZE = 4_000_000;
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
@@ -154,8 +151,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
     log.info("safemode: {}", inSafeMode());
-    log.info("memory threshold: {} of {} bytes", CANDIDATE_MEMORY_PERCENTAGE,
-        Runtime.getRuntime().maxMemory());
+    log.info("candidate batch size: {} bytes", CANDIDATE_BATCH_SIZE);
     log.info("delete threads: {}", getNumDeleteThreads());
     log.info("gc post metadata action: {}", useFullCompaction);
   }
@@ -209,20 +205,20 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         throws TableNotFoundException {
 
       Iterator<String> candidates = getContext().getAmple().getGcCandidates(level, continuePoint);
+      long candidateLength = 0;
 
       result.clear();
 
       while (candidates.hasNext()) {
-        String cand = candidates.next();
-
-        result.add(cand);
-        if (almostOutOfMemory(Runtime.getRuntime())) {
-          log.info("List of delete candidates has exceeded the memory"
+        String candidate = candidates.next();
+        candidateLength += candidate.length();
+        result.add(candidate);
+        if (almostOutOfMemory(candidateLength)) {
+          log.info("List of delete candidates has exceeded the batch size"
               + " threshold. Attempting to delete what has been gathered so far.");
           return true;
         }
       }
-
       return false;
     }
 
@@ -669,14 +665,13 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   /**
    * Checks if the system is almost out of memory.
    *
-   * @param runtime
-   *          Java runtime
+   * @param candidateLength
+   *          Candidate Length
    * @return true if system is almost out of memory
-   * @see #CANDIDATE_MEMORY_PERCENTAGE
+   * @see #CANDIDATE_BATCH_SIZE
    */
-  static boolean almostOutOfMemory(Runtime runtime) {
-    return runtime.totalMemory() - runtime.freeMemory()
-        > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
+  static boolean almostOutOfMemory(Long candidateLength) {
+    return candidateLength > CANDIDATE_BATCH_SIZE;
   }
 
   /**
