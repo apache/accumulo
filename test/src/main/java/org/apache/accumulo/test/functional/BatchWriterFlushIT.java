@@ -209,7 +209,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         allMuts.add(muts);
       }
 
-      SimpleThreadPool threads = new SimpleThreadPool(NUM_THREADS, true, "ClientThreads");
+      SimpleThreadPool threads = new SimpleThreadPool(NUM_THREADS, "ClientThreads");
       threads.allowCoreThreadTimeOut(false);
       threads.prestartAllCoreThreads();
 
