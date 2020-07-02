@@ -150,8 +150,11 @@ public interface VolumeManager extends AutoCloseable {
   // volumes
   boolean rename(Path path, Path newPath) throws IOException;
 
-  // rename lots of files at once in a thread pool
-  // returns once all the threads have completed
+  /**
+   * Rename lots of files at once in a thread pool and return once all the threads have completed.
+   * This operation should be idempotent to allow calling multiple times in the case of a partial
+   * completion.
+   */
   void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
       String transactionId) throws IOException;
 
