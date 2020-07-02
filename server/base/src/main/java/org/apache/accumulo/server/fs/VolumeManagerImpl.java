@@ -315,9 +315,8 @@ public class VolumeManagerImpl implements VolumeManager {
             transactionId, oldPath, newPath, e);
         success = true;
       }
-      if (!success) {
-        log.error("Rename operation {} returned false. orig: {} new: {}", transactionId, oldPath,
-            newPath);
+      if (!success && (!exists(newPath) || exists(oldPath))) {
+          throw new IOException("Rename operation "+transactionId+" returned false. orig: "+oldPath+" new: "+newPath);
       } else if (log.isTraceEnabled()) {
         log.trace("{} moved {} to {}", transactionId, oldPath, newPath);
       }
