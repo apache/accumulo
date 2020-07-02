@@ -18,14 +18,12 @@
  */
 package org.apache.accumulo.master.tableOps.tableImport;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -109,19 +107,11 @@ class MoveExportedFiles extends MasterRepo {
         }
       }
     }
-    List<Future<Boolean>> results =
-        fs.bulkRename(oldToNewPaths, workerCount, "importtable rename", fmtTid);
-
-    for (Future<Boolean> future : results) {
-      try {
-        if (!future.get()) {
-          throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
-              TableOperation.IMPORT, TableOperationExceptionType.OTHER, "Failed to import files");
-        }
-      } catch (ExecutionException ee) {
-        throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
-            TableOperation.IMPORT, TableOperationExceptionType.OTHER, ee.getCause().getMessage());
-      }
+    try {
+      fs.bulkRename(oldToNewPaths, workerCount, "importtable rename", fmtTid);
+    } catch (IOException ioe) {
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
+          TableOperation.IMPORT, TableOperationExceptionType.OTHER, ioe.getCause().getMessage());
     }
 
     return new FinishImportTable(tableInfo);

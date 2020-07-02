@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -295,9 +296,9 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public List<Future<Boolean>> bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize,
-      String poolName, String transactionId) throws InterruptedException {
-    List<Future<Boolean>> results = new ArrayList<>();
+  public void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
+      String transactionId) throws IOException {
+    List<Future<Void>> results = new ArrayList<>();
     SimpleThreadPool workerPool = new SimpleThreadPool(poolSize, poolName);
     oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
       boolean success;
@@ -320,11 +321,17 @@ public class VolumeManagerImpl implements VolumeManager {
       } else if (log.isTraceEnabled()) {
         log.trace("{} moved {} to {}", transactionId, oldPath, newPath);
       }
-      return success;
+      return null;
     })));
     workerPool.shutdown();
-    while (!workerPool.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {}
-    return results;
+    try {
+      while (!workerPool.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {}
+      for (Future<Void> future : results) {
+        future.get();
+      }
+    } catch (InterruptedException | ExecutionException e) {
+      throw new IOException(e);
+    }
   }
 
   @Override

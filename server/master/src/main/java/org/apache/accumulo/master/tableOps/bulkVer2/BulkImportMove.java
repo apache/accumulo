@@ -18,11 +18,9 @@
  */
 package org.apache.accumulo.master.tableOps.bulkVer2;
 
+import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -110,7 +108,6 @@ class BulkImportMove extends MasterRepo {
     @SuppressWarnings("deprecation")
     int workerCount = aConf.getCount(
         aConf.resolve(Property.MASTER_RENAME_THREADS, Property.MASTER_BULK_RENAME_THREADS));
-    List<Future<Boolean>> results;
     Map<Path,Path> oldToNewMap = new HashMap<>();
     String fmtTid = FateTxId.formatTid(tid);
 
@@ -119,20 +116,12 @@ class BulkImportMove extends MasterRepo {
       Path newPath = new Path(bulkDir, renameEntry.getValue());
       oldToNewMap.put(originalPath, newPath);
     }
-    results = fs.bulkRename(oldToNewMap, workerCount, "bulkDir move", fmtTid);
-
-    for (Future<Boolean> future : results) {
-      try {
-        if (!future.get()) {
-          throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
-              TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
-              "Failed to move files from " + bulkInfo.sourceDir);
-        }
-      } catch (ExecutionException ee) {
-        throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
-            TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
-            ee.getCause().getMessage());
-      }
+    try {
+      fs.bulkRename(oldToNewMap, workerCount, "bulkDir move", fmtTid);
+    } catch (IOException ioe) {
+      throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
+          TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
+          ioe.getCause().getMessage());
     }
   }
 }
