@@ -731,7 +731,7 @@ public class TabletServer extends AbstractServer {
         return Iterators.transform(onlineTablets.snapshot().values().iterator(),
             Tablet::asCompactable);
       }
-    }, getContext(), this.resourceManager);
+    }, getContext());
     compactionManager.start();
 
     try {

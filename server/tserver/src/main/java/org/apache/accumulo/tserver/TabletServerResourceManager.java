@@ -57,7 +57,6 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.scan.ScanDirectives;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
@@ -317,15 +316,6 @@ public class TabletServerResourceManager {
     }
 
     return builder.build();
-  }
-
-  public ExecutorService createCompactionExecutor(CompactionExecutorId ceid, int numThreads,
-      BlockingQueue<Runnable> queue) {
-    String name = "compaction." + ceid;
-    ThreadPoolExecutor tp = new ThreadPoolExecutor(numThreads, numThreads, 60, TimeUnit.SECONDS,
-        queue, new NamingThreadFactory("compaction." + ceid));
-    tp.allowCoreThreadTimeOut(true);
-    return addEs(name, tp);
   }
 
   @SuppressFBWarnings(value = "DM_GC",
