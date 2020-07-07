@@ -36,11 +36,7 @@ public class SimpleThreadPool extends ThreadPoolExecutor {
   }
 
   public SimpleThreadPool(int coreAndMax, long threadTimeOut, final String name) {
-    super(coreAndMax, coreAndMax, threadTimeOut, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
-        new NamingThreadFactory(name));
-    if (threadTimeOut > 0) {
-      allowCoreThreadTimeOut(true);
-    }
+    this(coreAndMax, threadTimeOut, name, new LinkedBlockingQueue<>());
   }
 
   public SimpleThreadPool(int coreAndMax, final String name, BlockingQueue<Runnable> queue) {
