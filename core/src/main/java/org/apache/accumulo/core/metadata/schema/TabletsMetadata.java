@@ -67,7 +67,7 @@ import com.google.common.base.Preconditions;
  */
 public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable {
 
-  private static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
+  public static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
 
     private List<Text> families = new ArrayList<>();
     private List<ColumnFQ> qualifiers = new ArrayList<>();
@@ -79,6 +79,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private boolean checkConsistency = false;
     private boolean saveKeyValues;
     private TableId tableId;
+    public AccumuloClient _client;
 
     @Override
     public TabletsMetadata build(AccumuloClient client) {
@@ -90,6 +91,20 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         return new TabletsMetadata(getRootMetadata(zkRoot, zc));
       } else {
         return buildNonRoot(client);
+      }
+    }
+
+    // No-parameter build method that allows the use of AmpleImpl's Accumulo client.
+    // Ample methods can assign AmpleImple's Accumulo client to _client of this Builder object.
+    public TabletsMetadata build() {
+      Preconditions.checkState(level == null ^ table == null);
+      if (level == DataLevel.ROOT) {
+        ClientContext ctx = ((ClientContext) _client);
+        ZooCache zc = ctx.getZooCache();
+        String zkRoot = ctx.getZooKeeperRoot();
+        return new TabletsMetadata(getRootMetadata(zkRoot, zc));
+      } else {
+        return buildNonRoot(_client);
       }
     }
 
@@ -245,6 +260,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
   public interface Options {
     TabletsMetadata build(AccumuloClient client);
+
+    TabletsMetadata build();
 
     /**
      * Checks that the metadata table forms a linked list and automatically backs up until it does.

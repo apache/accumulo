@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -31,25 +35,39 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
 public class AccumuloClientIT extends AccumuloClusterHarness {
+
+  private static final Logger log = LoggerFactory.getLogger(AccumuloClientIT.class);
 
   @After
   public void deleteUsers() throws Exception {
@@ -221,5 +239,122 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     expectClosed(() -> tops.cancelCompaction(tableName));
     expectClosed(() -> tops.listSplits(tableName));
 
+  }
+
+  @Test
+  // This test is under construction.
+  public void testAmpleReadTablets() throws Exception {
+    // AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
+
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
+      accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
+          MetadataTable.NAME, TablePermission.WRITE);
+      BatchWriter bw =
+          accumuloClient.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      ClientContext cc = (ClientContext) accumuloClient;
+      // Create a fake METADATA table with these splits
+      String[] splits = {"a", "e", "j", "o", "t", "z"};
+      // create metadata for a table "t" with the splits above
+      TableId tableId = TableId.of("t");
+      Text pr = null;
+      for (String s : splits) {
+        Text split = new Text(s);
+        Mutation prevRow = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, split, pr));
+        prevRow.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME,
+            new Text("123456"), new Value("127.0.0.1:1234"));
+        MetadataSchema.TabletsSection.ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow,
+            new Value("junk"));
+        bw.addMutation(prevRow);
+        pr = split;
+      }
+      // Add the default tablet
+      Mutation defaultTablet = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, null, pr));
+      defaultTablet.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME,
+          new Text("123456"), new Value("127.0.0.1:1234"));
+      bw.addMutation(defaultTablet);
+      bw.close();
+
+      Text startRow = new Text("a");
+      Text endRow = new Text("z");
+
+      // Call up Ample from the client context using table "t" and build
+      TabletsMetadata tablets = cc.getAmple().readTablets().forTable(tableId)
+          .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
+
+      TabletMetadata tabletMetadata0 = Iterables.get(tablets, 0);
+      TabletMetadata tabletMetadata1 = Iterables.get(tablets, 1);
+      TabletMetadata tabletMetadata2 = Iterables.get(tablets, 2);
+      TabletMetadata tabletMetadata3 = Iterables.get(tablets, 3);
+      TabletMetadata tabletMetadata4 = Iterables.get(tablets, 4);
+
+      String infoTabletId0 = tabletMetadata0.getTableId().toString();
+      String infoExtent0 = tabletMetadata0.getExtent().toString();
+      String infoPrevEndRow0 = tabletMetadata0.getPrevEndRow().toString();
+      String infoEndRow0 = tabletMetadata0.getEndRow().toString();
+
+      String infoTabletId1 = tabletMetadata1.getTableId().toString();
+      String infoExtent1 = tabletMetadata1.getExtent().toString();
+      String infoPrevEndRow1 = tabletMetadata1.getPrevEndRow().toString();
+      String infoEndRow1 = tabletMetadata1.getEndRow().toString();
+
+      String infoTabletId2 = tabletMetadata2.getTableId().toString();
+      String infoExtent2 = tabletMetadata2.getExtent().toString();
+      String infoPrevEndRow2 = tabletMetadata2.getPrevEndRow().toString();
+      String infoEndRow2 = tabletMetadata2.getEndRow().toString();
+
+      String infoTabletId3 = tabletMetadata3.getTableId().toString();
+      String infoExtent3 = tabletMetadata3.getExtent().toString();
+      String infoPrevEndRow3 = tabletMetadata3.getPrevEndRow().toString();
+      String infoEndRow3 = tabletMetadata3.getEndRow().toString();
+
+      String infoTabletId4 = tabletMetadata4.getTableId().toString();
+      String infoExtent4 = tabletMetadata4.getExtent().toString();
+      String infoPrevEndRow4 = tabletMetadata4.getPrevEndRow().toString();
+      String infoEndRow4 = tabletMetadata4.getEndRow().toString();
+
+      String testInfoTabletId = "t";
+
+      String testInfoKeyExtent0 = "t;e;a";
+      String testInfoKeyExtent1 = "t;j;e";
+      String testInfoKeyExtent2 = "t;o;j";
+      String testInfoKeyExtent3 = "t;t;o";
+      String testInfoKeyExtent4 = "t;z;t";
+
+      String testInfoPrevEndRow0 = "a";
+      String testInfoPrevEndRow1 = "e";
+      String testInfoPrevEndRow2 = "j";
+      String testInfoPrevEndRow3 = "o";
+      String testInfoPrevEndRow4 = "t";
+
+      String testInfoEndRow0 = "e";
+      String testInfoEndRow1 = "j";
+      String testInfoEndRow2 = "o";
+      String testInfoEndRow3 = "t";
+      String testInfoEndRow4 = "z";
+
+      assertTrue(infoTabletId0.equals(testInfoTabletId));
+      assertTrue(infoTabletId1.equals(testInfoTabletId));
+      assertTrue(infoTabletId2.equals(testInfoTabletId));
+      assertTrue(infoTabletId3.equals(testInfoTabletId));
+      assertTrue(infoTabletId4.equals(testInfoTabletId));
+
+      assertTrue(infoExtent0.equals(testInfoKeyExtent0));
+      assertTrue(infoExtent1.equals(testInfoKeyExtent1));
+      assertTrue(infoExtent2.equals(testInfoKeyExtent2));
+      assertTrue(infoExtent3.equals(testInfoKeyExtent3));
+      assertTrue(infoExtent4.equals(testInfoKeyExtent4));
+
+      assertTrue(infoPrevEndRow0.equals(testInfoPrevEndRow0));
+      assertTrue(infoPrevEndRow1.equals(testInfoPrevEndRow1));
+      assertTrue(infoPrevEndRow2.equals(testInfoPrevEndRow2));
+      assertTrue(infoPrevEndRow3.equals(testInfoPrevEndRow3));
+      assertTrue(infoPrevEndRow4.equals(testInfoPrevEndRow4));
+
+      assertTrue(infoEndRow0.equals(testInfoEndRow0));
+      assertTrue(infoEndRow1.equals(testInfoEndRow1));
+      assertTrue(infoEndRow2.equals(testInfoEndRow2));
+      assertTrue(infoEndRow3.equals(testInfoEndRow3));
+      assertTrue(infoEndRow4.equals(testInfoEndRow4));
+    }
   }
 }
