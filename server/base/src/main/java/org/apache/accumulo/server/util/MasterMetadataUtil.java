@@ -194,9 +194,8 @@ public class MasterMetadataUtil {
    *
    */
   public static StoredTabletFile updateTabletDataFile(ServerContext context, KeyExtent extent,
-      TabletFile path, StoredTabletFile mergeFile, DataFileValue dfv, MetadataTime time,
-      Set<StoredTabletFile> filesInUseByScans, ZooLock zooLock, Set<String> unusedWalLogs,
-      long flushId) {
+      TabletFile path, DataFileValue dfv, MetadataTime time, ZooLock zooLock,
+      Set<String> unusedWalLogs, long flushId) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     StoredTabletFile newFile = null;
