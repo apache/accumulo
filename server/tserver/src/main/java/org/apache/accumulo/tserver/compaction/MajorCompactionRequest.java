@@ -60,6 +60,7 @@ import com.google.common.cache.Cache;
 /**
  * Information that can be used to determine how a tablet is to be major compacted, if needed.
  */
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class MajorCompactionRequest implements Cloneable {
   private final KeyExtent extent;
   private final MajorCompactionReason reason;

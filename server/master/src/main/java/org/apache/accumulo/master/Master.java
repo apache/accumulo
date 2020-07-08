@@ -1012,8 +1012,8 @@ public class Master extends AbstractServer
     try {
       sa = TServerUtils.startServer(getMetricsSystem(), context, getHostname(),
           Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
-          Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK,
-          Property.GENERAL_MAX_MESSAGE_SIZE);
+          Property.MASTER_MINTHREADS, Property.MASTER_MINTHREADS_TIMEOUT,
+          Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
@@ -1329,7 +1329,7 @@ public class Master extends AbstractServer
     ServerAddress replAddress = TServerUtils.startServer(getMetricsSystem(), context, getHostname(),
         Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
         "Master Replication Coordinator", "Replication Coordinator", null,
-        Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
+        Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS, null,
         Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
 
     log.info("Started replication coordinator service at " + replAddress.address);

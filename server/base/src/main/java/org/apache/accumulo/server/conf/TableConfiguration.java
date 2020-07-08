@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -61,6 +62,7 @@ public class TableConfiguration extends AccumuloConfiguration {
   private final EnumMap<IteratorScope,Deriver<ParsedIteratorConfig>> iteratorConfig;
 
   private final Deriver<ScanDispatcher> scanDispatchDeriver;
+  private final Deriver<CompactionDispatcher> compactionDispatchDeriver;
 
   public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
     this.context = requireNonNull(context);
@@ -79,6 +81,8 @@ public class TableConfiguration extends AccumuloConfiguration {
     }
 
     scanDispatchDeriver = newDeriver(conf -> createScanDispatcher(conf, context, tableId));
+    compactionDispatchDeriver =
+        newDeriver(conf -> createCompactionDispatcher(conf, context, tableId));
   }
 
   void setZooCacheFactory(ZooCacheFactory zcf) {
@@ -209,13 +213,8 @@ public class TableConfiguration extends AccumuloConfiguration {
     ScanDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
         Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, null);
 
-    var builder = ImmutableMap.<String,String>builder();
-    conf.getAllPropertiesWithPrefix(Property.TABLE_SCAN_DISPATCHER_OPTS).forEach((k, v) -> {
-      String optKey = k.substring(Property.TABLE_SCAN_DISPATCHER_OPTS.getKey().length());
-      builder.put(optKey, v);
-    });
-
-    Map<String,String> opts = builder.build();
+    Map<String,String> opts =
+        conf.getAllPropertiesWithPrefixStripped(Property.TABLE_SCAN_DISPATCHER_OPTS);
 
     newDispatcher.init(new ScanDispatcher.InitParameters() {
       @Override
@@ -237,7 +236,39 @@ public class TableConfiguration extends AccumuloConfiguration {
     return newDispatcher;
   }
 
+  private static CompactionDispatcher createCompactionDispatcher(AccumuloConfiguration conf,
+      ServerContext context, TableId tableId) {
+    CompactionDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
+        Property.TABLE_COMPACTION_DISPATCHER, CompactionDispatcher.class, null);
+
+    Map<String,String> opts =
+        conf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_DISPATCHER_OPTS);
+
+    newDispatcher.init(new CompactionDispatcher.InitParameters() {
+      @Override
+      public TableId getTableId() {
+        return tableId;
+      }
+
+      @Override
+      public Map<String,String> getOptions() {
+        return opts;
+      }
+
+      @Override
+      public ServiceEnvironment getServiceEnv() {
+        return new ServiceEnvironmentImpl(context);
+      }
+    });
+
+    return newDispatcher;
+  }
+
   public ScanDispatcher getScanDispatcher() {
     return scanDispatchDeriver.derive();
+  }
+
+  public CompactionDispatcher getCompactionDispatcher() {
+    return compactionDispatchDeriver.derive();
   }
 }

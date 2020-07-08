@@ -1597,6 +1597,7 @@
                   <sourceFileInclude>**/org/apache/accumulo/core/data/**/*.java</sourceFileInclude>
                   <sourceFileInclude>**/org/apache/accumulo/core/security/**/*.java</sourceFileInclude>
                   <sourceFileInclude>**/org/apache/accumulo/minicluster/**/*.java</sourceFileInclude>
+                  <sourceFileInclude>**/org/apache/accumulo/core/spi/**/*.java</sourceFileInclude>
                 </sourceFileIncludes>
               </configuration>
             </plugin>

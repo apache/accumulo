@@ -208,12 +208,7 @@ public class MasterMetadataUtil {
     }
     tablet.putFlushId(flushId);
 
-    if (mergeFile != null) {
-      tablet.deleteFile(mergeFile);
-    }
-
     unusedWalLogs.forEach(tablet::deleteWal);
-    filesInUseByScans.forEach(tablet::putScan);
 
     tablet.putZooLock(zooLock);
 

@@ -24,7 +24,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -271,25 +269,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     return map;
   }
 
-  @Test
-  public void testCompactEmptyTableWithGeneratorIterator() throws TableExistsException,
-      AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    String tableName = getUniqueNames(1)[0];
-    accumuloClient.tableOperations().create(tableName);
-
-    List<IteratorSetting> list = new ArrayList<>();
-    list.add(new IteratorSetting(15, HardListIterator.class));
-    accumuloClient.tableOperations().compact(tableName, null, null, list, true, true);
-
-    try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
-      Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
-      for (Map.Entry<Key,Value> entry : scanner)
-        actual.put(entry.getKey(), entry.getValue());
-      assertEquals(HardListIterator.allEntriesToInject, actual);
-      accumuloClient.tableOperations().delete(tableName);
-    }
-  }
-
   /** Compare only the row, column family and column qualifier. */
   static class KeyRowColFColQComparator implements Comparator<Key> {
     @Override
@@ -299,99 +278,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   static final KeyRowColFColQComparator COMPARE_KEY_TO_COLQ = new KeyRowColFColQComparator();
-
-  @Test
-  public void testCompactEmptyTableWithGeneratorIterator_Splits() throws TableExistsException,
-      AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    String tableName = getUniqueNames(1)[0];
-    accumuloClient.tableOperations().create(tableName);
-    SortedSet<Text> splitset = new TreeSet<>();
-    splitset.add(new Text("f"));
-    accumuloClient.tableOperations().addSplits(tableName, splitset);
-
-    List<IteratorSetting> list = new ArrayList<>();
-    list.add(new IteratorSetting(15, HardListIterator.class));
-    accumuloClient.tableOperations().compact(tableName, null, null, list, true, true);
-
-    try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
-      Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
-      for (Map.Entry<Key,Value> entry : scanner)
-        actual.put(entry.getKey(), entry.getValue());
-      assertEquals(HardListIterator.allEntriesToInject, actual);
-      accumuloClient.tableOperations().delete(tableName);
-    }
-  }
-
-  @Test
-  public void testCompactEmptyTableWithGeneratorIterator_Splits_Cancel()
-      throws TableExistsException, AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
-    String tableName = getUniqueNames(1)[0];
-    accumuloClient.tableOperations().create(tableName);
-    SortedSet<Text> splitset = new TreeSet<>();
-    splitset.add(new Text("f"));
-    accumuloClient.tableOperations().addSplits(tableName, splitset);
-
-    List<IteratorSetting> list = new ArrayList<>();
-    list.add(new IteratorSetting(15, HardListIterator.class));
-    accumuloClient.tableOperations().compact(tableName, null, null, list, true, false); // don't
-                                                                                        // block
-    accumuloClient.tableOperations().cancelCompaction(tableName);
-    // depending on timing, compaction will finish or be canceled
-
-    try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
-      Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
-      for (Map.Entry<Key,Value> entry : scanner)
-        actual.put(entry.getKey(), entry.getValue());
-      switch (actual.size()) {
-        case 3:
-          // Compaction cancel didn't happen in time
-          assertEquals(HardListIterator.allEntriesToInject, actual);
-          break;
-        case 2:
-          // Compacted the first tablet (-inf, f)
-          assertEquals(HardListIterator.allEntriesToInject.headMap(new Key("f")), actual);
-          break;
-        case 1:
-          // Compacted the second tablet [f, +inf)
-          assertEquals(HardListIterator.allEntriesToInject.tailMap(new Key("f")), actual);
-          break;
-        case 0:
-          // Cancelled the compaction before it ran. No generated entries.
-          break;
-        default:
-          fail("Unexpected number of entries");
-          break;
-      }
-      accumuloClient.tableOperations().delete(tableName);
-    }
-  }
-
-  @Test
-  public void testCompactEmptyTableWithGeneratorIterator_Splits_Partial()
-      throws TableExistsException, AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
-    String tableName = getUniqueNames(1)[0];
-    accumuloClient.tableOperations().create(tableName);
-    Text splitRow = new Text("f");
-    SortedSet<Text> splitset = new TreeSet<>();
-    splitset.add(splitRow);
-    accumuloClient.tableOperations().addSplits(tableName, splitset);
-
-    List<IteratorSetting> list = new ArrayList<>();
-    list.add(new IteratorSetting(15, HardListIterator.class));
-    // compact the second tablet, not the first
-    accumuloClient.tableOperations().compact(tableName, splitRow, null, list, true, true);
-
-    try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
-      Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
-      for (Map.Entry<Key,Value> entry : scanner)
-        actual.put(entry.getKey(), entry.getValue());
-      // only expect the entries in the second tablet
-      assertEquals(HardListIterator.allEntriesToInject.tailMap(new Key(splitRow)), actual);
-      accumuloClient.tableOperations().delete(tableName);
-    }
-  }
 
   /** Test recovery from bad majc iterator via compaction cancel. */
   @Test

@@ -32,7 +32,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Queue;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,8 +53,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
@@ -78,10 +75,6 @@ import org.apache.accumulo.server.tabletserver.MemoryManager;
 import org.apache.accumulo.server.tabletserver.TabletState;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
-import org.apache.accumulo.tserver.compaction.CompactionStrategy;
-import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
-import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
-import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.htrace.wrappers.TraceExecutorService;
@@ -104,9 +97,6 @@ public class TabletServerResourceManager {
   private static final Logger log = LoggerFactory.getLogger(TabletServerResourceManager.class);
 
   private final ExecutorService minorCompactionThreadPool;
-  private final ExecutorService majorCompactionThreadPool;
-  private final ExecutorService rootMajorCompactionThreadPool;
-  private final ExecutorService defaultMajorCompactionThreadPool;
   private final ExecutorService splitThreadPool;
   private final ExecutorService defaultSplitThreadPool;
   private final ExecutorService defaultMigrationPool;
@@ -383,13 +373,6 @@ public class TabletServerResourceManager {
     }
 
     minorCompactionThreadPool = createEs(Property.TSERV_MINC_MAXCONCURRENT, "minor compactor");
-
-    // make this thread pool have a priority queue... and execute tablets with the most
-    // files first!
-    majorCompactionThreadPool = createEs(Property.TSERV_MAJC_MAXCONCURRENT, "major compactor",
-        new CompactionQueue().asBlockingQueueOfRunnable());
-    rootMajorCompactionThreadPool = createEs(300, "md root major compactor");
-    defaultMajorCompactionThreadPool = createEs(300, "md major compactor");
 
     splitThreadPool = createEs();
     defaultSplitThreadPool = createEs(60, "md splitter");
@@ -733,8 +716,6 @@ public class TabletServerResourceManager {
 
   public class TabletResourceManager {
 
-    private final long creationTime = System.currentTimeMillis();
-
     private volatile boolean openFilesReserved = false;
 
     private volatile boolean closed = false;
@@ -820,52 +801,6 @@ public class TabletServerResourceManager {
 
     // END methods that Tablets call to manage memory
 
-    // BEGIN methods that Tablets call to make decisions about major compaction
-    // when too many files are open, we may want tablets to compact down
-    // to one map file
-    public boolean needsMajorCompaction(SortedMap<StoredTabletFile,DataFileValue> tabletFiles,
-        MajorCompactionReason reason) {
-      if (closed) {
-        return false;// throw new IOException("closed");
-      }
-
-      // int threshold;
-
-      if (reason == MajorCompactionReason.USER) {
-        return true;
-      }
-
-      if (reason == MajorCompactionReason.IDLE) {
-        // threshold = 1;
-        long idleTime;
-        if (lastReportedCommitTime == 0) {
-          // no commits, so compute how long the tablet has been assigned to the
-          // tablet server
-          idleTime = System.currentTimeMillis() - creationTime;
-        } else {
-          idleTime = System.currentTimeMillis() - lastReportedCommitTime;
-        }
-
-        if (idleTime < tableConf.getTimeInMillis(Property.TABLE_MAJC_COMPACTALL_IDLETIME)) {
-          return false;
-        }
-      }
-      CompactionStrategy strategy = Property.createTableInstanceFromPropertyName(tableConf,
-          Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
-          new DefaultCompactionStrategy());
-      strategy.init(Property.getCompactionStrategyOptions(tableConf));
-      MajorCompactionRequest request =
-          new MajorCompactionRequest(extent, reason, tableConf, context);
-      request.setFiles(tabletFiles);
-      try {
-        return strategy.shouldCompact(request);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    // END methods that Tablets call to make decisions about major compaction
-
     // tablets call this method to run minor compactions,
     // this allows us to control how many minor compactions
     // run concurrently in a tablet server
@@ -895,11 +830,6 @@ public class TabletServerResourceManager {
     public TabletServerResourceManager getTabletServerResourceManager() {
       return TabletServerResourceManager.this;
     }
-
-    public void executeMajorCompaction(KeyExtent tablet, Runnable compactionTask) {
-      TabletServerResourceManager.this.executeMajorCompaction(tablet, compactionTask);
-    }
-
   }
 
   public void executeSplit(KeyExtent tablet, Runnable splitTask) {
@@ -911,16 +841,6 @@ public class TabletServerResourceManager {
       defaultSplitThreadPool.execute(splitTask);
     } else {
       splitThreadPool.execute(splitTask);
-    }
-  }
-
-  public void executeMajorCompaction(KeyExtent tablet, Runnable compactionTask) {
-    if (tablet.isRootTablet()) {
-      rootMajorCompactionThreadPool.execute(compactionTask);
-    } else if (tablet.isMeta()) {
-      defaultMajorCompactionThreadPool.execute(compactionTask);
-    } else {
-      majorCompactionThreadPool.execute(compactionTask);
     }
   }
 

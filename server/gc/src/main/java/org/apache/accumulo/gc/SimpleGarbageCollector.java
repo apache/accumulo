@@ -73,6 +73,7 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
@@ -653,7 +654,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     try {
       ServerAddress server = TServerUtils.startTServer(getMetricsSystem(), getConfiguration(),
           getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
-          "GC Monitor Service", 2,
+          "GC Monitor Service", 2, SimpleThreadPool.DEFAULT_TIMEOUT_MILLISECS,
           getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
           maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
           addresses);
