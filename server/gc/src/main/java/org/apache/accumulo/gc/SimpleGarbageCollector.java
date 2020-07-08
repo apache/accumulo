@@ -213,9 +213,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         String candidate = candidates.next();
         candidateLength += candidate.length();
         result.add(candidate);
-        if (almostOutOfMemory(candidateLength)) {
-          log.info("List of delete candidates has exceeded the batch size"
-              + " threshold. Attempting to delete what has been gathered so far.");
+        if (candidateLength > CANDIDATE_BATCH_SIZE) {
+          log.info(
+              "Candidate batch of size {} has exceeded the"
+                  + " threshold. Attempting to delete what has been gathered so far.",
+              candidateLength);
           return true;
         }
       }
@@ -660,18 +662,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       log.error("FATAL:", ex);
       throw new RuntimeException(ex);
     }
-  }
-
-  /**
-   * Checks if the system is almost out of memory.
-   *
-   * @param candidateLength
-   *          Candidate Length
-   * @return true if system is almost out of memory
-   * @see #CANDIDATE_BATCH_SIZE
-   */
-  static boolean almostOutOfMemory(Long candidateLength) {
-    return candidateLength > CANDIDATE_BATCH_SIZE;
   }
 
   /**

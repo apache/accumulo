@@ -133,13 +133,6 @@ public class SimpleGarbageCollectorTest {
   }
 
   @Test
-  public void testAlmostOutOfMemory() {
-    long candidateLength = SimpleGarbageCollector.CANDIDATE_BATCH_SIZE;
-    assertTrue(SimpleGarbageCollector.almostOutOfMemory(candidateLength + 1));
-    assertFalse(SimpleGarbageCollector.almostOutOfMemory(candidateLength - 1));
-  }
-
-  @Test
   public void testIsDir() {
     assertTrue(SimpleGarbageCollector.isDir("tid1/dir1"));
     assertTrue(SimpleGarbageCollector.isDir("/dir1"));
