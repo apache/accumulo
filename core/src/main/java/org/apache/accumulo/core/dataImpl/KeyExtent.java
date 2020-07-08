@@ -457,6 +457,14 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return ke.getTableId();
   }
 
+  public boolean contains(KeyExtent oke) {
+    boolean containsPrevRow = getPrevEndRow() == null
+        || (oke.getPrevEndRow() != null && getPrevEndRow().compareTo(oke.getPrevEndRow()) <= 0);
+    boolean containsEndRow = getEndRow() == null
+        || (oke.getEndRow() != null && getEndRow().compareTo(oke.getEndRow()) >= 0);
+    return containsPrevRow && containsEndRow;
+  }
+
   public boolean contains(final ByteSequence bsrow) {
     if (bsrow == null) {
       throw new IllegalArgumentException(

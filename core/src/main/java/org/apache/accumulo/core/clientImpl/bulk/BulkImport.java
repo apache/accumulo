@@ -608,17 +608,13 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
           continue;
         }
 
-        boolean containsPrevRow = ke.getPrevEndRow() == null || (oke.getPrevEndRow() != null
-            && ke.getPrevEndRow().compareTo(oke.getPrevEndRow()) <= 0);
-        boolean containsEndRow = ke.getEndRow() == null
-            || (oke.getEndRow() != null && ke.getEndRow().compareTo(oke.getEndRow()) >= 0);
-
-        if (containsPrevRow && containsEndRow) {
+        if (ke.contains(oke)) {
           mappings.get(ke).merge(mappings.remove(oke));
-        } else {
-          throw new RuntimeException("Unable to execute merge. Key extent "
-                  + oke.toString() + " extends beyond the range of Key extent "
-                  + ke.toString() + ". Out of range data would be lost.");
+        } else if (!oke.contains(ke)) {
+          throw new RuntimeException("Error during bulk import: Unable to merge overlapping "
+              + "tablets where neither tablet contains the other. This may be caused by "
+              + "a concurrent merge. Key extents " + oke + " and " + ke + " overlap, but "
+              + "neither contains the other.");
         }
       }
     }
