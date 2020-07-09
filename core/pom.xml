@@ -383,21 +383,5 @@
         </plugins>
       </build>
     </profile>
-    <profile>
-      <!-- workaround for https://bugs.eclipse.org/bugs/show_bug.cgi?id=541772 -->
-      <id>m2e</id>
-      <activation>
-        <property>
-          <name>m2e.version</name>
-        </property>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-client-runtime</artifactId>
-          <scope>compile</scope>
-        </dependency>
-      </dependencies>
-    </profile>
   </profiles>
 </project>
