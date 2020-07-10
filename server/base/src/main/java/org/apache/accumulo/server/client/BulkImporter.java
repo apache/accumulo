@@ -175,11 +175,17 @@ public class BulkImporter {
 
       Map<Path,Integer> failureCount = new TreeMap<>();
 
-      for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet())
-        failureCount.put(entry.getKey(), 1);
+      int retries = context.getConfiguration().getCount(Property.TSERV_BULK_RETRY);
+      if (retries == 0) {
+        log.warn("Retries set to 0. All failed map file assignments will not be retried.");
+        completeFailures.putAll(assignmentFailures);
+      } else {
+        for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet())
+          failureCount.put(entry.getKey(), 1);
+      }
 
       long sleepTime = 2 * 1000;
-      while (!assignmentFailures.isEmpty()) {
+      while (!assignmentFailures.isEmpty() && retries > 0) {
         sleepTime = Math.min(sleepTime * 2, 60 * 1000);
         locator.invalidateCache();
         // assumption about assignment failures is that it caused by a split
@@ -242,7 +248,6 @@ public class BulkImporter {
 
         Set<Entry<Path,Integer>> failureIter = failureCount.entrySet();
         for (Entry<Path,Integer> entry : failureIter) {
-          int retries = context.getConfiguration().getCount(Property.TSERV_BULK_RETRY);
           if (entry.getValue() > retries && assignmentFailures.get(entry.getKey()) != null) {
             log.error("Map file {} failed more than {} times, giving up.", entry.getKey(), retries);
             completeFailures.put(entry.getKey(), assignmentFailures.get(entry.getKey()));
