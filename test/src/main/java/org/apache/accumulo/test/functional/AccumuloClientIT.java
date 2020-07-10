@@ -238,14 +238,10 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     expectClosed(() -> tops.create("expectFail"));
     expectClosed(() -> tops.cancelCompaction(tableName));
     expectClosed(() -> tops.listSplits(tableName));
-
   }
 
   @Test
-  // This test is under construction.
   public void testAmpleReadTablets() throws Exception {
-    // AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
-
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
           MetadataTable.NAME, TablePermission.WRITE);
@@ -332,29 +328,29 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
       String testInfoEndRow3 = "t";
       String testInfoEndRow4 = "z";
 
-      assertTrue(infoTabletId0.equals(testInfoTabletId));
-      assertTrue(infoTabletId1.equals(testInfoTabletId));
-      assertTrue(infoTabletId2.equals(testInfoTabletId));
-      assertTrue(infoTabletId3.equals(testInfoTabletId));
-      assertTrue(infoTabletId4.equals(testInfoTabletId));
+      assertEquals(infoTabletId0, testInfoTabletId);
+      assertEquals(infoTabletId1, testInfoTabletId);
+      assertEquals(infoTabletId2, testInfoTabletId);
+      assertEquals(infoTabletId3, testInfoTabletId);
+      assertEquals(infoTabletId4, testInfoTabletId);
 
-      assertTrue(infoExtent0.equals(testInfoKeyExtent0));
-      assertTrue(infoExtent1.equals(testInfoKeyExtent1));
-      assertTrue(infoExtent2.equals(testInfoKeyExtent2));
-      assertTrue(infoExtent3.equals(testInfoKeyExtent3));
-      assertTrue(infoExtent4.equals(testInfoKeyExtent4));
+      assertEquals(infoExtent0, testInfoKeyExtent0);
+      assertEquals(infoExtent1, testInfoKeyExtent1);
+      assertEquals(infoExtent2, testInfoKeyExtent2);
+      assertEquals(infoExtent3, testInfoKeyExtent3);
+      assertEquals(infoExtent4, testInfoKeyExtent4);
 
-      assertTrue(infoPrevEndRow0.equals(testInfoPrevEndRow0));
-      assertTrue(infoPrevEndRow1.equals(testInfoPrevEndRow1));
-      assertTrue(infoPrevEndRow2.equals(testInfoPrevEndRow2));
-      assertTrue(infoPrevEndRow3.equals(testInfoPrevEndRow3));
-      assertTrue(infoPrevEndRow4.equals(testInfoPrevEndRow4));
+      assertEquals(infoPrevEndRow0, testInfoPrevEndRow0);
+      assertEquals(infoPrevEndRow1, testInfoPrevEndRow1);
+      assertEquals(infoPrevEndRow2, testInfoPrevEndRow2);
+      assertEquals(infoPrevEndRow3, testInfoPrevEndRow3);
+      assertEquals(infoPrevEndRow4, testInfoPrevEndRow4);
 
-      assertTrue(infoEndRow0.equals(testInfoEndRow0));
-      assertTrue(infoEndRow1.equals(testInfoEndRow1));
-      assertTrue(infoEndRow2.equals(testInfoEndRow2));
-      assertTrue(infoEndRow3.equals(testInfoEndRow3));
-      assertTrue(infoEndRow4.equals(testInfoEndRow4));
+      assertEquals(infoEndRow0, testInfoEndRow0);
+      assertEquals(infoEndRow1, testInfoEndRow1);
+      assertEquals(infoEndRow2, testInfoEndRow2);
+      assertEquals(infoEndRow3, testInfoEndRow3);
+      assertEquals(infoEndRow4, testInfoEndRow4);
     }
   }
 }
