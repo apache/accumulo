@@ -151,7 +151,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       sleepUninterruptibly(20, TimeUnit.SECONDS);
       String output = "";
-      while (!output.contains("delete candidates has exceeded")) {
+      while (!output.contains("has exceeded the threshold")) {
         try {
           output = gc.readStdOut();
         } catch (UncheckedIOException ex) {
@@ -160,7 +160,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         }
       }
       gc.getProcess().destroy();
-      assertTrue(output.contains("delete candidates has exceeded"));
+      assertTrue(output.contains("has exceeded the threshold"));
     }
   }
 
