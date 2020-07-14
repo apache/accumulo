@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl.bulk;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -28,7 +29,6 @@ import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class BulkImportTest {
@@ -90,7 +90,7 @@ public class BulkImportTest {
     addMapping(mappings, "q", "s", "f4");
     addMapping(mappings, "m", "q", "f5");
     addMapping(mappings, "s", null, "f6");
-    Assert.assertThrows(RuntimeException.class, () -> BulkImport.mergeOverlapping(mappings));
+    assertThrows(RuntimeException.class, () -> BulkImport.mergeOverlapping(mappings));
   }
 
   private void addMapping(SortedMap<KeyExtent,Files> mappings, String prevRow, String endRow,
