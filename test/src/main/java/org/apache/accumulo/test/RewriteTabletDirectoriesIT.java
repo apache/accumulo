@@ -32,6 +32,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -166,10 +167,12 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
         + " " + v2Count, Math.abs(v1Count - v2Count) < 2);
     // verify we can read the old data
     count = 0;
-    for (Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY)) {
-      assertTrue("Found unexpected entry in table: " + entry,
-          splits.contains(entry.getKey().getRow()));
-      count++;
+    try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> entry : s) {
+        assertTrue("Found unexpected entry in table: " + entry,
+            splits.contains(entry.getKey().getRow()));
+        count++;
+      }
     }
     assertEquals(splits.size(), count);
   }

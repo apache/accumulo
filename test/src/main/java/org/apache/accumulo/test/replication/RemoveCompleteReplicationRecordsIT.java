@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -290,9 +291,11 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     }
 
     int actualRecords = 0;
-    for (Entry<Key,Value> entry : ReplicationTable.getScanner(conn)) {
-      assertFalse(filesToRemove.contains(entry.getKey().getRow().toString()));
-      actualRecords++;
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
+      for (Entry<Key,Value> entry : s) {
+        assertFalse(filesToRemove.contains(entry.getKey().getRow().toString()));
+        actualRecords++;
+      }
     }
 
     assertEquals(finalNumRecords, actualRecords);

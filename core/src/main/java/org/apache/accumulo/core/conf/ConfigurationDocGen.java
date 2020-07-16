@@ -380,9 +380,13 @@ class ConfigurationDocGen {
   public static void main(String[] args)
       throws FileNotFoundException, UnsupportedEncodingException {
     if (args.length == 2 && args[0].equals("--generate-html")) {
-      new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateHtml();
+      try (PrintStream p = new PrintStream(args[1], UTF_8.name())) {
+        new ConfigurationDocGen(p).generateHtml();
+      }
     } else if (args.length == 2 && args[0].equals("--generate-asciidoc")) {
-      new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateAsciidoc();
+      try (PrintStream p = new PrintStream(args[1], UTF_8.name())) {
+        new ConfigurationDocGen(p).generateAsciidoc();
+      }
     } else {
       throw new IllegalArgumentException("Usage: " + ConfigurationDocGen.class.getName()
           + " --generate-html <filename> | --generate-asciidoc <filename>");

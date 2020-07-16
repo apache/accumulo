@@ -256,21 +256,24 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       log.info("");
       log.info("Fetching metadata records:");
-      for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME,
-          Authorizations.EMPTY)) {
-        if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
-          log.info(kv.getKey().toStringNoTruncate() + " "
-              + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-        } else {
-          log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+      try (Scanner s = connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> kv : s) {
+          if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
+            log.info(kv.getKey().toStringNoTruncate() + " "
+                + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+          } else {
+            log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+          }
         }
       }
 
       log.info("");
       log.info("Fetching replication records:");
-      for (Entry<Key,Value> kv : ReplicationTable.getScanner(connMaster)) {
-        log.info(kv.getKey().toStringNoTruncate() + " "
-            + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      try (Scanner s = ReplicationTable.getScanner(connMaster)) {
+        for (Entry<Key,Value> kv : s) {
+          log.info(kv.getKey().toStringNoTruncate() + " "
+              + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        }
       }
 
       Future<Boolean> future = executor.submit(new Callable<Boolean>() {
@@ -296,21 +299,24 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       log.info("");
       log.info("Fetching metadata records:");
-      for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME,
-          Authorizations.EMPTY)) {
-        if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
-          log.info(kv.getKey().toStringNoTruncate() + " "
-              + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-        } else {
-          log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+      try (Scanner s = connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> kv : s) {
+          if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
+            log.info(kv.getKey().toStringNoTruncate() + " "
+                + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+          } else {
+            log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+          }
         }
       }
 
       log.info("");
       log.info("Fetching replication records:");
-      for (Entry<Key,Value> kv : ReplicationTable.getScanner(connMaster)) {
-        log.info(kv.getKey().toStringNoTruncate() + " "
-            + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      try (Scanner s = ReplicationTable.getScanner(connMaster)) {
+        for (Entry<Key,Value> kv : s) {
+          log.info(kv.getKey().toStringNoTruncate() + " "
+              + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        }
       }
 
       Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY),
@@ -595,10 +601,11 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     Iterators.size(connMaster.createScanner(masterTable, Authorizations.EMPTY).iterator());
 
-    for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME,
-        Authorizations.EMPTY)) {
-      log.debug(kv.getKey().toStringNoTruncate() + " "
-          + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+    try (Scanner s = connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> kv : s) {
+        log.debug(kv.getKey().toStringNoTruncate() + " "
+            + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      }
     }
 
     connMaster.replicationOperations().drain(masterTable, files);

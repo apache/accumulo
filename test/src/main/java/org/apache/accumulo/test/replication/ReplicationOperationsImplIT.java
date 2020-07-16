@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
@@ -408,8 +409,10 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.close();
 
     log.info("Reading metadata first time");
-    for (Entry<Key,Value> e : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      log.info("{}", e.getKey());
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> e : s) {
+        log.info("{}", e.getKey());
+      }
     }
 
     final AtomicBoolean done = new AtomicBoolean(false);
@@ -445,8 +448,10 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.close();
 
     log.info("Reading metadata second time");
-    for (Entry<Key,Value> e : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      log.info("{}", e.getKey());
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> e : s) {
+        log.info("{}", e.getKey());
+      }
     }
 
     bw = ReplicationTable.getBatchWriter(conn);

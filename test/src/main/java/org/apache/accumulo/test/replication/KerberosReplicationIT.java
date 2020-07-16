@@ -28,6 +28,7 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -245,10 +246,14 @@ public class KerberosReplicationIT extends AccumuloITBase {
         primaryConn.replicationOperations().drain(primaryTable1, filesFor1);
 
         long countTable = 0l;
-        for (Entry<Key,Value> entry : peerConn.createScanner(peerTable1, Authorizations.EMPTY)) {
-          countTable++;
-          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(primaryTable1));
+        try (Scanner s = peerConn.createScanner(peerTable1, Authorizations.EMPTY)) {
+          for (Entry<Key,Value> entry : s) {
+            countTable++;
+            assertTrue(
+                "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+                    + entry.getValue(),
+                entry.getKey().getRow().toString().startsWith(primaryTable1));
+          }
         }
 
         log.info("Found {} records in {}", countTable, peerTable1);

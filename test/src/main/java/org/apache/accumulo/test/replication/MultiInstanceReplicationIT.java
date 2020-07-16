@@ -255,21 +255,24 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       log.info("");
       log.info("Fetching metadata records:");
-      for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME,
-          Authorizations.EMPTY)) {
-        if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
-          log.info(kv.getKey().toStringNoTruncate() + " "
-              + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-        } else {
-          log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+      try (Scanner s = connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> kv : s) {
+          if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
+            log.info(kv.getKey().toStringNoTruncate() + " "
+                + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+          } else {
+            log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+          }
         }
       }
 
       log.info("");
       log.info("Fetching replication records:");
-      for (Entry<Key,Value> kv : ReplicationTable.getScanner(connMaster)) {
-        log.info(kv.getKey().toStringNoTruncate() + " "
-            + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      try (Scanner s = ReplicationTable.getScanner(connMaster)) {
+        for (Entry<Key,Value> kv : s) {
+          log.info(kv.getKey().toStringNoTruncate() + " "
+              + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        }
       }
 
       Future<Boolean> future = executor.submit(new Callable<Boolean>() {
@@ -298,21 +301,24 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       log.info("");
       log.info("Fetching metadata records:");
-      for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME,
-          Authorizations.EMPTY)) {
-        if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
-          log.info(kv.getKey().toStringNoTruncate() + " "
-              + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-        } else {
-          log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+      try (Scanner s = connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> kv : s) {
+          if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
+            log.info(kv.getKey().toStringNoTruncate() + " "
+                + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+          } else {
+            log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+          }
         }
       }
 
       log.info("");
       log.info("Fetching replication records:");
-      for (Entry<Key,Value> kv : ReplicationTable.getScanner(connMaster)) {
-        log.info(kv.getKey().toStringNoTruncate() + " "
-            + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      try (Scanner s = ReplicationTable.getScanner(connMaster)) {
+        for (Entry<Key,Value> kv : s) {
+          log.info(kv.getKey().toStringNoTruncate() + " "
+              + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        }
       }
 
       Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY),
@@ -474,20 +480,24 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       connMaster.replicationOperations().drain(masterTable2, filesFor2);
 
       long countTable = 0l;
-      for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
-        countTable++;
-        assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-            + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable1));
+      try (Scanner s = connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> entry : s) {
+          countTable++;
+          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+              + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable1));
+        }
       }
 
       log.info("Found {} records in {}", countTable, peerTable1);
       assertEquals(masterTable1Records, countTable);
 
       countTable = 0l;
-      for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
-        countTable++;
-        assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-            + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable2));
+      try (Scanner s = connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> entry : s) {
+          countTable++;
+          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+              + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable2));
+        }
       }
 
       log.info("Found {} records in {}", countTable, peerTable2);
@@ -589,9 +599,11 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
     Iterators.size(connMaster.createScanner(masterTable, Authorizations.EMPTY).iterator());
 
-    for (Entry<Key,Value> kv : ReplicationTable.getScanner(connMaster)) {
-      log.debug(kv.getKey().toStringNoTruncate() + " "
-          + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+    try (Scanner s = ReplicationTable.getScanner(connMaster)) {
+      for (Entry<Key,Value> kv : s) {
+        log.debug(kv.getKey().toStringNoTruncate() + " "
+            + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      }
     }
 
     connMaster.replicationOperations().drain(masterTable, files);
