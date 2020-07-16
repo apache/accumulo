@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.compaction.CompactionSettings;
 import org.apache.accumulo.shell.Shell;
@@ -178,11 +177,9 @@ public class CompactCommand extends TableOperation {
 
   @SuppressWarnings("removal")
   private void configureCompactionStrat(final CommandLine cl) {
-    CompactionStrategyConfig csc =
-        new CompactionStrategyConfig(cl.getOptionValue(strategyOpt.getOpt()));
-
+    var csc = new org.apache.accumulo.core.client.admin.CompactionStrategyConfig(
+        cl.getOptionValue(strategyOpt.getOpt()));
     csc.setOptions(ShellUtil.parseMapOpt(cl, strategyConfigOpt));
-
     compactionConfig.setCompactionStrategy(csc);
   }
 

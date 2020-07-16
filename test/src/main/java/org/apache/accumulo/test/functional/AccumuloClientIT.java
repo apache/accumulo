@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -105,7 +104,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
 
       c.tableOperations().create(tableName);
 
-      try (AccumuloClient client2 = Connector.newClient(c)) {
+      try (AccumuloClient client2 = org.apache.accumulo.core.client.Connector.newClient(c)) {
         assertTrue(client2.tableOperations().list().contains(tableName));
       }
 

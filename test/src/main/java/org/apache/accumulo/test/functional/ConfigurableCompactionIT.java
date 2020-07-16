@@ -43,9 +43,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.tserver.compaction.CompactionPlan;
-import org.apache.accumulo.tserver.compaction.CompactionStrategy;
-import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -68,7 +65,8 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
   }
 
   @SuppressWarnings("removal")
-  public static class SimpleCompactionStrategy extends CompactionStrategy {
+  public static class SimpleCompactionStrategy
+      extends org.apache.accumulo.tserver.compaction.CompactionStrategy {
 
     @Override
     public void init(Map<String,String> options) {
@@ -80,14 +78,16 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     int count = 3;
 
     @Override
-    public boolean shouldCompact(MajorCompactionRequest request) {
+    public boolean
+        shouldCompact(org.apache.accumulo.tserver.compaction.MajorCompactionRequest request) {
       return request.getFiles().size() == count;
 
     }
 
     @Override
-    public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
-      CompactionPlan result = new CompactionPlan();
+    public org.apache.accumulo.tserver.compaction.CompactionPlan
+        getCompactionPlan(org.apache.accumulo.tserver.compaction.MajorCompactionRequest request) {
+      var result = new org.apache.accumulo.tserver.compaction.CompactionPlan();
       result.inputFiles.addAll(request.getFiles().keySet());
       return result;
     }
