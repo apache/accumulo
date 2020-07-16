@@ -284,4 +284,26 @@ public abstract class Connector {
       throws AccumuloSecurityException, AccumuloException {
     return new ConnectorImpl((ClientContext) client);
   }
+
+  /**
+   * Creates a new Accumulo Client from a Connector. The returned client should be closed and
+   * closing it will not affect the Connector from which it was derived. This method is useful for
+   * cases where code written using Connector must call code written using AccumuloClient. Below is
+   * an example.
+   *
+   * <pre>
+   * <code>
+   *   Connector conn = getMyConnector();
+   *   try(AccumuloClient client = Connector.newClient(conn) {
+   *      doSomething(client);
+   *   }
+   * </code>
+   * </pre>
+   *
+   * @since 2.1.0
+   */
+  public static AccumuloClient newClient(Connector conn) {
+    return Accumulo.newClient().from(((ConnectorImpl) conn).getAccumuloClient().getProperties())
+        .build();
+  }
 }
