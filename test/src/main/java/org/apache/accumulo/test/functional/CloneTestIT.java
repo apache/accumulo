@@ -326,8 +326,10 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
       List<String> rows = Arrays.asList("0", "1", "2", "3", "4", "9");
       List<String> actualRows = new ArrayList<>();
-      for (Entry<Key,Value> entry : client.createScanner(tables[1], Authorizations.EMPTY)) {
-        actualRows.add(entry.getKey().getRow().toString());
+      try (var scanner = client.createScanner(tables[1], Authorizations.EMPTY)) {
+        for (Entry<Key,Value> entry : scanner) {
+          actualRows.add(entry.getKey().getRow().toString());
+        }
       }
 
       assertEquals(rows, actualRows);
