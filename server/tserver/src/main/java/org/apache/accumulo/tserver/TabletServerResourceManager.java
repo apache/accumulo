@@ -71,7 +71,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
 import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
-import org.apache.accumulo.server.tabletserver.MemoryManager;
 import org.apache.accumulo.server.tabletserver.TabletState;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
@@ -115,7 +114,7 @@ public class TabletServerResourceManager {
 
   private final FileManager fileManager;
 
-  private final MemoryManager memoryManager;
+  private final LargestFirstMemoryManager memoryManager;
 
   private final MemoryManagementFramework memMgmt;
 
@@ -409,8 +408,7 @@ public class TabletServerResourceManager {
 
     fileManager = new FileManager(context, context.getVolumeManager(), maxOpenFiles, fileLenCache);
 
-    memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT,
-        MemoryManager.class, new LargestFirstMemoryManager());
+    memoryManager = new LargestFirstMemoryManager();
     memoryManager.init(context.getServerConfFactory());
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
@@ -643,7 +641,7 @@ public class TabletServerResourceManager {
             // log.debug("mma.tabletsToMinorCompact = "+mma.tabletsToMinorCompact);
           }
         } catch (Throwable t) {
-          log.error("Minor compactions for memory managment failed", t);
+          log.error("Minor compactions for memory management failed", t);
         }
 
         sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
@@ -820,7 +818,6 @@ public class TabletServerResourceManager {
           }
 
           memMgmt.tabletClosed(extent);
-          memoryManager.tabletClosed(extent);
 
           closed = true;
         }
