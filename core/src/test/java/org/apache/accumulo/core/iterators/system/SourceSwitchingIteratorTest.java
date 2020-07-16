@@ -293,7 +293,7 @@ public class SourceSwitchingIteratorTest {
 
   }
 
-  private Range yield(Range r, SourceSwitchingIterator ssi, YieldCallback<Key> yield)
+  private Range doYield(Range r, SourceSwitchingIterator ssi, YieldCallback<Key> yield)
       throws IOException {
     while (yield.hasYielded()) {
       Key yieldPosition = yield.getPositionAndReset();
@@ -324,13 +324,13 @@ public class SourceSwitchingIteratorTest {
 
     Range r = new Range();
     ssi.seek(r, new ArrayList<ByteSequence>(), false);
-    r = yield(r, ssi, yield);
+    r = doYield(r, ssi, yield);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
-    r = yield(r, ssi, yield);
+    r = doYield(r, ssi, yield);
     testAndCallNext(ssi, "r1", "cf1", "cq3", 5, "v2", true);
-    r = yield(r, ssi, yield);
+    r = doYield(r, ssi, yield);
     testAndCallNext(ssi, "r2", "cf1", "cq1", 5, "v3", true);
-    r = yield(r, ssi, yield);
+    r = doYield(r, ssi, yield);
     assertFalse(ssi.hasTop());
   }
 
