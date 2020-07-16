@@ -506,7 +506,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   /*
    * This test should be deleted when the debug command is removed
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   @Test
   public void debug() throws Exception {
     String expectMsg = "The debug command is deprecated";

@@ -40,6 +40,7 @@ import com.google.common.base.Preconditions;
  *
  * @since 1.7.0
  */
+@SuppressWarnings("removal")
 public class CompactionConfig {
 
   private Text start = null;
@@ -47,7 +48,6 @@ public class CompactionConfig {
   private boolean flush = true;
   private boolean wait = true;
   private List<IteratorSetting> iterators = Collections.emptyList();
-  @SuppressWarnings("removal")
   private CompactionStrategyConfig compactionStrategy = DEFAULT_STRATEGY;
   private Map<String,String> hints = Map.of();
   private PluginConfig selectorConfig = UserCompactionUtils.DEFAULT_SELECTOR;
@@ -185,7 +185,6 @@ public class CompactionConfig {
    * @return this;
    * @since 2.1.0
    */
-  @SuppressWarnings("removal")
   public CompactionConfig setSelector(PluginConfig selectorConfig) {
     Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
     Preconditions.checkArgument(!selectorConfig.getClassName().isBlank());
@@ -203,7 +202,6 @@ public class CompactionConfig {
   /**
    * @since 2.1.0
    */
-  @SuppressWarnings("removal")
   public CompactionConfig setExecutionHints(Map<String,String> hints) {
     if (!hints.isEmpty())
       Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
@@ -224,7 +222,6 @@ public class CompactionConfig {
    *
    * @since 2.1.0
    */
-  @SuppressWarnings("removal")
   public CompactionConfig setConfigurer(PluginConfig configurerConfig) {
     Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
     this.configurerConfig = configurerConfig;

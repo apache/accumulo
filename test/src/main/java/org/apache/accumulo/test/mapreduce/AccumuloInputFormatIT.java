@@ -72,7 +72,7 @@ import com.google.common.collect.Multimap;
 /**
  * This tests deprecated mapreduce code in core jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat inputFormat;

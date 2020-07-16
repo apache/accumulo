@@ -37,7 +37,7 @@ import org.apache.accumulo.core.security.Authorizations;
  * @deprecated since 2.0.0. Use {@link AccumuloClient} for writing new code. Connector is available
  *             for existing code. Use {@link #from(AccumuloClient)} as a bridge between the two.
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public abstract class Connector {
 
   /**
@@ -87,7 +87,7 @@ public abstract class Connector {
    *             {@link #createBatchDeleter(String, Authorizations, int, BatchWriterConfig)}
    *             instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.5.0")
   public abstract BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads, long maxMemory, long maxLatency, int maxWriteThreads)
       throws TableNotFoundException;
@@ -132,7 +132,7 @@ public abstract class Connector {
    *           when the specified table doesn't exist
    * @deprecated since 1.5.0; Use {@link #createBatchWriter(String, BatchWriterConfig)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.5.0")
   public abstract BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException;
 
@@ -167,7 +167,7 @@ public abstract class Connector {
    * @return MultiTableBatchWriter object for configuring and writing data to
    * @deprecated since 1.5.0; Use {@link #createMultiTableBatchWriter(BatchWriterConfig)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.5.0")
   public abstract MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency,
       int maxWriteThreads);
 

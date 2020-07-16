@@ -33,7 +33,10 @@ import com.google.common.collect.Sets;
  * A plan for a compaction: the input files, the files that are *not* inputs to a compaction that
  * should simply be deleted, and the optional parameters used to create the resulting output file.
  */
-@Deprecated(forRemoval = true, since = "2.1.0")
+// Eclipse might show @SuppressWarnings("removal") as unnecessary.
+// Eclipse is wrong. See https://bugs.eclipse.org/bugs/show_bug.cgi?id=565271
+@SuppressWarnings("removal")
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class CompactionPlan {
   public final List<StoredTabletFile> inputFiles = new ArrayList<>();
   public final List<StoredTabletFile> deleteFiles = new ArrayList<>();

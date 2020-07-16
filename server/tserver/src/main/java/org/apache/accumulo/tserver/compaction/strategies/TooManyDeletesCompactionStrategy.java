@@ -81,6 +81,9 @@ import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
  * @since 2.0.0
  * @deprecated since 2.1.0 use {@link TooManyDeletesSelector} instead
  */
+// Eclipse might show @SuppressWarnings("removal") as unnecessary.
+// Eclipse is wrong. See https://bugs.eclipse.org/bugs/show_bug.cgi?id=565271
+@SuppressWarnings("removal")
 @Deprecated(since = "2.1.0", forRemoval = true)
 public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy {
 

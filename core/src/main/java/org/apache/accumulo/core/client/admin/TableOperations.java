@@ -105,7 +105,7 @@ public interface TableOperations {
    *           if the table already exists
    * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.7.0")
   default void create(String tableName, boolean limitVersion)
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     if (limitVersion)
@@ -130,7 +130,7 @@ public interface TableOperations {
    *           if the table already exists
    * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.7.0")
   default void create(String tableName, boolean versioningIter, TimeType timeType)
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
@@ -257,7 +257,7 @@ public interface TableOperations {
    *           if the table does not exist
    * @deprecated since 1.5.0; use {@link #listSplits(String)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.5.0")
   default Collection<Text> getSplits(String tableName) throws TableNotFoundException {
     try {
       return listSplits(tableName);
@@ -290,7 +290,7 @@ public interface TableOperations {
    *         fewer splits so as not to exceed maxSplits
    * @deprecated since 1.5.0; use {@link #listSplits(String, int)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.5.0")
   default Collection<Text> getSplits(String tableName, int maxSplits)
       throws TableNotFoundException {
     try {
@@ -696,7 +696,7 @@ public interface TableOperations {
    *
    * @deprecated since 2.0.0 use {@link #importDirectory(String)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
 
@@ -734,7 +734,7 @@ public interface TableOperations {
      * This is the default number of threads used to determine where to load files. A suffix of
      * {@code C} means to multiply by the number of cores.
      */
-    public static final String BULK_LOAD_THREADS_DEFAULT = "8C";
+    String BULK_LOAD_THREADS_DEFAULT = "8C";
 
     /**
      * Load files in the directory to the row ranges specified in the plan. The plan should contain

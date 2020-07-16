@@ -48,7 +48,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
  * This class now delegates to {@link ClientContext}, except for the methods which were not copied
  * over to that.
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
 
   private static final String SYSTEM_TOKEN_NAME =
@@ -78,7 +78,6 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   }
 
   @Override
-  @Deprecated
   public org.apache.accumulo.core.client.Instance getInstance() {
     return context.getDeprecatedInstance();
   }

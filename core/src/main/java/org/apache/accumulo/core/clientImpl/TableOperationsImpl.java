@@ -1232,7 +1232,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
     checkArgument(tableName != null, "tableName is null");
@@ -1570,7 +1570,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName.length() <= MAX_TABLE_NAME_LEN,
         "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
 
-    Set<String> checkedImportDirs = new HashSet<String>();
+    Set<String> checkedImportDirs = new HashSet<>();
     try {
       for (String s : importDirs) {
         checkedImportDirs.add(checkPath(s, "Table", "").toString());
