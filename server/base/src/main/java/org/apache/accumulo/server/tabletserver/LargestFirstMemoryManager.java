@@ -28,7 +28,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +55,7 @@ public class LargestFirstMemoryManager {
   private double compactionThreshold;
   private long maxObserved;
   private final HashMap<TableId,Long> mincIdleThresholds = new HashMap<>();
-  private ServerConfiguration config = null;
+  private ServerContext context = null;
 
   private static class TabletInfo {
     final KeyExtent extent;
@@ -121,10 +121,10 @@ public class LargestFirstMemoryManager {
     }
   }
 
-  public void init(ServerConfiguration conf) {
-    this.config = conf;
-    maxMemory = conf.getSystemConfiguration().getAsBytes(Property.TSERV_MAXMEM);
-    maxConcurrentMincs = conf.getSystemConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT);
+  public void init(ServerContext context) {
+    this.context = context;
+    maxMemory = context.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
+    maxConcurrentMincs = context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT);
     numWaitingMultiplier = TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER;
   }
 
@@ -137,14 +137,14 @@ public class LargestFirstMemoryManager {
   protected long getMinCIdleThreshold(KeyExtent extent) {
     TableId tableId = extent.getTableId();
     if (!mincIdleThresholds.containsKey(tableId))
-      mincIdleThresholds.put(tableId, config.getTableConfiguration(tableId)
+      mincIdleThresholds.put(tableId, context.getTableConfiguration(tableId)
           .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
     return mincIdleThresholds.get(tableId);
   }
 
   protected boolean tableExists(TableId tableId) {
     // make sure that the table still exists by checking if it has a configuration
-    return config.getTableConfiguration(tableId) != null;
+    return context.getTableConfiguration(tableId) != null;
   }
 
   public MemoryManagementActions getMemoryManagementActions(List<TabletState> tablets) {

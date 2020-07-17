@@ -409,7 +409,7 @@ public class TabletServerResourceManager {
     fileManager = new FileManager(context, context.getVolumeManager(), maxOpenFiles, fileLenCache);
 
     memoryManager = new LargestFirstMemoryManager();
-    memoryManager.init(context.getServerConfFactory());
+    memoryManager.init(context);
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
 

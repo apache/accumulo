@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.tserver;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
@@ -25,22 +28,14 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.NamespaceConfiguration;
-import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
 import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
 import org.apache.accumulo.server.tabletserver.TabletState;
 import org.apache.hadoop.io.Text;
-import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,34 +52,18 @@ public class LargestFirstMemoryManagerTest {
 
   @Before
   public void mockServerInfo() {
-    context = EasyMock.createMock(ServerContext.class);
+    context = createMock(ServerContext.class);
+    AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
+    expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(conf.getAsBytes(Property.TSERV_MAXMEM)).andReturn(ONE_GIG).anyTimes();
+    expect(conf.getCount(Property.TSERV_MINC_MAXCONCURRENT)).andReturn(4).anyTimes();
+    replay(context, conf);
   }
 
   @Test
   public void test() {
     LargestFirstMemoryManagerUnderTest mgr = new LargestFirstMemoryManagerUnderTest();
-    ServerConfiguration config = new ServerConfiguration() {
-      ServerConfigurationFactory delegate = context.getServerConfFactory();
-
-      @Override
-      public AccumuloConfiguration getSystemConfiguration() {
-        ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
-        conf.set(Property.TSERV_MAXMEM, "1g");
-        return conf;
-      }
-
-      @Override
-      public TableConfiguration getTableConfiguration(TableId tableId) {
-        return delegate.getTableConfiguration(tableId);
-      }
-
-      @Override
-      public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
-        return delegate.getNamespaceConfiguration(namespaceId);
-      }
-
-    };
-    mgr.init(config);
+    mgr.init(context);
     MemoryManagementActions result;
     // nothing to do
     result =
@@ -108,7 +87,7 @@ public class LargestFirstMemoryManagerTest {
     assertEquals(k("y"), result.tabletsToMinorCompact.get(0));
     // lots of work to do
     mgr = new LargestFirstMemoryManagerUnderTest();
-    mgr.init(config);
+    mgr.init(context);
     result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, HALF_GIG, 0),
         t(k("b"), ZERO, HALF_GIG + 1, 0), t(k("c"), ZERO, HALF_GIG + 2, 0),
         t(k("d"), ZERO, HALF_GIG + 3, 0), t(k("e"), ZERO, HALF_GIG + 4, 0),
@@ -119,7 +98,7 @@ public class LargestFirstMemoryManagerTest {
     assertEquals(k("h"), result.tabletsToMinorCompact.get(1));
     // one finished, one in progress, one filled up
     mgr = new LargestFirstMemoryManagerUnderTest();
-    mgr.init(config);
+    mgr.init(context);
     result = mgr.getMemoryManagementActions(
         tablets(t(k("a"), ZERO, HALF_GIG, 0), t(k("b"), ZERO, HALF_GIG + 1, 0),
             t(k("c"), ZERO, HALF_GIG + 2, 0), t(k("d"), ZERO, HALF_GIG + 3, 0),
@@ -154,7 +133,7 @@ public class LargestFirstMemoryManagerTest {
 
     // many are running: do nothing
     mgr = new LargestFirstMemoryManagerUnderTest();
-    mgr.init(config);
+    mgr.init(context);
     result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, HALF_GIG, 0),
         t(k("b"), ZERO, HALF_GIG + 1, 0), t(k("c"), ZERO, HALF_GIG + 2, 0),
         t(k("d"), ZERO, 0, HALF_GIG), t(k("e"), ZERO, 0, HALF_GIG), t(k("f"), ZERO, 0, HALF_GIG),
@@ -164,7 +143,7 @@ public class LargestFirstMemoryManagerTest {
 
     // observe adjustment:
     mgr = new LargestFirstMemoryManagerUnderTest();
-    mgr.init(config);
+    mgr.init(context);
     // compact the largest
     result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, QGIG, 0),
         t(k("b"), ZERO, QGIG + 1, 0), t(k("c"), ZERO, QGIG + 2, 0)));
@@ -199,26 +178,8 @@ public class LargestFirstMemoryManagerTest {
         tableId -> !deletedTableId.contentEquals(tableId.canonical());
     LargestFirstMemoryManagerWithExistenceCheck mgr =
         new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
-    ServerConfiguration config = new ServerConfiguration() {
-      ServerConfigurationFactory delegate = context.getServerConfFactory();
 
-      @Override
-      public AccumuloConfiguration getSystemConfiguration() {
-        return DefaultConfiguration.getInstance();
-      }
-
-      @Override
-      public TableConfiguration getTableConfiguration(TableId tableId) {
-        return delegate.getTableConfiguration(tableId);
-      }
-
-      @Override
-      public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
-        return delegate.getNamespaceConfiguration(namespaceId);
-      }
-
-    };
-    mgr.init(config);
+    mgr.init(context);
     MemoryManagementActions result;
     // one tablet is really big and the other is for a nonexistent table
     KeyExtent extent = new KeyExtent(TableId.of("2"), new Text("j"), null);
