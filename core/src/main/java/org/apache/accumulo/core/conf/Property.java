@@ -380,9 +380,6 @@ public enum Property {
           + " memory usage table.compaction.minor.logs.threshold and"
           + " tserver.walog.max.size. Ensure that table.compaction.minor.logs.threshold"
           + " * tserver.walog.max.size >= this property."),
-  TSERV_MEM_MGMT("tserver.memory.manager",
-      "org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager", PropertyType.CLASSNAME,
-      "An implementation of MemoryManger that accumulo will use."),
   TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION,
       "When a tablet server's SimpleTimer thread triggers to check idle"
           + " sessions, this configurable option will be used to evaluate scan sessions"

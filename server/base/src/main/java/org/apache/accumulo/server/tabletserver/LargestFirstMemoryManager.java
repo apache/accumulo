@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * suggest, it flushes the tablet with the highest memory footprint. However, it actually chooses
  * the tablet as a function of its size doubled for every 15 minutes of idle time.
  */
-public class LargestFirstMemoryManager implements MemoryManager {
+public class LargestFirstMemoryManager {
 
   private static final Logger log = LoggerFactory.getLogger(LargestFirstMemoryManager.class);
   private static final long ZERO_TIME = System.currentTimeMillis();
@@ -121,7 +121,6 @@ public class LargestFirstMemoryManager implements MemoryManager {
     }
   }
 
-  @Override
   public void init(ServerConfiguration conf) {
     this.config = conf;
     maxMemory = conf.getSystemConfiguration().getAsBytes(Property.TSERV_MAXMEM);
@@ -148,7 +147,6 @@ public class LargestFirstMemoryManager implements MemoryManager {
     return config.getTableConfiguration(tableId) != null;
   }
 
-  @Override
   public MemoryManagementActions getMemoryManagementActions(List<TabletState> tablets) {
     if (maxMemory < 0)
       throw new IllegalStateException(
@@ -285,9 +283,6 @@ public class LargestFirstMemoryManager implements MemoryManager {
   protected long currentTimeMillis() {
     return System.currentTimeMillis();
   }
-
-  @Override
-  public void tabletClosed(KeyExtent extent) {}
 
   // The load function: memory times the idle time, doubling every 15 mins
   static long timeMemoryLoad(long mem, long time) {
