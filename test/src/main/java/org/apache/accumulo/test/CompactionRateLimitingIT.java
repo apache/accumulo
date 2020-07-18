@@ -41,7 +41,7 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
   public static final long RATE = 1 * 1024 * 1024;
 
   protected Property getThroughputProp() {
-    return Property.TSERV_COMPACTION_SERVICE_DEFAULT_THROUGHPUT;
+    return Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT;
   }
 
   @Override
@@ -50,7 +50,7 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TABLE_MAJC_RATIO, "20");
     cfg.setProperty(Property.TABLE_FILE_COMPRESSION_TYPE, "none");
 
-    cfg.setProperty("tserver.compaction.major.service.test.throughput", RATE + "B");
+    cfg.setProperty("tserver.compaction.major.service.test.rate.limit", RATE + "B");
     cfg.setProperty("tserver.compaction.major.service.test.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.test.planner.opts.executors",
@@ -101,8 +101,7 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
         client.tableOperations().compact(tableName, null, null, false, true);
         long duration = System.currentTimeMillis() - compactionStart;
         // The rate will be "bursty", try to account for that by taking 80% of the expected rate
-        // (allow
-        // for 20% under the maximum expected duration)
+        // (allow for 20% under the maximum expected duration)
         assertTrue(String.format(
             "Expected a compaction rate of no more than %,d bytes/sec, but saw a rate of %,f bytes/sec",
             (int) 0.8d * RATE, 1000.0 * bytesWritten / duration),

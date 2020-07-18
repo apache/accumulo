@@ -178,16 +178,17 @@ public class CompactCommand extends TableOperation {
             "Can not specify a strategy with a selector or configurer");
       }
       configureCompactionStrat(cl);
-    }
+    } else {
+      if (cl.hasOption(selectorOpt.getLongOpt())) {
+        compactionConfig.setSelector(new PluginConfig(cl.getOptionValue(selectorOpt.getLongOpt()),
+            ShellUtil.parseMapOpt(cl, selectorConfigOpt)));
+      }
 
-    if (cl.hasOption(selectorOpt.getLongOpt())) {
-      compactionConfig.setSelector(new PluginConfig(cl.getOptionValue(selectorOpt.getLongOpt()),
-          ShellUtil.parseMapOpt(cl, selectorConfigOpt)));
-    }
-
-    if (cl.hasOption(configurerOpt.getLongOpt())) {
-      compactionConfig.setConfigurer(new PluginConfig(cl.getOptionValue(configurerOpt.getLongOpt()),
-          ShellUtil.parseMapOpt(cl, configurerConfigOpt)));
+      if (cl.hasOption(configurerOpt.getLongOpt())) {
+        compactionConfig
+            .setConfigurer(new PluginConfig(cl.getOptionValue(configurerOpt.getLongOpt()),
+                ShellUtil.parseMapOpt(cl, configurerConfigOpt)));
+      }
     }
 
     if (cl.hasOption(hintsOption.getLongOpt())) {

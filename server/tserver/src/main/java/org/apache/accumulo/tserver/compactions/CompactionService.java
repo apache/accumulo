@@ -78,7 +78,7 @@ public class CompactionService {
 
   private RateLimiter readLimiter;
   private RateLimiter writeLimiter;
-  private AtomicLong throughput = new AtomicLong(0);
+  private AtomicLong rateLimit = new AtomicLong(0);
 
   private static final Logger log = LoggerFactory.getLogger(CompactionService.class);
 
@@ -124,10 +124,10 @@ public class CompactionService {
 
   }
 
-  public CompactionService(String serviceName, String plannerClass, Long maxThroughput,
+  public CompactionService(String serviceName, String plannerClass, Long maxRate,
       Map<String,String> plannerOptions, ServerContext sctx, CompactionExecutorsMetrics ceMetrics) {
 
-    Preconditions.checkArgument(maxThroughput >= 0);
+    Preconditions.checkArgument(maxRate >= 0);
 
     this.myId = CompactionServiceId.of(serviceName);
     this.serverCtx = sctx;
@@ -141,12 +141,12 @@ public class CompactionService {
 
     Map<CompactionExecutorId,CompactionExecutor> tmpExecutors = new HashMap<>();
 
-    this.throughput.set(maxThroughput);
+    this.rateLimit.set(maxRate);
 
     this.readLimiter = SharedRateLimiterFactory.getInstance().create("CS_" + serviceName + "_read",
-        () -> throughput.get());
+        () -> rateLimit.get());
     this.writeLimiter = SharedRateLimiterFactory.getInstance()
-        .create("CS_" + serviceName + "_write", () -> throughput.get());
+        .create("CS_" + serviceName + "_write", () -> rateLimit.get());
 
     initParams.requestedExecutors.forEach((ceid, numThreads) -> {
       tmpExecutors.put(ceid,
@@ -162,8 +162,8 @@ public class CompactionService {
       queuedForPlanning.put(kind, new ConcurrentHashMap<KeyExtent,Compactable>());
     }
 
-    log.debug("Created new compaction service id:{} throughput: {} planner:{} planner options:{}",
-        myId, maxThroughput, plannerClass, plannerOptions);
+    log.debug("Created new compaction service id:{} rate limit:{} planner:{} planner options:{}",
+        myId, maxRate, plannerClass, plannerOptions);
   }
 
   private CompactionPlanner createPlanner(String plannerClass) {
@@ -344,13 +344,13 @@ public class CompactionService {
         .anyMatch(job -> job.getStatus() == Status.QUEUED);
   }
 
-  public void configurationChanged(String plannerClassName, Long maxThroughput,
+  public void configurationChanged(String plannerClassName, Long maxRate,
       Map<String,String> plannerOptions) {
-    Preconditions.checkArgument(maxThroughput >= 0);
+    Preconditions.checkArgument(maxRate >= 0);
 
-    var old = this.throughput.getAndSet(maxThroughput);
-    if (old != maxThroughput)
-      log.debug("Updated compaction service id:{} throughput:{}", myId, maxThroughput);
+    var old = this.rateLimit.getAndSet(maxRate);
+    if (old != maxRate)
+      log.debug("Updated compaction service id:{} rate limit:{}", myId, maxRate);
 
     if (this.plannerClassName.equals(plannerClassName) && this.plannerOpts.equals(plannerOptions))
       return;

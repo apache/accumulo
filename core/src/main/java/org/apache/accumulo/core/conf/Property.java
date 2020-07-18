@@ -415,7 +415,7 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for root tablet service"),
-  TSERV_COMPACTION_SERVICE_ROOT_THROUGHPUT("tserver.compaction.major.service.root.throughput", "0B",
+  TSERV_COMPACTION_SERVICE_ROOT_RATE_LIMIT("tserver.compaction.major.service.root.rate.limit", "0B",
       PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
           + " compactions in this compaction service, or 0B for unlimited."),
@@ -431,7 +431,7 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for metadata table"),
-  TSERV_COMPACTION_SERVICE_META_THROUGHPUT("tserver.compaction.major.service.meta.throughput", "0B",
+  TSERV_COMPACTION_SERVICE_META_RATE_LIMIT("tserver.compaction.major.service.meta.rate.limit", "0B",
       PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
           + " compactions in this compaction service, or 0B for unlimited."),
@@ -447,7 +447,7 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service."),
-  TSERV_COMPACTION_SERVICE_DEFAULT_THROUGHPUT("tserver.compaction.major.service.default.throughput",
+  TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT("tserver.compaction.major.service.default.rate.limit",
       "0B", PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
           + " compactions in this compaction service, or 0B for unlimited."),
@@ -470,7 +470,7 @@ public enum Property {
   TSERV_MAJC_MAXCONCURRENT("tserver.compaction.major.concurrent.max", "3", PropertyType.COUNT,
       "The maximum number of concurrent major compactions for a tablet server"),
   @Deprecated(since = "2.1.0", forRemoval = true)
-  @ReplacedBy(property = Property.TSERV_COMPACTION_SERVICE_DEFAULT_THROUGHPUT)
+  @ReplacedBy(property = Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT)
   TSERV_MAJC_THROUGHPUT("tserver.compaction.major.throughput", "0B", PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
           + " compactions within each compaction service, or 0B for unlimited."),
