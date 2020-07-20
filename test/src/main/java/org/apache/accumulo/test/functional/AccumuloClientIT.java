@@ -242,6 +242,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
 
   @Test
   public void testAmpleReadTablets() throws Exception {
+
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
           MetadataTable.NAME, TablePermission.WRITE);

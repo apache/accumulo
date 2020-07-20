@@ -125,7 +125,7 @@ public interface Ample {
    * from a ClientContext. Associated methods of the TabletsMetadata Builder class are used to
    * generate the metadata.
    */
-  TabletsMetadata.Builder readTablets();
+  TabletsMetadata.TableOptions readTablets();
 
   /**
    * Initiates mutating a single tablets persistent metadata. No data is persisted until the

@@ -44,7 +44,7 @@ import com.google.common.base.Preconditions;
 
 public class RootTabletStateStoreTest {
 
-  private static class TestAmple implements Ample {
+  private static class TestAmple extends TabletsMetadata implements Ample {
 
     private String json = new String(
         RootTabletMetadata.getInitialJson("dir", "hdfs://nn/acc/tables/some/dir/0000.rf"), UTF_8);

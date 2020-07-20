@@ -67,7 +67,7 @@ import com.google.common.base.Preconditions;
  */
 public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable {
 
-  public static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
+  protected static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
 
     private List<Text> families = new ArrayList<>();
     private List<ColumnFQ> qualifiers = new ArrayList<>();
@@ -386,6 +386,10 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   private TabletsMetadata(Scanner scanner, Iterable<TabletMetadata> tmi) {
     this.scanner = scanner;
     this.tablets = tmi;
+  }
+
+  public TabletsMetadata() {
+
   }
 
   @Override
