@@ -1256,8 +1256,7 @@ public class Master extends AbstractServer
         getConfiguration().getCount(Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT);
 
     if (minTserverCount <= 0) {
-      log.info(
-          "tserver availability check disabled, continuing with-{} servers." + "To enable, set {}",
+      log.info("tserver availability check disabled, continuing with-{} servers. To enable, set {}",
           tserverSet.size(), Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
       return;
     }

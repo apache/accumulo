@@ -222,7 +222,7 @@ public class CompactionService {
       }
     };
 
-    log.trace("Planning compactions {} {} {} {} {}", planner.getClass().getName(),
+    log.trace("Planning compactions {} {} {} {}", planner.getClass().getName(),
         compactable.getExtent(), kind, files);
 
     CompactionPlan plan;
