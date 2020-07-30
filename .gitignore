@@ -22,7 +22,8 @@
 /.classpath
 /.pydevproject
 /.idea
-/*.iml
+*/*.iml
+*/*/*.iml
 /nbproject/
 /nbactions.xml
 /nb-configuration.xml

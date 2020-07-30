@@ -61,6 +61,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.rfile.bcfile.codec.CompressionUpdater;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.Compacting;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -780,6 +781,8 @@ public class TabletServer extends AbstractServer {
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
     SimpleTimer.getInstance(aconf).schedule(new BulkImportCacheCleaner(this),
         CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS);
+
+    SimpleTimer.getInstance(aconf).schedule(new CompressionUpdater(aconf), 10000, 30000);
 
     HostAndPort masterHost;
     while (!serverStopRequested) {
