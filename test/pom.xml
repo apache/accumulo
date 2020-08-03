@@ -277,12 +277,6 @@
           <excludes>
             <exclude>**/hadoop-metrics2-accumulo.properties</exclude>
           </excludes>
-          <archive>
-            <manifestEntries>
-              <Sealed>true</Sealed>
-              <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
-            </manifestEntries>
-          </archive>
         </configuration>
       </plugin>
     </plugins>
