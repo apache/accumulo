@@ -441,10 +441,17 @@ public class CompactableUtils {
       }
 
       if (selectedFiles.isEmpty()) {
-        tablet.setLastCompactionID(compactionId);
-
-        MetadataTableUtil.updateTabletCompactID(tablet.getExtent(), compactionId,
-            tablet.getTabletServer().getContext(), tablet.getTabletServer().getLock());
+        Boolean updateMetadataTabletFail = false;
+        try {
+          MetadataTableUtil.updateTabletCompactID(tablet.getExtent(), compactionId,
+              tablet.getTabletServer().getContext(), tablet.getTabletServer().getLock());
+        } catch (Exception exc) {
+          updateMetadataTabletFail = true;
+          log.error(exc.getMessage());
+        }
+        if (!updateMetadataTabletFail) {
+          tablet.setLastCompactionID(compactionId);
+        }
       }
 
       return selectedFiles;
