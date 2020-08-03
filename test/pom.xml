@@ -275,7 +275,7 @@
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>**/hadoop-metrics2-accumulo.properties</exclude>
+            <exclude>src/main/resources/hadoop-metrics2-accumulo.properties</exclude>
           </excludes>
         </configuration>
       </plugin>
