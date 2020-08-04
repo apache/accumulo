@@ -274,6 +274,15 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>hadoop-metrics2-accumulo.properties</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <profiles>
