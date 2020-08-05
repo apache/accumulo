@@ -24,17 +24,18 @@ name: QA
 
 on:
   push:
-    branches: [ 1.9, 1.10 ]
+    branches: [ 2.1, main ]
   pull_request:
-    branches: [ 1.9, 1.10 ]
+    branches: [ 2.1, main ]
 
 jobs:
   build:
     strategy:
       matrix:
-        hadoop:
-          - 'hadoop.profile=2'
-          - 'hadoop.profile=3'
+        profile:
+          - {name: 'verify', args: 'verify javadoc:jar -DskipITs'}
+          - {name: 'sec-bugs', args: 'verify -PskipQA,sec-bugs -Dspotbugs.skip=false -Dspotbugs.timeout=3600000'}
+          - {name: 'hadoop-3.0.3', args: 'package -DskipTests -Dhadoop.version=3.0.3'}
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -49,8 +50,8 @@ jobs:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
-    - name: Build with Maven (${{ matrix.hadoop }})
-      run: mvn -B -V -e "-Dstyle.color=always" verify javadoc:jar -DskipITs "-D${{ matrix.hadoop }}"
+    - name: Build with Maven (${{ matrix.profile.name }})
+      run: mvn -B -V -e "-Dstyle.color=always" ${{ matrix.profile.args }}
       env:
         MAVEN_OPTS: -Djansi.force=true
 
