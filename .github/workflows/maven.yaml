@@ -24,19 +24,20 @@ name: QA
 
 on:
   push:
-    branches: [ 2.1, main ]
+    branches: [ main, '2.*' ]
   pull_request:
-    branches: [ 2.1, main ]
+    branches: [ main, '2.*' ]
 
 jobs:
-  build:
+  mvn:
     strategy:
       matrix:
         profile:
-          - {name: 'verify', args: 'verify javadoc:jar -DskipITs'}
-          - {name: 'sec-bugs', args: 'verify -PskipQA,sec-bugs -Dspotbugs.skip=false -Dspotbugs.timeout=3600000'}
-          - {name: 'hadoop-3.0.3', args: 'package -DskipTests -Dhadoop.version=3.0.3'}
+          - {name: 'unit-tests',    args: 'verify -PskipQA -DskipTests=false -DforkCount=1C'}
+          - {name: 'qa-checks',     args: 'verify javadoc:jar -Psec-bugs -DskipTests=true -Dspotbugs.timeout=3600000'}
+          - {name: 'hadoop-compat', args: 'package -DskipTests -Dhadoop.version=3.0.3'}
       fail-fast: false
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -47,11 +48,13 @@ jobs:
     - name: Cache local maven repository
       uses: actions/cache@v2
       with:
-        path: ~/.m2
+        path: |
+          ~/.m2/repository/
+          !~/.m2/repository/org/apache/accumulo
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
     - name: Build with Maven (${{ matrix.profile.name }})
-      run: mvn -B -V -e "-Dstyle.color=always" ${{ matrix.profile.args }}
+      run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ matrix.profile.args }}
       env:
         MAVEN_OPTS: -Djansi.force=true
 
