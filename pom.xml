@@ -109,8 +109,8 @@
     <url>https://github.com/apache/accumulo/issues</url>
   </issueManagement>
   <ciManagement>
-    <system>Travis CI</system>
-    <url>https://travis-ci.org/apache/accumulo</url>
+    <system>GitHub Actions</system>
+    <url>https://github.com/apache/accumulo/actions</url>
   </ciManagement>
   <properties>
     <!-- used for filtering the java source with the current version -->
