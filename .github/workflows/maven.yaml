@@ -24,18 +24,19 @@ name: QA
 
 on:
   push:
-    branches: [ 1.9, 1.10 ]
+    branches: [ '1.*' ]
   pull_request:
-    branches: [ 1.9, 1.10 ]
+    branches: [ '1.*' ]
 
 jobs:
-  build:
+  mvn:
     strategy:
       matrix:
-        hadoop:
-          - 'hadoop.profile=2'
-          - 'hadoop.profile=3'
+        profile:
+          - {name: 'Hadoop 2 (default)', args: 'verify javadoc:jar -DskipITs -DforkCount=1C'}
+          - {name: 'Hadoop 3',           args: 'verify javadoc:jar -DskipITs -DforkCount=1C -Dhadoop.profile=3'}
       fail-fast: false
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -46,11 +47,13 @@ jobs:
     - name: Cache local maven repository
       uses: actions/cache@v2
       with:
-        path: ~/.m2
+        path: |
+          ~/.m2/repository/
+          !~/.m2/repository/org/apache/accumulo
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
-    - name: Build with Maven (${{ matrix.hadoop }})
-      run: mvn -B -V -e "-Dstyle.color=always" verify javadoc:jar -DskipITs "-D${{ matrix.hadoop }}"
+    - name: Build with Maven (${{ matrix.profile.name }})
+      run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ matrix.profile.args }}
       env:
         MAVEN_OPTS: -Djansi.force=true
 
