@@ -62,14 +62,17 @@ jobs:
       with:
         name: surefire-reports-${{ matrix.profile.name }}
         path: ./**/target/surefire-reports/
+        if-no-files-found: ignore
     - name: Upload integration test results
       uses: actions/upload-artifact@v2
       with:
         name: failsafe-reports-${{ matrix.profile.name }}
         path: ./**/target/failsafe-reports/
+        if-no-files-found: ignore
     - name: Upload mini test logs
       uses: actions/upload-artifact@v2
       with:
         name: mini-tests-logs-${{ matrix.profile.name }}
         path: ./**/target/**/mini-tests/**/logs/
+        if-no-files-found: ignore
 
