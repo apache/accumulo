@@ -89,6 +89,7 @@
     <module>server/base</module>
     <module>server/gc</module>
     <module>server/manager</module>
+    <module>server/master</module>
     <module>server/monitor</module>
     <module>server/native</module>
     <module>server/tracer</module>
