@@ -27,9 +27,9 @@
     <version>2.1.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
-  <artifactId>accumulo-master</artifactId>
-  <name>Apache Accumulo Master Server</name>
-  <description>The master server for Apache Accumulo for load balacing and other system-wide operations.</description>
+  <artifactId>accumulo-manager</artifactId>
+  <name>Apache Accumulo Manager Server</name>
+  <description>The manager server for Apache Accumulo for load balacing and other system-wide operations.</description>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

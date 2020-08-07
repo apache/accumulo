@@ -88,7 +88,7 @@
     <module>minicluster</module>
     <module>server/base</module>
     <module>server/gc</module>
-    <module>server/master</module>
+    <module>server/manager</module>
     <module>server/monitor</module>
     <module>server/native</module>
     <module>server/tracer</module>
@@ -320,7 +320,7 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-master</artifactId>
+        <artifactId>accumulo-manager</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
