@@ -204,7 +204,7 @@ public interface TableOperations {
    * To avoid losing access to a table it can be cloned and the clone taken offline for export.
    *
    * <p>
-   * See https://github.com/apache/accumulo-examples/blob/master/docs/export.md
+   * See https://github.com/apache/accumulo-examples/blob/main/docs/export.md
    *
    * @param tableName
    *          Name of the table to export.
