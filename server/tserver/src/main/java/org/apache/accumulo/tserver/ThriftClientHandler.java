@@ -39,6 +39,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -1206,8 +1208,12 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
 
     try {
-      Map<KeyExtent,List<ServerConditionalMutation>> updates = Translator.translate(mutations,
-          Translators.TKET, new Translator.ListTranslator<>(ServerConditionalMutation.TCMT));
+      Map<KeyExtent, List<ServerConditionalMutation>> updates = mutations.entrySet().stream()
+              .collect(Collectors.toMap(
+                 entry -> new KeyExtent(entry.getKey()),
+                 entry -> entry.getValue().stream().map(ServerConditionalMutation::new).collect(Collectors.toList())
+              ));
+
 
       for (KeyExtent ke : updates.keySet()) {
         if (!ke.getTableId().equals(tid)) {

@@ -40,6 +40,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -54,12 +55,10 @@ import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.constraints.Violations;
-import org.apache.accumulo.core.data.ConstraintViolationSummary;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -71,6 +70,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.hadoop.util.LimitInputStream;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 import org.apache.thrift.TApplicationException;
@@ -943,13 +943,17 @@ public class TabletServerBatchWriter implements AutoCloseable {
             }
 
             UpdateErrors updateErrors = client.closeUpdate(tinfo, usid);
+            Map<KeyExtent, Long> failures = updateErrors.failedExtents.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            entry -> new KeyExtent(entry.getKey()),
+                            Entry::getValue));
+            updatedConstraintViolations(updateErrors.violationSummaries.stream().map(ConstraintViolationSummary::new).collect(Collectors.toList()));
+            updateAuthorizationFailures(updateErrors.authorizationFailures.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            entry -> new KeyExtent(entry.getKey()),
+                            Entry::getValue
+                    )));
 
-            Map<KeyExtent,Long> failures =
-                Translator.translate(updateErrors.failedExtents, Translators.TKET);
-            updatedConstraintViolations(
-                Translator.translate(updateErrors.violationSummaries, Translators.TCVST));
-            updateAuthorizationFailures(
-                Translator.translate(updateErrors.authorizationFailures, Translators.TKET));
 
             long totalCommitted = 0;
 

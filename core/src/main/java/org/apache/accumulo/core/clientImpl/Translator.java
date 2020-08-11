@@ -41,12 +41,16 @@ public abstract class Translator<IT,OT> {
   public abstract OT translate(IT input);
 
   public static class TKeyExtentTranslator extends Translator<TKeyExtent,KeyExtent> {
+
     @Override
     public KeyExtent translate(TKeyExtent input) {
       return new KeyExtent(input);
     }
-
   }
+
+
+
+
 
   public static class KeyExtentTranslator extends Translator<KeyExtent,TKeyExtent> {
     @Override
@@ -91,9 +95,7 @@ public abstract class Translator<IT,OT> {
     public Range translate(TRange input) {
       return new Range(input);
     }
-
   }
-
   public static class RangeTranslator extends Translator<Range,TRange> {
     @Override
     public TRange translate(Range input) {
@@ -108,12 +110,15 @@ public abstract class Translator<IT,OT> {
     }
   }
 
+
   public static class StoredTabletFileTranslator extends Translator<StoredTabletFile,String> {
     @Override
     public String translate(StoredTabletFile input) {
       return input.getPathStr();
     }
   }
+
+
 
   public static class ListTranslator<IT,OT> extends Translator<List<IT>,List<OT>> {
 
@@ -156,6 +161,8 @@ public abstract class Translator<IT,OT> {
 
     for (IT in : input)
       output.add(translator.translate(in));
+
+
 
     return output;
   }

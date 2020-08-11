@@ -37,6 +37,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -533,15 +535,19 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       Map<KeyExtent,List<Range>> unscanned, MultiScanResult scanResult) {
 
     // translate returned failures, remove them from unscanned, and add them to failures
-    Map<KeyExtent,List<Range>> retFailures = Translator.translate(scanResult.failures,
-        Translators.TKET, new Translator.ListTranslator<>(Translators.TRT));
+         Map<KeyExtent, List<Range>> retFailures = scanResult.failures.entrySet().stream()
+            .collect(Collectors.toMap(
+                    entry -> new KeyExtent(entry.getKey()),
+                    entry -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
+          ));
+
     unscanned.keySet().removeAll(retFailures.keySet());
     failures.putAll(retFailures);
 
-    // translate full scans and remove them from unscanned
-    HashSet<KeyExtent> fullScans =
-        new HashSet<>(Translator.translate(scanResult.fullScans, Translators.TKET));
-    unscanned.keySet().removeAll(fullScans);
+        // translate full scans and remove them from unscanned
+
+    Set<KeyExtent> fullScans = scanResult.fullScans.stream().map(KeyExtent::new).collect(Collectors.toSet());
+        unscanned.keySet().removeAll(fullScans);
 
     // remove partial scan from unscanned
     if (scanResult.partScan != null) {
@@ -670,8 +676,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         TabletType ttype = TabletType.type(requested.keySet());
         boolean waitForWrites = !ThriftScanner.serversWaitedForWrites.get(ttype).contains(server);
 
-        Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested,
-            Translators.KET, new Translator.ListTranslator<>(Translators.RT));
+       Map<TKeyExtent, List<TRange>> thriftTabletRanges = requested.entrySet().stream()
+               .collect(Collectors.toMap(
+                       entry -> entry.getKey().toThrift(),
+                       entry -> entry.getValue().stream().map(Range::toThrift).collect(Collectors.toList())
+               ));
 
         Map<String,String> execHints =
             options.executionHints.isEmpty() ? null : options.executionHints;
