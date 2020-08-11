@@ -29,6 +29,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -88,7 +89,8 @@ public class FateMetricsTest {
   @Before
   public void init() throws Exception {
 
-    zooReaderWriter = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
+    zooReaderWriter =
+        new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd", ZooReader.DEFAULT_RETRY_FACTORY);
     zookeeper = zooReaderWriter.getZooKeeper();
 
     clear(MOCK_ZK_ROOT);

@@ -41,6 +41,7 @@ import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
@@ -119,7 +120,7 @@ public class ZombieTServer {
     ZooReaderWriter zoo = context.getZooReaderWriter();
     zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
 
-    ZooLock zlock = new ZooLock(zoo, zPath);
+    ZooLock zlock = new ZooLock(zoo, zPath, ZooReader.DEFAULT_RETRY_FACTORY);
 
     LockWatcher lw = new LockWatcher() {
 

@@ -83,6 +83,7 @@ import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -1422,7 +1423,8 @@ public class Master extends AbstractServer
     while (true) {
 
       MasterLockWatcher masterLockWatcher = new MasterLockWatcher();
-      masterLock = new ZooLock(context.getZooReaderWriter(), zMasterLoc);
+      masterLock =
+          new ZooLock(context.getZooReaderWriter(), zMasterLoc, ZooReader.DISABLED_RETRY_FACTORY);
       masterLock.lockAsync(masterLockWatcher, masterClientAddress.getBytes());
 
       masterLockWatcher.waitForChange();

@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -87,7 +88,8 @@ public class UnusedWALIT extends ConfigurableMacBase {
 
       ServerContext context = getServerContext();
       ClientInfo info = ClientInfo.from(getClientProperties());
-      new ZooReaderWriter(info.getZooKeepers(), info.getZooKeepersSessionTimeOut(), "");
+      new ZooReaderWriter(info.getZooKeepers(), info.getZooKeepersSessionTimeOut(), "",
+          ZooReader.DEFAULT_RETRY_FACTORY);
 
       // put some data in a log that should be replayed for both tables
       writeSomeData(c, bigTable, 0, 10, 0, 10);

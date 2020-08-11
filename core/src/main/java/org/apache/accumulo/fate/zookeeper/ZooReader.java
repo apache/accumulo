@@ -38,16 +38,28 @@ import org.slf4j.LoggerFactory;
 public class ZooReader {
   private static final Logger log = LoggerFactory.getLogger(ZooReader.class);
 
-  protected static final RetryFactory RETRY_FACTORY = Retry.builder().maxRetries(10)
+  public static final RetryFactory DEFAULT_RETRY_FACTORY = Retry.builder().maxRetries(10)
+      .retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS).maxWait(5, TimeUnit.SECONDS)
+      .backOffFactor(1.5).logInterval(3, TimeUnit.MINUTES).createFactory();
+
+  public static final RetryFactory DISABLED_RETRY_FACTORY = Retry.builder().maxRetries(0)
       .retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS).maxWait(5, TimeUnit.SECONDS)
       .backOffFactor(1.5).logInterval(3, TimeUnit.MINUTES).createFactory();
 
   protected final String keepers;
   protected final int timeout;
+  protected final RetryFactory retryFactory;
 
   public ZooReader(String keepers, int timeout) {
     this.keepers = keepers;
     this.timeout = timeout;
+    this.retryFactory = DEFAULT_RETRY_FACTORY;
+  }
+
+  public ZooReader(String keepers, int timeout, RetryFactory retryFactory) {
+    this.keepers = keepers;
+    this.timeout = timeout;
+    this.retryFactory = retryFactory;
   }
 
   protected ZooKeeper getZooKeeper() {
@@ -55,7 +67,7 @@ public class ZooReader {
   }
 
   protected RetryFactory getRetryFactory() {
-    return RETRY_FACTORY;
+    return retryFactory;
   }
 
   protected static void retryOrThrow(Retry retry, KeeperException e) throws KeeperException {

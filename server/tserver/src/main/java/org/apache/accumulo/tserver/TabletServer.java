@@ -97,6 +97,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.AbstractServer;
@@ -643,7 +644,7 @@ public class TabletServer extends AbstractServer {
         throw e;
       }
 
-      tabletServerLock = new ZooLock(zoo, zPath);
+      tabletServerLock = new ZooLock(zoo, zPath, ZooReader.DISABLED_RETRY_FACTORY);
 
       LockWatcher lw = new LockWatcher() {
 

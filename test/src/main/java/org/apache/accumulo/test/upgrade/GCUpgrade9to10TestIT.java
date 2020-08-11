@@ -44,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.master.upgrade.Upgrader9to10;
 import org.apache.accumulo.minicluster.ServerType;
@@ -84,7 +85,8 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
     String path = getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK;
-    ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
+    ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET,
+        ZooReader.DEFAULT_RETRY_FACTORY);
     try {
       ZooLock.deleteLock(zk, path);
     } catch (IllegalStateException e) {

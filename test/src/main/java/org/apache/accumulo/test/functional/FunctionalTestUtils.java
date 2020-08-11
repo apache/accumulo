@@ -52,6 +52,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.AdminUtil.FateStatus;
 import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.commons.io.IOUtils;
@@ -182,7 +183,7 @@ public class FunctionalTestUtils {
       AdminUtil<String> admin = new AdminUtil<>(false);
       String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
       ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut(), secret);
+          context.getZooKeepersSessionTimeOut(), secret, ZooReader.DEFAULT_RETRY_FACTORY);
       ZooStore<String> zs = new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
       return admin.getStatus(zs, zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, null,
           null);

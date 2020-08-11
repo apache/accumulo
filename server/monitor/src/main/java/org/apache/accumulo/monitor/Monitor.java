@@ -63,6 +63,7 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -639,7 +640,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     // Get a ZooLock for the monitor
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
-      monitorLock = new ZooLock(zoo, monitorLockPath);
+      monitorLock = new ZooLock(zoo, monitorLockPath, ZooReader.DISABLED_RETRY_FACTORY);
       monitorLock.lockAsync(monitorLockWatcher, new byte[0]);
 
       monitorLockWatcher.waitForChange();

@@ -49,13 +49,14 @@ public class ZooReaderWriter extends ZooReader {
   public ZooReaderWriter(AccumuloConfiguration conf) {
     this(conf.get(Property.INSTANCE_ZK_HOST),
         (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
-        conf.get(Property.INSTANCE_SECRET));
+        conf.get(Property.INSTANCE_SECRET), ZooReader.DISABLED_RETRY_FACTORY);
   }
 
   private final byte[] auth;
 
-  public ZooReaderWriter(String keepers, int timeoutInMillis, String secret) {
-    super(keepers, timeoutInMillis);
+  public ZooReaderWriter(String keepers, int timeoutInMillis, String secret,
+      RetryFactory retryFactory) {
+    super(keepers, timeoutInMillis, retryFactory);
     this.auth = ("accumulo" + ":" + secret).getBytes(UTF_8);
   }
 
