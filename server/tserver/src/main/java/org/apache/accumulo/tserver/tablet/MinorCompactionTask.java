@@ -59,16 +59,20 @@ class MinorCompactionTask implements Runnable {
     ProbabilitySampler sampler = new ProbabilitySampler(tracePercent);
     Span minorCompaction = Trace.on("minorCompaction", sampler);
     try {
-      FileRef newMapfileLocation = tablet.getNextMapFilename(mergeFile == null ? "F" : "M");
-      FileRef tmpFileRef = new FileRef(newMapfileLocation.path() + "_tmp");
       Span span = Trace.start("waitForCommits");
       synchronized (tablet) {
         commitSession.waitForCommitsToFinish();
       }
       span.stop();
       span = Trace.start("start");
+      FileRef newMapfileLocation = null;
+      FileRef tmpFileRef = null;
       while (true) {
         try {
+          if (newMapfileLocation == null) {
+            newMapfileLocation = tablet.getNextMapFilename(mergeFile == null ? "F" : "M");
+            tmpFileRef = new FileRef(newMapfileLocation.path() + "_tmp");
+          }
           // the purpose of the minor compaction start event is to keep track of the filename... in
           // the case
           // where the metadata table write for the minor compaction finishes and the process dies
@@ -82,7 +86,11 @@ class MinorCompactionTask implements Runnable {
               commitSession.getWALogSeq() + 1, newMapfileLocation.path().toString());
           break;
         } catch (IOException e) {
-          log.warn("Failed to write to write ahead log {}", e.getMessage(), e);
+          // An IOException could have occurred while creating the new file
+          if (newMapfileLocation == null)
+            log.warn("Failed to create new file for minor compaction {}", e.getMessage(), e);
+          else
+            log.warn("Failed to write to write ahead log {}", e.getMessage(), e);
         }
       }
       span.stop();
