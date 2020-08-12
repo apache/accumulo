@@ -529,7 +529,7 @@ public class ZooLock implements Watcher {
       throw new RuntimeException("Node " + lockNode + " at " + path + " is not a lock node");
     }
 
-    byte[] data = zk.getData(path + "/" + lockNode, null);
+    byte[] data = zk.getData(path + "/" + lockNode);
 
     if (lockData.equals(new String(data, UTF_8))) {
       zk.recursiveDelete(path + "/" + lockNode, NodeMissingPolicy.FAIL);

@@ -34,12 +34,8 @@ public class ZooKeeperInitialization {
    */
   public static void ensureZooKeeperInitialized(final ZooReaderWriter zooReaderWriter,
       final String zRoot) throws KeeperException, InterruptedException {
-    if (!zooReaderWriter.exists(zRoot + ReplicationConstants.ZOO_TSERVERS, null)) {
-      zooReaderWriter.mkdirs(zRoot + ReplicationConstants.ZOO_TSERVERS);
-    }
-
-    if (!zooReaderWriter.exists(zRoot + ReplicationConstants.ZOO_WORK_QUEUE, null)) {
-      zooReaderWriter.mkdirs(zRoot + ReplicationConstants.ZOO_WORK_QUEUE);
-    }
+    // ZooReaderWriter will check existence and return if it exists, so no need to check here
+    zooReaderWriter.mkdirs(zRoot + ReplicationConstants.ZOO_TSERVERS);
+    zooReaderWriter.mkdirs(zRoot + ReplicationConstants.ZOO_WORK_QUEUE);
   }
 }

@@ -262,7 +262,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {
-          locks = zk.getChildren(path, null);
+          locks = zk.getChildren(path);
         } catch (NoNodeException e) {
           Thread.sleep(5000);
           continue;
@@ -273,7 +273,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
           String lockPath = path + "/" + locks.get(0);
 
-          String gcLoc = new String(zk.getData(lockPath, null));
+          String gcLoc = new String(zk.getData(lockPath));
 
           assertTrue("Found unexpected data in zookeeper for GC location: " + gcLoc,
               gcLoc.startsWith(Service.GC_CLIENT.name()));

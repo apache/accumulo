@@ -87,9 +87,7 @@ public class ZooAuthenticationKeyDistributor {
       throw new IllegalStateException(
           "Delegation token secret key node in ZooKeeper is not protected.");
     } else {
-      if (!zk.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL)) {
-        throw new AssertionError("Got false from putPrivatePersistentData method");
-      }
+      zk.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL);
     }
 
     initialized.set(true);
@@ -113,7 +111,7 @@ public class ZooAuthenticationKeyDistributor {
     // Deserialize each byte[] into an AuthenticationKey
     List<AuthenticationKey> keys = new ArrayList<>(children.size());
     for (String child : children) {
-      byte[] data = zk.getData(qualifyPath(child), null);
+      byte[] data = zk.getData(qualifyPath(child));
       if (data != null) {
         AuthenticationKey key = new AuthenticationKey();
         try {
@@ -187,8 +185,7 @@ public class ZooAuthenticationKeyDistributor {
     log.debug("Removing AuthenticationKey with keyId {} from ZooKeeper at {}", key.getKeyId(),
         path);
 
-    // Delete the node, any version
-    zk.delete(path, -1);
+    zk.delete(path);
   }
 
   String qualifyPath(String keyId) {

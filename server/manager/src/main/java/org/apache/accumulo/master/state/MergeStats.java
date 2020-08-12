@@ -50,7 +50,6 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.TraceScope;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -275,7 +274,7 @@ public class MergeStats {
               + Constants.ZTABLES + "/" + tableId + "/merge";
           MergeInfo info = new MergeInfo();
           if (zooReaderWriter.exists(path)) {
-            byte[] data = zooReaderWriter.getData(path, new Stat());
+            byte[] data = zooReaderWriter.getData(path);
             DataInputBuffer in = new DataInputBuffer();
             in.reset(data, data.length);
             info.readFields(in);

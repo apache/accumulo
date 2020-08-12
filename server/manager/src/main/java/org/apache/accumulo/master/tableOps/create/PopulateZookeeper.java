@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.TableInfo;
@@ -57,7 +56,7 @@ class PopulateZookeeper extends MasterRepo {
           tableInfo.getTableId(), TableOperation.CREATE);
 
       master.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
-          tableInfo.getTableName(), NodeExistsPolicy.OVERWRITE);
+          tableInfo.getTableName());
 
       for (Entry<String,String> entry : tableInfo.props.entrySet())
         TablePropUtil.setTableProperty(master.getContext(), tableInfo.getTableId(), entry.getKey(),

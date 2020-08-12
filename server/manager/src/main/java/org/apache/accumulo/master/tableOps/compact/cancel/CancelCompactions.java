@@ -27,7 +27,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
@@ -62,26 +61,23 @@ public class CancelCompactions extends MasterRepo {
 
     ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
 
-    byte[] currentValue = zoo.getData(zCompactID, null);
+    byte[] currentValue = zoo.getData(zCompactID);
 
     String cvs = new String(currentValue, UTF_8);
     String[] tokens = cvs.split(",");
     final long flushID = Long.parseLong(tokens[0]);
 
-    zoo.mutate(zCancelID, null, null, new Mutator() {
-      @Override
-      public byte[] mutate(byte[] currentValue) {
-        long cid = Long.parseLong(new String(currentValue, UTF_8));
+    zoo.mutate(zCancelID, null, null, currentValue2 -> {
+      long cid = Long.parseLong(new String(currentValue2, UTF_8));
 
-        if (cid < flushID) {
-          log.debug("{} setting cancel compaction id to {} for {}", FateTxId.formatTid(tid),
-              flushID, tableId);
-          return Long.toString(flushID).getBytes(UTF_8);
-        } else {
-          log.debug("{} leaving cancel compaction id as {} for {}", FateTxId.formatTid(tid), cid,
-              tableId);
-          return Long.toString(cid).getBytes(UTF_8);
-        }
+      if (cid < flushID) {
+        log.debug("{} setting cancel compaction id to {} for {}", FateTxId.formatTid(tid), flushID,
+            tableId);
+        return Long.toString(flushID).getBytes(UTF_8);
+      } else {
+        log.debug("{} leaving cancel compaction id as {} for {}", FateTxId.formatTid(tid), cid,
+            tableId);
+        return Long.toString(cid).getBytes(UTF_8);
       }
     });
 

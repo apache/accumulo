@@ -273,7 +273,7 @@ public class Upgrader9to10 implements Upgrader {
         result.clear();
         for (String child : zoo.getChildren(root)) {
           try {
-            LogEntry e = LogEntry.fromBytes(zoo.getData(root + "/" + child, null));
+            LogEntry e = LogEntry.fromBytes(zoo.getData(root + "/" + child));
             // upgrade from !0;!0<< -> +r<<
             e = new LogEntry(RootTable.EXTENT, 0, e.server, e.filename);
             result.add(e);
@@ -294,7 +294,7 @@ public class Upgrader9to10 implements Upgrader {
 
   private String getFromZK(ServerContext ctx, String relpath) {
     try {
-      byte[] data = ctx.getZooReaderWriter().getData(ctx.getZooKeeperRoot() + relpath, null);
+      byte[] data = ctx.getZooReaderWriter().getData(ctx.getZooKeeperRoot() + relpath);
       if (data == null)
         return null;
 

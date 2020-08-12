@@ -26,7 +26,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
@@ -63,18 +62,15 @@ public class RenameNamespace extends MasterRepo {
       final String tap = master.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
           + Constants.ZNAMESPACE_NAME;
 
-      zoo.mutate(tap, null, null, new Mutator() {
-        @Override
-        public byte[] mutate(byte[] current) throws Exception {
-          final String currentName = new String(current);
-          if (currentName.equals(newName))
-            return null; // assume in this case the operation is running again, so we are done
-          if (!currentName.equals(oldName)) {
-            throw new AcceptableThriftTableOperationException(null, oldName, TableOperation.RENAME,
-                TableOperationExceptionType.NAMESPACE_NOTFOUND, "Name changed while processing");
-          }
-          return newName.getBytes();
+      zoo.mutate(tap, null, null, current -> {
+        final String currentName = new String(current);
+        if (currentName.equals(newName))
+          return null; // assume in this case the operation is running again, so we are done
+        if (!currentName.equals(oldName)) {
+          throw new AcceptableThriftTableOperationException(null, oldName, TableOperation.RENAME,
+              TableOperationExceptionType.NAMESPACE_NOTFOUND, "Name changed while processing");
         }
+        return newName.getBytes();
       });
       Tables.clearCache(master.getContext());
     } finally {

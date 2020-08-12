@@ -110,7 +110,7 @@ public class DistributedWorkQueue {
           public void run() {
             try {
               try {
-                processor.newProcessor().process(child, zoo.getData(childPath, null));
+                processor.newProcessor().process(child, zoo.getData(childPath));
 
                 // if the task fails, then its entry in the Q is not deleted... so it will be
                 // retried

@@ -58,7 +58,7 @@ public class BackupMasterIT extends ConfigurableMacBase {
       UtilWaitThread.sleep(1000);
       // generate a false zookeeper event
       String lockPath = root + "/masters/lock/" + children.get(0);
-      byte[] data = writer.getData(lockPath, null);
+      byte[] data = writer.getData(lockPath);
       writer.getZooKeeper().setData(lockPath, data, -1);
       // let it propagate
       UtilWaitThread.sleep(500);

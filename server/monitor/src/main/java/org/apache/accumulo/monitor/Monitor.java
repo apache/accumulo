@@ -392,10 +392,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       // Read the gc location from its lock
       ZooReaderWriter zk = context.getZooReaderWriter();
       String path = context.getZooKeeperRoot() + Constants.ZGC_LOCK;
-      List<String> locks = zk.getChildren(path, null);
+      List<String> locks = zk.getChildren(path);
       if (locks != null && !locks.isEmpty()) {
         Collections.sort(locks);
-        address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null), UTF_8))
+        address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0)), UTF_8))
             .getAddress(Service.GC_CLIENT);
         GCMonitorService.Client client =
             ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, context);
@@ -456,7 +456,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       final ZooReaderWriter zoo = context.getZooReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
       try {
-        zoo.delete(path, -1);
+        zoo.delete(path);
       } catch (KeeperException e) {
         // We don't care if the node is already gone
         if (KeeperException.Code.NONODE != e.code()) {
@@ -613,7 +613,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     // Ensure that everything is kosher with ZK as this has changed.
     ZooReaderWriter zoo = context.getZooReaderWriter();
     if (zoo.exists(monitorPath)) {
-      byte[] data = zoo.getData(monitorPath, null);
+      byte[] data = zoo.getData(monitorPath);
       // If the node isn't empty, it's from a previous install (has hostname:port for HTTP server)
       if (data.length != 0) {
         // Recursively delete from that parent node
