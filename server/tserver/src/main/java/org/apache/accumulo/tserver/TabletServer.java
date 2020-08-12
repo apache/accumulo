@@ -2619,7 +2619,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         throw e;
       }
 
-      tabletServerLock = new ZooLock(zPath);
+      AccumuloConfiguration conf = SiteConfiguration.getInstance();
+
+      tabletServerLock = new ZooLock(zPath,
+          ZooReaderWriter.retriesDisabled(conf.get(Property.INSTANCE_ZK_HOST),
+              (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
+              conf.get(Property.INSTANCE_SECRET)));
 
       LockWatcher lw = new LockWatcher() {
 

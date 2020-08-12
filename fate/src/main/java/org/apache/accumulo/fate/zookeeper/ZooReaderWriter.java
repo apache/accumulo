@@ -53,8 +53,9 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
     return getSession(keepers, timeout, scheme, auth);
   }
 
-  public ZooReaderWriter(String string, int timeInMillis, String scheme, byte[] auth) {
-    super(string, timeInMillis);
+  public ZooReaderWriter(String string, int timeInMillis, String scheme, byte[] auth,
+      boolean enableRetries) {
+    super(string, timeInMillis, enableRetries);
     this.scheme = scheme;
     this.auth = Arrays.copyOf(auth, auth.length);
     this.info = new ZooKeeperConnectionInfo(string, timeInMillis, scheme, this.auth);
@@ -198,7 +199,7 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   public static synchronized ZooReaderWriter getInstance(String zookeepers, int timeInMillis,
       String scheme, byte[] auth) {
     if (instance == null)
-      instance = new ZooReaderWriter(zookeepers, timeInMillis, scheme, auth);
+      instance = new ZooReaderWriter(zookeepers, timeInMillis, scheme, auth, true);
     return instance;
   }
 

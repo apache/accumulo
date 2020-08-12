@@ -115,7 +115,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Instance i = conn.getInstance();
     ZooReaderWriter zk =
-        new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+        ZooReaderWriter.retriesEnabled(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
     WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
 
     Set<String> result = new HashSet<>();

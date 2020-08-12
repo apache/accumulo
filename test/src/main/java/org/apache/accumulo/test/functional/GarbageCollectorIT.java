@@ -102,7 +102,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     // delete lock in zookeeper if there, this will allow next GC to start quickly
     String path =
         ZooUtil.getRoot(new ZooKeeperInstance(getCluster().getClientConfig())) + Constants.ZGC_LOCK;
-    ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
+    ZooReaderWriter zk = ZooReaderWriter.retriesEnabled(cluster.getZooKeepers(), 30000, OUR_SECRET);
     try {
       ZooLock.deleteLock(zk, path);
     } catch (IllegalStateException e) {
@@ -254,7 +254,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     Connector conn = getConnector();
     Instance instance = conn.getInstance();
 
-    ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
+    ZooReaderWriter zk = ZooReaderWriter.retriesEnabled(cluster.getZooKeepers(), 30000, OUR_SECRET);
     String path = ZooUtil.getRoot(instance) + Constants.ZGC_LOCK;
     for (int i = 0; i < 5; i++) {
       List<String> locks;

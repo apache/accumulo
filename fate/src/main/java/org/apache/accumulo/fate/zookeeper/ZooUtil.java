@@ -47,6 +47,10 @@ public class ZooUtil {
       Retry.builder().maxRetries(10).retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS)
           .maxWait(5, TimeUnit.SECONDS).logInterval(3, TimeUnit.MINUTES).createFactory();
 
+  public static final RetryFactory DISABLED_RETRY =
+      Retry.builder().maxRetries(0).retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS)
+          .maxWait(5, TimeUnit.SECONDS).logInterval(3, TimeUnit.MINUTES).createFactory();
+
   private static final Logger log = LoggerFactory.getLogger(ZooUtil.class);
 
   public enum NodeExistsPolicy {

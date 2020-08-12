@@ -232,7 +232,7 @@ public class FateCommand extends Command {
     }
 
     return new ZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(),
-        SCHEME, (USER + ":" + secret).getBytes());
+        SCHEME, (USER + ":" + secret).getBytes(), true);
   }
 
   @Override

@@ -29,8 +29,16 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
   private static final String USER = "accumulo";
   private static ZooReaderWriter instance = null;
 
-  public ZooReaderWriter(String string, int timeInMillis, String secret) {
-    super(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(UTF_8));
+  public static ZooReaderWriter retriesEnabled(String string, int timeInMillis, String auth) {
+    return new ZooReaderWriter(string, timeInMillis, auth, true);
+  }
+
+  public static ZooReaderWriter retriesDisabled(String string, int timeInMillis, String auth) {
+    return new ZooReaderWriter(string, timeInMillis, auth, false);
+  }
+
+  private ZooReaderWriter(String string, int timeInMillis, String secret, boolean enableRetries) {
+    super(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(UTF_8), true);
   }
 
   public static synchronized ZooReaderWriter getInstance() {
@@ -38,7 +46,7 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
       AccumuloConfiguration conf = SiteConfiguration.getInstance();
       instance = new ZooReaderWriter(conf.get(Property.INSTANCE_ZK_HOST),
           (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
-          conf.get(Property.INSTANCE_SECRET));
+          conf.get(Property.INSTANCE_SECRET), true);
     }
     return instance;
   }
@@ -60,7 +68,7 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
   public static synchronized ZooReaderWriter getInstance(String zooConnString, int timeInMillis,
       String secret) {
     if (instance == null) {
-      instance = new ZooReaderWriter(zooConnString, timeInMillis, secret);
+      instance = new ZooReaderWriter(zooConnString, timeInMillis, secret, true);
     }
     return instance;
   }

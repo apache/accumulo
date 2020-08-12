@@ -161,7 +161,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     Multimap<String,String> logs = HashMultimap.create();
     Instance i = conn.getInstance();
     ZooReaderWriter zk =
-        new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+        ZooReaderWriter.retriesEnabled(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
     WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
     for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
       for (UUID id : entry.getValue()) {
@@ -348,7 +348,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     attempts = 5;
     Instance i = conn.getInstance();
     ZooReaderWriter zk =
-        new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+        ZooReaderWriter.retriesEnabled(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
     while (wals.isEmpty() && attempts > 0) {
       WalStateManager markers = new WalStateManager(i, zk);
       for (Entry<Path,WalState> entry : markers.getAllState().entrySet()) {

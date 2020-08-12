@@ -44,7 +44,8 @@ public class ZooReaderWriterFactory {
    * @return reader/writer
    */
   public IZooReaderWriter getZooReaderWriter(String string, int timeInMillis, String secret) {
-    return new ZooReaderWriter(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(UTF_8));
+    return new ZooReaderWriter(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(UTF_8),
+        true);
   }
 
   /**

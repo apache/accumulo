@@ -24,6 +24,10 @@ public class ZooLock extends org.apache.accumulo.fate.zookeeper.ZooLock {
     super(new ZooCache(), ZooReaderWriter.getInstance(), path);
   }
 
+  public ZooLock(String path, ZooReaderWriter zrw) {
+    super(new ZooCache(), zrw, path);
+  }
+
   public static void deleteLock(String path) throws InterruptedException, KeeperException {
     deleteLock(ZooReaderWriter.getInstance(), path);
   }

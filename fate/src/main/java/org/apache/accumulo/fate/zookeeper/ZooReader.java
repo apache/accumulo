@@ -257,8 +257,12 @@ public class ZooReader implements IZooReader {
   }
 
   public ZooReader(String keepers, int timeout) {
+    this(keepers, timeout, true);
+  }
+
+  public ZooReader(String keepers, int timeout, boolean enableRetries) {
     this.keepers = keepers;
     this.timeout = timeout;
-    this.retryFactory = ZooUtil.DEFAULT_RETRY;
+    this.retryFactory = enableRetries ? ZooUtil.DEFAULT_RETRY : ZooUtil.DISABLED_RETRY;
   }
 }
