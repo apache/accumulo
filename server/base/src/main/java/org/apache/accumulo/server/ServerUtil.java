@@ -102,8 +102,7 @@ public class ServerUtil {
 
   public static synchronized Path getAccumuloInstanceIdPath(VolumeManager fs) {
     // It doesn't matter which Volume is used as they should all have the instance ID stored
-    Volume v = fs.getVolumes().iterator().next();
-    return ServerConstants.getInstanceIdLocation(v);
+    return ServerConstants.getInstanceIdLocation(fs.getVolumes().iterator().next());
   }
 
   public static void init(ServerContext context, String application) {

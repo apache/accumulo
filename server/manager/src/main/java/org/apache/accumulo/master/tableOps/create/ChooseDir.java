@@ -95,7 +95,7 @@ class ChooseDir extends MasterRepo {
    */
   private void writeTabletDirectoriesToFileSystem(Master master, SortedSet<Text> dirs)
       throws IOException {
-    FileSystem fs = master.getVolumeManager().getDefaultVolume().getFileSystem();
+    FileSystem fs = master.getVolumeManager().getTemporaryVolume().getFileSystem();
     if (fs.exists(new Path(tableInfo.getSplitDirsFile())))
       fs.delete(new Path(tableInfo.getSplitDirsFile()), true);
     try (FSDataOutputStream stream = master.getOutputStream(tableInfo.getSplitDirsFile())) {

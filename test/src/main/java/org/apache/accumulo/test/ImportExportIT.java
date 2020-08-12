@@ -98,9 +98,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Make a directory we can use to throw the export and import directories
       // Must exist on the filesystem the cluster is running.
       FileSystem fs = cluster.getFileSystem();
-      Path tmp = cluster.getTemporaryPath();
       log.info("Using FileSystem: " + fs);
-      Path baseDir = new Path(fs.getUri().toString() + tmp, getClass().getName());
+      Path baseDir = new Path(cluster.getTemporaryPath(), getClass().getName());
       fs.deleteOnExit(baseDir);
       if (fs.exists(baseDir)) {
         log.info("{} exists on filesystem, deleting", baseDir);

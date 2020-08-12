@@ -119,8 +119,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
       FileSystem fs = getFileSystem();
-      Path root =
-          new Path(fs.getUri().toString() + cluster.getTemporaryPath(), getClass().getName());
+      Path root = new Path(cluster.getTemporaryPath(), getClass().getName());
       fs.deleteOnExit(root);
       Path testrf = new Path(root, "testrf");
       fs.deleteOnExit(testrf);

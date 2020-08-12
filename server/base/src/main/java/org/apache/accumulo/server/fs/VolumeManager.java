@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.ServerConstants;
@@ -131,7 +130,7 @@ public interface VolumeManager extends AutoCloseable {
   // find the appropriate FileSystem object given a path
   FileSystem getFileSystemByPath(Path path);
 
-  // return the item in options that is in the same volume as source
+  // return the item in options that is in the same file system as source
   Path matchingFileSystem(Path source, Set<String> options);
 
   // forward to the appropriate FileSystem object
@@ -180,9 +179,9 @@ public interface VolumeManager extends AutoCloseable {
   boolean canSyncAndFlush(Path path);
 
   /**
-   * Fetch the default Volume
+   * Fetch the Volume used for temporary storage
    */
-  Volume getDefaultVolume();
+  Volume getTemporaryVolume();
 
   /**
    * Fetch the configured Volumes, excluding the default Volume
@@ -191,11 +190,10 @@ public interface VolumeManager extends AutoCloseable {
 
   Logger log = LoggerFactory.getLogger(VolumeManager.class);
 
-  static String getInstanceIDFromHdfs(Path instanceDirectory, AccumuloConfiguration conf,
-      Configuration hadoopConf) {
+  static String getInstanceIDFromHdfs(Path instanceDirectory, Configuration hadoopConf) {
     try {
-      FileSystem fs = VolumeConfiguration.getVolume(instanceDirectory.toString(), hadoopConf, conf)
-          .getFileSystem();
+      FileSystem fs =
+          VolumeConfiguration.fileSystemForPath(instanceDirectory.toString(), hadoopConf);
       FileStatus[] files = null;
       try {
         files = fs.listStatus(instanceDirectory);

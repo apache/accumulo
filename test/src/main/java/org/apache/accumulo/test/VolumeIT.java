@@ -24,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -93,7 +92,6 @@ public class VolumeIT extends ConfigurableMacBase {
     return 10 * 60;
   }
 
-  @SuppressWarnings("deprecation")
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     File baseDir = cfg.getDir();
@@ -111,9 +109,6 @@ public class VolumeIT extends ConfigurableMacBase {
     }
 
     // Run MAC on two locations in the local file system
-    URI v1Uri = v1.toUri();
-    cfg.setProperty(Property.INSTANCE_DFS_DIR, v1Uri.getPath());
-    cfg.setProperty(Property.INSTANCE_DFS_URI, v1Uri.getScheme() + v1Uri.getHost());
     cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(), "15s");

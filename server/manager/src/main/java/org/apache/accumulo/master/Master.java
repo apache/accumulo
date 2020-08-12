@@ -1711,11 +1711,11 @@ public class Master extends AbstractServer
   }
 
   public FSDataOutputStream getOutputStream(final String path) throws IOException {
-    return getVolumeManager().getDefaultVolume().getFileSystem().create(new Path(path));
+    return getVolumeManager().getTemporaryVolume().getFileSystem().create(new Path(path));
   }
 
   public FSDataInputStream getInputStream(final String path) throws IOException {
-    return getVolumeManager().getDefaultVolume().getFileSystem().open(new Path(path));
+    return getVolumeManager().getTemporaryVolume().getFileSystem().open(new Path(path));
   }
 
 }
