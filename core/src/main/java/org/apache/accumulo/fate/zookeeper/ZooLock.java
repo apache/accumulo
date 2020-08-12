@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -70,14 +69,8 @@ public class ZooLock implements Watcher {
   private boolean watchingParent = false;
   private String asyncLock;
 
-  public ZooLock(ZooReaderWriter zoo, String path, RetryFactory retryFactory) {
+  public ZooLock(ZooReaderWriter zoo, String path) {
     this(new ZooCache(zoo), zoo, path);
-  }
-
-  public ZooLock(String zookeepers, int timeInMillis, String secret, String path,
-      RetryFactory retryFactory) {
-    this(new ZooCacheFactory().getZooCache(zookeepers, timeInMillis),
-        new ZooReaderWriter(zookeepers, timeInMillis, secret, retryFactory), path);
   }
 
   protected ZooLock(ZooCache zc, ZooReaderWriter zrw, String path) {

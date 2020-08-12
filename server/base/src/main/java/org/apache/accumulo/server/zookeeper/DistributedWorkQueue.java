@@ -173,7 +173,7 @@ public class DistributedWorkQueue {
     this.config = config;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = new ZooReaderWriter(config);
+    zoo = ZooReaderWriter.retriesEnabled(config);
   }
 
   public ZooReaderWriter getZooReaderWriter() {

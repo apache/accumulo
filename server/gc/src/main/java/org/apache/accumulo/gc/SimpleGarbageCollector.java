@@ -78,7 +78,6 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetricsFactory;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
@@ -627,7 +626,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     };
 
     while (true) {
-      lock = new ZooLock(getContext().getZooReaderWriter(), path, ZooReader.DISABLED_RETRY_FACTORY);
+      lock = new ZooLock(getContext().getZooReaderWriter(), path);
       if (lock.tryLock(lockWatcher,
           new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
         log.debug("Got GC ZooKeeper lock");

@@ -38,11 +38,11 @@ import org.slf4j.LoggerFactory;
 public class ZooReader {
   private static final Logger log = LoggerFactory.getLogger(ZooReader.class);
 
-  public static final RetryFactory DEFAULT_RETRY_FACTORY = Retry.builder().maxRetries(10)
+  private static final RetryFactory DEFAULT_RETRY_FACTORY = Retry.builder().maxRetries(10)
       .retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS).maxWait(5, TimeUnit.SECONDS)
       .backOffFactor(1.5).logInterval(3, TimeUnit.MINUTES).createFactory();
 
-  public static final RetryFactory DISABLED_RETRY_FACTORY = Retry.builder().maxRetries(0)
+  private static final RetryFactory DISABLED_RETRY_FACTORY = Retry.builder().maxRetries(0)
       .retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS).maxWait(5, TimeUnit.SECONDS)
       .backOffFactor(1.5).logInterval(3, TimeUnit.MINUTES).createFactory();
 
@@ -51,15 +51,13 @@ public class ZooReader {
   protected final RetryFactory retryFactory;
 
   public ZooReader(String keepers, int timeout) {
-    this.keepers = keepers;
-    this.timeout = timeout;
-    this.retryFactory = DEFAULT_RETRY_FACTORY;
+    this(keepers, timeout, true);
   }
 
-  public ZooReader(String keepers, int timeout, RetryFactory retryFactory) {
+  public ZooReader(String keepers, int timeout, boolean enableRetries) {
     this.keepers = keepers;
     this.timeout = timeout;
-    this.retryFactory = retryFactory;
+    this.retryFactory = enableRetries ? DEFAULT_RETRY_FACTORY : DISABLED_RETRY_FACTORY;
   }
 
   protected ZooKeeper getZooKeeper() {

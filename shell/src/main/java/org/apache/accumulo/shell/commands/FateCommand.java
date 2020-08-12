@@ -41,7 +41,6 @@ import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -237,8 +236,8 @@ public class FateCommand extends Command {
       secret = siteConfig.get(Property.INSTANCE_SECRET);
     }
 
-    return new ZooReaderWriter(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
-        secret, ZooReader.DEFAULT_RETRY_FACTORY);
+    return ZooReaderWriter.retriesEnabled(context.getZooKeepers(),
+        context.getZooKeepersSessionTimeOut(), secret);
   }
 
   @Override

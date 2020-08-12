@@ -68,13 +68,22 @@ public class ServerContext extends ClientContext {
   private CryptoService cryptoService = null;
 
   public ServerContext(SiteConfiguration siteConfig) {
-    this(new ServerInfo(siteConfig));
+    this(new ServerInfo(siteConfig), true);
+  }
+
+  public ServerContext(SiteConfiguration siteConfig, boolean enableZookeeperRetries) {
+    this(new ServerInfo(siteConfig), enableZookeeperRetries);
   }
 
   private ServerContext(ServerInfo info) {
+    this(info, true);
+  }
+
+  private ServerContext(ServerInfo info, boolean enableRetries) {
     super(SingletonReservation.noop(), info, info.getSiteConfiguration());
     this.info = info;
-    zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
+    zooReaderWriter = enableRetries ? ZooReaderWriter.retriesEnabled(info.getSiteConfiguration())
+        : ZooReaderWriter.retriesDisabled(info.getSiteConfiguration());
   }
 
   /**

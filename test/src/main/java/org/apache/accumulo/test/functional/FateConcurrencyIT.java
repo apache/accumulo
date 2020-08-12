@@ -45,7 +45,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -254,8 +253,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       try {
 
         String instanceId = context.getInstanceID();
-        ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
-            context.getZooKeepersSessionTimeOut(), secret, ZooReader.DEFAULT_RETRY_FACTORY);
+        ZooReaderWriter zk = ZooReaderWriter.retriesEnabled(context.getZooKeepers(),
+            context.getZooKeepersSessionTimeOut(), secret);
         ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
 
         withLocks = admin.getStatus(zs, zk,
@@ -346,8 +345,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       log.trace("tid: {}", tableId);
 
       String instanceId = context.getInstanceID();
-      ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut(), secret, ZooReader.DEFAULT_RETRY_FACTORY);
+      ZooReaderWriter zk = ZooReaderWriter.retriesEnabled(context.getZooKeepers(),
+          context.getZooKeepersSessionTimeOut(), secret);
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
       AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk,
           ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);

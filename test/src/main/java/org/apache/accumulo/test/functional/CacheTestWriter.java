@@ -47,7 +47,7 @@ public class CacheTestWriter {
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "OBJECT_DESERIALIZATION"},
       justification = "path provided by test; object deserialization is okay for test")
   public static void main(String[] args) throws Exception {
-    var zk = new ZooReaderWriter(SiteConfiguration.auto());
+    var zk = ZooReaderWriter.retriesEnabled(SiteConfiguration.auto());
 
     String rootDir = args[0];
     File reportDir = new File(args[1]);

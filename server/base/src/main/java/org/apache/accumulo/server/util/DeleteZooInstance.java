@@ -60,7 +60,7 @@ public class DeleteZooInstance {
     Opts opts = new Opts();
     opts.parseArgs(DeleteZooInstance.class.getName(), args);
 
-    var zk = new ZooReaderWriter(SiteConfiguration.auto());
+    var zk = ZooReaderWriter.retriesEnabled(SiteConfiguration.auto());
     // try instance name:
     Set<String> instances = new HashSet<>(zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES));
     Set<String> uuids = new HashSet<>(zk.getChildren(Constants.ZROOT));

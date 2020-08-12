@@ -997,7 +997,7 @@ public class Initialize implements KeywordExecutable {
     var siteConfig = SiteConfiguration.auto();
 
     try {
-      setZooReaderWriter(new ZooReaderWriter(siteConfig));
+      setZooReaderWriter(ZooReaderWriter.retriesEnabled(siteConfig));
       SecurityUtil.serverLogin(siteConfig);
       Configuration hadoopConfig = new Configuration();
 

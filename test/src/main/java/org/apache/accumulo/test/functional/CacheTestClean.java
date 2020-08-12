@@ -36,7 +36,7 @@ public class CacheTestClean {
     File reportDir = new File(args[1]);
 
     var siteConfig = SiteConfiguration.auto();
-    ZooReaderWriter zoo = new ZooReaderWriter(siteConfig);
+    ZooReaderWriter zoo = ZooReaderWriter.retriesEnabled(siteConfig);
 
     if (zoo.exists(rootDir)) {
       zoo.recursiveDelete(rootDir, NodeMissingPolicy.FAIL);

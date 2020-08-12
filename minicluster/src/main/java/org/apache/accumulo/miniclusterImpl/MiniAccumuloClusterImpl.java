@@ -72,7 +72,6 @@ import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.master.state.SetGoalState;
@@ -470,9 +469,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       String instanceIdFromFile =
           VolumeManager.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
-      ZooReaderWriter zrw = new ZooReaderWriter(cc.get(Property.INSTANCE_ZK_HOST),
-          (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET),
-          ZooReader.DEFAULT_RETRY_FACTORY);
+      ZooReaderWriter zrw = ZooReaderWriter.retriesEnabled(cc.get(Property.INSTANCE_ZK_HOST),
+          (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET));
 
       String rootPath = ZooUtil.getRoot(instanceIdFromFile);
 

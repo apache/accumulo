@@ -120,7 +120,7 @@ public class RestoreZookeeper {
     Opts opts = new Opts();
     opts.parseArgs(RestoreZookeeper.class.getName(), args);
 
-    var zoo = new ZooReaderWriter(SiteConfiguration.auto());
+    var zoo = ZooReaderWriter.retriesEnabled(SiteConfiguration.auto());
 
     InputStream in = System.in;
     if (opts.file != null) {

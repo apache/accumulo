@@ -58,7 +58,7 @@ public class DumpZookeeper {
     opts.parseArgs(DumpZookeeper.class.getName(), args);
 
     PrintStream out = System.out;
-    zk = new ZooReaderWriter(opts.getSiteConfiguration());
+    zk = ZooReaderWriter.retriesEnabled(opts.getSiteConfiguration());
     if (opts.xml) {
       writeXml(out, opts.root);
     } else {

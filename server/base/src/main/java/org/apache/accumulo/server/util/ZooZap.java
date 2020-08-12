@@ -81,7 +81,7 @@ public class ZooZap {
       String volDir = VolumeConfiguration.getVolumeUris(siteConf, hadoopConf).iterator().next();
       Path instanceDir = new Path(volDir, "instance_id");
       String iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, siteConf, hadoopConf);
-      ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
+      ZooReaderWriter zoo = ZooReaderWriter.retriesEnabled(siteConf);
 
       if (opts.zapMaster) {
         String masterLockPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;

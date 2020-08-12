@@ -46,17 +46,32 @@ public class ZooReaderWriter extends ZooReader {
 
   private static final Logger log = LoggerFactory.getLogger(ZooReaderWriter.class);
 
-  public ZooReaderWriter(AccumuloConfiguration conf) {
-    this(conf.get(Property.INSTANCE_ZK_HOST),
+  public static ZooReaderWriter retriesEnabled(AccumuloConfiguration conf) {
+    return new ZooReaderWriter(conf.get(Property.INSTANCE_ZK_HOST),
         (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
-        conf.get(Property.INSTANCE_SECRET), ZooReader.DISABLED_RETRY_FACTORY);
+        conf.get(Property.INSTANCE_SECRET), true);
+  }
+
+  public static ZooReaderWriter retriesDisabled(AccumuloConfiguration conf) {
+    return new ZooReaderWriter(conf.get(Property.INSTANCE_ZK_HOST),
+        (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
+        conf.get(Property.INSTANCE_SECRET), false);
+  }
+
+  public static ZooReaderWriter retriesEnabled(String keepers, int timeoutInMillis, String secret) {
+    return new ZooReaderWriter(keepers, timeoutInMillis, secret, true);
+  }
+
+  public static ZooReaderWriter retriesDisabled(String keepers, int timeoutInMillis,
+      String secret) {
+    return new ZooReaderWriter(keepers, timeoutInMillis, secret, false);
   }
 
   private final byte[] auth;
 
-  public ZooReaderWriter(String keepers, int timeoutInMillis, String secret,
-      RetryFactory retryFactory) {
-    super(keepers, timeoutInMillis, retryFactory);
+  private ZooReaderWriter(String keepers, int timeoutInMillis, String secret,
+      boolean enableRetries) {
+    super(keepers, timeoutInMillis, enableRetries);
     this.auth = ("accumulo" + ":" + secret).getBytes(UTF_8);
   }
 

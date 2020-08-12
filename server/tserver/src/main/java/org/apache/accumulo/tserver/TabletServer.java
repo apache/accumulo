@@ -59,6 +59,7 @@ import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
@@ -97,7 +98,6 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.AbstractServer;
@@ -644,7 +644,7 @@ public class TabletServer extends AbstractServer {
         throw e;
       }
 
-      tabletServerLock = new ZooLock(zoo, zPath, ZooReader.DISABLED_RETRY_FACTORY);
+      tabletServerLock = new ZooLock(zoo, zPath);
 
       LockWatcher lw = new LockWatcher() {
 
@@ -1385,4 +1385,14 @@ public class TabletServer extends AbstractServer {
   public CompactionManager getCompactionManager() {
     return compactionManager;
   }
+
+  /**
+   * For the tablet server we don't want ZooReaderWriter to keep retrying after a error
+   * communicating with ZooKeeper.
+   */
+  @Override
+  protected ServerContext createServerContext(SiteConfiguration siteConfig) {
+    return new ServerContext(siteConfig, false);
+  }
+
 }
