@@ -24,9 +24,9 @@ name: QA
 
 on:
   push:
-    branches: [ main, '2.*' ]
+    branches: [ '*' ]
   pull_request:
-    branches: [ main, '2.*' ]
+    branches: [ '*' ]
 
 jobs:
   mvn:
