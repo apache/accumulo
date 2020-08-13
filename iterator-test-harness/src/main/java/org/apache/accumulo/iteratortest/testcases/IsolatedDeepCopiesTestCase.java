@@ -49,7 +49,7 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
     final SortedKeyValueIterator<Key,Value> source = IteratorTestUtil.createSource(testInput);
 
     try {
-      var iteratorEnvironment = testInput.getIteratorEnvironment();
+      IteratorEnvironment iteratorEnvironment = testInput.getIteratorEnvironment();
       skvi.init(source, testInput.getIteratorOptions(), iteratorEnvironment);
 
       SortedKeyValueIterator<Key,Value> copy1 = skvi.deepCopy(iteratorEnvironment);
