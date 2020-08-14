@@ -31,7 +31,9 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 
 /**
  * The necessary user-input to invoke a test on a {@link SortedKeyValueIterator}.
@@ -44,9 +46,10 @@ public class IteratorTestInput {
   private final Collection<ByteSequence> families;
   private final boolean inclusive;
   private final SortedMap<Key,Value> input;
+  private final IteratorEnvironment iteratorEnvironment;
 
   /**
-   * Construct an instance of the test input.
+   * Construct an instance of the test input, using {@link SimpleIteratorEnvironment}.
    *
    * @param iteratorClass
    *          The class for the iterator to test.
@@ -61,7 +64,31 @@ public class IteratorTestInput {
    */
   public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
       Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input) {
-    this(iteratorClass, iteratorOptions, range, input, Collections.emptySet(), false);
+    this(iteratorClass, iteratorOptions, range, input, Collections.emptySet(), false,
+        new SimpleIteratorEnvironment());
+  }
+
+  /**
+   * Construct an instance of the test input.
+   *
+   * @param iteratorClass
+   *          The class for the iterator to test.
+   * @param iteratorOptions
+   *          Options, if any, to provide to the iterator ({@link IteratorSetting}'s Map of
+   *          properties).
+   * @param range
+   *          The Range of data to query ({@link Scanner#setRange(Range)}). By default no column
+   *          families filter is specified.
+   * @param input
+   *          A sorted collection of Key-Value pairs acting as the table.
+   * @param iterEnv
+   *          A provided {@link IteratorEnvironment}.
+   */
+  public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
+      Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input,
+      IteratorEnvironment iterEnv) {
+    this(iteratorClass, iteratorOptions, range, input, Collections.emptySet(), false,
+        requireNonNull(iterEnv));
   }
 
   /**
@@ -80,10 +107,13 @@ public class IteratorTestInput {
    *          Column families passed to {@link SortedKeyValueIterator#seek}.
    * @param inclusive
    *          Whether the families are inclusive or exclusive.
+   * @param iterEnv
+   *          An optional provided {@link IteratorEnvironment}. {@link SimpleIteratorEnvironment}
+   *          will be used if null.
    */
   public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
       Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input,
-      Collection<ByteSequence> families, boolean inclusive) {
+      Collection<ByteSequence> families, boolean inclusive, IteratorEnvironment iterEnv) {
     // Already immutable
     this.iteratorClass = requireNonNull(iteratorClass);
     // Make it immutable to the test
@@ -94,6 +124,7 @@ public class IteratorTestInput {
     this.input = Collections.unmodifiableSortedMap((requireNonNull(input)));
     this.families = Collections.unmodifiableCollection(requireNonNull(families));
     this.inclusive = inclusive;
+    this.iteratorEnvironment = iterEnv == null ? new SimpleIteratorEnvironment() : iterEnv;
   }
 
   public Class<? extends SortedKeyValueIterator<Key,Value>> getIteratorClass() {
@@ -118,6 +149,10 @@ public class IteratorTestInput {
 
   public SortedMap<Key,Value> getInput() {
     return input;
+  }
+
+  public IteratorEnvironment getIteratorEnvironment() {
+    return iteratorEnvironment;
   }
 
   @Override

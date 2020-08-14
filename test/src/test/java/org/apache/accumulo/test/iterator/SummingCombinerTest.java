@@ -31,11 +31,13 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.iteratortest.IteratorTestCaseFinder;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
+import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 import org.junit.runners.Parameterized.Parameters;
@@ -120,8 +122,14 @@ public class SummingCombinerTest extends BaseJUnit4IteratorTest {
     IteratorSetting setting = new IteratorSetting(50, SummingCombiner.class);
     LongCombiner.setEncodingType(setting, LongCombiner.Type.STRING);
     Combiner.setCombineAllColumns(setting, true);
+    Combiner.setReduceOnFullCompactionOnly(setting, false);
     return new IteratorTestInput(SummingCombiner.class, setting.getOptions(), new Range(),
-        INPUT_DATA);
+        INPUT_DATA, new SimpleIteratorEnvironment() {
+          @Override
+          public IteratorScope getIteratorScope() {
+            return IteratorScope.majc;
+          }
+        });
   }
 
   private static IteratorTestOutput getIteratorOutput() {
