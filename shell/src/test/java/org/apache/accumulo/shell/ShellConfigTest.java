@@ -94,7 +94,7 @@ public class ShellConfigTest {
   @Test
   public void testBadArg() throws IOException {
     assertFalse(shell.config(args("--bogus")));
-    assertTrue("Did not print usage", output.get().startsWith("Usage"));
+    assertTrue("Did not print usage", output.get().contains("Unrecognized"));
   }
 
   @Test
