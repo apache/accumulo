@@ -76,7 +76,7 @@ public class PasswordConverterTest {
   public void testPass() {
     String expected = String.valueOf(Math.random());
     argv[1] = "pass:" + expected;
-    new JCommander(password, argv);
+    new JCommander(password).parse(argv);
     assertEquals(expected, password.password);
   }
 
@@ -84,7 +84,7 @@ public class PasswordConverterTest {
   public void testEnv() {
     String name = System.getenv().keySet().iterator().next();
     argv[1] = "env:" + name;
-    new JCommander(password, argv);
+    new JCommander(password).parse(argv);
     assertEquals(System.getenv(name), password.password);
   }
 
@@ -94,20 +94,20 @@ public class PasswordConverterTest {
     Scanner scan = new Scanner(new File("pom.xml"));
     String expected = scan.nextLine();
     scan.close();
-    new JCommander(password, argv);
+    new JCommander(password).parse(argv);
     assertEquals(expected, password.password);
   }
 
   @Test(expected = ParameterException.class)
   public void testNoFile() throws FileNotFoundException {
     argv[1] = "file:doesnotexist";
-    new JCommander(password, argv);
+    new JCommander(password).parse(argv);
   }
 
   @Test
   public void testStdin() {
     argv[1] = "stdin";
-    new JCommander(password, argv);
+    new JCommander(password).parse(argv);
     assertEquals("stdin", password.password);
   }
 }
