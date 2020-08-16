@@ -50,7 +50,7 @@ on:
 
 jobs:
   mvn:
-    name: mvn (submitter: ${{ github.event.sender.login }})
+    name: mvn (triggered by ${{ github.event.sender.login }})
     timeout-minutes: 360
     runs-on: ubuntu-latest
     steps:
