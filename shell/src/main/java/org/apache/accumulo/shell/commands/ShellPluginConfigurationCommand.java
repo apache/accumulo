@@ -26,8 +26,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
@@ -116,7 +116,7 @@ public abstract class ShellPluginConfigurationCommand extends Command {
           o.addOption(OptUtil.tableOpt());
           args[0] = "-t";
           args[1] = tableName;
-          CommandLine cl = new BasicParser().parse(o, args);
+          CommandLine cl = new DefaultParser().parse(o, args);
           pluginClazz =
               shellState.getClassLoader(cl, shellState).loadClass(ent.getValue()).asSubclass(clazz);
         } catch (ClassNotFoundException e) {

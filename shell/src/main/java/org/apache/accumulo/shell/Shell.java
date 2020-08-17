@@ -163,8 +163,8 @@ import org.apache.accumulo.shell.commands.WhoAmICommand;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
@@ -836,7 +836,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         Options parseOpts = sc.getOptionsWithHelp();
 
         // Parse the string using the given options
-        CommandLine cl = new BasicParser().parse(parseOpts, fields);
+        CommandLine cl = new DefaultParser().parse(parseOpts, fields);
 
         int actualArgLen = cl.getArgs().length;
         int expectedArgLen = sc.numArgs();

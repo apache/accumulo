@@ -48,7 +48,7 @@ public class ShellUtilTest {
   @Test
   public void testWithoutDecode() throws IOException {
     File testFile = new File(folder.getRoot(), "testFileNoDecode.txt");
-    FileUtils.writeStringToFile(testFile, FILEDATA);
+    FileUtils.writeStringToFile(testFile, FILEDATA, UTF_8);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), false);
     assertEquals(ImmutableList.of(new Text("line1"), new Text("line2")), output);
   }
@@ -56,7 +56,7 @@ public class ShellUtilTest {
   @Test
   public void testWithDecode() throws IOException {
     File testFile = new File(folder.getRoot(), "testFileWithDecode.txt");
-    FileUtils.writeStringToFile(testFile, B64_FILEDATA);
+    FileUtils.writeStringToFile(testFile, B64_FILEDATA, UTF_8);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), true);
     assertEquals(ImmutableList.of(new Text("line1"), new Text("line2")), output);
   }

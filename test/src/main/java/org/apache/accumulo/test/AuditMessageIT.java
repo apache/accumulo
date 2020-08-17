@@ -52,7 +52,6 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.LineIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
@@ -133,8 +132,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     for (File file : files) {
       // We want to grab the files called .out
       if (file.getName().contains(".out") && file.isFile() && file.canRead()) {
-        LineIterator it = FileUtils.lineIterator(file, UTF_8.name());
-        try {
+        try (java.util.Scanner it = new java.util.Scanner(file, UTF_8.name())) {
           while (it.hasNext()) {
             String line = it.nextLine();
             if (line.matches(".* \\[" + AuditedSecurityOperation.AUDITLOG + "\\s*\\].*")) {
@@ -145,8 +143,6 @@ public class AuditMessageIT extends ConfigurableMacBase {
                 result.add(line);
             }
           }
-        } finally {
-          LineIterator.closeQuietly(it);
         }
       }
     }
@@ -330,19 +326,16 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // to re-import it
     File distCpTxt = new File(exportDir.toString() + "/distcp.txt");
     File importFile = null;
-    LineIterator it = FileUtils.lineIterator(distCpTxt, UTF_8.name());
 
     // Just grab the first rf file, it will do for now.
     String filePrefix = "file:";
-    try {
+    try (java.util.Scanner it = new java.util.Scanner(distCpTxt, UTF_8.name())) {
       while (it.hasNext() && importFile == null) {
         String line = it.nextLine();
         if (line.matches(".*\\.rf")) {
           importFile = new File(line.replaceFirst(filePrefix, ""));
         }
       }
-    } finally {
-      LineIterator.closeQuietly(it);
     }
     FileUtils.copyFileToDirectory(importFile, exportDir);
     auditConnector.tableOperations().importTable(NEW_TEST_TABLE_NAME, exportDir.toString());

@@ -30,7 +30,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -137,24 +136,19 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       Path pathToKey = new Path(pathToKeyName);
       FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
 
-      DataInputStream in = null;
       try {
         if (!fs.exists(pathToKey)) {
           initializeKeyEncryptionKey(fs, pathToKey, context);
         }
 
-        in = fs.open(pathToKey);
-
-        int keyEncryptionKeyLength = in.readInt();
-        keyEncryptionKey = new byte[keyEncryptionKeyLength];
-        in.readFully(keyEncryptionKey);
-
-        initialized = true;
-
+        try (DataInputStream in = fs.open(pathToKey)) {
+          int keyEncryptionKeyLength = in.readInt();
+          keyEncryptionKey = new byte[keyEncryptionKeyLength];
+          in.readFully(keyEncryptionKey);
+          initialized = true;
+        }
       } catch (IOException e) {
         log.error("Could not initialize key encryption cache", e);
-      } finally {
-        IOUtils.closeQuietly(in);
       }
     }
 
