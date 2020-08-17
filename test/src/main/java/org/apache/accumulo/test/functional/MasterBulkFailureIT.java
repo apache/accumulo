@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
@@ -44,7 +47,6 @@ import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class MasterBulkFailureIT extends AccumuloClusterHarness {
@@ -96,15 +98,15 @@ public class MasterBulkFailureIT extends AccumuloClusterHarness {
         false);
 
     RemoteIterator<LocatedFileStatus> status = fs.listFiles(bulkFailures, false);
-    Assert.assertTrue(status.hasNext());
+    assertTrue(status.hasNext());
     Path newPath = status.next().getPath();
-    Assert.assertFalse(status.hasNext());
+    assertFalse(status.hasNext());
 
     // verify nothing loaded
     Scanner s = c.createScanner(tableName, new Authorizations());
     s.setRange(new Range());
     Iterator<Map.Entry<Key,Value>> iterator = s.iterator();
-    Assert.assertFalse(iterator.hasNext());
+    assertFalse(iterator.hasNext());
 
     // move the file back to its original location, reset the property higher and try again
     fs.rename(newPath, file);
@@ -115,22 +117,22 @@ public class MasterBulkFailureIT extends AccumuloClusterHarness {
         false);
 
     status = fs.listFiles(bulkFailures, false);
-    Assert.assertFalse(status.hasNext());
+    assertFalse(status.hasNext());
 
     // verify the keys were loaded
     s = c.createScanner(tableName, new Authorizations());
     s.setRange(new Range());
     iterator = s.iterator();
-    Assert.assertTrue(iterator.hasNext());
+    assertTrue(iterator.hasNext());
     iterator.next();
-    Assert.assertTrue(iterator.hasNext());
+    assertTrue(iterator.hasNext());
     iterator.next();
-    Assert.assertTrue(iterator.hasNext());
+    assertTrue(iterator.hasNext());
     iterator.next();
-    Assert.assertTrue(iterator.hasNext());
+    assertTrue(iterator.hasNext());
     iterator.next();
-    Assert.assertTrue(iterator.hasNext());
+    assertTrue(iterator.hasNext());
     iterator.next();
-    Assert.assertFalse(iterator.hasNext());
+    assertFalse(iterator.hasNext());
   }
 }

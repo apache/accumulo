@@ -115,8 +115,8 @@ public class BulkImporter {
     int numAssignThreads =
         context.getConfiguration().getCount(Property.TSERV_BULK_ASSIGNMENT_THREADS);
 
-    final int maxAssignedTablets = context.getConfiguration()
-        .getCount(Property.TSERV_BULK_MAX_TABLET_OVERLAP);
+    final int maxAssignedTablets =
+        context.getConfiguration().getCount(Property.TSERV_BULK_MAX_TABLET_OVERLAP);
 
     timer = new StopWatch<>(Timers.class);
     timer.start(Timers.TOTAL);
