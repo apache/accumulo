@@ -20,7 +20,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -35,8 +34,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
-
-import com.google.common.base.Stopwatch;
 
 /**
  *
@@ -76,21 +73,18 @@ public class ScannerIT extends AccumuloClusterHarness {
     s.setBatchSize(1);
     s.setRange(new Range());
 
-    Stopwatch sw = Stopwatch.createUnstarted();
     Iterator<Entry<Key,Value>> iterator = s.iterator();
-
-    sw.start();
+    long nanosWithWait = 0;
+    long startTime = System.nanoTime();
     while (iterator.hasNext()) {
-      sw.stop();
+      nanosWithWait += System.nanoTime() - startTime;
 
       // While we "do work" in the client, we should be fetching the next result
       UtilWaitThread.sleep(100l);
       iterator.next();
-      sw.start();
+      startTime = System.nanoTime();
     }
-    sw.stop();
-
-    long nanosWithWait = sw.elapsed(TimeUnit.NANOSECONDS);
+    nanosWithWait += System.nanoTime() - startTime;
 
     s = c.createScanner(table, new Authorizations());
     s.addScanIterator(cfg);
@@ -98,21 +92,18 @@ public class ScannerIT extends AccumuloClusterHarness {
     s.setBatchSize(1);
     s.setReadaheadThreshold(0l);
 
-    sw = Stopwatch.createUnstarted();
     iterator = s.iterator();
-
-    sw.start();
+    long nanosWithNoWait = 0;
+    startTime = System.nanoTime();
     while (iterator.hasNext()) {
-      sw.stop();
+      nanosWithNoWait += System.nanoTime() - startTime;
 
       // While we "do work" in the client, we should be fetching the next result
       UtilWaitThread.sleep(100l);
       iterator.next();
-      sw.start();
+      startTime = System.nanoTime();
     }
-    sw.stop();
-
-    long nanosWithNoWait = sw.elapsed(TimeUnit.NANOSECONDS);
+    nanosWithNoWait += System.nanoTime() - startTime;
 
     // The "no-wait" time should be much less than the "wait-time"
     assertTrue(
