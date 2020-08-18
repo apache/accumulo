@@ -180,78 +180,80 @@ public class BulkImporter {
         log.warn("Retries set to 0. All failed map file assignments will not be retried.");
         completeFailures.putAll(assignmentFailures);
       } else {
-        for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet())
-          failureCount.put(entry.getKey(), 1);
-      }
-
-      long sleepTime = 2 * 1000;
-      while (!assignmentFailures.isEmpty() && retries > 0) {
-        sleepTime = Math.min(sleepTime * 2, 60 * 1000);
-        locator.invalidateCache();
-        // assumption about assignment failures is that it caused by a split
-        // happening or a missing location
-        //
-        // for splits we need to find children key extents that cover the
-        // same key range and are contiguous (no holes, no overlap)
-
-        timer.start(Timers.SLEEP);
-        sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
-        timer.stop(Timers.SLEEP);
-
-        log.debug("Trying to assign {} map files that previously failed on some key extents",
-            assignmentFailures.size());
-        assignments.clear();
-
-        // for failed key extents, try to find children key extents to
-        // assign to
         for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet()) {
-          Iterator<KeyExtent> keListIter = entry.getValue().iterator();
+          failureCount.put(entry.getKey(), 1);
+        }
 
-          List<TabletLocation> tabletsToAssignMapFileTo = new ArrayList<>();
+        long sleepTime = 2 * 1000;
+        while (!assignmentFailures.isEmpty()) {
+          sleepTime = Math.min(sleepTime * 2, 60 * 1000);
+          locator.invalidateCache();
+          // assumption about assignment failures is that it caused by a split
+          // happening or a missing location
+          //
+          // for splits we need to find children key extents that cover the
+          // same key range and are contiguous (no holes, no overlap)
 
-          while (keListIter.hasNext()) {
-            KeyExtent ke = keListIter.next();
+          timer.start(Timers.SLEEP);
+          sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
+          timer.stop(Timers.SLEEP);
 
-            timer.start(Timers.QUERY_METADATA);
-            try {
-              tabletsToAssignMapFileTo
-                  .addAll(findOverlappingTablets(context, fs, locator, entry.getKey(), ke));
-              keListIter.remove();
-            } catch (Exception ex) {
-              log.warn("Exception finding overlapping tablets, will retry tablet " + ke, ex);
+          log.debug("Trying to assign {} map files that previously failed on some key extents",
+              assignmentFailures.size());
+          assignments.clear();
+
+          // for failed key extents, try to find children key extents to
+          // assign to
+          for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet()) {
+            Iterator<KeyExtent> keListIter = entry.getValue().iterator();
+
+            List<TabletLocation> tabletsToAssignMapFileTo = new ArrayList<>();
+
+            while (keListIter.hasNext()) {
+              KeyExtent ke = keListIter.next();
+
+              timer.start(Timers.QUERY_METADATA);
+              try {
+                tabletsToAssignMapFileTo
+                    .addAll(findOverlappingTablets(context, fs, locator, entry.getKey(), ke));
+                keListIter.remove();
+              } catch (Exception ex) {
+                log.warn("Exception finding overlapping tablets, will retry tablet " + ke, ex);
+              }
+              timer.stop(Timers.QUERY_METADATA);
             }
-            timer.stop(Timers.QUERY_METADATA);
+
+            if (!tabletsToAssignMapFileTo.isEmpty())
+              assignments.put(entry.getKey(), tabletsToAssignMapFileTo);
           }
 
-          if (!tabletsToAssignMapFileTo.isEmpty())
-            assignments.put(entry.getKey(), tabletsToAssignMapFileTo);
-        }
+          assignmentStats.attemptingAssignments(assignments);
+          Map<Path,List<KeyExtent>> assignmentFailures2 =
+              assignMapFiles(fs, assignments, paths, numAssignThreads, numThreads);
+          assignmentStats.assignmentsFailed(assignmentFailures2);
 
-        assignmentStats.attemptingAssignments(assignments);
-        Map<Path,List<KeyExtent>> assignmentFailures2 =
-            assignMapFiles(fs, assignments, paths, numAssignThreads, numThreads);
-        assignmentStats.assignmentsFailed(assignmentFailures2);
+          // merge assignmentFailures2 into assignmentFailures
+          for (Entry<Path,List<KeyExtent>> entry : assignmentFailures2.entrySet()) {
+            assignmentFailures.get(entry.getKey()).addAll(entry.getValue());
 
-        // merge assignmentFailures2 into assignmentFailures
-        for (Entry<Path,List<KeyExtent>> entry : assignmentFailures2.entrySet()) {
-          assignmentFailures.get(entry.getKey()).addAll(entry.getValue());
+            Integer fc = failureCount.get(entry.getKey());
+            if (fc == null)
+              fc = 0;
 
-          Integer fc = failureCount.get(entry.getKey());
-          if (fc == null)
-            fc = 0;
+            failureCount.put(entry.getKey(), fc + 1);
+          }
 
-          failureCount.put(entry.getKey(), fc + 1);
-        }
+          // remove map files that have no more key extents to assign
+          assignmentFailures.values().removeIf(List::isEmpty);
 
-        // remove map files that have no more key extents to assign
-        assignmentFailures.values().removeIf(List::isEmpty);
-
-        Set<Entry<Path,Integer>> failureIter = failureCount.entrySet();
-        for (Entry<Path,Integer> entry : failureIter) {
-          if (entry.getValue() > retries && assignmentFailures.get(entry.getKey()) != null) {
-            log.error("Map file {} failed more than {} times, giving up.", entry.getKey(), retries);
-            completeFailures.put(entry.getKey(), assignmentFailures.get(entry.getKey()));
-            assignmentFailures.remove(entry.getKey());
+          Set<Entry<Path,Integer>> failureIter = failureCount.entrySet();
+          for (Entry<Path,Integer> entry : failureIter) {
+            if (entry.getValue() > retries && assignmentFailures.get(entry.getKey()) != null) {
+              log.error("Map file {} failed more than {} times, giving up.", entry.getKey(),
+                  retries);
+              completeFailures.put(entry.getKey(), assignmentFailures.get(entry.getKey()));
+              assignmentFailures.remove(entry.getKey());
+            }
           }
         }
       }
