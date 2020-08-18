@@ -127,8 +127,6 @@
     <failsafe.groups />
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
-    <!-- version appropriate for Hadoop 2 by default -->
-    <guava.version>14.0.1</guava.version>
     <hadoop.version>2.6.5</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
@@ -154,8 +152,6 @@
     <surefire.version>3.0.0-M3</surefire.version>
     <!-- Thrift version -->
     <thrift.version>0.9.3-1</thrift.version>
-    <!-- version appropriate for Hadoop 2 by default -->
-    <vfs2.version>2.3</vfs2.version>
     <!-- ZooKeeper version -->
     <zookeeper.version>3.4.14</zookeeper.version>
   </properties>
@@ -180,7 +176,8 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>${guava.version}</version>
+        <!-- version that works when building with Hadoop 2 or 3 -->
+        <version>14.0.1</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
@@ -210,7 +207,8 @@
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.7</version>
+        <!-- this version is needed for commons-vfs2 2.3 -->
+        <version>2.4</version>
       </dependency>
       <dependency>
         <groupId>commons-lang</groupId>
@@ -374,7 +372,8 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-vfs2</artifactId>
-        <version>${vfs2.version}</version>
+        <!-- version that works when building with Hadoop 2 or 3 -->
+        <version>2.3</version>
       </dependency>
       <dependency>
         <groupId>org.apache.curator</groupId>
@@ -1384,9 +1383,7 @@
         </property>
       </activation>
       <properties>
-        <guava.version>27.0-jre</guava.version>
         <hadoop.version>3.0.3</hadoop.version>
-        <vfs2.version>2.6.0</vfs2.version>
       </properties>
     </profile>
   </profiles>
