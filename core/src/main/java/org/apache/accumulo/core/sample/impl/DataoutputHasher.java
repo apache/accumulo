@@ -96,8 +96,13 @@ public class DataoutputHasher implements DataOutput {
 
   @Override
   public void writeChars(String s) throws IOException {
-    hasher.putString(s);
-
+    // use loop here instead of built-in hasher.putUnencodedChars (formerly hasher.putString) so
+    // that way it will work across the different Guava versions that could be on the class path due
+    // to differences between Hadoop 2 and 3.
+    int len = s.length();
+    for (int i = 0; i < len; i++) {
+      hasher.putChar(s.charAt(i));
+    }
   }
 
   @Override

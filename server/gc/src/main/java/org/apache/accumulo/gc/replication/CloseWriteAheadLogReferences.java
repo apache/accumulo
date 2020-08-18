@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.gc.replication;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -59,7 +60,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Stopwatch;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
@@ -83,10 +83,11 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   @Override
   public void run() {
-    // As long as we depend on a newer Guava than Hadoop uses, we have to make sure we're compatible
-    // with
-    // what the version they bundle uses.
-    Stopwatch sw = new Stopwatch();
+    // Guava Stopwatch is useful here, for a friendlier toString, but the version of Guava in Hadoop
+    // 2 and 3 are different in incompatible ways, so we avoid it here and use Duration instead, so
+    // there won't be conflicts with the older Guava that ships by default with Hadoop 2.
+    long startTime;
+    Duration duration;
 
     Connector conn;
     try {
@@ -104,28 +105,27 @@ public class CloseWriteAheadLogReferences implements Runnable {
     Span findWalsSpan = Trace.start("findReferencedWals");
     HashSet<String> closed = null;
     try {
-      sw.start();
+      startTime = System.nanoTime();
       closed = getClosedLogs(conn);
+      duration = Duration.ofNanos(System.nanoTime() - startTime);
     } finally {
-      sw.stop();
       findWalsSpan.stop();
     }
 
-    log.info("Found " + closed.size() + " WALs referenced in metadata in " + sw.toString());
-    sw.reset();
+    log.info("Found " + closed.size() + " WALs referenced in metadata in " + duration);
 
     Span updateReplicationSpan = Trace.start("updateReplicationTable");
     long recordsClosed = 0;
     try {
-      sw.start();
+      startTime = System.nanoTime();
       recordsClosed = updateReplicationEntries(conn, closed);
+      duration = Duration.ofNanos(System.nanoTime() - startTime);
     } finally {
-      sw.stop();
       updateReplicationSpan.stop();
     }
 
     log.info("Closed " + recordsClosed + " WAL replication references in replication table in "
-        + sw.toString());
+        + duration);
   }
 
   /**

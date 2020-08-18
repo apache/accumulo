@@ -76,7 +76,7 @@ public class ScannerIT extends AccumuloClusterHarness {
     s.setBatchSize(1);
     s.setRange(new Range());
 
-    Stopwatch sw = new Stopwatch();
+    Stopwatch sw = Stopwatch.createUnstarted();
     Iterator<Entry<Key,Value>> iterator = s.iterator();
 
     sw.start();
@@ -90,7 +90,7 @@ public class ScannerIT extends AccumuloClusterHarness {
     }
     sw.stop();
 
-    long millisWithWait = sw.elapsed(TimeUnit.MILLISECONDS);
+    long nanosWithWait = sw.elapsed(TimeUnit.NANOSECONDS);
 
     s = c.createScanner(table, new Authorizations());
     s.addScanIterator(cfg);
@@ -98,7 +98,7 @@ public class ScannerIT extends AccumuloClusterHarness {
     s.setBatchSize(1);
     s.setReadaheadThreshold(0l);
 
-    sw = new Stopwatch();
+    sw = Stopwatch.createUnstarted();
     iterator = s.iterator();
 
     sw.start();
@@ -112,13 +112,13 @@ public class ScannerIT extends AccumuloClusterHarness {
     }
     sw.stop();
 
-    long millisWithNoWait = sw.elapsed(TimeUnit.MILLISECONDS);
+    long nanosWithNoWait = sw.elapsed(TimeUnit.NANOSECONDS);
 
     // The "no-wait" time should be much less than the "wait-time"
     assertTrue(
-        "Expected less time to be taken with immediate readahead (" + millisWithNoWait
-            + ") than without immediate readahead (" + millisWithWait + ")",
-        millisWithNoWait < millisWithWait);
+        "Expected less time to be taken with immediate readahead (" + nanosWithNoWait
+            + ") than without immediate readahead (" + nanosWithWait + ")",
+        nanosWithNoWait < nanosWithWait);
   }
 
 }

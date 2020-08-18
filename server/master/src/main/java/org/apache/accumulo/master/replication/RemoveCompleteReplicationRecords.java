@@ -17,6 +17,7 @@
 package org.apache.accumulo.master.replication;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,7 +48,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Stopwatch;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
@@ -85,10 +85,10 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     WorkSection.limit(bs);
     bs.addScanIterator(cfg);
 
-    Stopwatch sw = new Stopwatch();
     long recordsRemoved = 0;
+    long startTime = System.nanoTime();
+    Duration duration;
     try {
-      sw.start();
       recordsRemoved = removeCompleteRecords(conn, bs, bw);
     } finally {
       if (null != bs) {
@@ -102,11 +102,11 @@ public class RemoveCompleteReplicationRecords implements Runnable {
         }
       }
 
-      sw.stop();
+      duration = Duration.ofNanos(System.nanoTime() - startTime);
     }
 
-    log.info("Removed {} complete replication entries from the table {}", recordsRemoved,
-        ReplicationTable.NAME);
+    log.info("Removed {} complete replication entries from the table {} in {}", recordsRemoved,
+        ReplicationTable.NAME, duration);
   }
 
   /**
