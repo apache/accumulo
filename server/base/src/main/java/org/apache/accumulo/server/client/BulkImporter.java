@@ -177,7 +177,7 @@ public class BulkImporter {
 
       int retries = context.getConfiguration().getCount(Property.TSERV_BULK_RETRY);
       if (retries == 0) {
-        log.warn("Retries set to 0. All failed map file assignments will not be retried.");
+        log.error("Retries set to 0. No failed map file assignments will be retried.");
         completeFailures.putAll(assignmentFailures);
       } else {
         for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet()) {
