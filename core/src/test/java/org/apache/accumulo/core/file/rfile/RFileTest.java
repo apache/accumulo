@@ -2004,7 +2004,7 @@ public class RFileTest {
       RFile.setSampleBufferSize(sampleBufferSize);
 
       for (int modulus : new int[] {19, 103, 1019}) {
-        Hasher dataHasher = Hashing.md5().newHasher();
+        Hasher dataHasher = Hashing.sha512().newHasher();
         List<Entry<Key,Value>> sampleData = new ArrayList<>();
 
         ConfigurationCopy sampleConf = new ConfigurationCopy(
@@ -2069,7 +2069,7 @@ public class RFileTest {
   }
 
   private HashCode hash(SortedKeyValueIterator<Key,Value> iter) throws IOException {
-    Hasher dataHasher = Hashing.md5().newHasher();
+    Hasher dataHasher = Hashing.sha512().newHasher();
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     while (iter.hasTop()) {
       hash(dataHasher, iter.getTopKey(), iter.getTopValue());

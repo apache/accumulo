@@ -20,11 +20,11 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>21</version>
+    <version>23</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
-  <version>1.9.4-SNAPSHOT</version>
+  <version>1.10.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Accumulo Project</name>
   <description>Apache Accumulo is a sorted, distributed key/value store based
@@ -127,6 +127,8 @@
     <failsafe.groups />
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
+    <!-- version that works when building with Hadoop 2 or 3.0; use 27.0-jre for 3.1 and later -->
+    <guava.version>14.0.1</guava.version>
     <hadoop.version>2.6.5</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
@@ -136,10 +138,12 @@
     <maven.compiler.release>8</maven.compiler.release>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <maven.plugin-version>3.0.5</maven.plugin-version>
+    <maven.plugin-version>3.5.0</maven.plugin-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>2.0.2</powermock.version>
+    <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
+    <project.build.outputTimestamp>2020-08-18T00:00:00Z</project.build.outputTimestamp>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <slf4j.version>1.7.25</slf4j.version>
@@ -163,7 +167,7 @@
       <dependency>
         <groupId>com.google.auto.service</groupId>
         <artifactId>auto-service</artifactId>
-        <!-- rc4 and higher require Java 8 -->
+        <!-- newer auto-service requires newer guava -->
         <version>1.0-rc3</version>
       </dependency>
       <dependency>
@@ -174,8 +178,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <!-- version known to work on at least some Hadoop versions -->
-        <version>14.0.1</version>
+        <version>${guava.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
@@ -205,7 +208,8 @@
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.7</version>
+        <!-- this version is needed for commons-vfs2 2.3 -->
+        <version>2.6</version>
       </dependency>
       <dependency>
         <groupId>commons-lang</groupId>
@@ -369,6 +373,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-vfs2</artifactId>
+        <!-- version that works when building with Hadoop 2 or 3 -->
         <version>2.3</version>
       </dependency>
       <dependency>
@@ -592,11 +597,6 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-invoker-plugin</artifactId>
-          <version>3.2.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>3.1.0</version>
         </plugin>
@@ -641,7 +641,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.1</version>
           <configuration>
             <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
@@ -669,7 +668,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.1.1</version>
+          <version>3.2.0</version>
           <configuration>
             <quiet>true</quiet>
             <additionalJOption>-J-Xmx512m</additionalJOption>
@@ -701,7 +700,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
@@ -714,7 +712,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
@@ -727,7 +724,7 @@
         <plugin>
           <groupId>org.asciidoctor</groupId>
           <artifactId>asciidoctor-maven-plugin</artifactId>
-          <version>1.6.0</version>
+          <version>2.0.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -741,12 +738,6 @@
           <version>1.5.0</version>
         </plugin>
         <plugin>
-          <!-- Allows us to get the apache-ds bundle artifacts -->
-          <groupId>org.apache.felix</groupId>
-          <artifactId>maven-bundle-plugin</artifactId>
-          <version>4.2.0</version>
-        </plugin>
-        <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>apilyzer-maven-plugin</artifactId>
           <version>1.2.0</version>
@@ -754,7 +745,7 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.10.0</version>
+          <version>2.11.0</version>
           <configuration>
             <configFile>${eclipseFormatterStyle}</configFile>
             <compilerCompliance>${maven.compiler.source}</compilerCompliance>
@@ -793,7 +784,7 @@
         <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>impsort-maven-plugin</artifactId>
-          <version>1.3.0</version>
+          <version>1.4.1</version>
           <configuration>
             <removeUnused>true</removeUnused>
             <groups>java.,javax.,org.,com.</groups>
@@ -850,7 +841,6 @@
             <configuration>
               <rules>
                 <requireMavenVersion>
-                  <!-- org.apache.felix:maven-bundle-plugin declares that it needs 3.5.0 -->
                   <version>[3.5.0,)</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
@@ -1052,13 +1042,6 @@
             </configuration>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <!-- Allows us to get the apache-ds bundle artifacts -->
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <extensions>true</extensions>
-        <inherited>true</inherited>
       </plugin>
     </plugins>
   </build>
@@ -1389,20 +1372,6 @@
       </activation>
       <properties>
         <hadoop.profile>2</hadoop.profile>
-        <hadoop.version>2.6.4</hadoop.version>
-      </properties>
-    </profile>
-    <!-- Build against hadoop 2 explicitly -->
-    <profile>
-      <id>hadoop2</id>
-      <activation>
-        <property>
-          <name>hadoop.profile</name>
-          <value>2</value>
-        </property>
-      </activation>
-      <properties>
-        <hadoop.version>2.6.4</hadoop.version>
       </properties>
     </profile>
     <!-- Build against hadoop 3 explicitly -->
@@ -1415,7 +1384,7 @@
         </property>
       </activation>
       <properties>
-        <hadoop.version>3.0.0</hadoop.version>
+        <hadoop.version>3.0.3</hadoop.version>
       </properties>
     </profile>
   </profiles>

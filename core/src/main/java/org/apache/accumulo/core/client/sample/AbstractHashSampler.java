@@ -87,10 +87,14 @@ public abstract class AbstractHashSampler implements Sampler {
         hashFunction = Hashing.murmur3_32();
         break;
       case "md5":
-        hashFunction = Hashing.md5();
+        @SuppressWarnings("deprecation")
+        HashFunction deprecatedMd5 = Hashing.md5();
+        hashFunction = deprecatedMd5;
         break;
       case "sha1":
-        hashFunction = Hashing.sha1();
+        @SuppressWarnings("deprecation")
+        HashFunction deprecatedSha1 = Hashing.sha1();
+        hashFunction = deprecatedSha1;
         break;
       default:
         throw new IllegalArgumentException("Uknown hahser " + hasherOpt);
