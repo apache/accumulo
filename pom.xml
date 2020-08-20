@@ -127,6 +127,8 @@
     <failsafe.groups />
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
+    <!-- version that works when building with Hadoop 2 or 3.0; use 27.0-jre for 3.1 and later -->
+    <guava.version>14.0.1</guava.version>
     <hadoop.version>2.6.5</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
@@ -176,8 +178,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <!-- version that works when building with Hadoop 2 or 3 -->
-        <version>14.0.1</version>
+        <version>${guava.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
