@@ -142,6 +142,8 @@
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>2.0.5</powermock.version>
+    <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
+    <project.build.outputTimestamp>2020-08-18T00:00:00Z</project.build.outputTimestamp>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <slf4j.version>1.7.30</slf4j.version>
@@ -888,7 +890,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.1</version>
           <configuration>
             <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
@@ -956,7 +957,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
@@ -969,7 +969,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
@@ -989,12 +988,6 @@
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
           <version>1.5.0</version>
-        </plugin>
-        <plugin>
-          <!-- Allows us to get the apache-ds bundle artifacts -->
-          <groupId>org.apache.felix</groupId>
-          <artifactId>maven-bundle-plugin</artifactId>
-          <version>4.2.0</version>
         </plugin>
         <plugin>
           <groupId>net.revelc.code</groupId>
@@ -1159,7 +1152,6 @@
             <configuration>
               <rules>
                 <requireMavenVersion>
-                  <!-- org.apache.felix:maven-bundle-plugin declares that it needs 3.5.0 -->
                   <version>[3.5.0,)</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
@@ -1347,13 +1339,6 @@
             </configuration>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <!-- Allows us to get the apache-ds bundle artifacts -->
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <extensions>true</extensions>
-        <inherited>true</inherited>
       </plugin>
     </plugins>
   </build>
