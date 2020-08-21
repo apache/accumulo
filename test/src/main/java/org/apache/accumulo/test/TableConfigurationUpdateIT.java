@@ -51,7 +51,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
 
   @Override
   public int defaultTimeoutSeconds() {
-    return 60;
+    return 120;
   }
 
   @Test

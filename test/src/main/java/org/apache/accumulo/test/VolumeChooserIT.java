@@ -89,7 +89,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 60;
+    return 120;
   }
 
   @Override

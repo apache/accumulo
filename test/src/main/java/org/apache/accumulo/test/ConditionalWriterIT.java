@@ -114,7 +114,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 60;
+    return 120;
   }
 
   @BeforeClass

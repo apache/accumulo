@@ -48,7 +48,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 45;
+    return 120;
   }
 
   @Test
