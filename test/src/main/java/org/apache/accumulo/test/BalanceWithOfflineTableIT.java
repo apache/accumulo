@@ -35,7 +35,7 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 30;
+    return 120;
   }
 
   @Override
@@ -82,7 +82,7 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
         return true;
       }
     });
-    wait.get(20, TimeUnit.SECONDS);
+    wait.get((2 * defaultTimeoutSeconds()) / 3, TimeUnit.SECONDS);
     log.info("Balance succeeded with an offline table");
   }
 

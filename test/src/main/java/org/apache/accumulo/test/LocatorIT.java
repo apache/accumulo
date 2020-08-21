@@ -50,7 +50,7 @@ public class LocatorIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 60;
+    return 120;
   }
 
   private void assertContains(Locations locations, HashSet<String> tservers,

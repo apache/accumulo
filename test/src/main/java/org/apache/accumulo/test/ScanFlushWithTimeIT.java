@@ -47,7 +47,7 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 30;
+    return 120;
   }
 
   @Test
