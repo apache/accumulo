@@ -116,7 +116,7 @@
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.62</bouncycastle.version>
+    <bouncycastle.version>1.66</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>2.11.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
