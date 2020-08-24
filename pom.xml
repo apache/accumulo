@@ -116,7 +116,7 @@
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.64</bouncycastle.version>
+    <bouncycastle.version>1.66</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>4.3.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
@@ -141,7 +141,7 @@
     <maven.compiler.target>11</maven.compiler.target>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>2.0.5</powermock.version>
+    <powermock.version>2.0.7</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2020-08-18T00:00:00Z</project.build.outputTimestamp>
     <!-- surefire/failsafe plugin option -->
