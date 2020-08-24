@@ -141,7 +141,7 @@
     <maven.plugin-version>3.5.0</maven.plugin-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>2.0.2</powermock.version>
+    <powermock.version>2.0.7</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2020-08-18T00:00:00Z</project.build.outputTimestamp>
     <!-- surefire/failsafe plugin option -->
