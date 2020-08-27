@@ -601,6 +601,12 @@
           <version>3.1.0</version>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <!-- Must use 3.1.1 until https://issues.apache.org/jira/browse/MASSEMBLY-941 is fixed -->
+          <version>3.1.1</version>
+        </plugin>
+        <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
           <version>2.10.0</version>
