@@ -674,7 +674,7 @@ public interface TableOperations {
 
   /**
    * Bulk import all the files in a directory into a table. Files can be created using
-   * {@code AccumuloFileOutputFormat} and {@link RFile#newWriter()}
+   * {@link RFile#newWriter()}
    *
    * @param tableName
    *          the name of the table
@@ -784,7 +784,7 @@ public interface TableOperations {
 
   /**
    * Bulk import the files in a directory into a table. Files can be created using
-   * {@code AccumuloFileOutputFormat} and {@link RFile#newWriter()}.
+   * {@link RFile#newWriter()}.
    * <p>
    * This new method of bulk import examines files in the current process outside of holding a table
    * lock. The old bulk import method ({@link #importDirectory(String, String, String, boolean)})
