@@ -56,7 +56,6 @@ public class MasterAssignmentIT extends AccumuloClusterHarness {
         UtilWaitThread.sleep(250);
         newTablet = getTabletLocationState(c, tableId);
       } while (newTablet.current == null);
-      assertNull(newTablet.last);
       assertNull(newTablet.future);
 
       // put something in it
