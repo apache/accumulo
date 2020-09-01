@@ -25,11 +25,16 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -57,7 +62,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putPrevEndRow(Text per) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(mutation,
+    TabletColumnFamily.PREV_ROW_COLUMN.put(mutation,
         KeyExtent.encodePrevEndRow(extent.getPrevEndRow()));
     return this;
   }
@@ -66,7 +71,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   public Ample.TabletMutator putDirName(String dirName) {
     ServerColumnFamily.validateDirCol(dirName);
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dirName));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dirName));
     return this;
   }
 
@@ -101,33 +106,32 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putCompactionId(long compactionId) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(mutation,
-        new Value(Long.toString(compactionId)));
+    ServerColumnFamily.COMPACT_COLUMN.put(mutation, new Value(Long.toString(compactionId)));
     return this;
   }
 
   @Override
   public Ample.TabletMutator putFlushId(long flushId) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(mutation, new Value(Long.toString(flushId)));
+    ServerColumnFamily.FLUSH_COLUMN.put(mutation, new Value(Long.toString(flushId)));
     return this;
   }
 
   @Override
   public Ample.TabletMutator putTime(MetadataTime time) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation, new Value(time.encode()));
+    ServerColumnFamily.TIME_COLUMN.put(mutation, new Value(time.encode()));
     return this;
   }
 
   private String getLocationFamily(LocationType type) {
     switch (type) {
       case CURRENT:
-        return TabletsSection.CurrentLocationColumnFamily.STR_NAME;
+        return CurrentLocationColumnFamily.STR_NAME;
       case FUTURE:
-        return TabletsSection.FutureLocationColumnFamily.STR_NAME;
+        return FutureLocationColumnFamily.STR_NAME;
       case LAST:
-        return TabletsSection.LastLocationColumnFamily.STR_NAME;
+        return LastLocationColumnFamily.STR_NAME;
       default:
         throw new IllegalArgumentException();
     }
@@ -150,7 +154,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putZooLock(ZooLock zooLock) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(mutation,
+    ServerColumnFamily.LOCK_COLUMN.put(mutation,
         new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
     return this;
   }
@@ -172,14 +176,14 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator deleteWal(String wal) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(MetadataSchema.TabletsSection.LogColumnFamily.STR_NAME, wal);
+    mutation.putDelete(LogColumnFamily.STR_NAME, wal);
     return this;
   }
 
   @Override
   public Ample.TabletMutator putBulkFile(TabletFile bulkref, long tid) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(TabletsSection.BulkFileColumnFamily.NAME, bulkref.getMetaInsertText(),
+    mutation.put(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText(),
         new Value(FateTxId.formatTid(tid)));
     return this;
   }
@@ -187,14 +191,14 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator deleteBulkFile(Ample.FileMeta bulkref) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(TabletsSection.BulkFileColumnFamily.NAME, bulkref.meta());
+    mutation.putDelete(BulkFileColumnFamily.NAME, bulkref.meta());
     return this;
   }
 
   @Override
   public Ample.TabletMutator putChopped() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ChoppedColumnFamily.CHOPPED_COLUMN.put(mutation, new Value("chopped"));
+    ChoppedColumnFamily.CHOPPED_COLUMN.put(mutation, new Value("chopped"));
     return this;
   }
 

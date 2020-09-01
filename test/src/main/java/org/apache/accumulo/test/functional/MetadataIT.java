@@ -40,7 +40,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -71,8 +73,8 @@ public class MetadataIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableNames[0]);
 
       try (Scanner rootScanner = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
-        rootScanner.setRange(MetadataSchema.TabletsSection.getRange());
-        rootScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+        rootScanner.setRange(TabletsSection.getRange());
+        rootScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
 
         Set<String> files1 = new HashSet<>();
         for (Entry<Key,Value> entry : rootScanner)
@@ -115,7 +117,7 @@ public class MetadataIT extends AccumuloClusterHarness {
       }
       c.tableOperations().merge(MetadataTable.NAME, null, null);
       try (Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
-        s.setRange(MetadataSchema.DeletesSection.getRange());
+        s.setRange(DeletesSection.getRange());
         while (Iterators.size(s.iterator()) == 0) {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }

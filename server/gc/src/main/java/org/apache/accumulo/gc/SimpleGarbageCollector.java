@@ -58,7 +58,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
@@ -236,10 +236,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       IsolatedScanner scanner =
           new IsolatedScanner(getContext().createScanner(level.metaTable(), Authorizations.EMPTY));
 
-      scanner.setRange(MetadataSchema.BlipSection.getRange());
+      scanner.setRange(BlipSection.getRange());
 
       return Iterators.transform(scanner.iterator(), entry -> entry.getKey().getRow().toString()
-          .substring(MetadataSchema.BlipSection.getRowPrefix().length()));
+          .substring(BlipSection.getRowPrefix().length()));
     }
 
     @Override

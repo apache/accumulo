@@ -59,7 +59,9 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -103,7 +105,7 @@ public class Upgrader9to10 implements Upgrader {
   public static final String ZROOT_TABLET_WALOGS = ZROOT_TABLET + "/walogs";
   public static final String ZROOT_TABLET_CURRENT_LOGS = ZROOT_TABLET + "/current_logs";
   public static final String ZROOT_TABLET_PATH = ZROOT_TABLET + "/dir";
-  public static final Value UPGRADED = MetadataSchema.DeletesSection.SkewedKeyValue.NAME;
+  public static final Value UPGRADED = SkewedKeyValue.NAME;
   public static final String OLD_DELETE_PREFIX = "~del";
 
   // effectively an 8MB batch size, since this number is the number of Chars
@@ -480,7 +482,7 @@ public class Upgrader9to10 implements Upgrader {
    */
   private Iterator<String> getOldCandidates(ServerContext ctx, String tableName)
       throws TableNotFoundException {
-    Range range = MetadataSchema.DeletesSection.getRange();
+    Range range = DeletesSection.getRange();
     Scanner scanner = ctx.createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(range);
     return StreamSupport.stream(scanner.spliterator(), false)
@@ -564,7 +566,7 @@ public class Upgrader9to10 implements Upgrader {
     try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
         BatchWriter writer = c.createBatchWriter(tableName)) {
 
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         String metaEntry = key.getColumnQualifier().toString();
@@ -609,7 +611,7 @@ public class Upgrader9to10 implements Upgrader {
 
     try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
       log.info("Looking for relative paths in {}", tableName);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         String metaEntry = key.getColumnQualifier().toString();

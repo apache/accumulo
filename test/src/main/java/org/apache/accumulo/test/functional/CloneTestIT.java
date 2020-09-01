@@ -54,7 +54,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -137,8 +138,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
   private void checkMetadata(String table, AccumuloClient client) throws Exception {
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
 
-      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
+      s.fetchColumnFamily(DataFileColumnFamily.NAME);
+      ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
       String tableId = client.tableOperations().tableIdMap().get(table);
 
       assertNotNull("Could not get table id for " + table, tableId);
@@ -154,16 +155,13 @@ public class CloneTestIT extends AccumuloClusterHarness {
         k.getColumnFamily(cf);
         k.getColumnQualifier(cq);
 
-        if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+        if (cf.equals(DataFileColumnFamily.NAME)) {
           Path p = new Path(cq.toString());
           FileSystem fs = cluster.getFileSystem();
           assertTrue("File does not exist: " + p, fs.exists(p));
-        } else if (cf.equals(
-            MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
+        } else if (cf.equals(ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
           assertEquals("Saw unexpected cq",
-              MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
-                  .getColumnQualifier(),
-              cq);
+              ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), cq);
 
           String dirName = entry.getValue().toString();
 

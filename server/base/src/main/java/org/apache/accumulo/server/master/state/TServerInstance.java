@@ -28,7 +28,9 @@ import java.io.Serializable;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -82,27 +84,27 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
   }
 
   public void putLocation(Mutation m) {
-    m.put(TabletsSection.CurrentLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
+    m.put(CurrentLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
   }
 
   public void putFutureLocation(Mutation m) {
-    m.put(TabletsSection.FutureLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
+    m.put(FutureLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
   }
 
   public void putLastLocation(Mutation m) {
-    m.put(TabletsSection.LastLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
+    m.put(LastLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
   }
 
   public void clearLastLocation(Mutation m) {
-    m.putDelete(TabletsSection.LastLocationColumnFamily.NAME, asColumnQualifier());
+    m.putDelete(LastLocationColumnFamily.NAME, asColumnQualifier());
   }
 
   public void clearFutureLocation(Mutation m) {
-    m.putDelete(TabletsSection.FutureLocationColumnFamily.NAME, asColumnQualifier());
+    m.putDelete(FutureLocationColumnFamily.NAME, asColumnQualifier());
   }
 
   public void clearLocation(Mutation m) {
-    m.putDelete(TabletsSection.CurrentLocationColumnFamily.NAME, asColumnQualifier());
+    m.putDelete(CurrentLocationColumnFamily.NAME, asColumnQualifier());
   }
 
   @Override

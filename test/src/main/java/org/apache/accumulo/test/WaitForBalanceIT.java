@@ -34,7 +34,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
@@ -75,17 +77,15 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
     int offline = 0;
     for (String tableName : new String[] {MetadataTable.NAME, RootTable.NAME}) {
       try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
-        s.setRange(MetadataSchema.TabletsSection.getRange());
-        s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-        MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
+        s.setRange(TabletsSection.getRange());
+        s.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+        TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
         String location = null;
         for (Entry<Key,Value> entry : s) {
           Key key = entry.getKey();
-          if (key.getColumnFamily()
-              .equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)) {
+          if (key.getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
             location = key.getColumnQualifier().toString();
-          } else if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN
-              .hasColumns(key)) {
+          } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
             if (location == null) {
               offline++;
             } else {

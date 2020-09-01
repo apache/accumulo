@@ -65,6 +65,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -597,10 +598,10 @@ abstract class TabletGroupWatcher extends Daemon {
           TabletsSection.getRow(extent.getTableId(), extent.getEndRow()), true);
       Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(deleteRange);
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
+      ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
+      ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       Set<String> datafiles = new TreeSet<>();
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
@@ -610,12 +611,12 @@ abstract class TabletGroupWatcher extends Daemon {
             MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
             datafiles.clear();
           }
-        } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
+        } else if (ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           metadataTime = MetadataTime.parse(entry.getValue().toString());
-        } else if (key.compareColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
+        } else if (key.compareColumnFamily(CurrentLocationColumnFamily.NAME) == 0) {
           throw new IllegalStateException(
               "Tablet " + key.getRow() + " is assigned during a merge!");
-        } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
+        } else if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           String path = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(extent.getTableId(),
               entry.getValue().toString());
           datafiles.add(path);
@@ -638,7 +639,7 @@ abstract class TabletGroupWatcher extends Daemon {
         bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
         try {
           Mutation m = new Mutation(followingTablet.getMetadataEntry());
-          TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m,
+          TabletColumnFamily.PREV_ROW_COLUMN.put(m,
               KeyExtent.encodePrevEndRow(extent.getPrevEndRow()));
           ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
           bw.addMutation(m);
@@ -683,9 +684,9 @@ abstract class TabletGroupWatcher extends Daemon {
       // Make file entries in highest tablet
       Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(scanRange);
-      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      ServerColumnFamily.TIME_COLUMN.fetch(scanner);
+      ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       Mutation m = new Mutation(stopRow);
       MetadataTime maxLogicalTime = null;
@@ -695,14 +696,14 @@ abstract class TabletGroupWatcher extends Daemon {
         if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
           m.put(key.getColumnFamily(), key.getColumnQualifier(), value);
           fileCount++;
-        } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)
+        } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)
             && firstPrevRowValue == null) {
           Master.log.debug("prevRow entry for lowest tablet is {}", value);
           firstPrevRowValue = new Value(value);
-        } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
+        } else if (ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           maxLogicalTime =
               TabletTime.maxMetadataTime(maxLogicalTime, MetadataTime.parse(value.toString()));
-        } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
+        } else if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           String uri =
               GcVolumeUtil.getDeleteTabletOnAllVolumesUri(range.getTableId(), value.toString());
           bw.addMutation(ServerAmpleImpl.createDeleteMutation(uri));
@@ -713,16 +714,16 @@ abstract class TabletGroupWatcher extends Daemon {
       // the loop above
       scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(new Range(stopRow));
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
+      ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       for (Entry<Key,Value> entry : scanner) {
-        if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(entry.getKey())) {
+        if (ServerColumnFamily.TIME_COLUMN.hasColumns(entry.getKey())) {
           maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime,
               MetadataTime.parse(entry.getValue().toString()));
         }
       }
 
       if (maxLogicalTime != null)
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(maxLogicalTime.encode()));
+        ServerColumnFamily.TIME_COLUMN.put(m, new Value(maxLogicalTime.encode()));
 
       if (!m.getUpdates().isEmpty()) {
         bw.addMutation(m);
@@ -793,7 +794,7 @@ abstract class TabletGroupWatcher extends Daemon {
       AccumuloClient client = this.master.getContext();
       Scanner scanner = client.createScanner(range.isMeta() ? RootTable.NAME : MetadataTable.NAME,
           Authorizations.EMPTY);
-      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       KeyExtent start = new KeyExtent(range.getTableId(), range.getEndRow(), null);
       scanner.setRange(new Range(start.getMetadataEntry(), null));
       Iterator<Entry<Key,Value>> iterator = scanner.iterator();

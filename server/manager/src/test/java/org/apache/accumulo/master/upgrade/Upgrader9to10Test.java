@@ -45,7 +45,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
@@ -152,7 +152,7 @@ public class Upgrader9to10Test {
     expect(scanner.iterator()).andReturn(map.entrySet().iterator()).anyTimes();
 
     // void methods
-    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     expectLastCall().anyTimes();
     scanner.close();
     expectLastCall().anyTimes();

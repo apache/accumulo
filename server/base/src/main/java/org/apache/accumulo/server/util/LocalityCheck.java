@@ -30,8 +30,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -53,9 +53,9 @@ public class LocalityCheck {
       try (AccumuloClient accumuloClient =
           Accumulo.newClient().from(opts.getClientProps()).build()) {
         Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-        scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+        scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
         scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-        scanner.setRange(MetadataSchema.TabletsSection.getRange());
+        scanner.setRange(TabletsSection.getRange());
 
         Map<String,Long> totalBlocks = new HashMap<>();
         Map<String,Long> localBlocks = new HashMap<>();
@@ -63,7 +63,7 @@ public class LocalityCheck {
 
         for (Entry<Key,Value> entry : scanner) {
           Key key = entry.getKey();
-          if (key.compareColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
+          if (key.compareColumnFamily(CurrentLocationColumnFamily.NAME) == 0) {
             String location = entry.getValue().toString();
             String[] parts = location.split(":");
             String host = parts[0];

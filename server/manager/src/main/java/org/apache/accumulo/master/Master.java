@@ -72,7 +72,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
@@ -674,7 +674,7 @@ public class Master extends AbstractServer
     private void cleanupNonexistentMigrations(final AccumuloClient accumuloClient)
         throws TableNotFoundException {
       Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<>();
       for (Entry<Key,Value> entry : scanner) {
         KeyExtent extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
