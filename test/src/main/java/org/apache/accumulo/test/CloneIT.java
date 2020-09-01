@@ -35,8 +35,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -55,8 +56,8 @@ public class CloneIT extends AccumuloClusterHarness {
       KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
       Mutation mut = ke.getPrevRowUpdateMutation();
 
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
+      ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
+      ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName)) {
         bw1.addMutation(mut);
@@ -83,8 +84,8 @@ public class CloneIT extends AccumuloClusterHarness {
       KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
       Mutation mut = ke.getPrevRowUpdateMutation();
 
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
+      ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
+      ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
       mut.put(DataFileColumnFamily.NAME.toString(), filePrefix + "/default_tablet/0_0.rf",
           new DataFileValue(1, 200).encodeAsString());
 
@@ -232,9 +233,9 @@ public class CloneIT extends AccumuloClusterHarness {
     KeyExtent ke = new KeyExtent(TableId.of(tid), endRow == null ? null : new Text(endRow),
         prevRow == null ? null : new Text(prevRow));
     Mutation mut = new Mutation(ke.getMetadataEntry());
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.putDelete(mut);
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.putDelete(mut);
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.putDelete(mut);
+    TabletColumnFamily.PREV_ROW_COLUMN.putDelete(mut);
+    ServerColumnFamily.TIME_COLUMN.putDelete(mut);
+    ServerColumnFamily.DIRECTORY_COLUMN.putDelete(mut);
     mut.putDelete(DataFileColumnFamily.NAME.toString(), file);
 
     return mut;
@@ -246,8 +247,8 @@ public class CloneIT extends AccumuloClusterHarness {
         prevRow == null ? null : new Text(prevRow));
     Mutation mut = ke.getPrevRowUpdateMutation();
 
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir));
+    ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir));
     mut.put(DataFileColumnFamily.NAME.toString(), file,
         new DataFileValue(10, 200).encodeAsString());
 

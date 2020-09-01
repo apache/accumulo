@@ -39,8 +39,9 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -124,7 +125,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       for (String s : splits) {
         Text split = new Text(s);
         Mutation prevRow = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, split, pr));
-        prevRow.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"),
+        prevRow.put(CurrentLocationColumnFamily.NAME, new Text("123456"),
             new Value("127.0.0.1:1234"));
         ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow, new Value("junk"));
         bw.addMutation(prevRow);
@@ -132,7 +133,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       }
       // Add the default tablet
       Mutation defaultTablet = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, null, pr));
-      defaultTablet.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"),
+      defaultTablet.put(CurrentLocationColumnFamily.NAME, new Text("123456"),
           new Value("127.0.0.1:1234"));
       bw.addMutation(defaultTablet);
       bw.close();
@@ -155,9 +156,8 @@ public class MergeStateIT extends ConfigurableMacBase {
       // Create the hole
       // Split the tablet at one end of the range
       Mutation m = new KeyExtent(tableId, new Text("t"), new Text("p")).getPrevRowUpdateMutation();
-      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
-      TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
-          KeyExtent.encodePrevEndRow(new Text("o")));
+      TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
+      TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(new Text("o")));
       update(accumuloClient, m);
 
       // do the state check
@@ -168,7 +168,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       // unassign the tablets
       BatchDeleter deleter = accumuloClient.createBatchDeleter(MetadataTable.NAME,
           Authorizations.EMPTY, 1000, new BatchWriterConfig());
-      deleter.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+      deleter.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       deleter.setRanges(Collections.singletonList(new Range()));
       deleter.delete();
 
@@ -179,7 +179,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       // finish the split
       KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
       m = tablet.getPrevRowUpdateMutation();
-      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
+      TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
       update(accumuloClient, m);
       metaDataStateStore
           .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));

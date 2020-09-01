@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
@@ -113,8 +112,8 @@ public class StatusMaker {
           }
         }
         // Extract the useful bits from the status key
-        MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);
-        TableId tableId = MetadataSchema.ReplicationSection.getTableId(entry.getKey());
+        ReplicationSection.getFile(entry.getKey(), file);
+        TableId tableId = ReplicationSection.getTableId(entry.getKey());
 
         Status status;
         try {
@@ -276,7 +275,7 @@ public class StatusMaker {
 
     Status status = Status.newBuilder().setCreatedTime(createdTime).build();
     Mutation m = new Mutation(new Text(ReplicationSection.getRowPrefix() + file));
-    m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId), ProtobufUtil.toValue(status));
+    m.put(ReplicationSection.COLF, new Text(tableId), ProtobufUtil.toValue(status));
     replicationWriter.addMutation(m);
     replicationWriter.flush();
 

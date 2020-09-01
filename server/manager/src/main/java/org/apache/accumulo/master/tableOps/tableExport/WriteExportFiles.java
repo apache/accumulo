@@ -51,9 +51,12 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -103,8 +106,8 @@ class WriteExportFiles extends MasterRepo {
     metaScanner.setRange(new KeyExtent(tableInfo.tableID, null, null).toMetadataRange());
 
     // scan for locations
-    metaScanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-    metaScanner.fetchColumnFamily(TabletsSection.FutureLocationColumnFamily.NAME);
+    metaScanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+    metaScanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
 
     if (metaScanner.iterator().hasNext()) {
       return 500;
@@ -223,8 +226,8 @@ class WriteExportFiles extends MasterRepo {
 
     Scanner metaScanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);
+    TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
+    ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);
     metaScanner.setRange(new KeyExtent(tableID, null, null).toMetadataRange());
 
     for (Entry<Key,Value> entry : metaScanner) {

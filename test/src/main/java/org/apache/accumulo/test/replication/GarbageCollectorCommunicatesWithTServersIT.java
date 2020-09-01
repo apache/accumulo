@@ -46,7 +46,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -136,9 +138,9 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Set<String> rfiles = new HashSet<>();
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      Range r = MetadataSchema.TabletsSection.getRange(tableId);
+      Range r = TabletsSection.getRange(tableId);
       s.setRange(r);
-      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      s.fetchColumnFamily(DataFileColumnFamily.NAME);
 
       for (Entry<Key,Value> entry : s) {
         log.debug("Reading RFiles: {}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
@@ -164,13 +166,13 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Map<String,Status> fileToStatus = new HashMap<>();
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      Range r = MetadataSchema.ReplicationSection.getRange();
+      Range r = ReplicationSection.getRange();
       s.setRange(r);
-      s.fetchColumn(MetadataSchema.ReplicationSection.COLF, new Text(tableId));
+      s.fetchColumn(ReplicationSection.COLF, new Text(tableId));
 
       for (Entry<Key,Value> entry : s) {
         Text file = new Text();
-        MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);
+        ReplicationSection.getFile(entry.getKey(), file);
         Status status = Status.parseFrom(entry.getValue().get());
         log.info("Got status for {}: {}", file, ProtobufUtil.toString(status));
         fileToStatus.put(file.toString(), status);

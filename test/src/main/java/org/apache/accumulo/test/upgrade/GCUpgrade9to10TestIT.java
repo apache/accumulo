@@ -40,7 +40,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
@@ -138,7 +138,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
       Map<String,String> expected = addEntries(c, level.metaTable(), numberOfEntries, longpathname);
       assertEquals(numberOfEntries + numberOfEntries / 10, expected.size());
 
-      Range range = MetadataSchema.DeletesSection.getRange();
+      Range range = DeletesSection.getRange();
 
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       try (Scanner scanner = c.createScanner(level.metaTable(), Authorizations.EMPTY)) {
@@ -184,7 +184,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       upgrader.upgradeFileDeletes(getServerContext(), level);
       sleepUninterruptibly(1, TimeUnit.SECONDS);
-      Range range = MetadataSchema.DeletesSection.getRange();
+      Range range = DeletesSection.getRange();
 
       try (Scanner scanner = c.createScanner(level.metaTable(), Authorizations.EMPTY)) {
         Map<String,String> actual = new HashMap<>();
@@ -226,8 +226,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
             String.format("hdfs://localhost:8020/accumulo/tables/5a/t-%08x/%s", i, filename);
         Mutation delFlag = createOldDelMutation(longpath, "", "", "");
         bw.addMutation(delFlag);
-        expected.put(MetadataSchema.DeletesSection.encodeRow(longpath),
-            Upgrader9to10.UPGRADED.toString());
+        expected.put(DeletesSection.encodeRow(longpath), Upgrader9to10.UPGRADED.toString());
       }
 
       // create directory delete entries
@@ -241,8 +240,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
         Mutation delFlag = createOldDelMutation(longpath, "", "", "");
         bw.addMutation(delFlag);
         expected.put(
-            MetadataSchema.DeletesSection
-                .encodeRow(GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, dirName)),
+            DeletesSection.encodeRow(GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, dirName)),
             Upgrader9to10.UPGRADED.toString());
       }
 

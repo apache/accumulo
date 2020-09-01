@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -95,9 +94,7 @@ public class MergeStats {
     if (info.needsToBeChopped(ke)) {
       this.needsToBeChopped++;
       if (chopped) {
-        if (state.equals(TabletState.HOSTED)) {
-          this.chopped++;
-        } else if (!hasWALs) {
+        if (state.equals(TabletState.HOSTED) || !hasWALs) {
           this.chopped++;
         }
       }
@@ -204,7 +201,7 @@ public class MergeStats {
     TableId tableId = extent.getTableId();
     Text first = TabletsSection.getRow(tableId, start);
     Range range = new Range(first, false, null, true);
-    scanner.setRange(range.clip(MetadataSchema.TabletsSection.getRange()));
+    scanner.setRange(range.clip(TabletsSection.getRange()));
     KeyExtent prevExtent = null;
 
     log.debug("Scanning range {}", range);

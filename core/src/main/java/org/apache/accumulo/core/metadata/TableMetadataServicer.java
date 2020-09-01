@@ -32,6 +32,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
@@ -66,8 +68,8 @@ abstract class TableMetadataServicer extends MetadataServicer {
 
     Scanner scanner = context.createScanner(getServicingTableName(), Authorizations.EMPTY);
 
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+    TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
 
     // position at first entry in metadata table for given table
     scanner.setRange(TabletsSection.getRange(getServicedTableId()));
@@ -93,12 +95,12 @@ abstract class TableMetadataServicer extends MetadataServicer {
       colf = entry.getKey().getColumnFamily(colf);
       colq = entry.getKey().getColumnQualifier(colq);
 
-      if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
+      if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         currentKeyExtent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
         tablets.put(currentKeyExtent, location);
         currentKeyExtent = null;
         location = null;
-      } else if (colf.equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
+      } else if (colf.equals(CurrentLocationColumnFamily.NAME)) {
         location = entry.getValue().toString();
       }
 

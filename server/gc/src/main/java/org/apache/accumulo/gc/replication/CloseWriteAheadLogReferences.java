@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
@@ -160,7 +159,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
         }
 
         // Ignore things that aren't completely replicated as we can't delete those anyways
-        MetadataSchema.ReplicationSection.getFile(entry.getKey(), replFileText);
+        ReplicationSection.getFile(entry.getKey(), replFileText);
         String replFile = replFileText.toString();
         boolean isClosed = closedWals.contains(replFile);
 

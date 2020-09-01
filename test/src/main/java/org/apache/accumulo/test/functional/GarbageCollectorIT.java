@@ -44,7 +44,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ServerServices;
@@ -189,7 +190,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   private Mutation createDelMutation(String path, String cf, String cq, String val) {
-    Text row = new Text(MetadataSchema.DeletesSection.encodeRow(path));
+    Text row = new Text(DeletesSection.encodeRow(path));
     Mutation delFlag = new Mutation(row);
     delFlag.put(cf, cq, val);
     return delFlag;
@@ -219,8 +220,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         // path is invalid but value is expected - only way the invalid entry will come through
         // processing and
         // show up to produce error in output to allow while loop to end
-        bw.addMutation(
-            createDelMutation("/", "", "", MetadataSchema.DeletesSection.SkewedKeyValue.STR_NAME));
+        bw.addMutation(createDelMutation("/", "", "", SkewedKeyValue.STR_NAME));
       }
 
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);

@@ -41,9 +41,13 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
@@ -74,12 +78,11 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
   }
 
   public static void configureScanner(ScannerBase scanner, CurrentState state) {
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-    scanner.fetchColumnFamily(TabletsSection.FutureLocationColumnFamily.NAME);
-    scanner.fetchColumnFamily(TabletsSection.LastLocationColumnFamily.NAME);
-    scanner
-        .fetchColumnFamily(TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
+    TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+    scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
+    scanner.fetchColumnFamily(LastLocationColumnFamily.NAME);
+    scanner.fetchColumnFamily(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
     scanner.fetchColumnFamily(LogColumnFamily.NAME);
     scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
@@ -154,14 +157,14 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       Text cf = key.getColumnFamily();
       Text cq = key.getColumnQualifier();
 
-      if (cf.compareTo(TabletsSection.FutureLocationColumnFamily.NAME) == 0) {
+      if (cf.compareTo(FutureLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (future != null) {
           throw new BadLocationStateException("found two assignments for the same extent "
               + key.getRow() + ": " + future + " and " + location, entry.getKey().getRow());
         }
         future = location;
-      } else if (cf.compareTo(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
+      } else if (cf.compareTo(CurrentLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (current != null) {
           throw new BadLocationStateException("found two locations for the same extent "
@@ -171,14 +174,15 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       } else if (cf.compareTo(LogColumnFamily.NAME) == 0) {
         String[] split = entry.getValue().toString().split("\\|")[0].split(";");
         walogs.add(Arrays.asList(split));
-      } else if (cf.compareTo(TabletsSection.LastLocationColumnFamily.NAME) == 0) {
-        if (lastTimestamp < entry.getKey().getTimestamp())
+      } else if (cf.compareTo(LastLocationColumnFamily.NAME) == 0) {
+        if (lastTimestamp < entry.getKey().getTimestamp()) {
           last = new TServerInstance(entry.getValue(), cq);
+        }
       } else if (cf.compareTo(ChoppedColumnFamily.NAME) == 0) {
         chopped = true;
-      } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(cf, cq)) {
+      } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(cf, cq)) {
         extent = new KeyExtent(row, entry.getValue());
-      } else if (TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN.equals(cf, cq)) {
+      } else if (SuspendLocationColumn.SUSPEND_COLUMN.equals(cf, cq)) {
         suspend = SuspendingTServer.fromValue(entry.getValue());
       }
     }

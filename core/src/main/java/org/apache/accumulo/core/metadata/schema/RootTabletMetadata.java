@@ -35,8 +35,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.hadoop.io.Text;
@@ -53,9 +54,9 @@ public class RootTabletMetadata {
   private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
   private static final ByteSequence CURR_LOC_FAM =
-      new ArrayByteSequence(TabletsSection.CurrentLocationColumnFamily.STR_NAME);
+      new ArrayByteSequence(CurrentLocationColumnFamily.STR_NAME);
   private static final ByteSequence FUTURE_LOC_FAM =
-      new ArrayByteSequence(TabletsSection.FutureLocationColumnFamily.STR_NAME);
+      new ArrayByteSequence(FutureLocationColumnFamily.STR_NAME);
 
   private TreeMap<Key,Value> entries = new TreeMap<>();
 

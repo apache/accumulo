@@ -24,7 +24,7 @@ import java.util.Arrays;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -104,7 +104,7 @@ public class LogEntry {
   }
 
   public Text getColumnFamily() {
-    return MetadataSchema.TabletsSection.LogColumnFamily.NAME;
+    return LogColumnFamily.NAME;
   }
 
   public String getUniqueID() {

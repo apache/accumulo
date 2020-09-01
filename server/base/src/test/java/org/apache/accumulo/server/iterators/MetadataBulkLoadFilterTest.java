@@ -31,8 +31,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
@@ -82,26 +83,26 @@ public class MetadataBulkLoadFilterTest {
     TreeMap<Key,Value> expected = new TreeMap<>();
 
     // following should not be deleted by filter
-    put(tm1, "2;m", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t1");
+    put(tm1, "2;m", ServerColumnFamily.DIRECTORY_COLUMN, "/t1");
     put(tm1, "2;m", DataFileColumnFamily.NAME, "/t1/file1",
         new DataFileValue(1, 1).encodeAsString());
-    put(tm1, "2;m", TabletsSection.BulkFileColumnFamily.NAME, "/t1/file1", "5");
-    put(tm1, "2;m", TabletsSection.BulkFileColumnFamily.NAME, "/t1/file3", "7");
-    put(tm1, "2;m", TabletsSection.BulkFileColumnFamily.NAME, "/t1/file4", "9");
-    put(tm1, "2<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t2");
+    put(tm1, "2;m", BulkFileColumnFamily.NAME, "/t1/file1", "5");
+    put(tm1, "2;m", BulkFileColumnFamily.NAME, "/t1/file3", "7");
+    put(tm1, "2;m", BulkFileColumnFamily.NAME, "/t1/file4", "9");
+    put(tm1, "2<", ServerColumnFamily.DIRECTORY_COLUMN, "/t2");
     put(tm1, "2<", DataFileColumnFamily.NAME, "/t2/file2",
         new DataFileValue(1, 1).encodeAsString());
-    put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file6", "5");
-    put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file7", "7");
-    put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file8", "9");
-    put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/fileC", null);
+    put(tm1, "2<", BulkFileColumnFamily.NAME, "/t2/file6", "5");
+    put(tm1, "2<", BulkFileColumnFamily.NAME, "/t2/file7", "7");
+    put(tm1, "2<", BulkFileColumnFamily.NAME, "/t2/file8", "9");
+    put(tm1, "2<", BulkFileColumnFamily.NAME, "/t2/fileC", null);
 
     expected.putAll(tm1);
 
     // the following should be deleted by filter
-    put(tm1, "2;m", TabletsSection.BulkFileColumnFamily.NAME, "/t1/file5", "8");
-    put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file9", "8");
-    put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/fileA", "2");
+    put(tm1, "2;m", BulkFileColumnFamily.NAME, "/t1/file5", "8");
+    put(tm1, "2<", BulkFileColumnFamily.NAME, "/t2/file9", "8");
+    put(tm1, "2<", BulkFileColumnFamily.NAME, "/t2/fileA", "2");
 
     SystemIteratorEnvironment env = EasyMock.createMock(SystemIteratorEnvironment.class);
     EasyMock.expect(env.getServerContext()).andReturn(null);

@@ -53,7 +53,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
@@ -70,9 +72,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   public MetadataLocationObtainer() {
 
     locCols = new TreeSet<>();
-    locCols.add(
-        new Column(TextUtil.getBytes(TabletsSection.CurrentLocationColumnFamily.NAME), null, null));
-    locCols.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
+    locCols.add(new Column(TextUtil.getBytes(CurrentLocationColumnFamily.NAME), null, null));
+    locCols.add(TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
     columns = new ArrayList<>(locCols);
   }
 
@@ -241,14 +242,14 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       colq = key.getColumnQualifier(colq);
 
       // interpret the row id as a key extent
-      if (colf.equals(TabletsSection.CurrentLocationColumnFamily.NAME)
-          || colf.equals(TabletsSection.FutureLocationColumnFamily.NAME)) {
+      if (colf.equals(CurrentLocationColumnFamily.NAME)
+          || colf.equals(FutureLocationColumnFamily.NAME)) {
         if (location != null) {
           throw new IllegalStateException("Tablet has multiple locations : " + lastRowFromKey);
         }
         location = new Text(val.toString());
         session = new Text(colq);
-      } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
+      } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         prevRow = new Value(val);
       }
 

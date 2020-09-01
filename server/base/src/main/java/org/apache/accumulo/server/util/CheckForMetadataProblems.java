@@ -33,8 +33,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
@@ -103,9 +104,9 @@ public class CheckForMetadataProblems {
 
       Scanner scanner = client.createScanner(tableNameToCheck, Authorizations.EMPTY);
 
-      scanner.setRange(MetadataSchema.TabletsSection.getRange());
-      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+      scanner.setRange(TabletsSection.getRange());
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
 
       Text colf = new Text();
       Text colq = new Text();
@@ -136,11 +137,11 @@ public class CheckForMetadataProblems {
           tables.put(tableName, tablets);
         }
 
-        if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
+        if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
           KeyExtent tabletKe = new KeyExtent(entry.getKey().getRow(), entry.getValue());
           tablets.add(tabletKe);
           justLoc = false;
-        } else if (colf.equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
+        } else if (colf.equals(CurrentLocationColumnFamily.NAME)) {
           if (justLoc) {
             System.out.println("Problem at key " + entry.getKey());
             sawProblems = true;

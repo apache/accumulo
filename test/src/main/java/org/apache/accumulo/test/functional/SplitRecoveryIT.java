@@ -49,8 +49,13 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
@@ -250,17 +255,17 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       scanner.setRange(extent.toMetadataRange());
 
       HashSet<ColumnFQ> expectedColumns = new HashSet<>();
-      expectedColumns.add(TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN);
-      expectedColumns.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN);
-      expectedColumns.add(TabletsSection.ServerColumnFamily.TIME_COLUMN);
-      expectedColumns.add(TabletsSection.ServerColumnFamily.LOCK_COLUMN);
+      expectedColumns.add(ServerColumnFamily.DIRECTORY_COLUMN);
+      expectedColumns.add(TabletColumnFamily.PREV_ROW_COLUMN);
+      expectedColumns.add(ServerColumnFamily.TIME_COLUMN);
+      expectedColumns.add(ServerColumnFamily.LOCK_COLUMN);
 
       HashSet<Text> expectedColumnFamilies = new HashSet<>();
       expectedColumnFamilies.add(DataFileColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.FutureLocationColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.CurrentLocationColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.LastLocationColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.BulkFileColumnFamily.NAME);
+      expectedColumnFamilies.add(FutureLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(CurrentLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(LastLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(BulkFileColumnFamily.NAME);
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
@@ -275,7 +280,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
               "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
         }
 
-        if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+        if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
           sawPer = true;
           if (!new KeyExtent(key.getRow(), entry.getValue()).equals(extent)) {
             throw new Exception("Unexpected prev end row " + entry);
