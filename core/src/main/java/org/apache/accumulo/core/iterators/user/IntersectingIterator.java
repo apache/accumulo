@@ -51,8 +51,7 @@ import org.apache.hadoop.io.Text;
  *
  * row: shardID, colfam: (empty), colqual: docID
  *
- * This iterator is commonly used with BatchScanner or AccumuloInputFormat, to parallelize the
- * search over all shardIDs.
+ * This iterator is commonly used with BatchScanner to parallelize the search over all shardIDs.
  *
  * This iterator will *ignore* any columnFamilies passed to
  * {@link #seek(Range, Collection, boolean)} as it performs intersections over terms. Extending
