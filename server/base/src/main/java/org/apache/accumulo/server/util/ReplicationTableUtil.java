@@ -189,7 +189,7 @@ public class ReplicationTableUtil {
 
   private static Mutation createUpdateMutation(Text row, Value v, KeyExtent extent) {
     Mutation m = new Mutation(row);
-    m.put(ReplicationSection.COLF, new Text(extent.getTableId().canonical()), v);
+    m.put(ReplicationSection.COLF, new Text(extent.tableId().canonical()), v);
     return m;
   }
 }

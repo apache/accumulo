@@ -79,9 +79,9 @@ public class GetSplitsCommand extends Command {
         scanner.setRange(new Range(start, end));
         for (final Entry<Key,Value> next : scanner) {
           if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(next.getKey())) {
-            KeyExtent extent = new KeyExtent(next.getKey().getRow(), next.getValue());
-            final String pr = encode(encode, extent.getPrevEndRow());
-            final String er = encode(encode, extent.getEndRow());
+            KeyExtent extent = KeyExtent.fromMetaPrevRow(next);
+            final String pr = encode(encode, extent.prevEndRow());
+            final String er = encode(encode, extent.endRow());
             final String line = String.format("%-26s (%s, %s%s", obscuredTabletName(extent),
                 pr == null ? "-inf" : pr, er == null ? "+inf" : er,
                 er == null ? ") Default Tablet " : "]");
@@ -117,8 +117,8 @@ public class GetSplitsCommand extends Command {
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException(e);
     }
-    if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
-      digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
+    if (extent.endRow() != null && extent.endRow().getLength() > 0) {
+      digester.update(extent.endRow().getBytes(), 0, extent.endRow().getLength());
     }
     return Base64.getEncoder().encodeToString(digester.digest());
   }

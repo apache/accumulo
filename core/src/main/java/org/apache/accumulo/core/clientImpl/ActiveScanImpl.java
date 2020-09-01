@@ -67,7 +67,7 @@ public class ActiveScanImpl extends ActiveScan {
     this.tableName = Tables.getTableName(context, TableId.of(activeScan.tableId));
     this.type = ScanType.valueOf(activeScan.getType().name());
     this.state = ScanState.valueOf(activeScan.state.name());
-    this.extent = new KeyExtent(activeScan.extent);
+    this.extent = KeyExtent.fromThrift(activeScan.extent);
     this.authorizations = new Authorizations(activeScan.authorizations);
 
     this.columns = new ArrayList<>(activeScan.columns.size());

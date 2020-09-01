@@ -46,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -60,7 +61,7 @@ public class TabletMetadataTest {
   public void testAllColumns() {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
-    Mutation mutation = extent.getPrevRowUpdateMutation();
+    Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
     COMPACT_COLUMN.put(mutation, new Value("5"));
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
@@ -107,7 +108,7 @@ public class TabletMetadataTest {
     assertEquals("OK", tm.getCloned());
     assertEquals(5L, tm.getCompactId().getAsLong());
     assertEquals("t-0001757", tm.getDirName());
-    assertEquals(extent.getEndRow(), tm.getEndRow());
+    assertEquals(extent.endRow(), tm.getEndRow());
     assertEquals(extent, tm.getExtent());
     assertEquals(Set.of(tf1, tf2), Set.copyOf(tm.getFiles()));
     assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
@@ -124,8 +125,8 @@ public class TabletMetadataTest {
     assertEquals(LocationType.LAST, tm.getLast().getType());
     assertEquals(Set.of(le1.getName() + " " + le1.timestamp, le2.getName() + " " + le2.timestamp),
         tm.getLogs().stream().map(le -> le.getName() + " " + le.timestamp).collect(toSet()));
-    assertEquals(extent.getPrevEndRow(), tm.getPrevEndRow());
-    assertEquals(extent.getTableId(), tm.getTableId());
+    assertEquals(extent.prevEndRow(), tm.getPrevEndRow());
+    assertEquals(extent.tableId(), tm.getTableId());
     assertTrue(tm.sawPrevEndRow());
     assertEquals("M123456789", tm.getTime().encode());
     assertEquals(Set.of(sf1, sf2), Set.copyOf(tm.getScans()));
@@ -135,7 +136,7 @@ public class TabletMetadataTest {
   public void testFuture() {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
-    Mutation mutation = extent.getPrevRowUpdateMutation();
+    Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
     mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
@@ -154,7 +155,7 @@ public class TabletMetadataTest {
   public void testFutureAndCurrent() {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
-    Mutation mutation = extent.getPrevRowUpdateMutation();
+    Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
     mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
     mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
 

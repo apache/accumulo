@@ -128,7 +128,7 @@ public class ReplicationTableUtilTest {
     ColumnUpdate col = m.getUpdates().get(0);
 
     assertEquals(ReplicationSection.COLF, new Text(col.getColumnFamily()));
-    assertEquals(extent.getTableId().canonical(), new Text(col.getColumnQualifier()).toString());
+    assertEquals(extent.tableId().canonical(), new Text(col.getColumnQualifier()).toString());
     assertEquals(0, col.getColumnVisibility().length);
     assertArrayEquals(stat.toByteArray(), col.getValue());
   }

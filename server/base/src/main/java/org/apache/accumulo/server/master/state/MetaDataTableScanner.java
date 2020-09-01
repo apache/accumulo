@@ -160,15 +160,15 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       if (cf.compareTo(FutureLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (future != null) {
-          throw new BadLocationStateException("found two assignments for the same extent "
-              + key.getRow() + ": " + future + " and " + location, entry.getKey().getRow());
+          throw new BadLocationStateException("found two assignments for the same extent " + row
+              + ": " + future + " and " + location, row);
         }
         future = location;
       } else if (cf.compareTo(CurrentLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (current != null) {
-          throw new BadLocationStateException("found two locations for the same extent "
-              + key.getRow() + ": " + current + " and " + location, entry.getKey().getRow());
+          throw new BadLocationStateException("found two locations for the same extent " + row
+              + ": " + current + " and " + location, row);
         }
         current = location;
       } else if (cf.compareTo(LogColumnFamily.NAME) == 0) {
@@ -181,7 +181,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       } else if (cf.compareTo(ChoppedColumnFamily.NAME) == 0) {
         chopped = true;
       } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(cf, cq)) {
-        extent = new KeyExtent(row, entry.getValue());
+        extent = KeyExtent.fromMetaPrevRow(entry);
       } else if (SuspendLocationColumn.SUSPEND_COLUMN.equals(cf, cq)) {
         suspend = SuspendingTServer.fromValue(entry.getValue());
       }

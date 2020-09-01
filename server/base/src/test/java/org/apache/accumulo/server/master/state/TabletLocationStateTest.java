@@ -84,7 +84,7 @@ public class TabletLocationStateTest {
 
   @Test(expected = TabletLocationState.BadLocationStateException.class)
   public void testConstruction_FutureAndCurrent() throws Exception {
-    expect(keyExtent.getMetadataEntry()).andReturn(new Text("entry"));
+    expect(keyExtent.toMetaRow()).andReturn(new Text("entry"));
     replay(keyExtent);
     try {
       new TabletLocationState(keyExtent, future, current, last, null, walogs, true);

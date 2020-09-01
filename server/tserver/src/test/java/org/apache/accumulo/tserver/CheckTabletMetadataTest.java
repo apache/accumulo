@@ -92,7 +92,7 @@ public class CheckTabletMetadataTest {
     TreeMap<Key,Value> tabletMeta = new TreeMap<>();
 
     put(tabletMeta, "1<", TabletColumnFamily.PREV_ROW_COLUMN,
-        KeyExtent.encodePrevEndRow(null).get());
+        TabletColumnFamily.encodePrevEndRow(null).get());
     put(tabletMeta, "1<", ServerColumnFamily.DIRECTORY_COLUMN, "t1".getBytes());
     put(tabletMeta, "1<", ServerColumnFamily.TIME_COLUMN, "M0".getBytes());
     put(tabletMeta, "1<", FutureLocationColumnFamily.NAME, "4", "127.0.0.1:9997");

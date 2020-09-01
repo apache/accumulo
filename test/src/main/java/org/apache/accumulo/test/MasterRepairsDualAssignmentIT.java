@@ -135,7 +135,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
       assertNotEquals(null, moved);
       // throw a mutation in as if we were the dying tablet
       BatchWriter bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      Mutation assignment = new Mutation(moved.extent.getMetadataEntry());
+      Mutation assignment = new Mutation(moved.extent.toMetaRow());
       moved.current.putLocation(assignment);
       bw.addMutation(assignment);
       bw.close();
@@ -143,7 +143,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
       waitForCleanStore(store);
       // now jam up the metadata table
       bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      assignment = new Mutation(new KeyExtent(MetadataTable.ID, null, null).getMetadataEntry());
+      assignment = new Mutation(new KeyExtent(MetadataTable.ID, null, null).toMetaRow());
       moved.current.putLocation(assignment);
       bw.addMutation(assignment);
       bw.close();

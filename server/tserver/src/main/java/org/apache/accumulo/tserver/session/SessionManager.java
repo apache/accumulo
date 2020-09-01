@@ -320,11 +320,11 @@ public class SessionManager {
       if (session instanceof SingleScanSession) {
         SingleScanSession ss = (SingleScanSession) session;
         nbt = ss.nextBatchTask;
-        tableID = ss.extent.getTableId();
+        tableID = ss.extent.tableId();
       } else if (session instanceof MultiScanSession) {
         MultiScanSession mss = (MultiScanSession) session;
         nbt = mss.lookupTask;
-        tableID = mss.threadPoolExtent.getTableId();
+        tableID = mss.threadPoolExtent.tableId();
       }
 
       if (nbt == null)
@@ -389,7 +389,7 @@ public class SessionManager {
 
         var params = ss.scanParams;
         ActiveScan activeScan =
-            new ActiveScan(ss.client, ss.getUser(), ss.extent.getTableId().canonical(),
+            new ActiveScan(ss.client, ss.getUser(), ss.extent.tableId().canonical(),
                 ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE, state,
                 ss.extent.toThrift(), Translator.translate(params.getColumnSet(), Translators.CT),
                 params.getSsiList(), params.getSsio(),
@@ -425,8 +425,8 @@ public class SessionManager {
 
         var params = mss.scanParams;
         activeScans.add(new ActiveScan(mss.client, mss.getUser(),
-            mss.threadPoolExtent.getTableId().canonical(), ct - mss.startTime,
-            ct - mss.lastAccessTime, ScanType.BATCH, state, mss.threadPoolExtent.toThrift(),
+            mss.threadPoolExtent.tableId().canonical(), ct - mss.startTime, ct - mss.lastAccessTime,
+            ScanType.BATCH, state, mss.threadPoolExtent.toThrift(),
             Translator.translate(params.getColumnSet(), Translators.CT), params.getSsiList(),
             params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
             params.getClassLoaderContext()));

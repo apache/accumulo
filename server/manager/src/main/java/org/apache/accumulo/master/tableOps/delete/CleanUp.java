@@ -92,7 +92,7 @@ class CleanUp extends MasterRepo {
     }
 
     boolean done = true;
-    Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();
+    Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     Scanner scanner = master.getContext().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
     scanner.setRange(tableRange);

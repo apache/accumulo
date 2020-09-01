@@ -75,7 +75,7 @@ public class TableIT extends AccumuloClusterHarness {
       VerifyIngest.verifyIngest(c, params);
       TableId id = TableId.of(to.tableIdMap().get(tableName));
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        s.setRange(new KeyExtent(id, null, null).toMetadataRange());
+        s.setRange(new KeyExtent(id, null, null).toMetaRange());
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
         assertTrue(Iterators.size(s.iterator()) > 0);
 

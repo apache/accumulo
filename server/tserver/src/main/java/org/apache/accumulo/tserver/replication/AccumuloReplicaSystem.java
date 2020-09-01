@@ -606,7 +606,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       switch (key.event) {
         case DEFINE_TABLET:
-          if (target.getSourceTableId().equals(key.tablet.getTableId())) {
+          if (target.getSourceTableId().equals(key.tablet.tableId())) {
             desiredTids.add(key.tabletId);
           }
           break;
@@ -657,7 +657,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       switch (key.event) {
         case DEFINE_TABLET:
           // For new DEFINE_TABLETs, we also need to record the new tids we see
-          if (target.getSourceTableId().equals(key.tablet.getTableId())) {
+          if (target.getSourceTableId().equals(key.tablet.tableId())) {
             desiredTids.add(key.tabletId);
           }
           break;

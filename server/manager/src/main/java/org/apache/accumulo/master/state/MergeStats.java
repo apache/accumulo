@@ -68,9 +68,9 @@ public class MergeStats {
     this.info = info;
     if (info.getState().equals(MergeState.NONE))
       return;
-    if (info.getExtent().getEndRow() == null)
+    if (info.getExtent().endRow() == null)
       upperSplit = true;
-    if (info.getExtent().getPrevEndRow() == null)
+    if (info.getExtent().prevEndRow() == null)
       lowerSplit = true;
   }
 
@@ -81,12 +81,12 @@ public class MergeStats {
   public void update(KeyExtent ke, TabletState state, boolean chopped, boolean hasWALs) {
     if (info.getState().equals(MergeState.NONE))
       return;
-    if (!upperSplit && info.getExtent().getEndRow().equals(ke.getPrevEndRow())) {
-      log.info("Upper split found: {}", ke.getPrevEndRow());
+    if (!upperSplit && info.getExtent().endRow().equals(ke.prevEndRow())) {
+      log.info("Upper split found: {}", ke.prevEndRow());
       upperSplit = true;
     }
-    if (!lowerSplit && info.getExtent().getPrevEndRow().equals(ke.getEndRow())) {
-      log.info("Lower split found: {}", ke.getEndRow());
+    if (!lowerSplit && info.getExtent().prevEndRow().equals(ke.endRow())) {
+      log.info("Lower split found: {}", ke.endRow());
       lowerSplit = true;
     }
     if (!info.overlaps(ke))
@@ -194,12 +194,12 @@ public class MergeStats {
     Scanner scanner = accumuloClient
         .createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
-    Text start = extent.getPrevEndRow();
+    Text start = extent.prevEndRow();
     if (start == null) {
       start = new Text();
     }
-    TableId tableId = extent.getTableId();
-    Text first = TabletsSection.getRow(tableId, start);
+    TableId tableId = extent.tableId();
+    Text first = TabletsSection.encodeRow(tableId, start);
     Range range = new Range(first, false, null, true);
     scanner.setRange(range.clip(TabletsSection.getRange()));
     KeyExtent prevExtent = null;
@@ -214,7 +214,7 @@ public class MergeStats {
         return false;
       }
       log.debug("consistency check: {} walogs {}", tls, tls.walogs.size());
-      if (!tls.extent.getTableId().equals(tableId)) {
+      if (!tls.extent.tableId().equals(tableId)) {
         break;
       }
 
@@ -226,7 +226,7 @@ public class MergeStats {
       if (prevExtent == null) {
         // this is the first tablet observed, it must be offline and its prev row must be less than
         // the start of the merge range
-        if (tls.extent.getPrevEndRow() != null && tls.extent.getPrevEndRow().compareTo(start) > 0) {
+        if (tls.extent.prevEndRow() != null && tls.extent.prevEndRow().compareTo(start) > 0) {
           log.debug("failing consistency: prev row is too high {}", start);
           return false;
         }
@@ -247,8 +247,8 @@ public class MergeStats {
       verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped,
           !tls.walogs.isEmpty());
       // stop when we've seen the tablet just beyond our range
-      if (tls.extent.getPrevEndRow() != null && extent.getEndRow() != null
-          && tls.extent.getPrevEndRow().compareTo(extent.getEndRow()) > 0) {
+      if (tls.extent.prevEndRow() != null && extent.endRow() != null
+          && tls.extent.prevEndRow().compareTo(extent.endRow()) > 0) {
         break;
       }
     }

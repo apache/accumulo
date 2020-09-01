@@ -53,7 +53,6 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.Combiner;
@@ -603,10 +602,10 @@ public class Initialize implements KeywordExecutable {
 
   private static void createEntriesForTablet(TreeMap<Key,Value> map, Tablet tablet) {
     Value EMPTY_SIZE = new DataFileValue(0, 0).encodeAsValue();
-    Text extent = new Text(TabletsSection.getRow(tablet.tableId, tablet.endRow));
+    Text extent = new Text(TabletsSection.encodeRow(tablet.tableId, tablet.endRow));
     addEntry(map, extent, DIRECTORY_COLUMN, new Value(tablet.dirName));
     addEntry(map, extent, TIME_COLUMN, new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
-    addEntry(map, extent, PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(tablet.prevEndRow));
+    addEntry(map, extent, PREV_ROW_COLUMN, TabletColumnFamily.encodePrevEndRow(tablet.prevEndRow));
     for (String file : tablet.files) {
       addEntry(map, extent, new ColumnFQ(DataFileColumnFamily.NAME, new Text(file)), EMPTY_SIZE);
     }

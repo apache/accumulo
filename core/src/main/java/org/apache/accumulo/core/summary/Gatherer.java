@@ -632,8 +632,8 @@ public class Gatherer {
     private Text endRow;
 
     public RowRange(KeyExtent ke) {
-      this.startRow = ke.getPrevEndRow();
-      this.endRow = ke.getEndRow();
+      this.startRow = ke.prevEndRow();
+      this.endRow = ke.endRow();
     }
 
     public RowRange(TRowRange trr) {

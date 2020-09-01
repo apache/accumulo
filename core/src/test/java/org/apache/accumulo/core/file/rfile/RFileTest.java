@@ -64,7 +64,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
@@ -2337,7 +2336,7 @@ public class RFileTest {
     // mfw.startDefaultLocalityGroup();
 
     Text tableExtent = new Text(
-        TabletsSection.getRow(MetadataTable.ID, TabletsSection.getRange().getEndKey().getRow()));
+        TabletsSection.encodeRow(MetadataTable.ID, TabletsSection.getRange().getEndKey().getRow()));
 
     // table tablet's directory
     Key tableDirKey = new Key(tableExtent, ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
@@ -2352,10 +2351,10 @@ public class RFileTest {
     // table tablet's prevRow
     Key tablePrevRowKey = new Key(tableExtent, TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
         TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
+    mfw.append(tablePrevRowKey, TabletColumnFamily.encodePrevEndRow(null));
 
     // ----------] default tablet info
-    Text defaultExtent = new Text(TabletsSection.getRow(MetadataTable.ID, null));
+    Text defaultExtent = new Text(TabletsSection.encodeRow(MetadataTable.ID, null));
 
     // default's directory
     Key defaultDirKey =
@@ -2373,7 +2372,7 @@ public class RFileTest {
         new Key(defaultExtent, TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
             TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultPrevRowKey,
-        KeyExtent.encodePrevEndRow(TabletsSection.getRange().getEndKey().getRow()));
+        TabletColumnFamily.encodePrevEndRow(TabletsSection.getRange().getEndKey().getRow()));
 
     testRfile.closeWriter();
 

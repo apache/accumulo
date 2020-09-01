@@ -117,7 +117,7 @@ public class PrepBulkImport extends MasterRepo {
       TabletIterFactory tabletIterFactory, int maxNumTablets, long tid) throws Exception {
     var currRange = lmi.next();
 
-    Text startRow = currRange.getKey().getPrevEndRow();
+    Text startRow = currRange.getKey().prevEndRow();
 
     Iterator<KeyExtent> tabletIter = tabletIterFactory.newTabletIter(startRow);
 
@@ -126,8 +126,8 @@ public class PrepBulkImport extends MasterRepo {
     var fileCounts = new HashMap<String,Integer>();
     int count;
 
-    if (!tabletIter.hasNext() && equals(KeyExtent::getPrevEndRow, currTablet, currRange.getKey())
-        && equals(KeyExtent::getEndRow, currTablet, currRange.getKey()))
+    if (!tabletIter.hasNext() && equals(KeyExtent::prevEndRow, currTablet, currRange.getKey())
+        && equals(KeyExtent::endRow, currTablet, currRange.getKey()))
       currRange = null;
 
     while (tabletIter.hasNext()) {
@@ -139,21 +139,20 @@ public class PrepBulkImport extends MasterRepo {
         currRange = lmi.next();
       }
 
-      while (!equals(KeyExtent::getPrevEndRow, currTablet, currRange.getKey())
+      while (!equals(KeyExtent::prevEndRow, currTablet, currRange.getKey())
           && tabletIter.hasNext()) {
         currTablet = tabletIter.next();
       }
 
-      boolean matchedPrevRow = equals(KeyExtent::getPrevEndRow, currTablet, currRange.getKey());
+      boolean matchedPrevRow = equals(KeyExtent::prevEndRow, currTablet, currRange.getKey());
       count = matchedPrevRow ? 1 : 0;
 
-      while (!equals(KeyExtent::getEndRow, currTablet, currRange.getKey())
-          && tabletIter.hasNext()) {
+      while (!equals(KeyExtent::endRow, currTablet, currRange.getKey()) && tabletIter.hasNext()) {
         currTablet = tabletIter.next();
         count++;
       }
 
-      if (!matchedPrevRow || !equals(KeyExtent::getEndRow, currTablet, currRange.getKey())) {
+      if (!matchedPrevRow || !equals(KeyExtent::endRow, currTablet, currRange.getKey())) {
         break;
       }
 

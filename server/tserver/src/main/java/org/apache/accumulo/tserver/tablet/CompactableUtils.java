@@ -237,7 +237,7 @@ public class CompactableUtils {
 
       @Override
       public TableId getTableId() {
-        return tablet.getExtent().getTableId();
+        return tablet.getExtent().tableId();
       }
     });
 
@@ -254,7 +254,7 @@ public class CompactableUtils {
 
       @Override
       public TableId getTableId() {
-        return tablet.getExtent().getTableId();
+        return tablet.getExtent().tableId();
       }
     });
 
@@ -296,7 +296,7 @@ public class CompactableUtils {
 
       @Override
       public TableId getTableId() {
-        return tablet.getExtent().getTableId();
+        return tablet.getExtent().tableId();
       }
     });
 
@@ -338,7 +338,7 @@ public class CompactableUtils {
 
       @Override
       public TableId getTableId() {
-        return tablet.getExtent().getTableId();
+        return tablet.getExtent().tableId();
       }
 
       @Override
@@ -491,11 +491,11 @@ public class CompactableUtils {
         var stratClassName = tconf.get(Property.TABLE_COMPACTION_STRATEGY);
 
         try {
-          strategyWarningsCache.get(tablet.getExtent().getTableId(), () -> {
+          strategyWarningsCache.get(tablet.getExtent().tableId(), () -> {
             log.warn(
                 "Table id {} set {} to {}.  Compaction strategies are deprecated.  See the Javadoc"
                     + " for class {} for more details.",
-                tablet.getExtent().getTableId(), Property.TABLE_COMPACTION_STRATEGY.getKey(),
+                tablet.getExtent().tableId(), Property.TABLE_COMPACTION_STRATEGY.getKey(),
                 stratClassName, CompactionStrategyConfig.class.getName());
             return true;
           });

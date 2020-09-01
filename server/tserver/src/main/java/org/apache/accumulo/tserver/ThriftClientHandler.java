@@ -197,7 +197,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
             fileRefMap.put(new TabletFile(path), mapping.getValue());
           }
 
-          Tablet importTablet = server.getOnlineTablet(new KeyExtent(tke));
+          Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
 
           if (importTablet == null) {
             failures.add(tke);
@@ -205,8 +205,8 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
             try {
               importTablet.importMapFiles(tid, fileRefMap, setTime);
             } catch (IOException ioe) {
-              log.info("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke),
-                  ioe.getMessage());
+              log.info("files {} not imported to {}: {}", fileMap.keySet(),
+                  KeyExtent.fromThrift(tke), ioe.getMessage());
               failures.add(tke);
             }
           }
@@ -239,14 +239,14 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           newFileMap.put(new TabletFile(path), mapping.getValue());
         }
 
-        Tablet importTablet = server.getOnlineTablet(new KeyExtent(tke));
+        Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
 
         if (importTablet != null) {
           try {
             importTablet.importMapFiles(tid, newFileMap, setTime);
           } catch (IOException ioe) {
-            log.debug("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke),
-                ioe.getMessage());
+            log.debug("files {} not imported to {}: {}", fileMap.keySet(),
+                KeyExtent.fromThrift(tke), ioe.getMessage());
           }
         }
       });
@@ -260,7 +260,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       return null;
     }
 
-    return server.getContext().getTableConfiguration(extent.getTableId()).getScanDispatcher();
+    return server.getContext().getTableConfiguration(extent.tableId()).getScanDispatcher();
   }
 
   @Override
@@ -291,7 +291,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           SecurityErrorCode.BAD_AUTHORIZATIONS);
     }
 
-    final KeyExtent extent = new KeyExtent(textent);
+    final KeyExtent extent = KeyExtent.fromThrift(textent);
 
     // wait for any writes that are in flight.. this done to ensure
     // consistency across client restarts... assume a client writes
@@ -439,7 +439,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
 
       if (log.isTraceEnabled()) {
         log.trace(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ",
-            TServerUtils.clientAddress.get(), ss.extent.getTableId(), ss.entriesReturned,
+            TServerUtils.clientAddress.get(), ss.extent.tableId(), ss.entriesReturned,
             (t2 - ss.startTime) / 1000.0, ss.runStats.toString()));
       }
 
@@ -622,8 +622,8 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       // if user has no permission to write to this table, add it to
       // the failures list
       boolean sameTable = us.currentTablet != null
-          && (us.currentTablet.getExtent().getTableId().equals(keyExtent.getTableId()));
-      tableId = keyExtent.getTableId();
+          && (us.currentTablet.getExtent().tableId().equals(keyExtent.tableId()));
+      tableId = keyExtent.tableId();
       if (sameTable || security.canWrite(us.getCredentials(), tableId,
           Tables.getNamespaceId(server.getContext(), tableId))) {
         long t2 = System.currentTimeMillis();
@@ -638,7 +638,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           server.updateMetrics.addUnknownTabletErrors(0);
         }
       } else {
-        log.warn("Denying access to table {} for user {}", keyExtent.getTableId(), us.getUser());
+        log.warn("Denying access to table {} for user {}", keyExtent.tableId(), us.getUser());
         long t2 = System.currentTimeMillis();
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
@@ -676,7 +676,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
 
     boolean reserved = true;
     try {
-      KeyExtent keyExtent = new KeyExtent(tkeyExtent);
+      KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
       setUpdateTablet(us, keyExtent);
 
       if (us.currentTablet != null) {
@@ -917,8 +917,8 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
-    final KeyExtent keyExtent = new KeyExtent(tkeyExtent);
-    final Tablet tablet = server.getOnlineTablet(new KeyExtent(keyExtent));
+    final KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
+    final Tablet tablet = server.getOnlineTablet(KeyExtent.copyOf(keyExtent));
     if (tablet == null) {
       throw new NotServingTabletException(tkeyExtent);
     }
@@ -1210,9 +1210,8 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           Translators.TKET, new Translator.ListTranslator<>(ServerConditionalMutation.TCMT));
 
       for (KeyExtent ke : updates.keySet()) {
-        if (!ke.getTableId().equals(tid)) {
-          throw new IllegalArgumentException(
-              "Unexpected table id " + tid + " != " + ke.getTableId());
+        if (!ke.tableId().equals(tid)) {
+          throw new IllegalArgumentException("Unexpected table id " + tid + " != " + ke.tableId());
         }
       }
 
@@ -1267,15 +1266,15 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    KeyExtent keyExtent = new KeyExtent(tkeyExtent);
+    KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
 
     Tablet tablet = server.getOnlineTablet(keyExtent);
     if (tablet == null) {
       throw new NotServingTabletException(tkeyExtent);
     }
 
-    if (keyExtent.getEndRow() == null
-        || !keyExtent.getEndRow().equals(ByteBufferUtil.toText(splitPoint))) {
+    if (keyExtent.endRow() == null
+        || !keyExtent.endRow().equals(ByteBufferUtil.toText(splitPoint))) {
       try {
         if (server.splitTablet(tablet, ByteBufferUtil.toBytes(splitPoint)) == null) {
           throw new NotServingTabletException(tkeyExtent);
@@ -1299,7 +1298,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     KeyExtent start = new KeyExtent(text, new Text(), null);
     for (Entry<KeyExtent,Tablet> entry : server.getOnlineTablets().tailMap(start).entrySet()) {
       KeyExtent ke = entry.getKey();
-      if (ke.getTableId().compareTo(text) == 0) {
+      if (ke.tableId().compareTo(text) == 0) {
         Tablet tablet = entry.getValue();
         TabletStats stats = tablet.getTabletStats();
         stats.extent = ke.toThrift();
@@ -1378,7 +1377,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       throw new RuntimeException(e);
     }
 
-    final KeyExtent extent = new KeyExtent(textent);
+    final KeyExtent extent = KeyExtent.fromThrift(textent);
 
     synchronized (server.unopenedTablets) {
       synchronized (server.openingTablets) {
@@ -1464,7 +1463,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       throw new RuntimeException(e);
     }
 
-    KeyExtent extent = new KeyExtent(textent);
+    KeyExtent extent = KeyExtent.fromThrift(textent);
 
     server.resourceManager.addMigration(extent,
         new LoggingRunnable(log, new UnloadTabletHandler(server, extent, goal, requestTime)));
@@ -1518,13 +1517,13 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       throw new RuntimeException(e);
     }
 
-    Tablet tablet = server.getOnlineTablet(new KeyExtent(textent));
+    Tablet tablet = server.getOnlineTablet(KeyExtent.fromThrift(textent));
     if (tablet != null) {
       log.info("Flushing {}", tablet.getExtent());
       try {
         tablet.flush(tablet.getFlushID());
       } catch (NoNodeException nne) {
-        log.info("Asked to flush tablet that has no flush id {} {}", new KeyExtent(textent),
+        log.info("Asked to flush tablet that has no flush id {} {}", KeyExtent.fromThrift(textent),
             nne.getMessage());
       }
     }
@@ -1584,7 +1583,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       throw new RuntimeException(e);
     }
 
-    KeyExtent ke = new KeyExtent(textent);
+    KeyExtent ke = KeyExtent.fromThrift(textent);
 
     Tablet tablet = server.getOnlineTablet(ke);
     if (tablet != null) {

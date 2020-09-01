@@ -55,123 +55,27 @@ public class KeyExtentTest {
   public void testDecodingMetadataRow() {
     Text flattenedExtent = new Text("foo;bar");
 
-    ke = new KeyExtent(flattenedExtent, (Text) null);
+    ke = KeyExtent.fromMetaRow(flattenedExtent);
 
-    assertEquals(new Text("bar"), ke.getEndRow());
-    assertEquals("foo", ke.getTableId().canonical());
-    assertNull(ke.getPrevEndRow());
+    assertEquals(new Text("bar"), ke.endRow());
+    assertEquals("foo", ke.tableId().canonical());
+    assertNull(ke.prevEndRow());
 
     flattenedExtent = new Text("foo<");
 
-    ke = new KeyExtent(flattenedExtent, (Text) null);
+    ke = KeyExtent.fromMetaRow(flattenedExtent);
 
-    assertNull(ke.getEndRow());
-    assertEquals("foo", ke.getTableId().canonical());
-    assertNull(ke.getPrevEndRow());
+    assertNull(ke.endRow());
+    assertEquals("foo", ke.tableId().canonical());
+    assertNull(ke.prevEndRow());
 
     flattenedExtent = new Text("foo;bar;");
 
-    ke = new KeyExtent(flattenedExtent, (Text) null);
+    ke = KeyExtent.fromMetaRow(flattenedExtent);
 
-    assertEquals(new Text("bar;"), ke.getEndRow());
-    assertEquals("foo", ke.getTableId().canonical());
-    assertNull(ke.getPrevEndRow());
-
-  }
-
-  @Test
-  public void testFindContainingExtents() {
-    assertNull(KeyExtent.findContainingExtent(nke("t", null, null), set0));
-    assertNull(KeyExtent.findContainingExtent(nke("t", "1", "0"), set0));
-    assertNull(KeyExtent.findContainingExtent(nke("t", "1", null), set0));
-    assertNull(KeyExtent.findContainingExtent(nke("t", null, "0"), set0));
-
-    TreeSet<KeyExtent> set1 = new TreeSet<>();
-
-    set1.add(nke("t", null, null));
-
-    assertEquals(nke("t", null, null), KeyExtent.findContainingExtent(nke("t", null, null), set1));
-    assertEquals(nke("t", null, null), KeyExtent.findContainingExtent(nke("t", "1", "0"), set1));
-    assertEquals(nke("t", null, null), KeyExtent.findContainingExtent(nke("t", "1", null), set1));
-    assertEquals(nke("t", null, null), KeyExtent.findContainingExtent(nke("t", null, "0"), set1));
-
-    TreeSet<KeyExtent> set2 = new TreeSet<>();
-
-    set2.add(nke("t", "g", null));
-    set2.add(nke("t", null, "g"));
-
-    assertNull(KeyExtent.findContainingExtent(nke("t", null, null), set2));
-    assertEquals(nke("t", "g", null), KeyExtent.findContainingExtent(nke("t", "c", "a"), set2));
-    assertEquals(nke("t", "g", null), KeyExtent.findContainingExtent(nke("t", "c", null), set2));
-
-    assertEquals(nke("t", "g", null), KeyExtent.findContainingExtent(nke("t", "g", "a"), set2));
-    assertEquals(nke("t", "g", null), KeyExtent.findContainingExtent(nke("t", "g", null), set2));
-
-    assertNull(KeyExtent.findContainingExtent(nke("t", "h", "a"), set2));
-    assertNull(KeyExtent.findContainingExtent(nke("t", "h", null), set2));
-
-    assertNull(KeyExtent.findContainingExtent(nke("t", "z", "f"), set2));
-    assertNull(KeyExtent.findContainingExtent(nke("t", null, "f"), set2));
-
-    assertEquals(nke("t", null, "g"), KeyExtent.findContainingExtent(nke("t", "z", "g"), set2));
-    assertEquals(nke("t", null, "g"), KeyExtent.findContainingExtent(nke("t", null, "g"), set2));
-
-    assertEquals(nke("t", null, "g"), KeyExtent.findContainingExtent(nke("t", "z", "h"), set2));
-    assertEquals(nke("t", null, "g"), KeyExtent.findContainingExtent(nke("t", null, "h"), set2));
-
-    TreeSet<KeyExtent> set3 = new TreeSet<>();
-
-    set3.add(nke("t", "g", null));
-    set3.add(nke("t", "s", "g"));
-    set3.add(nke("t", null, "s"));
-
-    assertNull(KeyExtent.findContainingExtent(nke("t", null, null), set3));
-
-    assertEquals(nke("t", "g", null), KeyExtent.findContainingExtent(nke("t", "g", null), set3));
-    assertEquals(nke("t", "s", "g"), KeyExtent.findContainingExtent(nke("t", "s", "g"), set3));
-    assertEquals(nke("t", null, "s"), KeyExtent.findContainingExtent(nke("t", null, "s"), set3));
-
-    assertNull(KeyExtent.findContainingExtent(nke("t", "t", "g"), set3));
-    assertNull(KeyExtent.findContainingExtent(nke("t", "t", "f"), set3));
-    assertNull(KeyExtent.findContainingExtent(nke("t", "s", "f"), set3));
-
-    assertEquals(nke("t", "s", "g"), KeyExtent.findContainingExtent(nke("t", "r", "h"), set3));
-    assertEquals(nke("t", "s", "g"), KeyExtent.findContainingExtent(nke("t", "s", "h"), set3));
-    assertEquals(nke("t", "s", "g"), KeyExtent.findContainingExtent(nke("t", "r", "g"), set3));
-
-    assertEquals(nke("t", null, "s"), KeyExtent.findContainingExtent(nke("t", null, "t"), set3));
-    assertNull(KeyExtent.findContainingExtent(nke("t", null, "r"), set3));
-
-    assertEquals(nke("t", "g", null), KeyExtent.findContainingExtent(nke("t", "f", null), set3));
-    assertNull(KeyExtent.findContainingExtent(nke("t", "h", null), set3));
-
-    TreeSet<KeyExtent> set4 = new TreeSet<>();
-
-    set4.add(nke("t1", "d", null));
-    set4.add(nke("t1", "q", "d"));
-    set4.add(nke("t1", null, "q"));
-    set4.add(nke("t2", "g", null));
-    set4.add(nke("t2", "s", "g"));
-    set4.add(nke("t2", null, "s"));
-
-    assertNull(KeyExtent.findContainingExtent(nke("t", null, null), set4));
-    assertNull(KeyExtent.findContainingExtent(nke("z", null, null), set4));
-    assertNull(KeyExtent.findContainingExtent(nke("t11", null, null), set4));
-    assertNull(KeyExtent.findContainingExtent(nke("t1", null, null), set4));
-    assertNull(KeyExtent.findContainingExtent(nke("t2", null, null), set4));
-
-    assertNull(KeyExtent.findContainingExtent(nke("t", "g", null), set4));
-    assertNull(KeyExtent.findContainingExtent(nke("z", "g", null), set4));
-    assertNull(KeyExtent.findContainingExtent(nke("t11", "g", null), set4));
-    assertNull(KeyExtent.findContainingExtent(nke("t1", "g", null), set4));
-
-    assertEquals(nke("t2", "g", null), KeyExtent.findContainingExtent(nke("t2", "g", null), set4));
-    assertEquals(nke("t2", "s", "g"), KeyExtent.findContainingExtent(nke("t2", "s", "g"), set4));
-    assertEquals(nke("t2", null, "s"), KeyExtent.findContainingExtent(nke("t2", null, "s"), set4));
-
-    assertEquals(nke("t1", "d", null), KeyExtent.findContainingExtent(nke("t1", "d", null), set4));
-    assertEquals(nke("t1", "q", "d"), KeyExtent.findContainingExtent(nke("t1", "q", "d"), set4));
-    assertEquals(nke("t1", null, "q"), KeyExtent.findContainingExtent(nke("t1", null, "q"), set4));
+    assertEquals(new Text("bar;"), ke.endRow());
+    assertEquals("foo", ke.tableId().canonical());
+    assertNull(ke.prevEndRow());
 
   }
 
@@ -277,22 +181,12 @@ public class KeyExtentTest {
   }
 
   private KeyExtent writeAndReadFields(KeyExtent in) throws IOException {
-    KeyExtent out = new KeyExtent();
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    in.write(new DataOutputStream(baos));
+    in.writeTo(new DataOutputStream(baos));
 
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-    out.readFields(new DataInputStream(bais));
-
-    return out;
+    return KeyExtent.readFrom(new DataInputStream(bais));
   }
 
-  @Test
-  public void testDecodeEncode() {
-    assertNull(KeyExtent.decodePrevEndRow(KeyExtent.encodePrevEndRow(null)));
-
-    Text x = new Text();
-    assertEquals(x, KeyExtent.decodePrevEndRow(KeyExtent.encodePrevEndRow(x)));
-  }
 }

@@ -46,6 +46,6 @@ public class RootTable {
 
   public static final KeyExtent EXTENT = new KeyExtent(ID, null, null);
   public static final KeyExtent OLD_EXTENT =
-      new KeyExtent(MetadataTable.ID, TabletsSection.getRow(MetadataTable.ID, null), null);
+      new KeyExtent(MetadataTable.ID, TabletsSection.encodeRow(MetadataTable.ID, null), null);
 
 }

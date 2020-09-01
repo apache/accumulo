@@ -63,7 +63,7 @@ class MetaDataStateStore implements TabletStateStore {
     BatchWriter writer = createBatchWriter();
     try {
       for (Assignment assignment : assignments) {
-        Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
+        Mutation m = new Mutation(assignment.tablet.toMetaRow());
         assignment.server.putLocation(m);
         assignment.server.putLastLocation(m);
         assignment.server.clearFutureLocation(m);
@@ -97,7 +97,7 @@ class MetaDataStateStore implements TabletStateStore {
     BatchWriter writer = createBatchWriter();
     try {
       for (Assignment assignment : assignments) {
-        Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
+        Mutation m = new Mutation(assignment.tablet.toMetaRow());
         SuspendingTServer.clearSuspension(m);
         assignment.server.putFutureLocation(m);
         writer.addMutation(m);
@@ -132,7 +132,7 @@ class MetaDataStateStore implements TabletStateStore {
     BatchWriter writer = createBatchWriter();
     try {
       for (TabletLocationState tls : tablets) {
-        Mutation m = new Mutation(tls.extent.getMetadataEntry());
+        Mutation m = new Mutation(tls.extent.toMetaRow());
         if (tls.current != null) {
           tls.current.clearLocation(m);
           if (logsForDeadServers != null) {
@@ -178,7 +178,7 @@ class MetaDataStateStore implements TabletStateStore {
         if (tls.suspend != null) {
           continue;
         }
-        Mutation m = new Mutation(tls.extent.getMetadataEntry());
+        Mutation m = new Mutation(tls.extent.toMetaRow());
         SuspendingTServer.clearSuspension(m);
         writer.addMutation(m);
       }

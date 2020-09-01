@@ -60,7 +60,7 @@ public class GarbageCollectWriteAheadLogsTest {
   private final Map<TServerInstance,List<UUID>> markers2 =
       Collections.singletonMap(server2, Collections.singletonList(id));
   private final Path path = new Path("hdfs://localhost:9000/accumulo/wal/localhost+1234/" + id);
-  private final KeyExtent extent = new KeyExtent(new Text("1<"), new Text(new byte[] {0}));
+  private final KeyExtent extent = KeyExtent.fromMetaRow(new Text("1<"));
   private final Collection<Collection<String>> walogs = Collections.emptyList();
   private final TabletLocationState tabletAssignedToServer1;
   private final TabletLocationState tabletAssignedToServer2;

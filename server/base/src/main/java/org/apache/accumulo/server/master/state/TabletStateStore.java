@@ -99,7 +99,7 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
   }
 
   static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {
-    return getStoreForLevel(DataLevel.of(extent.getTableId()), context);
+    return getStoreForLevel(DataLevel.of(extent.tableId()), context);
   }
 
   public static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context) {

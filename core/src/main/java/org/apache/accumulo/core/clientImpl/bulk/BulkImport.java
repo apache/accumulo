@@ -340,7 +340,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       KeyExtent extent = extentCache.lookup(row);
       // log.debug(filename + " found row " + row + " at location " + tabletLocation);
       result.add(extent);
-      row = extent.getEndRow();
+      row = extent.endRow();
       if (row != null && (endRow == null || row.compareTo(endRow) < 0)) {
         row = nextRow(row);
       } else
@@ -467,8 +467,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
         extents.add(extent);
 
-        while (!extent.contains(endRow) && extent.getEndRow() != null) {
-          extent = kec.lookup(nextRow(extent.getEndRow()));
+        while (!extent.contains(endRow) && extent.endRow() != null) {
+          extent = kec.lookup(nextRow(extent.endRow()));
           extents.add(extent);
         }
 

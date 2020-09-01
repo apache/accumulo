@@ -196,7 +196,7 @@ class AssignmentHandler implements Runnable {
         log.warn("{}", e.getMessage());
       }
 
-      TableId tableId = extent.getTableId();
+      TableId tableId = extent.tableId();
       ProblemReports.getInstance(server.getContext()).report(new ProblemReport(tableId, TABLET_LOAD,
           extent.getUUID().toString(), server.getClientAddressString(), e));
     } finally {

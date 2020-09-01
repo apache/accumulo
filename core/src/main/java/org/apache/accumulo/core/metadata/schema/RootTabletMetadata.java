@@ -39,6 +39,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.hadoop.io.Text;
 
@@ -73,7 +74,7 @@ public class RootTabletMetadata {
    * Apply a metadata table mutation to update internal json.
    */
   public void update(Mutation m) {
-    Preconditions.checkArgument(new Text(m.getRow()).equals(RootTable.EXTENT.getMetadataEntry()));
+    Preconditions.checkArgument(new Text(m.getRow()).equals(RootTable.EXTENT.toMetaRow()));
 
     m.getUpdates().forEach(cup -> {
       Preconditions.checkArgument(!cup.hasTimestamp());
@@ -150,7 +151,7 @@ public class RootTabletMetadata {
 
     Preconditions.checkArgument(gd.version == 1);
 
-    String row = RootTable.EXTENT.getMetadataEntry().toString();
+    String row = RootTable.EXTENT.toMetaRow().toString();
 
     TreeMap<Key,Value> entries = new TreeMap<>();
 
@@ -182,7 +183,7 @@ public class RootTabletMetadata {
    */
   public static byte[] getInitialJson(String dirName, String file) {
     ServerColumnFamily.validateDirCol(dirName);
-    Mutation mutation = RootTable.EXTENT.getPrevRowUpdateMutation();
+    Mutation mutation = TabletColumnFamily.createPrevRowMutation(RootTable.EXTENT);
     ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dirName));
 
     mutation.put(DataFileColumnFamily.STR_NAME, file, new DataFileValue(0, 0).encodeAsValue());

@@ -99,7 +99,7 @@ public class FindOfflineTablets {
     Range range = TabletsSection.getRange();
     if (tableName != null) {
       TableId tableId = Tables.getTableId(context, tableName);
-      range = new KeyExtent(tableId, null, null).toMetadataRange();
+      range = new KeyExtent(tableId, null, null).toMetaRange();
     }
 
     try (MetaDataTableScanner metaScanner =
@@ -116,7 +116,7 @@ public class FindOfflineTablets {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
       if (state != null && state != TabletState.HOSTED
-          && context.getTableManager().getTableState(locationState.extent.getTableId())
+          && context.getTableManager().getTableState(locationState.extent.tableId())
               != TableState.OFFLINE) {
         System.out
             .println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());

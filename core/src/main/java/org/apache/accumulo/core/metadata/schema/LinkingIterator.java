@@ -69,7 +69,7 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
     // Always expect the default tablet to exist for a table. The following checks for the case when
     // the default tablet was not seen when it should have been seen.
     if (!hasNext && prevTablet != null && prevTablet.getEndRow() != null) {
-      Text defaultTabletRow = TabletsSection.getRow(prevTablet.getTableId(), null);
+      Text defaultTabletRow = TabletsSection.encodeRow(prevTablet.getTableId(), null);
       if (range.contains(new Key(defaultTabletRow))) {
         throw new IllegalStateException(
             "Scan range incudled default tablet, but did not see default tablet.  Last tablet seen : "
@@ -120,7 +120,7 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
       source = iteratorFactory.apply(range);
     } else {
       // get the metadata table row for the previous tablet
-      Text prevMetaRow = TabletsSection.getRow(prevTablet.getTableId(), prevTablet.getEndRow());
+      Text prevMetaRow = TabletsSection.encodeRow(prevTablet.getTableId(), prevTablet.getEndRow());
 
       // ensure the previous tablet still exists in the metadata table
       if (Iterators.size(iteratorFactory.apply(new Range(prevMetaRow))) == 0) {
@@ -153,8 +153,8 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
           KeyExtent extent = tmp.getExtent();
 
-          if (extent.getPrevEndRow() != null) {
-            prevMetaRow = TabletsSection.getRow(extent.getTableId(), extent.getPrevEndRow());
+          if (extent.prevEndRow() != null) {
+            prevMetaRow = TabletsSection.encodeRow(extent.tableId(), extent.prevEndRow());
           }
 
           // If the first tablet seen has a prev endrow within the range it means a preceding tablet

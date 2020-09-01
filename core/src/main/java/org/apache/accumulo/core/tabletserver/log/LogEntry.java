@@ -51,7 +51,7 @@ public class LogEntry {
 
   @Override
   public String toString() {
-    return extent + " " + filename;
+    return extent.toMetaRow() + " " + filename;
   }
 
   public String getName() {
@@ -60,7 +60,7 @@ public class LogEntry {
 
   public byte[] toBytes() throws IOException {
     DataOutputBuffer out = new DataOutputBuffer();
-    extent.write(out);
+    extent.writeTo(out);
     out.writeLong(timestamp);
     out.writeUTF(server);
     out.writeUTF(filename);
@@ -70,22 +70,19 @@ public class LogEntry {
   public static LogEntry fromBytes(byte[] bytes) throws IOException {
     DataInputBuffer inp = new DataInputBuffer();
     inp.reset(bytes, bytes.length);
-    KeyExtent extent = new KeyExtent();
-    extent.readFields(inp);
+    KeyExtent extent = KeyExtent.readFrom(inp);
     long timestamp = inp.readLong();
     String server = inp.readUTF();
     String filename = inp.readUTF();
     return new LogEntry(extent, timestamp, server, filename);
   }
 
-  private static final Text EMPTY_TEXT = new Text();
-
   public static LogEntry fromKeyValue(Key key, String value) {
     String qualifier = key.getColumnQualifierData().toString();
     if (qualifier.indexOf('/') < 1) {
       throw new IllegalArgumentException("Bad key for log entry: " + key);
     }
-    KeyExtent extent = new KeyExtent(key.getRow(), EMPTY_TEXT);
+    KeyExtent extent = KeyExtent.fromMetaRow(key.getRow());
     String[] parts = qualifier.split("/", 2);
     String server = parts[0];
     // handle old-style log entries that specify log sets
@@ -100,7 +97,7 @@ public class LogEntry {
   }
 
   public Text getRow() {
-    return extent.getMetadataEntry();
+    return extent.toMetaRow();
   }
 
   public Text getColumnFamily() {

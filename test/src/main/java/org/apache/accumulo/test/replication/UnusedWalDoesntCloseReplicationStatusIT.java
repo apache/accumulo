@@ -187,7 +187,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       String walUri = tserverWal.toURI().toString();
       KeyExtent extent = new KeyExtent(tableId, null, null);
       try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
-        Mutation m = new Mutation(extent.getMetadataEntry());
+        Mutation m = new Mutation(extent.toMetaRow());
         m.put(LogColumnFamily.NAME, new Text("localhost:12345/" + walUri),
             new Value(walUri + "|1"));
         bw.addMutation(m);

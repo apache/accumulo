@@ -301,9 +301,9 @@ public class TabletMetadata {
 
       if (row == null) {
         row = key.getRowData();
-        KeyExtent ke = new KeyExtent(key.getRow(), (Text) null);
-        te.endRow = ke.getEndRow();
-        te.tableId = ke.getTableId();
+        KeyExtent ke = KeyExtent.fromMetaRow(key.getRow());
+        te.endRow = ke.endRow();
+        te.tableId = ke.tableId();
       } else if (!row.equals(key.getRowData())) {
         throw new IllegalArgumentException(
             "Input contains more than one row : " + row + " " + key.getRowData());
@@ -313,11 +313,11 @@ public class TabletMetadata {
         case TabletColumnFamily.STR_NAME:
           switch (qual) {
             case PREV_ROW_QUAL:
-              te.prevEndRow = KeyExtent.decodePrevEndRow(kv.getValue());
+              te.prevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
               te.sawPrevEndRow = true;
               break;
             case OLD_PREV_ROW_QUAL:
-              te.oldPrevEndRow = KeyExtent.decodePrevEndRow(kv.getValue());
+              te.oldPrevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
               te.sawOldPrevEndRow = true;
               break;
             case SPLIT_RATIO_QUAL:

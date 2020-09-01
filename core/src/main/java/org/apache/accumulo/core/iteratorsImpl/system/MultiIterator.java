@@ -84,7 +84,7 @@ public class MultiIterator extends HeapIterator {
   }
 
   public MultiIterator(List<SortedKeyValueIterator<Key,Value>> iters2, KeyExtent extent) {
-    this(iters2, new Range(extent.getPrevEndRow(), false, extent.getEndRow(), true), false);
+    this(iters2, new Range(extent.prevEndRow(), false, extent.endRow(), true), false);
   }
 
   public MultiIterator(List<SortedKeyValueIterator<Key,Value>> readers, boolean init) {

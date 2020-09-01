@@ -852,7 +852,7 @@ public class InputConfigurator extends ConfiguratorBase {
         startRow = new Text();
 
       Range metadataRange =
-          new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null, false);
+          new Range(new KeyExtent(tableId, startRow, null).toMetaRow(), true, null, false);
       Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(LastLocationColumnFamily.NAME);
@@ -882,7 +882,7 @@ public class InputConfigurator extends ConfiguratorBase {
           }
 
           if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-            extent = new KeyExtent(key.getRow(), entry.getValue());
+            extent = KeyExtent.fromMetaPrevRow(entry);
           }
 
         }
@@ -890,7 +890,7 @@ public class InputConfigurator extends ConfiguratorBase {
         if (location != null)
           return null;
 
-        if (!extent.getTableId().equals(tableId)) {
+        if (!extent.tableId().equals(tableId)) {
           throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
         }
 
@@ -901,8 +901,8 @@ public class InputConfigurator extends ConfiguratorBase {
         binnedRanges.computeIfAbsent(last, k -> new HashMap<>())
             .computeIfAbsent(extent, k -> new ArrayList<>()).add(range);
 
-        if (extent.getEndRow() == null
-            || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {
+        if (extent.endRow() == null
+            || range.afterEndKey(new Key(extent.endRow()).followingKey(PartialKey.ROW))) {
           break;
         }
 

@@ -304,7 +304,7 @@ public class VolumeIT extends ConfigurableMacBase {
     TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
     try (Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+      metaScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
       int[] counts = new int[paths.length];
 

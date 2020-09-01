@@ -103,7 +103,7 @@ class WriteExportFiles extends MasterRepo {
     checkOffline(master.getContext());
 
     Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    metaScanner.setRange(new KeyExtent(tableInfo.tableID, null, null).toMetadataRange());
+    metaScanner.setRange(new KeyExtent(tableInfo.tableID, null, null).toMetaRange());
 
     // scan for locations
     metaScanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
@@ -228,7 +228,7 @@ class WriteExportFiles extends MasterRepo {
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
     ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);
-    metaScanner.setRange(new KeyExtent(tableID, null, null).toMetadataRange());
+    metaScanner.setRange(new KeyExtent(tableID, null, null).toMetaRange());
 
     for (Entry<Key,Value> entry : metaScanner) {
       entry.getKey().write(dataOut);
