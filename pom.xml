@@ -1034,6 +1034,7 @@
               <exclude>nbactions.xml</exclude>
               <exclude>.vscode/**</exclude>
               <exclude>.factorypath</exclude>
+              <exclude>.github/**</exclude>
             </excludes>
           </configuration>
         </plugin>
