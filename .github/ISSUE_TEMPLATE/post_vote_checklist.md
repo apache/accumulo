@@ -27,6 +27,7 @@ assignees: ''
   - [ ] In [several mirrors](https://www.apache.org/dyn/closer.lua/accumulo)
 - Update the [staging website](http://accumulo.staged.apache.org/)
   - [ ] Release notes
+  - [ ] Add `LTS: true` to the release notes front-matter for LTS releases
   - [ ] Navigation
   - [ ] Downloads page
   - [ ] DOAP file
@@ -34,6 +35,7 @@ assignees: ''
   - [ ] If javadoc is built with Java 11, [patch it](https://github.com/apache/accumulo/blob/main/contrib/javadoc11.patch)
   - [ ] Jekyll config
   - [ ] Grep for, and update any links to previous version to now point to the new version
+  - [ ] Update any older release notes front-matter to indicate they are either `archived: true` or `archived_critical: true`
   - [ ] [Publish to production](https://github.com/apache/accumulo-website#publishing-staging-to-production)
 - Announcement email
   - [ ] Prepare and get review on dev list (see examples [from previous announcement messages](https://lists.apache.org/list.html?announce@apache.org:gte=1d:accumulo))
