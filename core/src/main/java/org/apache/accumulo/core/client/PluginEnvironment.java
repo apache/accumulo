@@ -61,6 +61,7 @@ public interface PluginEnvironment {
      * @param prefix
      *          prefix of properties to be returned
      * @return all properties with a given prefix
+     * @since 2.1.0
      */
     Map<String,String> getWithPrefix(String prefix);
 
