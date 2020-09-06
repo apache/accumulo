@@ -19,6 +19,7 @@
 package org.apache.accumulo.server;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -75,6 +76,22 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
         return acfg.get(prop);
       } else {
         return acfg.get(key);
+      }
+    }
+
+    @Override
+    public Map<String,String> getWithPrefix(String prefix) {
+      if (Property.isValidPropertyPrefix(prefix)) {
+        Property propertyPrefix = Property.getPropertyByKey(prefix);
+        return acfg.getAllPropertiesWithPrefix(propertyPrefix);
+      } else {
+        Map<String,String> properties = new HashMap<>();
+        for (Entry<String,String> prop : acfg) {
+          if (prop.getKey().startsWith(prefix)) {
+            properties.put(prop.getKey(), prop.getValue());
+          }
+        }
+        return properties;
       }
     }
 
