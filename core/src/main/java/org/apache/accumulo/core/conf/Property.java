@@ -1242,13 +1242,7 @@ public enum Property {
    * @return true if prefix is valid (recognized)
    */
   public static boolean isValidPropertyPrefix(String prefix) {
-    for (String validPrefix : validPrefixes) {
-      if (validPrefix.equals(prefix)) {
-        return true;
-      }
-    }
-
-    return false;
+    return validPrefixes.contains(prefix);
   }
 
   /**
