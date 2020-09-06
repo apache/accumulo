@@ -1234,18 +1234,6 @@ public enum Property {
   }
 
   /**
-   * Checks if the given property prefix is valid. A valid property prefix is equal to some prefix
-   * defined in this class.
-   *
-   * @param prefix
-   *          property prefix
-   * @return true if prefix is valid (recognized)
-   */
-  public static boolean isValidPropertyPrefix(String prefix) {
-    return validPrefixes.contains(prefix);
-  }
-
-  /**
    * Checks if the given property key is a valid property and is of type boolean.
    *
    * @param key

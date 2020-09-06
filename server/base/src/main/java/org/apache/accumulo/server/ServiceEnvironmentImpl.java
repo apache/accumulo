@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
@@ -81,17 +83,13 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
     @Override
     public Map<String,String> getWithPrefix(String prefix) {
-      if (Property.isValidPropertyPrefix(prefix)) {
-        Property propertyPrefix = Property.getPropertyByKey(prefix);
+      Property propertyPrefix = Property.getPropertyByKey(prefix);
+      if(propertyPrefix != null && propertyPrefix.getType() == PropertyType.PREFIX){
         return acfg.getAllPropertiesWithPrefix(propertyPrefix);
       } else {
-        Map<String,String> properties = new HashMap<>();
-        for (Entry<String,String> prop : acfg) {
-          if (prop.getKey().startsWith(prefix)) {
-            properties.put(prop.getKey(), prop.getValue());
-          }
-        }
-        return properties;
+        return StreamSupport.stream(acfg.spliterator(), false)
+                .filter(prop -> prop.getKey().startsWith(prefix))
+                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
       }
     }
 
