@@ -48,8 +48,7 @@ public class ServiceEnvironmentImplTest {
 
   @After
   public void verifyMocks() {
-    verify(srvCtx);
-    verify(acfg);
+    verify(srvCtx, acfg);
   }
 
   @Test
