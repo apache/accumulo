@@ -59,7 +59,7 @@ public interface PluginEnvironment {
      * Returns all properties with a given prefix
      *
      * @param prefix
-     *          prefix of properties to be returned
+     *          prefix of properties to be returned. Include the trailing '.' in the prefix.
      * @return all properties with a given prefix
      * @since 2.1.0
      */
