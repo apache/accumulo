@@ -21,12 +21,14 @@ package org.apache.accumulo.server;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,6 +44,12 @@ public class ServiceEnvironmentImplTest {
     expect(srvCtx.getConfiguration()).andReturn(acfg);
     replay(srvCtx);
     serviceEnvironment = new ServiceEnvironmentImpl(srvCtx);
+  }
+
+  @After
+  public void verifyMocks() {
+    verify(srvCtx);
+    verify(acfg);
   }
 
   @Test
