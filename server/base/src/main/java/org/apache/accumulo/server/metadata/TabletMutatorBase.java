@@ -34,6 +34,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.La
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -205,8 +206,8 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putSuspension(Ample.TServer tServer, long suspensionTime) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
-        TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier(),
+    mutation.put(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
+        SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier(),
         new Value(tServer + "|" + suspensionTime));
     return this;
   }
@@ -214,8 +215,8 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator deleteSuspension() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
-        TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier());
+    mutation.putDelete(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
+        SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier());
     return this;
   }
 
