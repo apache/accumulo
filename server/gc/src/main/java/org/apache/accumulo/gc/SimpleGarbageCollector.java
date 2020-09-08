@@ -58,7 +58,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
@@ -115,11 +115,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
-  /**
-   * A fraction representing how much of the JVM's available memory should be used for gathering
-   * candidates.
-   */
-  static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
+  // effectively an 8MB batch size, since this number is the number of Chars
+  public static final long CANDIDATE_BATCH_SIZE = 4_000_000;
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
@@ -155,8 +152,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
     log.info("safemode: {}", inSafeMode());
-    log.info("memory threshold: {} of {} bytes", CANDIDATE_MEMORY_PERCENTAGE,
-        Runtime.getRuntime().maxMemory());
+    log.info("candidate batch size: {} bytes", CANDIDATE_BATCH_SIZE);
     log.info("delete threads: {}", getNumDeleteThreads());
     log.info("gc post metadata action: {}", useFullCompaction);
   }
@@ -210,20 +206,22 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         throws TableNotFoundException {
 
       Iterator<String> candidates = getContext().getAmple().getGcCandidates(level, continuePoint);
+      long candidateLength = 0;
 
       result.clear();
 
       while (candidates.hasNext()) {
-        String cand = candidates.next();
-
-        result.add(cand);
-        if (almostOutOfMemory(Runtime.getRuntime())) {
-          log.info("List of delete candidates has exceeded the memory"
-              + " threshold. Attempting to delete what has been gathered so far.");
+        String candidate = candidates.next();
+        candidateLength += candidate.length();
+        result.add(candidate);
+        if (candidateLength > CANDIDATE_BATCH_SIZE) {
+          log.info(
+              "Candidate batch of size {} has exceeded the"
+                  + " threshold. Attempting to delete what has been gathered so far.",
+              candidateLength);
           return true;
         }
       }
-
       return false;
     }
 
@@ -238,10 +236,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       IsolatedScanner scanner =
           new IsolatedScanner(getContext().createScanner(level.metaTable(), Authorizations.EMPTY));
 
-      scanner.setRange(MetadataSchema.BlipSection.getRange());
+      scanner.setRange(BlipSection.getRange());
 
       return Iterators.transform(scanner.iterator(), entry -> entry.getKey().getRow().toString()
-          .substring(MetadataSchema.BlipSection.getRowPrefix().length()));
+          .substring(BlipSection.getRowPrefix().length()));
     }
 
     @Override
@@ -665,19 +663,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       log.error("FATAL:", ex);
       throw new RuntimeException(ex);
     }
-  }
-
-  /**
-   * Checks if the system is almost out of memory.
-   *
-   * @param runtime
-   *          Java runtime
-   * @return true if system is almost out of memory
-   * @see #CANDIDATE_MEMORY_PERCENTAGE
-   */
-  static boolean almostOutOfMemory(Runtime runtime) {
-    return runtime.totalMemory() - runtime.freeMemory()
-        > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
   }
 
   /**

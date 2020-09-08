@@ -74,7 +74,7 @@ public class SystemCredentialsTest {
    *
    * @deprecated This check will not be needed after Connector is removed
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   @Test
   public void testSystemToken() {
     assertEquals("org.apache.accumulo.server.security.SystemCredentials$SystemToken",

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static org.junit.Assert.assertEquals;
 
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.junit.Test;
 
 public class DeleteMetadataTest {
@@ -27,11 +28,9 @@ public class DeleteMetadataTest {
   @Test
   public void encodeRowTest() {
     String path = "/dir/testpath";
-    assertEquals(path,
-        MetadataSchema.DeletesSection.decodeRow(MetadataSchema.DeletesSection.encodeRow(path)));
+    assertEquals(path, DeletesSection.decodeRow(DeletesSection.encodeRow(path)));
     path = "hdfs://localhost:8020/dir/r+/1_table/f$%#";
-    assertEquals(path,
-        MetadataSchema.DeletesSection.decodeRow(MetadataSchema.DeletesSection.encodeRow(path)));
+    assertEquals(path, DeletesSection.decodeRow(DeletesSection.encodeRow(path)));
 
   }
 }

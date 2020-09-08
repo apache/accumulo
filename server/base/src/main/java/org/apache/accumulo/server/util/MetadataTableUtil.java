@@ -69,12 +69,16 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -130,7 +134,7 @@ public class MetadataTableUtil {
   }
 
   public static void putLockID(ServerContext context, ZooLock zooLock, Mutation m) {
-    TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(m,
+    ServerColumnFamily.LOCK_COLUMN.put(m,
         new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
   }
 
@@ -233,8 +237,8 @@ public class MetadataTableUtil {
       ZooLock zooLock) {
     KeyExtent ke = new KeyExtent(metadataEntry, oldPrevEndRow);
     Mutation m = ke.getPrevRowUpdateMutation();
-    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
-    TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
+    TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
+    TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
     update(context, zooLock, m, new KeyExtent(metadataEntry, (Text) null));
   }
 
@@ -242,11 +246,9 @@ public class MetadataTableUtil {
       ServerContext context, ZooLock zooLock) {
     Mutation m = extent.getPrevRowUpdateMutation(); //
 
-    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m,
-        new Value(Double.toString(splitRatio)));
+    TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(splitRatio)));
 
-    TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
-        KeyExtent.encodePrevEndRow(oldPrevEndRow));
+    TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(oldPrevEndRow));
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
     update(context, zooLock, m, extent);
   }
@@ -255,8 +257,8 @@ public class MetadataTableUtil {
       Map<StoredTabletFile,DataFileValue> datafileSizes,
       List<StoredTabletFile> highDatafilesToRemove, final ServerContext context, ZooLock zooLock) {
     Mutation m = new Mutation(metadataEntry);
-    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
-    TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
+    TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
+    TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
 
     for (Entry<StoredTabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
@@ -368,7 +370,7 @@ public class MetadataTableUtil {
       if (insertDeletes) {
 
         ms.fetchColumnFamily(DataFileColumnFamily.NAME);
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(ms);
+        ServerColumnFamily.DIRECTORY_COLUMN.fetch(ms);
 
         for (Entry<Key,Value> cell : ms) {
           Key key = cell.getKey();
@@ -379,7 +381,7 @@ public class MetadataTableUtil {
             bw.addMutation(ServerAmpleImpl.createDeleteMutation(ref.meta().toString()));
           }
 
-          if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
+          if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
             String uri =
                 GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, cell.getValue().toString());
             bw.addMutation(ServerAmpleImpl.createDeleteMutation(uri));
@@ -451,12 +453,9 @@ public class MetadataTableUtil {
         if (!cf.startsWith("../") && !cf.contains(":"))
           cf = "../" + srcTableId + entry.getKey().getColumnQualifier();
         m.put(entry.getKey().getColumnFamily(), new Text(cf), entry.getValue());
-      } else if (entry.getKey().getColumnFamily()
-          .equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
-        m.put(TabletsSection.LastLocationColumnFamily.NAME, entry.getKey().getColumnQualifier(),
-            entry.getValue());
-      } else if (entry.getKey().getColumnFamily()
-          .equals(TabletsSection.LastLocationColumnFamily.NAME)) {
+      } else if (entry.getKey().getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
+        m.put(LastLocationColumnFamily.NAME, entry.getKey().getColumnQualifier(), entry.getValue());
+      } else if (entry.getKey().getColumnFamily().equals(LastLocationColumnFamily.NAME)) {
         // skip
       } else {
         m.put(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(),
@@ -641,7 +640,7 @@ public class MetadataTableUtil {
         m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
         byte[] dirName =
             FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES);
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dirName));
+        ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dirName));
 
         bw.addMutation(m);
       }
@@ -662,7 +661,7 @@ public class MetadataTableUtil {
             new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
         BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
-      mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
+      mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
 
       for (Entry<Key,Value> entry : mscanner) {
         log.trace("Looking at entry {} with tid {}", entry, tid);
@@ -680,7 +679,7 @@ public class MetadataTableUtil {
 
   public static void addBulkLoadInProgressFlag(ServerContext context, String path, long fateTxid) {
 
-    Mutation m = new Mutation(MetadataSchema.BlipSection.getRowPrefix() + path);
+    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root
@@ -691,7 +690,7 @@ public class MetadataTableUtil {
 
   public static void removeBulkLoadInProgressFlag(ServerContext context, String path) {
 
-    Mutation m = new Mutation(MetadataSchema.BlipSection.getRowPrefix() + path);
+    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root

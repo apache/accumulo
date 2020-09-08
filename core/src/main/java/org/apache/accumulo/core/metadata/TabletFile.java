@@ -22,7 +22,7 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
@@ -57,15 +57,15 @@ public class TabletFile implements Comparable<TabletFile> {
 
     // use Path object to step backwards from the filename through all the parts
     this.fileName = metaPath.getName();
-    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(fileName);
+    ServerColumnFamily.validateDirCol(fileName);
 
     Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), errorMsg);
     this.tabletDir = tabletDirPath.getName();
-    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tabletDir);
+    ServerColumnFamily.validateDirCol(tabletDir);
 
     Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), errorMsg);
     this.tableId = TableId.of(tableIdPath.getName());
-    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
+    ServerColumnFamily.validateDirCol(tableId.canonical());
 
     Path tablePath = Objects.requireNonNull(tableIdPath.getParent(), errorMsg);
     String tpString = "/" + tablePath.getName();

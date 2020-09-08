@@ -253,10 +253,14 @@ public class KerberosReplicationIT extends AccumuloITBase {
         primaryclient.replicationOperations().drain(primaryTable1, filesFor1);
 
         long countTable = 0L;
-        for (Entry<Key,Value> entry : peerclient.createScanner(peerTable1, Authorizations.EMPTY)) {
-          countTable++;
-          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(primaryTable1));
+        try (var scanner = peerclient.createScanner(peerTable1, Authorizations.EMPTY)) {
+          for (Entry<Key,Value> entry : scanner) {
+            countTable++;
+            assertTrue(
+                "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+                    + entry.getValue(),
+                entry.getKey().getRow().toString().startsWith(primaryTable1));
+          }
         }
 
         log.info("Found {} records in {}", countTable, peerTable1);

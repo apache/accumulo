@@ -52,7 +52,7 @@ import org.apache.log4j.Logger;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
   private static final Class<?> CLASS = AccumuloFileOutputFormat.class;

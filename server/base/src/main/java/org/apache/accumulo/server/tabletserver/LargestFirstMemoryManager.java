@@ -28,7 +28,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * suggest, it flushes the tablet with the highest memory footprint. However, it actually chooses
  * the tablet as a function of its size doubled for every 15 minutes of idle time.
  */
-public class LargestFirstMemoryManager implements MemoryManager {
+public class LargestFirstMemoryManager {
 
   private static final Logger log = LoggerFactory.getLogger(LargestFirstMemoryManager.class);
   private static final long ZERO_TIME = System.currentTimeMillis();
@@ -55,7 +55,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
   private double compactionThreshold;
   private long maxObserved;
   private final HashMap<TableId,Long> mincIdleThresholds = new HashMap<>();
-  private ServerConfiguration config = null;
+  private ServerContext context = null;
 
   private static class TabletInfo {
     final KeyExtent extent;
@@ -121,11 +121,10 @@ public class LargestFirstMemoryManager implements MemoryManager {
     }
   }
 
-  @Override
-  public void init(ServerConfiguration conf) {
-    this.config = conf;
-    maxMemory = conf.getSystemConfiguration().getAsBytes(Property.TSERV_MAXMEM);
-    maxConcurrentMincs = conf.getSystemConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT);
+  public void init(ServerContext context) {
+    this.context = context;
+    maxMemory = context.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
+    maxConcurrentMincs = context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT);
     numWaitingMultiplier = TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER;
   }
 
@@ -138,17 +137,16 @@ public class LargestFirstMemoryManager implements MemoryManager {
   protected long getMinCIdleThreshold(KeyExtent extent) {
     TableId tableId = extent.getTableId();
     if (!mincIdleThresholds.containsKey(tableId))
-      mincIdleThresholds.put(tableId, config.getTableConfiguration(tableId)
+      mincIdleThresholds.put(tableId, context.getTableConfiguration(tableId)
           .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
     return mincIdleThresholds.get(tableId);
   }
 
   protected boolean tableExists(TableId tableId) {
     // make sure that the table still exists by checking if it has a configuration
-    return config.getTableConfiguration(tableId) != null;
+    return context.getTableConfiguration(tableId) != null;
   }
 
-  @Override
   public MemoryManagementActions getMemoryManagementActions(List<TabletState> tablets) {
     if (maxMemory < 0)
       throw new IllegalStateException(
@@ -285,9 +283,6 @@ public class LargestFirstMemoryManager implements MemoryManager {
   protected long currentTimeMillis() {
     return System.currentTimeMillis();
   }
-
-  @Override
-  public void tabletClosed(KeyExtent extent) {}
 
   // The load function: memory times the idle time, doubling every 15 mins
   static long timeMemoryLoad(long mem, long time) {

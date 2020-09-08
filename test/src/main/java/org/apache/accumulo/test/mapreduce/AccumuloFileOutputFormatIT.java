@@ -59,7 +59,7 @@ import com.google.common.collect.Multimap;
 /**
  * This tests deprecated mapreduce code in core jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   private String PREFIX;

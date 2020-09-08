@@ -88,6 +88,7 @@
     <module>minicluster</module>
     <module>server/base</module>
     <module>server/gc</module>
+    <module>server/manager</module>
     <module>server/master</module>
     <module>server/monitor</module>
     <module>server/native</module>
@@ -108,14 +109,14 @@
     <url>https://github.com/apache/accumulo/issues</url>
   </issueManagement>
   <ciManagement>
-    <system>Travis CI</system>
-    <url>https://travis-ci.org/apache/accumulo</url>
+    <system>GitHub Actions</system>
+    <url>https://github.com/apache/accumulo/actions</url>
   </ciManagement>
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.64</bouncycastle.version>
+    <bouncycastle.version>1.66</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>4.3.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
@@ -140,7 +141,9 @@
     <maven.compiler.target>11</maven.compiler.target>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>2.0.5</powermock.version>
+    <powermock.version>2.0.7</powermock.version>
+    <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
+    <project.build.outputTimestamp>2020-08-27T15:56:15Z</project.build.outputTimestamp>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <slf4j.version>1.7.30</slf4j.version>
@@ -236,7 +239,7 @@
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.6</version>
+        <version>2.7</version>
       </dependency>
       <dependency>
         <groupId>commons-logging</groupId>
@@ -320,7 +323,7 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-master</artifactId>
+        <artifactId>accumulo-manager</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -847,6 +850,12 @@
           <version>3.1.0</version>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <!-- Must use 3.1.1 until https://issues.apache.org/jira/browse/MASSEMBLY-941 is fixed -->
+          <version>3.1.1</version>
+        </plugin>
+        <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
           <version>2.10.0</version>
@@ -887,7 +896,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.1</version>
           <configuration>
             <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
@@ -955,7 +963,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
@@ -968,7 +975,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
@@ -990,12 +996,6 @@
           <version>1.5.0</version>
         </plugin>
         <plugin>
-          <!-- Allows us to get the apache-ds bundle artifacts -->
-          <groupId>org.apache.felix</groupId>
-          <artifactId>maven-bundle-plugin</artifactId>
-          <version>4.2.0</version>
-        </plugin>
-        <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>apilyzer-maven-plugin</artifactId>
           <version>1.2.0</version>
@@ -1003,7 +1003,7 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.11.0</version>
+          <version>2.12.2</version>
           <configuration>
             <configFile>${eclipseFormatterStyle}</configFile>
             <compilerCompliance>${maven.compiler.source}</compilerCompliance>
@@ -1034,6 +1034,7 @@
               <exclude>nbactions.xml</exclude>
               <exclude>.vscode/**</exclude>
               <exclude>.factorypath</exclude>
+              <exclude>.github/**</exclude>
             </excludes>
           </configuration>
         </plugin>
@@ -1158,7 +1159,6 @@
             <configuration>
               <rules>
                 <requireMavenVersion>
-                  <!-- org.apache.felix:maven-bundle-plugin declares that it needs 3.5.0 -->
                   <version>[3.5.0,)</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
@@ -1346,13 +1346,6 @@
             </configuration>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <!-- Allows us to get the apache-ds bundle artifacts -->
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <extensions>true</extensions>
-        <inherited>true</inherited>
       </plugin>
     </plugins>
   </build>

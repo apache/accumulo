@@ -68,9 +68,9 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.conf.ColumnSet;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
@@ -156,8 +156,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     // Map of server to tableId
     Multimap<TServerInstance,TableId> serverToTableID = HashMultimap.create();
     try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      scanner.setRange(MetadataSchema.TabletsSection.getRange());
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+      scanner.setRange(TabletsSection.getRange());
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
         var tServer = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier());
         TableId tableId = KeyExtent.tableOfMetadataRow(entry.getKey().getRow());
@@ -487,7 +487,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       List<Entry<Key,Value>> records = new ArrayList<>();
 
       try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        s.setRange(MetadataSchema.ReplicationSection.getRange());
+        s.setRange(ReplicationSection.getRange());
         for (Entry<Key,Value> metadata : s) {
           records.add(metadata);
           log.debug("Meta: {} => {}", metadata.getKey().toStringNoTruncate(), metadata.getValue());
@@ -781,7 +781,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
 
       try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        s.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
+        s.fetchColumnFamily(LogColumnFamily.NAME);
         s.setRange(TabletsSection.getRange(tableId));
         Set<String> wals = new HashSet<>();
         for (Entry<Key,Value> entry : s) {

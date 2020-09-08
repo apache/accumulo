@@ -164,7 +164,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    @Deprecated
+    @Deprecated(since = "2.0.0")
     public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) {}
 
     @Override

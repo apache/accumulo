@@ -129,7 +129,7 @@ public class MinorCompactor extends Compactor {
           ProblemReports.getInstance(tabletServer.getContext()).report(new ProblemReport(
               getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | NoClassDefFoundError e) {
           // if this is coming from a user iterator, it is possible that the user could change the
           // iterator config and that the
           // minor compaction would succeed

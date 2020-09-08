@@ -18,11 +18,9 @@
  */
 package org.apache.accumulo.gc;
 
-import static org.apache.accumulo.gc.SimpleGarbageCollector.CANDIDATE_MEMORY_PERCENTAGE;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.getCurrentArguments;
 import static org.easymock.EasyMock.partialMockBuilder;
 import static org.easymock.EasyMock.replay;
@@ -132,29 +130,6 @@ public class SimpleGarbageCollectorTest {
     systemConfig.set(Property.GC_TRASH_IGNORE.getKey(), "true");
     Path path = createMock(Path.class);
     assertFalse(gc.moveToTrash(path));
-  }
-
-  @Test
-  public void testAlmostOutOfMemory_Pass() {
-    testAlmostOutOfMemory(1.0f - (CANDIDATE_MEMORY_PERCENTAGE - 0.05f), false);
-  }
-
-  @Test
-  public void testAlmostOutOfMemory_Fail() {
-    testAlmostOutOfMemory(1.0f - (CANDIDATE_MEMORY_PERCENTAGE + 0.05f), true);
-  }
-
-  private void testAlmostOutOfMemory(float freeFactor, boolean expected) {
-    Runtime runtime = createMock(Runtime.class);
-    expect(runtime.totalMemory()).andReturn(1000L);
-    expectLastCall().anyTimes();
-    expect(runtime.maxMemory()).andReturn(1000L);
-    expectLastCall().anyTimes();
-    expect(runtime.freeMemory()).andReturn((long) (freeFactor * 1000.0f));
-    expectLastCall().anyTimes();
-    replay(runtime);
-
-    assertEquals(expected, SimpleGarbageCollector.almostOutOfMemory(runtime));
   }
 
   @Test

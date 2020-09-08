@@ -26,8 +26,11 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+
+
+
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.fs.Path;
 
@@ -51,11 +54,10 @@ class MetaDataStateStore implements TabletStateStore {
 
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state,
-        targetTableName);
+    return new MetaDataTableScanner(context, TabletsSection.getRange(), state, targetTableName);
   }
 
-  @Override
+
   public void setLocation(Assignment assignment, TServerInstance prevLastLoc) {
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);

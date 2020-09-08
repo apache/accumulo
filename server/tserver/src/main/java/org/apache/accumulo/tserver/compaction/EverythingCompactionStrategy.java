@@ -22,6 +22,9 @@ package org.apache.accumulo.tserver.compaction;
  * The default compaction strategy for user initiated compactions. This strategy will always select
  * all files.
  */
+// Eclipse might show @SuppressWarnings("removal") as unnecessary.
+// Eclipse is wrong. See https://bugs.eclipse.org/bugs/show_bug.cgi?id=565271
+@SuppressWarnings("removal")
 @Deprecated(since = "2.1.0", forRemoval = true)
 public class EverythingCompactionStrategy extends CompactionStrategy {
 

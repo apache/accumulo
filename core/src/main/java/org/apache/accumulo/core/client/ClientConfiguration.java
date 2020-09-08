@@ -53,7 +53,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @since 1.6.0
  * @deprecated since 2.0.0, replaced by {@link Accumulo#newClient()}
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class ClientConfiguration {
   private static final Logger log = LoggerFactory.getLogger(ClientConfiguration.class);
 

@@ -46,6 +46,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.BinaryComparable;
@@ -300,7 +301,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   public static Mutation getPrevRowUpdateMutation(KeyExtent ke) {
     Mutation m = new Mutation(ke.getMetadataEntry());
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, encodePrevEndRow(ke.getPrevEndRow()));
+    TabletColumnFamily.PREV_ROW_COLUMN.put(m, encodePrevEndRow(ke.getPrevEndRow()));
     return m;
   }
 
@@ -455,6 +456,14 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     KeyExtent ke = new KeyExtent();
     ke.decodeMetadataRow(row);
     return ke.getTableId();
+  }
+
+  public boolean contains(KeyExtent oke) {
+    boolean containsPrevRow = getPrevEndRow() == null
+        || (oke.getPrevEndRow() != null && getPrevEndRow().compareTo(oke.getPrevEndRow()) <= 0);
+    boolean containsEndRow = getEndRow() == null
+        || (oke.getEndRow() != null && getEndRow().compareTo(oke.getEndRow()) >= 0);
+    return containsPrevRow && containsEndRow;
   }
 
   public boolean contains(final ByteSequence bsrow) {

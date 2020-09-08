@@ -32,7 +32,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestUtil;
-import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +59,7 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
     final SortedKeyValueIterator<Key,Value> source = IteratorTestUtil.createSource(testInput);
 
     try {
-      skvi.init(source, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
+      skvi.init(source, testInput.getIteratorOptions(), testInput.getIteratorEnvironment());
       skvi.seek(testInput.getRange(), testInput.getFamilies(), testInput.isInclusive());
       return new IteratorTestOutput(consume(skvi, testInput));
     } catch (IOException e) {
@@ -97,7 +96,7 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
         final SortedKeyValueIterator<Key,Value> sourceCopy =
             IteratorTestUtil.createSource(testInput);
 
-        skvi.init(sourceCopy, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
+        skvi.init(sourceCopy, testInput.getIteratorOptions(), testInput.getIteratorEnvironment());
 
         // The new range, resume where we left off (non-inclusive), with same families filter
         final Range newRange =

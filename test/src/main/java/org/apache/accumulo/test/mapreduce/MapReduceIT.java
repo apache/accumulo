@@ -51,7 +51,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * This tests deprecated mapreduce code in core jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class MapReduceIT extends ConfigurableMacBase {
 
   @Override

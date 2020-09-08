@@ -56,7 +56,6 @@ import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
  *
  * <p>
  * Bulk files can be generated with summary information by calling
- * {@code AccumuloFileOutputFormat#setSummarizers(JobConf, SummarizerConfiguration...)} or
  * {@link WriterOptions#withSummarizers(SummarizerConfiguration...)}
  *
  * <p>

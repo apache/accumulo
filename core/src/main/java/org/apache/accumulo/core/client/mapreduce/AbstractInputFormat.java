@@ -86,7 +86,7 @@ import org.apache.log4j.Logger;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
@@ -218,7 +218,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.5.0
    * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   protected static String getTokenClass(JobContext job) {
     return getAuthenticationToken(job).getClass().getName();
   }
@@ -229,7 +229,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.5.0
    * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   protected static byte[] getToken(JobContext job) {
     return AuthenticationToken.AuthenticationTokenSerializer.serialize(getAuthenticationToken(job));
   }
@@ -263,7 +263,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.5.0
    * @deprecated since 1.6.0
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
     setZooKeeperInstance(job, org.apache.accumulo.core.client.ClientConfiguration.create()
         .withInstance(instanceName).withZkHosts(zooKeepers));
@@ -482,7 +482,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
      * @since 1.6.0
      * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.7.0")
     protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName,
         RangeInputSplit split) {
       setupIterators(context, (ScannerBase) scanner, tableName, split);

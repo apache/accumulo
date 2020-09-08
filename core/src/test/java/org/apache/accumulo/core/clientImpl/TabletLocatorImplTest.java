@@ -51,7 +51,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -539,7 +540,7 @@ public class TabletLocatorImplTest {
     }
 
     Text mr = ke.getMetadataEntry();
-    Key lk = new Key(mr, TabletsSection.CurrentLocationColumnFamily.NAME, new Text(instance));
+    Key lk = new Key(mr, CurrentLocationColumnFamily.NAME, new Text(instance));
     tabletData.remove(lk);
 
   }
@@ -557,12 +558,12 @@ public class TabletLocatorImplTest {
     if (location != null) {
       if (instance == null)
         instance = "";
-      Key lk = new Key(mr, TabletsSection.CurrentLocationColumnFamily.NAME, new Text(instance));
+      Key lk = new Key(mr, CurrentLocationColumnFamily.NAME, new Text(instance));
       tabletData.put(lk, new Value(location));
     }
 
-    Key pk = new Key(mr, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier());
+    Key pk = new Key(mr, TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+        TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier());
     tabletData.put(pk, per);
   }
 

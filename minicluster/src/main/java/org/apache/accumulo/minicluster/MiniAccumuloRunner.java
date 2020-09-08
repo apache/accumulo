@@ -105,10 +105,9 @@ public class MiniAccumuloRunner {
     System.out.println();
     System.out.println("# Configuration normally placed in accumulo.properties can be added using"
         + " a site.* prefix.");
-    System.out.println(
-        "# For example the following line will set tserver.compaction.major.concurrent.max");
+    System.out.println("# For example the following line will set tserver.compaction.major.delay");
     System.out.println();
-    System.out.println("#site.tserver.compaction.major.concurrent.max=4");
+    System.out.println("#site.tserver.compaction.major.delay=60s");
 
   }
 

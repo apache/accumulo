@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
@@ -71,14 +71,14 @@ public class GetSplitsCommand extends Command {
             MetadataTable.NAME.equals(tableName) ? RootTable.NAME : MetadataTable.NAME;
         final Scanner scanner =
             shellState.getAccumuloClient().createScanner(systemTableToCheck, Authorizations.EMPTY);
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+        TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
         final Text start =
             new Text(shellState.getAccumuloClient().tableOperations().tableIdMap().get(tableName));
         final Text end = new Text(start);
         end.append(new byte[] {'<'}, 0, 1);
         scanner.setRange(new Range(start, end));
         for (final Entry<Key,Value> next : scanner) {
-          if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(next.getKey())) {
+          if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(next.getKey())) {
             KeyExtent extent = new KeyExtent(next.getKey().getRow(), next.getValue());
             final String pr = encode(encode, extent.getPrevEndRow());
             final String er = encode(encode, extent.getEndRow());

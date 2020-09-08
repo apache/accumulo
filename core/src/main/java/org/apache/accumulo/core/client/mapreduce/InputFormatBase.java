@@ -60,7 +60,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
   /**
@@ -383,7 +383,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
-    @Deprecated
+    @Deprecated(since = "2.0.0")
     protected List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName) {
       return getIterators(context);
     }
@@ -397,7 +397,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *          the scanner to configure
      * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.7.0")
     protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
       // tableName is given as null as it will be ignored in eventual call to #contextIterators
       setupIterators(context, scanner, null, null);
@@ -408,7 +408,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *
      * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.7.0")
     protected void setupIterators(TaskAttemptContext context, Scanner scanner,
         org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
       setupIterators(context, scanner, null, split);

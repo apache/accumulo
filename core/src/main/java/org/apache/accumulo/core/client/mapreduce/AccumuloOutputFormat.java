@@ -77,7 +77,7 @@ import org.apache.log4j.Logger;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
 
   private static final Class<?> CLASS = AccumuloOutputFormat.class;
@@ -186,7 +186,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @since 1.5.0
    * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   protected static String getTokenClass(JobContext context) {
     return getAuthenticationToken(context).getClass().getName();
   }
@@ -197,7 +197,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @since 1.5.0
    * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   protected static byte[] getToken(JobContext context) {
     return AuthenticationTokenSerializer.serialize(getAuthenticationToken(context));
   }
@@ -233,7 +233,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *             {@link #setZooKeeperInstance(Job, org.apache.accumulo.core.client.ClientConfiguration)}
    *             instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
     setZooKeeperInstance(job, org.apache.accumulo.core.client.ClientConfiguration.create()
         .withInstance(instanceName).withZkHosts(zooKeepers));

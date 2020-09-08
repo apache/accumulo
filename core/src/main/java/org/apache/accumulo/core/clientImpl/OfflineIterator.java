@@ -88,7 +88,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       this.sampleConf = samplerConf;
     }
 
-    @Deprecated
+    @Deprecated(since = "2.0.0")
     @Override
     public AccumuloConfiguration getConfig() {
       return conf;
@@ -111,7 +111,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<>();
 
-    @Deprecated
+    @Deprecated(since = "2.0.0")
     @Override
     public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
       topLevelIterators.add(iter);

@@ -48,7 +48,7 @@ public interface VolumeChooser {
    * @deprecated since 2.1.0; override {@link #choose(VolumeChooserEnvironment, Set)} instead. This
    *             method will be removed in 3.0
    */
-  @Deprecated
+  @Deprecated(since = "2.1.0")
   default String choose(VolumeChooserEnvironment env, String[] options)
       throws VolumeChooserException {
     throw new UnsupportedOperationException("This method will be removed in 3.0");

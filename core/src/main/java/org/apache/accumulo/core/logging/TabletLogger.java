@@ -114,8 +114,6 @@ public class TabletLogger {
   /**
    * Lazily converts TableFile to file names. The lazy part is really important because when it is
    * not called with log.isDebugEnabled().
-   *
-   * @return
    */
   private static Collection<String> asFileNames(Collection<CompactableFile> files) {
     return Collections2.transform(files, CompactableFile::getFileName);

@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -146,7 +146,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
       log.info("{} is offline", tableName);
 
-      Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
+      Text row = TabletsSection.getRow(tableId, null);
       Mutation m = new Mutation(row);
       m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
@@ -206,7 +206,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
       log.info("{} is offline", tableName);
 
-      Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
+      Text row = TabletsSection.getRow(tableId, null);
       Mutation m = new Mutation(row);
       m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 

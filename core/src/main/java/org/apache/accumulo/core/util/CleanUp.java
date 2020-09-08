@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * @deprecated since 2.0.0 Use only {@link AccumuloClient} instead. Also, make sure you close the
  *             AccumuloClient instances.
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class CleanUp {
 
   private static final Logger log = LoggerFactory.getLogger(CleanUp.class);

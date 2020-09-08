@@ -20,7 +20,7 @@ package org.apache.accumulo.tserver.compaction;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-@Deprecated(forRemoval = true, since = "2.1.0")
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class WriteParameters {
   private String compressType = null;
   private long hdfsBlockSize = 0;

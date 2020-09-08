@@ -29,10 +29,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.junit.Test;
 
-/**
- * @deprecated since 2.0.0
- */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloOutputFormatTest {
 
   @Test

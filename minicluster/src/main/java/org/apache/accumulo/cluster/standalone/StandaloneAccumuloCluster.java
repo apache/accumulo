@@ -147,7 +147,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
     return ClientConfConverter.toClientConf(info.getProperties());
   }

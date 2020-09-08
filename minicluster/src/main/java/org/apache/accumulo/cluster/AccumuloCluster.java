@@ -63,7 +63,7 @@ public interface AccumuloCluster {
    *
    * @deprecated since 2.0.0, replaced by {@link #getClientProperties()}}
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   org.apache.accumulo.core.client.ClientConfiguration getClientConfig();
 
   /**

@@ -54,7 +54,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -155,8 +155,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     TableId tableIdToModify =
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     Mutation m = new Mutation(new KeyExtent(tableIdToModify, null, null).getMetadataEntry());
-    m.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME, new Text("1234567"),
-        new Value("fake:9005"));
+    m.put(CurrentLocationColumnFamily.NAME, new Text("1234567"), new Value("fake:9005"));
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);
     }
@@ -168,7 +167,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
       scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetadataRange());
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       Entry<Key,Value> entry = scanner.iterator().next();
       Mutation m = new Mutation(entry.getKey().getRow());
       m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(),
@@ -189,7 +188,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
         client.createBatchDeleter(table, Authorizations.EMPTY, 1, new BatchWriterConfig());
     deleter.setRanges(
         Collections.singleton(new KeyExtent(tableIdToModify, null, null).toMetadataRange()));
-    deleter.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+    deleter.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
     deleter.delete();
     deleter.close();
   }
