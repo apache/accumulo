@@ -57,7 +57,6 @@ class MetaDataStateStore implements TabletStateStore {
     return new MetaDataTableScanner(context, TabletsSection.getRange(), state, targetTableName);
   }
 
-
   public void setLocation(Assignment assignment, TServerInstance prevLastLoc) {
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
