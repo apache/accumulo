@@ -28,9 +28,6 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
-
-
-
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.fs.Path;
 
