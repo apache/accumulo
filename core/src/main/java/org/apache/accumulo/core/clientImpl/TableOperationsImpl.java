@@ -689,8 +689,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ArrayList<Text> endRows = new ArrayList<>(tabletLocations.size());
 
     for (KeyExtent ke : tabletLocations.keySet())
-      if (ke.getEndRow() != null)
-        endRows.add(ke.getEndRow());
+      if (ke.endRow() != null)
+        endRows.add(ke.endRow());
 
     return endRows;
 
@@ -1176,8 +1176,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       if (unmergedExtents.size() >= 2) {
         KeyExtent first = unmergedExtents.removeFirst();
         KeyExtent second = unmergedExtents.removeFirst();
-        first.setEndRow(second.getEndRow());
-        mergedExtents.add(first);
+        KeyExtent merged = new KeyExtent(first.tableId(), second.endRow(), first.prevEndRow());
+        mergedExtents.add(merged);
       } else {
         mergedExtents.addAll(unmergedExtents);
         unmergedExtents.clear();
@@ -1282,7 +1282,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       Range range;
       if (startRow == null || lastRow == null)
-        range = new KeyExtent(tableId, null, null).toMetadataRange();
+        range = new KeyExtent(tableId, null, null).toMetaRange();
       else
         range = new Range(startRow, lastRow);
 
@@ -1306,16 +1306,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
             && (loc == null || loc.getType() == LocationType.FUTURE))
             || (expectedState == TableState.OFFLINE && loc != null)) {
           if (continueRow == null)
-            continueRow = tablet.getExtent().getMetadataEntry();
+            continueRow = tablet.getExtent().toMetaRow();
           waitFor++;
-          lastRow = tablet.getExtent().getMetadataEntry();
+          lastRow = tablet.getExtent().toMetaRow();
 
           if (loc != null) {
             serverCounts.increment(loc.getId(), 1);
           }
         }
 
-        if (!tablet.getExtent().getTableId().equals(tableId)) {
+        if (!tablet.getExtent().tableId().equals(tableId)) {
           throw new AccumuloException(
               "Saw unexpected table Id " + tableId + " " + tablet.getExtent());
         }

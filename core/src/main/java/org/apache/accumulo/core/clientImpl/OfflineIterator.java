@@ -222,20 +222,20 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       else
         startRow = new Text();
 
-      nextRange = new Range(TabletsSection.getRow(tableId, startRow), true, null, false);
+      nextRange = new Range(TabletsSection.encodeRow(tableId, startRow), true, null, false);
     } else {
 
-      if (currentExtent.getEndRow() == null) {
+      if (currentExtent.endRow() == null) {
         iter = null;
         return;
       }
 
-      if (range.afterEndKey(new Key(currentExtent.getEndRow()).followingKey(PartialKey.ROW))) {
+      if (range.afterEndKey(new Key(currentExtent.endRow()).followingKey(PartialKey.ROW))) {
         iter = null;
         return;
       }
 
-      nextRange = new Range(currentExtent.getMetadataEntry(), false, null, false);
+      nextRange = new Range(currentExtent.toMetaRow(), false, null, false);
     }
 
     TabletMetadata tablet = getTabletFiles(nextRange);
@@ -254,7 +254,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       tablet = getTabletFiles(nextRange);
     }
 
-    if (!tablet.getExtent().getTableId().equals(tableId)) {
+    if (!tablet.getExtent().tableId().equals(tableId)) {
       throw new AccumuloException(
           " did not find tablets for table " + tableId + " " + tablet.getExtent());
     }

@@ -253,10 +253,10 @@ public class Tablet {
 
   private String chooseTabletDir() throws IOException {
     VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(extent.getTableId(), extent.getEndRow(), context);
+        new VolumeChooserEnvironmentImpl(extent.tableId(), extent.endRow(), context);
     String dirUri =
         tabletServer.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris(context))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.getTableId() + Path.SEPARATOR
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.tableId() + Path.SEPARATOR
             + dirName;
     checkTabletDir(new Path(dirUri));
     return dirUri;
@@ -306,7 +306,7 @@ public class Tablet {
     if (tblConf == null) {
       Tables.clearCache(tabletServer.getContext());
       tblConf = tabletServer.getTableConfiguration(extent);
-      requireNonNull(tblConf, "Could not get table configuration for " + extent.getTableId());
+      requireNonNull(tblConf, "Could not get table configuration for " + extent.tableId());
     }
 
     this.tableConfiguration = tblConf;
@@ -443,7 +443,7 @@ public class Tablet {
       Collection<Volume> volumes = getTabletServer().getFileSystem().getVolumes();
       for (Volume volume : volumes) {
         String dirUri = volume.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + extent.getTableId() + Path.SEPARATOR + dirName;
+            + extent.tableId() + Path.SEPARATOR + dirName;
 
         for (FileStatus tmp : getTabletServer().getFileSystem()
             .globStatus(new Path(dirUri, "*_tmp"))) {
@@ -976,7 +976,7 @@ public class Tablet {
   public long getFlushID() throws NoNodeException {
     try {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-          + "/" + extent.getTableId() + Constants.ZTABLE_FLUSH_ID;
+          + "/" + extent.tableId() + Constants.ZTABLE_FLUSH_ID;
       String id = new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
@@ -992,7 +992,7 @@ public class Tablet {
 
   long getCompactionCancelID() {
     String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-        + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
+        + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
     String id = new String(context.getZooCache().get(zTablePath), UTF_8);
     return Long.parseLong(id);
   }
@@ -1000,7 +1000,7 @@ public class Tablet {
   public Pair<Long,CompactionConfig> getCompactionID() throws NoNodeException {
     try {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-          + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_ID;
+          + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_ID;
 
       String[] tokens =
           new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8).split(",");
@@ -1016,7 +1016,7 @@ public class Tablet {
 
         var compactionConfig = UserCompactionUtils.decodeCompactionConfig(dis);
 
-        KeyExtent ke = new KeyExtent(extent.getTableId(), compactionConfig.getEndRow(),
+        KeyExtent ke = new KeyExtent(extent.tableId(), compactionConfig.getEndRow(),
             compactionConfig.getStartRow());
 
         if (ke.overlaps(extent)) {
@@ -1299,7 +1299,7 @@ public class Tablet {
         }
       }
       if (err != null) {
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId(),
+        ProblemReports.getInstance(context).report(new ProblemReport(extent.tableId(),
             ProblemType.TABLET_LOAD, this.extent.toString(), err));
         log.error("Tablet closed consistency check has failed for {} giving up and closing",
             this.extent);
@@ -1407,8 +1407,8 @@ public class Tablet {
 
     try {
       // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(context, chooseTabletDir(), extent.getPrevEndRow(),
-          extent.getEndRow(), files, .25);
+      keys = FileUtil.findMidPoint(context, chooseTabletDir(), extent.prevEndRow(), extent.endRow(),
+          files, .25);
     } catch (IOException e) {
       log.error("Failed to find midpoint {}", e.getMessage());
       return null;
@@ -1424,11 +1424,11 @@ public class Tablet {
     try {
 
       Text lastRow;
-      if (extent.getEndRow() == null) {
+      if (extent.endRow() == null) {
         Key lastKey = (Key) FileUtil.findLastKey(context, files);
         lastRow = lastKey.getRow();
       } else {
-        lastRow = extent.getEndRow();
+        lastRow = extent.endRow();
       }
 
       // We expect to get a midPoint for this set of files. If we don't get one, we have a problem.
@@ -1608,9 +1608,9 @@ public class Tablet {
 
   public TreeMap<KeyExtent,TabletData> split(byte[] sp) throws IOException {
 
-    if (sp != null && extent.getEndRow() != null && extent.getEndRow().equals(new Text(sp))) {
+    if (sp != null && extent.endRow() != null && extent.endRow().equals(new Text(sp))) {
       throw new IllegalArgumentException(
-          "Attempting to split on EndRow " + extent.getEndRow() + " for " + extent);
+          "Attempting to split on EndRow " + extent.endRow() + " for " + extent);
     }
 
     if (sp != null && sp.length > tableConfiguration.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE)) {
@@ -1653,7 +1653,7 @@ public class Tablet {
       } else {
         Text tsp = new Text(sp);
         splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(context, chooseTabletDir(),
-            extent.getPrevEndRow(), extent.getEndRow(), getDatafileManager().getFiles(), tsp), tsp);
+            extent.prevEndRow(), extent.endRow(), getDatafileManager().getFiles(), tsp), tsp);
       }
 
       if (splitPoint == null || splitPoint.row == null) {
@@ -1668,8 +1668,8 @@ public class Tablet {
       Text midRow = splitPoint.row;
       double splitRatio = splitPoint.splitRatio;
 
-      KeyExtent low = new KeyExtent(extent.getTableId(), midRow, extent.getPrevEndRow());
-      KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
+      KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
+      KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
 
       String lowDirectoryName = createTabletDirectoryName(context, midRow);
 
@@ -1687,7 +1687,7 @@ public class Tablet {
 
       MetadataTime time = tabletTime.getMetadataTime();
 
-      MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio,
+      MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio,
           getTabletServer().getContext(), getTabletServer().getLock());
       MasterMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
           getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time, lastFlushID,

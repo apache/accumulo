@@ -56,14 +56,14 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   protected TabletMutatorBase(ServerContext ctx, KeyExtent extent) {
     this.extent = extent;
     this.context = ctx;
-    mutation = new Mutation(extent.getMetadataEntry());
+    mutation = new Mutation(extent.toMetaRow());
   }
 
   @Override
   public Ample.TabletMutator putPrevEndRow(Text per) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     TabletColumnFamily.PREV_ROW_COLUMN.put(mutation,
-        KeyExtent.encodePrevEndRow(extent.getPrevEndRow()));
+        TabletColumnFamily.encodePrevEndRow(extent.prevEndRow()));
     return this;
   }
 

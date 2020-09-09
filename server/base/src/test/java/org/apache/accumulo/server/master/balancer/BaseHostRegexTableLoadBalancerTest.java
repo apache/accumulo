@@ -245,7 +245,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   }
 
   protected boolean tabletInBounds(KeyExtent ke, TServerInstance tsi) {
-    String tid = ke.getTableId().canonical();
+    String tid = ke.tableId().canonical();
     String host = tsi.host();
     if (tid.equals("1")
         && (host.equals("192.168.0.1") || host.equals("192.168.0.2") || host.equals("192.168.0.3")

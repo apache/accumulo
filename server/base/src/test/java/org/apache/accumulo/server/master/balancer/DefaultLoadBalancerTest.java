@@ -54,7 +54,7 @@ public class DefaultLoadBalancerTest {
       TabletServerStatus result = new TabletServerStatus();
       result.tableMap = new HashMap<>();
       for (KeyExtent extent : extents) {
-        TableId tableId = extent.getTableId();
+        TableId tableId = extent.tableId();
         TableInfo info = result.tableMap.get(tableId.canonical());
         if (info == null)
           result.tableMap.put(tableId.canonical(), info = new TableInfo());
@@ -76,7 +76,7 @@ public class DefaultLoadBalancerTest {
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId table) {
       List<TabletStats> result = new ArrayList<>();
       for (KeyExtent extent : servers.get(tserver).extents) {
-        if (extent.getTableId().equals(table)) {
+        if (extent.tableId().equals(table)) {
           result.add(new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0., 0));
         }
       }
@@ -272,7 +272,7 @@ public class DefaultLoadBalancerTest {
       for (FakeTServer server : servers.values()) {
         Map<String,Integer> counts = new HashMap<>();
         for (var extent : server.extents) {
-          String t = extent.getTableId().canonical();
+          String t = extent.tableId().canonical();
           counts.putIfAbsent(t, 0);
           counts.put(t, counts.get(t) + 1);
         }

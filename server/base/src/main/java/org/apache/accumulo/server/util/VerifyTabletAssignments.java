@@ -122,18 +122,13 @@ public class VerifyTabletAssignments {
 
     ExecutorService tp = Executors.newFixedThreadPool(20);
     for (final Entry<HostAndPort,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
-      Runnable r = new Runnable() {
-
-        @Override
-        public void run() {
-          try {
-            checkTabletServer(context, entry, failures);
-          } catch (Exception e) {
-            log.error("Failure on tablet server '" + entry.getKey() + ".", e);
-            failures.addAll(entry.getValue());
-          }
+      Runnable r = () -> {
+        try {
+          checkTabletServer(context, entry, failures);
+        } catch (Exception e) {
+          log.error("Failure on tablet server '" + entry.getKey() + ".", e);
+          failures.addAll(entry.getValue());
         }
-
       };
 
       tp.execute(r);
@@ -150,7 +145,7 @@ public class VerifyTabletAssignments {
   private static void checkFailures(HostAndPort server, HashSet<KeyExtent> failures,
       MultiScanResult scanResult) {
     for (TKeyExtent tke : scanResult.failures.keySet()) {
-      KeyExtent ke = new KeyExtent(tke);
+      KeyExtent ke = KeyExtent.fromThrift(tke);
       System.out.println(" Tablet " + ke + " failed at " + server);
       failures.add(ke);
     }
@@ -164,11 +159,11 @@ public class VerifyTabletAssignments {
     Map<TKeyExtent,List<TRange>> batch = new TreeMap<>();
 
     for (KeyExtent keyExtent : entry.getValue()) {
-      Text row = keyExtent.getEndRow();
+      Text row = keyExtent.endRow();
       Text row2 = null;
 
       if (row == null) {
-        row = keyExtent.getPrevEndRow();
+        row = keyExtent.prevEndRow();
 
         if (row != null) {
           row = new Text(row);

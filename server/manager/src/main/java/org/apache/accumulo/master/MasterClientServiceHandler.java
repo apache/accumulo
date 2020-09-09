@@ -78,7 +78,6 @@ import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -126,13 +125,10 @@ public class MasterClientServiceHandler extends FateServiceHandler
     ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
     byte[] fid;
     try {
-      fid = zoo.mutate(zTablePath, null, null, new Mutator() {
-        @Override
-        public byte[] mutate(byte[] currentValue) {
-          long flushID = Long.parseLong(new String(currentValue));
-          flushID++;
-          return ("" + flushID).getBytes();
-        }
+      fid = zoo.mutate(zTablePath, null, null, currentValue -> {
+        long flushID = Long.parseLong(new String(currentValue));
+        flushID++;
+        return ("" + flushID).getBytes();
       });
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
@@ -292,14 +288,15 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public void reportSplitExtent(TInfo info, TCredentials credentials, String serverName,
       TabletSplit split) {
-    KeyExtent oldTablet = new KeyExtent(split.oldTablet);
+    KeyExtent oldTablet = KeyExtent.fromThrift(split.oldTablet);
     if (master.migrations.remove(oldTablet) != null) {
       Master.log.info("Canceled migration of {}", split.oldTablet);
     }
     for (TServerInstance instance : master.tserverSet.getCurrentServers()) {
       if (serverName.equals(instance.hostPort())) {
         master.nextEvent.event("%s reported split %s, %s", serverName,
-            new KeyExtent(split.newTablets.get(0)), new KeyExtent(split.newTablets.get(1)));
+            KeyExtent.fromThrift(split.newTablets.get(0)),
+            KeyExtent.fromThrift(split.newTablets.get(1)));
         return;
       }
     }
@@ -309,7 +306,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public void reportTabletStatus(TInfo info, TCredentials credentials, String serverName,
       TabletLoadState status, TKeyExtent ttablet) {
-    KeyExtent tablet = new KeyExtent(ttablet);
+    KeyExtent tablet = KeyExtent.fromThrift(ttablet);
 
     switch (status) {
       case LOAD_FAILURE:

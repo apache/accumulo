@@ -87,7 +87,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
       if (log.isTraceEnabled()) {
         log.trace("tid={} Looking up in {} row={} extent={} tserver={}",
-            Thread.currentThread().getId(), src.tablet_extent.getTableId(), TextUtil.truncate(row),
+            Thread.currentThread().getId(), src.tablet_extent.tableId(), TextUtil.truncate(row),
             src.tablet_extent, src.tablet_location);
         timer = new OpTimer().start();
       }
@@ -134,12 +134,12 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled())
-        log.trace("{} lookup failed, {} server side exception", src.tablet_extent.getTableId(),
+        log.trace("{} lookup failed, {} server side exception", src.tablet_extent.tableId(),
             src.tablet_location);
       throw ase;
     } catch (AccumuloException e) {
       if (log.isTraceEnabled())
-        log.trace("{} lookup failed", src.tablet_extent.getTableId(), e);
+        log.trace("{} lookup failed", src.tablet_extent.tableId(), e);
       parent.invalidateCache(context, src.tablet_location);
     }
 
@@ -211,11 +211,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
 
   public static TabletLocations getMetadataLocationEntries(SortedMap<Key,Value> entries) {
-    Key key;
-    Value val;
     Text location = null;
     Text session = null;
-    Value prevRow = null;
     KeyExtent ke;
 
     List<TabletLocation> results = new ArrayList<>();
@@ -228,11 +225,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     Text colq = new Text();
 
     for (Entry<Key,Value> entry : entries.entrySet()) {
-      key = entry.getKey();
-      val = entry.getValue();
+      Key key = entry.getKey();
+      Value val = entry.getValue();
 
       if (key.compareRow(lastRowFromKey) != 0) {
-        prevRow = null;
         location = null;
         session = null;
         key.getRow(lastRowFromKey);
@@ -250,18 +246,12 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         location = new Text(val.toString());
         session = new Text(colq);
       } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
-        prevRow = new Value(val);
-      }
-
-      if (prevRow != null) {
-        ke = new KeyExtent(key.getRow(), prevRow);
+        ke = KeyExtent.fromMetaPrevRow(entry);
         if (location != null)
           results.add(new TabletLocation(ke, location.toString(), session.toString()));
         else
           locationless.add(ke);
-
         location = null;
-        prevRow = null;
       }
     }
 

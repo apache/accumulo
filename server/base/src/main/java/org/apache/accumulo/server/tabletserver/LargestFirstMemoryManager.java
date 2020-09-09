@@ -135,7 +135,7 @@ public class LargestFirstMemoryManager {
   }
 
   protected long getMinCIdleThreshold(KeyExtent extent) {
-    TableId tableId = extent.getTableId();
+    TableId tableId = extent.tableId();
     if (!mincIdleThresholds.containsKey(tableId))
       mincIdleThresholds.put(tableId, context.getTableConfiguration(tableId)
           .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
@@ -169,7 +169,7 @@ public class LargestFirstMemoryManager {
     // find the largest and most idle tablets
     for (TabletState ts : tablets) {
       // Make sure that the table still exists
-      if (!tableExists(ts.getExtent().getTableId())) {
+      if (!tableExists(ts.getExtent().tableId())) {
         log.trace("Ignoring extent for deleted table: {}", ts.getExtent());
         continue;
       }

@@ -279,7 +279,7 @@ class LoadFiles extends MasterRepo {
           continue;
         }
 
-        Mutation mutation = new Mutation(tablet.getExtent().getMetadataEntry());
+        Mutation mutation = new Mutation(tablet.getExtent().toMetaRow());
 
         for (final Bulk.FileInfo fileInfo : files) {
           String fullPath = new Path(bulkDir, fileInfo.getFileName()).toString();
@@ -318,7 +318,7 @@ class LoadFiles extends MasterRepo {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
-    Text startRow = loadMapEntry.getKey().getPrevEndRow();
+    Text startRow = loadMapEntry.getKey().prevEndRow();
 
     Iterator<TabletMetadata> tabletIter =
         TabletsMetadata.builder().forTable(tableId).overlapping(startRow, null).checkConsistency()
@@ -367,7 +367,7 @@ class LoadFiles extends MasterRepo {
       int cmp;
 
       // skip tablets until we find the prevEndRow of loadRange
-      while ((cmp = PREV_COMP.compare(currTablet.getPrevEndRow(), loadRange.getPrevEndRow())) < 0) {
+      while ((cmp = PREV_COMP.compare(currTablet.getPrevEndRow(), loadRange.prevEndRow())) < 0) {
         currTablet = tabletIter.next();
       }
 
@@ -380,7 +380,7 @@ class LoadFiles extends MasterRepo {
 
       // find the remaining tablets within the loadRange by
       // adding tablets to the list until the endRow matches the loadRange
-      while ((cmp = END_COMP.compare(currTablet.getEndRow(), loadRange.getEndRow())) < 0) {
+      while ((cmp = END_COMP.compare(currTablet.getEndRow(), loadRange.endRow())) < 0) {
         currTablet = tabletIter.next();
         tablets.add(currTablet);
       }

@@ -97,9 +97,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       byte[] data = Base64.getDecoder().decode(migrations);
       buffer.reset(data, data.length);
       while (buffer.available() > 0) {
-        KeyExtent extent = new KeyExtent();
-        extent.readFields(buffer);
-        result.add(extent);
+        result.add(KeyExtent.readFrom(buffer));
       }
       return result;
     } catch (Exception ex) {
@@ -145,7 +143,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       while (buffer.available() > 0) {
         MergeInfo mergeInfo = new MergeInfo();
         mergeInfo.readFields(buffer);
-        result.put(mergeInfo.extent.getTableId(), mergeInfo);
+        result.put(mergeInfo.extent.tableId(), mergeInfo);
       }
       return result;
     } catch (Exception ex) {
@@ -172,7 +170,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
         return;
       }
       // we always want data about merges
-      MergeInfo merge = merges.get(tls.extent.getTableId());
+      MergeInfo merge = merges.get(tls.extent.tableId());
       if (merge != null) {
         // could make this smarter by only returning if the tablet is involved in the merge
         return;
@@ -183,7 +181,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       }
 
       // is the table supposed to be online or offline?
-      boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId());
+      boolean shouldBeOnline = onlineTables.contains(tls.extent.tableId());
 
       if (debug) {
         log.debug("{} is {} and should be {} line", tls.extent, tls.getState(current),
@@ -253,7 +251,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     DataOutputBuffer buffer = new DataOutputBuffer();
     try {
       for (KeyExtent extent : migrations) {
-        extent.write(buffer);
+        extent.writeTo(buffer);
       }
     } catch (Exception ex) {
       throw new RuntimeException(ex);

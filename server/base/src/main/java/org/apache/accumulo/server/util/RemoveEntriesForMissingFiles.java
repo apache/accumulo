@@ -197,7 +197,7 @@ public class RemoveEntriesForMissingFiles {
       return checkTable(context, RootTable.NAME, TabletsSection.getRange(), fix);
     } else {
       TableId tableId = Tables.getTableId(context, tableName);
-      Range range = new KeyExtent(tableId, null, null).toMetadataRange();
+      Range range = new KeyExtent(tableId, null, null).toMetaRange();
       return checkTable(context, MetadataTable.NAME, range, fix);
     }
   }

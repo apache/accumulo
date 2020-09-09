@@ -146,7 +146,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
       log.info("{} is offline", tableName);
 
-      Text row = TabletsSection.getRow(tableId, null);
+      Text row = TabletsSection.encodeRow(tableId, null);
       Mutation m = new Mutation(row);
       m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
@@ -206,7 +206,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
       log.info("{} is offline", tableName);
 
-      Text row = TabletsSection.getRow(tableId, null);
+      Text row = TabletsSection.encodeRow(tableId, null);
       Mutation m = new Mutation(row);
       m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 

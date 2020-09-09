@@ -263,12 +263,12 @@ public class MetadataConstraints implements Constraint {
         } else if (new ColumnFQ(columnUpdate).equals(TabletColumnFamily.PREV_ROW_COLUMN)
             && columnUpdate.getValue().length > 0
             && (violations == null || !violations.contains((short) 4))) {
-          KeyExtent ke = new KeyExtent(new Text(mutation.getRow()), (Text) null);
+          KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
 
-          Text per = KeyExtent.decodePrevEndRow(new Value(columnUpdate.getValue()));
+          Text per = TabletColumnFamily.decodePrevEndRow(new Value(columnUpdate.getValue()));
 
           boolean prevEndRowLessThanEndRow =
-              per == null || ke.getEndRow() == null || per.compareTo(ke.getEndRow()) < 0;
+              per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
 
           if (!prevEndRowLessThanEndRow) {
             violations = addViolation(violations, 3);

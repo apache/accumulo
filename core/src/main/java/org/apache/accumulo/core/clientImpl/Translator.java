@@ -43,7 +43,7 @@ public abstract class Translator<IT,OT> {
   public static class TKeyExtentTranslator extends Translator<TKeyExtent,KeyExtent> {
     @Override
     public KeyExtent translate(TKeyExtent input) {
-      return new KeyExtent(input);
+      return KeyExtent.fromThrift(input);
     }
 
   }

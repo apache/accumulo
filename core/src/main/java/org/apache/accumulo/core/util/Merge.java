@@ -216,8 +216,8 @@ public class Merge {
   protected void merge(AccumuloClient client, String table, List<Size> sizes, int numToMerge)
       throws MergeException {
     try {
-      Text start = sizes.get(0).extent.getPrevEndRow();
-      Text end = sizes.get(numToMerge - 1).extent.getEndRow();
+      Text start = sizes.get(0).extent.prevEndRow();
+      Text end = sizes.get(numToMerge - 1).extent.endRow();
       message("Merging %d tablets from (%s to %s]", numToMerge, start == null ? "-inf" : start,
           end == null ? "+inf" : end);
       client.tableOperations().merge(table, start, end);
@@ -236,7 +236,7 @@ public class Merge {
       ClientContext context = (ClientContext) client;
       tableId = Tables.getTableId(context, tablename);
       tablets = TabletsMetadata.builder().scanMetadataTable()
-          .overRange(new KeyExtent(tableId, end, start).toMetadataRange()).fetch(FILES, PREV_ROW)
+          .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
           .build(context);
     } catch (Exception e) {
       throw new MergeException(e);

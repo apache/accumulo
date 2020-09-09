@@ -63,7 +63,7 @@ public class TabletLocationState {
     if (current != null && future != null) {
       throw new BadLocationStateException(
           extent + " is both assigned and hosted, which should never happen: " + this,
-          extent.getMetadataEntry());
+          extent.toMetaRow());
     }
   }
 

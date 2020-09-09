@@ -83,10 +83,10 @@ public class MinorCompactor extends Compactor {
 
   private boolean isTableDeleting() {
     try {
-      return Tables.getTableState(tabletServer.getContext(), extent.getTableId())
+      return Tables.getTableState(tabletServer.getContext(), extent.tableId())
           == TableState.DELETING;
     } catch (Exception e) {
-      log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
+      log.warn("Failed to determine if table " + extent.tableId() + " was deleting ", e);
       return false; // can not get positive confirmation that its deleting.
     }
   }
@@ -94,7 +94,7 @@ public class MinorCompactor extends Compactor {
   @Override
   protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)
       throws IOException {
-    return LocalityGroupUtil.getLocalityGroupsIgnoringErrors(acuTableConf, extent.getTableId());
+    return LocalityGroupUtil.getLocalityGroupsIgnoringErrors(acuTableConf, extent.tableId());
   }
 
   @Override
@@ -119,23 +119,23 @@ public class MinorCompactor extends Compactor {
           // (int)(map.size()/((t2 - t1)/1000.0)), (t2 - t1)/1000.0, estimatedSizeInBytes()));
 
           if (reportedProblem) {
-            ProblemReports.getInstance(tabletServer.getContext()).deleteProblemReport(
-                getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName);
+            ProblemReports.getInstance(tabletServer.getContext())
+                .deleteProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName);
           }
 
           return ret;
         } catch (IOException | UnsatisfiedLinkError e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
-          ProblemReports.getInstance(tabletServer.getContext()).report(new ProblemReport(
-              getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
+          ProblemReports.getInstance(tabletServer.getContext()).report(
+              new ProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
         } catch (RuntimeException | NoClassDefFoundError e) {
           // if this is coming from a user iterator, it is possible that the user could change the
           // iterator config and that the
           // minor compaction would succeed
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
-          ProblemReports.getInstance(tabletServer.getContext()).report(new ProblemReport(
-              getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
+          ProblemReports.getInstance(tabletServer.getContext()).report(
+              new ProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
         } catch (CompactionCanceledException e) {
           throw new IllegalStateException(e);

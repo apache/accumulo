@@ -54,7 +54,7 @@ public class CloneIT extends AccumuloClusterHarness {
       client.tableOperations().create(tableName);
 
       KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
-      Mutation mut = ke.getPrevRowUpdateMutation();
+      Mutation mut = TabletColumnFamily.createPrevRowMutation(ke);
 
       ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
       ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
@@ -82,7 +82,7 @@ public class CloneIT extends AccumuloClusterHarness {
       client.tableOperations().create(tableName);
 
       KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
-      Mutation mut = ke.getPrevRowUpdateMutation();
+      Mutation mut = TabletColumnFamily.createPrevRowMutation(ke);
 
       ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
       ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
@@ -97,7 +97,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        Mutation mut2 = new Mutation(ke.getMetadataEntry());
+        Mutation mut2 = new Mutation(ke.toMetaRow());
         mut2.putDelete(DataFileColumnFamily.NAME.toString(), filePrefix + "/default_tablet/0_0.rf");
         mut2.put(DataFileColumnFamily.NAME.toString(), filePrefix + "/default_tablet/1_0.rf",
             new DataFileValue(2, 300).encodeAsString());
@@ -118,7 +118,7 @@ public class CloneIT extends AccumuloClusterHarness {
       HashSet<String> files = new HashSet<>();
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetadataRange());
+        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetaRange());
         for (Entry<Key,Value> entry : scanner) {
           if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME))
             files.add(entry.getKey().getColumnQualifier().toString());
@@ -163,7 +163,7 @@ public class CloneIT extends AccumuloClusterHarness {
       int count = 0;
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetadataRange());
+        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetaRange());
         for (Entry<Key,Value> entry : scanner) {
           if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             files.add(entry.getKey().getColumnQualifier().toString());
@@ -215,7 +215,7 @@ public class CloneIT extends AccumuloClusterHarness {
       int count = 0;
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetadataRange());
+        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetaRange());
         for (Entry<Key,Value> entry : scanner) {
           if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             files.add(entry.getKey().getColumnQualifier().toString());
@@ -232,7 +232,7 @@ public class CloneIT extends AccumuloClusterHarness {
   private static Mutation deleteTablet(String tid, String endRow, String prevRow, String file) {
     KeyExtent ke = new KeyExtent(TableId.of(tid), endRow == null ? null : new Text(endRow),
         prevRow == null ? null : new Text(prevRow));
-    Mutation mut = new Mutation(ke.getMetadataEntry());
+    Mutation mut = new Mutation(ke.toMetaRow());
     TabletColumnFamily.PREV_ROW_COLUMN.putDelete(mut);
     ServerColumnFamily.TIME_COLUMN.putDelete(mut);
     ServerColumnFamily.DIRECTORY_COLUMN.putDelete(mut);
@@ -245,7 +245,7 @@ public class CloneIT extends AccumuloClusterHarness {
       String file) {
     KeyExtent ke = new KeyExtent(TableId.of(tid), endRow == null ? null : new Text(endRow),
         prevRow == null ? null : new Text(prevRow));
-    Mutation mut = ke.getPrevRowUpdateMutation();
+    Mutation mut = TabletColumnFamily.createPrevRowMutation(ke);
 
     ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
     ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir));
@@ -289,7 +289,7 @@ public class CloneIT extends AccumuloClusterHarness {
       int count = 0;
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetadataRange());
+        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetaRange());
         for (Entry<Key,Value> entry : scanner) {
           if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             files.add(entry.getKey().getColumnQualifier().toString());
@@ -354,7 +354,7 @@ public class CloneIT extends AccumuloClusterHarness {
       int count = 0;
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetadataRange());
+        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetaRange());
         for (Entry<Key,Value> entry : scanner) {
           if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             files.add(entry.getKey().getColumnQualifier().toString());

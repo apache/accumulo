@@ -312,7 +312,7 @@ public class NullTserver {
     TableId tableId = Tables.getTableId(context, opts.tableName);
 
     // read the locations for the table
-    Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();
+    Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     List<Assignment> assignments = new ArrayList<>();
     try (var s = new MetaDataTableScanner(context, tableRange, MetadataTable.NAME)) {
       long randomSessionID = opts.port;

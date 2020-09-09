@@ -160,7 +160,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
         var tServer = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier());
-        TableId tableId = KeyExtent.tableOfMetadataRow(entry.getKey().getRow());
+        TableId tableId = KeyExtent.fromMetaRow(entry.getKey().getRow()).tableId();
         serverToTableID.put(tServer, tableId);
       }
       // Map of logs to tableId
@@ -551,20 +551,16 @@ public class ReplicationIT extends ConfigurableMacBase {
       final Multimap<String,TableId> logs = HashMultimap.create();
       final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
-      Thread t = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          // Should really be able to interrupt here, but the Scanner throws a fit to the logger
-          // when that happens
-          while (keepRunning.get()) {
-            try {
-              logs.putAll(getAllLogs(client, context));
-            } catch (Exception e) {
-              log.error("Error getting logs", e);
-            }
+      Thread t = new Thread(() -> {
+        // Should really be able to interrupt here, but the Scanner throws a fit to the logger
+        // when that happens
+        while (keepRunning.get()) {
+          try {
+            logs.putAll(getAllLogs(client, context));
+          } catch (Exception e) {
+            log.error("Error getting logs", e);
           }
         }
-
       });
 
       t.start();
@@ -1135,20 +1131,16 @@ public class ReplicationIT extends ConfigurableMacBase {
       final AtomicBoolean keepRunning = new AtomicBoolean(true);
       final Set<String> metadataWals = new HashSet<>();
 
-      Thread t = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          // Should really be able to interrupt here, but the Scanner throws a fit to the logger
-          // when that happens
-          while (keepRunning.get()) {
-            try {
-              metadataWals.addAll(getLogs(client, context).keySet());
-            } catch (Exception e) {
-              log.error("Metadata table doesn't exist");
-            }
+      Thread t = new Thread(() -> {
+        // Should really be able to interrupt here, but the Scanner throws a fit to the logger
+        // when that happens
+        while (keepRunning.get()) {
+          try {
+            metadataWals.addAll(getLogs(client, context).keySet());
+          } catch (Exception e) {
+            log.error("Metadata table doesn't exist");
           }
         }
-
       });
 
       t.start();
