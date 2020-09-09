@@ -392,7 +392,7 @@ public class CompactableImpl implements Compactable {
 
   @Override
   public TableId getTableId() {
-    return getExtent().getTableId();
+    return getExtent().tableId();
   }
 
   @Override

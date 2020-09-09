@@ -223,8 +223,8 @@ public class CollectTabletStats {
           Test test = new Test(ke) {
             @Override
             public int runTest() throws Exception {
-              return scanTablet(client, opts.tableName, opts.auths, ke.getPrevEndRow(),
-                  ke.getEndRow(), columns);
+              return scanTablet(client, opts.tableName, opts.auths, ke.prevEndRow(), ke.endRow(),
+                  columns);
             }
           };
           tests.add(test);
@@ -464,7 +464,7 @@ public class CollectTabletStats {
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(aconf).build();
-      Range range = new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true);
+      Range range = new Range(ke.prevEndRow(), false, ke.endRow(), true);
       reader.seek(range, columnSet, !columnSet.isEmpty());
       while (reader.hasTop() && !range.afterEndKey(reader.getTopKey())) {
         count++;
@@ -501,13 +501,13 @@ public class CollectTabletStats {
 
     List<IterInfo> emptyIterinfo = Collections.emptyList();
     Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
-    TableConfiguration tconf = context.getTableConfiguration(ke.getTableId());
+    TableConfiguration tconf = context.getTableConfiguration(ke.tableId());
     reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<>(), emptyIterinfo,
         emptySsio, useTableIterators, tconf);
 
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
 
-    reader.seek(new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true), columnSet,
+    reader.seek(new Range(ke.prevEndRow(), false, ke.endRow(), true), columnSet,
         !columnSet.isEmpty());
 
     int count = 0;
@@ -547,7 +547,7 @@ public class CollectTabletStats {
     // long t1 = System.currentTimeMillis();
 
     try (Scanner scanner = client.createScanner(table, auths)) {
-      scanner.setRange(new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true));
+      scanner.setRange(new Range(ke.prevEndRow(), false, ke.endRow(), true));
 
       for (String c : columns) {
         scanner.fetchColumnFamily(new Text(c));

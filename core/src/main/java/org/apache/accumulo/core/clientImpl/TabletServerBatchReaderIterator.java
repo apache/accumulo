@@ -545,7 +545,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     // remove partial scan from unscanned
     if (scanResult.partScan != null) {
-      KeyExtent ke = new KeyExtent(scanResult.partScan);
+      KeyExtent ke = KeyExtent.fromThrift(scanResult.partScan);
       Key nextKey = new Key(scanResult.partNextKey);
 
       ListIterator<Range> iterator = unscanned.get(ke).listIterator();
@@ -640,7 +640,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       for (Range range : entry.getValue()) {
         ranges.add(new Range(range));
       }
-      unscanned.put(new KeyExtent(entry.getKey()), ranges);
+      unscanned.put(KeyExtent.copyOf(entry.getKey()), ranges);
     }
 
     timeoutTracker.startingScan();
@@ -766,7 +766,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       log.debug("Server : " + server + " msg : " + e.getMessage(), e);
       String tableInfo = "?";
       if (e.getExtent() != null) {
-        TableId tableId = new KeyExtent(e.getExtent()).getTableId();
+        TableId tableId = KeyExtent.fromThrift(e.getExtent()).tableId();
         tableInfo = Tables.getPrintableTableInfoFromId(context, tableId);
       }
       String message = "Table " + tableInfo + " does not have sampling configured or built";

@@ -174,7 +174,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
           TablePermission.WRITE);
 
       BatchDeleter bd = c.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY, 1);
-      bd.setRanges(Collections.singleton(extent.toMetadataRange()));
+      bd.setRanges(Collections.singleton(extent.toMetaRange()));
       bd.fetchColumnFamily(BulkFileColumnFamily.NAME);
       bd.delete();
 
@@ -240,7 +240,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     HashSet<Path> files = new HashSet<>();
 
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(extent.toMetadataRange());
+    scanner.setRange(extent.toMetaRange());
     scanner.fetchColumnFamily(fam);
 
     for (Entry<Key,Value> entry : scanner) {
@@ -299,7 +299,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
   protected static TabletClientService.Iface getClient(ClientContext context, KeyExtent extent)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TTransportException {
-    TabletLocator locator = TabletLocator.getLocator(context, extent.getTableId());
+    TabletLocator locator = TabletLocator.getLocator(context, extent.tableId());
 
     locator.invalidateCache(extent);
 

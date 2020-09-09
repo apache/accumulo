@@ -150,8 +150,8 @@ public class TablesResource {
       String systemTableName =
           MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
       MetaDataTableScanner scanner = new MetaDataTableScanner(monitor.getContext(),
-          new Range(TabletsSection.getRow(tableId, new Text()),
-              TabletsSection.getRow(tableId, null)),
+          new Range(TabletsSection.encodeRow(tableId, new Text()),
+              TabletsSection.encodeRow(tableId, null)),
           systemTableName);
 
       while (scanner.hasNext()) {

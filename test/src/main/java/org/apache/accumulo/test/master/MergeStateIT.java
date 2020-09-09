@@ -124,7 +124,8 @@ public class MergeStateIT extends ConfigurableMacBase {
       Text pr = null;
       for (String s : splits) {
         Text split = new Text(s);
-        Mutation prevRow = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, split, pr));
+        Mutation prevRow =
+            TabletColumnFamily.createPrevRowMutation(new KeyExtent(tableId, split, pr));
         prevRow.put(CurrentLocationColumnFamily.NAME, new Text("123456"),
             new Value("127.0.0.1:1234"));
         ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow, new Value("junk"));
@@ -132,7 +133,8 @@ public class MergeStateIT extends ConfigurableMacBase {
         pr = split;
       }
       // Add the default tablet
-      Mutation defaultTablet = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, null, pr));
+      Mutation defaultTablet =
+          TabletColumnFamily.createPrevRowMutation(new KeyExtent(tableId, null, pr));
       defaultTablet.put(CurrentLocationColumnFamily.NAME, new Text("123456"),
           new Value("127.0.0.1:1234"));
       bw.addMutation(defaultTablet);
@@ -155,9 +157,11 @@ public class MergeStateIT extends ConfigurableMacBase {
 
       // Create the hole
       // Split the tablet at one end of the range
-      Mutation m = new KeyExtent(tableId, new Text("t"), new Text("p")).getPrevRowUpdateMutation();
+      Mutation m = TabletColumnFamily
+          .createPrevRowMutation(new KeyExtent(tableId, new Text("t"), new Text("p")));
       TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
-      TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(new Text("o")));
+      TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
+          TabletColumnFamily.encodePrevEndRow(new Text("o")));
       update(accumuloClient, m);
 
       // do the state check
@@ -178,7 +182,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
       // finish the split
       KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
-      m = tablet.getPrevRowUpdateMutation();
+      m = TabletColumnFamily.createPrevRowMutation(tablet);
       TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
       update(accumuloClient, m);
       metaDataStateStore.setLocation(new Assignment(tablet, state.someTServer), null);
@@ -188,7 +192,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(accumuloClient, state));
 
       // chop it
-      m = tablet.getPrevRowUpdateMutation();
+      m = TabletColumnFamily.createPrevRowMutation(tablet);
       ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("junk"));
       update(accumuloClient, m);
 
@@ -196,7 +200,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(accumuloClient, state));
 
       // take it offline
-      m = tablet.getPrevRowUpdateMutation();
+      m = TabletColumnFamily.createPrevRowMutation(tablet);
       Collection<Collection<String>> walogs = Collections.emptyList();
       metaDataStateStore.unassign(
           Collections.singletonList(

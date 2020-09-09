@@ -158,7 +158,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
       String dirName = "dir_" + i;
       String tdir = ServerConstants.getTablesDirs(context).iterator().next() + "/"
-          + extent.getTableId() + "/" + dirName;
+          + extent.tableId() + "/" + dirName;
       MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
       SortedMap<TabletFile,DataFileValue> mapFiles = new TreeMap<>();
       mapFiles.put(new TabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
@@ -176,8 +176,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
     KeyExtent extent = extents[extentToSplit];
 
-    KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
-    KeyExtent low = new KeyExtent(extent.getTableId(), midRow, extent.getPrevEndRow());
+    KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
+    KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
 
     splitPartiallyAndRecover(context, extent, high, low, .4, splitMapFiles, midRow,
         "localhost:1234", failPoint, zl);
@@ -204,7 +204,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<>(), mapFiles,
         lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
 
-    MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, context, zl);
+    MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio, context, zl);
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
     Assignment assignment = new Assignment(high, instance);
 
@@ -252,7 +252,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
       SortedMap<StoredTabletFile,DataFileValue> expectedMapFiles) throws Exception {
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
-      scanner.setRange(extent.toMetadataRange());
+      scanner.setRange(extent.toMetaRange());
 
       HashSet<ColumnFQ> expectedColumns = new HashSet<>();
       expectedColumns.add(ServerColumnFamily.DIRECTORY_COLUMN);
@@ -275,14 +275,14 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         Entry<Key,Value> entry = iter.next();
         Key key = entry.getKey();
 
-        if (!key.getRow().equals(extent.getMetadataEntry())) {
+        if (!key.getRow().equals(extent.toMetaRow())) {
           throw new Exception(
               "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
         }
 
         if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
           sawPer = true;
-          if (!new KeyExtent(key.getRow(), entry.getValue()).equals(extent)) {
+          if (!KeyExtent.fromMetaPrevRow(entry).equals(extent)) {
             throw new Exception("Unexpected prev end row " + entry);
           }
         }

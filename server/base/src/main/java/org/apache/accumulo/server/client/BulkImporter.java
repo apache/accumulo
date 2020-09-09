@@ -621,11 +621,11 @@ public class BulkImporter {
       TabletLocator locator, Path file, KeyExtent failed) throws Exception {
     locator.invalidateCache(failed);
     Text start = getStartRowForExtent(failed);
-    return findOverlappingTablets(context, fs, locator, file, start, failed.getEndRow());
+    return findOverlappingTablets(context, fs, locator, file, start, failed.endRow());
   }
 
   protected static Text getStartRowForExtent(KeyExtent extent) {
-    Text start = extent.getPrevEndRow();
+    Text start = extent.prevEndRow();
     if (start != null) {
       start = new Text(start);
       // ACCUMULO-3967 We want the first possible key in this tablet, not the following row from the
@@ -661,7 +661,7 @@ public class BulkImporter {
         TabletLocation tabletLocation = locator.locateTablet(context, row, false, true);
         // log.debug(filename + " found row " + row + " at location " + tabletLocation);
         result.add(tabletLocation);
-        row = tabletLocation.tablet_extent.getEndRow();
+        row = tabletLocation.tablet_extent.endRow();
         if (row != null && (endRow == null || row.compareTo(endRow) < 0)) {
           row = new Text(row);
           row.append(byte0, 0, byte0.length);

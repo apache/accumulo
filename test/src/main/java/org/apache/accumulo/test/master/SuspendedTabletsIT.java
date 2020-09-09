@@ -315,7 +315,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         while (scanner.hasNext()) {
           TabletLocationState tls = scanner.next();
 
-          if (!tls.extent.getTableId().canonical().equals(tableId)) {
+          if (!tls.extent.tableId().canonical().equals(tableId)) {
             continue;
           }
           locationStates.put(tls.extent, tls);

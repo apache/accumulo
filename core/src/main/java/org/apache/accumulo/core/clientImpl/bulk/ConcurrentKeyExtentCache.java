@@ -73,14 +73,14 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
   }
 
   private boolean inCache(KeyExtent e) {
-    return Objects.equals(e, extents.get(e.getEndRow() == null ? MAX : e.getEndRow()));
+    return Objects.equals(e, extents.get(e.endRow() == null ? MAX : e.endRow()));
   }
 
   @VisibleForTesting
   protected void updateCache(KeyExtent e) {
-    Text prevRow = e.getPrevEndRow() == null ? new Text() : e.getPrevEndRow();
-    Text endRow = e.getEndRow() == null ? MAX : e.getEndRow();
-    extents.subMap(prevRow, e.getPrevEndRow() == null, endRow, true).clear();
+    Text prevRow = e.prevEndRow() == null ? new Text() : e.prevEndRow();
+    Text endRow = e.endRow() == null ? MAX : e.endRow();
+    extents.subMap(prevRow, e.prevEndRow() == null, endRow, true).clear();
     extents.put(endRow, e);
   }
 

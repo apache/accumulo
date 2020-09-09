@@ -96,7 +96,7 @@ abstract class TableMetadataServicer extends MetadataServicer {
       colq = entry.getKey().getColumnQualifier(colq);
 
       if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
-        currentKeyExtent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
+        currentKeyExtent = KeyExtent.fromMetaPrevRow(entry);
         tablets.put(currentKeyExtent, location);
         currentKeyExtent = null;
         location = null;
@@ -117,28 +117,28 @@ abstract class TableMetadataServicer extends MetadataServicer {
       throw new AccumuloException(
           "No entries found in metadata table for table " + getServicedTableId());
 
-    if (tabletsKeys.first().getPrevEndRow() != null)
+    if (tabletsKeys.first().prevEndRow() != null)
       throw new AccumuloException("Problem with metadata table, first entry for table "
           + getServicedTableId() + "- " + tabletsKeys.first() + " - has non null prev end row");
 
-    if (tabletsKeys.last().getEndRow() != null)
+    if (tabletsKeys.last().endRow() != null)
       throw new AccumuloException("Problem with metadata table, last entry for table "
           + getServicedTableId() + "- " + tabletsKeys.first() + " - has non null end row");
 
     Iterator<KeyExtent> tabIter = tabletsKeys.iterator();
-    Text lastEndRow = tabIter.next().getEndRow();
+    Text lastEndRow = tabIter.next().endRow();
     while (tabIter.hasNext()) {
       KeyExtent tabke = tabIter.next();
 
-      if (tabke.getPrevEndRow() == null)
+      if (tabke.prevEndRow() == null)
         throw new AccumuloException(
             "Problem with metadata table, it has null prev end row in middle of table " + tabke);
 
-      if (!tabke.getPrevEndRow().equals(lastEndRow))
+      if (!tabke.prevEndRow().equals(lastEndRow))
         throw new AccumuloException("Problem with metadata table, it has a hole "
-            + tabke.getPrevEndRow() + " != " + lastEndRow);
+            + tabke.prevEndRow() + " != " + lastEndRow);
 
-      lastEndRow = tabke.getEndRow();
+      lastEndRow = tabke.endRow();
     }
 
     // end METADATA table sanity check

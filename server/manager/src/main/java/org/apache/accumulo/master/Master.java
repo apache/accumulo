@@ -459,7 +459,7 @@ public class Master extends AbstractServer
     ServerContext context = getContext();
     synchronized (mergeLock) {
       String path =
-          getZooKeeperRoot() + Constants.ZTABLES + "/" + info.getExtent().getTableId() + "/merge";
+          getZooKeeperRoot() + Constants.ZTABLES + "/" + info.getExtent().tableId() + "/merge";
       info.setState(state);
       if (state.equals(MergeState.NONE)) {
         context.getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
@@ -523,7 +523,7 @@ public class Master extends AbstractServer
 
   public void clearMigrations(TableId tableId) {
     synchronized (migrations) {
-      migrations.keySet().removeIf(extent -> extent.getTableId().equals(tableId));
+      migrations.keySet().removeIf(extent -> extent.tableId().equals(tableId));
     }
   }
 
@@ -571,7 +571,7 @@ public class Master extends AbstractServer
   }
 
   TabletGoalState getTableGoalState(KeyExtent extent) {
-    TableState tableState = getContext().getTableManager().getTableState(extent.getTableId());
+    TableState tableState = getContext().getTableManager().getTableState(extent.tableId());
     if (tableState == null) {
       return TabletGoalState.DELETED;
     }
@@ -677,7 +677,7 @@ public class Master extends AbstractServer
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<>();
       for (Entry<Key,Value> entry : scanner) {
-        KeyExtent extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
+        KeyExtent extent = KeyExtent.fromMetaPrevRow(entry);
         if (migrations.containsKey(extent)) {
           found.add(extent);
         }

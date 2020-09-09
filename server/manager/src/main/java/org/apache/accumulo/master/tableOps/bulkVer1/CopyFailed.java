@@ -121,7 +121,7 @@ class CopyFailed extends MasterRepo {
     AccumuloClient client = master.getContext();
     try (Scanner mscanner =
         new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
-      mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+      mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
       mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
 
       for (Entry<Key,Value> entry : mscanner) {

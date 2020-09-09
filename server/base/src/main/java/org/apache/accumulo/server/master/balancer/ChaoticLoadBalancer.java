@@ -140,7 +140,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
           continue;
         try {
           for (TabletStats ts : getOnlineTabletsForTable(e.getKey(), id)) {
-            KeyExtent ke = new KeyExtent(ts.extent);
+            KeyExtent ke = KeyExtent.fromThrift(ts.extent);
             int index = r.nextInt(underCapacityTServer.size());
             TServerInstance dest = underCapacityTServer.get(index);
             if (dest.equals(e.getKey()))

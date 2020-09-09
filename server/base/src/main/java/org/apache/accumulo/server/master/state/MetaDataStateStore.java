@@ -77,7 +77,6 @@ class MetaDataStateStore implements TabletStateStore {
     tabletMutator.deleteSuspension();
     tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
     tabletMutator.mutate();
-
   }
 
   @Override

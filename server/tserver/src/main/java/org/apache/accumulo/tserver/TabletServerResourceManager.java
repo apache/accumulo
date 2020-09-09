@@ -885,11 +885,11 @@ public class TabletServerResourceManager {
       if (executor == null) {
         log.warn(
             "For table id {}, {} dispatched to non-existant executor {} Using default executor.",
-            tablet.getTableId(), dispatcher.getClass().getName(), prefs.getExecutorName());
+            tablet.tableId(), dispatcher.getClass().getName(), prefs.getExecutorName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
       } else if ("meta".equals(prefs.getExecutorName())) {
         log.warn("For table id {}, {} dispatched to meta executor. Using default executor.",
-            tablet.getTableId(), dispatcher.getClass().getName());
+            tablet.tableId(), dispatcher.getClass().getName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
       }
       executor.execute(task);

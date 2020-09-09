@@ -147,7 +147,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       // log.debug("markers " + markers);
       assertEquals("one tablet should have markers", 1, markers.size());
       assertEquals("tableId of the keyExtent should be 1", "1",
-          markers.keySet().iterator().next().getTableId().canonical());
+          markers.keySet().iterator().next().tableId().canonical());
 
       // put some data in the WAL
       assertEquals(0, cluster.exec(SetGoalState.class, "NORMAL").getProcess().waitFor());
@@ -216,7 +216,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
           logs.add(key.getColumnQualifier().toString());
         }
         if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key) && !logs.isEmpty()) {
-          KeyExtent extent = new KeyExtent(key.getRow(), entry.getValue());
+          KeyExtent extent = KeyExtent.fromMetaPrevRow(entry);
           result.put(extent, logs);
           logs = new ArrayList<>();
         }

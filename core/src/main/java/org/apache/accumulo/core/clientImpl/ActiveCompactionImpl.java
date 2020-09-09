@@ -46,12 +46,12 @@ public class ActiveCompactionImpl extends ActiveCompaction {
 
   @Override
   public String getTable() throws TableNotFoundException {
-    return Tables.getTableName(context, new KeyExtent(tac.getExtent()).getTableId());
+    return Tables.getTableName(context, KeyExtent.fromThrift(tac.getExtent()).tableId());
   }
 
   @Override
   public TabletId getTablet() {
-    return new TabletIdImpl(new KeyExtent(tac.getExtent()));
+    return new TabletIdImpl(KeyExtent.fromThrift(tac.getExtent()));
   }
 
   @Override

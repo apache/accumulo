@@ -59,9 +59,9 @@ public class BulkImporterTest {
     fakeMetaData.add(new KeyExtent(tableId, new Text("a"), null));
     for (String part : new String[] {"b", "bm", "c", "cm", "d", "dm", "e", "em", "f", "g", "h", "i",
         "j", "k", "l"}) {
-      fakeMetaData.add(new KeyExtent(tableId, new Text(part), fakeMetaData.last().getEndRow()));
+      fakeMetaData.add(new KeyExtent(tableId, new Text(part), fakeMetaData.last().endRow()));
     }
-    fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().getEndRow()));
+    fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().endRow()));
   }
 
   class MockTabletLocator extends TabletLocator {

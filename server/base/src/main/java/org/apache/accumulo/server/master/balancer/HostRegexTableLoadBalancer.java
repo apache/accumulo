@@ -351,7 +351,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     // group the unassigned into tables
     Map<TableId,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
     unassigned.forEach((keyExtent, tServerInstance) -> {
-      groupedUnassigned.computeIfAbsent(keyExtent.getTableId(), p -> new HashMap<>()).put(keyExtent,
+      groupedUnassigned.computeIfAbsent(keyExtent.tableId(), p -> new HashMap<>()).put(keyExtent,
           tServerInstance);
     });
 
@@ -427,7 +427,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
               }
               Random random = new SecureRandom();
               for (TabletStats ts : outOfBoundsTablets) {
-                KeyExtent ke = new KeyExtent(ts.getExtent());
+                KeyExtent ke = KeyExtent.fromThrift(ts.getExtent());
                 if (migrations.contains(ke)) {
                   LOG.debug("Migration for out of bounds tablet {} has already been requested", ke);
                   continue;
@@ -489,12 +489,12 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       Multimap<TServerInstance,String> serverTableIdCopied = HashMultimap.create();
       for (TabletMigration migration : migrationsFromLastPass.values()) {
         TableInfo fromInfo = getTableInfo(currentCopy, serverTableIdCopied,
-            migration.tablet.getTableId().toString(), migration.oldServer);
+            migration.tablet.tableId().toString(), migration.oldServer);
         if (fromInfo != null) {
           fromInfo.setOnlineTablets(fromInfo.getOnlineTablets() - 1);
         }
         TableInfo toInfo = getTableInfo(currentCopy, serverTableIdCopied,
-            migration.tablet.getTableId().toString(), migration.newServer);
+            migration.tablet.tableId().toString(), migration.newServer);
         if (toInfo != null) {
           toInfo.setOnlineTablets(toInfo.getOnlineTablets() + 1);
         }
