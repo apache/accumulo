@@ -58,9 +58,9 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
       TestIngest.ingest(c, params);
 
       ClusterControl control = cluster.getClusterControl();
-      control.stopAllServers(ServerType.MASTER);
+      control.stopAllServers(ServerType.MANAGER);
       // start up a new one
-      control.startAllServers(ServerType.MASTER);
+      control.startAllServers(ServerType.MANAGER);
       // talk to it
       c.tableOperations().rename(names[0], names[1]);
       params.tableName = names[1];

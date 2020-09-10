@@ -141,6 +141,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case MASTER:
+      case MANAGER:
         if (masterProcess == null) {
           masterProcess = cluster._exec(Master.class, server, configOverrides).getProcess();
         }
@@ -185,6 +186,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   public synchronized void stop(ServerType server, String hostname) throws IOException {
     switch (server) {
       case MASTER:
+      case MANAGER:
         if (masterProcess != null) {
           try {
             cluster.stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
@@ -292,6 +294,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     boolean found = false;
     switch (type) {
       case MASTER:
+      case MANAGER:
         if (procRef.getProcess().equals(masterProcess)) {
           try {
             cluster.stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);

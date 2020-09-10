@@ -168,6 +168,7 @@ public class StandaloneClusterControl implements ClusterControl {
         }
         break;
       case MASTER:
+      case MANAGER:
         for (String master : getHosts(MASTER_HOSTS_FILE)) {
           start(server, master);
         }
@@ -220,6 +221,7 @@ public class StandaloneClusterControl implements ClusterControl {
         }
         break;
       case MASTER:
+      case MANAGER:
         for (String master : getHosts(MASTER_HOSTS_FILE)) {
           stop(server, master);
         }
@@ -324,6 +326,7 @@ public class StandaloneClusterControl implements ClusterControl {
       case GARBAGE_COLLECTOR:
         return "gc";
       case MASTER:
+      case MANAGER:
         return "master";
       case TRACER:
         return "tracer";

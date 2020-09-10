@@ -166,7 +166,7 @@ public class ClientContext implements AccumuloClient {
       }
 
       @Override
-      public List<String> getMasterLocations() {
+      public List<String> getManagerLocations() {
         return context.getMasterLocations();
       }
 
