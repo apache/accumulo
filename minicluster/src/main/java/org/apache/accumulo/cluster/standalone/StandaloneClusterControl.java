@@ -160,6 +160,7 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public void startAllServers(ServerType server) throws IOException {
     switch (server) {
       case TABLET_SERVER:
@@ -213,6 +214,7 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public void stopAllServers(ServerType server) throws IOException {
     switch (server) {
       case TABLET_SERVER:
@@ -319,6 +321,7 @@ public class StandaloneClusterControl implements ClusterControl {
         "'{print \\$2}'", "|", "head", "-1", "|", "tr", "-d", "'\\n'"};
   }
 
+  @SuppressWarnings("removal")
   protected String getProcessString(ServerType server) {
     switch (server) {
       case TABLET_SERVER:

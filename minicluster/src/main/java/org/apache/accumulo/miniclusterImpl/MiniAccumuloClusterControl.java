@@ -123,6 +123,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     start(server, Collections.emptyMap(), Integer.MAX_VALUE);
   }
 
+  @SuppressWarnings("removal")
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
       throws IOException {
     if (limit <= 0) {
@@ -183,6 +184,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public synchronized void stop(ServerType server, String hostname) throws IOException {
     switch (server) {
       case MASTER:
@@ -289,6 +291,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     throw new UnsupportedOperationException();
   }
 
+  @SuppressWarnings("removal")
   public void killProcess(ServerType type, ProcessReference procRef)
       throws ProcessNotFoundException, InterruptedException {
     boolean found = false;
