@@ -103,7 +103,7 @@ class ZooTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocation(Assignment assignment) {
+  public void setFutureLocation(Assignment assignment) throws DistributedStoreException {
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
     tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
@@ -111,7 +111,8 @@ class ZooTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setLocation(Assignment assignment, TServerInstance prevLastLoc) {
+  public void setLocation(Assignment assignment, TServerInstance prevLastLoc)
+      throws DistributedStoreException {
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
     tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
     tabletMutator.putLocation(assignment.server, LocationType.LAST);
@@ -126,7 +127,7 @@ class ZooTabletStateStore implements TabletStateStore {
 
   @Override
   public void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers) {
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     if (tablets.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     TabletLocationState tls = tablets.iterator().next();
@@ -155,7 +156,8 @@ class ZooTabletStateStore implements TabletStateStore {
 
   @Override
   public void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp) {
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      throws DistributedStoreException {
     // No support for suspending root tablet.
     unassign(tablets, logsForDeadServers);
   }

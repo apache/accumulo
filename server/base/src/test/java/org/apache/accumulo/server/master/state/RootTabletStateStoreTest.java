@@ -74,7 +74,7 @@ public class RootTabletStateStoreTest {
   }
 
   @Test
-  public void testRootTabletStateStore() {
+  public void testRootTabletStateStore() throws DistributedStoreException {
     ZooTabletStateStore tstore = new ZooTabletStateStore(new TestAmple());
     KeyExtent root = RootTable.EXTENT;
     String sessionId = "this is my unique session data";

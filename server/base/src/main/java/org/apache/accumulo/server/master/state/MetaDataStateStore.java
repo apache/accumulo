@@ -54,45 +54,54 @@ class MetaDataStateStore implements TabletStateStore {
     return new MetaDataTableScanner(context, TabletsSection.getRange(), state, targetTableName);
   }
 
-  public void setLocation(Assignment assignment, TServerInstance prevLastLoc) {
+  public void setLocation(Assignment assignment, TServerInstance prevLastLoc)
+      throws DistributedStoreException {
+    try {
+      TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
+      tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
+      tabletMutator.putLocation(assignment.server, LocationType.LAST);
+      tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
 
-    TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-    tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
-    tabletMutator.putLocation(assignment.server, LocationType.LAST);
-    tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
+      // remove the old location
+      if (prevLastLoc != null && !prevLastLoc.equals(assignment.server)) {
+        tabletMutator.deleteLocation(prevLastLoc, LocationType.LAST);
+      }
 
-    // remove the old location
-    if (prevLastLoc != null && !prevLastLoc.equals(assignment.server)) {
-      tabletMutator.deleteLocation(prevLastLoc, LocationType.LAST);
+      tabletMutator.mutate();
+    } catch (Exception ex) {
+      throw new DistributedStoreException(ex);
     }
-
-    tabletMutator.mutate();
-
   }
 
   @Override
-  public void setFutureLocation(Assignment assignment) {
+  public void setFutureLocation(Assignment assignment) throws DistributedStoreException {
+    try {
+      TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
+      tabletMutator.deleteSuspension();
+      tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
+      tabletMutator.mutate();
 
-    TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-    tabletMutator.deleteSuspension();
-    tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
-    tabletMutator.mutate();
+    } catch (Exception ex) {
+      throw new DistributedStoreException(ex);
+    }
   }
 
   @Override
   public void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers) {
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     unassign(tablets, logsForDeadServers, -1);
   }
 
   @Override
   public void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp) {
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      throws DistributedStoreException {
     unassign(tablets, logsForDeadServers, suspensionTimestamp);
   }
 
   private void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp) {
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (TabletLocationState tls : tablets) {
         TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
@@ -120,11 +129,13 @@ class MetaDataStateStore implements TabletStateStore {
         }
         tabletMutator.mutate();
       }
+    } catch (Exception ex) {
+      throw new DistributedStoreException(ex);
     }
   }
 
   @Override
-  public void unsuspend(Collection<TabletLocationState> tablets) {
+  public void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException {
 
     try (var tabletsMutator = ample.mutateTablets()) {
       for (TabletLocationState tls : tablets) {
@@ -135,6 +146,8 @@ class MetaDataStateStore implements TabletStateStore {
         tabletMutator.deleteSuspension();
         tabletMutator.mutate();
       }
+    } catch (Exception ex) {
+      throw new DistributedStoreException(ex);
     }
   }
 
