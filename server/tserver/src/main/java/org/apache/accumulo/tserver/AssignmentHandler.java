@@ -32,6 +32,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.master.state.Assignment;
+import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -177,7 +178,8 @@ class AssignmentHandler implements Runnable {
         throw new RuntimeException("Minor compaction after recovery fails for " + extent);
       }
       Assignment assignment = new Assignment(extent, server.getTabletSession());
-      TabletStateStore.setLocation(server.getContext(), assignment, assignment.server);
+      TServerInstance preLastLoc = new TServerInstance(tabletMetadata.getLocation());
+      TabletStateStore.setLocation(server.getContext(), assignment, preLastLoc);
 
       synchronized (server.openingTablets) {
         synchronized (server.onlineTablets) {
