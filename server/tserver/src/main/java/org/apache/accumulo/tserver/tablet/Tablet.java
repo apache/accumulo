@@ -80,6 +80,7 @@ import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.scan.ScanDirectives;
+import org.apache.accumulo.core.table.ContextClassLoaderFactory;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -105,7 +106,6 @@ import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
@@ -411,9 +411,15 @@ public class Tablet {
 
     String contextName = tableConfiguration.get(Property.TABLE_CLASSPATH);
     if (contextName != null && !contextName.equals("")) {
-      // initialize context classloader, instead of possibly waiting for it to initialize for a scan
+      // update context classloader instead of possibly waiting for it to initialize for a scan
+      // the ContextClassLoaderFactory should have been initialized TabletServer
       // TODO this could hang, causing other tablets to fail to load - ACCUMULO-1292
-      AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
+      try {
+        ContextClassLoaderFactory.updateContexts();
+      } catch (Exception e1) {
+        log.error("Error configuring ContextClassLoaderFactory", e1);
+        throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
+      }
     }
 
     // do this last after tablet is completely setup because it

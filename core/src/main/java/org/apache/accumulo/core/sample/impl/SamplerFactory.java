@@ -23,6 +23,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.table.ContextClassLoaderFactory;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class SamplerFactory {
@@ -36,8 +37,8 @@ public class SamplerFactory {
         clazz = SamplerFactory.class.getClassLoader().loadClass(config.getClassName())
             .asSubclass(Sampler.class);
       if (context != null && !context.equals(""))
-        clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, config.getClassName(),
-            Sampler.class);
+        clazz = ContextClassLoaderFactory.getClassLoader(context).loadClass(config.getClassName())
+            .asSubclass(Sampler.class);
       else
         clazz = AccumuloVFSClassLoader.loadClass(config.getClassName(), Sampler.class);
 

@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.table.ContextClassLoaderFactory;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -51,8 +52,8 @@ public class TableLoadBalancer extends TabletBalancer {
     context = this.context.getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
     Class<? extends TabletBalancer> clazz;
     if (context != null && !context.equals(""))
-      clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName,
-          TabletBalancer.class);
+      clazz = ContextClassLoaderFactory.getClassLoader(context).loadClass(clazzName)
+          .asSubclass(TabletBalancer.class);
     else
       clazz = AccumuloVFSClassLoader.loadClass(clazzName, TabletBalancer.class);
     Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(TableId.class);

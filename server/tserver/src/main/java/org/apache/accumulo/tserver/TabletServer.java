@@ -74,6 +74,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.table.ContextClassLoaderFactory;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
@@ -130,8 +131,6 @@ import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
 import org.apache.accumulo.tserver.compactions.Compactable;
@@ -999,37 +998,24 @@ public class TabletServer extends AbstractServer {
     majorCompactorThread.start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
+
+    final AccumuloConfiguration aconf = getConfiguration();
     try {
-      AccumuloVFSClassLoader.getContextManager()
-          .setContextConfig(new ContextManager.DefaultContextsConfig() {
-            @Override
-            public Map<String,String> getVfsContextClasspathProperties() {
-              return getConfiguration()
-                  .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-            }
-          });
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      ContextClassLoaderFactory.initialize(aconf);
+    } catch (Exception e1) {
+      log.error("Error configuring ContextClassLoaderFactory", e1);
+      throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
     }
 
     // A task that cleans up unused classloader contexts
     Runnable contextCleaner = () -> {
-      Set<String> contextProperties = getConfiguration()
-          .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY).keySet();
-      Set<String> configuredContexts = new HashSet<>();
-      for (String prop : contextProperties) {
-        configuredContexts
-            .add(prop.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.name().length()));
-      }
-
       try {
-        AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);
-      } catch (IOException e) {
+        ContextClassLoaderFactory.updateContexts();
+      } catch (Exception e) {
         log.warn("{}", e.getMessage(), e);
       }
     };
 
-    AccumuloConfiguration aconf = getConfiguration();
     SimpleTimer.getInstance(aconf).schedule(contextCleaner, 60000, 60000);
 
     FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);

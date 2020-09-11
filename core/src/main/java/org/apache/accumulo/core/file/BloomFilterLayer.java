@@ -52,6 +52,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.table.ContextClassLoaderFactory;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -128,8 +129,8 @@ public class BloomFilterLayer {
         if (!useAccumuloStart)
           clazz = Writer.class.getClassLoader().loadClass(classname).asSubclass(KeyFunctor.class);
         else if (context != null && !context.equals(""))
-          clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, classname,
-              KeyFunctor.class);
+          clazz = ContextClassLoaderFactory.getClassLoader(context).loadClass(classname)
+              .asSubclass(KeyFunctor.class);
         else
           clazz = AccumuloVFSClassLoader.loadClass(classname, KeyFunctor.class);
 
@@ -240,10 +241,11 @@ public class BloomFilterLayer {
 
           Class<? extends KeyFunctor> clazz;
           if (context != null && !context.equals(""))
-            clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, ClassName,
-                KeyFunctor.class);
+            clazz = ContextClassLoaderFactory.getClassLoader(context).loadClass(ClassName)
+                .asSubclass(KeyFunctor.class);
           else
             clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
+
           transformer = clazz.getDeclaredConstructor().newInstance();
 
           /**

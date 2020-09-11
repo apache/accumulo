@@ -31,6 +31,7 @@ import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.ComparableBytes;
+import org.apache.accumulo.core.table.ContextClassLoaderFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
@@ -52,7 +53,7 @@ public class ConstraintChecker {
       ClassLoader loader;
 
       if (context != null && !context.equals("")) {
-        loader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
+        loader = ContextClassLoaderFactory.getClassLoader(context);
       } else {
         loader = AccumuloVFSClassLoader.getClassLoader();
       }

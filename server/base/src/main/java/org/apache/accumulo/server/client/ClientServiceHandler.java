@@ -58,6 +58,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.table.ContextClassLoaderFactory;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -397,7 +398,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       ClassLoader currentLoader;
 
       if (context != null && !context.equals("")) {
-        currentLoader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
+        currentLoader = ContextClassLoaderFactory.getClassLoader(context);
       } else {
         currentLoader = AccumuloVFSClassLoader.getClassLoader();
       }
@@ -432,7 +433,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       ClassLoader currentLoader;
 
       if (context != null && !context.equals("")) {
-        currentLoader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
+        currentLoader = ContextClassLoaderFactory.getClassLoader(context);
       } else {
         currentLoader = AccumuloVFSClassLoader.getClassLoader();
       }

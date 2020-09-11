@@ -60,10 +60,12 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
+import org.apache.accumulo.core.table.ContextClassLoaderFactory;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -160,7 +162,6 @@ import org.apache.accumulo.shell.commands.UserPermissionsCommand;
 import org.apache.accumulo.shell.commands.UsersCommand;
 import org.apache.accumulo.shell.commands.WhoAmICommand;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -467,27 +468,18 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       shellState.getAccumuloClient().instanceOperations().getSystemConfiguration()
           .get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
 
+      final Map<String,String> systemConfig =
+          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
+
       try {
+        ContextClassLoaderFactory.initialize(new ConfigurationCopy(systemConfig));
+        ContextClassLoaderFactory.updateContexts();
+      } catch (Exception e1) {
+        log.error("Error configuring ContextClassLoaderFactory", e1);
+        throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
+      }
 
-        final Map<String,String> systemConfig =
-            shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
-
-        AccumuloVFSClassLoader.getContextManager()
-            .setContextConfig(new ContextManager.DefaultContextsConfig() {
-              @Override
-              public Map<String,String> getVfsContextClasspathProperties() {
-                Map<String,String> filteredMap = new HashMap<>();
-                for (Entry<String,String> entry : systemConfig.entrySet()) {
-                  if (entry.getKey().startsWith(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())) {
-                    filteredMap.put(entry.getKey(), entry.getValue());
-                  }
-                }
-                return filteredMap;
-              }
-            });
-      } catch (IllegalStateException ise) {}
-
-      classloader = AccumuloVFSClassLoader.getContextManager().getClassLoader(classpath);
+      classloader = ContextClassLoaderFactory.getClassLoader(classpath);
     } else {
       classloader = AccumuloVFSClassLoader.getClassLoader();
     }

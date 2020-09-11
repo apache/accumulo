@@ -40,6 +40,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.table.ContextClassLoaderFactory;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -236,9 +237,9 @@ public class IterConfigUtil {
     Class<SortedKeyValueIterator<Key,Value>> clazz;
     if (useAccumuloClassLoader) {
       if (context != null && !context.equals("")) {
-        clazz =
-            (Class<SortedKeyValueIterator<Key,Value>>) AccumuloVFSClassLoader.getContextManager()
-                .loadClass(context, iterInfo.className, SortedKeyValueIterator.class);
+        clazz = (Class<SortedKeyValueIterator<Key,Value>>) ContextClassLoaderFactory
+            .getClassLoader(context).loadClass(iterInfo.className)
+            .asSubclass(SortedKeyValueIterator.class);
         log.trace("Iterator class {} loaded from context {}, classloader: {}", iterInfo.className,
             context, clazz.getClassLoader());
       } else {
