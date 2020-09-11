@@ -29,6 +29,7 @@ import org.apache.commons.vfs2.FileSystemManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated(since = "2.1.0", forRemoval=true)
 public class ContextManager {
 
   private static final Logger log = LoggerFactory.getLogger(ContextManager.class);

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+@Deprecated(since = "2.1.0", forRemoval=true)
 public interface ReloadingClassLoader {
   ClassLoader getClassLoader();
 }
