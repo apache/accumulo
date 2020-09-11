@@ -59,10 +59,10 @@ import org.slf4j.LoggerFactory;
  * subsequent calls to loadClass. This classloader supports both the normal classloader
  * pre-delegation model and a post-delegation model. To enable the post-delegation feature set the
  * environment variable <b>vfs.class.loader.delegation</b> to "post".
- * 
+ *
  * <p>
  * This classloader uses the following environment variables:
- * 
+ *
  * <ol>
  * <li><b>vfs.cache.dir</b> - for specifying the directory to use for the local VFS cache (default
  * is the system property <b>java.io.tmpdir</b></li>
@@ -130,7 +130,7 @@ public class ReloadingVFSClassLoader extends ClassLoader implements Closeable, F
 
   /**
    * Get the classpath value from the environment and resolve embedded env vars
-   * 
+   *
    * @return classpath value
    */
   protected String getClassPath() {
@@ -145,7 +145,7 @@ public class ReloadingVFSClassLoader extends ClassLoader implements Closeable, F
 
   /**
    * Get the delegation model
-   * 
+   *
    * @return true if pre delegaion, false if post delegation
    */
   protected boolean isPreDelegationModel() {
@@ -160,7 +160,7 @@ public class ReloadingVFSClassLoader extends ClassLoader implements Closeable, F
 
   /**
    * Get the directory for the VFS cache
-   * 
+   *
    * @return VFS cache directory
    */
   static String getVFSCacheDir() {
@@ -196,7 +196,7 @@ public class ReloadingVFSClassLoader extends ClassLoader implements Closeable, F
 
   /**
    * Get the file system monitor interval
-   * 
+   *
    * @return monitor interval in ms
    */
   protected long getMonitorInterval() {

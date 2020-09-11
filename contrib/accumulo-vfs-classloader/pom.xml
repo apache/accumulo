@@ -37,6 +37,10 @@
       <artifactId>commons-io</artifactId>
     </dependency>
     <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-vfs2</artifactId>
     </dependency>
@@ -53,20 +57,9 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    <!--     <dependency> -->
-    <!--       <groupId>commons-logging</groupId> -->
-    <!--       <artifactId>commons-logging</artifactId> -->
-    <!--     </dependency> -->
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-start</artifactId>
-      <version>${project.version}</version>
-      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>

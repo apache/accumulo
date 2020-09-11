@@ -27,7 +27,7 @@ package org.apache.accumulo.core.spi.common;
 public interface ClassLoaderFactory {
 
   /**
-   * 
+   *
    * @param contextName
    *          name of classloader context
    * @return classloader configured for the context

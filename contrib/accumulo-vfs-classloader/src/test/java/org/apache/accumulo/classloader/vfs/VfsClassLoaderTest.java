@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
 
-import org.apache.accumulo.start.test.AccumuloDFSBase;
 import org.apache.commons.vfs2.FileChangeEvent;
 import org.apache.commons.vfs2.FileListener;
 import org.apache.commons.vfs2.FileObject;
