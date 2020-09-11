@@ -44,4 +44,7 @@ assignees: ''
   - [ ] Close this issue
   - [ ] Create a new "Automated Kanban" [project](https://github.com/apache/accumulo/projects) for the next version (if necessary) and move any open issues not completed in this release to that project
   - [ ] Close the project that corresponds to this release
+- Twitter
+  - [ ] [Tweet it](https://tweetdeck.twitter.com)
+  - [ ] [Confirm the tweet](https://twitter.com/ApacheAccumulo)
 

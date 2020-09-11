@@ -113,7 +113,7 @@ public class MiniAccumuloConfig {
   }
 
   /**
-   * Sets the amount of memory to use in the master process. Calling this method is optional.
+   * Sets the amount of memory to use in the manager process. Calling this method is optional.
    * Default memory is 128M
    *
    * @param serverType

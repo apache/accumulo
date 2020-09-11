@@ -157,7 +157,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       Process master = null;
       try {
         LOG.debug("Starting standby master on {}", freePort);
-        master = startProcess(cluster, ServerType.MASTER, freePort);
+        master = startProcess(cluster, ServerType.MANAGER, freePort);
 
         while (true) {
           try (Socket s = new Socket("localhost", freePort)) {
@@ -177,7 +177,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           if (!master.isAlive()) {
             freePort = PortUtils.getRandomFreePort();
             LOG.debug("Master died, restarting it listening on {}", freePort);
-            master = startProcess(cluster, ServerType.MASTER, freePort);
+            master = startProcess(cluster, ServerType.MANAGER, freePort);
           }
         }
       } finally {
@@ -257,7 +257,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
         property = Property.MONITOR_PORT;
         service = Monitor.class;
         break;
-      case MASTER:
+      case MANAGER:
         property = Property.MASTER_CLIENTPORT;
         service = Master.class;
         break;
