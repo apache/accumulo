@@ -65,7 +65,6 @@ class MetaDataStateStore implements TabletStateStore {
       for (Assignment assignment : assignments) {
         Mutation m = new Mutation(assignment.tablet.toMetaRow());
         assignment.server.putLocation(m);
-        assignment.server.putLastLocation(m);
         assignment.server.clearFutureLocation(m);
         SuspendingTServer.clearSuspension(m);
         writer.addMutation(m);
