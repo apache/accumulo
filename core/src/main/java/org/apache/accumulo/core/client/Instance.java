@@ -44,21 +44,8 @@ public interface Instance {
    * Returns the location(s) of the accumulo master and any redundant servers.
    *
    * @return a list of locations in "hostname:port" form
-   *
-   * @deprecated Use {@link #getManagerLocations()} instead
    */
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  default List<String> getMasterLocations() {
-    return getManagerLocations();
-  }
-
-  /**
-   * Returns the location(s) of the accumulo manager and any redundant servers.
-   *
-   * @return a list of locations in "hostname:port" form
-   *
-   */
-  List<String> getManagerLocations();
+  List<String> getMasterLocations();
 
   /**
    * Returns a unique string that identifies this instance of accumulo.
