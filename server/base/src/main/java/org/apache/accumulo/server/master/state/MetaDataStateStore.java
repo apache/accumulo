@@ -132,7 +132,6 @@ class MetaDataStateStore implements TabletStateStore {
 
   @Override
   public void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException {
-
     try (var tabletsMutator = ample.mutateTablets()) {
       for (TabletLocationState tls : tablets) {
         if (tls.suspend != null) {
@@ -151,5 +150,4 @@ class MetaDataStateStore implements TabletStateStore {
   public String name() {
     return "Normal Tablets";
   }
-
 }

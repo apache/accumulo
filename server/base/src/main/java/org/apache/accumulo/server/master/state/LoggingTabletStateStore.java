@@ -52,7 +52,6 @@ class LoggingTabletStateStore implements TabletStateStore {
       throws DistributedStoreException {
     wrapped.setFutureLocations(assignments);
     assignments.forEach(assignment -> TabletLogger.assigned(assignment.tablet, assignment.server));
-
   }
 
   @Override

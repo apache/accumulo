@@ -105,7 +105,6 @@ class ZooTabletStateStore implements TabletStateStore {
   @Override
   public void setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
-
     if (assignments.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     Assignment assignment = assignments.iterator().next();
