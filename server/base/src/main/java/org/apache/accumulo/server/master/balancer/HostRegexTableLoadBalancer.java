@@ -350,10 +350,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = splitCurrentByRegex(current);
     // group the unassigned into tables
     Map<TableId,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
-    unassigned.forEach((keyExtent, tServerInstance) -> {
-      groupedUnassigned.computeIfAbsent(keyExtent.tableId(), p -> new HashMap<>()).put(keyExtent,
-          tServerInstance);
-    });
+    unassigned.forEach((ke, lastTserver) -> groupedUnassigned
+        .computeIfAbsent(ke.tableId(), k -> new HashMap<>()).put(ke, lastTserver));
 
     Map<TableId,String> tableIdToTableName = createdTableNameMap(getTableOperations().tableIdMap());
 

@@ -271,14 +271,12 @@ public class DefaultLoadBalancerTest {
     if (expectedCounts != null) {
       for (FakeTServer server : servers.values()) {
         Map<String,Integer> counts = new HashMap<>();
-        for (var extent : server.extents) {
+        server.extents.forEach(extent -> {
           String t = extent.tableId().canonical();
           counts.putIfAbsent(t, 0);
           counts.put(t, counts.get(t) + 1);
-        }
-        for (var entry : counts.entrySet()) {
-          assertEquals(expectedCounts.get(entry.getKey()), counts.get(entry.getKey()));
-        }
+        });
+        counts.forEach((k, v) -> assertEquals(expectedCounts.get(k), v));
       }
     }
   }

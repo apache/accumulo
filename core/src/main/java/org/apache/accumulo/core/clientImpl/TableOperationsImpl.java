@@ -1791,11 +1791,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       if (groupedByRanges == null) {
         Map<Range,List<TabletId>> tmp = new HashMap<>();
 
-        groupedByTablets.forEach((table, rangeList) -> {
-          for (Range range : rangeList) {
-            tmp.computeIfAbsent(range, k -> new ArrayList<>()).add(table);
-          }
-        });
+        groupedByTablets.forEach((tabletId, rangeList) -> rangeList
+            .forEach(range -> tmp.computeIfAbsent(range, k -> new ArrayList<>()).add(tabletId)));
 
         Map<Range,List<TabletId>> tmp2 = new HashMap<>();
         for (Entry<Range,List<TabletId>> entry : tmp.entrySet()) {

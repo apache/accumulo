@@ -115,9 +115,7 @@ public class IterConfigUtil {
       } else if (suffixSplit.length == 3 && suffixSplit[1].equals("opt")) {
         String iterName = suffixSplit[0];
         String optName = suffixSplit[2];
-
         allOptions.computeIfAbsent(iterName, k -> new HashMap<>()).put(optName, entry.getValue());
-
       } else {
         throw new IllegalArgumentException("Invalid iterator format: " + entry.getKey());
       }
