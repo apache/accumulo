@@ -171,13 +171,6 @@ public final class HostAndPort implements Serializable {
       // JDK7 accepts leading plus signs. We don't want to.
       checkArgument(!portString.startsWith("+"), "Unparseable port number: %s", hostPortString);
       try {
-        // Switching the tabletStateStores to Ample causes the portString to contain more than just
-        // the port number.
-        // This is to ensure that we only grab the port number.
-        if (portString.contains("[")) {
-          int endIndex = portString.indexOf("[");
-          portString = portString.substring(0, endIndex);
-        }
         port = Integer.parseInt(portString);
       } catch (NumberFormatException e) {
         throw new IllegalArgumentException("Unparseable port number: " + hostPortString);

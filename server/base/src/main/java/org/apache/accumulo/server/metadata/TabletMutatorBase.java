@@ -42,6 +42,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.master.state.SuspendingTServer;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -208,7 +209,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.put(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
         SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier(),
-        new Value(tServer + "|" + suspensionTime));
+        SuspendingTServer.toValue(tServer.getLocation(), suspensionTime));
     return this;
   }
 

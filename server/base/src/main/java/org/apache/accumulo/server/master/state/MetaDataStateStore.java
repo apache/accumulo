@@ -55,9 +55,9 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
-    try {
+    try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
-        TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
+        TabletMutator tabletMutator = tabletsMutator.mutateTablet(assignment.tablet);
         tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
         tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
         tabletMutator.mutate();
@@ -70,9 +70,9 @@ class MetaDataStateStore implements TabletStateStore {
   @Override
   public void setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
-    try {
+    try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
-        TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
+        TabletMutator tabletMutator = tabletsMutator.mutateTablet(assignment.tablet);
         tabletMutator.deleteSuspension();
         tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
         tabletMutator.mutate();
