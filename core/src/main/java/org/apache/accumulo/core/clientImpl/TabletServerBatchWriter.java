@@ -509,6 +509,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       synchronized (this) {
         somethingFailed = true;
+        // add these authorizationFailures to those collected by this batch writer
         authorizationFailures.forEach((ke, code) -> this.authorizationFailures
             .computeIfAbsent(ke, k -> new HashSet<>()).add(code));
         this.notifyAll();
