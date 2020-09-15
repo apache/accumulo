@@ -123,6 +123,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     start(server, Collections.emptyMap(), Integer.MAX_VALUE);
   }
 
+  @SuppressWarnings("removal")
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
       throws IOException {
     if (limit <= 0) {
@@ -141,6 +142,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case MASTER:
+      case MANAGER:
         if (masterProcess == null) {
           masterProcess = cluster._exec(Master.class, server, configOverrides).getProcess();
         }
@@ -182,9 +184,11 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public synchronized void stop(ServerType server, String hostname) throws IOException {
     switch (server) {
       case MASTER:
+      case MANAGER:
         if (masterProcess != null) {
           try {
             cluster.stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
@@ -287,11 +291,13 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     throw new UnsupportedOperationException();
   }
 
+  @SuppressWarnings("removal")
   public void killProcess(ServerType type, ProcessReference procRef)
       throws ProcessNotFoundException, InterruptedException {
     boolean found = false;
     switch (type) {
       case MASTER:
+      case MANAGER:
         if (procRef.getProcess().equals(masterProcess)) {
           try {
             cluster.stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);

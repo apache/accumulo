@@ -198,7 +198,7 @@ public class MiniAccumuloRunner {
       setMemoryOnConfig(config, opts.prop.getProperty(TSERVER_MEMORY_PROP),
           ServerType.TABLET_SERVER);
     if (opts.prop.containsKey(MASTER_MEMORY_PROP))
-      setMemoryOnConfig(config, opts.prop.getProperty(MASTER_MEMORY_PROP), ServerType.MASTER);
+      setMemoryOnConfig(config, opts.prop.getProperty(MASTER_MEMORY_PROP), ServerType.MANAGER);
     if (opts.prop.containsKey(DEFAULT_MEMORY_PROP))
       setMemoryOnConfig(config, opts.prop.getProperty(DEFAULT_MEMORY_PROP));
     if (opts.prop.containsKey(SHUTDOWN_PORT_PROP))

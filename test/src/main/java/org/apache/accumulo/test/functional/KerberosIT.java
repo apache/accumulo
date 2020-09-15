@@ -538,10 +538,10 @@ public class KerberosIT extends AccumuloITBase {
         });
 
     log.info("Stopping master");
-    mac.getClusterControl().stop(ServerType.MASTER);
+    mac.getClusterControl().stop(ServerType.MANAGER);
     Thread.sleep(5000);
     log.info("Restarting master");
-    mac.getClusterControl().start(ServerType.MASTER);
+    mac.getClusterControl().start(ServerType.MANAGER);
 
     // Make sure our original token is still good
     root.doAs((PrivilegedExceptionAction<Void>) () -> {
