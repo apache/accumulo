@@ -185,7 +185,8 @@ public class MergeStateIT extends ConfigurableMacBase {
       m = TabletColumnFamily.createPrevRowMutation(tablet);
       TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
       update(accumuloClient, m);
-      metaDataStateStore.setLocation(new Assignment(tablet, state.someTServer), null);
+      metaDataStateStore
+          .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
 
       // onos... there's a new tablet online
       stats = scan(state, metaDataStateStore);

@@ -48,17 +48,17 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocation(Assignment assignment) throws DistributedStoreException {
-    wrapped.setFutureLocation(assignment);
-    TabletLogger.assigned(assignment.tablet, assignment.server);
+  public void setFutureLocations(Collection<Assignment> assignments)
+      throws DistributedStoreException {
+    wrapped.setFutureLocations(assignments);
+    assignments.forEach(assignment -> TabletLogger.assigned(assignment.tablet, assignment.server));
 
   }
 
   @Override
-  public void setLocation(Assignment assignment, TServerInstance prevLastLoc)
-      throws DistributedStoreException {
-    wrapped.setLocation(assignment, prevLastLoc);
-    TabletLogger.loaded(assignment.tablet, assignment.server);
+  public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
+    wrapped.setLocations(assignments);
+    assignments.forEach(assignment -> TabletLogger.loaded(assignment.tablet, assignment.server));
   }
 
   @Override

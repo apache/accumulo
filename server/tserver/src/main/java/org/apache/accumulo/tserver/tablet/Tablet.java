@@ -2138,8 +2138,9 @@ public class Tablet {
       }
 
       return MasterMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
-          newDatafile, dfv, tabletTime.getMetadataTime(persistedTime), tabletServer.getLock(),
-          unusedWalLogs, flushId);
+          newDatafile, dfv, tabletTime.getMetadataTime(persistedTime),
+          tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs,
+          lastLocation, flushId);
     }
 
   }

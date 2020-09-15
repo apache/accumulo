@@ -54,33 +54,29 @@ class MetaDataStateStore implements TabletStateStore {
     return new MetaDataTableScanner(context, TabletsSection.getRange(), state, targetTableName);
   }
 
-  public void setLocation(Assignment assignment, TServerInstance prevLastLoc)
-      throws DistributedStoreException {
+  public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     try {
-      TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-      tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
-      tabletMutator.putLocation(assignment.server, LocationType.LAST);
-      tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
-
-      // remove the old location
-      if (prevLastLoc != null && !prevLastLoc.equals(assignment.server)) {
-        tabletMutator.deleteLocation(prevLastLoc, LocationType.LAST);
+      for (Assignment assignment : assignments) {
+        TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
+        tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
+        tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
+        tabletMutator.mutate();
       }
-
-      tabletMutator.mutate();
     } catch (Exception ex) {
       throw new DistributedStoreException(ex);
     }
   }
 
   @Override
-  public void setFutureLocation(Assignment assignment) throws DistributedStoreException {
+  public void setFutureLocations(Collection<Assignment> assignments)
+      throws DistributedStoreException {
     try {
-      TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-      tabletMutator.deleteSuspension();
-      tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
-      tabletMutator.mutate();
-
+      for (Assignment assignment : assignments) {
+        TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
+        tabletMutator.deleteSuspension();
+        tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
+        tabletMutator.mutate();
+      }
     } catch (Exception ex) {
       throw new DistributedStoreException(ex);
     }

@@ -871,9 +871,7 @@ abstract class TabletGroupWatcher extends Daemon {
 
     if (!assignments.isEmpty()) {
       Master.log.info(String.format("Assigning %d tablets", assignments.size()));
-
-      for (Assignment assignment : assignments)
-        store.setFutureLocation(assignment);
+      store.setFutureLocations(assignments);
     }
     assignments.addAll(assigned);
     for (Assignment a : assignments) {

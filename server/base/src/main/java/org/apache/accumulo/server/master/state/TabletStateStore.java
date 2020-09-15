@@ -48,13 +48,12 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
   /**
    * Store the assigned locations in the data store.
    */
-  void setFutureLocation(Assignment assignment) throws DistributedStoreException;
+  void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException;
 
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online
    */
-  void setLocation(Assignment assignment, TServerInstance prevLastLoc)
-      throws DistributedStoreException;
+  void setLocations(Collection<Assignment> assignments) throws DistributedStoreException;
 
   /**
    * Mark the tablets as having no known or future location.
@@ -93,9 +92,10 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
         logsForDeadServers, suspensionTimestamp);
   }
 
-  public static void setLocation(ServerContext context, Assignment assignment,
-      TServerInstance prevLastLoc) throws DistributedStoreException {
-    getStoreForTablet(assignment.tablet, context).setLocation(assignment, prevLastLoc);
+  public static void setLocation(ServerContext context, Assignment assignment)
+      throws DistributedStoreException {
+    getStoreForTablet(assignment.tablet, context)
+        .setLocations(Collections.singletonList(assignment));
   }
 
   static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {
