@@ -464,11 +464,9 @@ public class BulkImporter {
       failures.forEach(ke -> {
         List<PathSize> mapFiles = assignmentsPerTablet.get(ke);
         synchronized (assignmentFailures) {
-          mapFiles.forEach(pathSize -> {
-            assignmentFailures.computeIfAbsent(pathSize.path, k -> new ArrayList<>()).add(ke);
-          });
+          mapFiles.forEach(pathSize -> assignmentFailures
+              .computeIfAbsent(pathSize.path, k -> new ArrayList<>()).add(ke));
         }
-
         log.info("Could not assign {} map files to tablet {} because : {}.  Will retry ...",
             mapFiles.size(), ke, message);
       });
@@ -514,13 +512,10 @@ public class BulkImporter {
 
     // group assignments by tablet
     Map<KeyExtent,List<PathSize>> assignmentsPerTablet = new TreeMap<>();
-
-    assignments.forEach((mapFile, tabletsToAssignMapFileTo) -> {
-      tabletsToAssignMapFileTo.forEach(ai -> {
-        assignmentsPerTablet.computeIfAbsent(ai.ke, k -> new ArrayList<>())
-            .add(new PathSize(mapFile, ai.estSize));
-      });
-    });
+    assignments.forEach((mapFile, tabletsToAssignMapFileTo) -> tabletsToAssignMapFileTo
+        .forEach(assignmentInfo -> assignmentsPerTablet
+            .computeIfAbsent(assignmentInfo.ke, k -> new ArrayList<>())
+            .add(new PathSize(mapFile, assignmentInfo.estSize))));
 
     // group assignments by tabletserver
 
@@ -528,27 +523,21 @@ public class BulkImporter {
 
     TreeMap<String,Map<KeyExtent,List<PathSize>>> assignmentsPerTabletServer = new TreeMap<>();
 
-    for (Entry<KeyExtent,List<PathSize>> entry : assignmentsPerTablet.entrySet()) {
-      KeyExtent ke = entry.getKey();
+    assignmentsPerTablet.forEach((ke, pathSizes) -> {
       String location = locations.get(ke);
-
       if (location == null) {
-        for (PathSize pathSize : entry.getValue()) {
-          synchronized (assignmentFailures) {
-            assignmentFailures.computeIfAbsent(pathSize.path, k -> new ArrayList<>()).add(ke);
-          }
+        synchronized (assignmentFailures) {
+          pathSizes.forEach(pathSize -> assignmentFailures
+              .computeIfAbsent(pathSize.path, k -> new ArrayList<>()).add(ke));
         }
-
         log.warn(
             "Could not assign {} map files to tablet {} because it had no location, will retry ...",
-            entry.getValue().size(), ke);
-
-        continue;
+            pathSizes.size(), ke);
+      } else {
+        assignmentsPerTabletServer.computeIfAbsent(location, k -> new TreeMap<>()).put(ke,
+            pathSizes);
       }
-
-      assignmentsPerTabletServer.computeIfAbsent(location, k -> new TreeMap<>()).put(entry.getKey(),
-          entry.getValue());
-    }
+    });
 
     ExecutorService threadPool =
         Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("submit"));

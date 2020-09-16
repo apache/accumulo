@@ -294,7 +294,6 @@ public class TabletLocatorImplTest {
       String row = (String) ol[0];
       String server = (String) ol[1];
       KeyExtent ke = (KeyExtent) ol[2];
-
       emb.computeIfAbsent(server, k -> new HashMap<>()).computeIfAbsent(ke, k -> new ArrayList<>())
           .add(row);
     }
@@ -517,12 +516,8 @@ public class TabletLocatorImplTest {
   static void createEmptyTablet(TServers tservers, String server, KeyExtent tablet) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets =
         tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
-
-    SortedMap<Key,Value> tabletData = tablets.get(tablet);
-    if (tabletData == null) {
-      tabletData = new TreeMap<>();
-      tablets.put(tablet, tabletData);
-    } else if (!tabletData.isEmpty()) {
+    SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
+    if (!tabletData.isEmpty()) {
       throw new RuntimeException("Asked for empty tablet, but non empty tablet exists");
     }
   }
@@ -549,7 +544,6 @@ public class TabletLocatorImplTest {
       String location, String instance) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets =
         tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
-
     SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
 
     Text mr = ke.toMetaRow();

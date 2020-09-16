@@ -509,17 +509,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       synchronized (this) {
         somethingFailed = true;
-        mergeAuthorizationFailures(this.authorizationFailures, authorizationFailures);
+        // add these authorizationFailures to those collected by this batch writer
+        authorizationFailures.forEach((ke, code) -> this.authorizationFailures
+            .computeIfAbsent(ke, k -> new HashSet<>()).add(code));
         this.notifyAll();
       }
     }
-  }
-
-  private void mergeAuthorizationFailures(Map<KeyExtent,Set<SecurityErrorCode>> source,
-      Map<KeyExtent,SecurityErrorCode> addition) {
-    addition.forEach((ke, sec) -> {
-      source.computeIfAbsent(ke, p -> new HashSet<>()).add(sec);
-    });
   }
 
   private synchronized void updateServerErrors(String server, Exception e) {
