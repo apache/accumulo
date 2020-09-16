@@ -115,8 +115,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
-  // effectively an 8MB batch size, since this number is the number of Chars
-  public static final long CANDIDATE_BATCH_SIZE = 4_000_000;
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
@@ -152,7 +150,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
     log.info("safemode: {}", inSafeMode());
-    log.info("candidate batch size: {} bytes", CANDIDATE_BATCH_SIZE);
+    log.info("candidate batch size: {} bytes", getCandidateBatchSize());
     log.info("delete threads: {}", getNumDeleteThreads());
     log.info("gc post metadata action: {}", useFullCompaction);
   }
@@ -185,6 +183,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   /**
+   * Gets the batch size for garbage collecting.
+   *
+   * @return candidate batch size.
+   */
+  long getCandidateBatchSize() {
+    return getConfiguration().getCount(Property.GC_CANDIDATE_BATCH_SIZE);
+  }
+
+  /**
    * Checks if safemode is set - files will not be deleted.
    *
    * @return number of delete threads
@@ -207,6 +214,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
       Iterator<String> candidates = getContext().getAmple().getGcCandidates(level, continuePoint);
       long candidateLength = 0;
+      long candidateBatchSize = getCandidateBatchSize();
 
       result.clear();
 
@@ -214,7 +222,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         String candidate = candidates.next();
         candidateLength += candidate.length();
         result.add(candidate);
-        if (candidateLength > CANDIDATE_BATCH_SIZE) {
+        if (candidateLength > candidateBatchSize) {
           log.info(
               "Candidate batch of size {} has exceeded the"
                   + " threshold. Attempting to delete what has been gathered so far.",
