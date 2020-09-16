@@ -57,12 +57,11 @@ class MetaDataStateStore implements TabletStateStore {
   public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
-        TabletMutator tabletMutator = tabletsMutator.mutateTablet(assignment.tablet);
-        tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
-        tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
-        tabletMutator.mutate();
+        tabletsMutator.mutateTablet(assignment.tablet)
+            .putLocation(assignment.server, LocationType.CURRENT)
+            .deleteLocation(assignment.server, LocationType.FUTURE).deleteSuspension().mutate();
       }
-    } catch (Exception ex) {
+    } catch (RuntimeException ex) {
       throw new DistributedStoreException(ex);
     }
   }
@@ -72,12 +71,10 @@ class MetaDataStateStore implements TabletStateStore {
       throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
-        TabletMutator tabletMutator = tabletsMutator.mutateTablet(assignment.tablet);
-        tabletMutator.deleteSuspension();
-        tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
-        tabletMutator.mutate();
+        tabletsMutator.mutateTablet(assignment.tablet).deleteSuspension()
+            .putLocation(assignment.server, LocationType.FUTURE).mutate();
       }
-    } catch (Exception ex) {
+    } catch (RuntimeException ex) {
       throw new DistributedStoreException(ex);
     }
   }
@@ -125,7 +122,7 @@ class MetaDataStateStore implements TabletStateStore {
         }
         tabletMutator.mutate();
       }
-    } catch (Exception ex) {
+    } catch (RuntimeException ex) {
       throw new DistributedStoreException(ex);
     }
   }
@@ -137,11 +134,9 @@ class MetaDataStateStore implements TabletStateStore {
         if (tls.suspend != null) {
           continue;
         }
-        TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
-        tabletMutator.deleteSuspension();
-        tabletMutator.mutate();
+        tabletsMutator.mutateTablet(tls.extent).deleteSuspension().mutate();
       }
-    } catch (Exception ex) {
+    } catch (RuntimeException ex) {
       throw new DistributedStoreException(ex);
     }
   }
