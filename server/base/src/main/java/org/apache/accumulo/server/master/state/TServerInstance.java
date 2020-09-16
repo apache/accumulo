@@ -25,12 +25,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -83,30 +79,6 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
     this(location.getHostAndPort(), location.getSession());
   }
 
-  public void putLocation(Mutation m) {
-    m.put(CurrentLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
-  }
-
-  public void putFutureLocation(Mutation m) {
-    m.put(FutureLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
-  }
-
-  public void putLastLocation(Mutation m) {
-    m.put(LastLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
-  }
-
-  public void clearLastLocation(Mutation m) {
-    m.putDelete(LastLocationColumnFamily.NAME, asColumnQualifier());
-  }
-
-  public void clearFutureLocation(Mutation m) {
-    m.putDelete(FutureLocationColumnFamily.NAME, asColumnQualifier());
-  }
-
-  public void clearLocation(Mutation m) {
-    m.putDelete(CurrentLocationColumnFamily.NAME, asColumnQualifier());
-  }
-
   @Override
   public int compareTo(TServerInstance other) {
     if (this == other)
@@ -138,14 +110,6 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
 
   public String hostPort() {
     return getLocation().toString();
-  }
-
-  private Text asColumnQualifier() {
-    return new Text(this.getSession());
-  }
-
-  private Value asMutationValue() {
-    return new Value(getLocation().toString());
   }
 
   @Override
