@@ -80,15 +80,11 @@ public class LogEntry {
   public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
     final Key key = entry.getKey();
     final Value value = entry.getValue();
-    String qualifier = key.getColumnQualifierData().toString();
-    if (qualifier.indexOf('/') < 1) {
-      throw new IllegalArgumentException("Bad key for log entry: " + key);
-    }
     KeyExtent extent = KeyExtent.fromMetaRow(key.getRow());
-    String[] parts = qualifier.split("/", 2);
-    // parts[0] used to store the server, but that is no longer used and can be ignored
-    // handle old-style log entries that specify log sets
-    parts = value.toString().split("\\|")[0].split(";");
+    // qualifier.split("/")[0] used to store the server, but this is no longer used, and the
+    // qualifier can be ignored
+    // the following line handles old-style log entry values that specify log sets
+    String[] parts = value.toString().split("\\|")[0].split(";");
     String filename = parts[parts.length - 1];
     long timestamp = key.getTimestamp();
     return new LogEntry(extent, timestamp, filename);
