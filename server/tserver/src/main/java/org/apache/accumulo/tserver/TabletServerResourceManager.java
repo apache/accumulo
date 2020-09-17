@@ -36,6 +36,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -43,7 +45,11 @@ import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -52,6 +58,8 @@ import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
 import org.apache.accumulo.server.tabletserver.MemoryManager;
 import org.apache.accumulo.server.tabletserver.TabletState;
 import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.TabletServer.AssignmentHandler;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
@@ -450,7 +458,23 @@ public class TabletServerResourceManager {
 
         } catch (Throwable t) {
           log.error("Memory manager failed {}", t.getMessage(), t);
+
+          // treat error as unrecoverable - get zookeeper and delete server lock to kill instance.
+          try {
+
+            final Instance instance = conf.getInstance();
+
+            ZooReaderWriterFactory zf = new ZooReaderWriterFactory();
+
+            // this would not work, need the real auth token - but for illustration...
+            IZooReaderWriter zoo = zf.getZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(),
+                conf.getConfiguration().get("Secret"));
+            zoo.delete("path-to-server_lock", -1);
+          }catch(Exception ex){
+            // do something....
+          }
         }
+
 
         try {
           if (mma != null && mma.tabletsToMinorCompact != null
