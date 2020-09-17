@@ -568,6 +568,8 @@ public enum Property {
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector."),
+  GC_CANDIDATE_BATCH_SIZE("gc.candidate.batch.size", "8M", PropertyType.BYTES,
+      "The batch size used for garbage collection."),
   GC_CYCLE_START("gc.cycle.start", "30s", PropertyType.TIMEDURATION,
       "Time to wait before attempting to garbage collect any old RFiles or write-ahead logs."),
   GC_CYCLE_DELAY("gc.cycle.delay", "5m", PropertyType.TIMEDURATION,
