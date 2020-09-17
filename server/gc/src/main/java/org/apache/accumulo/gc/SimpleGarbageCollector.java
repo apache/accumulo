@@ -188,7 +188,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
    * @return candidate batch size.
    */
   long getCandidateBatchSize() {
-    return getConfiguration().getCount(Property.GC_CANDIDATE_BATCH_SIZE);
+    return getConfiguration().getAsBytes(Property.GC_CANDIDATE_BATCH_SIZE);
   }
 
   /**
@@ -214,7 +214,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
       Iterator<String> candidates = getContext().getAmple().getGcCandidates(level, continuePoint);
       long candidateLength = 0;
-      long candidateBatchSize = getCandidateBatchSize();
+      // Converting the bytes to approximate number of characters for batch size.
+      long candidateBatchSize = getCandidateBatchSize() / 2;
 
       result.clear();
 
