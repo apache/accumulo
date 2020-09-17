@@ -671,7 +671,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return logKeyData(key, durability);
   }
 
-  public String getLogger() {
+  private String getLogger() {
     String[] parts = logPath.split("/");
     return Joiner.on(":").join(parts[parts.length - 2].split("[+]"));
   }

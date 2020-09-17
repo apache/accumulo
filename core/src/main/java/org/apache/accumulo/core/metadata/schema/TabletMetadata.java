@@ -289,11 +289,11 @@ public class TabletMetadata {
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
-      Entry<Key,Value> kv = rowIter.next();
-      Key key = kv.getKey();
-      String val = kv.getValue().toString();
-      String fam = key.getColumnFamilyData().toString();
-      String qual = key.getColumnQualifierData().toString();
+      final Entry<Key,Value> kv = rowIter.next();
+      final Key key = kv.getKey();
+      final String val = kv.getValue().toString();
+      final String fam = key.getColumnFamilyData().toString();
+      final String qual = key.getColumnQualifierData().toString();
 
       if (buildKeyValueMap) {
         kvBuilder.put(key, kv.getValue());
@@ -366,7 +366,7 @@ public class TabletMetadata {
           te.cloned = val;
           break;
         case LogColumnFamily.STR_NAME:
-          logsBuilder.add(LogEntry.fromKeyValue(key, val));
+          logsBuilder.add(LogEntry.fromMetaWalEntry(kv));
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);

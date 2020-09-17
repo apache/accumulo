@@ -104,8 +104,7 @@ class MetaDataStateStore implements TabletStateStore {
             List<Path> logs = logsForDeadServers.get(tls.current);
             if (logs != null) {
               for (Path log : logs) {
-                LogEntry entry =
-                    new LogEntry(tls.extent, 0, tls.current.hostPort(), log.toString());
+                LogEntry entry = new LogEntry(tls.extent, 0, log.toString());
                 tabletMutator.putWal(entry);
               }
             }

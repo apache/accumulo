@@ -275,9 +275,10 @@ public class Upgrader9to10 implements Upgrader {
         result.clear();
         for (String child : zoo.getChildren(root)) {
           try {
+            @SuppressWarnings("removal")
             LogEntry e = LogEntry.fromBytes(zoo.getData(root + "/" + child, null));
             // upgrade from !0;!0<< -> +r<<
-            e = new LogEntry(RootTable.EXTENT, 0, e.server, e.filename);
+            e = new LogEntry(RootTable.EXTENT, 0, e.filename);
             result.add(e);
           } catch (KeeperException.NoNodeException ex) {
             // TODO I think this is a bug, probably meant to continue to while loop... was probably

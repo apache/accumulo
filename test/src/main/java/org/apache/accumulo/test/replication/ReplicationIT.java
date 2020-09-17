@@ -781,7 +781,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         s.setRange(TabletsSection.getRange(tableId));
         Set<String> wals = new HashSet<>();
         for (Entry<Key,Value> entry : s) {
-          LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
+          LogEntry logEntry = LogEntry.fromMetaWalEntry(entry);
           wals.add(new Path(logEntry.filename).toString());
         }
 
