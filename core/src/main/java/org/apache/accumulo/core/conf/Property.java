@@ -347,7 +347,7 @@ public enum Property {
       "When a tablet server has more than this many write ahead logs, any tablet referencing older "
           + "logs over this threshold is minor compacted.  Also any tablet referencing this many "
           + "logs or more will be compacted."),
-  TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1g", PropertyType.BYTES,
+  TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1G", PropertyType.BYTES,
       "The maximum size for each write-ahead log. See comment for property"
           + " tserver.memory.maps.max"),
   TSERV_WALOG_MAX_AGE("tserver.walog.max.age", "24h", PropertyType.TIMEDURATION,
@@ -553,11 +553,11 @@ public enum Property {
           + " debugging information will be written."),
   TSERV_SUMMARY_PARTITION_THREADS("tserver.summary.partition.threads", "10", PropertyType.COUNT,
       "Summary data must be retrieved from RFiles. For a large number of"
-          + " RFiles, the files are broken into partitions of 100K files. This setting"
-          + " determines how many of these groups of 100K RFiles will be processed"
+          + " RFiles, the files are broken into partitions of 100k files. This setting"
+          + " determines how many of these groups of 100k RFiles will be processed"
           + " concurrently."),
   TSERV_SUMMARY_REMOTE_THREADS("tserver.summary.remote.threads", "128", PropertyType.COUNT,
-      "For a partitioned group of 100K RFiles, those files are grouped by"
+      "For a partitioned group of 100k RFiles, those files are grouped by"
           + " tablet server. Then a remote tablet server is asked to gather summary"
           + " data. This setting determines how many concurrent request are made per"
           + " partition."),
@@ -685,7 +685,7 @@ public enum Property {
           + " place for tablets that have one or more RFiles."),
   TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.BYTES,
       "A tablet is split when the combined size of RFiles exceeds this amount."),
-  TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10K", PropertyType.BYTES,
+  TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row"),
   @Deprecated(since = "2.0.0")
   @ReplacedBy(property = Property.TSERV_WALOG_MAX_REFERENCED)
@@ -728,7 +728,7 @@ public enum Property {
           + " table.  The metadata table always dispatches to a scan executor named `meta`."),
   TABLE_SCAN_DISPATCHER_OPTS("table.scan.dispatcher.opts.", null, PropertyType.PREFIX,
       "Options for the table scan dispatcher"),
-  TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.BYTES,
+  TABLE_SCAN_MAXMEM("table.scan.max.memory", "512k", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client."),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.STRING,
@@ -740,9 +740,9 @@ public enum Property {
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING,
       "Compression algorithm used on index and data blocks before they are"
           + " written. Possible values: zstd, gz, snappy, lzo, none"),
-  TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.BYTES,
+  TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100k", PropertyType.BYTES,
       "The maximum size of data blocks in RFiles before they are compressed and written."),
-  TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128K",
+  TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128k",
       PropertyType.BYTES,
       "The maximum size of index blocks in RFiles before they are compressed and written."),
   TABLE_FILE_BLOCK_SIZE("table.file.blocksize", "0B", PropertyType.BYTES,
@@ -758,7 +758,7 @@ public enum Property {
           + " it default to tserver.scan.files.open.max-1, this will prevent a tablet"
           + " from having more RFiles than can be opened. Setting this property low may"
           + " throttle ingest and increase query performance."),
-  TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256K", PropertyType.BYTES,
+  TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256k", PropertyType.BYTES,
       "The maximum size summary that will be stored. The number of RFiles that"
           + " had summary data exceeding this threshold is reported by"
           + " Summary.getFileStatistics().getLarge(). When adjusting this consider the"
