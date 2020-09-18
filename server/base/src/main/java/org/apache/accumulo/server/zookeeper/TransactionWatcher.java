@@ -137,33 +137,35 @@ public class TransactionWatcher {
     try {
       if (!arbitrator.transactionAlive(ztxBulk, tid)) {
         log.debug("Transaction " + tid + " of type " + ztxBulk + " is no longer active.");
+        l.unlock();
         return;
       }
     } catch (Exception e) {
       log.warn("Unable to check if transaction " + tid + " of type " + ztxBulk + " is alive ", e);
+      l.unlock();
       return;
     }
-    increment(tid);
+
     try {
+      increment(tid);
       task.run();
     } finally {
       decrement(tid);
-      l.lock();
+      l.unlock();
     }
 
   }
 
   public <T> T run(String ztxBulk, long tid, Callable<T> callable) throws Exception {
     Lock l = stripedLocks.get(tid);
-    l.lock();
 
     if (!arbitrator.transactionAlive(ztxBulk, tid)) {
       throw new Exception("Transaction " + tid + " of type " + ztxBulk + " is no longer active");
     }
-    increment(tid);
 
+    l.lock();
     try {
-
+      increment(tid);
       return callable.call();
 
     } finally {
