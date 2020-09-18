@@ -596,6 +596,20 @@ public class CompactionIT extends SharedMiniClusterBase {
     }
   }
 
+  @Test
+  public void testCompactionSelector() throws Exception {
+
+
+
+
+
+
+  }
+
+
+
+
+
   private Map<String,String> scanTable(AccumuloClient client, String tableName)
       throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     Map<String,String> actual = new TreeMap<>();
