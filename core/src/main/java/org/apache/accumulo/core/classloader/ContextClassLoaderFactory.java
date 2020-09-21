@@ -44,6 +44,7 @@ public class ContextClassLoaderFactory {
    * Return the ClassLoader for the given contextName
    *
    * @param contextName
+   *          name
    * @return ClassLoader for contextName
    * @throws RuntimeException
    *           if contextName not configured
@@ -72,6 +73,7 @@ public class ContextClassLoaderFactory {
    * Initialize the ContextClassLoaderFactory
    *
    * @param conf
+   *          AccumuloConfiguration object
    */
   public static void initialize(AccumuloConfiguration conf) {
     if (null == CONF) {
