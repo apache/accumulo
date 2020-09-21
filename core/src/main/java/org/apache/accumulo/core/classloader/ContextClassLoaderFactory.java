@@ -45,7 +45,8 @@ public class ContextClassLoaderFactory {
    *
    * @param contextName
    * @return ClassLoader for contextName
-   * @throws RuntimeException if contextName not configured
+   * @throws RuntimeException
+   *           if contextName not configured
    */
   public static ClassLoader getClassLoader(String contextName) {
     ClassLoader c = CONTEXTS.get(contextName);
@@ -54,7 +55,8 @@ public class ContextClassLoaderFactory {
         c = FACTORY.getClassLoader(contextName);
       } catch (IllegalArgumentException e) {
         LOG.error("ClassLoaderFactory is not configured for context: {}", contextName);
-        throw new RuntimeException("ClassLoaderFactory is not configured for context: " + contextName);
+        throw new RuntimeException(
+            "ClassLoaderFactory is not configured for context: " + contextName);
       }
       CONTEXTS.put(contextName, c);
     }
@@ -84,7 +86,8 @@ public class ContextClassLoaderFactory {
   /**
    * Updates the ClassLoaderFactory for context classloaders
    *
-   * @throws Exception when unable to instantiate ClassLoaderFactory 
+   * @throws Exception
+   *           when unable to instantiate ClassLoaderFactory
    */
   @SuppressWarnings("unchecked")
   public static synchronized void updateContexts() throws Exception {
@@ -104,8 +107,9 @@ public class ContextClassLoaderFactory {
           ((LegacyVFSContextClassLoaderFactory) FACTORY).initialize(CONF);
         }
       }
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException |
-        IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e1) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+        | SecurityException e1) {
       LOG.error(
           "Unable to load and initialize class: {}. Ensure that the jar containing the ClassLoaderFactory is on the classpath",
           factoryName);

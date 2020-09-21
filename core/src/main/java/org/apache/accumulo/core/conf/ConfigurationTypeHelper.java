@@ -203,7 +203,8 @@ public class ConfigurationTypeHelper {
 
     Class<? extends T> clazz;
     if (context != null && !context.isEmpty()) {
-        clazz = ContextClassLoaderFactory.getClassLoader(context).loadClass(clazzName).asSubclass(base);
+      clazz =
+          ContextClassLoaderFactory.getClassLoader(context).loadClass(clazzName).asSubclass(base);
     } else {
       clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
     }
