@@ -903,7 +903,8 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           first.toString()));
     }
 
-    return new UpdateErrors(Translator.translate(us.failures, Translators.KET),
+
+    return new UpdateErrors(Translator.translate(us.failures, Translators. KET),
         Translator.translate(violations, Translators.CVST),
         Translator.translate(us.authFailures, Translators.KET));
   }

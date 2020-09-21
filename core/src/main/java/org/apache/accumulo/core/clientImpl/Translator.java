@@ -125,7 +125,7 @@ public abstract class Translator<IT,OT> {
     private Translator<IT,OT> translator;
 
     public ListTranslator(Translator<IT,OT> translator) {
-      this.translator = translator;
+            this.translator = translator;
     }
 
     @Override

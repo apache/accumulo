@@ -68,6 +68,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.CollectionUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.htrace.wrappers.TraceRunnable;
@@ -535,19 +536,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       Map<KeyExtent,List<Range>> unscanned, MultiScanResult scanResult) {
 
     // translate returned failures, remove them from unscanned, and add them to failures
-         Map<KeyExtent, List<Range>> retFailures = scanResult.failures.entrySet().stream()
-            .collect(Collectors.toMap(
-                    entry -> new KeyExtent(entry.getKey()),
-                    entry -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
-          ));
+
+    Map<KeyExtent, List<Range>> retFailures = CollectionUtil.transformMap(scanResult.failures, KeyExtent::new,
+            (l) -> CollectionUtil.toList(l, Range::new));
 
     unscanned.keySet().removeAll(retFailures.keySet());
     failures.putAll(retFailures);
 
         // translate full scans and remove them from unscanned
-
-    Set<KeyExtent> fullScans = scanResult.fullScans.stream().map(KeyExtent::new).collect(Collectors.toSet());
-        unscanned.keySet().removeAll(fullScans);
+    Set<KeyExtent> fullScans = CollectionUtil.toSet(scanResult.fullScans, KeyExtent::new);
+           unscanned.keySet().removeAll(fullScans);
 
     // remove partial scan from unscanned
     if (scanResult.partScan != null) {
