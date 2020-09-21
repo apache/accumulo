@@ -110,6 +110,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  public List<String> getManagerLocations() {
+    return context.getMasterLocations();
+  }
+
+  @Override
   public List<String> getTabletServers() {
     ZooCache cache = context.getZooCache();
     String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;

@@ -704,21 +704,14 @@ public class MetadataTableUtil {
       getTabletEntries(SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
     TreeMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries = new TreeMap<>();
 
-    HashSet<ColumnFQ> colSet = null;
-    if (columns != null) {
-      colSet = new HashSet<>(columns);
-    }
+    HashSet<ColumnFQ> colSet = columns == null ? null : new HashSet<>(columns);
 
-    for (Entry<Key,Value> entry : tabletKeyValues.entrySet()) {
-      ColumnFQ currentKey = new ColumnFQ(entry.getKey());
-      if (columns != null && !colSet.contains(currentKey)) {
-        continue;
+    tabletKeyValues.forEach((key, val) -> {
+      ColumnFQ currentKey = new ColumnFQ(key);
+      if (columns == null || colSet.contains(currentKey)) {
+        tabletEntries.computeIfAbsent(key.getRow(), k -> new TreeMap<>()).put(currentKey, val);
       }
-
-      Text row = entry.getKey().getRow();
-
-      tabletEntries.computeIfAbsent(row, k -> new TreeMap<>()).put(currentKey, entry.getValue());
-    }
+    });
 
     return tabletEntries;
   }

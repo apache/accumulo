@@ -308,8 +308,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.addMutation(m);
     bw.close();
 
-    LogEntry logEntry = new LogEntry(new KeyExtent(tableId1, null, null),
-        System.currentTimeMillis(), "tserver", file1);
+    LogEntry logEntry =
+        new LogEntry(new KeyExtent(tableId1, null, null), System.currentTimeMillis(), file1);
 
     bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);

@@ -61,7 +61,7 @@ public class SiteConfigurationTest {
     assertEquals("DEFAULT", conf.get(Property.INSTANCE_SECRET));
     assertEquals("", conf.get(Property.INSTANCE_VOLUMES));
     assertEquals("120s", conf.get(Property.GENERAL_RPC_TIMEOUT));
-    assertEquals("1g", conf.get(Property.TSERV_WALOG_MAX_SIZE));
+    assertEquals("1G", conf.get(Property.TSERV_WALOG_MAX_SIZE));
     assertEquals("org.apache.accumulo.core.cryptoImpl.NoCryptoService",
         conf.get(Property.INSTANCE_CRYPTO_SERVICE));
   }

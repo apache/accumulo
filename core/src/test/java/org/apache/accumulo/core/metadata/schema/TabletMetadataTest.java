@@ -88,10 +88,10 @@ public class TabletMetadataTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-    LogEntry le1 = new LogEntry(extent, 55, "server1", "lf1");
+    LogEntry le1 = new LogEntry(extent, 55, "lf1");
     mutation.at().family(le1.getColumnFamily()).qualifier(le1.getColumnQualifier())
         .timestamp(le1.timestamp).put(le1.getValue());
-    LogEntry le2 = new LogEntry(extent, 57, "server1", "lf2");
+    LogEntry le2 = new LogEntry(extent, 57, "lf2");
     mutation.at().family(le2.getColumnFamily()).qualifier(le2.getColumnQualifier())
         .timestamp(le2.timestamp).put(le2.getValue());
 
@@ -123,8 +123,8 @@ public class TabletMetadataTest {
     assertEquals(HostAndPort.fromParts("server2", 8555), tm.getLast().getHostAndPort());
     assertEquals("s000", tm.getLast().getSession());
     assertEquals(LocationType.LAST, tm.getLast().getType());
-    assertEquals(Set.of(le1.getName() + " " + le1.timestamp, le2.getName() + " " + le2.timestamp),
-        tm.getLogs().stream().map(le -> le.getName() + " " + le.timestamp).collect(toSet()));
+    assertEquals(Set.of(le1.getValue() + " " + le1.timestamp, le2.getValue() + " " + le2.timestamp),
+        tm.getLogs().stream().map(le -> le.getValue() + " " + le.timestamp).collect(toSet()));
     assertEquals(extent.prevEndRow(), tm.getPrevEndRow());
     assertEquals(extent.tableId(), tm.getTableId());
     assertTrue(tm.sawPrevEndRow());

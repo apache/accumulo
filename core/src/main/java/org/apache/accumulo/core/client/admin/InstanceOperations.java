@@ -60,28 +60,35 @@ public interface InstanceOperations {
   void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException;
 
   /**
+   * Retrieve the system-wide configuration.
    *
    * @return A map of system properties set in zookeeper. If a property is not set in zookeeper,
    *         then it will return the value set in accumulo.properties on some server. If nothing is
    *         set in an accumulo.properties file it will return the default value for each property.
    */
-
   Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException;
 
   /**
+   * Retrieve the site configuration (that set in the server configuration file).
    *
    * @return A map of system properties set in accumulo.properties on some server. If nothing is set
    *         in an accumulo.properties file it will return the default value for each property.
    */
-
   Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Returns the location(s) of the accumulo manager and any redundant servers.
+   *
+   * @return a list of locations in <code>hostname:port</code> form.
+   * @since 2.1.0
+   */
+  List<String> getManagerLocations();
 
   /**
    * List the currently active tablet servers participating in the accumulo instance
    *
    * @return A list of currently active tablet servers.
    */
-
   List<String> getTabletServers();
 
   /**
@@ -91,7 +98,6 @@ public interface InstanceOperations {
    *          The tablet server address should be of the form {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
    */
-
   List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException;
 
@@ -103,7 +109,6 @@ public interface InstanceOperations {
    * @return the list of active compactions
    * @since 1.5.0
    */
-
   List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException;
 

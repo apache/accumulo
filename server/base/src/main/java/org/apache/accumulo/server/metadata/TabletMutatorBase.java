@@ -34,6 +34,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.La
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.master.state.SuspendingTServer;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -199,6 +201,23 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   public Ample.TabletMutator putChopped() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     ChoppedColumnFamily.CHOPPED_COLUMN.put(mutation, new Value("chopped"));
+    return this;
+  }
+
+  @Override
+  public Ample.TabletMutator putSuspension(Ample.TServer tServer, long suspensionTime) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.put(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
+        SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier(),
+        SuspendingTServer.toValue(tServer.getLocation(), suspensionTime));
+    return this;
+  }
+
+  @Override
+  public Ample.TabletMutator deleteSuspension() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.putDelete(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
+        SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier());
     return this;
   }
 
