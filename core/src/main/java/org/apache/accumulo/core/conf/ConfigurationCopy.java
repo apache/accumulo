@@ -20,6 +20,7 @@ package org.apache.accumulo.core.conf;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
@@ -49,9 +50,17 @@ public class ConfigurationCopy extends AccumuloConfiguration {
    *          configuration property iterable to use for copying
    */
   public ConfigurationCopy(Iterable<Entry<String,String>> config) {
-    for (Entry<String,String> entry : config) {
-      copy.put(entry.getKey(), entry.getValue());
-    }
+    this(config.iterator());
+  }
+
+  /**
+   * Creates a new configuration.
+   *
+   * @param config
+   *          configuration property iterator to use for copying
+   */
+  public ConfigurationCopy(Iterator<Entry<String,String>> config) {
+    config.forEachRemaining(e -> copy.put(e.getKey(), e.getValue()));
   }
 
   /**

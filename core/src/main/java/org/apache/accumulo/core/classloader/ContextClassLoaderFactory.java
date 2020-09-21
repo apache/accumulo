@@ -19,12 +19,15 @@
 package org.apache.accumulo.core.classloader;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ClassLoaderFactory;
+import org.apache.accumulo.core.spi.common.ClassLoaderFactory.ClassLoaderFactoryConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +65,12 @@ public class ContextClassLoaderFactory {
           LOG.info("Creating context ClassLoaderFactory: {}", factoryName);
           FACTORY = ((Class<? extends ClassLoaderFactory>) factoryClass).getDeclaredConstructor()
               .newInstance();
-          FACTORY.initialize(CONF);
+          FACTORY.initialize(new ClassLoaderFactoryConfiguration() {
+            @Override
+            public Iterator<Entry<String,String>> get() {
+              return CONF.iterator();
+            }
+          });
         } else {
           throw new RuntimeException(factoryName + " does not implement ClassLoaderFactory");
         }

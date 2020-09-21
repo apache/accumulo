@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.core.spi.common;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map.Entry;
 
 /**
  * The ClassLoaderFactory is defined by the property general.context.factory. The factory
@@ -28,15 +30,23 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
  */
 public interface ClassLoaderFactory {
 
+  static class ClassLoaderFactoryConfiguration {
+
+    public Iterator<Entry<String,String>> get() {
+      return Collections.emptyIterator();
+    }
+  }
+
   /**
-   * Initialize the ClassLoaderFactory. Implementations may need a reference to
-   * the configuration so that it can clean up contexts that are no longer being
-   * used.
+   * Initialize the ClassLoaderFactory. Implementations may need a reference to the configuration so
+   * that it can clean up contexts that are no longer being used.
    *
-   * @param conf Accumulo Configuration object
+   * @param conf
+   *          Accumulo configuration properties
    * @throws Exception
+   *           if error initializing ClassLoaderFactory
    */
-  void initialize(AccumuloConfiguration conf) throws Exception;
+  void initialize(ClassLoaderFactoryConfiguration conf) throws Exception;
 
   /**
    *

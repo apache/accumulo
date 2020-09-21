@@ -20,28 +20,55 @@ package org.apache.accumulo.core.classloader;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ClassLoaderFactory;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Deprecated(since = "2.1.0", forRemoval = true)
 public class LegacyVFSContextClassLoaderFactory implements ClassLoaderFactory {
 
-  public void initialize(AccumuloConfiguration conf) {
+  private static final Logger LOG =
+      LoggerFactory.getLogger(LegacyVFSContextClassLoaderFactory.class);
+  private ClassLoaderFactoryConfiguration conf = null;
+
+  public void initialize(ClassLoaderFactoryConfiguration conf) {
+    this.conf = conf;
     try {
       AccumuloVFSClassLoader.getContextManager()
           .setContextConfig(new ContextManager.DefaultContextsConfig() {
             @Override
             public Map<String,String> getVfsContextClasspathProperties() {
-              return conf.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+              return getContextProperties();
             }
           });
+      new Timer("LegacyVFSContextClassLoaderFactory-cleanup", true)
+          .scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+              try {
+                AccumuloVFSClassLoader.getContextManager()
+                    .removeUnusedContexts(getContextProperties().keySet());
+              } catch (IOException e) {
+                LOG.warn("{}", e.getMessage(), e);
+              }
+            }
+          }, 60000, 60000);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+
+  }
+
+  private Map<String,String> getContextProperties() {
+    return new ConfigurationCopy(this.conf.get())
+        .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
   }
 
   @Override
