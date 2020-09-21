@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  * changes in any of the files/directories that are in the classpath and will recreate the delegate
  * object if there is any change in the classpath.
  */
-@Deprecated(since = "2.1.0", forRemoval=true)
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingClassLoader {
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloReloadingVFSClassLoader.class);

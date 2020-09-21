@@ -909,12 +909,12 @@ public enum Property {
 
   // this property shouldn't be used directly; it exists solely to document the default value
   // defined by its use in AccumuloClassLoader when generating the property documentation
-  @Deprecated(since = "2.1.0", forRemoval=true)
+  @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
       AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
       "Configuration for a system level vfs classloader. Accumulo jar can be"
           + " configured here and loaded out of HDFS."),
-  @Deprecated(since = "2.1.0", forRemoval=true)
+  @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CONTEXT_CLASSPATH_PROPERTY(ContextClassLoaderFactory.VFS_CONTEXT_CLASSPATH_PROPERTY, null,
       PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties"
@@ -929,7 +929,7 @@ public enum Property {
 
   // this property shouldn't be used directly; it exists solely to document the default value
   // defined by its use in AccumuloVFSClassLoader when generating the property documentation
-  @Deprecated(since = "2.1.0", forRemoval=true)
+  @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR, "${java.io.tmpdir}",
       PropertyType.ABSOLUTEPATH,
       "The base directory to use for the vfs cache. The actual cached files will be located"

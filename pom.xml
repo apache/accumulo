@@ -97,7 +97,6 @@
     <module>shell</module>
     <module>start</module>
     <module>test</module>
-    <module>contrib</module>
   </modules>
   <scm>
     <connection>scm:git:https://gitbox.apache.org/repos/asf/accumulo.git</connection>
@@ -371,11 +370,6 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-tserver</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-vfs-classloader</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

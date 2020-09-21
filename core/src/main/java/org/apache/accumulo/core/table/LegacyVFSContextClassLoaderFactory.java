@@ -27,7 +27,7 @@ import org.apache.accumulo.core.spi.common.ClassLoaderFactory;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 
-@Deprecated(since = "2.1.0", forRemoval=true)
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class LegacyVFSContextClassLoaderFactory implements ClassLoaderFactory {
 
   public void initialize(AccumuloConfiguration conf) {

@@ -68,7 +68,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Used to load jar dynamically.
  * </pre>
  */
-@Deprecated(since = "2.1.0", forRemoval=true)
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class AccumuloVFSClassLoader {
 
   public static class AccumuloVFSClassLoaderShutdownThread implements Runnable {
