@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.common;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+
 /**
  * The ClassLoaderFactory is defined by the property general.context.factory. The factory
  * implementation is configured externally to Accumulo and will return a ClassLoader for a given
@@ -25,6 +27,16 @@ package org.apache.accumulo.core.spi.common;
  *
  */
 public interface ClassLoaderFactory {
+
+  /**
+   * Initialize the ClassLoaderFactory. Implementations may need a reference to
+   * the configuration so that it can clean up contexts that are no longer being
+   * used.
+   *
+   * @param conf Accumulo Configuration object
+   * @throws Exception
+   */
+  void initialize(AccumuloConfiguration conf) throws Exception;
 
   /**
    *

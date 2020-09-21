@@ -23,6 +23,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.spi.common.ClassLoaderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,12 @@ public class URLClassLoaderFactory implements ClassLoaderFactory {
   private static final Logger LOG = LoggerFactory.getLogger(URLClassLoaderFactory.class);
 
   @Override
+  public void initialize(AccumuloConfiguration conf) throws Exception {
+  }
+
+  @Override
   public ClassLoader getClassLoader(String contextName) throws IllegalArgumentException {
+    // The context name is the classpath.
     var parts = contextName.split(COMMA);
     var urls = new ArrayList<URL>();
     for (String p : parts) {
@@ -46,5 +52,6 @@ public class URLClassLoaderFactory implements ClassLoaderFactory {
     }
     return URLClassLoader.newInstance(urls.toArray(new URL[urls.size()]));
   }
+
 
 }

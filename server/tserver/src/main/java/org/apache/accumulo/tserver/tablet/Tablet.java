@@ -409,19 +409,6 @@ public class Tablet {
           getTabletMemory().getNumEntries());
     }
 
-    String contextName = tableConfiguration.get(Property.TABLE_CLASSPATH);
-    if (contextName != null && !contextName.equals("")) {
-      // update context classloader instead of possibly waiting for it to initialize for a scan
-      // the ContextClassLoaderFactory should have been initialized TabletServer
-      // TODO this could hang, causing other tablets to fail to load - ACCUMULO-1292
-      try {
-        ContextClassLoaderFactory.updateContexts();
-      } catch (Exception e1) {
-        log.error("Error configuring ContextClassLoaderFactory", e1);
-        throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
-      }
-    }
-
     // do this last after tablet is completely setup because it
     // could cause major compaction to start
     datafileManager = new DatafileManager(this, datafiles);

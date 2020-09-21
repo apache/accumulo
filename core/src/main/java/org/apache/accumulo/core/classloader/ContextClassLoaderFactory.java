@@ -41,6 +41,45 @@ public class ContextClassLoaderFactory {
   private static AccumuloConfiguration CONF;
 
   /**
+   * Initialize the ContextClassLoaderFactory
+   *
+   * @param conf
+   *          AccumuloConfiguration object
+   */
+  @SuppressWarnings("unchecked")
+  public static void initialize(AccumuloConfiguration conf) throws Exception {
+    if (null == CONF) {
+      CONF = conf;
+      LOG.info("Creating context ClassLoaderFactory");
+      var factoryName = CONF.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY);
+      if (null == factoryName || factoryName.isBlank()) {
+        LOG.info("No ClassLoaderFactory specified");
+        return;
+      }
+      try {
+        var factoryClass = Class.forName(factoryName);
+        if (ClassLoaderFactory.class.isAssignableFrom(factoryClass)) {
+          LOG.info("Creating context ClassLoaderFactory: {}", factoryName);
+          FACTORY = ((Class<? extends ClassLoaderFactory>) factoryClass).getDeclaredConstructor()
+              .newInstance();
+          FACTORY.initialize(CONF);
+        } else {
+          throw new RuntimeException(factoryName + " does not implement ClassLoaderFactory");
+        }
+      } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+          | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+          | SecurityException e) {
+        LOG.error(
+            "Unable to load and initialize class: {}. Ensure that the jar containing the ClassLoaderFactory is on the classpath",
+            factoryName);
+        throw e;
+      }
+    } else {
+      LOG.warn("ContextClassLoaderFactory already initialized.");
+    }
+  }
+
+  /**
    * Return the ClassLoader for the given contextName
    *
    * @param contextName
@@ -69,53 +108,8 @@ public class ContextClassLoaderFactory {
     return CONTEXTS.toString();
   }
 
-  /**
-   * Initialize the ContextClassLoaderFactory
-   *
-   * @param conf
-   *          AccumuloConfiguration object
-   */
-  public static void initialize(AccumuloConfiguration conf) {
-    if (null == CONF) {
-      CONF = conf;
-    }
-  }
-
   public static void resetForTests() {
     CONF = null;
   }
 
-  /**
-   * Updates the ClassLoaderFactory for context classloaders
-   *
-   * @throws Exception
-   *           when unable to instantiate ClassLoaderFactory
-   */
-  @SuppressWarnings("unchecked")
-  public static synchronized void updateContexts() throws Exception {
-    LOG.info("Updating contexts");
-    var factoryName = CONF.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY);
-    if (null == factoryName || factoryName.isBlank()) {
-      LOG.info("No ClassLoaderFactory specified");
-      return;
-    }
-    LOG.info("Creating context ClassLoaderFactory: {}", factoryName);
-    try {
-      var factoryClass = Class.forName(factoryName);
-      if (ClassLoaderFactory.class.isAssignableFrom(factoryClass)) {
-        FACTORY = ((Class<? extends ClassLoaderFactory>) factoryClass).getDeclaredConstructor()
-            .newInstance();
-        if (FACTORY instanceof LegacyVFSContextClassLoaderFactory) {
-          ((LegacyVFSContextClassLoaderFactory) FACTORY).initialize(CONF);
-        }
-      }
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e1) {
-      LOG.error(
-          "Unable to load and initialize class: {}. Ensure that the jar containing the ClassLoaderFactory is on the classpath",
-          factoryName);
-      throw e1;
-    }
-  }
 }

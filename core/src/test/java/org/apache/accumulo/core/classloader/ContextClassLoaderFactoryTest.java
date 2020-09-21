@@ -66,7 +66,6 @@ public class ContextClassLoaderFactoryTest {
     cc.set("general.context.factory", URLClassLoaderFactory.class.getName());
     ContextClassLoaderFactory.resetForTests();
     ContextClassLoaderFactory.initialize(cc);
-    ContextClassLoaderFactory.updateContexts();
 
     URLClassLoader cl1 = (URLClassLoader) ContextClassLoaderFactory.getClassLoader(uri1);
     var urls1 = cl1.getURLs();

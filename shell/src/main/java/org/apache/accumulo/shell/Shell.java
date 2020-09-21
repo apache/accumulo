@@ -473,7 +473,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
       try {
         ContextClassLoaderFactory.initialize(new ConfigurationCopy(systemConfig));
-        ContextClassLoaderFactory.updateContexts();
       } catch (Exception e1) {
         log.error("Error configuring ContextClassLoaderFactory", e1);
         throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
