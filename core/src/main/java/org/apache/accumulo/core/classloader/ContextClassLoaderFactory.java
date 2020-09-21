@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.table;
+package org.apache.accumulo.core.classloader;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -39,6 +40,13 @@ public class ContextClassLoaderFactory {
   private static final Map<String,ClassLoader> CONTEXTS = new ConcurrentHashMap<>();
   private static AccumuloConfiguration CONF;
 
+  /**
+   * Return the ClassLoader for the given contextName
+   *
+   * @param contextName
+   * @return ClassLoader for contextName
+   * @throws RuntimeException if contextName not configured
+   */
   public static ClassLoader getClassLoader(String contextName) {
     ClassLoader c = CONTEXTS.get(contextName);
     if (null == c) {
@@ -46,7 +54,7 @@ public class ContextClassLoaderFactory {
         c = FACTORY.getClassLoader(contextName);
       } catch (IllegalArgumentException e) {
         LOG.error("ClassLoaderFactory is not configured for context: {}", contextName);
-        return null;
+        throw new RuntimeException("ClassLoaderFactory is not configured for context: " + contextName);
       }
       CONTEXTS.put(contextName, c);
     }
@@ -58,6 +66,11 @@ public class ContextClassLoaderFactory {
     return CONTEXTS.toString();
   }
 
+  /**
+   * Initialize the ContextClassLoaderFactory
+   *
+   * @param conf
+   */
   public static void initialize(AccumuloConfiguration conf) {
     if (null == CONF) {
       CONF = conf;
@@ -68,6 +81,11 @@ public class ContextClassLoaderFactory {
     CONF = null;
   }
 
+  /**
+   * Updates the ClassLoaderFactory for context classloaders
+   *
+   * @throws Exception when unable to instantiate ClassLoaderFactory 
+   */
   @SuppressWarnings("unchecked")
   public static synchronized void updateContexts() throws Exception {
     LOG.info("Updating contexts");
@@ -86,7 +104,8 @@ public class ContextClassLoaderFactory {
           ((LegacyVFSContextClassLoaderFactory) FACTORY).initialize(CONF);
         }
       }
-    } catch (ClassNotFoundException e1) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException |
+        IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e1) {
       LOG.error(
           "Unable to load and initialize class: {}. Ensure that the jar containing the ClassLoaderFactory is on the classpath",
           factoryName);

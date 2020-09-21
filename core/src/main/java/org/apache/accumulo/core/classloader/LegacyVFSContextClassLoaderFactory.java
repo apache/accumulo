@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.table;
+package org.apache.accumulo.core.classloader;
 
 import java.io.IOException;
 import java.util.Map;

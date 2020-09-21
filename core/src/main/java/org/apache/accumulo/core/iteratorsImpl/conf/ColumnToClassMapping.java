@@ -23,10 +23,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.classloader.ContextClassLoaderFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iteratorsImpl.conf.ColumnUtil.ColFamHashKey;
 import org.apache.accumulo.core.iteratorsImpl.conf.ColumnUtil.ColHashKey;
-import org.apache.accumulo.core.table.ContextClassLoaderFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.io.Text;

@@ -20,10 +20,10 @@ package org.apache.accumulo.core.sample.impl;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.classloader.ContextClassLoaderFactory;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.table.ContextClassLoaderFactory;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class SamplerFactory {
