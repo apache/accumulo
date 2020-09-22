@@ -915,7 +915,7 @@ public enum Property {
       "Configuration for a system level vfs classloader. Accumulo jar can be"
           + " configured here and loaded out of HDFS."),
   @Deprecated(since = "2.1.0", forRemoval = true)
-  VFS_CONTEXT_CLASSPATH_PROPERTY(ContextClassLoaderFactory.VFS_CONTEXT_CLASSPATH_PROPERTY, null,
+  VFS_CONTEXT_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY, null,
       PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties"
           + " start  with the category prefix, followed by a context name. The value is"

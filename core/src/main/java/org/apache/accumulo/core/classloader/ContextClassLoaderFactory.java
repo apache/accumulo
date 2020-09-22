@@ -35,8 +35,6 @@ public class ContextClassLoaderFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(ContextClassLoaderFactory.class);
 
-  @Deprecated
-  public static final String VFS_CONTEXT_CLASSPATH_PROPERTY = "general.vfs.context.classpath.";
   public static final String CONTEXT_FACTORY = "general.context.factory";
 
   private static ClassLoaderFactory FACTORY;
