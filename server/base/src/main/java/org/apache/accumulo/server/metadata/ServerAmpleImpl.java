@@ -45,6 +45,7 @@ import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -144,6 +145,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
   }
 
+  @Override
   public Iterator<String> getGcCandidates(DataLevel level, String continuePoint) {
     if (level == DataLevel.ROOT) {
       byte[] json = context.getZooCache()
@@ -171,7 +173,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       }
       scanner.setRange(range);
       return StreamSupport.stream(scanner.spliterator(), false)
-          .filter(entry -> entry.getValue().equals(DeletesSection.SkewedKeyValue.NAME))
+          .filter(entry -> entry.getValue().equals(SkewedKeyValue.NAME))
           .map(entry -> DeletesSection.decodeRow(entry.getKey().getRow().toString())).iterator();
     } else {
       throw new IllegalArgumentException();
@@ -204,7 +206,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   private static Mutation createDelMutation(String path) {
     Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path)));
-    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.SkewedKeyValue.NAME);
+    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, SkewedKeyValue.NAME);
     return delFlag;
   }
 }

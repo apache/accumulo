@@ -335,7 +335,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
    * compaction ratio in order to ensure the amount of data rewriting is logarithmic.
    *
    * <p>
-   * A set of files meets the compaction ratio when the largestFileinSet * compactionRatio <
+   * A set of files meets the compaction ratio when the largestFileinSet * compactionRatio &lt;
    * sumOfFileSizesInSet. This algorithm grows the set of small files until it meets the compaction
    * ratio, then keeps growing it while it continues to meet the ratio. Once a set does not meet the
    * compaction ratio, the last set that did is returned. Growing the set of small files means

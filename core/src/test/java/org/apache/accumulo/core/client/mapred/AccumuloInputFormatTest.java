@@ -35,10 +35,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-/**
- * @deprecated since 2.0.0
- */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloInputFormatTest {
 
   private JobConf job;

@@ -71,13 +71,13 @@ public class MergeTest {
           while (impl.hasNext()) {
             Size candidate = impl.next();
             if (start != null) {
-              if (candidate.extent.getEndRow() != null
-                  && candidate.extent.getEndRow().compareTo(start) < 0)
+              if (candidate.extent.endRow() != null
+                  && candidate.extent.endRow().compareTo(start) < 0)
                 continue;
             }
             if (end != null) {
-              if (candidate.extent.getPrevEndRow() != null
-                  && candidate.extent.getPrevEndRow().compareTo(end) >= 0)
+              if (candidate.extent.prevEndRow() != null
+                  && candidate.extent.prevEndRow().compareTo(end) >= 0)
                 continue;
             }
             return candidate;

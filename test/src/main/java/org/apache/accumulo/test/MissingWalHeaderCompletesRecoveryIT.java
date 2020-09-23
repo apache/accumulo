@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -138,15 +138,15 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull("Table ID was null", tableId);
 
-      LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345",
-          emptyWalog.toURI().toString());
+      LogEntry logEntry =
+          new LogEntry(new KeyExtent(tableId, null, null), 0, emptyWalog.toURI().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
 
       log.info("{} is offline", tableName);
 
-      Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
+      Text row = TabletsSection.encodeRow(tableId, null);
       Mutation m = new Mutation(row);
       m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
@@ -198,15 +198,14 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull("Table ID was null", tableId);
 
-      LogEntry logEntry =
-          new LogEntry(null, 0, "127.0.0.1:12345", partialHeaderWalog.toURI().toString());
+      LogEntry logEntry = new LogEntry(null, 0, partialHeaderWalog.toURI().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
 
       log.info("{} is offline", tableName);
 
-      Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
+      Text row = TabletsSection.encodeRow(tableId, null);
       Mutation m = new Mutation(row);
       m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 

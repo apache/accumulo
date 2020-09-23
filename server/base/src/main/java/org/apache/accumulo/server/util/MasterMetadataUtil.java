@@ -69,7 +69,7 @@ public class MasterMetadataUtil {
       long lastFlushID, long lastCompactID, ZooLock zooLock) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putPrevEndRow(extent.getPrevEndRow());
+    tablet.putPrevEndRow(extent.prevEndRow());
     tablet.putZooLock(zooLock);
     tablet.putDirName(dirName);
     tablet.putTime(time);
@@ -110,8 +110,8 @@ public class MasterMetadataUtil {
           "Metadata entry does not have time (" + meta.getExtent() + ")");
     }
 
-    return fixSplit(context, meta.getTableId(), meta.getExtent().getMetadataEntry(),
-        meta.getPrevEndRow(), meta.getOldPrevEndRow(), meta.getSplitRatio(), lock);
+    return fixSplit(context, meta.getTableId(), meta.getExtent().toMetaRow(), meta.getPrevEndRow(),
+        meta.getOldPrevEndRow(), meta.getSplitRatio(), lock);
   }
 
   private static KeyExtent fixSplit(ServerContext context, TableId tableId, Text metadataEntry,
@@ -124,7 +124,7 @@ public class MasterMetadataUtil {
           "Split tablet does not have prev end row, something is amiss, extent = " + metadataEntry);
 
     // check to see if prev tablet exist in metadata tablet
-    Key prevRowKey = new Key(new Text(TabletsSection.getRow(tableId, metadataPrevEndRow)));
+    Key prevRowKey = new Key(new Text(TabletsSection.encodeRow(tableId, metadataPrevEndRow)));
 
     try (ScannerImpl scanner2 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner2.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));
@@ -138,8 +138,8 @@ public class MasterMetadataUtil {
         SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
         SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
 
+        Key rowKey = new Key(metadataEntry);
         try (Scanner scanner3 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
-          Key rowKey = new Key(metadataEntry);
 
           scanner3.fetchColumnFamily(DataFileColumnFamily.NAME);
           scanner3.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));
@@ -159,11 +159,11 @@ public class MasterMetadataUtil {
         MetadataTableUtil.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove,
             context, lock);
 
-        return new KeyExtent(metadataEntry, KeyExtent.encodePrevEndRow(metadataPrevEndRow));
+        return KeyExtent.fromMetaRow(rowKey.getRow(), metadataPrevEndRow);
       } else {
         log.info("Rolling back incomplete split {} {}", metadataEntry, metadataPrevEndRow);
         MetadataTableUtil.rollBackSplit(metadataEntry, oper, context, lock);
-        return new KeyExtent(metadataEntry, oper);
+        return KeyExtent.fromMetaRow(metadataEntry, oper);
       }
     }
   }
@@ -184,7 +184,7 @@ public class MasterMetadataUtil {
       Long compactionId, DataFileValue size, String address, TServerInstance lastLocation,
       ZooLock zooLock) {
 
-    context.getAmple().putGcCandidates(extent.getTableId(), datafilesToDelete);
+    context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
 

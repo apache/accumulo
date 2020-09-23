@@ -340,7 +340,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       KeyExtent extent = extentCache.lookup(row);
       // log.debug(filename + " found row " + row + " at location " + tabletLocation);
       result.add(extent);
-      row = extent.getEndRow();
+      row = extent.endRow();
       if (row != null && (endRow == null || row.compareTo(endRow) < 0)) {
         row = nextRow(row);
       } else
@@ -467,8 +467,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
         extents.add(extent);
 
-        while (!extent.contains(endRow) && extent.getEndRow() != null) {
-          extent = kec.lookup(nextRow(extent.getEndRow()));
+        while (!extent.contains(endRow) && extent.endRow() != null) {
+          extent = kec.lookup(nextRow(extent.endRow()));
           extents.add(extent);
         }
 
@@ -608,15 +608,13 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
           continue;
         }
 
-        boolean containsPrevRow = ke.getPrevEndRow() == null || (oke.getPrevEndRow() != null
-            && ke.getPrevEndRow().compareTo(oke.getPrevEndRow()) <= 0);
-        boolean containsEndRow = ke.getEndRow() == null
-            || (oke.getEndRow() != null && ke.getEndRow().compareTo(oke.getEndRow()) >= 0);
-
-        if (containsPrevRow && containsEndRow) {
+        if (ke.contains(oke)) {
           mappings.get(ke).merge(mappings.remove(oke));
-        } else {
-          throw new RuntimeException("TODO handle merges");
+        } else if (!oke.contains(ke)) {
+          throw new RuntimeException("Error during bulk import: Unable to merge overlapping "
+              + "tablets where neither tablet contains the other. This may be caused by "
+              + "a concurrent merge. Key extents " + oke + " and " + ke + " overlap, but "
+              + "neither contains the other.");
         }
       }
     }

@@ -39,7 +39,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
@@ -96,7 +96,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
         String key = Property.TABLE_ITERATOR_PREFIX.getKey() + scope.name() + "."
             + ReplicationTableUtil.COMBINER_NAME + ".opt.columns";
         assertTrue("Properties did not contain key : " + key, properties.containsKey(key));
-        assertEquals(MetadataSchema.ReplicationSection.COLF.toString(), properties.get(key));
+        assertEquals(ReplicationSection.COLF.toString(), properties.get(key));
       }
     }
   }

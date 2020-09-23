@@ -41,7 +41,7 @@ import org.apache.hadoop.mapreduce.Partitioner;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce.partition instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class RangePartitioner extends Partitioner<Text,Writable> implements Configurable {
   private static final String PREFIX = RangePartitioner.class.getName();
   private static final String CUTFILE_KEY = PREFIX + ".cutFile";

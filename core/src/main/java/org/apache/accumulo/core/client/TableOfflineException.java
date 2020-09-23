@@ -25,7 +25,7 @@ public class TableOfflineException extends RuntimeException {
   /**
    * @deprecated since 2.0.0, replaced by {@link #TableOfflineException(String)}
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public TableOfflineException(Instance instance, String tableId) {
     super("Table with ID (" + tableId + ") is offline");
   }

@@ -121,7 +121,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
 
     for (KeyExtent keyExtent : migrations) {
-      if (keyExtent.getTableId().equals(tableId)) {
+      if (keyExtent.tableId().equals(tableId)) {
         return false;
       }
     }

@@ -176,7 +176,7 @@ class ScanDataSource implements DataSource {
 
     TabletIteratorEnvironment iterEnv =
         new TabletIteratorEnvironment(tablet.getTabletServer().getContext(), IteratorScope.scan,
-            tablet.getTableConfiguration(), tablet.getExtent().getTableId(), fileManager, files,
+            tablet.getTableConfiguration(), tablet.getExtent().tableId(), fileManager, files,
             scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
 
     statsIterator =

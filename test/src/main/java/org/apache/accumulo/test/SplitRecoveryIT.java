@@ -36,8 +36,10 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -58,7 +60,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
     String tableId = client.tableOperations().tableIdMap().get(tablename);
     try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
-      scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       return Iterators.size(scanner.iterator()) == 0;
     }
   }
@@ -93,12 +95,10 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
         TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
 
         KeyExtent extent = new KeyExtent(tableId, null, new Text("b"));
-        Mutation m = extent.getPrevRowUpdateMutation();
+        Mutation m = TabletColumnFamily.createPrevRowMutation(extent);
 
-        TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m,
-            new Value(Double.toString(0.5)));
-        TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
-            KeyExtent.encodePrevEndRow(null));
+        TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(0.5)));
+        TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m, TabletColumnFamily.encodePrevEndRow(null));
         try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
           bw.addMutation(m);
 
@@ -106,13 +106,13 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
             bw.flush();
 
             try (Scanner scanner = client.createScanner(MetadataTable.NAME)) {
-              scanner.setRange(extent.toMetadataRange());
+              scanner.setRange(extent.toMetaRange());
               scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
 
               KeyExtent extent2 = new KeyExtent(tableId, new Text("b"), null);
-              m = extent2.getPrevRowUpdateMutation();
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("t2"));
-              TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value("M0"));
+              m = TabletColumnFamily.createPrevRowMutation(extent2);
+              ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("t2"));
+              ServerColumnFamily.TIME_COLUMN.put(m, new Value("M0"));
 
               for (Entry<Key,Value> entry : scanner) {
                 m.put(DataFileColumnFamily.NAME, entry.getKey().getColumnQualifier(),

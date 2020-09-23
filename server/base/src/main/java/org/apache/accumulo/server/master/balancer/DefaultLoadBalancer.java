@@ -251,7 +251,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
             return result;
           }
           for (TabletStats stat : stats)
-            onlineTabletsForTable.put(new KeyExtent(stat.extent), stat);
+            onlineTabletsForTable.put(KeyExtent.fromThrift(stat.extent), stat);
           donerTabletStats.put(table, onlineTabletsForTable);
         }
       } catch (Exception ex) {

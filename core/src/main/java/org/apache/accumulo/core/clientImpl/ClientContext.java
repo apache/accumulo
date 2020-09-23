@@ -156,7 +156,7 @@ public class ClientContext implements AccumuloClient {
    *
    * @deprecated since 2.0.0
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public org.apache.accumulo.core.client.Instance getDeprecatedInstance() {
     final ClientContext context = this;
     return new org.apache.accumulo.core.client.Instance() {

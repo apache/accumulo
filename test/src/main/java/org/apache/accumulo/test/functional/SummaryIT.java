@@ -62,7 +62,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
@@ -85,9 +84,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.tserver.compaction.CompactionPlan;
-import org.apache.accumulo.tserver.compaction.CompactionStrategy;
-import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -471,17 +467,19 @@ public class SummaryIT extends AccumuloClusterHarness {
    * in the data. The {@link FooCounter} summary data is used to make the determination.
    */
   @SuppressWarnings("removal")
-  public static class FooCS extends CompactionStrategy {
+  public static class FooCS extends org.apache.accumulo.tserver.compaction.CompactionStrategy {
 
     private boolean compact = false;
 
     @Override
-    public boolean shouldCompact(MajorCompactionRequest request) {
+    public boolean
+        shouldCompact(org.apache.accumulo.tserver.compaction.MajorCompactionRequest request) {
       return true;
     }
 
     @Override
-    public void gatherInformation(MajorCompactionRequest request) {
+    public void
+        gatherInformation(org.apache.accumulo.tserver.compaction.MajorCompactionRequest request) {
       List<Summary> summaries = request.getSummaries(request.getFiles().keySet(),
           conf -> conf.getClassName().contains("FooCounter"));
       if (summaries.size() == 1) {
@@ -494,9 +492,10 @@ public class SummaryIT extends AccumuloClusterHarness {
     }
 
     @Override
-    public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
+    public org.apache.accumulo.tserver.compaction.CompactionPlan
+        getCompactionPlan(org.apache.accumulo.tserver.compaction.MajorCompactionRequest request) {
       if (compact) {
-        CompactionPlan cp = new CompactionPlan();
+        var cp = new org.apache.accumulo.tserver.compaction.CompactionPlan();
         cp.inputFiles.addAll(request.getFiles().keySet());
         return cp;
       }
@@ -517,7 +516,8 @@ public class SummaryIT extends AccumuloClusterHarness {
   @SuppressWarnings("removal")
   @Test
   public void compactionStrategyTest() throws Exception {
-    CompactionStrategyConfig csc = new CompactionStrategyConfig(FooCS.class.getName());
+    var csc =
+        new org.apache.accumulo.core.client.admin.CompactionStrategyConfig(FooCS.class.getName());
     CompactionConfig compactConfig = new CompactionConfig().setCompactionStrategy(csc);
     compactionTest(compactConfig);
   }

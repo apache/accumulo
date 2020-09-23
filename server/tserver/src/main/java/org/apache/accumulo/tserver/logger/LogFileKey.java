@@ -69,8 +69,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
       case DEFINE_TABLET:
         seq = in.readLong();
         tabletId = in.readInt();
-        tablet = new KeyExtent();
-        tablet.readFields(in);
+        tablet = KeyExtent.readFrom(in);
         break;
       case MANY_MUTATIONS:
         seq = in.readLong();
@@ -109,7 +108,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
       case DEFINE_TABLET:
         out.writeLong(seq);
         out.writeInt(tabletId);
-        tablet.write(out);
+        tablet.writeTo(out);
         break;
       case MANY_MUTATIONS:
         out.writeLong(seq);

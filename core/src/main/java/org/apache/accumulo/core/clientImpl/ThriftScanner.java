@@ -105,7 +105,7 @@ public class ThriftScanner {
       try {
         // not reading whole rows (or stopping on row boundaries) so there is no need to enable
         // isolation below
-        ScanState scanState = new ScanState(context, extent.getTableId(), authorizations, range,
+        ScanState scanState = new ScanState(context, extent.tableId(), authorizations, range,
             fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, false,
             Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext,
             null);
@@ -289,7 +289,7 @@ public class ThriftScanner {
               if (scanState.range.getStartKey() != null
                   && dataRange.afterEndKey(scanState.range.getStartKey())) {
                 // go to the next tablet
-                scanState.startRow = loc.tablet_extent.getEndRow();
+                scanState.startRow = loc.tablet_extent.endRow();
                 scanState.skipStartRow = true;
                 loc = null;
               } else if (scanState.range.getEndKey() != null
@@ -441,7 +441,7 @@ public class ThriftScanner {
 
       if (scanState.scanID == null) {
         Thread.currentThread().setName("Starting scan tserver=" + loc.tablet_location + " tableId="
-            + loc.tablet_extent.getTableId());
+            + loc.tablet_extent.tableId());
 
         if (log.isTraceEnabled()) {
           String msg = "Starting scan tserver=" + loc.tablet_location + " tablet="
@@ -502,7 +502,7 @@ public class ThriftScanner {
       } else {
         // log.debug("No more : tab end row = "+loc.tablet_extent.getEndRow()+" range =
         // "+scanState.range);
-        if (loc.tablet_extent.getEndRow() == null) {
+        if (loc.tablet_extent.endRow() == null) {
           scanState.finished = true;
 
           if (timer != null) {
@@ -513,8 +513,8 @@ public class ThriftScanner {
           }
 
         } else if (scanState.range.getEndKey() == null || !scanState.range
-            .afterEndKey(new Key(loc.tablet_extent.getEndRow()).followingKey(PartialKey.ROW))) {
-          scanState.startRow = loc.tablet_extent.getEndRow();
+            .afterEndKey(new Key(loc.tablet_extent.endRow()).followingKey(PartialKey.ROW))) {
+          scanState.startRow = loc.tablet_extent.endRow();
           scanState.skipStartRow = true;
 
           if (timer != null) {

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -29,6 +30,7 @@ import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
@@ -75,6 +77,18 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
         return acfg.get(prop);
       } else {
         return acfg.get(key);
+      }
+    }
+
+    @Override
+    public Map<String,String> getWithPrefix(String prefix) {
+      Property propertyPrefix = Property.getPropertyByKey(prefix);
+      if (propertyPrefix != null && propertyPrefix.getType() == PropertyType.PREFIX) {
+        return acfg.getAllPropertiesWithPrefix(propertyPrefix);
+      } else {
+        return StreamSupport.stream(acfg.spliterator(), false)
+            .filter(prop -> prop.getKey().startsWith(prefix))
+            .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
       }
     }
 

@@ -57,7 +57,6 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.scan.ScanDirectives;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
@@ -72,7 +71,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
 import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
-import org.apache.accumulo.server.tabletserver.MemoryManager;
 import org.apache.accumulo.server.tabletserver.TabletState;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
@@ -116,7 +114,7 @@ public class TabletServerResourceManager {
 
   private final FileManager fileManager;
 
-  private final MemoryManager memoryManager;
+  private final LargestFirstMemoryManager memoryManager;
 
   private final MemoryManagementFramework memMgmt;
 
@@ -319,15 +317,6 @@ public class TabletServerResourceManager {
     return builder.build();
   }
 
-  public ExecutorService createCompactionExecutor(CompactionExecutorId ceid, int numThreads,
-      BlockingQueue<Runnable> queue) {
-    String name = "compaction." + ceid;
-    ThreadPoolExecutor tp = new ThreadPoolExecutor(numThreads, numThreads, 60, TimeUnit.SECONDS,
-        queue, new NamingThreadFactory("compaction." + ceid));
-    tp.allowCoreThreadTimeOut(true);
-    return addEs(name, tp);
-  }
-
   @SuppressFBWarnings(value = "DM_GC",
       justification = "GC is run to get a good estimate of memory availability")
   public TabletServerResourceManager(ServerContext context) {
@@ -419,9 +408,8 @@ public class TabletServerResourceManager {
 
     fileManager = new FileManager(context, context.getVolumeManager(), maxOpenFiles, fileLenCache);
 
-    memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT,
-        MemoryManager.class, new LargestFirstMemoryManager());
-    memoryManager.init(context.getServerConfFactory());
+    memoryManager = new LargestFirstMemoryManager();
+    memoryManager.init(context);
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
 
@@ -653,7 +641,7 @@ public class TabletServerResourceManager {
             // log.debug("mma.tabletsToMinorCompact = "+mma.tabletsToMinorCompact);
           }
         } catch (Throwable t) {
-          log.error("Minor compactions for memory managment failed", t);
+          log.error("Minor compactions for memory management failed", t);
         }
 
         sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
@@ -830,7 +818,6 @@ public class TabletServerResourceManager {
           }
 
           memMgmt.tabletClosed(extent);
-          memoryManager.tabletClosed(extent);
 
           closed = true;
         }
@@ -898,11 +885,11 @@ public class TabletServerResourceManager {
       if (executor == null) {
         log.warn(
             "For table id {}, {} dispatched to non-existant executor {} Using default executor.",
-            tablet.getTableId(), dispatcher.getClass().getName(), prefs.getExecutorName());
+            tablet.tableId(), dispatcher.getClass().getName(), prefs.getExecutorName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
       } else if ("meta".equals(prefs.getExecutorName())) {
         log.warn("For table id {}, {} dispatched to meta executor. Using default executor.",
-            tablet.getTableId(), dispatcher.getClass().getName());
+            tablet.tableId(), dispatcher.getClass().getName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
       }
       executor.execute(task);

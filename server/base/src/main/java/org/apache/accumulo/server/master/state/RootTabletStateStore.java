@@ -20,7 +20,7 @@ package org.apache.accumulo.server.master.state;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 
 class RootTabletStateStore extends MetaDataStateStore {
 
@@ -30,8 +30,7 @@ class RootTabletStateStore extends MetaDataStateStore {
 
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state,
-        RootTable.NAME);
+    return new MetaDataTableScanner(context, TabletsSection.getRange(), state, RootTable.NAME);
   }
 
   @Override

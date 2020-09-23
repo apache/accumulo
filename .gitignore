@@ -23,6 +23,8 @@
 /.pydevproject
 /.idea
 /*.iml
+/*.ipr
+/*.iws
 /nbproject/
 /nbactions.xml
 /nb-configuration.xml

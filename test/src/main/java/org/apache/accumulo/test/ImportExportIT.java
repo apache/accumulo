@@ -42,7 +42,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -163,22 +165,21 @@ public class ImportExportIT extends AccumuloClusterHarness {
       log.info("Imported into table with ID: {}", tableId);
 
       try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        s.setRange(MetadataSchema.TabletsSection.getRange(TableId.of(tableId)));
-        s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
+        s.setRange(TabletsSection.getRange(TableId.of(tableId)));
+        s.fetchColumnFamily(DataFileColumnFamily.NAME);
+        ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
 
         // Should find a single entry
         for (Entry<Key,Value> fileEntry : s) {
           Key k = fileEntry.getKey();
           String value = fileEntry.getValue().toString();
-          if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+          if (k.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             // The file should be an absolute URI (file:///...), not a relative path
             // (/b-000.../I000001.rf)
             String fileUri = k.getColumnQualifier().toString();
             assertFalse("Imported files should have absolute URIs, not relative: " + fileUri,
                 looksLikeRelativePath(fileUri));
-          } else if (k.getColumnFamily()
-              .equals(MetadataSchema.TabletsSection.ServerColumnFamily.NAME)) {
+          } else if (k.getColumnFamily().equals(ServerColumnFamily.NAME)) {
             assertFalse("Server directory should have absolute URI, not relative: " + value,
                 looksLikeRelativePath(value));
           } else {

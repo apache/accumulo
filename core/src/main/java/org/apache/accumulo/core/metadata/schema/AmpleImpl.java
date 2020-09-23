@@ -27,6 +27,7 @@ import com.google.common.collect.Iterables;
 
 public class AmpleImpl implements Ample {
   private final AccumuloClient client;
+  private TabletsMetadata.Builder builder;
 
   public AmpleImpl(AccumuloClient client) {
     this.client = client;
@@ -42,4 +43,12 @@ public class AmpleImpl implements Ample {
       return Iterables.getOnlyElement(tablets);
     }
   }
+
+  @Override
+  public TabletsMetadata.Builder readTablets() {
+    this.builder = new TabletsMetadata.Builder();
+    builder._client = this.client;
+    return builder;
+  }
+
 }

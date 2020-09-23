@@ -61,7 +61,10 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -84,7 +87,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *
    * @since 1.6.0
    */
-  public static enum ScanOpts {
+  public enum ScanOpts {
     TABLE_NAME,
     AUTHORIZATIONS,
     RANGES,
@@ -100,7 +103,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *
    * @since 1.6.0
    */
-  public static enum Features {
+  public enum Features {
     AUTO_ADJUST_RANGES,
     SCAN_ISOLATION,
     USE_LOCAL_ITERATORS,
@@ -842,12 +845,12 @@ public class InputConfigurator extends ConfiguratorBase {
         startRow = new Text();
 
       Range metadataRange =
-          new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null, false);
+          new Range(new KeyExtent(tableId, startRow, null).toMetaRow(), true, null, false);
       Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME);
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(LastLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
       scanner.setRange(metadataRange);
 
       RowIterator rowIter = new RowIterator(scanner);
@@ -862,20 +865,17 @@ public class InputConfigurator extends ConfiguratorBase {
           Map.Entry<Key,Value> entry = row.next();
           Key key = entry.getKey();
 
-          if (key.getColumnFamily()
-              .equals(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME)) {
+          if (key.getColumnFamily().equals(LastLocationColumnFamily.NAME)) {
             last = entry.getValue().toString();
           }
 
-          if (key.getColumnFamily()
-              .equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)
-              || key.getColumnFamily()
-                  .equals(MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME)) {
+          if (key.getColumnFamily().equals(CurrentLocationColumnFamily.NAME)
+              || key.getColumnFamily().equals(FutureLocationColumnFamily.NAME)) {
             location = entry.getValue().toString();
           }
 
-          if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-            extent = new KeyExtent(key.getRow(), entry.getValue());
+          if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+            extent = KeyExtent.fromMetaPrevRow(entry);
           }
 
         }
@@ -883,7 +883,7 @@ public class InputConfigurator extends ConfiguratorBase {
         if (location != null)
           return null;
 
-        if (!extent.getTableId().equals(tableId)) {
+        if (!extent.tableId().equals(tableId)) {
           throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
         }
 
@@ -894,8 +894,8 @@ public class InputConfigurator extends ConfiguratorBase {
         binnedRanges.computeIfAbsent(last, k -> new HashMap<>())
             .computeIfAbsent(extent, k -> new ArrayList<>()).add(range);
 
-        if (extent.getEndRow() == null
-            || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {
+        if (extent.endRow() == null
+            || range.afterEndKey(new Key(extent.endRow()).followingKey(PartialKey.ROW))) {
           break;
         }
 

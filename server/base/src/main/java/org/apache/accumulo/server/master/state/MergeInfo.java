@@ -44,15 +44,14 @@ public class MergeInfo implements Writable {
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    extent = new KeyExtent();
-    extent.readFields(in);
+    extent = KeyExtent.readFrom(in);
     state = MergeState.values()[in.readInt()];
     operation = Operation.values()[in.readInt()];
   }
 
   @Override
   public void write(DataOutput out) throws IOException {
-    extent.write(out);
+    extent.writeTo(out);
     out.writeInt(state.ordinal());
     out.writeInt(operation.ordinal());
   }
@@ -85,11 +84,10 @@ public class MergeInfo implements Writable {
   public boolean needsToBeChopped(KeyExtent otherExtent) {
     // During a delete, the block after the merge will be stretched to cover the deleted area.
     // Therefore, it needs to be chopped
-    if (!otherExtent.getTableId().equals(extent.getTableId()))
+    if (!otherExtent.tableId().equals(extent.tableId()))
       return false;
     if (isDelete())
-      return otherExtent.getPrevEndRow() != null
-          && otherExtent.getPrevEndRow().equals(extent.getEndRow());
+      return otherExtent.prevEndRow() != null && otherExtent.prevEndRow().equals(extent.endRow());
     else
       return this.extent.overlaps(otherExtent);
   }

@@ -37,10 +37,12 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -54,15 +56,12 @@ public class SlowOps {
 
   private static final Logger log = LoggerFactory.getLogger(SlowOps.class);
 
-  private static final String TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX =
-      "tserver.compaction.major.concurrent.max";
-
   private static final long SLOW_SCAN_SLEEP_MS = 250L;
   private static final int NUM_DATA_ROWS = 1000;
 
   private final AccumuloClient client;
   private final String tableName;
-  private final long maxWait;
+  private final long maxWaitMillis;
 
   // private final int numRows = DEFAULT_NUM_DATA_ROWS;
 
@@ -70,46 +69,20 @@ public class SlowOps {
 
   private Future<?> compactTask = null;
 
-  private SlowOps(final AccumuloClient client, final String tableName, final long maxWait) {
-
+  public SlowOps(final AccumuloClient client, final String tableName, final long maxWaitMillis) {
     this.client = client;
     this.tableName = tableName;
-    this.maxWait = maxWait;
-
+    this.maxWaitMillis = maxWaitMillis;
     createData();
   }
 
-  public SlowOps(final AccumuloClient client, final String tableName, final long maxWait,
-      final int numParallelExpected) {
-
-    this(client, tableName, maxWait);
-
-    setExpectedCompactions(numParallelExpected);
-
-  }
-
-  public void setExpectedCompactions(final int numParallelExpected) {
-
+  public static void setExpectedCompactions(AccumuloClient client, final int numParallelExpected) {
     final int target = numParallelExpected + 1;
-
-    Map<String,String> sysConfig;
-
     try {
-
-      sysConfig = client.instanceOperations().getSystemConfiguration();
-
-      int current = Integer.parseInt(sysConfig.get("tserver.compaction.major.concurrent.max"));
-
-      if (current < target) {
-        client.instanceOperations().setProperty(TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX,
-            Integer.toString(target));
-
-        sysConfig = client.instanceOperations().getSystemConfiguration();
-
-      }
-
-      Integer.parseInt(sysConfig.get(TSERVER_COMPACTION_MAJOR_CONCURRENT_MAX));
-
+      client.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS.getKey(),
+          "[{'name':'any','numThreads':" + target + "}]".replaceAll("'", "\""));
+      UtilWaitThread.sleep(3_000); // give it time to propagate
     } catch (AccumuloException | AccumuloSecurityException | NumberFormatException ex) {
       throw new IllegalStateException("Could not set parallel compaction limit to " + target, ex);
     }
@@ -120,15 +93,10 @@ public class SlowOps {
   }
 
   private void createData() {
-
     try {
-
-      // create table.
       client.tableOperations().create(tableName);
-
       log.info("Created table id: {}, name \'{}\'",
           client.tableOperations().tableIdMap().get(tableName), tableName);
-
       try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
         // populate
         for (int i = 0; i < NUM_DATA_ROWS; i++) {
@@ -137,9 +105,7 @@ public class SlowOps {
           bw.addMutation(m);
         }
       }
-
       verifyRows();
-
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
         | TableExistsException ex) {
       throw new IllegalStateException("Create data failed with exception", ex);
@@ -147,14 +113,10 @@ public class SlowOps {
   }
 
   private void verifyRows() {
-
     long startTimestamp = System.nanoTime();
-
     int count = scanCount();
-
     log.trace("Scan time for {} rows {} ms", NUM_DATA_ROWS,
-        TimeUnit.MILLISECONDS.convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
-
+        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
     if (count != NUM_DATA_ROWS) {
       throw new IllegalStateException(
           String.format("Number of rows %1$d does not match expected %2$d", count, NUM_DATA_ROWS));
@@ -163,9 +125,7 @@ public class SlowOps {
 
   private int scanCount() {
     try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-
       int count = 0;
-
       for (Map.Entry<Key,Value> elt : scanner) {
         String expected = String.format("%05d", count);
         assert (elt.getKey().getRow().toString().equals(expected));
@@ -184,9 +144,7 @@ public class SlowOps {
    * can use blockWhileCompactionRunning() on the instance of this class.
    */
   public void startCompactTask() {
-
     compactTask = pool.submit(new SlowCompactionRunner());
-
     if (!blockUntilCompactionRunning()) {
       throw new IllegalStateException("Compaction could not be started for " + tableName);
     }
@@ -197,7 +155,7 @@ public class SlowOps {
    */
   private class SlowCompactionRunner implements Runnable {
 
-    SlowCompactionRunner() {}
+    private SlowCompactionRunner() {}
 
     @Override
     public void run() {
@@ -237,8 +195,8 @@ public class SlowOps {
       }
       log.debug("Compaction wait is complete");
 
-      log.trace("Slow compaction of {} rows took {} ms", NUM_DATA_ROWS, TimeUnit.MILLISECONDS
-          .convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
+      log.trace("Slow compaction of {} rows took {} ms", NUM_DATA_ROWS,
+          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
 
       // validate that number of rows matches expected.
 
@@ -249,8 +207,7 @@ public class SlowOps {
       int count = scanCount();
 
       log.trace("After compaction, scan time for {} rows {} ms", NUM_DATA_ROWS,
-          TimeUnit.MILLISECONDS.convert((System.nanoTime() - startTimestamp),
-              TimeUnit.NANOSECONDS));
+          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
 
       if (count != NUM_DATA_ROWS) {
         throw new IllegalStateException(
@@ -266,57 +223,46 @@ public class SlowOps {
    * @return true if compaction and associate fate found.
    */
   private boolean blockUntilCompactionRunning() {
-
-    long startWait = System.currentTimeMillis();
-
-    List<String> tservers = client.instanceOperations().getTabletServers();
+    long startWaitNanos = System.nanoTime();
+    long maxWaitNanos = TimeUnit.MILLISECONDS.toNanos(maxWaitMillis);
 
     /*
      * wait for compaction to start on table - The compaction will acquire a fate transaction lock
      * that used to block a subsequent online command while the fate transaction lock was held.
      */
-    while (System.currentTimeMillis() < (startWait + maxWait)) {
-
-      try {
-
-        List<ActiveCompaction> activeCompactions = new ArrayList<>();
-
-        for (String tserver : tservers) {
+    do {
+      List<String> tservers = client.instanceOperations().getTabletServers();
+      boolean tableFound = tservers.stream().flatMap(tserver -> {
+        // get active compactions from each server
+        try {
           List<ActiveCompaction> ac = client.instanceOperations().getActiveCompactions(tserver);
-          activeCompactions.addAll(ac);
-          // runningCompactions += ac.size();
-          log.trace("tserver {}, running compactions {}", tservers, ac.size());
+          log.trace("tserver {}, running compactions {}", tserver, ac.size());
+          return ac.stream();
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          throw new IllegalStateException("failed to get active compactions, test fails.", e);
         }
+      }).map(activeCompaction -> {
+        // emit table being compacted
+        try {
+          String compactionTable = activeCompaction.getTable();
+          log.debug("Compaction running for {}", compactionTable);
+          return compactionTable;
+        } catch (TableNotFoundException ex) {
+          log.trace("Compaction found for unknown table {}", activeCompaction);
+          return null;
+        }
+      }).anyMatch(tableName::equals);
 
-        if (!activeCompactions.isEmpty()) {
-          try {
-            for (ActiveCompaction compaction : activeCompactions) {
-              log.debug("Compaction running for {}", compaction.getTable());
-              if (compaction.getTable().compareTo(tableName) == 0) {
-                return true;
-              }
-            }
-          } catch (TableNotFoundException ex) {
-            log.trace("Compaction found for unknown table {}", activeCompactions);
-          }
-        }
-      } catch (AccumuloSecurityException | AccumuloException ex) {
-        throw new IllegalStateException("failed to get active compactions, test fails.", ex);
+      if (tableFound) {
+        return true;
       }
 
-      try {
-        Thread.sleep(3_000);
-      } catch (InterruptedException ex) {
-        // reassert interrupt
-        Thread.currentThread().interrupt();
-      }
-    }
+      UtilWaitThread.sleepUninterruptibly(3, TimeUnit.SECONDS);
+    } while ((System.nanoTime() - startWaitNanos) < maxWaitNanos);
 
     log.debug("Could not find compaction for {} after {} seconds", tableName,
-        TimeUnit.MILLISECONDS.toSeconds(maxWait));
-
+        TimeUnit.MILLISECONDS.toSeconds(maxWaitMillis));
     return false;
-
   }
 
   /**
@@ -327,7 +273,6 @@ public class SlowOps {
    * @return true if the task returned.
    */
   public boolean blockWhileCompactionRunning() {
-
     try {
       if (compactTask == null) {
         throw new IllegalStateException(

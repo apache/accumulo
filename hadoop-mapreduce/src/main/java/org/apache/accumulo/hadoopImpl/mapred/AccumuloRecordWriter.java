@@ -186,11 +186,8 @@ public class AccumuloRecordWriter implements RecordWriter<Text,Mutation> {
     } catch (MutationsRejectedException e) {
       if (!e.getSecurityErrorCodes().isEmpty()) {
         var tables = new HashMap<String,Set<SecurityErrorCode>>();
-        e.getSecurityErrorCodes().forEach((tabletId, secSet) -> {
-          String tableId = tabletId.getTableId().toString();
-          tables.computeIfAbsent(tableId, p -> new HashSet<>()).addAll(secSet);
-        });
-
+        e.getSecurityErrorCodes().forEach((tabletId, codes) -> tables
+            .computeIfAbsent(tabletId.getTableId().toString(), k -> new HashSet<>()).addAll(codes));
         log.error("Not authorized to write to tables : " + tables);
       }
 

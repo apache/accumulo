@@ -164,6 +164,12 @@ public class CompactionIT extends SharedMiniClusterBase {
       siteCfg.put(csp + "cs4.planner.opts.filesPerCompaction", "11");
       siteCfg.put(csp + "cs4.planner.opts.process", "USER");
 
+      // this is meant to be dynamically reconfigured
+      siteCfg.put(csp + "recfg.planner", TestPlanner.class.getName());
+      siteCfg.put(csp + "recfg.planner.opts.executors", "2");
+      siteCfg.put(csp + "recfg.planner.opts.filesPerCompaction", "11");
+      siteCfg.put(csp + "recfg.planner.opts.process", "SYSTEM");
+
       miniCfg.setSiteConfig(siteCfg);
     });
   }
@@ -184,6 +190,60 @@ public class CompactionIT extends SharedMiniClusterBase {
               throw new RuntimeException(e);
             }
           });
+    }
+  }
+
+  @Test
+  public void testReconfigureCompactionService() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      createTable(client, "rctt", "recfg");
+
+      addFiles(client, "rctt", 22);
+
+      while (getFiles(client, "rctt").size() > 2) {
+        Thread.sleep(100);
+      }
+
+      assertEquals(2, getFiles(client, "rctt").size());
+
+      client.instanceOperations().setProperty(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey()
+          + "recfg.planner.opts.filesPerCompaction", "5");
+      client.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "recfg.planner.opts.executors", "1");
+
+      addFiles(client, "rctt", 10);
+
+      while (getFiles(client, "rctt").size() > 4) {
+        Thread.sleep(100);
+      }
+
+      assertEquals(4, getFiles(client, "rctt").size());
+    }
+  }
+
+  @Test
+  public void testAddCompactionService() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.instanceOperations().setProperty(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey()
+          + "newcs.planner.opts.filesPerCompaction", "7");
+      client.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.process",
+          "SYSTEM");
+      client.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.executors", "3");
+      client.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner",
+          TestPlanner.class.getName());
+
+      createTable(client, "acst", "newcs");
+
+      addFiles(client, "acst", 42);
+
+      while (getFiles(client, "acst").size() > 6) {
+        Thread.sleep(100);
+      }
+
+      assertEquals(6, getFiles(client, "acst").size());
     }
   }
 
@@ -599,8 +659,9 @@ public class CompactionIT extends SharedMiniClusterBase {
       String userType, String userService) throws Exception {
     var tcdo = Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey();
 
-    NewTableConfiguration ntc = new NewTableConfiguration().setProperties(Map.of(tcdo + "service",
-        compactionService, tcdo + "service.user." + userType, userService));
+    NewTableConfiguration ntc = new NewTableConfiguration().setProperties(
+        Map.of(tcdo + "service", compactionService, tcdo + "service.user." + userType, userService,
+            Property.TABLE_MAJC_RATIO.getKey(), "100"));
 
     client.tableOperations().create(name, ntc);
   }

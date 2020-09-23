@@ -29,7 +29,6 @@ import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestUtil;
-import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 
 /**
  * Test case that verifies that an iterator works correctly with the yielding api. Note that most
@@ -46,7 +45,7 @@ public class YieldingTestCase extends OutputVerifyingTestCase {
     final SortedKeyValueIterator<Key,Value> source = IteratorTestUtil.createSource(testInput);
 
     try {
-      skvi.init(source, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
+      skvi.init(source, testInput.getIteratorOptions(), testInput.getIteratorEnvironment());
 
       YieldCallback<Key> yield = new YieldCallback<>();
       skvi.enableYielding(yield);

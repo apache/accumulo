@@ -583,7 +583,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           + ". Check the logs in " + config.getLogDir() + " for errors.");
     }
 
-    control.start(ServerType.MASTER);
+    control.start(ServerType.MANAGER);
     control.start(ServerType.GARBAGE_COLLECTOR);
 
     if (executor == null) {
@@ -615,7 +615,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
-    result.put(ServerType.MASTER, references(control.masterProcess));
+    result.put(ServerType.MANAGER, references(control.masterProcess));
     result.put(ServerType.TABLET_SERVER,
         references(control.tabletServerProcesses.toArray(new Process[0])));
     if (control.zooKeeperProcess != null) {
@@ -665,7 +665,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     MiniAccumuloClusterControl control = getClusterControl();
 
     control.stop(ServerType.GARBAGE_COLLECTOR, null);
-    control.stop(ServerType.MASTER, null);
+    control.stop(ServerType.MANAGER, null);
     control.stop(ServerType.TABLET_SERVER, null);
     control.stop(ServerType.ZOOKEEPER, null);
 

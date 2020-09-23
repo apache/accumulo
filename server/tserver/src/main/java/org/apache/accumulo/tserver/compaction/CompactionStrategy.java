@@ -47,6 +47,9 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
  *             information about why this was deprecated.
  * @see org.apache.accumulo.core.spi.compaction
  */
+// Eclipse might show @SuppressWarnings("removal") as unnecessary.
+// Eclipse is wrong. See https://bugs.eclipse.org/bugs/show_bug.cgi?id=565271
+@SuppressWarnings("removal")
 @Deprecated(since = "2.1.0", forRemoval = true)
 public abstract class CompactionStrategy {
   /**

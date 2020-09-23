@@ -58,7 +58,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
@@ -73,6 +73,7 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
@@ -114,11 +115,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
-  /**
-   * A fraction representing how much of the JVM's available memory should be used for gathering
-   * candidates.
-   */
-  static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
@@ -154,8 +150,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
     log.info("safemode: {}", inSafeMode());
-    log.info("memory threshold: {} of {} bytes", CANDIDATE_MEMORY_PERCENTAGE,
-        Runtime.getRuntime().maxMemory());
+    log.info("candidate batch size: {} bytes", getCandidateBatchSize());
     log.info("delete threads: {}", getNumDeleteThreads());
     log.info("gc post metadata action: {}", useFullCompaction);
   }
@@ -188,6 +183,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   /**
+   * Gets the batch size for garbage collecting.
+   *
+   * @return candidate batch size.
+   */
+  long getCandidateBatchSize() {
+    return getConfiguration().getAsBytes(Property.GC_CANDIDATE_BATCH_SIZE);
+  }
+
+  /**
    * Checks if safemode is set - files will not be deleted.
    *
    * @return number of delete threads
@@ -209,20 +213,24 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         throws TableNotFoundException {
 
       Iterator<String> candidates = getContext().getAmple().getGcCandidates(level, continuePoint);
+      long candidateLength = 0;
+      // Converting the bytes to approximate number of characters for batch size.
+      long candidateBatchSize = getCandidateBatchSize() / 2;
 
       result.clear();
 
       while (candidates.hasNext()) {
-        String cand = candidates.next();
-
-        result.add(cand);
-        if (almostOutOfMemory(Runtime.getRuntime())) {
-          log.info("List of delete candidates has exceeded the memory"
-              + " threshold. Attempting to delete what has been gathered so far.");
+        String candidate = candidates.next();
+        candidateLength += candidate.length();
+        result.add(candidate);
+        if (candidateLength > candidateBatchSize) {
+          log.info(
+              "Candidate batch of size {} has exceeded the"
+                  + " threshold. Attempting to delete what has been gathered so far.",
+              candidateLength);
           return true;
         }
       }
-
       return false;
     }
 
@@ -237,10 +245,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       IsolatedScanner scanner =
           new IsolatedScanner(getContext().createScanner(level.metaTable(), Authorizations.EMPTY));
 
-      scanner.setRange(MetadataSchema.BlipSection.getRange());
+      scanner.setRange(BlipSection.getRange());
 
       return Iterators.transform(scanner.iterator(), entry -> entry.getKey().getRow().toString()
-          .substring(MetadataSchema.BlipSection.getRowPrefix().length()));
+          .substring(BlipSection.getRowPrefix().length()));
     }
 
     @Override
@@ -653,7 +661,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     try {
       ServerAddress server = TServerUtils.startTServer(getMetricsSystem(), getConfiguration(),
           getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
-          "GC Monitor Service", 2,
+          "GC Monitor Service", 2, SimpleThreadPool.DEFAULT_TIMEOUT_MILLISECS,
           getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
           maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
           addresses);
@@ -664,19 +672,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       log.error("FATAL:", ex);
       throw new RuntimeException(ex);
     }
-  }
-
-  /**
-   * Checks if the system is almost out of memory.
-   *
-   * @param runtime
-   *          Java runtime
-   * @return true if system is almost out of memory
-   * @see #CANDIDATE_MEMORY_PERCENTAGE
-   */
-  static boolean almostOutOfMemory(Runtime runtime) {
-    return runtime.totalMemory() - runtime.freeMemory()
-        > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
   }
 
   /**

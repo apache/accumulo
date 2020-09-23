@@ -122,7 +122,7 @@ public class MiniAccumuloCluster {
    * @since 1.6.0
    * @deprecated since 2.0.0, replaced by {@link #createAccumuloClient(String, AuthenticationToken)}
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public org.apache.accumulo.core.client.Connector getConnector(String user, String passwd)
       throws AccumuloException, AccumuloSecurityException {
     return org.apache.accumulo.core.client.Connector
@@ -143,7 +143,7 @@ public class MiniAccumuloCluster {
    * @since 1.6.0
    * @deprecated since 2.0.0, replaced by {@link #getClientProperties()}
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
     return impl.getClientConfig();
   }
