@@ -441,7 +441,7 @@ public class CompactableUtils {
       }
 
       if (selectedFiles.isEmpty()) {
-        Boolean updateMetadataTabletFail = false;
+        boolean updateMetadataTabletFail = false;
         try {
           MetadataTableUtil.updateTabletCompactID(tablet.getExtent(), compactionId,
               tablet.getTabletServer().getContext(), tablet.getTabletServer().getLock());
