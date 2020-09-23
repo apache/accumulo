@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -200,14 +201,18 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  public FileSystem getFileSystem() throws IOException {
+  public FileSystem getFileSystem() {
     Configuration conf = getHadoopConfiguration();
-    return FileSystem.get(conf);
+    try {
+      return FileSystem.get(conf);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   @Override
   public Path getTemporaryPath() {
-    return tmp;
+    return getFileSystem().makeQualified(tmp);
   }
 
   public ClusterUser getUser(int offset) {

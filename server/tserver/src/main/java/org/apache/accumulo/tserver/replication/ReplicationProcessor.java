@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -34,7 +33,6 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.ReplicaSystem;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
@@ -56,22 +54,18 @@ public class ReplicationProcessor implements Processor {
   private static final Logger log = LoggerFactory.getLogger(ReplicationProcessor.class);
 
   private final ServerContext context;
-  private final AccumuloConfiguration conf;
-  private final VolumeManager fs;
   private final ReplicaSystemHelper helper;
   private final ReplicaSystemFactory factory;
 
-  public ReplicationProcessor(ServerContext context, AccumuloConfiguration conf, VolumeManager fs) {
+  public ReplicationProcessor(ServerContext context) {
     this.context = context;
-    this.conf = conf;
-    this.fs = fs;
     this.helper = new ReplicaSystemHelper(context);
     this.factory = new ReplicaSystemFactory();
   }
 
   @Override
   public ReplicationProcessor newProcessor() {
-    return new ReplicationProcessor(context, context.getConfiguration(), fs);
+    return new ReplicationProcessor(context);
   }
 
   @Override
@@ -157,7 +151,7 @@ public class ReplicationProcessor implements Processor {
   protected String getPeerType(String peerName) {
     // Find the configured replication peer so we know how to replicate to it
     Map<String,String> configuredPeers =
-        conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
+        context.getConfiguration().getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
     String peerType = configuredPeers.get(Property.REPLICATION_PEERS.getKey() + peerName);
     if (peerType == null) {
       String msg = "Cannot process replication for unknown peer: " + peerName;
@@ -169,7 +163,7 @@ public class ReplicationProcessor implements Processor {
   }
 
   protected boolean doesFileExist(Path filePath, ReplicationTarget target) throws IOException {
-    if (!fs.exists(filePath)) {
+    if (!context.getVolumeManager().exists(filePath)) {
       log.warn("Received work request for {} and {}, but the file doesn't exist", filePath, target);
       return false;
     }

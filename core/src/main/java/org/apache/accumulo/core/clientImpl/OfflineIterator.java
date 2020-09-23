@@ -156,7 +156,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private ClientContext context;
   private ScannerOptions options;
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
-  private AccumuloConfiguration config;
 
   public OfflineIterator(ScannerOptions options, ClientContext context,
       Authorizations authorizations, Text table, Range range) {
@@ -174,7 +173,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<>();
 
     try {
-      config = new ConfigurationCopy(context.instanceOperations().getSiteConfiguration());
       nextTablet();
 
       while (iter != null && !iter.hasTop())
@@ -310,8 +308,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     // TODO need to close files - ACCUMULO-1303
     for (TabletFile file : absFiles) {
-      FileSystem fs =
-          VolumeConfiguration.getVolume(file.getPathStr(), conf, config).getFileSystem();
+      FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getPathStr(), conf);
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file.getPathStr(), fs, conf, CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(acuTableConf).build();
