@@ -964,6 +964,32 @@ public class NamespacesIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void validatePermissions() throws Exception {
+    // Create namespace.
+    c.namespaceOperations().create(namespace);
+
+    assertTrue(c.securityOperations().hasNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ));
+    c.securityOperations().revokeNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ);
+    assertFalse(c.securityOperations().hasNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ));
+    c.securityOperations().grantNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ);
+    assertTrue(c.securityOperations().hasNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ));
+
+    c.namespaceOperations().delete(namespace);
+
+    assertSecurityException(SecurityErrorCode.NAMESPACE_DOESNT_EXIST, () -> c.securityOperations()
+        .hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
+    assertSecurityException(SecurityErrorCode.NAMESPACE_DOESNT_EXIST, () -> c.securityOperations()
+        .grantNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
+    assertSecurityException(SecurityErrorCode.NAMESPACE_DOESNT_EXIST, () -> c.securityOperations()
+        .revokeNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
+  }
+
+  @Test
   public void verifyTableOperationsExceptions() throws Exception {
     String tableName = namespace + ".1";
     IteratorSetting setting = new IteratorSetting(200, VersioningIterator.class);

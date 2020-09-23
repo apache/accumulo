@@ -69,7 +69,7 @@ public abstract class TabletBalancer {
    *
    * @deprecated since 2.0.0; use {@link #init(ServerContext)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public void init(ServerConfigurationFactory conf) {
     init(conf.getServerContext());
   }

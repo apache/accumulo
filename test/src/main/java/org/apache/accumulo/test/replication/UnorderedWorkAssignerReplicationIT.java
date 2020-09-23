@@ -259,21 +259,24 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       log.info("");
       log.info("Fetching metadata records:");
-      for (Entry<Key,Value> kv : clientMaster.createScanner(MetadataTable.NAME,
-          Authorizations.EMPTY)) {
-        if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
-          log.info("{} {}", kv.getKey().toStringNoTruncate(),
-              ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-        } else {
-          log.info("{} {}", kv.getKey().toStringNoTruncate(), kv.getValue());
+      try (var scanner = clientMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> kv : scanner) {
+          if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
+            log.info("{} {}", kv.getKey().toStringNoTruncate(),
+                ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+          } else {
+            log.info("{} {}", kv.getKey().toStringNoTruncate(), kv.getValue());
+          }
         }
       }
 
       log.info("");
       log.info("Fetching replication records:");
-      for (Entry<Key,Value> kv : ReplicationTable.getScanner(clientMaster)) {
-        log.info("{} {}", kv.getKey().toStringNoTruncate(),
-            ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      try (var scanner = ReplicationTable.getScanner(clientMaster)) {
+        for (Entry<Key,Value> kv : scanner) {
+          log.info("{} {}", kv.getKey().toStringNoTruncate(),
+              ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        }
       }
 
       Future<Boolean> future = executor.submit(() -> {
@@ -294,21 +297,24 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       log.info("");
       log.info("Fetching metadata records:");
-      for (Entry<Key,Value> kv : clientMaster.createScanner(MetadataTable.NAME,
-          Authorizations.EMPTY)) {
-        if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
-          log.info("{} {}", kv.getKey().toStringNoTruncate(),
-              ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-        } else {
-          log.info("{} {}", kv.getKey().toStringNoTruncate(), kv.getValue());
+      try (var scanner = clientMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> kv : scanner) {
+          if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
+            log.info("{} {}", kv.getKey().toStringNoTruncate(),
+                ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+          } else {
+            log.info("{} {}", kv.getKey().toStringNoTruncate(), kv.getValue());
+          }
         }
       }
 
       log.info("");
       log.info("Fetching replication records:");
-      for (Entry<Key,Value> kv : ReplicationTable.getScanner(clientMaster)) {
-        log.info("{} {}", kv.getKey().toStringNoTruncate(),
-            ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      try (var scanner = ReplicationTable.getScanner(clientMaster)) {
+        for (Entry<Key,Value> kv : scanner) {
+          log.info("{} {}", kv.getKey().toStringNoTruncate(),
+              ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        }
       }
 
       try (Scanner master = clientMaster.createScanner(masterTable, Authorizations.EMPTY);
@@ -594,10 +600,11 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       Iterators.size(clientMaster.createScanner(masterTable, Authorizations.EMPTY).iterator());
 
-      for (Entry<Key,Value> kv : clientMaster.createScanner(ReplicationTable.NAME,
-          Authorizations.EMPTY)) {
-        log.debug("{} {}", kv.getKey().toStringNoTruncate(),
-            ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      try (var scanner = clientMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> kv : scanner) {
+          log.debug("{} {}", kv.getKey().toStringNoTruncate(),
+              ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        }
       }
 
       clientMaster.replicationOperations().drain(masterTable, files);

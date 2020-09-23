@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
  *
  * @deprecated since 2.0.0
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class DelegationTokenStub implements AuthenticationToken {
 
   private String serviceName;

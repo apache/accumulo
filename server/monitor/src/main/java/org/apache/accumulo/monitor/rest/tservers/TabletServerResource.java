@@ -322,11 +322,11 @@ public class TabletServerResource {
       ActionStatsUpdator.update(total.minors, info.minors);
       ActionStatsUpdator.update(total.majors, info.majors);
 
-      KeyExtent extent = new KeyExtent(info.extent);
-      TableId tableId = extent.getTableId();
+      KeyExtent extent = KeyExtent.fromThrift(info.extent);
+      TableId tableId = extent.tableId();
       MessageDigest digester = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
-      if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
-        digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
+      if (extent.endRow() != null && extent.endRow().getLength() > 0) {
+        digester.update(extent.endRow().getBytes(), 0, extent.endRow().getLength());
       }
       String obscuredExtent = Base64.getEncoder().encodeToString(digester.digest());
       String displayExtent = String.format("[%s]", obscuredExtent);

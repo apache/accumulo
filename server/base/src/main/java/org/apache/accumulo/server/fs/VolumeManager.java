@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -148,6 +149,14 @@ public interface VolumeManager extends AutoCloseable {
   // forward to the appropriate FileSystem object, throws an exception if the paths are in different
   // volumes
   boolean rename(Path path, Path newPath) throws IOException;
+
+  /**
+   * Rename lots of files at once in a thread pool and return once all the threads have completed.
+   * This operation should be idempotent to allow calling multiple times in the case of a partial
+   * completion.
+   */
+  void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
+      String transactionId) throws IOException;
 
   // forward to the appropriate FileSystem object
   boolean moveToTrash(Path sourcePath) throws IOException;

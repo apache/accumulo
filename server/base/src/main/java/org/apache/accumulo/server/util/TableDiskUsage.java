@@ -176,7 +176,7 @@ public class TableDiskUsage {
         throw new RuntimeException(e);
       }
       mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      mdScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+      mdScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
       if (!mdScanner.iterator().hasNext()) {
         emptyTableIds.add(tableId);

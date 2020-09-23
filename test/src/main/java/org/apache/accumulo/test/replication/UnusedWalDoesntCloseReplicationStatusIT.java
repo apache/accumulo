@@ -42,7 +42,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -164,14 +166,14 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
 
-      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      s.setRange(TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
         System.out.println(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
       }
     }
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.ReplicationSection.getRange());
+      s.setRange(ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         System.out.println(entry.getKey().toStringNoTruncate() + " "
             + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
@@ -185,14 +187,14 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       String walUri = tserverWal.toURI().toString();
       KeyExtent extent = new KeyExtent(tableId, null, null);
       try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
-        Mutation m = new Mutation(extent.getMetadataEntry());
-        m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME,
-            new Text("localhost:12345/" + walUri), new Value(walUri + "|1"));
+        Mutation m = new Mutation(extent.toMetaRow());
+        m.put(LogColumnFamily.NAME, new Text("localhost:12345/" + walUri),
+            new Value(walUri + "|1"));
         bw.addMutation(m);
 
         // Add a replication entry for our fake WAL
-        m = new Mutation(MetadataSchema.ReplicationSection.getRowPrefix() + new Path(walUri));
-        m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId.canonical()),
+        m = new Mutation(ReplicationSection.getRowPrefix() + new Path(walUri));
+        m.put(ReplicationSection.COLF, new Text(tableId.canonical()),
             new Value(StatusUtil.fileCreated(System.currentTimeMillis()).toByteArray()));
         bw.addMutation(m);
       }
@@ -201,14 +203,14 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     }
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      s.setRange(TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
       }
     }
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.ReplicationSection.getRange());
+      s.setRange(ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(),
             ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
@@ -223,14 +225,14 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     }
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      s.setRange(TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
       }
     }
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.ReplicationSection.getRange());
+      s.setRange(ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         Status status = Status.parseFrom(entry.getValue().get());
         log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));

@@ -105,10 +105,9 @@ public class MiniAccumuloRunner {
     System.out.println();
     System.out.println("# Configuration normally placed in accumulo.properties can be added using"
         + " a site.* prefix.");
-    System.out.println(
-        "# For example the following line will set tserver.compaction.major.concurrent.max");
+    System.out.println("# For example the following line will set tserver.compaction.major.delay");
     System.out.println();
-    System.out.println("#site.tserver.compaction.major.concurrent.max=4");
+    System.out.println("#site.tserver.compaction.major.delay=60s");
 
   }
 
@@ -199,7 +198,7 @@ public class MiniAccumuloRunner {
       setMemoryOnConfig(config, opts.prop.getProperty(TSERVER_MEMORY_PROP),
           ServerType.TABLET_SERVER);
     if (opts.prop.containsKey(MASTER_MEMORY_PROP))
-      setMemoryOnConfig(config, opts.prop.getProperty(MASTER_MEMORY_PROP), ServerType.MASTER);
+      setMemoryOnConfig(config, opts.prop.getProperty(MASTER_MEMORY_PROP), ServerType.MANAGER);
     if (opts.prop.containsKey(DEFAULT_MEMORY_PROP))
       setMemoryOnConfig(config, opts.prop.getProperty(DEFAULT_MEMORY_PROP));
     if (opts.prop.containsKey(SHUTDOWN_PORT_PROP))

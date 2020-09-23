@@ -538,7 +538,7 @@ public class TabletServer extends AbstractServer {
     ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), address,
         Property.TSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
-        Property.TSERV_THREADCHECK, maxMessageSizeProperty);
+        Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK, maxMessageSizeProperty);
     this.server = sp.server;
     return sp.address;
   }
@@ -602,10 +602,11 @@ public class TabletServer extends AbstractServer {
     Property maxMessageSizeProperty =
         getConfiguration().get(Property.TSERV_MAX_MESSAGE_SIZE) != null
             ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE;
-    ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(),
-        clientAddress.getHost(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
-        "ReplicationServicerHandler", "Replication Servicer", Property.TSERV_PORTSEARCH,
-        Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
+    ServerAddress sp =
+        TServerUtils.startServer(getMetricsSystem(), getContext(), clientAddress.getHost(),
+            Property.REPLICATION_RECEIPT_SERVICE_PORT, processor, "ReplicationServicerHandler",
+            "Replication Servicer", Property.TSERV_PORTSEARCH, Property.REPLICATION_MIN_THREADS,
+            null, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
     this.replServer = sp.server;
     log.info("Started replication service on {}", sp.address);
 
@@ -731,7 +732,7 @@ public class TabletServer extends AbstractServer {
         return Iterators.transform(onlineTablets.snapshot().values().iterator(),
             Tablet::asCompactable);
       }
-    }, getContext(), this.resourceManager);
+    }, getContext());
     compactionManager.start();
 
     try {
@@ -1045,7 +1046,7 @@ public class TabletServer extends AbstractServer {
     final Map<String,TableInfo> tables = new HashMap<>();
 
     getOnlineTablets().forEach((ke, tablet) -> {
-      String tableId = ke.getTableId().canonical();
+      String tableId = ke.tableId().canonical();
       TableInfo table = tables.get(tableId);
       if (table == null) {
         table = new TableInfo();
@@ -1105,7 +1106,7 @@ public class TabletServer extends AbstractServer {
     }
 
     for (KeyExtent extent : offlineTabletsCopy) {
-      String tableId = extent.getTableId().canonical();
+      String tableId = extent.tableId().canonical();
       TableInfo table = tables.get(tableId);
       if (table == null) {
         table = new TableInfo();
@@ -1189,7 +1190,7 @@ public class TabletServer extends AbstractServer {
   }
 
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
-    return getContext().getTableConfiguration(extent.getTableId());
+    return getContext().getTableConfiguration(extent.tableId());
   }
 
   public DfsLogger.ServerResources getServerConfig() {

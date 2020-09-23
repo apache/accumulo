@@ -44,7 +44,7 @@ import com.beust.jcommander.Parameter;
 /**
  * This class supports deprecated mapreduce code in core jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class RowHash extends Configured implements Tool {
   /**
    * The Mapper class that given a row number, will generate the appropriate output line.

@@ -392,7 +392,7 @@ public class CompactableImpl implements Compactable {
 
   @Override
   public TableId getTableId() {
-    return getExtent().getTableId();
+    return getExtent().tableId();
   }
 
   @Override
@@ -682,45 +682,54 @@ public class CompactableImpl implements Compactable {
   @Override
   public CompactionServiceId getConfiguredService(CompactionKind kind) {
 
-    var dispatcher = tablet.getTableConfiguration().getCompactionDispatcher();
+    Map<String,String> debugHints = null;
 
-    Map<String,String> tmpHints = Map.of();
+    try {
+      var dispatcher = tablet.getTableConfiguration().getCompactionDispatcher();
 
-    if (kind == CompactionKind.USER) {
-      synchronized (this) {
-        if (selectStatus != SpecialStatus.NOT_ACTIVE && selectStatus != SpecialStatus.CANCELED
-            && selectKind == CompactionKind.USER) {
-          tmpHints = compactionConfig.getExecutionHints();
+      Map<String,String> tmpHints = Map.of();
+
+      if (kind == CompactionKind.USER) {
+        synchronized (this) {
+          if (selectStatus != SpecialStatus.NOT_ACTIVE && selectStatus != SpecialStatus.CANCELED
+              && selectKind == CompactionKind.USER) {
+            tmpHints = compactionConfig.getExecutionHints();
+          }
         }
       }
+
+      var hints = tmpHints;
+      debugHints = hints;
+
+      var directives = dispatcher.dispatch(new DispatchParameters() {
+
+        @Override
+        public ServiceEnvironment getServiceEnv() {
+          return new ServiceEnvironmentImpl(tablet.getContext());
+        }
+
+        @Override
+        public Map<String,String> getExecutionHints() {
+          return hints;
+        }
+
+        @Override
+        public CompactionKind getCompactionKind() {
+          return kind;
+        }
+
+        @Override
+        public CompactionServices getCompactionServices() {
+          return manager.getServices();
+        }
+      });
+
+      return directives.getService();
+    } catch (RuntimeException e) {
+      log.error("Failed to dispatch compaction {} kind:{} hints:{}, falling back to {} service.",
+          getExtent(), kind, debugHints, CompactionManager.DEFAULT_SERVICE, e);
+      return CompactionManager.DEFAULT_SERVICE;
     }
-
-    var hints = tmpHints;
-
-    var directives = dispatcher.dispatch(new DispatchParameters() {
-
-      @Override
-      public ServiceEnvironment getServiceEnv() {
-        return new ServiceEnvironmentImpl(tablet.getContext());
-      }
-
-      @Override
-      public Map<String,String> getExecutionHints() {
-        return hints;
-      }
-
-      @Override
-      public CompactionKind getCompactionKind() {
-        return kind;
-      }
-
-      @Override
-      public CompactionServices getCompactionServices() {
-        return manager.getServices();
-      }
-    });
-
-    return directives.getService();
   }
 
   @Override

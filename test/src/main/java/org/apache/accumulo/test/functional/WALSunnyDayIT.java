@@ -53,6 +53,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
@@ -144,9 +145,9 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       sleepUninterruptibly(5, TimeUnit.SECONDS);
       Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
       // log.debug("markers " + markers);
-      assertEquals("one tablet should have markers", 1, markers.keySet().size());
+      assertEquals("one tablet should have markers", 1, markers.size());
       assertEquals("tableId of the keyExtent should be 1", "1",
-          markers.keySet().iterator().next().getTableId().canonical());
+          markers.keySet().iterator().next().tableId().canonical());
 
       // put some data in the WAL
       assertEquals(0, cluster.exec(SetGoalState.class, "NORMAL").getProcess().waitFor());
@@ -199,11 +200,11 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     try (Scanner root = c.createScanner(RootTable.NAME, EMPTY);
         Scanner meta = c.createScanner(MetadataTable.NAME, EMPTY)) {
       root.setRange(TabletsSection.getRange());
-      root.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
+      root.fetchColumnFamily(LogColumnFamily.NAME);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(root);
 
       meta.setRange(TabletsSection.getRange());
-      meta.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
+      meta.fetchColumnFamily(LogColumnFamily.NAME);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(meta);
 
       List<String> logs = new ArrayList<>();
@@ -211,11 +212,11 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       while (both.hasNext()) {
         Entry<Key,Value> entry = both.next();
         Key key = entry.getKey();
-        if (key.getColumnFamily().equals(TabletsSection.LogColumnFamily.NAME)) {
+        if (key.getColumnFamily().equals(LogColumnFamily.NAME)) {
           logs.add(key.getColumnQualifier().toString());
         }
         if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key) && !logs.isEmpty()) {
-          KeyExtent extent = new KeyExtent(key.getRow(), entry.getValue());
+          KeyExtent extent = KeyExtent.fromMetaPrevRow(entry);
           result.put(extent, logs);
           logs = new ArrayList<>();
         }

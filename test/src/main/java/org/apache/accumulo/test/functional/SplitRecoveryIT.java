@@ -37,10 +37,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Writer;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -48,11 +46,18 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
@@ -153,7 +158,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
       String dirName = "dir_" + i;
       String tdir = ServerConstants.getTablesDirs(context).iterator().next() + "/"
-          + extent.getTableId() + "/" + dirName;
+          + extent.tableId() + "/" + dirName;
       MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
       SortedMap<TabletFile,DataFileValue> mapFiles = new TreeMap<>();
       mapFiles.put(new TabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
@@ -171,8 +176,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
     KeyExtent extent = extents[extentToSplit];
 
-    KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
-    KeyExtent low = new KeyExtent(extent.getTableId(), midRow, extent.getPrevEndRow());
+    KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
+    KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
 
     splitPartiallyAndRecover(context, extent, high, low, .4, splitMapFiles, midRow,
         "localhost:1234", failPoint, zl);
@@ -199,13 +204,13 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<>(), mapFiles,
         lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
 
-    MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, context, zl);
+    MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio, context, zl);
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
-    Writer writer = MetadataTableUtil.getMetadataTable(context);
     Assignment assignment = new Assignment(high, instance);
-    Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-    assignment.server.putFutureLocation(m);
-    writer.update(m);
+
+    TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
+    tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
+    tabletMutator.mutate();
 
     if (steps >= 1) {
       Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, extent);
@@ -247,20 +252,20 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
       SortedMap<StoredTabletFile,DataFileValue> expectedMapFiles) throws Exception {
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
-      scanner.setRange(extent.toMetadataRange());
+      scanner.setRange(extent.toMetaRange());
 
       HashSet<ColumnFQ> expectedColumns = new HashSet<>();
-      expectedColumns.add(TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN);
-      expectedColumns.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN);
-      expectedColumns.add(TabletsSection.ServerColumnFamily.TIME_COLUMN);
-      expectedColumns.add(TabletsSection.ServerColumnFamily.LOCK_COLUMN);
+      expectedColumns.add(ServerColumnFamily.DIRECTORY_COLUMN);
+      expectedColumns.add(TabletColumnFamily.PREV_ROW_COLUMN);
+      expectedColumns.add(ServerColumnFamily.TIME_COLUMN);
+      expectedColumns.add(ServerColumnFamily.LOCK_COLUMN);
 
       HashSet<Text> expectedColumnFamilies = new HashSet<>();
       expectedColumnFamilies.add(DataFileColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.FutureLocationColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.CurrentLocationColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.LastLocationColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.BulkFileColumnFamily.NAME);
+      expectedColumnFamilies.add(FutureLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(CurrentLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(LastLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(BulkFileColumnFamily.NAME);
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
@@ -270,14 +275,14 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         Entry<Key,Value> entry = iter.next();
         Key key = entry.getKey();
 
-        if (!key.getRow().equals(extent.getMetadataEntry())) {
+        if (!key.getRow().equals(extent.toMetaRow())) {
           throw new Exception(
               "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
         }
 
-        if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+        if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
           sawPer = true;
-          if (!new KeyExtent(key.getRow(), entry.getValue()).equals(extent)) {
+          if (!KeyExtent.fromMetaPrevRow(entry).equals(extent)) {
             throw new Exception("Unexpected prev end row " + entry);
           }
         }

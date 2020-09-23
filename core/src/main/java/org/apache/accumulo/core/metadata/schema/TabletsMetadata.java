@@ -226,8 +226,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public Options forTablet(KeyExtent extent) {
-      forTable(extent.getTableId());
-      this.range = new Range(extent.getMetadataEntry());
+      forTable(extent.tableId());
+      this.range = new Range(extent.toMetaRow());
       return this;
     }
 
@@ -239,7 +239,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public Options overlapping(Text startRow, Text endRow) {
-      this.range = new KeyExtent(tableId, null, startRow).toMetadataRange();
+      this.range = new KeyExtent(tableId, null, startRow).toMetaRange();
       this.endRow = endRow;
       return this;
     }

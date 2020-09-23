@@ -80,7 +80,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-master</artifactId>
+      <artifactId>accumulo-manager</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -273,6 +273,15 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>hadoop-metrics2-accumulo.properties</exclude>
+          </excludes>
+        </configuration>
       </plugin>
     </plugins>
   </build>

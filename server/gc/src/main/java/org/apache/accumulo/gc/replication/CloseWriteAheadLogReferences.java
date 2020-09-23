@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.gc.replication;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
@@ -52,7 +52,6 @@ import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Stopwatch;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
@@ -76,10 +75,11 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   @Override
   public void run() {
-    // As long as we depend on a newer Guava than Hadoop uses, we have to make sure we're compatible
-    // with
-    // what the version they bundle uses.
-    Stopwatch sw = Stopwatch.createUnstarted();
+    // Guava Stopwatch is useful here, for a friendlier toString, but the versions of Guava
+    // are different in incompatible ways, so we avoid it here and use Duration instead, so
+    // there won't be conflicts.
+    long startTime;
+    Duration duration;
 
     if (!ReplicationTable.isOnline(context)) {
       log.debug("Replication table isn't online, not attempting to clean up wals");
@@ -88,24 +88,22 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
     HashSet<String> closed = null;
     try (TraceScope findWalsSpan = Trace.startSpan("findReferencedWals")) {
-      sw.start();
+      startTime = System.nanoTime();
       closed = getClosedLogs();
-    } finally {
-      sw.stop();
+      duration = Duration.ofNanos(System.nanoTime() - startTime);
     }
 
-    log.info("Found {} WALs referenced in metadata in {}", closed.size(), sw);
-    sw.reset();
+    log.info("Found {} WALs referenced in metadata in {}", closed.size(), duration);
 
     long recordsClosed = 0;
     try (TraceScope updateReplicationSpan = Trace.startSpan("updateReplicationTable")) {
-      sw.start();
+      startTime = System.nanoTime();
       recordsClosed = updateReplicationEntries(context, closed);
-    } finally {
-      sw.stop();
+      duration = Duration.ofNanos(System.nanoTime() - startTime);
     }
 
-    log.info("Closed {} WAL replication references in replication table in {}", recordsClosed, sw);
+    log.info("Closed {} WAL replication references in replication table in {}", recordsClosed,
+        duration);
   }
 
   /**
@@ -161,7 +159,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
         }
 
         // Ignore things that aren't completely replicated as we can't delete those anyways
-        MetadataSchema.ReplicationSection.getFile(entry.getKey(), replFileText);
+        ReplicationSection.getFile(entry.getKey(), replFileText);
         String replFile = replFileText.toString();
         boolean isClosed = closedWals.contains(replFile);
 

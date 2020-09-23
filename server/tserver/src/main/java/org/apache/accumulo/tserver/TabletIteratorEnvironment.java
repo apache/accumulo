@@ -124,7 +124,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.topLevelIterators = new ArrayList<>();
   }
 
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   @Override
   public AccumuloConfiguration getConfig() {
     return tableConfig;
@@ -150,7 +150,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     return userCompaction;
   }
 
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   @Override
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
       throws IOException {
@@ -158,7 +158,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     return trm.openFiles(Collections.singletonMap(ref, files.get(ref)), false, null).get(0);
   }
 
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   @Override
   public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
     topLevelIterators.add(iter);
@@ -219,7 +219,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     return context;
   }
 
-  @Deprecated
+  @Deprecated(since = "2.1.0")
   @Override
   public ServiceEnvironment getServiceEnv() {
     return serviceEnvironment;

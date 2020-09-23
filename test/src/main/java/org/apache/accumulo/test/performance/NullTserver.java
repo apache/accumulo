@@ -68,6 +68,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processo
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.state.Assignment;
@@ -303,15 +304,15 @@ public class NullTserver {
     Processor<Iface> processor = new Processor<>(tch);
     TServerUtils.startTServer(Metrics.initSystem(NullTserver.class.getSimpleName()),
         context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer",
-        "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1,
-        HostAndPort.fromParts("0.0.0.0", opts.port));
+        "null tserver", 2, SimpleThreadPool.DEFAULT_TIMEOUT_MILLISECS, 1, 1000, 10 * 1024 * 1024,
+        null, null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
     TableId tableId = Tables.getTableId(context, opts.tableName);
 
     // read the locations for the table
-    Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();
+    Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     List<Assignment> assignments = new ArrayList<>();
     try (var s = new MetaDataTableScanner(context, tableRange, MetadataTable.NAME)) {
       long randomSessionID = opts.port;

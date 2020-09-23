@@ -67,7 +67,7 @@ public class VolumeConfiguration {
   /**
    * @see org.apache.accumulo.core.volume.VolumeConfiguration#getVolumeUris(AccumuloConfiguration,Configuration)
    */
-  @Deprecated
+  @Deprecated(since = "1.3.0")
   public static String getConfiguredBaseDir(AccumuloConfiguration conf,
       Configuration hadoopConfig) {
     String singleNamespace = conf.get(Property.INSTANCE_DFS_DIR);

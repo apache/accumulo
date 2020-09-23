@@ -902,6 +902,34 @@ public class SortedLogRecoveryTest {
   }
 
   @Test
+  public void testMultipleCompactionStartEvents() throws IOException {
+    Mutation m1 = new ServerMutation(new Text("r1"));
+    m1.put("f1", "q1", "v1");
+
+    Mutation m2 = new ServerMutation(new Text("r2"));
+    m2.put("f1", "q1", "v2");
+
+    // The code that writes compaction start events retries on failures, this could lead to multiple
+    // compaction start events in the log. This should not cause any problems.
+
+    KeyValue[] entries1 = {createKeyValue(OPEN, 0, -1, "1"),
+        createKeyValue(DEFINE_TABLET, 100, 10, extent), createKeyValue(MUTATION, 100, 10, m1),
+        createKeyValue(COMPACTION_START, 102, 10, "/t/f1"),
+        createKeyValue(COMPACTION_START, 102, 10, "/t/f1"),
+        createKeyValue(COMPACTION_START, 102, 10, "/t/f1"),
+        createKeyValue(COMPACTION_FINISH, 103, 10, null), createKeyValue(MUTATION, 103, 10, m2)};
+
+    Arrays.sort(entries1);
+
+    Map<String,KeyValue[]> logs = new TreeMap<>();
+    logs.put("entries1", entries1);
+
+    List<Mutation> mutations1 = recover(logs, extent);
+    assertEquals(1, mutations1.size());
+    assertEquals(m2, mutations1.get(0));
+  }
+
+  @Test
   public void testEmptyLogFiles() throws IOException {
     Mutation m1 = new ServerMutation(new Text("r1"));
     m1.put("f1", "q1", "v1");

@@ -41,7 +41,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
@@ -182,11 +182,10 @@ public class RemoveEntriesForMissingFiles {
   }
 
   static int checkAllTables(ServerContext context, boolean fix) throws Exception {
-    int missing =
-        checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
+    int missing = checkTable(context, RootTable.NAME, TabletsSection.getRange(), fix);
 
     if (missing == 0)
-      return checkTable(context, MetadataTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
+      return checkTable(context, MetadataTable.NAME, TabletsSection.getRange(), fix);
     else
       return missing;
   }
@@ -195,10 +194,10 @@ public class RemoveEntriesForMissingFiles {
     if (tableName.equals(RootTable.NAME)) {
       throw new IllegalArgumentException("Can not check root table");
     } else if (tableName.equals(MetadataTable.NAME)) {
-      return checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
+      return checkTable(context, RootTable.NAME, TabletsSection.getRange(), fix);
     } else {
       TableId tableId = Tables.getTableId(context, tableName);
-      Range range = new KeyExtent(tableId, null, null).toMetadataRange();
+      Range range = new KeyExtent(tableId, null, null).toMetaRange();
       return checkTable(context, MetadataTable.NAME, range, fix);
     }
   }

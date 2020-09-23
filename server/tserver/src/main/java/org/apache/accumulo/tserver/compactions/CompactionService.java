@@ -47,71 +47,96 @@ import org.apache.accumulo.core.spi.compaction.ExecutorManager;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
-import org.apache.accumulo.tserver.TabletServerResourceManager;
 import org.apache.accumulo.tserver.compactions.SubmittedJob.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 public class CompactionService {
-  private final CompactionPlanner planner;
-  private final Map<CompactionExecutorId,CompactionExecutor> executors;
+  private CompactionPlanner planner;
+  private Map<CompactionExecutorId,CompactionExecutor> executors;
   private final CompactionServiceId myId;
   private Map<KeyExtent,Collection<SubmittedJob>> submittedJobs = new ConcurrentHashMap<>();
   private ServerContext serverCtx;
+  private String plannerClassName;
+  private Map<String,String> plannerOpts;
 
   private static final Logger log = LoggerFactory.getLogger(CompactionService.class);
 
+  private class CpInitParams implements CompactionPlanner.InitParameters {
+
+    private final Map<String,String> plannerOpts;
+    private final Map<CompactionExecutorId,Integer> requestedExecutors;
+
+    CpInitParams(Map<String,String> plannerOpts) {
+      this.plannerOpts = plannerOpts;
+      this.requestedExecutors = new HashMap<>();
+    }
+
+    @Override
+    public ServiceEnvironment getServiceEnvironment() {
+      return new ServiceEnvironmentImpl(serverCtx);
+    }
+
+    @Override
+    public Map<String,String> getOptions() {
+      return plannerOpts;
+    }
+
+    @Override
+    public String getFullyQualifiedOption(String key) {
+      return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + myId + ".opts." + key;
+    }
+
+    @Override
+    public ExecutorManager getExecutorManager() {
+      return new ExecutorManager() {
+        @Override
+        public CompactionExecutorId createExecutor(String executorName, int threads) {
+          Preconditions.checkArgument(threads > 0, "Positive number of threads required : %s",
+              threads);
+          var ceid = CompactionExecutorId.of(myId + "." + executorName);
+          Preconditions.checkState(!requestedExecutors.containsKey(ceid));
+          requestedExecutors.put(ceid, threads);
+          return ceid;
+        }
+      };
+    }
+
+  }
+
   public CompactionService(String serviceName, String plannerClass,
-      Map<String,String> serviceOptions, ServerContext sctx, TabletServerResourceManager tsrm) {
+      Map<String,String> plannerOptions, ServerContext sctx) {
 
     this.myId = CompactionServiceId.of(serviceName);
     this.serverCtx = sctx;
+    this.plannerClassName = plannerClass;
+    this.plannerOpts = plannerOptions;
 
-    try {
-      planner =
-          ConfigurationTypeHelper.getClassInstance(null, plannerClass, CompactionPlanner.class);
-    } catch (IOException | ReflectiveOperationException e) {
-      throw new RuntimeException(e);
-    }
+    var initParams = new CpInitParams(plannerOpts);
+    planner = createPlanner(plannerClass);
+    planner.init(initParams);
 
     Map<CompactionExecutorId,CompactionExecutor> tmpExecutors = new HashMap<>();
 
-    planner.init(new CompactionPlanner.InitParameters() {
-
-      @Override
-      public ServiceEnvironment getServiceEnvironment() {
-        return new ServiceEnvironmentImpl(sctx);
-      }
-
-      @Override
-      public Map<String,String> getOptions() {
-        return serviceOptions;
-      }
-
-      @Override
-      public ExecutorManager getExecutorManager() {
-        return new ExecutorManager() {
-          @Override
-          public CompactionExecutorId createExecutor(String executorName, int threads) {
-            var ceid = CompactionExecutorId.of(serviceName + "." + executorName);
-            Preconditions.checkState(!tmpExecutors.containsKey(ceid));
-            tmpExecutors.put(ceid, new CompactionExecutor(ceid, threads, tsrm));
-            return ceid;
-          }
-        };
-      }
-
-      @Override
-      public String getFullyQualifiedOption(String key) {
-        return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + serviceName + ".opts." + key;
-      }
+    initParams.requestedExecutors.forEach((ceid, numThreads) -> {
+      tmpExecutors.put(ceid, new CompactionExecutor(ceid, numThreads));
     });
 
     this.executors = Map.copyOf(tmpExecutors);
 
-    log.debug("Created new compaction service id:{} executors:{}", myId, executors.keySet());
+    log.debug("Created new compaction service id:{} planner:{} planner options:{}", myId,
+        plannerClass, plannerOptions);
+  }
+
+  private CompactionPlanner createPlanner(String plannerClass) {
+    try {
+      return ConfigurationTypeHelper.getClassInstance(null, plannerClass, CompactionPlanner.class);
+    } catch (IOException | ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private boolean reconcile(Set<CompactionJob> jobs, Collection<SubmittedJob> submitted) {
@@ -197,7 +222,7 @@ public class CompactionService {
       }
     };
 
-    log.trace("Planning compactions {} {} {} {} {}", planner.getClass().getName(),
+    log.trace("Planning compactions {} {} {} {}", planner.getClass().getName(),
         compactable.getExtent(), kind, files);
 
     CompactionPlan plan;
@@ -262,5 +287,43 @@ public class CompactionService {
   public boolean isCompactionQueued(KeyExtent extent) {
     return submittedJobs.getOrDefault(extent, List.of()).stream()
         .anyMatch(job -> job.getStatus() == Status.QUEUED);
+  }
+
+  public void configurationChanged(String plannerClassName, Map<String,String> plannerOptions) {
+    if (this.plannerClassName.equals(plannerClassName) && this.plannerOpts.equals(plannerOptions))
+      return;
+
+    var initParams = new CpInitParams(plannerOptions);
+    var tmpPlanner = createPlanner(plannerClassName);
+    tmpPlanner.init(initParams);
+
+    Map<CompactionExecutorId,CompactionExecutor> tmpExecutors = new HashMap<>();
+
+    initParams.requestedExecutors.forEach((ceid, numThreads) -> {
+      var executor = executors.get(ceid);
+      if (executor == null) {
+        executor = new CompactionExecutor(ceid, numThreads);
+      } else {
+        executor.setThreads(numThreads);
+      }
+      tmpExecutors.put(ceid, executor);
+    });
+
+    Sets.difference(executors.keySet(), tmpExecutors.keySet()).forEach(ceid -> {
+      executors.get(ceid).stop();
+    });
+
+    this.plannerClassName = plannerClassName;
+    this.plannerOpts = plannerOptions;
+    this.executors = Map.copyOf(tmpExecutors);
+    this.planner = tmpPlanner;
+
+    log.debug("Updated compaction service id:{} planner:{} options:{}", myId, plannerClassName,
+        plannerOptions);
+
+  }
+
+  public void stop() {
+    executors.values().forEach(CompactionExecutor::stop);
   }
 }

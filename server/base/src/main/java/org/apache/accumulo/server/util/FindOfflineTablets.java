@@ -31,7 +31,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.master.LiveTServerSet;
@@ -87,7 +87,7 @@ public class FindOfflineTablets {
 
     System.out.println("Scanning " + RootTable.NAME);
     Iterator<TabletLocationState> rootScanner =
-        new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), RootTable.NAME);
+        new MetaDataTableScanner(context, TabletsSection.getRange(), RootTable.NAME);
     if ((offline = checkTablets(context, rootScanner, tservers)) > 0)
       return offline;
 
@@ -96,10 +96,10 @@ public class FindOfflineTablets {
 
     System.out.println("Scanning " + MetadataTable.NAME);
 
-    Range range = MetadataSchema.TabletsSection.getRange();
+    Range range = TabletsSection.getRange();
     if (tableName != null) {
       TableId tableId = Tables.getTableId(context, tableName);
-      range = new KeyExtent(tableId, null, null).toMetadataRange();
+      range = new KeyExtent(tableId, null, null).toMetaRange();
     }
 
     try (MetaDataTableScanner metaScanner =
@@ -116,7 +116,7 @@ public class FindOfflineTablets {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
       if (state != null && state != TabletState.HOSTED
-          && context.getTableManager().getTableState(locationState.extent.getTableId())
+          && context.getTableManager().getTableState(locationState.extent.tableId())
               != TableState.OFFLINE) {
         System.out
             .println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());

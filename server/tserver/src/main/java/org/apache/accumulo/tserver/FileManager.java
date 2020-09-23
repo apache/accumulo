@@ -215,10 +215,6 @@ public class FileManager {
     return ret;
   }
 
-  private static <T> List<T> getFileList(String file, Map<String,List<T>> files) {
-    return files.computeIfAbsent(file, k -> new ArrayList<>());
-  }
-
   private void closeReaders(Collection<FileSKVIterator> filesToClose) {
     for (FileSKVIterator reader : filesToClose) {
       try {
@@ -312,13 +308,13 @@ public class FileManager {
         // log.debug("Opening "+file + " path " + path);
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(context.getTableConfiguration(tablet.getTableId()))
+            .withTableConfiguration(context.getTableConfiguration(tablet.tableId()))
             .withCacheProvider(cacheProvider).withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
 
         ProblemReports.getInstance(context)
-            .report(new ProblemReport(tablet.getTableId(), ProblemType.FILE_READ, file, e));
+            .report(new ProblemReport(tablet.tableId(), ProblemType.FILE_READ, file, e));
 
         if (continueOnFailure) {
           // release the permit for the file that failed to open
@@ -372,7 +368,8 @@ public class FileManager {
       for (FileSKVIterator reader : readers) {
         String fileName = reservedReaders.remove(reader);
         if (!sawIOException)
-          getFileList(fileName, openFiles).add(new OpenReader(fileName, reader));
+          openFiles.computeIfAbsent(fileName, k -> new ArrayList<>())
+              .add(new OpenReader(fileName, reader));
       }
     }
 
@@ -474,7 +471,7 @@ public class FileManager {
       this.tablet = tablet;
       this.cacheProvider = cacheProvider;
 
-      continueOnFailure = context.getTableConfiguration(tablet.getTableId())
+      continueOnFailure = context.getTableConfiguration(tablet.tableId())
           .getBoolean(Property.TABLE_FAILURES_IGNORE);
 
       if (tablet.isMeta()) {
@@ -534,10 +531,10 @@ public class FileManager {
           FileDataSource fds = new FileDataSource(filename, source);
           dataSources.add(fds);
           SourceSwitchingIterator ssi = new SourceSwitchingIterator(fds);
-          iter = new ProblemReportingIterator(context, tablet.getTableId(), filename,
+          iter = new ProblemReportingIterator(context, tablet.tableId(), filename,
               continueOnFailure, ssi);
         } else {
-          iter = new ProblemReportingIterator(context, tablet.getTableId(), filename,
+          iter = new ProblemReportingIterator(context, tablet.tableId(), filename,
               continueOnFailure, source);
         }
 
@@ -571,9 +568,8 @@ public class FileManager {
       List<String> files = dataSources.stream().map(x -> x.file).collect(Collectors.toList());
       Map<FileSKVIterator,String> newlyReservedReaders = openFiles(files);
       Map<String,List<FileSKVIterator>> map = new HashMap<>();
-      newlyReservedReaders.forEach((reader, fileName) -> {
-        map.computeIfAbsent(fileName, k -> new LinkedList<>()).add(reader);
-      });
+      newlyReservedReaders.forEach(
+          (reader, fileName) -> map.computeIfAbsent(fileName, k -> new LinkedList<>()).add(reader));
 
       for (FileDataSource fds : dataSources) {
         FileSKVIterator source = map.get(fds.file).remove(0);

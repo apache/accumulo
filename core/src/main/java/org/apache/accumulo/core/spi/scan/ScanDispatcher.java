@@ -72,7 +72,7 @@ public interface ScanDispatcher {
    * @deprecated since 2.1.0 replaced by {@link DispatchParameters} and
    *             {@link ScanDispatcher#dispatch(DispatchParameters)}
    */
-  @Deprecated
+  @Deprecated(since = "2.1.0")
   public interface DispatchParmaters extends DispatchParameters {}
 
   /**
@@ -83,7 +83,7 @@ public interface ScanDispatcher {
    *             never call this. However the default implementation of
    *             {@link #dispatch(DispatchParameters)} calls this method.
    */
-  @Deprecated
+  @Deprecated(since = "2.1.0")
   default String dispatch(DispatchParmaters params) {
     throw new UnsupportedOperationException();
   }

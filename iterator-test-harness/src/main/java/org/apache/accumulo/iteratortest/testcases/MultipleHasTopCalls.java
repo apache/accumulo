@@ -29,7 +29,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestUtil;
-import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 
 /**
  * TestCase which asserts that multiple calls to {@link SortedKeyValueIterator#hasTop()} should not
@@ -53,7 +52,7 @@ public class MultipleHasTopCalls extends OutputVerifyingTestCase {
     final SortedKeyValueIterator<Key,Value> source = IteratorTestUtil.createSource(testInput);
 
     try {
-      skvi.init(source, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
+      skvi.init(source, testInput.getIteratorOptions(), testInput.getIteratorEnvironment());
       skvi.seek(testInput.getRange(), testInput.getFamilies(), testInput.isInclusive());
       return new IteratorTestOutput(consume(skvi));
     } catch (IOException e) {

@@ -50,7 +50,7 @@ public class ChaoticLoadBalancerTest {
       TabletServerStatus result = new TabletServerStatus();
       result.tableMap = new HashMap<>();
       for (KeyExtent extent : extents) {
-        TableId table = extent.getTableId();
+        TableId table = extent.tableId();
         TableInfo info = result.tableMap.get(table.canonical());
         if (info == null)
           result.tableMap.put(table.canonical(), info = new TableInfo());
@@ -71,7 +71,7 @@ public class ChaoticLoadBalancerTest {
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId table) {
       List<TabletStats> result = new ArrayList<>();
       for (KeyExtent extent : servers.get(tserver).extents) {
-        if (extent.getTableId().equals(table)) {
+        if (extent.tableId().equals(table)) {
           result.add(new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0., 0));
         }
       }

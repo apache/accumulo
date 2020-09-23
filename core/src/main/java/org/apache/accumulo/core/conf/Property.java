@@ -180,7 +180,7 @@ public enum Property {
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but"
           + " do not have to be consistent throughout a cloud."),
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME,
       AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE, PropertyType.STRING,
       "This property is deprecated since 2.0.0. A list of all of the places where changes "
@@ -248,11 +248,13 @@ public enum Property {
       "The number of attempts to bulk import a RFile before giving up."),
   MASTER_BULK_THREADPOOL_SIZE("master.bulk.threadpool.size", "5", PropertyType.COUNT,
       "The number of threads to use when coordinating a bulk import."),
+  MASTER_BULK_THREADPOOL_TIMEOUT("master.bulk.threadpool.timeout", "0s", PropertyType.TIMEDURATION,
+      "The time after which bulk import threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely."),
   MASTER_BULK_TIMEOUT("master.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request"),
   MASTER_RENAME_THREADS("master.rename.threadpool.size", "20", PropertyType.COUNT,
       "The number of threads to use when renaming user files during table import or bulk ingest."),
-  @Deprecated
+  @Deprecated(since = "2.1.0")
   @ReplacedBy(property = MASTER_RENAME_THREADS)
   MASTER_BULK_RENAME_THREADS("master.bulk.rename.threadpool.size", "20", PropertyType.COUNT,
       "This property is deprecated since 2.1.0. The number of threads to use when moving user files to bulk ingest "
@@ -261,6 +263,8 @@ public enum Property {
       "Regular expression that defines the set of Tablet Servers that will perform bulk imports"),
   MASTER_MINTHREADS("master.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests."),
+  MASTER_MINTHREADS_TIMEOUT("master.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
+      "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely."),
   MASTER_THREADCHECK("master.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the server thread pool."),
   MASTER_RECOVERY_DELAY("master.recovery.delay", "10s", PropertyType.TIMEDURATION,
@@ -343,7 +347,7 @@ public enum Property {
       "When a tablet server has more than this many write ahead logs, any tablet referencing older "
           + "logs over this threshold is minor compacted.  Also any tablet referencing this many "
           + "logs or more will be compacted."),
-  TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1g", PropertyType.BYTES,
+  TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1G", PropertyType.BYTES,
       "The maximum size for each write-ahead log. See comment for property"
           + " tserver.memory.maps.max"),
   TSERV_WALOG_MAX_AGE("tserver.walog.max.age", "24h", PropertyType.TIMEDURATION,
@@ -376,9 +380,6 @@ public enum Property {
           + " memory usage table.compaction.minor.logs.threshold and"
           + " tserver.walog.max.size. Ensure that table.compaction.minor.logs.threshold"
           + " * tserver.walog.max.size >= this property."),
-  TSERV_MEM_MGMT("tserver.memory.manager",
-      "org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager", PropertyType.CLASSNAME,
-      "An implementation of MemoryManger that accumulo will use."),
   TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION,
       "When a tablet server's SimpleTimer thread triggers to check idle"
           + " sessions, this configurable option will be used to evaluate scan sessions"
@@ -497,6 +498,8 @@ public enum Property {
       "The time to wait for a tablet server to process a bulk import request."),
   TSERV_MINTHREADS("tserver.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests."),
+  TSERV_MINTHREADS_TIMEOUT("tserver.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
+      "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely."),
   TSERV_THREADCHECK("tserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the server thread pool."),
   TSERV_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.BYTES,
@@ -550,11 +553,11 @@ public enum Property {
           + " debugging information will be written."),
   TSERV_SUMMARY_PARTITION_THREADS("tserver.summary.partition.threads", "10", PropertyType.COUNT,
       "Summary data must be retrieved from RFiles. For a large number of"
-          + " RFiles, the files are broken into partitions of 100K files. This setting"
-          + " determines how many of these groups of 100K RFiles will be processed"
+          + " RFiles, the files are broken into partitions of 100k files. This setting"
+          + " determines how many of these groups of 100k RFiles will be processed"
           + " concurrently."),
   TSERV_SUMMARY_REMOTE_THREADS("tserver.summary.remote.threads", "128", PropertyType.COUNT,
-      "For a partitioned group of 100K RFiles, those files are grouped by"
+      "For a partitioned group of 100k RFiles, those files are grouped by"
           + " tablet server. Then a remote tablet server is asked to gather summary"
           + " data. This setting determines how many concurrent request are made per"
           + " partition."),
@@ -565,6 +568,8 @@ public enum Property {
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector."),
+  GC_CANDIDATE_BATCH_SIZE("gc.candidate.batch.size", "8M", PropertyType.BYTES,
+      "The batch size used for garbage collection."),
   GC_CYCLE_START("gc.cycle.start", "30s", PropertyType.TIMEDURATION,
       "Time to wait before attempting to garbage collect any old RFiles or write-ahead logs."),
   GC_CYCLE_DELAY("gc.cycle.delay", "5m", PropertyType.TIMEDURATION,
@@ -680,9 +685,9 @@ public enum Property {
           + " place for tablets that have one or more RFiles."),
   TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.BYTES,
       "A tablet is split when the combined size of RFiles exceeds this amount."),
-  TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10K", PropertyType.BYTES,
+  TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row"),
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   @ReplacedBy(property = Property.TSERV_WALOG_MAX_REFERENCED)
   TABLE_MINC_LOGS_MAX("table.compaction.minor.logs.threshold", "3", PropertyType.COUNT,
       "This property is deprecated since 2.0.0."),
@@ -723,7 +728,7 @@ public enum Property {
           + " table.  The metadata table always dispatches to a scan executor named `meta`."),
   TABLE_SCAN_DISPATCHER_OPTS("table.scan.dispatcher.opts.", null, PropertyType.PREFIX,
       "Options for the table scan dispatcher"),
-  TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.BYTES,
+  TABLE_SCAN_MAXMEM("table.scan.max.memory", "512k", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client."),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.STRING,
@@ -735,9 +740,9 @@ public enum Property {
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING,
       "Compression algorithm used on index and data blocks before they are"
           + " written. Possible values: zstd, gz, snappy, lzo, none"),
-  TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.BYTES,
+  TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100k", PropertyType.BYTES,
       "The maximum size of data blocks in RFiles before they are compressed and written."),
-  TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128K",
+  TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128k",
       PropertyType.BYTES,
       "The maximum size of index blocks in RFiles before they are compressed and written."),
   TABLE_FILE_BLOCK_SIZE("table.file.blocksize", "0B", PropertyType.BYTES,
@@ -753,7 +758,7 @@ public enum Property {
           + " it default to tserver.scan.files.open.max-1, this will prevent a tablet"
           + " from having more RFiles than can be opened. Setting this property low may"
           + " throttle ingest and increase query performance."),
-  TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256K", PropertyType.BYTES,
+  TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256k", PropertyType.BYTES,
       "The maximum size summary that will be stored. The number of RFiles that"
           + " had summary data exceeding this threshold is reported by"
           + " Summary.getFileStatistics().getLarge(). When adjusting this consider the"
@@ -976,7 +981,7 @@ public enum Property {
       "Amount of time for a single replication RPC call to last before failing"
           + " the attempt. See replication.work.attempts."),
   // deprecated properties grouped at the end to reference property that replaces them
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   @ReplacedBy(property = INSTANCE_VOLUMES)
   INSTANCE_DFS_URI("instance.dfs.uri", "", PropertyType.URI,
       "This property is deprecated since 1.6.0. "
@@ -987,35 +992,35 @@ public enum Property {
           + " reference files. Files created before a 1.6.0 upgrade are referenced via"
           + " relative paths. Relative paths will always be resolved using this config"
           + " (if empty using the hadoop config)."),
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   @ReplacedBy(property = INSTANCE_VOLUMES)
   INSTANCE_DFS_DIR("instance.dfs.dir", "/accumulo", PropertyType.ABSOLUTEPATH,
       "This property is deprecated since 1.6.0. "
           + "HDFS directory in which accumulo instance will run. "
           + "Do not change after accumulo is initialized."),
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   GENERAL_CLASSPATHS(AccumuloClassLoader.GENERAL_CLASSPATHS, "", PropertyType.STRING,
       "This property is deprecated since 2.0.0. The class path should instead be configured"
           + " by the launch environment (for example, accumulo-env.sh). A list of all"
           + " of the places to look for a class. Order does matter, as it will look for"
           + " the jar starting in the first location to the last. Supports full regex"
           + " on filename alone."),
-  @Deprecated
+  @Deprecated(since = "1.7.0")
   @ReplacedBy(property = TABLE_DURABILITY)
   TSERV_WAL_SYNC_METHOD("tserver.wal.sync.method", "hsync", PropertyType.STRING,
       "This property is deprecated since 1.7.0. Use table.durability instead."),
-  @Deprecated
+  @Deprecated(since = "1.7.0")
   @ReplacedBy(property = TABLE_DURABILITY)
   TABLE_WALOG_ENABLED("table.walog.enabled", "true", PropertyType.BOOLEAN,
       "This setting is deprecated since 1.7.0. Use table.durability=none instead."),
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   @ReplacedBy(property = TSERV_SCAN_EXECUTORS_DEFAULT_THREADS)
   TSERV_READ_AHEAD_MAXCONCURRENT("tserver.readahead.concurrent.max", "16", PropertyType.COUNT,
       "This property is deprecated since 2.0.0, use tserver.scan.executors.default.threads "
           + "instead. The maximum number of concurrent read ahead that will execute. This "
           + "effectively limits the number of long running scans that can run concurrently "
           + "per tserver.\""),
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   @ReplacedBy(property = TSERV_SCAN_EXECUTORS_META_THREADS)
   TSERV_METADATA_READ_AHEAD_MAXCONCURRENT("tserver.metadata.readahead.concurrent.max", "8",
       PropertyType.COUNT,

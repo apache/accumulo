@@ -27,7 +27,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestUtil;
-import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 
 /**
  * Test case that verifies that an iterator can use the generated instance from {@code deepCopy}.
@@ -40,9 +39,9 @@ public class DeepCopyTestCase extends OutputVerifyingTestCase {
     final SortedKeyValueIterator<Key,Value> source = IteratorTestUtil.createSource(testInput);
 
     try {
-      skvi.init(source, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
+      skvi.init(source, testInput.getIteratorOptions(), testInput.getIteratorEnvironment());
 
-      SortedKeyValueIterator<Key,Value> copy = skvi.deepCopy(new SimpleIteratorEnvironment());
+      SortedKeyValueIterator<Key,Value> copy = skvi.deepCopy(testInput.getIteratorEnvironment());
 
       copy.seek(testInput.getRange(), testInput.getFamilies(), testInput.isInclusive());
       return new IteratorTestOutput(consume(copy));

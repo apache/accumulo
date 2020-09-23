@@ -120,7 +120,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     List<TabletStats> tablets = new ArrayList<>();
     // Report assignment information
     for (Entry<KeyExtent,TServerInstance> e : this.assignments.entrySet()) {
-      if (e.getValue().equals(tserver) && e.getKey().getTableId().equals(tableId)) {
+      if (e.getValue().equals(tserver) && e.getKey().tableId().equals(tableId)) {
         TabletStats ts = new TabletStats();
         ts.setExtent(e.getKey().toThrift());
         tablets.add(ts);

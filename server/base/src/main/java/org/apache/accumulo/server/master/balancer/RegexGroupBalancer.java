@@ -86,7 +86,7 @@ public class RegexGroupBalancer extends GroupBalancer {
 
       @Override
       public String apply(KeyExtent input) {
-        Text er = input.getEndRow();
+        Text er = input.endRow();
         if (er == null) {
           return defaultGroup;
         }

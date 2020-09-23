@@ -54,8 +54,7 @@ public class ShardedTableDistributionFormatter extends AggregatingFormatter {
         day = row.substring(semicolon, semicolon + 8);
       }
       String server = entry.getValue().toString();
-      countsByDay.computeIfAbsent(day, k -> new HashSet<>());
-      countsByDay.get(day).add(server);
+      countsByDay.computeIfAbsent(day, k -> new HashSet<>()).add(server);
     }
   }
 

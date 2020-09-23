@@ -19,17 +19,21 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.hadoop.io.Text;
 
@@ -57,7 +61,7 @@ public class MetadataSchema {
           new Key(tableId.canonical() + '<').followingKey(PartialKey.ROW), false);
     }
 
-    public static Text getRow(TableId tableId, Text endRow) {
+    public static Text encodeRow(TableId tableId, Text endRow) {
       Text entry = new Text(tableId.canonical());
 
       if (endRow == null) {
@@ -70,6 +74,43 @@ public class MetadataSchema {
       }
 
       return entry;
+    }
+
+    /**
+     * Decodes a metadata row into a pair of table ID and end row.
+     */
+    public static Pair<TableId,Text> decodeRow(Text metadataRow) {
+      int semiPos = -1;
+      int ltPos = -1;
+
+      for (int i = 0; i < metadataRow.getLength(); i++) {
+        if (metadataRow.getBytes()[i] == ';' && semiPos < 0) {
+          // want the position of the first semicolon
+          semiPos = i;
+        }
+        if (metadataRow.getBytes()[i] == '<') {
+          ltPos = i;
+        }
+      }
+
+      if (semiPos < 0 && ltPos < 0) {
+        throw new IllegalArgumentException("Metadata row does not contain ; or <  " + metadataRow);
+      }
+
+      if (semiPos < 0) {
+        // default tablet ending in '<'
+        if (ltPos != metadataRow.getLength() - 1) {
+          throw new IllegalArgumentException("< must come at end of Metadata row  " + metadataRow);
+        }
+        TableId tableId = TableId.of(new String(metadataRow.getBytes(), 0, ltPos, UTF_8));
+        return new Pair<>(tableId, null);
+      } else {
+        // other tablets containing ';'
+        TableId tableId = TableId.of(new String(metadataRow.getBytes(), 0, semiPos, UTF_8));
+        Text endRow = new Text();
+        endRow.set(metadataRow.getBytes(), semiPos + 1, metadataRow.getLength() - (semiPos + 1));
+        return new Pair<>(tableId, endRow);
+      }
     }
 
     /**
@@ -89,6 +130,28 @@ public class MetadataSchema {
        */
       public static final String PREV_ROW_QUAL = "~pr";
       public static final ColumnFQ PREV_ROW_COLUMN = new ColumnFQ(NAME, new Text(PREV_ROW_QUAL));
+
+      public static Value encodePrevEndRow(Text per) {
+        if (per == null) {
+          return new Value(new byte[] {0});
+        }
+        byte[] b = new byte[per.getLength() + 1];
+        b[0] = 1;
+        System.arraycopy(per.getBytes(), 0, b, 1, per.getLength());
+        return new Value(b);
+      }
+
+      public static Text decodePrevEndRow(Value ibw) {
+        Text per = null;
+
+        if (ibw.get()[0] != 0) {
+          per = new Text();
+          per.set(ibw.get(), 1, ibw.get().length - 1);
+        }
+
+        return per;
+      }
+
       /**
        * A temporary field in case a split fails and we need to roll back
        */
@@ -101,6 +164,15 @@ public class MetadataSchema {
       public static final String SPLIT_RATIO_QUAL = "splitRatio";
       public static final ColumnFQ SPLIT_RATIO_COLUMN =
           new ColumnFQ(NAME, new Text(SPLIT_RATIO_QUAL));
+
+      /**
+       * Creates a mutation that encodes a KeyExtent as a prevRow entry.
+       */
+      public static Mutation createPrevRowMutation(KeyExtent ke) {
+        Mutation m = new Mutation(ke.toMetaRow());
+        PREV_ROW_COLUMN.put(m, encodePrevEndRow(ke.prevEndRow()));
+        return m;
+      }
     }
 
     /**

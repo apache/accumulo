@@ -36,7 +36,7 @@ public interface IteratorEnvironment {
   /**
    * @deprecated since 2.0.0. This is a legacy method used for internal backwards compatibility.
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   default SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
       throws IOException {
     throw new UnsupportedOperationException();
@@ -46,7 +46,7 @@ public interface IteratorEnvironment {
    * @deprecated since 2.0.0. This method was using an unstable non public type. Use
    *             {@link #getPluginEnv()}
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   default AccumuloConfiguration getConfig() {
     throw new UnsupportedOperationException();
   }
@@ -70,7 +70,7 @@ public interface IteratorEnvironment {
   /**
    * @deprecated since 2.0.0. This was an experimental feature and was never tested or documented.
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   default void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
     throw new UnsupportedOperationException();
   }
@@ -161,7 +161,7 @@ public interface IteratorEnvironment {
    * @deprecated since 2.1.0. This method was using a non public API type. Use
    *             {@link #getPluginEnv()} instead because it has better stability guarantees.
    */
-  @Deprecated
+  @Deprecated(since = "2.1.0")
   default ServiceEnvironment getServiceEnv() {
     throw new UnsupportedOperationException();
   }

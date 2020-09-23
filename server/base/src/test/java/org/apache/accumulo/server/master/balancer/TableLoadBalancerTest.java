@@ -177,7 +177,7 @@ public class TableLoadBalancerTest {
       if (migration.oldServer.equals(svr)) {
         count++;
       }
-      TableId key = migration.tablet.getTableId();
+      TableId key = migration.tablet.tableId();
       movedByTable.put(key, movedByTable.get(key) + 1);
     }
     assertEquals(15, count);

@@ -69,12 +69,16 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -130,7 +134,7 @@ public class MetadataTableUtil {
   }
 
   public static void putLockID(ServerContext context, ZooLock zooLock, Mutation m) {
-    TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(m,
+    ServerColumnFamily.LOCK_COLUMN.put(m,
         new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
   }
 
@@ -205,7 +209,7 @@ public class MetadataTableUtil {
   public static void addTablet(KeyExtent extent, String path, ServerContext context,
       TimeType timeType, ZooLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putPrevEndRow(extent.getPrevEndRow());
+    tablet.putPrevEndRow(extent.prevEndRow());
     tablet.putDirName(path);
     tablet.putTime(new MetadataTime(0, timeType));
     tablet.putZooLock(zooLock);
@@ -231,22 +235,21 @@ public class MetadataTableUtil {
 
   public static void rollBackSplit(Text metadataEntry, Text oldPrevEndRow, ServerContext context,
       ZooLock zooLock) {
-    KeyExtent ke = new KeyExtent(metadataEntry, oldPrevEndRow);
-    Mutation m = ke.getPrevRowUpdateMutation();
-    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
-    TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
-    update(context, zooLock, m, new KeyExtent(metadataEntry, (Text) null));
+    KeyExtent ke = KeyExtent.fromMetaRow(metadataEntry, oldPrevEndRow);
+    Mutation m = TabletColumnFamily.createPrevRowMutation(ke);
+    TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
+    TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
+    update(context, zooLock, m, KeyExtent.fromMetaRow(metadataEntry));
   }
 
   public static void splitTablet(KeyExtent extent, Text oldPrevEndRow, double splitRatio,
       ServerContext context, ZooLock zooLock) {
-    Mutation m = extent.getPrevRowUpdateMutation(); //
+    Mutation m = TabletColumnFamily.createPrevRowMutation(extent);
 
-    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m,
-        new Value(Double.toString(splitRatio)));
+    TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(splitRatio)));
 
-    TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
-        KeyExtent.encodePrevEndRow(oldPrevEndRow));
+    TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
+        TabletColumnFamily.encodePrevEndRow(oldPrevEndRow));
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
     update(context, zooLock, m, extent);
   }
@@ -255,8 +258,8 @@ public class MetadataTableUtil {
       Map<StoredTabletFile,DataFileValue> datafileSizes,
       List<StoredTabletFile> highDatafilesToRemove, final ServerContext context, ZooLock zooLock) {
     Mutation m = new Mutation(metadataEntry);
-    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
-    TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
+    TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
+    TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
 
     for (Entry<StoredTabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
@@ -268,13 +271,13 @@ public class MetadataTableUtil {
       m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetaUpdateDeleteText());
     }
 
-    update(context, zooLock, m, new KeyExtent(metadataEntry, (Text) null));
+    update(context, zooLock, m, KeyExtent.fromMetaRow(metadataEntry));
   }
 
   public static void finishSplit(KeyExtent extent,
       Map<StoredTabletFile,DataFileValue> datafileSizes,
       List<StoredTabletFile> highDatafilesToRemove, ServerContext context, ZooLock zooLock) {
-    finishSplit(extent.getMetadataEntry(), datafileSizes, highDatafilesToRemove, context, zooLock);
+    finishSplit(extent.toMetaRow(), datafileSizes, highDatafilesToRemove, context, zooLock);
   }
 
   /**
@@ -362,13 +365,13 @@ public class MetadataTableUtil {
 
       // scan metadata for our table and delete everything we find
       Mutation m = null;
-      ms.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+      ms.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
       // insert deletes before deleting data from metadata... this makes the code fault tolerant
       if (insertDeletes) {
 
         ms.fetchColumnFamily(DataFileColumnFamily.NAME);
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(ms);
+        ServerColumnFamily.DIRECTORY_COLUMN.fetch(ms);
 
         for (Entry<Key,Value> cell : ms) {
           Key key = cell.getKey();
@@ -379,7 +382,7 @@ public class MetadataTableUtil {
             bw.addMutation(ServerAmpleImpl.createDeleteMutation(ref.meta().toString()));
           }
 
-          if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
+          if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
             String uri =
                 GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, cell.getValue().toString());
             bw.addMutation(ServerAmpleImpl.createDeleteMutation(uri));
@@ -442,8 +445,8 @@ public class MetadataTableUtil {
   private static Mutation createCloneMutation(TableId srcTableId, TableId tableId,
       Map<Key,Value> tablet) {
 
-    KeyExtent ke = new KeyExtent(tablet.keySet().iterator().next().getRow(), (Text) null);
-    Mutation m = new Mutation(TabletsSection.getRow(tableId, ke.getEndRow()));
+    KeyExtent ke = KeyExtent.fromMetaRow(tablet.keySet().iterator().next().getRow());
+    Mutation m = new Mutation(TabletsSection.encodeRow(tableId, ke.endRow()));
 
     for (Entry<Key,Value> entry : tablet.entrySet()) {
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
@@ -451,12 +454,9 @@ public class MetadataTableUtil {
         if (!cf.startsWith("../") && !cf.contains(":"))
           cf = "../" + srcTableId + entry.getKey().getColumnQualifier();
         m.put(entry.getKey().getColumnFamily(), new Text(cf), entry.getValue());
-      } else if (entry.getKey().getColumnFamily()
-          .equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
-        m.put(TabletsSection.LastLocationColumnFamily.NAME, entry.getKey().getColumnQualifier(),
-            entry.getValue());
-      } else if (entry.getKey().getColumnFamily()
-          .equals(TabletsSection.LastLocationColumnFamily.NAME)) {
+      } else if (entry.getKey().getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
+        m.put(LastLocationColumnFamily.NAME, entry.getKey().getColumnQualifier(), entry.getValue());
+      } else if (entry.getKey().getColumnFamily().equals(LastLocationColumnFamily.NAME)) {
         // skip
       } else {
         m.put(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(),
@@ -566,12 +566,12 @@ public class MetadataTableUtil {
 
       if (srcFiles.containsAll(cloneFiles)) {
         // write out marker that this tablet was successfully cloned
-        Mutation m = new Mutation(cloneTablet.getExtent().getMetadataEntry());
+        Mutation m = new Mutation(cloneTablet.getExtent().toMetaRow());
         m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK"));
         bw.addMutation(m);
       } else {
         // delete existing cloned tablet entry
-        Mutation m = new Mutation(cloneTablet.getExtent().getMetadataEntry());
+        Mutation m = new Mutation(cloneTablet.getExtent().toMetaRow());
 
         for (Entry<Key,Value> entry : cloneTablet.getKeyValues().entrySet()) {
           Key k = entry.getKey();
@@ -630,7 +630,7 @@ public class MetadataTableUtil {
 
       // delete the clone markers and create directory entries
       Scanner mscanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+      mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
       mscanner.fetchColumnFamily(ClonedColumnFamily.NAME);
 
       int dirCount = 0;
@@ -641,7 +641,7 @@ public class MetadataTableUtil {
         m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
         byte[] dirName =
             FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES);
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dirName));
+        ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dirName));
 
         bw.addMutation(m);
       }
@@ -661,8 +661,8 @@ public class MetadataTableUtil {
         Scanner mscanner =
             new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
         BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
-      mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
-      mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
+      mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
+      mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
 
       for (Entry<Key,Value> entry : mscanner) {
         log.trace("Looking at entry {} with tid {}", entry, tid);
@@ -680,7 +680,7 @@ public class MetadataTableUtil {
 
   public static void addBulkLoadInProgressFlag(ServerContext context, String path, long fateTxid) {
 
-    Mutation m = new Mutation(MetadataSchema.BlipSection.getRowPrefix() + path);
+    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root
@@ -691,7 +691,7 @@ public class MetadataTableUtil {
 
   public static void removeBulkLoadInProgressFlag(ServerContext context, String path) {
 
-    Mutation m = new Mutation(MetadataSchema.BlipSection.getRowPrefix() + path);
+    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root
@@ -704,21 +704,14 @@ public class MetadataTableUtil {
       getTabletEntries(SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
     TreeMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries = new TreeMap<>();
 
-    HashSet<ColumnFQ> colSet = null;
-    if (columns != null) {
-      colSet = new HashSet<>(columns);
-    }
+    HashSet<ColumnFQ> colSet = columns == null ? null : new HashSet<>(columns);
 
-    for (Entry<Key,Value> entry : tabletKeyValues.entrySet()) {
-      ColumnFQ currentKey = new ColumnFQ(entry.getKey());
-      if (columns != null && !colSet.contains(currentKey)) {
-        continue;
+    tabletKeyValues.forEach((key, val) -> {
+      ColumnFQ currentKey = new ColumnFQ(key);
+      if (columns == null || colSet.contains(currentKey)) {
+        tabletEntries.computeIfAbsent(key.getRow(), k -> new TreeMap<>()).put(currentKey, val);
       }
-
-      Text row = entry.getKey().getRow();
-
-      tabletEntries.computeIfAbsent(row, k -> new TreeMap<>()).put(currentKey, entry.getValue());
-    }
+    });
 
     return tabletEntries;
   }

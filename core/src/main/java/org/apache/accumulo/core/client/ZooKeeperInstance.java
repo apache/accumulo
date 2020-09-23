@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
  *
  * @deprecated since 2.0.0, Use {@link Accumulo#newClient()} instead
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class ZooKeeperInstance implements Instance {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperInstance.class);

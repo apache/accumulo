@@ -84,7 +84,7 @@ import org.apache.log4j.Logger;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
@@ -240,7 +240,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *             {@link #setZooKeeperInstance(JobConf, org.apache.accumulo.core.client.ClientConfiguration)}
    *             instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
     setZooKeeperInstance(job, org.apache.accumulo.core.client.ClientConfiguration.create()
         .withInstance(instanceName).withZkHosts(zooKeepers));
@@ -460,7 +460,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      * @since 1.6.0
      * @deprecated since 1.7.0; Use {@link #jobIterators} instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.7.0")
     protected void setupIterators(JobConf job, Scanner scanner, String tableName,
         RangeInputSplit split) {
       setupIterators(job, (ScannerBase) scanner, tableName, split);

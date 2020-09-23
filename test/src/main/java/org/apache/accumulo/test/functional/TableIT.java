@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -75,8 +75,8 @@ public class TableIT extends AccumuloClusterHarness {
       VerifyIngest.verifyIngest(c, params);
       TableId id = TableId.of(to.tableIdMap().get(tableName));
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        s.setRange(new KeyExtent(id, null, null).toMetadataRange());
-        s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+        s.setRange(new KeyExtent(id, null, null).toMetaRange());
+        s.fetchColumnFamily(DataFileColumnFamily.NAME);
         assertTrue(Iterators.size(s.iterator()) > 0);
 
         FileSystem fs = getCluster().getFileSystem();

@@ -54,7 +54,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value> {
 
   /**

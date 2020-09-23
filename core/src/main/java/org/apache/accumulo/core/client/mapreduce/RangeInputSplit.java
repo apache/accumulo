@@ -53,7 +53,7 @@ import org.apache.log4j.Level;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class RangeInputSplit extends InputSplit implements Writable {
   private Range range;
   private String[] locations;
@@ -322,7 +322,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
    *
    * @deprecated since 1.6.1, use getTableName() instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.1")
   public String getTable() {
     return getTableName();
   }
@@ -336,7 +336,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
    *
    * @deprecated since 1.6.1, use setTableName() instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.1")
   public void setTable(String table) {
     setTableName(table);
   }
@@ -357,7 +357,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
    * @see #getInstance(org.apache.accumulo.core.client.ClientConfiguration)
    * @deprecated since 1.7.0, use getInstance(ClientConfiguration) instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.7.0")
   public org.apache.accumulo.core.client.Instance getInstance() {
     return getInstance(org.apache.accumulo.core.client.ClientConfiguration.loadDefault());
   }

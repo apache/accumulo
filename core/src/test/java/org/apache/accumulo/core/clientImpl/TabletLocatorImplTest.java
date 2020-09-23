@@ -51,7 +51,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -60,7 +61,7 @@ import org.junit.Test;
 public class TabletLocatorImplTest {
 
   private static final KeyExtent RTE = RootTable.EXTENT;
-  private static final KeyExtent MTE = new KeyExtent(MetadataTable.ID, null, RTE.getEndRow());
+  private static final KeyExtent MTE = new KeyExtent(MetadataTable.ID, null, RTE.endRow());
 
   static KeyExtent nke(String t, String er, String per) {
     return new KeyExtent(TableId.of(t), er == null ? null : new Text(er),
@@ -125,10 +126,10 @@ public class TabletLocatorImplTest {
     TreeMap<Text,TabletLocation> mc = new TreeMap<>(TabletLocatorImpl.END_ROW_COMPARATOR);
 
     for (Entry<KeyExtent,TabletLocation> entry : mcke.entrySet()) {
-      if (entry.getKey().getEndRow() == null)
+      if (entry.getKey().endRow() == null)
         mc.put(TabletLocatorImpl.MAX_TEXT, entry.getValue());
       else
-        mc.put(entry.getKey().getEndRow(), entry.getValue());
+        mc.put(entry.getKey().endRow(), entry.getValue());
     }
 
     return mc;
@@ -293,7 +294,6 @@ public class TabletLocatorImplTest {
       String row = (String) ol[0];
       String server = (String) ol[1];
       KeyExtent ke = (KeyExtent) ol[2];
-
       emb.computeIfAbsent(server, k -> new HashMap<>()).computeIfAbsent(ke, k -> new ArrayList<>())
           .add(row);
     }
@@ -516,12 +516,8 @@ public class TabletLocatorImplTest {
   static void createEmptyTablet(TServers tservers, String server, KeyExtent tablet) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets =
         tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
-
-    SortedMap<Key,Value> tabletData = tablets.get(tablet);
-    if (tabletData == null) {
-      tabletData = new TreeMap<>();
-      tablets.put(tablet, tabletData);
-    } else if (!tabletData.isEmpty()) {
+    SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
+    if (!tabletData.isEmpty()) {
       throw new RuntimeException("Asked for empty tablet, but non empty tablet exists");
     }
   }
@@ -538,8 +534,8 @@ public class TabletLocatorImplTest {
       return;
     }
 
-    Text mr = ke.getMetadataEntry();
-    Key lk = new Key(mr, TabletsSection.CurrentLocationColumnFamily.NAME, new Text(instance));
+    Text mr = ke.toMetaRow();
+    Key lk = new Key(mr, CurrentLocationColumnFamily.NAME, new Text(instance));
     tabletData.remove(lk);
 
   }
@@ -548,21 +544,20 @@ public class TabletLocatorImplTest {
       String location, String instance) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets =
         tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
-
     SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
 
-    Text mr = ke.getMetadataEntry();
-    Value per = KeyExtent.encodePrevEndRow(ke.getPrevEndRow());
+    Text mr = ke.toMetaRow();
+    Value per = TabletColumnFamily.encodePrevEndRow(ke.prevEndRow());
 
     if (location != null) {
       if (instance == null)
         instance = "";
-      Key lk = new Key(mr, TabletsSection.CurrentLocationColumnFamily.NAME, new Text(instance));
+      Key lk = new Key(mr, CurrentLocationColumnFamily.NAME, new Text(instance));
       tabletData.put(lk, new Value(location));
     }
 
-    Key pk = new Key(mr, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier());
+    Key pk = new Key(mr, TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+        TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier());
     tabletData.put(pk, per);
   }
 
@@ -688,8 +683,8 @@ public class TabletLocatorImplTest {
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver3");
 
     // simulate the metadata table splitting
-    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, tab1e21.getMetadataEntry(), RTE.getEndRow());
-    KeyExtent mte2 = new KeyExtent(MetadataTable.ID, null, tab1e21.getMetadataEntry());
+    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, tab1e21.toMetaRow(), RTE.endRow());
+    KeyExtent mte2 = new KeyExtent(MetadataTable.ID, null, tab1e21.toMetaRow());
 
     setLocation(tservers, "tserver4", RTE, mte1, "tserver5");
     setLocation(tservers, "tserver4", RTE, mte2, "tserver6");
@@ -727,9 +722,8 @@ public class TabletLocatorImplTest {
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
 
     // simulate a hole in the metadata, caused by a partial split
-    KeyExtent mte11 = new KeyExtent(MetadataTable.ID, tab1e1.getMetadataEntry(), RTE.getEndRow());
-    KeyExtent mte12 =
-        new KeyExtent(MetadataTable.ID, tab1e21.getMetadataEntry(), tab1e1.getMetadataEntry());
+    KeyExtent mte11 = new KeyExtent(MetadataTable.ID, tab1e1.toMetaRow(), RTE.endRow());
+    KeyExtent mte12 = new KeyExtent(MetadataTable.ID, tab1e21.toMetaRow(), tab1e1.toMetaRow());
     deleteServer(tservers, "tserver10");
     setLocation(tservers, "tserver4", RTE, mte12, "tserver10");
     setLocation(tservers, "tserver10", mte12, tab1e21, "tserver12");
@@ -1180,7 +1174,7 @@ public class TabletLocatorImplTest {
   @Test
   public void testBug1() throws Exception {
     // a bug that occurred while running continuous ingest
-    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("0;0bc"), RTE.getEndRow());
+    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("0;0bc"), RTE.endRow());
     KeyExtent mte2 = new KeyExtent(MetadataTable.ID, null, new Text("0;0bc"));
 
     TServers tservers = new TServers();
@@ -1209,7 +1203,7 @@ public class TabletLocatorImplTest {
   @Test
   public void testBug2() throws Exception {
     // a bug that occurred while running a functional test
-    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("~"), RTE.getEndRow());
+    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("~"), RTE.endRow());
     KeyExtent mte2 = new KeyExtent(MetadataTable.ID, null, new Text("~"));
 
     TServers tservers = new TServers();
@@ -1237,7 +1231,7 @@ public class TabletLocatorImplTest {
   // being merged away, caused locating tablets to fail
   @Test
   public void testBug3() throws Exception {
-    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("1;c"), RTE.getEndRow());
+    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("1;c"), RTE.endRow());
     KeyExtent mte2 = new KeyExtent(MetadataTable.ID, new Text("1;f"), new Text("1;c"));
     KeyExtent mte3 = new KeyExtent(MetadataTable.ID, new Text("1;j"), new Text("1;f"));
     KeyExtent mte4 = new KeyExtent(MetadataTable.ID, new Text("1;r"), new Text("1;j"));

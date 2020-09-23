@@ -21,6 +21,8 @@ package org.apache.accumulo.tserver.compactions;
 import java.util.Comparator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -28,8 +30,9 @@ import java.util.function.Consumer;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
-import org.apache.accumulo.tserver.TabletServerResourceManager;
+import org.apache.htrace.wrappers.TraceExecutorService;
 import org.apache.htrace.wrappers.TraceRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +47,7 @@ public class CompactionExecutor {
   private ExecutorService executor;
   private final CompactionExecutorId ceid;
   private AtomicLong cancelCount = new AtomicLong();
+  private ThreadPoolExecutor rawExecutor;
 
   private class CompactionTask extends SubmittedJob implements Runnable {
 
@@ -114,14 +118,21 @@ public class CompactionExecutor {
     throw new IllegalArgumentException("Unknown runnable type " + r.getClass().getName());
   }
 
-  CompactionExecutor(CompactionExecutorId ceid, int threads, TabletServerResourceManager tsrm) {
+  CompactionExecutor(CompactionExecutorId ceid, int threads) {
     this.ceid = ceid;
     var comparator =
         Comparator.comparing(CompactionExecutor::getJob, CompactionJobPrioritizer.JOB_COMPARATOR);
 
     queue = new PriorityBlockingQueue<Runnable>(100, comparator);
 
-    executor = tsrm.createCompactionExecutor(ceid, threads, queue);
+    ThreadPoolExecutor tp = new ThreadPoolExecutor(threads, threads, 60, TimeUnit.SECONDS, queue,
+        new NamingThreadFactory("compaction." + ceid));
+    tp.allowCoreThreadTimeOut(true);
+
+    rawExecutor = tp;
+    executor = new TraceExecutorService(tp);
+
+    log.debug("Created compaction executor {} with {} threads", ceid, threads);
   }
 
   public SubmittedJob submit(CompactionServiceId csid, CompactionJob job, Compactable compactable,
@@ -130,5 +141,30 @@ public class CompactionExecutor {
     var ctask = new CompactionTask(job, compactable, csid, completionCallback);
     executor.execute(ctask);
     return ctask;
+  }
+
+  public void setThreads(int numThreads) {
+
+    var tp = rawExecutor;
+
+    int coreSize = tp.getCorePoolSize();
+
+    if (numThreads < coreSize) {
+      tp.setCorePoolSize(numThreads);
+      tp.setMaximumPoolSize(numThreads);
+    } else if (numThreads > coreSize) {
+      tp.setMaximumPoolSize(numThreads);
+      tp.setCorePoolSize(numThreads);
+    }
+
+    if (numThreads != coreSize) {
+      log.debug("Adjusted compaction executor {} threads from {} to {}", ceid, coreSize,
+          numThreads);
+    }
+  }
+
+  public void stop() {
+    executor.shutdownNow();
+    log.debug("Stopped compaction executor {}", ceid);
   }
 }

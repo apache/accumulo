@@ -45,7 +45,7 @@ import org.apache.hadoop.io.Writable;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class InputTableConfig implements Writable {
 
   private List<IteratorSetting> iterators;

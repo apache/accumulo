@@ -301,7 +301,7 @@ public class Compactor implements Callable<CompactionStats> {
         readers.add(reader);
 
         SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(context,
-            extent.getTableId(), mapFile.getPathStr(), false, reader);
+            extent.tableId(), mapFile.getPathStr(), false, reader);
 
         if (filesToCompact.get(mapFile).isTimeSet()) {
           iter = new TimeSettingIterator(iter, filesToCompact.get(mapFile).getTime());
@@ -312,7 +312,7 @@ public class Compactor implements Callable<CompactionStats> {
       } catch (Throwable e) {
 
         ProblemReports.getInstance(context).report(
-            new ProblemReport(extent.getTableId(), ProblemType.FILE_READ, mapFile.getPathStr(), e));
+            new ProblemReport(extent.tableId(), ProblemType.FILE_READ, mapFile.getPathStr(), e));
 
         log.warn("Some problem opening map file {} {}", mapFile, e.getMessage(), e);
         // failed to open some map file... close the ones that were opened
@@ -358,10 +358,10 @@ public class Compactor implements Callable<CompactionStats> {
       TabletIteratorEnvironment iterEnv;
       if (env.getIteratorScope() == IteratorScope.majc)
         iterEnv = new TabletIteratorEnvironment(context, IteratorScope.majc, !propogateDeletes,
-            acuTableConf, getExtent().getTableId(), getMajorCompactionReason());
+            acuTableConf, getExtent().tableId(), getMajorCompactionReason());
       else if (env.getIteratorScope() == IteratorScope.minc)
         iterEnv = new TabletIteratorEnvironment(context, IteratorScope.minc, acuTableConf,
-            getExtent().getTableId());
+            getExtent().tableId());
       else
         throw new IllegalArgumentException();
 

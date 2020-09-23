@@ -52,7 +52,7 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {
-    return 60;
+    return 120;
   }
 
   @Test
