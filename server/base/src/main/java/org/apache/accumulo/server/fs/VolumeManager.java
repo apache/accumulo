@@ -179,9 +179,9 @@ public interface VolumeManager extends AutoCloseable {
   boolean canSyncAndFlush(Path path);
 
   /**
-   * Fetch the Volume used for temporary storage
+   * Fetch the default Volume
    */
-  Volume getTemporaryVolume();
+  Volume getDefaultVolume();
 
   /**
    * Fetch the configured Volumes, excluding the default Volume

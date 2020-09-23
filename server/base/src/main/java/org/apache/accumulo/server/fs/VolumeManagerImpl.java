@@ -452,7 +452,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public Volume getTemporaryVolume() {
+  public Volume getDefaultVolume() {
     return defaultVolume;
   }
 

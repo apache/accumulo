@@ -69,7 +69,7 @@ class FinishCreateTable extends MasterRepo {
   }
 
   private void cleanupSplitFiles(Master env) throws IOException {
-    Volume defaultVolume = env.getVolumeManager().getTemporaryVolume();
+    Volume defaultVolume = env.getVolumeManager().getDefaultVolume();
     FileSystem fs = defaultVolume.getFileSystem();
     fs.delete(new Path(tableInfo.getSplitFile()), true);
     fs.delete(new Path(tableInfo.getSplitDirsFile()), true);
