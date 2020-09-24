@@ -357,8 +357,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       writeConfig(hdfsFile, conf);
 
       Map<String,String> siteConfig = config.getSiteConfig();
-      siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), dfsUri);
-      siteConfig.put(Property.INSTANCE_DFS_DIR.getKey(), "/accumulo");
+      siteConfig.put(Property.INSTANCE_VOLUMES.getKey(), dfsUri + "/accumulo");
       config.setSiteConfig(siteConfig);
     } else if (config.useExistingInstance()) {
       dfsUri = config.getHadoopConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
@@ -467,8 +466,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         throw new RuntimeException(e);
       }
 
-      String instanceIdFromFile =
-          VolumeManager.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
+      String instanceIdFromFile = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
       ZooReaderWriter zrw = new ZooReaderWriter(cc.get(Property.INSTANCE_ZK_HOST),
           (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET));
 
@@ -793,13 +791,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public Path getTemporaryPath() {
+    String p;
     if (config.useMiniDFS()) {
-      return new Path("/tmp/");
+      p = "/tmp/";
     } else {
       File tmp = new File(config.getDir(), "tmp");
       mkdirs(tmp);
-      return new Path(tmp.toString());
+      p = tmp.toString();
     }
+    return getFileSystem().makeQualified(new Path(p));
   }
 
   @Override

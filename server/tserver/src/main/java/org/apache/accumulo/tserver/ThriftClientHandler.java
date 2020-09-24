@@ -121,6 +121,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -167,7 +168,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
   private final RowLocks rowLocks = new RowLocks();
 
   ThriftClientHandler(TabletServer server) {
-    super(server.getContext(), new TransactionWatcher(server.getContext()), server.getFileSystem());
+    super(server.getContext(), new TransactionWatcher(server.getContext()));
     this.server = server;
     log.debug("{} created", ThriftClientHandler.class.getName());
   }
@@ -192,7 +193,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
           for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
             Path path = new Path(mapping.getKey());
-            FileSystem ns = fs.getFileSystemByPath(path);
+            FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
             path = ns.makeQualified(path);
             fileRefMap.put(new TabletFile(path), mapping.getValue());
           }
@@ -234,7 +235,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
         Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
         for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
           Path path = new Path(dir, mapping.getKey());
-          FileSystem ns = fs.getFileSystemByPath(path);
+          FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
           path = ns.makeQualified(path);
           newFileMap.put(new TabletFile(path), mapping.getValue());
         }
@@ -260,7 +261,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       return null;
     }
 
-    return server.getContext().getTableConfiguration(extent.tableId()).getScanDispatcher();
+    return context.getTableConfiguration(extent.tableId()).getScanDispatcher();
   }
 
   @Override
@@ -995,7 +996,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
 
     final CompressedIterators compressedIters = new CompressedIterators(symbols);
     ConditionCheckerContext checkerContext = new ConditionCheckerContext(server.getContext(),
-        compressedIters, server.getContext().getTableConfiguration(cs.tableId));
+        compressedIters, context.getTableConfiguration(cs.tableId));
 
     while (iter.hasNext()) {
       final Entry<KeyExtent,List<ServerConditionalMutation>> entry = iter.next();
@@ -1323,7 +1324,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       }
     } catch (ThriftSecurityException e) {
       log.warn("Got {} message from unauthenticatable user: {}", request, e.getUser());
-      if (server.getContext().getCredentials().getToken().getClass().getName()
+      if (context.getCredentials().getToken().getClass().getName()
           .equals(credentials.getTokenClassName())) {
         log.error("Got message from a service with a mismatched configuration."
             + " Please ensure a compatible configuration.", e);
@@ -1347,7 +1348,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
 
     if (lock != null) {
       ZooUtil.LockID lid =
-          new ZooUtil.LockID(server.getContext().getZooKeeperRoot() + Constants.ZMASTER_LOCK, lock);
+          new ZooUtil.LockID(context.getZooKeeperRoot() + Constants.ZMASTER_LOCK, lock);
 
       try {
         if (!ZooLock.isLockHeld(server.masterLockCache, lid)) {
@@ -1715,8 +1716,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
 
     ExecutorService es = server.resourceManager.getSummaryPartitionExecutor();
     Future<SummaryCollection> future = new Gatherer(server.getContext(), request,
-        server.getContext().getTableConfiguration(tableId), server.getContext().getCryptoService())
-            .gather(es);
+        context.getTableConfiguration(tableId), context.getCryptoService()).gather(es);
 
     return startSummaryOperation(credentials, future);
   }
@@ -1733,9 +1733,10 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
 
     ExecutorService spe = server.resourceManager.getSummaryRemoteExecutor();
     TableConfiguration tableConfig =
-        server.getContext().getTableConfiguration(TableId.of(request.getTableId()));
-    Future<SummaryCollection> future = new Gatherer(server.getContext(), request, tableConfig,
-        server.getContext().getCryptoService()).processPartition(spe, modulus, remainder);
+        context.getTableConfiguration(TableId.of(request.getTableId()));
+    Future<SummaryCollection> future =
+        new Gatherer(server.getContext(), request, tableConfig, context.getCryptoService())
+            .processPartition(spe, modulus, remainder);
 
     return startSummaryOperation(credentials, future);
   }
@@ -1751,14 +1752,14 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     }
 
     ExecutorService srp = server.resourceManager.getSummaryRetrievalExecutor();
-    TableConfiguration tableCfg =
-        server.getContext().getTableConfiguration(TableId.of(request.getTableId()));
+    TableConfiguration tableCfg = context.getTableConfiguration(TableId.of(request.getTableId()));
     BlockCache summaryCache = server.resourceManager.getSummaryCache();
     BlockCache indexCache = server.resourceManager.getIndexCache();
     Cache<String,Long> fileLenCache = server.resourceManager.getFileLenCache();
+    VolumeManager fs = context.getVolumeManager();
     FileSystemResolver volMgr = fs::getFileSystemByPath;
     Future<SummaryCollection> future =
-        new Gatherer(server.getContext(), request, tableCfg, server.getContext().getCryptoService())
+        new Gatherer(server.getContext(), request, tableCfg, context.getCryptoService())
             .processFiles(volMgr, files, summaryCache, indexCache, fileLenCache, srp);
 
     return startSummaryOperation(credentials, future);

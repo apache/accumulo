@@ -31,12 +31,12 @@ import java.util.Map.Entry;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -56,7 +56,6 @@ import org.slf4j.LoggerFactory;
 public class LogSorter {
 
   private static final Logger log = LoggerFactory.getLogger(LogSorter.class);
-  VolumeManager fs;
   AccumuloConfiguration conf;
 
   private final Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<>());
@@ -103,6 +102,8 @@ public class LogSorter {
       synchronized (this) {
         sortStart = System.currentTimeMillis();
       }
+
+      VolumeManager fs = context.getVolumeManager();
 
       String formerThreadName = Thread.currentThread().getName();
       int part = 0;
@@ -177,7 +178,7 @@ public class LogSorter {
     private void writeBuffer(String destPath, List<Pair<LogFileKey,LogFileValue>> buffer, int part)
         throws IOException {
       Path path = new Path(destPath, String.format("part-r-%05d", part));
-      FileSystem ns = fs.getFileSystemByPath(path);
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
 
       try (MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path),
           MapFile.Writer.keyClass(LogFileKey.class),
@@ -215,12 +216,11 @@ public class LogSorter {
   }
 
   ThreadPoolExecutor threadPool;
-  private final ClientContext context;
+  private final ServerContext context;
   private double walBlockSize;
 
-  public LogSorter(ClientContext context, VolumeManager fs, AccumuloConfiguration conf) {
+  public LogSorter(ServerContext context, AccumuloConfiguration conf) {
     this.context = context;
-    this.fs = fs;
     this.conf = conf;
     int threadPoolSize = conf.getCount(Property.TSERV_RECOVERY_MAX_CONCURRENT);
     this.threadPool = new SimpleThreadPool(threadPoolSize, this.getClass().getName());

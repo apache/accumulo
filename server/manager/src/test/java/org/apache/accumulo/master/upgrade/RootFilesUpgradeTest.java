@@ -158,13 +158,11 @@ public class RootFilesUpgradeTest {
     }
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void testFileReplacement() throws IOException {
 
     ConfigurationCopy conf = new ConfigurationCopy();
-    conf.set(Property.INSTANCE_DFS_URI, "file:///");
-    conf.set(Property.INSTANCE_DFS_DIR, "/");
+    conf.set(Property.INSTANCE_VOLUMES, "file:///");
     conf.set(Property.GENERAL_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
     try (var vm = VolumeManagerImpl.get(conf, new Configuration())) {
