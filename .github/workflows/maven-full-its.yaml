@@ -20,14 +20,18 @@
 # This workflow will build a Java project with Maven
 # See also:
 #   https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+#   https://docs.github.com/en/actions/reference/events-that-trigger-workflows#manual-events
+#   https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#fromjson
 
-name: QA
+name: Full ITs
 
 on:
-  push:
-    branches: [ '*' ]
-  pull_request:
-    branches: [ '*' ]
+  workflow_dispatch:
+    inputs:
+      numITsPerTask:
+        description: Number of ITs per task
+        required: true
+        default: 15
 
 jobs:
   # fast build to populate the local maven repository cache
@@ -52,15 +56,22 @@ jobs:
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -PskipQA
       env:
         MAVEN_OPTS: -Djansi.force=true
-  # more complete builds with tests
-  mvn:
+  creatematrix:
     needs: fastbuild
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - id: set-matrix
+      name: Create the IT build matrix
+      run: contrib/ci/it-matrix.sh ${{ github.event.inputs.numITsPerTask }}
+  # targeted builds that tests groups of ITs
+  mvn:
+    needs: creatematrix
     strategy:
-      matrix:
-        profile:
-          - {name: 'unit-tests',    args: 'verify -PskipQA -DskipTests=false -DforkCount=1C'}
-          - {name: 'qa-checks',     args: 'verify javadoc:jar -Psec-bugs -DskipTests=true -Dspotbugs.timeout=3600000'}
-          - {name: 'hadoop-compat', args: 'package -DskipTests -Dhadoop.version=3.0.3'}
+      matrix: ${{ fromJson(needs.creatematrix.outputs.matrix) }}
       fail-fast: false
     timeout-minutes: 60
     runs-on: ubuntu-latest
@@ -78,8 +89,8 @@ jobs:
           !~/.m2/repository/org/apache/accumulo
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
-    - name: Build with Maven (${{ matrix.profile.name }})
-      run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ matrix.profile.args }}
+    - name: Build with Maven (${{ matrix.profile.its }})
+      run: mvn -B -V -e -ntp "-Dstyle.color=always" verify -PskipQA -DskipTests=false -DskipITs=false -Dtest=nomatchingtest -Dit.test="${{ matrix.profile.its }}"
       env:
         MAVEN_OPTS: -Djansi.force=true
     - name: Upload unit test results
