@@ -94,7 +94,7 @@ public class ServerInfo implements ClientInfo {
       throw new IllegalStateException(e);
     }
     Path instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(volumeManager);
-    instanceID = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, config, hadoopConf);
+    instanceID = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);

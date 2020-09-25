@@ -39,8 +39,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class FileUtilTest {
-  @SuppressWarnings("deprecation")
-  private static Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
 
   @Rule
   public TemporaryFolder tmpDir =
@@ -64,7 +62,7 @@ public class FileUtilTest {
     Path tmpPath1 = new Path(tmp1.toURI());
 
     HashMap<Property,String> testProps = new HashMap<>();
-    testProps.put(INSTANCE_DFS_DIR, accumuloDir.getAbsolutePath());
+    testProps.put(Property.INSTANCE_VOLUMES, accumuloDir.getAbsolutePath());
 
     try (var fs = VolumeManagerImpl.getLocalForTesting(accumuloDir.getAbsolutePath())) {
       FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());

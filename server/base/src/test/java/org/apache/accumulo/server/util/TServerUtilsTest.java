@@ -383,7 +383,7 @@ public class TServerUtilsTest {
     expect(ctx.getSaslParams()).andReturn(null).anyTimes();
     expect(ctx.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
     replay(ctx);
-    ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null, null);
+    ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null);
     Iface rpcProxy = TraceUtil.wrapService(clientHandler);
     Processor<Iface> processor = new Processor<>(rpcProxy);
     // "localhost" explicitly to make sure we can always bind to that interface (avoids DNS
