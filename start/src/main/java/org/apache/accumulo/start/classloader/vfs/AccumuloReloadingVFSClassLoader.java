@@ -186,9 +186,19 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     files = AccumuloVFSClassLoader.resolve(vfs, uris, pathsToMonitor);
 
     if (preDelegate)
-      cl = new VFSClassLoader(files, vfs, parent.getClassLoader());
+      cl = new VFSClassLoader(files, vfs, parent.getClassLoader()) {
+        @Override
+        public String getName() {
+          return "AccumuloReloadingVFSClassLoader (loads everything defined by general.dynamic.classpaths)";
+        }
+      };
     else
-      cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader());
+      cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader()) {
+        @Override
+        public String getName() {
+          return "AccumuloReloadingVFSClassLoader (loads everything defined by general.dynamic.classpaths)";
+        }
+      };
 
     monitor = new DefaultFileMonitor(this);
     monitor.setDelay(monitorDelay);
