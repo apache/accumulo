@@ -66,15 +66,22 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @Override
+  public boolean canRunTest(ClusterType type) {
+    return type == ClusterType.MINI;
+  }
+
+  @Override
   public int defaultTimeoutSeconds() {
     return 3 * 60;
   }
 
   @After
   public void checkForDanglingFateLocks() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      assertNotNull(c);
-      FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
+    if (getClusterType() == ClusterType.MINI) {
+      try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+        assertNotNull(c);
+        FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
+      }
     }
   }
 

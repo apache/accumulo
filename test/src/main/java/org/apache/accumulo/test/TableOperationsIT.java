@@ -60,7 +60,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
@@ -74,8 +73,12 @@ import com.google.common.collect.Sets;
 
 public class TableOperationsIT extends AccumuloClusterHarness {
 
-  static TabletClientService.Client client;
   private AccumuloClient accumuloClient;
+
+  @Override
+  public boolean canRunTest(ClusterType type) {
+    return type == ClusterType.MINI;
+  }
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -89,8 +92,10 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   @After
   public void checkForDanglingFateLocks() {
-    FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) accumuloClient, getCluster());
-    accumuloClient.close();
+    if (getClusterType() == ClusterType.MINI) {
+      FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) accumuloClient, getCluster());
+      accumuloClient.close();
+    }
   }
 
   @Test

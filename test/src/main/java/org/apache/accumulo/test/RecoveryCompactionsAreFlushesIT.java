@@ -47,6 +47,11 @@ import com.google.common.collect.Iterators;
 public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
 
   @Override
+  public boolean canRunTest(ClusterType type) {
+    return type == ClusterType.MINI;
+  }
+
+  @Override
   public int defaultTimeoutSeconds() {
     return 180;
   }
