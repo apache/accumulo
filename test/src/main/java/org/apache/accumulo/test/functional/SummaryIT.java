@@ -93,6 +93,11 @@ import com.google.common.collect.Lists;
 
 public class SummaryIT extends AccumuloClusterHarness {
 
+  @Override
+  public boolean canRunTest(ClusterType type) {
+    return type == ClusterType.MINI;
+  }
+
   private LongSummaryStatistics getTimestampStats(final String table, AccumuloClient c)
       throws TableNotFoundException {
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
