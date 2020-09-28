@@ -37,7 +37,6 @@ if [[ -z "$ZOOKEEPER_HOME" ]] ; then
 fi
 
 ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/lib/zookeeper-[0-9]*[^csn].jar '
-ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/lib/zookeeper-[0-9]*[^csn].jar '
 if [[ "${ZOOKEEPER_VERSION}" = 3.[01234].* ]]; then
   ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*[^csn].jar '
 fi
