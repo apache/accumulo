@@ -36,7 +36,11 @@ if [[ -z "$ZOOKEEPER_HOME" ]] ; then
    exit 1
 fi
 
-ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*[^csn].jar '
+ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/lib/zookeeper-[0-9]*[^csn].jar '
+ZOOKEEPER_VERSION=$(find -L "$ZOOKEEPER_HOME" -maxdepth 2 -name "zookeeper-[0-9]*.jar" | head -1)
+if [[ $ZOOKEEPER_VERSION =~ ^3[.][01234].*$ ]]; then
+  ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*[^csn].jar '
+fi
 if [[ $(eval $ZOOKEEPER_CMD | wc -l) -ne 1 ]] ; then
    echo "Not exactly one zookeeper jar in $ZOOKEEPER_HOME"
    exit 1
