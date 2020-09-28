@@ -62,7 +62,6 @@ import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -124,11 +123,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     TableId tableId = Tables.getTableId(context, tableName);
 
-    Map<String,String> props = context.instanceOperations().getSystemConfiguration();
-    AccumuloConfiguration conf = new ConfigurationCopy(props);
-
-    FileSystem fs =
-        VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf).getFileSystem();
+    FileSystem fs = VolumeConfiguration.fileSystemForPath(dir, context.getHadoopConf());
 
     Path srcPath = checkPath(fs, dir);
 

@@ -136,8 +136,7 @@ public class MiniAccumuloConfigImpl {
       // Never want to override these if an existing instance, which may be using the defaults
       if (existingInstance == null || !existingInstance) {
         existingInstance = false;
-        // TODO ACCUMULO-XXXX replace usage of instance.dfs.{dir,uri} with instance.volumes
-        setInstanceLocation();
+        mergeProp(Property.INSTANCE_VOLUMES.getKey(), "file://" + accumuloDir.getAbsolutePath());
         mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
         mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "password", getRootPassword());
       }
@@ -228,12 +227,6 @@ public class MiniAccumuloConfigImpl {
       // Only remove it from the siteCfg if we succeeded in adding it to the CredentialProvider
       entries.remove();
     }
-  }
-
-  @SuppressWarnings("deprecation")
-  private void setInstanceLocation() {
-    mergeProp(Property.INSTANCE_DFS_URI.getKey(), "file:///");
-    mergeProp(Property.INSTANCE_DFS_DIR.getKey(), accumuloDir.getAbsolutePath());
   }
 
   /**

@@ -47,7 +47,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -368,13 +367,4 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return true;
   }
 
-  /**
-   * Tries to give a reasonable directory which can be used to create temporary files for the test.
-   * Makes a basic attempt to create the directory if it does not already exist.
-   *
-   * @return A directory which can be expected to exist on the Cluster's FileSystem
-   */
-  public Path getUsableDir() throws IllegalArgumentException {
-    return cluster.getTemporaryPath();
-  }
 }

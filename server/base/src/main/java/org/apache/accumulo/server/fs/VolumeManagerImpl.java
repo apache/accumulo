@@ -350,8 +350,10 @@ public class VolumeManagerImpl implements VolumeManager {
       throws IOException {
     final Map<String,Volume> volumes = new HashMap<>();
 
+    Set<String> volumeStrings = VolumeConfiguration.getVolumeUris(conf);
+
     // The "default" Volume for Accumulo (in case no volumes are specified)
-    for (String volumeUriOrDir : VolumeConfiguration.getVolumeUris(conf, hadoopConf)) {
+    for (String volumeUriOrDir : volumeStrings) {
       if (volumeUriOrDir.isBlank())
         throw new IllegalArgumentException("Empty volume specified in configuration");
 
@@ -367,7 +369,8 @@ public class VolumeManagerImpl implements VolumeManager {
       }
     }
 
-    Volume defaultVolume = VolumeConfiguration.getDefaultVolume(hadoopConf, conf);
+    String uri = volumeStrings.iterator().next();
+    Volume defaultVolume = new VolumeImpl(new Path(uri), hadoopConf);
     return new VolumeManagerImpl(volumes, defaultVolume, conf, hadoopConf);
   }
 

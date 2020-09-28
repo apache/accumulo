@@ -202,8 +202,6 @@ public class TabletServer extends AbstractServer {
   private final AtomicLong flushCounter = new AtomicLong(0);
   private final AtomicLong syncCounter = new AtomicLong(0);
 
-  private final VolumeManager fs;
-
   final OnlineTablets onlineTablets = new OnlineTablets();
   final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<>());
   final SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<>());
@@ -248,13 +246,12 @@ public class TabletServer extends AbstractServer {
     ServerContext context = super.getContext();
     context.setupCrypto();
     this.masterLockCache = new ZooCache(context.getZooReaderWriter(), null);
-    this.fs = context.getVolumeManager();
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
     this.sessionManager = new SessionManager(aconf);
-    this.logSorter = new LogSorter(context, fs, aconf);
-    this.replWorker = new ReplicationWorker(context, fs);
+    this.logSorter = new LogSorter(context, aconf);
+    this.replWorker = new ReplicationWorker(context);
     this.statsKeeper = new TabletStatsKeeper();
     final int numBusyTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSY_TABLETS_COUNT);
     final long logBusyTabletsDelay =
@@ -866,7 +863,7 @@ public class TabletServer extends AbstractServer {
 
     try {
       log.debug("Closing filesystem");
-      fs.close();
+      getFileSystem().close();
     } catch (IOException e) {
       log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
@@ -962,13 +959,13 @@ public class TabletServer extends AbstractServer {
     }
   }
 
-  private void checkWalCanSync(ServerContext context) {
+  private static void checkWalCanSync(ServerContext context) {
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.ChooserScope.LOGGER, context);
     Set<String> prefixes;
     var options = ServerConstants.getBaseUris(context);
     try {
-      prefixes = fs.choosable(chooserEnv, options);
+      prefixes = context.getVolumeManager().choosable(chooserEnv, options);
     } catch (RuntimeException e) {
       log.warn("Unable to determine if WAL directories ({}) support sync or flush. "
           + "Data loss may occur.", Arrays.asList(options), e);
@@ -978,7 +975,7 @@ public class TabletServer extends AbstractServer {
     boolean warned = false;
     for (String prefix : prefixes) {
       String logPath = prefix + Path.SEPARATOR + ServerConstants.WAL_DIR;
-      if (!fs.canSyncAndFlush(new Path(logPath))) {
+      if (!context.getVolumeManager().canSyncAndFlush(new Path(logPath))) {
         // sleep a few seconds in case this is at cluster start...give monitor
         // time to start so the warning will be more visible
         if (!warned) {
@@ -1198,7 +1195,7 @@ public class TabletServer extends AbstractServer {
 
       @Override
       public VolumeManager getFileSystem() {
-        return fs;
+        return TabletServer.this.getFileSystem();
       }
 
       @Override
@@ -1217,7 +1214,7 @@ public class TabletServer extends AbstractServer {
   }
 
   public VolumeManager getFileSystem() {
-    return fs;
+    return getContext().getVolumeManager();
   }
 
   public int getOpeningCount() {

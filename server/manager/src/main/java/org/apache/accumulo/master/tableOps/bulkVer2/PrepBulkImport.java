@@ -235,15 +235,13 @@ public class PrepBulkImport extends MasterRepo {
 
   private Path createNewBulkDir(ServerContext context, VolumeManager fs, TableId tableId)
       throws IOException {
-    Path tempPath =
+    Path tableDir =
         fs.matchingFileSystem(new Path(bulkInfo.sourceDir), ServerConstants.getTablesDirs(context));
-    if (tempPath == null)
-      throw new IOException(bulkInfo.sourceDir + " is not in a volume configured for Accumulo");
-
-    String tableDir = tempPath.toString();
     if (tableDir == null)
-      throw new IOException(bulkInfo.sourceDir + " is not in a volume configured for Accumulo");
-    Path directory = new Path(tableDir + "/" + tableId);
+      throw new IOException(bulkInfo.sourceDir
+          + " is not in the same file system as any volume configured for Accumulo");
+
+    Path directory = new Path(tableDir, tableId.canonical());
     fs.mkdirs(directory);
 
     UniqueNameAllocator namer = context.getUniqueNameAllocator();

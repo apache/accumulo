@@ -1198,18 +1198,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private Path checkPath(String dir, String kind, String type)
       throws IOException, AccumuloException, AccumuloSecurityException {
-    Path ret;
-    Map<String,String> props = context.instanceOperations().getSystemConfiguration();
-    AccumuloConfiguration conf = new ConfigurationCopy(props);
-
-    FileSystem fs =
-        VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf).getFileSystem();
-
-    if (dir.contains(":")) {
-      ret = new Path(dir);
-    } else {
-      ret = fs.makeQualified(new Path(dir));
-    }
+    FileSystem fs = VolumeConfiguration.fileSystemForPath(dir, context.getHadoopConf());
+    Path ret = dir.contains(":") ? new Path(dir) : fs.makeQualified(new Path(dir));
 
     try {
       if (!fs.getFileStatus(ret).isDirectory()) {

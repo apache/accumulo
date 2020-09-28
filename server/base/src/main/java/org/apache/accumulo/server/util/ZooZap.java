@@ -72,15 +72,14 @@ public class ZooZap {
 
     try {
       var siteConf = SiteConfiguration.auto();
-      Configuration hadoopConf = new Configuration();
       // Login as the server on secure HDFS
       if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
         SecurityUtil.serverLogin(siteConf);
       }
 
-      String volDir = VolumeConfiguration.getVolumeUris(siteConf, hadoopConf).iterator().next();
+      String volDir = VolumeConfiguration.getVolumeUris(siteConf).iterator().next();
       Path instanceDir = new Path(volDir, "instance_id");
-      String iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, siteConf, hadoopConf);
+      String iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
       ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
       if (opts.zapMaster) {
