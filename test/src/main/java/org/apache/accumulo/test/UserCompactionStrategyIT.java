@@ -66,11 +66,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @Override
-  public boolean canRunTest(ClusterType type) {
-    return type == ClusterType.MINI;
-  }
-
-  @Override
   public int defaultTimeoutSeconds() {
     return 3 * 60;
   }

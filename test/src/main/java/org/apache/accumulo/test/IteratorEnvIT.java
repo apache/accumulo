@@ -54,11 +54,6 @@ import org.junit.Test;
 public class IteratorEnvIT extends AccumuloClusterHarness {
 
   @Override
-  public boolean canRunTest(ClusterType type) {
-    return type == ClusterType.MINI;
-  }
-
-  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
   }

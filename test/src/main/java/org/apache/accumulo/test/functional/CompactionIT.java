@@ -54,11 +54,6 @@ public class CompactionIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
 
   @Override
-  public boolean canRunTest(ClusterType type) {
-    return type == ClusterType.MINI;
-  }
-
-  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN, "4");
