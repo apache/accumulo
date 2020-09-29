@@ -89,7 +89,7 @@ more details on bouncycastle's cryptography features.
 [ml]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/
 [ji]: https://www.javadoc.io/badge/org.apache.accumulo/accumulo-core.svg
 [jl]: https://www.javadoc.io/doc/org.apache.accumulo/accumulo-core
-[ti]: https://travis-ci.org/apache/accumulo.svg?branch=master
-[tl]: https://travis-ci.org/apache/accumulo
+[ti]: https://github.com/apache/accumulo/workflows/QA/badge.svg
+[tl]: https://github.com/apache/accumulo/actions
 [java-export]: http://www.oracle.com/us/products/export/export-regulations-345813.html
 [bouncy-faq]: http://www.bouncycastle.org/wiki/display/JA1/Frequently+Asked+Questions
