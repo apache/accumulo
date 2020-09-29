@@ -28,6 +28,7 @@ import java.util.Set;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.util.Policies;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -141,6 +142,13 @@ public interface VolumeManager extends AutoCloseable {
 
   // forward to the appropriate FileSystem object
   boolean mkdirs(Path path, FsPermission permission) throws IOException;
+
+  // forward to the appropriate FileSystem object
+  boolean mkdirs(Path path, Policies policies) throws IOException;
+
+  // check and correct storage policy and encoding for path if supported
+  // by underlying FileSystem
+  void checkDirPolicies(Path path, Policies policies) throws IOException;
 
   // forward to the appropriate FileSystem object
   FSDataInputStream open(Path path) throws IOException;

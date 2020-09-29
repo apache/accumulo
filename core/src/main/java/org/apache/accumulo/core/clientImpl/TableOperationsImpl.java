@@ -990,12 +990,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
+  private boolean validPropertyValue(final String property, final String value) {
+    Property p = Property.getPropertyByKey(property);
+    return p == null || p.getType().isValidFormat(value);
+  }
+
   @Override
   public void setProperty(final String tableName, final String property, final String value)
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
+    checkArgument(Property.isValidTablePropertyKey(property), "invalid per-table property");
+    checkArgument(validPropertyValue(property, value), "improper value for property");
     try {
       setPropertyNoChecks(tableName, property, value);
 

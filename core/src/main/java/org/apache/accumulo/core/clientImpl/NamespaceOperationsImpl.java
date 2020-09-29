@@ -49,6 +49,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -174,17 +175,29 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     doNamespaceFateOperation(FateOperation.NAMESPACE_RENAME, args, opts, oldNamespaceName);
   }
 
+  private boolean validPropertyValue(final String property, final String value) {
+    Property p = Property.getPropertyByKey(property);
+    return p == null || p.getType().isValidFormat(value);
+  }
+
   @Override
   public void setProperty(final String namespace, final String property, final String value)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
+    checkArgument(Property.isValidTablePropertyKey(property), "invalid per-table property");
+    checkArgument(validPropertyValue(property, value), "improper value for property");
 
+    setPropertyNoChecks(namespace, property, value);
+    checkLocalityGroups(namespace, property);
+  }
+
+  private void setPropertyNoChecks(String namespace, String property, String value)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     MasterClient.executeNamespace(context,
         client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
             property, value));
-    checkLocalityGroups(namespace, property);
   }
 
   @Override
