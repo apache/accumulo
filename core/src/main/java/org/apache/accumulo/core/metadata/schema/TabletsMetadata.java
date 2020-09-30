@@ -371,10 +371,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     this.tablets = tmi;
   }
 
-  public TabletsMetadata() {
-
-  }
-
   @Override
   public void close() {
     if (scanner != null) {
