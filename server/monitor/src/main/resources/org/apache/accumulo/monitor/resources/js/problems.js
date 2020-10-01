@@ -67,9 +67,9 @@ $(document).ready(function() {
     "stateSave": true,
     "dom": 't<"align-left"l>p',
     "columnDefs": [
-      { "targets": "duration",
+      { "targets": "date",
         "render": function ( data, type, row ) {
-          if(type === 'display') data = timeDuration(data);
+          if(type === 'display') data = dateFormat(data);
           return data;
         }
       }

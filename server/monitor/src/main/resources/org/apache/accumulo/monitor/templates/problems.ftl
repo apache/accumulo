@@ -58,7 +58,7 @@
                 <th class="firstcell" >Table&nbsp;</th>
                 <th>Problem&nbsp;Type&nbsp;</th>
                 <th>Server&nbsp;</th>
-                <th class="duration">Time&nbsp;</th>
+                <th class="date">Time&nbsp;</th>
                 <th>Resource&nbsp;</th>
                 <th>Exception&nbsp;</th>
                 <th>Operations&nbsp;</th>
