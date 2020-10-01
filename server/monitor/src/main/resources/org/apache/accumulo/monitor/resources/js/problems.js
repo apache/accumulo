@@ -18,6 +18,87 @@
  */
 
 var tableID;
+var problemSummaryTable;
+var problemDetailTable;
+$(document).ready(function() {
+  // Create a table for summary. See datatables doc for more info on the dom property
+  problemSummaryTable = $('#problemSummary').DataTable({
+    "ajax": {
+      "url": '/rest/problems/summary',
+      "dataSrc": "problemSummary"
+    },
+    "stateSave": true,
+    "dom": 't<"align-left"l>p',
+    "columnDefs": [
+      { "targets": "big-num",
+        "render": function ( data, type, row ) {
+          if(type === 'display') data = bigNumberForQuantity(data);
+          return data;
+        }
+      }
+    ],
+    "columns": [
+      { "data": "tableName",
+        "type": "html",
+        "render": function ( data, type, row, meta ) {
+          if(type === 'display') data = '<a href="/tables/' + row.tableID + '">' + row.tableName + '</a>';
+          return data;
+        }
+      },
+      { "data": "fileRead" },
+      { "data": "fileWrite" },
+      { "data": "tableLoad" },
+      { "data": "tableID",
+        "type": "html",
+        "render": function (data, type, row, meta) {
+          if (type === 'display') data = '<a href="javascript:clearTableProblemsTable(\'' +
+              row.tableID + '\');">clear ALL ' + row.tableName + ' problems</a>';
+          return data;
+        }
+      }
+    ]
+  });
+  // Create a table for details
+  problemDetailTable = $('#problemDetails').DataTable({
+    "ajax": {
+      "url": '/rest/problems/details',
+      "dataSrc": "problemDetails"
+    },
+    "stateSave": true,
+    "dom": 't<"align-left"l>p',
+    "columnDefs": [
+      { "targets": "duration",
+        "render": function ( data, type, row ) {
+          if(type === 'display') data = timeDuration(data);
+          return data;
+        }
+      }
+    ],
+    "columns": [
+      { "data": "tableName",
+        "type": "html",
+        "render": function ( data, type, row, meta ) {
+          if(type === 'display') data = '<a href="/tables/' + row.tableID + '">' + row.tableName + '</a>';
+          return data;
+        }
+      },
+      { "data": "type" },
+      { "data": "server" },
+      { "data": "time" },
+      { "data": "resource" },
+      { "data": "exception" },
+      { "data": "tableID",
+        "type": "html",
+        "render": function (data, type, row, meta) {
+          if (type === 'display') data = '<a href="javascript:clearDetailsProblemsTable(\'' +
+              row.tableID + '\',\'' + row.resource + '\',\'' + row.type + '\')">clear this problem</a>';
+          return data;
+        }
+      }
+    ]
+  });
+  refreshProblemSummaryTable();
+});
 
 /**
  * Makes the REST calls, generates the tables with the new information
@@ -45,7 +126,7 @@ function refresh() {
  */
 function clearTableProblemsTable(tableID) {
   clearTableProblems(tableID);
-  refreshProblems();
+  refreshProblemSummaryTable();
   refreshNavBar();
 }
 
@@ -58,7 +139,7 @@ function clearTableProblemsTable(tableID) {
  */
 function clearDetailsProblemsTable(table, resource, type) {
   clearDetailsProblems(table, resource, type);
-  refreshProblems();
+  refreshProblemDetailsTable();
   refreshNavBar();
 }
 
@@ -66,81 +147,12 @@ function clearDetailsProblemsTable(table, resource, type) {
  * Generates the problem summary table
  */
 function refreshProblemSummaryTable() {
-  clearTableBody('problemSummary');
-  var data = sessionStorage.problemSummary === undefined ?
-      [] : JSON.parse(sessionStorage.problemSummary);
-
-  if (data.length === 0 || Object.keys(data.problemSummary).length === 0) {
-    var items = [];
-    items.push(createEmptyRow(5, 'Empty'));
-    $('<tr/>', {
-      html: items.join('')
-    }).appendTo('#problemSummary tbody');
-  } else {
-    $.each(data.problemSummary, function(key, val) {
-      var items = [];
-      items.push(createFirstCell('', '<a href="/problems?table=' +
-          val.tableID.split('+').join('%2B') + '">' + val.tableName +
-          '</a>'));
-
-      items.push(createRightCell('', bigNumberForQuantity(val.fileRead)));
-
-      items.push(createRightCell('', bigNumberForQuantity(val.fileWrite)));
-
-      items.push(createRightCell('', bigNumberForQuantity(val.tableLoad)));
-      items.push(createLeftCell('', '<a href="javascript:clearTableProblemsTable(\'' +
-          val.tableID + '\');">clear ALL ' + val.tableName + ' problems</a>'));
-
-      $('<tr/>', {
-        html: items.join('')
-      }).appendTo('#problemSummary tbody');
-    });
-  }
+  if(problemSummaryTable) problemSummaryTable.ajax.reload(null, false ); // user paging is not reset on reload
 }
 
 /**
  * Generates the problem details table
  */
 function refreshProblemDetailsTable() {
-  clearTableBody('problemDetails');
-  var data = sessionStorage.problemDetails === undefined ?
-      [] : JSON.parse(sessionStorage.problemDetails);
-
-  if (data.length === 0 || Object.keys(data.problemDetails).length === 0) {
-    var items = [];
-    items.push(createEmptyRow(7, 'Empty'));
-    $('<tr/>', {
-      html: items.join('')
-    }).appendTo('#problemDetails tbody');
-  } else {
-    $.each(data.problemDetails, function(key, val) {
-      var items = [];
-      // Filters the details problems for the selected tableID
-      if (tableID === val.tableID || tableID === '') {
-        items.push(createFirstCell(val.tableName,
-            '<a href="/tables/' + val.tableID + '">' + val.tableName + '</a>'));
-
-        items.push(createRightCell(val.type, val.type));
-
-        items.push(createRightCell(val.server, val.server));
-
-        var date = new Date(val.time);
-        items.push(createRightCell(val.time, date.toLocaleString()));
-
-        items.push(createRightCell(val.resource, val.resource));
-
-        items.push(createRightCell(val.exception, val.exception));
-
-        items.push(createLeftCell('', 
-            '<a href="javascript:clearDetailsProblemsTable(\'' +
-            val.tableID + '\',\'' + val.resource + '\',\'' + val.type +
-            '\')">clear this problem</a>'));
-      }
-
-      $('<tr/>', {
-        html: items.join('')
-      }).appendTo('#problemDetails tbody');
-
-    });
-  }
+  if(problemDetailTable) problemDetailTable.ajax.reload(null, false ); // user paging is not reset on reload
 }

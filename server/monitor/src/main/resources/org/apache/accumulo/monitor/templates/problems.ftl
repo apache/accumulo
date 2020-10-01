@@ -39,14 +39,18 @@
             <thead>
               <tr>
                 <th class="firstcell">Table&nbsp;</th>
-                <th>FILE_READ&nbsp;</th>
-                <th>FILE_WRITE&nbsp;</th>
-                <th>TABLET_LOAD&nbsp;</th>
+                <th class="big-num">FILE_READ&nbsp;</th>
+                <th class="big-num">FILE_WRITE&nbsp;</th>
+                <th class="big-num">TABLET_LOAD&nbsp;</th>
                 <th>Operations&nbsp;</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
           <table id="problemDetails" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Details</span></caption>
             <thead>
@@ -54,7 +58,7 @@
                 <th class="firstcell" >Table&nbsp;</th>
                 <th>Problem&nbsp;Type&nbsp;</th>
                 <th>Server&nbsp;</th>
-                <th>Time&nbsp;</th>
+                <th class="duration">Time&nbsp;</th>
                 <th>Resource&nbsp;</th>
                 <th>Exception&nbsp;</th>
                 <th>Operations&nbsp;</th>
