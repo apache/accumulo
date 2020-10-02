@@ -78,5 +78,5 @@ public interface CompactionSelector {
     }
   }
 
-  Selection select(SelectionParameters sparams);
+  Selection select(SelectionParameters sparams) throws Exception;
 }
