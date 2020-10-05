@@ -72,9 +72,11 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @After
   public void checkForDanglingFateLocks() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      assertNotNull(c);
-      FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
+    if (getClusterType() == ClusterType.MINI) {
+      try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+        assertNotNull(c);
+        FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
+      }
     }
   }
 

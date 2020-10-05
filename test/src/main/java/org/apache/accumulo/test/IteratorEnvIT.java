@@ -168,7 +168,8 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
 
   @After
   public void finish() {
-    client.close();
+    if (client != null)
+      client.close();
   }
 
   @Test

@@ -85,10 +85,11 @@ mvn clean verify -Dspotbugs.skip
 
 ## Standalone Cluster (`StandaloneCapableClusterTests`)
 
-A standalone Accumulo cluster can also be configured for use by most tests. Not all of the integration tests are good
-candidates to run against a standalone Accumulo cluster, these tests will still launch a MiniAccumuloCluster for their use.
+A standalone Accumulo cluster can also be configured for use by most tests. Not all the integration tests are good
+candidates to run against a standalone cluster, and some of them require classes in the test jar.  Copy the
+accumulo-test jar found in $ACCUMULO_HOME/test/target into the lib folder of your accumulo instance before running all the tests.
 
-These tests can be run by providing a system property.  This command will run all tests against a standalone cluster:
+These tests can be run by providing a system property.  Specific ITs can be run using "-Dit.test" or run all tests using:
 
 ```bash
 mvn clean verify -Dtest=foo -Daccumulo.it.properties=/home/user/my_cluster.properties -Dfailsafe.groups=org.apache.accumulo.test.categories.StandaloneCapableClusterTests -Dspotbugs.skip
