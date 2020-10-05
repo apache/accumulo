@@ -97,19 +97,15 @@ $(document).ready(function() {
       }
     ]
   });
-  refreshProblemSummaryTable();
 });
 
 /**
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshProblems() {
-  getProblemSummary().then(function() {
-    refreshProblemSummaryTable();
-  });
-  getProblemDetails().then(function() {
-    refreshProblemDetailsTable();
-  });
+  refreshNavBar();
+  refreshProblemSummaryTable();
+  refreshProblemDetailsTable();
 }
 
 /**
@@ -126,8 +122,6 @@ function refresh() {
  */
 function clearTableProblemsTable(tableID) {
   clearTableProblems(tableID);
-  refreshProblemSummaryTable();
-  refreshNavBar();
 }
 
 /**
@@ -139,8 +133,6 @@ function clearTableProblemsTable(tableID) {
  */
 function clearDetailsProblemsTable(table, resource, type) {
   clearDetailsProblems(table, resource, type);
-  refreshProblemDetailsTable();
-  refreshNavBar();
 }
 
 /**
