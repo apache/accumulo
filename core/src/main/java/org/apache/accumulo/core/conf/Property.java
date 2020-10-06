@@ -130,14 +130,17 @@ public enum Property {
       "The volume dfs uri containing relative tablet file paths. Relative paths may exist in the metadata from "
           + "versions prior to 1.6. This property is only required if a relative path is detected "
           + "during the upgrade process and will only be used once."),
+  @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user "
           + "has privilege to perform an action"),
+  @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_AUTHORIZOR("instance.security.authorizor",
       "org.apache.accumulo.server.security.handler.ZKAuthorizor", PropertyType.CLASSNAME,
       "The authorizor class that accumulo will use to determine what labels a "
           + "user has privilege to see"),
+  @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_PERMISSION_HANDLER("instance.security.permissionHandler",
       "org.apache.accumulo.server.security.handler.ZKPermHandler", PropertyType.CLASSNAME,
       "The permission handler class that accumulo will use to determine if a "
