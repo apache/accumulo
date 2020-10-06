@@ -70,11 +70,15 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CompactionIT extends SharedMiniClusterBase {
+
+    public static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
 
     @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
             justification = "predictable random is okay for testing")
@@ -597,8 +601,6 @@ public class CompactionIT extends SharedMiniClusterBase {
     public void testCompactionSelector() throws Exception {
             PluginConfig csc = new PluginConfig(CompactionIT.FooSelector.class.getName());
             CompactionConfig compactConfig = new CompactionConfig().setSelector(csc);
-
-
             compactionTest(compactConfig);
     }
 
@@ -611,11 +613,11 @@ public class CompactionIT extends SharedMiniClusterBase {
 
 
     public void compactionTest(CompactionConfig compactConfig) throws Exception {
-        Random rand = new Random();
+        final Random rand = new Random();
         final String table = getUniqueNames(1)[0];
-        long  fooCount = 1 + (long) rand.nextInt(5),  barCount = 1 + (long) rand.nextInt(5);
-        int i = 0, k = 0, m = 0, count = 2;
-
+        //long  fooCount = 1 + (long) rand.nextInt(5),  barCount = 1 + (long) rand.nextInt(5);
+        int i, k, count = 2;
+        long fooCount = 3, barCount = 4;
 
             try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
                 NewTableConfiguration ntc = new NewTableConfiguration();
@@ -627,12 +629,12 @@ public class CompactionIT extends SharedMiniClusterBase {
 
                     for (i = 0; i < barCount; i++) {
                         try (BatchWriter bw = c.createBatchWriter(table)) {
-                            write(bw, "bar" + i, "f" + i, "q" + i, "v" + String.valueOf(i));
+                            write(bw, "bar" + i, "f" + i, "q" + i, "v" + i);
                         }
                     }
                     for (k = 0; k < fooCount; k++) {
                         try (BatchWriter bw = c.createBatchWriter(table)) {
-                            write(bw, "foo" + k, "f" + k, "q" + k, "v" + String.valueOf(k));
+                            write(bw, "foo" + k, "f" + k, "q" + k, "v" + k);
                         }
                     }
 
@@ -640,12 +642,12 @@ public class CompactionIT extends SharedMiniClusterBase {
                         count = 1;
                         fooCount = 0;
                     }
-
+                    
                     List<IteratorSetting> iterators =
                             Collections.singletonList(new IteratorSetting(100, SummaryIT.FooFilter.class));
                     compactConfig = compactConfig.setFlush(true).setIterators(iterators).setWait(true);
 
-                    // this compaction should make no changes because there are less foos than bars
+
                     c.tableOperations().compact(table, compactConfig);
 
                     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
@@ -654,6 +656,7 @@ public class CompactionIT extends SharedMiniClusterBase {
                                 // row
                                 .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
                                 .collect(groupingBy(identity(), counting())); // count different row types
+
 
                         assertEquals(fooCount, (long) counts.getOrDefault("foo", 0L));
                         assertEquals(barCount, (long) counts.getOrDefault("bar", 0L));
@@ -665,8 +668,14 @@ public class CompactionIT extends SharedMiniClusterBase {
 
     }
 
+    static class fooSelectorException extends RuntimeException {
+        public fooSelectorException(String message) {
+            super(message);
+        }
+    }
 
     public static class FooSelector implements CompactionSelector {
+
 
         boolean odd = false;
 
@@ -676,7 +685,7 @@ public class CompactionIT extends SharedMiniClusterBase {
         }
 
         @Override
-        public Selection select(SelectionParameters sparams) throws Exception {
+        public Selection select(SelectionParameters sparams){
             Collection<Summary> summaries = sparams.getSummaries(sparams.getAvailableFiles(),
                     conf -> conf.getClassName().contains("FooCounter"));
 
@@ -684,37 +693,34 @@ public class CompactionIT extends SharedMiniClusterBase {
                 Summary summary = summaries.iterator().next();
                 Long foos = summary.getStatistics().getOrDefault("foos", 0L);
                 Long bars = summary.getStatistics().getOrDefault("bars", 0L);
-                odd = returnOdd(foos);
+                odd = isOdd(foos);
+
+
 
                 try {
+                    if (odd)
+                        throw new fooSelectorException("Exception Thrown");
 
-                    if (odd) {
-                        throw new Exception("Exception occurred ");
 
-                    }
+                } catch ( fooSelectorException e){
+                       log.debug(e.getMessage());
+                }
 
-                } catch (Exception e) {
-                    System.out.println(e.getMessage());
-
-                } finally {
-
-                    if (foos > bars) {
+                    if (foos > bars)
                         return new Selection(sparams.getAvailableFiles());
 
-                    }
-                }
 
             }
          return new Selection(Set.of());
 
         }
 
-        boolean returnOdd(long foos) {
+        boolean isOdd(long foos) {
 
             if ((foos & 0x1) == 1) {
                 return true;
-            } else
-                return false;
+            }
+            return false;
         }
 
     }
