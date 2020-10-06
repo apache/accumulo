@@ -46,7 +46,8 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.classloader.ContextClassLoaderFactory;
+import org.apache.accumulo.core.classloader.AccumuloClassLoader;
+import org.apache.accumulo.core.classloader.ContextClassLoaders;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -161,7 +162,6 @@ import org.apache.accumulo.shell.commands.UserCommand;
 import org.apache.accumulo.shell.commands.UserPermissionsCommand;
 import org.apache.accumulo.shell.commands.UsersCommand;
 import org.apache.accumulo.shell.commands.WhoAmICommand;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -440,7 +440,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
-    String classpath = null;
+    String context = null;
     Iterable<Entry<String,String>> tableProps;
 
     if (namespaces) {
@@ -458,29 +458,34 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
     for (Entry<String,String> entry : tableProps) {
       if (entry.getKey().equals(Property.TABLE_CLASSPATH.getKey())) {
-        classpath = entry.getValue();
+        context = entry.getValue();
       }
     }
 
     ClassLoader classloader;
 
-    if (classpath != null && !classpath.equals("")) {
+    if (context != null && !context.equals("")) {
       shellState.getAccumuloClient().instanceOperations().getSystemConfiguration()
-          .get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
+          .get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + context);
 
       final Map<String,String> systemConfig =
           shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
 
       try {
-        ContextClassLoaderFactory.initialize(new ConfigurationCopy(systemConfig));
+        ContextClassLoaders.initialize(new ConfigurationCopy(systemConfig));
       } catch (Exception e1) {
         log.error("Error configuring ContextClassLoaderFactory", e1);
         throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
       }
 
-      classloader = ContextClassLoaderFactory.getClassLoader(classpath);
+      classloader = ContextClassLoaders.getClassLoader(context);
     } else {
-      classloader = AccumuloVFSClassLoader.getClassLoader();
+      try {
+        classloader = AccumuloClassLoader.getClassLoader();
+      } catch (Exception e) {
+        log.error("Error configuring ClassLoader", e);
+        throw new RuntimeException("Error configuring ClassLoader", e);
+      }
     }
     return classloader;
   }

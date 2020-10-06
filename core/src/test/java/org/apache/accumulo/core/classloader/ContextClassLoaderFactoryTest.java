@@ -63,16 +63,16 @@ public class ContextClassLoaderFactoryTest {
   public void differentContexts() throws Exception {
 
     ConfigurationCopy cc = new ConfigurationCopy();
-    cc.set("general.context.factory", URLClassLoaderFactory.class.getName());
-    ContextClassLoaderFactory.resetForTests();
-    ContextClassLoaderFactory.initialize(cc);
+    cc.set(ContextClassLoaders.CONTEXT_CLASS_LOADER_FACTORY, URLClassLoaderFactory.class.getName());
+    ContextClassLoaders.resetForTests();
+    ContextClassLoaders.initialize(cc);
 
-    URLClassLoader cl1 = (URLClassLoader) ContextClassLoaderFactory.getClassLoader(uri1);
+    URLClassLoader cl1 = (URLClassLoader) ContextClassLoaders.getClassLoader(uri1);
     var urls1 = cl1.getURLs();
     assertEquals(1, urls1.length);
     assertEquals(uri1, urls1[0].toString());
 
-    URLClassLoader cl2 = (URLClassLoader) ContextClassLoaderFactory.getClassLoader(uri2);
+    URLClassLoader cl2 = (URLClassLoader) ContextClassLoaders.getClassLoader(uri2);
     var urls2 = cl2.getURLs();
     assertEquals(1, urls2.length);
     assertEquals(uri2, urls2[0].toString());

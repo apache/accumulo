@@ -23,11 +23,11 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 
-import org.apache.accumulo.core.spi.common.ClassLoaderFactory;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class URLClassLoaderFactory implements ClassLoaderFactory {
+public class URLClassLoaderFactory implements ContextClassLoaderFactory {
 
   private static final String COMMA = ",";
   private static final Logger LOG = LoggerFactory.getLogger(URLClassLoaderFactory.class);

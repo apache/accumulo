@@ -26,18 +26,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.common.ClassLoaderFactory;
-import org.apache.accumulo.core.spi.common.ClassLoaderFactory.ClassLoaderFactoryConfiguration;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ClassLoaderFactoryConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ContextClassLoaderFactory {
+public class ContextClassLoaders {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ContextClassLoaderFactory.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ContextClassLoaders.class);
 
-  public static final String CONTEXT_FACTORY = "general.context.factory";
+  public static final String CONTEXT_CLASS_LOADER_FACTORY = "general.context.class.loader.factory";
 
-  private static ClassLoaderFactory FACTORY;
+  private static ContextClassLoaderFactory FACTORY;
   private static final Map<String,ClassLoader> CONTEXTS = new ConcurrentHashMap<>();
   private static AccumuloConfiguration CONF;
 
@@ -59,10 +59,10 @@ public class ContextClassLoaderFactory {
       }
       try {
         var factoryClass = Class.forName(factoryName);
-        if (ClassLoaderFactory.class.isAssignableFrom(factoryClass)) {
+        if (ContextClassLoaderFactory.class.isAssignableFrom(factoryClass)) {
           LOG.info("Creating context ClassLoaderFactory: {}", factoryName);
-          FACTORY = ((Class<? extends ClassLoaderFactory>) factoryClass).getDeclaredConstructor()
-              .newInstance();
+          FACTORY = ((Class<? extends ContextClassLoaderFactory>) factoryClass)
+              .getDeclaredConstructor().newInstance();
           FACTORY.initialize(new ClassLoaderFactoryConfiguration() {
             @Override
             public Iterator<Entry<String,String>> get() {

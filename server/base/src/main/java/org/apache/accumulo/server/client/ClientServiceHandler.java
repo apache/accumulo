@@ -29,7 +29,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.classloader.ContextClassLoaderFactory;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -66,7 +66,6 @@ import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -364,7 +363,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     Class shouldMatch;
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
-      Class test = AccumuloVFSClassLoader.loadClass(className, shouldMatch);
+      Class test = ClassLoaderUtil.loadClass(null, className, shouldMatch);
       test.getDeclaredConstructor().newInstance();
       return true;
     } catch (ClassCastException | ReflectiveOperationException e) {
@@ -386,20 +385,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     Class<?> shouldMatch;
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
-
       AccumuloConfiguration conf = context.getTableConfiguration(tableId);
-
       String context = conf.get(Property.TABLE_CLASSPATH);
-
-      ClassLoader currentLoader;
-
-      if (context != null && !context.equals("")) {
-        currentLoader = ContextClassLoaderFactory.getClassLoader(context);
-      } else {
-        currentLoader = AccumuloVFSClassLoader.getClassLoader();
-      }
-
-      Class<?> test = currentLoader.loadClass(className).asSubclass(shouldMatch);
+      Class<?> test = ClassLoaderUtil.loadClass(context, className, shouldMatch);
       test.getDeclaredConstructor().newInstance();
       return true;
     } catch (Exception e) {
@@ -421,20 +409,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     Class<?> shouldMatch;
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
-
       AccumuloConfiguration conf = context.getNamespaceConfiguration(namespaceId);
-
       String context = conf.get(Property.TABLE_CLASSPATH);
-
-      ClassLoader currentLoader;
-
-      if (context != null && !context.equals("")) {
-        currentLoader = ContextClassLoaderFactory.getClassLoader(context);
-      } else {
-        currentLoader = AccumuloVFSClassLoader.getClassLoader();
-      }
-
-      Class<?> test = currentLoader.loadClass(className).asSubclass(shouldMatch);
+      Class<?> test = ClassLoaderUtil.loadClass(context, className, shouldMatch);
       test.getDeclaredConstructor().newInstance();
       return true;
     } catch (Exception e) {

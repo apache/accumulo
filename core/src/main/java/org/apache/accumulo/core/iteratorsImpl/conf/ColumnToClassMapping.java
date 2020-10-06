@@ -23,12 +23,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.classloader.ContextClassLoaderFactory;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iteratorsImpl.conf.ColumnUtil.ColFamHashKey;
 import org.apache.accumulo.core.iteratorsImpl.conf.ColumnUtil.ColHashKey;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.io.Text;
 
 public class ColumnToClassMapping<K> {
@@ -59,11 +58,7 @@ public class ColumnToClassMapping<K> {
 
       Pair<Text,Text> pcic = ColumnSet.decodeColumns(column);
 
-      Class<?> clazz;
-      if (context != null && !context.equals(""))
-        clazz = ContextClassLoaderFactory.getClassLoader(context).loadClass(className);
-      else
-        clazz = AccumuloVFSClassLoader.loadClass(className, c);
+      Class<?> clazz = ClassLoaderUtil.loadClass(context, className, c);
 
       @SuppressWarnings("unchecked")
       K inst = (K) clazz.getDeclaredConstructor().newInstance();

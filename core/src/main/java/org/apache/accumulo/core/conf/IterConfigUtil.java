@@ -31,7 +31,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.classloader.ContextClassLoaderFactory;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.data.Key;
@@ -41,7 +41,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -232,20 +231,12 @@ public class IterConfigUtil {
   @SuppressWarnings("unchecked")
   private static Class<SortedKeyValueIterator<Key,Value>> loadClass(boolean useAccumuloClassLoader,
       String context, IterInfo iterInfo) throws ClassNotFoundException, IOException {
-    Class<SortedKeyValueIterator<Key,Value>> clazz;
+    Class<SortedKeyValueIterator<Key,Value>> clazz = null;
     if (useAccumuloClassLoader) {
-      if (context != null && !context.equals("")) {
-        clazz = (Class<SortedKeyValueIterator<Key,Value>>) ContextClassLoaderFactory
-            .getClassLoader(context).loadClass(iterInfo.className)
-            .asSubclass(SortedKeyValueIterator.class);
-        log.trace("Iterator class {} loaded from context {}, classloader: {}", iterInfo.className,
-            context, clazz.getClassLoader());
-      } else {
-        clazz = (Class<SortedKeyValueIterator<Key,Value>>) AccumuloVFSClassLoader
-            .loadClass(iterInfo.className, SortedKeyValueIterator.class);
-        log.trace("Iterator class {} loaded from AccumuloVFSClassLoader: {}", iterInfo.className,
-            clazz.getClassLoader());
-      }
+      clazz = (Class<SortedKeyValueIterator<Key,Value>>) ClassLoaderUtil.loadClass(context,
+          iterInfo.className, SortedKeyValueIterator.class);
+      log.trace("Iterator class {} loaded from context {}, classloader: {}", iterInfo.className,
+          context, clazz.getClassLoader());
     } else {
       clazz = (Class<SortedKeyValueIterator<Key,Value>>) Class.forName(iterInfo.className)
           .asSubclass(SortedKeyValueIterator.class);

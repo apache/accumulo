@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.classloader.ContextClassLoaderFactory;
+import org.apache.accumulo.core.classloader.ContextClassLoaders;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
@@ -998,7 +998,7 @@ public class TabletServer extends AbstractServer {
 
     final AccumuloConfiguration aconf = getConfiguration();
     try {
-      ContextClassLoaderFactory.initialize(aconf);
+      ContextClassLoaders.initialize(aconf);
     } catch (Exception e1) {
       log.error("Error configuring ContextClassLoaderFactory", e1);
       throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);

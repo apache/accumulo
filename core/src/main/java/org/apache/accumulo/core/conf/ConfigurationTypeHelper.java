@@ -24,8 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.classloader.ContextClassLoaderFactory;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -201,14 +200,7 @@ public class ConfigurationTypeHelper {
       throws IOException, ReflectiveOperationException {
     T instance;
 
-    Class<? extends T> clazz;
-    if (context != null && !context.isEmpty()) {
-      clazz =
-          ContextClassLoaderFactory.getClassLoader(context).loadClass(clazzName).asSubclass(base);
-    } else {
-      clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
-    }
-
+    Class<? extends T> clazz = ClassLoaderUtil.loadClass(context, clazzName, base);
     instance = clazz.getDeclaredConstructor().newInstance();
     if (loaded.put(clazzName, clazz) != clazz)
       log.debug("Loaded class : {}", clazzName);

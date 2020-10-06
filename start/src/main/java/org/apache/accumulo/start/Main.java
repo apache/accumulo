@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.start;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -29,7 +28,6 @@ import java.util.ServiceLoader;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable.UsageGroup;
 import org.slf4j.Logger;
@@ -37,40 +35,19 @@ import org.slf4j.LoggerFactory;
 
 public class Main {
 
-  private static final Logger log = LoggerFactory.getLogger(Main.class);
-  private static ClassLoader classLoader;
-  private static Class<?> vfsClassLoader;
+  private static final Logger LOG = LoggerFactory.getLogger(Main.class);
+  private static ClassLoader CLASSLOADER;
   private static Map<String,KeywordExecutable> servicesMap;
 
   public static void main(final String[] args) {
     try {
-      // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when
-      // using the VFSClassLoader with jars in HDFS.
-      ClassLoader loader = getClassLoader();
-      Class<?> confClass = null;
+
+      Class<?> classLoaderFactory = Thread.currentThread().getContextClassLoader()
+          .loadClass("org.apache.accumulo.core.classloader.AccumuloClassLoader");
       try {
-        confClass =
-            AccumuloClassLoader.getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
-      } catch (ClassNotFoundException e) {
-        log.error("Unable to find Hadoop Configuration class on classpath, check configuration.",
-            e);
-        System.exit(1);
-      }
-      Object conf = null;
-      try {
-        conf = confClass.getDeclaredConstructor().newInstance();
+        CLASSLOADER = (ClassLoader) classLoaderFactory.getMethod("getClassLoader").invoke(null);
       } catch (Exception e) {
-        log.error("Error creating new instance of Hadoop Configuration", e);
-        System.exit(1);
-      }
-      try {
-        Method getClassByNameOrNullMethod =
-            conf.getClass().getMethod("getClassByNameOrNull", String.class);
-        getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
-        getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
-      } catch (Exception e) {
-        log.error("Error pre-loading JobConf and JobConfigurable classes, VFS classloader with "
-            + "system classes in HDFS may not work correctly", e);
+        LOG.error("Error setting up class loader", e);
         System.exit(1);
       }
 
@@ -86,7 +63,7 @@ public class Main {
       // determine whether a keyword was used or a class name, and execute it with the remaining
       // args
       String keywordOrClassName = args[0];
-      KeywordExecutable keywordExec = getExecutables(loader).get(keywordOrClassName);
+      KeywordExecutable keywordExec = getExecutables(CLASSLOADER).get(keywordOrClassName);
       if (keywordExec != null) {
         execKeyword(keywordExec, stripArgs(args, 1));
       } else {
@@ -94,34 +71,34 @@ public class Main {
       }
 
     } catch (Throwable t) {
-      log.error("Uncaught exception", t);
+      LOG.error("Uncaught exception", t);
       System.exit(1);
     }
   }
 
-  public static synchronized ClassLoader getClassLoader() {
-    if (classLoader == null) {
-      try {
-        classLoader = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
-        Thread.currentThread().setContextClassLoader(classLoader);
-      } catch (IOException | IllegalArgumentException | ReflectiveOperationException
-          | SecurityException e) {
-        log.error("Problem initializing the class loader", e);
-        System.exit(1);
-      }
-    }
-    return classLoader;
-  }
-
-  public static synchronized Class<?> getVFSClassLoader()
-      throws IOException, ClassNotFoundException {
-    if (vfsClassLoader == null) {
-      Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
-      vfsClassLoader = AccumuloClassLoader.getClassLoader()
-          .loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
-    }
-    return vfsClassLoader;
-  }
+  // public static synchronized ClassLoader getClassLoader() {
+  // if (classLoader == null) {
+  // try {
+  // classLoader = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
+  // Thread.currentThread().setContextClassLoader(classLoader);
+  // } catch (IOException | IllegalArgumentException | ReflectiveOperationException
+  // | SecurityException e) {
+  // log.error("Problem initializing the class loader", e);
+  // System.exit(1);
+  // }
+  // }
+  // return classLoader;
+  // }
+  //
+  // private static synchronized Class<?> getVFSClassLoader()
+  // throws IOException, ClassNotFoundException {
+  // if (vfsClassLoader == null) {
+  // Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
+  // vfsClassLoader = AccumuloClassLoader.getClassLoader()
+  // .loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
+  // }
+  // return vfsClassLoader;
+  // }
 
   private static void execKeyword(final KeywordExecutable keywordExec, final String[] args) {
     Runnable r = () -> {
@@ -137,7 +114,7 @@ public class Main {
   private static void execMainClassName(final String className, final String[] args) {
     Class<?> classWithMain = null;
     try {
-      classWithMain = getClassLoader().loadClass(className);
+      classWithMain = CLASSLOADER.loadClass(className);
     } catch (ClassNotFoundException cnfe) {
       System.out.println("Invalid argument: Java <main class> '" + className
           + "' was not found.  Please use the wholly qualified package name.");
@@ -152,7 +129,7 @@ public class Main {
     try {
       main = classWithMain.getMethod("main", args.getClass());
     } catch (Throwable t) {
-      log.error("Could not run main method on '" + classWithMain.getName() + "'.", t);
+      LOG.error("Could not run main method on '" + classWithMain.getName() + "'.", t);
     }
     if (main == null || !Modifier.isPublic(main.getModifiers())
         || !Modifier.isStatic(main.getModifiers())) {
@@ -187,7 +164,7 @@ public class Main {
 
   private static void startThread(final Runnable r, final String name) {
     Thread t = new Thread(r, name);
-    t.setContextClassLoader(getClassLoader());
+    t.setContextClassLoader(CLASSLOADER);
     t.start();
   }
 
@@ -198,7 +175,7 @@ public class Main {
    *          The {@link Throwable} containing a stack trace to print.
    */
   private static void die(final Throwable t) {
-    log.error("Thread '" + Thread.currentThread().getName() + "' died.", t);
+    LOG.error("Thread '" + Thread.currentThread().getName() + "' died.", t);
     System.exit(1);
   }
 
@@ -210,7 +187,7 @@ public class Main {
   public static void printUsage() {
     TreeSet<KeywordExecutable> executables =
         new TreeSet<>(Comparator.comparing(KeywordExecutable::keyword));
-    executables.addAll(getExecutables(getClassLoader()).values());
+    executables.addAll(getExecutables(CLASSLOADER).values());
 
     System.out.println("\nUsage: accumulo <command> [--help] (<argument> ...)\n\n"
         + "  --help   Prints usage for specified command");
@@ -259,7 +236,7 @@ public class Main {
   }
 
   private static void warnDuplicate(final KeywordExecutable service) {
-    log.warn("Ambiguous duplicate binding for keyword '{}' found: {}", service.keyword(),
+    LOG.warn("Ambiguous duplicate binding for keyword '{}' found: {}", service.keyword(),
         service.getClass().getName());
   }
 }

@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.bloomfilter.DynamicBloomFilter;
-import org.apache.accumulo.core.classloader.ContextClassLoaderFactory;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -55,7 +55,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -128,11 +127,8 @@ public class BloomFilterLayer {
         Class<? extends KeyFunctor> clazz;
         if (!useAccumuloStart)
           clazz = Writer.class.getClassLoader().loadClass(classname).asSubclass(KeyFunctor.class);
-        else if (context != null && !context.equals(""))
-          clazz = ContextClassLoaderFactory.getClassLoader(context).loadClass(classname)
-              .asSubclass(KeyFunctor.class);
         else
-          clazz = AccumuloVFSClassLoader.loadClass(classname, KeyFunctor.class);
+          clazz = ClassLoaderUtil.loadClass(context, classname, KeyFunctor.class);
 
         transformer = clazz.getDeclaredConstructor().newInstance();
 
@@ -239,13 +235,8 @@ public class BloomFilterLayer {
            */
           ClassName = in.readUTF();
 
-          Class<? extends KeyFunctor> clazz;
-          if (context != null && !context.equals(""))
-            clazz = ContextClassLoaderFactory.getClassLoader(context).loadClass(ClassName)
-                .asSubclass(KeyFunctor.class);
-          else
-            clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
-
+          Class<? extends KeyFunctor> clazz =
+              ClassLoaderUtil.loadClass(context, ClassName, KeyFunctor.class);
           transformer = clazz.getDeclaredConstructor().newInstance();
 
           /**

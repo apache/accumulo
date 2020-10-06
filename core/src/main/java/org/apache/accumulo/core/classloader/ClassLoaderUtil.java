@@ -16,35 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.common;
+package org.apache.accumulo.core.classloader;
 
-/**
- * The ClassLoaderFactory implementation is defined by the property general.class.loader.factory.
- * The implementation will return a ClassLoader to be used for dynamically loading classes.
- */
-public interface ClassLoaderFactory {
+public class ClassLoaderUtil {
 
-  public interface Printer {
-    void print(String s);
+  public static synchronized <U> Class<? extends U> loadClass(String contextName, String className,
+      Class<U> extension) throws ClassNotFoundException {
+    if (contextName != null && !contextName.equals(""))
+      return ContextClassLoaders.getClassLoader(contextName).loadClass(className)
+          .asSubclass(extension);
+    else
+      return AccumuloClassLoader.loadClass(className, extension);
+
   }
-
-  /**
-   * Return the configured classloader
-   *
-   * @return classloader the configured classloader
-   */
-  ClassLoader getClassLoader() throws Exception;
-
-  /**
-   * Print the classpath to the Printer
-   *
-   * @param cl
-   *          classloader
-   * @param out
-   *          printer
-   * @param debug
-   *          enable debug output
-   */
-  void printClassPath(ClassLoader cl, Printer out, boolean debug);
-
 }

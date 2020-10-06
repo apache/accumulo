@@ -25,14 +25,14 @@ import java.util.TimerTask;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.common.ClassLoaderFactory;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Deprecated(since = "2.1.0", forRemoval = true)
-public class LegacyVFSContextClassLoaderFactory implements ClassLoaderFactory {
+public class LegacyVFSContextClassLoaderFactory implements ContextClassLoaderFactory {
 
   private static final Logger LOG =
       LoggerFactory.getLogger(LegacyVFSContextClassLoaderFactory.class);
