@@ -116,8 +116,6 @@
     <curator.version>2.12.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
-    <!-- extra release args for testing -->
-    <extraReleaseArguments />
     <failsafe.excludedGroups />
     <failsafe.groups />
     <!-- surefire/failsafe plugin option -->
@@ -889,10 +887,10 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
           <configuration>
-            <arguments>-P !autoformat,thrift,sunny -Dtimeout.factor=2 ${extraReleaseArguments}</arguments>
+            <arguments>-P !autoformat,thrift -DskipTests</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
-            <preparationGoals>clean verify</preparationGoals>
+            <preparationGoals>clean package</preparationGoals>
             <tagNameFormat>rel/@{project.version}</tagNameFormat>
             <releaseProfiles>apache-release,accumulo-release</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
