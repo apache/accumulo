@@ -23,9 +23,10 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 /**
- * The ContextClassLoaderFactory implementation is defined by the property
- * general.context.class.loader.factory. The implementation is configured externally to Accumulo and
- * will return a ClassLoader for a given contextName.
+ * The ClassLoaderFactory is defined by the property general.context.factory. The factory
+ * implementation is configured externally to Accumulo and will return a ClassLoader for a given
+ * contextName.
+ *
  */
 public interface ContextClassLoaderFactory {
 

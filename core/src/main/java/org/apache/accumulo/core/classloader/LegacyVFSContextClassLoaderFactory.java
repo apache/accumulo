@@ -48,6 +48,7 @@ public class LegacyVFSContextClassLoaderFactory implements ContextClassLoaderFac
               return getContextProperties();
             }
           });
+      LOG.debug("ContextManager configuration set");
       new Timer("LegacyVFSContextClassLoaderFactory-cleanup", true)
           .scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -60,6 +61,7 @@ public class LegacyVFSContextClassLoaderFactory implements ContextClassLoaderFac
               }
             }
           }, 60000, 60000);
+      LOG.debug("Context cleanup timer started at 60s intervals");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.classloader;
 
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+
 public class ClassLoaderUtil {
 
   public static synchronized <U> Class<? extends U> loadClass(String contextName, String className,
@@ -26,7 +28,7 @@ public class ClassLoaderUtil {
       return ContextClassLoaders.getClassLoader(contextName).loadClass(className)
           .asSubclass(extension);
     else
-      return AccumuloClassLoader.loadClass(className, extension);
+      return AccumuloVFSClassLoader.loadClass(className, extension);
 
   }
 }

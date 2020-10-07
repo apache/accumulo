@@ -46,7 +46,6 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.classloader.AccumuloClassLoader;
 import org.apache.accumulo.core.classloader.ContextClassLoaders;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.client.Accumulo;
@@ -162,6 +161,7 @@ import org.apache.accumulo.shell.commands.UserCommand;
 import org.apache.accumulo.shell.commands.UserPermissionsCommand;
 import org.apache.accumulo.shell.commands.UsersCommand;
 import org.apache.accumulo.shell.commands.WhoAmICommand;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -440,7 +440,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
-    String context = null;
+    String classpath = null;
     Iterable<Entry<String,String>> tableProps;
 
     if (namespaces) {
@@ -458,15 +458,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
     for (Entry<String,String> entry : tableProps) {
       if (entry.getKey().equals(Property.TABLE_CLASSPATH.getKey())) {
-        context = entry.getValue();
+        classpath = entry.getValue();
       }
     }
 
     ClassLoader classloader;
 
-    if (context != null && !context.equals("")) {
+    if (classpath != null && !classpath.equals("")) {
       shellState.getAccumuloClient().instanceOperations().getSystemConfiguration()
-          .get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + context);
+          .get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
 
       final Map<String,String> systemConfig =
           shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
@@ -478,14 +478,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
       }
 
-      classloader = ContextClassLoaders.getClassLoader(context);
+      classloader = ContextClassLoaders.getClassLoader(classpath);
     } else {
-      try {
-        classloader = AccumuloClassLoader.getClassLoader();
-      } catch (Exception e) {
-        log.error("Error configuring ClassLoader", e);
-        throw new RuntimeException("Error configuring ClassLoader", e);
-      }
+      classloader = AccumuloVFSClassLoader.getClassLoader();
     }
     return classloader;
   }

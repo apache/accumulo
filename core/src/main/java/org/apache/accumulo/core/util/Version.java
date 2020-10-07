@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.util;
 
-import org.apache.accumulo.core.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
@@ -43,8 +43,7 @@ public class Version implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws Exception {
-    Class<?> runTMP =
-        AccumuloClassLoader.getClassLoader().loadClass("org.apache.accumulo.core.Constants");
+    Class<?> runTMP = Main.getClassLoader().loadClass("org.apache.accumulo.core.Constants");
     System.out.println(runTMP.getField("VERSION").get(null));
   }
 

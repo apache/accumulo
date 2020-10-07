@@ -51,7 +51,7 @@ public class ContextClassLoaders {
   public static void initialize(AccumuloConfiguration conf) throws Exception {
     if (null == CONF) {
       CONF = conf;
-      LOG.info("Creating context ClassLoaderFactory");
+      LOG.info("Creating ContextClassLoaderFactory");
       var factoryName = CONF.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY);
       if (null == factoryName || factoryName.isBlank()) {
         LOG.info("No ClassLoaderFactory specified");
@@ -60,7 +60,7 @@ public class ContextClassLoaders {
       try {
         var factoryClass = Class.forName(factoryName);
         if (ContextClassLoaderFactory.class.isAssignableFrom(factoryClass)) {
-          LOG.info("Creating context ClassLoaderFactory: {}", factoryName);
+          LOG.info("Creating ContextClassLoaderFactory: {}", factoryName);
           FACTORY = ((Class<? extends ContextClassLoaderFactory>) factoryClass)
               .getDeclaredConstructor().newInstance();
           FACTORY.initialize(new ClassLoaderFactoryConfiguration() {
@@ -70,13 +70,13 @@ public class ContextClassLoaders {
             }
           });
         } else {
-          throw new RuntimeException(factoryName + " does not implement ClassLoaderFactory");
+          throw new RuntimeException(factoryName + " does not implement ContextClassLoaderFactory");
         }
       } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
           | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
           | SecurityException e) {
         LOG.error(
-            "Unable to load and initialize class: {}. Ensure that the jar containing the ClassLoaderFactory is on the classpath",
+            "Unable to load and initialize class: {}. Ensure that the jar containing the ContextClassLoaderFactory is on the classpath",
             factoryName);
         throw e;
       }
@@ -100,9 +100,9 @@ public class ContextClassLoaders {
       try {
         c = FACTORY.getClassLoader(contextName);
       } catch (IllegalArgumentException e) {
-        LOG.error("ClassLoaderFactory is not configured for context: {}", contextName);
+        LOG.error("ContextClassLoaderFactory is not configured for context: {}", contextName);
         throw new RuntimeException(
-            "ClassLoaderFactory is not configured for context: " + contextName);
+            "ContextClassLoaderFactory is not configured for context: " + contextName);
       }
       CONTEXTS.put(contextName, c);
     }
