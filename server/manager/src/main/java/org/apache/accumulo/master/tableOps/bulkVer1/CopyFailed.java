@@ -44,7 +44,6 @@ import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -99,8 +98,8 @@ class CopyFailed extends MasterRepo {
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
 
-    HashMap<FileRef,String> failures = new HashMap<>();
-    HashMap<FileRef,String> loadedFailures = new HashMap<>();
+    HashMap<Path,String> failures = new HashMap<>();
+    HashMap<Path,String> loadedFailures = new HashMap<>();
 
     try (BufferedReader in = new BufferedReader(
         new InputStreamReader(fs.open(new Path(error, BulkImport.FAILURES_TXT)), UTF_8))) {
@@ -108,7 +107,7 @@ class CopyFailed extends MasterRepo {
       while ((line = in.readLine()) != null) {
         Path path = new Path(line);
         if (!fs.exists(new Path(error, path.getName())))
-          failures.put(new FileRef(line, path), line);
+          failures.put(path, line);
       }
     }
 
@@ -126,8 +125,8 @@ class CopyFailed extends MasterRepo {
 
       for (Entry<Key,Value> entry : mscanner) {
         if (BulkFileColumnFamily.getBulkLoadTid(entry.getValue()) == tid) {
-          FileRef loadedFile = new FileRef(
-              TabletFileUtil.validate(entry.getKey().getColumnQualifierData().toString()));
+          Path loadedFile =
+              new Path(TabletFileUtil.validate(entry.getKey().getColumnQualifierData().toString()));
           String absPath = failures.remove(loadedFile);
           if (absPath != null) {
             loadedFailures.put(loadedFile, absPath);
@@ -137,8 +136,7 @@ class CopyFailed extends MasterRepo {
     }
 
     // move failed files that were not loaded
-    for (String failure : failures.values()) {
-      Path orig = new Path(failure);
+    for (Path orig : failures.keySet()) {
       Path dest = new Path(error, orig.getName());
       fs.rename(orig, dest);
       log.debug(FateTxId.formatTid(tid) + " renamed " + orig + " to " + dest + ": import failed");
@@ -151,14 +149,13 @@ class CopyFailed extends MasterRepo {
 
       HashSet<String> workIds = new HashSet<>();
 
-      for (String failure : loadedFailures.values()) {
-        Path orig = new Path(failure);
+      for (Path orig : loadedFailures.keySet()) {
         Path dest = new Path(error, orig.getName());
 
         if (fs.exists(dest))
           continue;
 
-        bifCopyQueue.addWork(orig.getName(), (failure + "," + dest).getBytes(UTF_8));
+        bifCopyQueue.addWork(orig.getName(), (orig.toString() + "," + dest).getBytes(UTF_8));
         workIds.add(orig.getName());
         log.debug(
             FateTxId.formatTid(tid) + " added to copyq: " + orig + " to " + dest + ": failed");
