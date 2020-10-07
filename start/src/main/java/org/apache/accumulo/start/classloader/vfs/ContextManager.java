@@ -49,7 +49,8 @@ public class ContextManager {
         return null;
 
       if (loader == null) {
-        log.debug("ClassLoader not created for context {}, creating new one. uris: {}, preDelegation: {}",
+        log.debug(
+            "ClassLoader not created for context {}, creating new one. uris: {}, preDelegation: {}",
             cconfig.name, cconfig.uris, cconfig.preDelegation);
         loader =
             new AccumuloReloadingVFSClassLoader(cconfig.uris, vfs, parent, cconfig.preDelegation);
@@ -102,7 +103,8 @@ public class ContextManager {
 
     @Override
     public int hashCode() {
-      return name.hashCode() + uris.hashCode() + (preDelegation ? Boolean.TRUE : Boolean.FALSE).hashCode();
+      return name.hashCode() + uris.hashCode()
+          + (preDelegation ? Boolean.TRUE : Boolean.FALSE).hashCode();
     }
   }
 
@@ -180,11 +182,13 @@ public class ContextManager {
     if (loader == null) {
       // oops, context was closed by another thread, try again
       ClassLoader loader2 = getClassLoader(contextName);
-      log.debug("Returning new classloader {} for context {}", loader2.getClass().getSimpleName(), contextName);
-      return loader2; 
+      log.debug("Returning new classloader {} for context {}", loader2.getClass().getSimpleName(),
+          contextName);
+      return loader2;
     }
 
-    log.debug("Returning classloader {} for context {}", loader.getClass().getSimpleName(), contextName);
+    log.debug("Returning classloader {} for context {}", loader.getClass().getSimpleName(),
+        contextName);
     return loader;
 
   }

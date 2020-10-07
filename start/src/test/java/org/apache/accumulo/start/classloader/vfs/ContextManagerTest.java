@@ -97,9 +97,9 @@ public class ContextManagerTest {
 
     cm.setContextConfig(context -> {
       if (context.equals("CX1")) {
-        return new ContextConfig(uri1, true);
+        return new ContextConfig("CX1", uri1, true);
       } else if (context.equals("CX2")) {
-        return new ContextConfig(uri2, true);
+        return new ContextConfig("CX2", uri2, true);
       }
       return null;
     });
@@ -139,9 +139,9 @@ public class ContextManagerTest {
 
     cm.setContextConfig(context -> {
       if (context.equals("CX1")) {
-        return new ContextConfig(uri2.toString(), true);
+        return new ContextConfig("CX1", uri1.toString(), true);
       } else if (context.equals("CX2")) {
-        return new ContextConfig(uri2.toString(), false);
+        return new ContextConfig("CX2", uri2.toString(), false);
       }
       return null;
     });

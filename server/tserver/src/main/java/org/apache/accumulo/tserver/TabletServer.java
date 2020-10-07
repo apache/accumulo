@@ -51,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ContextClassLoaders;
@@ -998,7 +999,14 @@ public class TabletServer extends AbstractServer {
 
     final AccumuloConfiguration aconf = getConfiguration();
     try {
-      ContextClassLoaders.initialize(aconf);
+      ContextClassLoaders.initialize(new Supplier<Map<String,String>>() {
+        @Override
+        public Map<String,String> get() {
+          Map<String,String> props = new HashMap<>();
+          aconf.getProperties(props, key -> !key.isBlank());
+          return props;
+        }
+      });
     } catch (Exception e1) {
       log.error("Error configuring ContextClassLoaderFactory", e1);
       throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);

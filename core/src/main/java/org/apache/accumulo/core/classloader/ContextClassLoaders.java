@@ -19,15 +19,13 @@
 package org.apache.accumulo.core.classloader;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
-import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ClassLoaderFactoryConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +37,7 @@ public class ContextClassLoaders {
 
   private static ContextClassLoaderFactory FACTORY;
   private static final Map<String,ClassLoader> CONTEXTS = new ConcurrentHashMap<>();
-  private static AccumuloConfiguration CONF;
+  private static Supplier<Map<String,String>> CONF;
 
   /**
    * Initialize the ContextClassLoaderFactory
@@ -48,11 +46,11 @@ public class ContextClassLoaders {
    *          AccumuloConfiguration object
    */
   @SuppressWarnings("unchecked")
-  public static void initialize(AccumuloConfiguration conf) throws Exception {
+  public static void initialize(Supplier<Map<String,String>> conf) throws Exception {
     if (null == CONF) {
       CONF = conf;
       LOG.info("Creating ContextClassLoaderFactory");
-      var factoryName = CONF.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY);
+      var factoryName = CONF.get().get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.toString());
       if (null == factoryName || factoryName.isBlank()) {
         LOG.info("No ClassLoaderFactory specified");
         return;
@@ -63,10 +61,11 @@ public class ContextClassLoaders {
           LOG.info("Creating ContextClassLoaderFactory: {}", factoryName);
           FACTORY = ((Class<? extends ContextClassLoaderFactory>) factoryClass)
               .getDeclaredConstructor().newInstance();
-          FACTORY.initialize(new ClassLoaderFactoryConfiguration() {
+          FACTORY.initialize(new Supplier<Map<String,String>>() {
             @Override
-            public Iterator<Entry<String,String>> get() {
-              return CONF.iterator();
+            public Map<String,String> get() {
+              LOG.debug("Returning context properties: {}", CONF.get());
+              return CONF.get();
             }
           });
         } else {

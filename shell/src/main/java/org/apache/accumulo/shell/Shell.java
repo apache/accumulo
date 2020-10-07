@@ -44,6 +44,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ContextClassLoaders;
@@ -61,7 +62,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -472,7 +472,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
 
       try {
-        ContextClassLoaders.initialize(new ConfigurationCopy(systemConfig));
+        ContextClassLoaders.initialize(new Supplier<Map<String,String>>() {
+          @Override
+          public Map<String,String> get() {
+            return systemConfig;
+          }
+        });
       } catch (Exception e1) {
         log.error("Error configuring ContextClassLoaderFactory", e1);
         throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
