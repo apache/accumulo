@@ -32,7 +32,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -174,57 +173,48 @@ public interface Ample {
   }
 
   /**
-   * Temporary interface, place holder for the server side type FileRef. Need to simplify this type.
-   */
-  interface FileMeta {
-    public Text meta();
-
-    public Path path();
-  }
-
-  /**
    * Interface for changing a tablets persistent data.
    */
   interface TabletMutator {
-    public TabletMutator putPrevEndRow(Text per);
+    TabletMutator putPrevEndRow(Text per);
 
-    public TabletMutator putFile(TabletFile path, DataFileValue dfv);
+    TabletMutator putFile(TabletFile path, DataFileValue dfv);
 
-    public TabletMutator deleteFile(StoredTabletFile path);
+    TabletMutator deleteFile(StoredTabletFile path);
 
-    public TabletMutator putScan(TabletFile path);
+    TabletMutator putScan(TabletFile path);
 
-    public TabletMutator deleteScan(StoredTabletFile path);
+    TabletMutator deleteScan(StoredTabletFile path);
 
-    public TabletMutator putCompactionId(long compactionId);
+    TabletMutator putCompactionId(long compactionId);
 
-    public TabletMutator putFlushId(long flushId);
+    TabletMutator putFlushId(long flushId);
 
-    public TabletMutator putLocation(TServer tserver, LocationType type);
+    TabletMutator putLocation(TServer tserver, LocationType type);
 
-    public TabletMutator deleteLocation(TServer tserver, LocationType type);
+    TabletMutator deleteLocation(TServer tserver, LocationType type);
 
-    public TabletMutator putZooLock(ZooLock zooLock);
+    TabletMutator putZooLock(ZooLock zooLock);
 
-    public TabletMutator putDirName(String dirName);
+    TabletMutator putDirName(String dirName);
 
-    public TabletMutator putWal(LogEntry logEntry);
+    TabletMutator putWal(LogEntry logEntry);
 
-    public TabletMutator deleteWal(String wal);
+    TabletMutator deleteWal(String wal);
 
-    public TabletMutator deleteWal(LogEntry logEntry);
+    TabletMutator deleteWal(LogEntry logEntry);
 
-    public TabletMutator putTime(MetadataTime time);
+    TabletMutator putTime(MetadataTime time);
 
-    public TabletMutator putBulkFile(TabletFile bulkref, long tid);
+    TabletMutator putBulkFile(TabletFile bulkref, long tid);
 
-    public TabletMutator deleteBulkFile(Ample.FileMeta bulkref);
+    TabletMutator deleteBulkFile(TabletFile bulkref);
 
-    public TabletMutator putChopped();
+    TabletMutator putChopped();
 
-    public TabletMutator putSuspension(TServer tserver, long suspensionTime);
+    TabletMutator putSuspension(TServer tserver, long suspensionTime);
 
-    public TabletMutator deleteSuspension();
+    TabletMutator deleteSuspension();
 
     /**
      * This method persist (or queues for persisting) previous put and deletes against this object.
@@ -238,6 +228,6 @@ public interface Ample {
      * <p>
      * After this method is called, calling any method on this object will result in an exception.
      */
-    public void mutate();
+    void mutate();
   }
 }

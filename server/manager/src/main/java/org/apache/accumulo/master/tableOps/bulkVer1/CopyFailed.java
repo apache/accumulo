@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -98,8 +97,8 @@ class CopyFailed extends MasterRepo {
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
 
-    HashMap<Path,String> failures = new HashMap<>();
-    HashMap<Path,String> loadedFailures = new HashMap<>();
+    var failures = new HashSet<Path>();
+    var loadedFailures = new HashSet<Path>();
 
     try (BufferedReader in = new BufferedReader(
         new InputStreamReader(fs.open(new Path(error, BulkImport.FAILURES_TXT)), UTF_8))) {
@@ -107,7 +106,7 @@ class CopyFailed extends MasterRepo {
       while ((line = in.readLine()) != null) {
         Path path = new Path(line);
         if (!fs.exists(new Path(error, path.getName())))
-          failures.put(path, line);
+          failures.add(path);
       }
     }
 
@@ -127,16 +126,15 @@ class CopyFailed extends MasterRepo {
         if (BulkFileColumnFamily.getBulkLoadTid(entry.getValue()) == tid) {
           Path loadedFile =
               new Path(TabletFileUtil.validate(entry.getKey().getColumnQualifierData().toString()));
-          String absPath = failures.remove(loadedFile);
-          if (absPath != null) {
-            loadedFailures.put(loadedFile, absPath);
+          if (failures.remove(loadedFile)) {
+            loadedFailures.add(loadedFile);
           }
         }
       }
     }
 
     // move failed files that were not loaded
-    for (Path orig : failures.keySet()) {
+    for (Path orig : failures) {
       Path dest = new Path(error, orig.getName());
       fs.rename(orig, dest);
       log.debug(FateTxId.formatTid(tid) + " renamed " + orig + " to " + dest + ": import failed");
@@ -149,13 +147,13 @@ class CopyFailed extends MasterRepo {
 
       HashSet<String> workIds = new HashSet<>();
 
-      for (Path orig : loadedFailures.keySet()) {
+      for (Path orig : loadedFailures) {
         Path dest = new Path(error, orig.getName());
 
         if (fs.exists(dest))
           continue;
 
-        bifCopyQueue.addWork(orig.getName(), (orig.toString() + "," + dest).getBytes(UTF_8));
+        bifCopyQueue.addWork(orig.getName(), (orig + "," + dest).getBytes(UTF_8));
         workIds.add(orig.getName());
         log.debug(
             FateTxId.formatTid(tid) + " added to copyq: " + orig + " to " + dest + ": failed");
