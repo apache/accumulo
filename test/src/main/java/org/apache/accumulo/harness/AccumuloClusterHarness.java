@@ -169,6 +169,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     if (type.isDynamic()) {
       cluster.start();
     } else {
+      log.info("Check if we can connect to accumulo before starting test");
+      checkConnection();
       log.info("Removing tables which appear to be from a previous test run");
       cleanupTables();
       log.info("Removing users which appear to be from a previous test run");
@@ -214,6 +216,17 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
         break;
       default:
         // do nothing
+    }
+  }
+
+  public void checkConnection() {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      // Use prefix so cleanupTables deletes it
+      String tablePrefix = this.getClass().getSimpleName() + "_";
+      client.tableOperations().create(tablePrefix);
+
+    } catch (Exception e) {
+      throw new RuntimeException("Could not connect to accumulo instance", e);
     }
   }
 
