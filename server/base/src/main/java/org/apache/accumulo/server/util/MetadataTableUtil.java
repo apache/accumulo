@@ -92,7 +92,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.hadoop.io.Text;
@@ -377,9 +376,8 @@ public class MetadataTableUtil {
           Key key = cell.getKey();
 
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            FileRef ref =
-                new FileRef(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
-            bw.addMutation(ServerAmpleImpl.createDeleteMutation(ref.meta().toString()));
+            String ref = TabletFileUtil.validate(key.getColumnQualifierData().toString());
+            bw.addMutation(ServerAmpleImpl.createDeleteMutation(ref));
           }
 
           if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
