@@ -19,11 +19,14 @@
 package org.apache.accumulo.core.classloader;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
@@ -51,8 +54,20 @@ public class LegacyVFSContextClassLoaderFactory implements ContextClassLoaderFac
             @Override
             public void run() {
               try {
-                AccumuloVFSClassLoader.getContextManager()
-                    .removeUnusedContexts(contextProperties.get().keySet());
+                if (LOG.isTraceEnabled()) {
+                  LOG.trace("LegacyVFSContextClassLoaderFactory-cleanup thread, properties: {}",
+                      contextProperties.get());
+                }
+                Set<String> configuredContexts = new HashSet<>();
+                contextProperties.get().keySet().forEach(k -> {
+                  if (k.startsWith(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.toString())) {
+                    configuredContexts.add(
+                        k.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.toString().length()));
+                  }
+                });
+                LOG.trace("LegacyVFSContextClassLoaderFactory-cleanup thread, contexts in use: {}",
+                    configuredContexts);
+                AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);
               } catch (IOException e) {
                 LOG.warn("{}", e.getMessage(), e);
               }

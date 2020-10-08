@@ -210,11 +210,13 @@ public class ContextManager {
     // the set of currently configured contexts. We will close the contexts that are
     // no longer in the configuration.
     synchronized (this) {
+      log.debug("Managed Contexts: {}", contexts);
+      log.debug("Configured Contexts: {}", configuredContexts);
       unused = new HashMap<>(contexts);
       unused.keySet().removeAll(configuredContexts);
       contexts.keySet().removeAll(unused.keySet());
     }
-
+    log.debug("Closing contexts: {}", unused);
     for (Entry<String,Context> e : unused.entrySet()) {
       // close outside of lock
       log.info("Closing unused context: {}", e.getKey());

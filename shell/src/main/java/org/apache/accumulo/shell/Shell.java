@@ -440,7 +440,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
-    String classpath = null;
+    String tableContext = null;
     Iterable<Entry<String,String>> tableProps;
 
     if (namespaces) {
@@ -458,32 +458,29 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
     for (Entry<String,String> entry : tableProps) {
       if (entry.getKey().equals(Property.TABLE_CLASSPATH.getKey())) {
-        classpath = entry.getValue();
+        tableContext = entry.getValue();
       }
     }
 
     ClassLoader classloader;
 
-    if (classpath != null && !classpath.equals("")) {
-      shellState.getAccumuloClient().instanceOperations().getSystemConfiguration()
-          .get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
-
-      final Map<String,String> systemConfig =
-          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
-
+    if (tableContext != null && !tableContext.equals("")) {
       try {
         ContextClassLoaders.initialize(new Supplier<Map<String,String>>() {
           @Override
           public Map<String,String> get() {
-            return systemConfig;
+            try {
+              return shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
+            } catch (AccumuloException | AccumuloSecurityException e) {
+              throw new RuntimeException("Error getting configuration", e);
+            }
           }
         });
       } catch (Exception e1) {
         log.error("Error configuring ContextClassLoaderFactory", e1);
         throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
       }
-
-      classloader = ContextClassLoaders.getClassLoader(classpath);
+      classloader = ContextClassLoaders.getClassLoader(tableContext);
     } else {
       classloader = AccumuloVFSClassLoader.getClassLoader();
     }

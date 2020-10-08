@@ -908,7 +908,7 @@ public enum Property {
   // VFS ClassLoader properties
 
   // this property shouldn't be used directly; it exists solely to document the default value
-  // defined by its use in AccumuloClassLoader when generating the property documentation
+  // defined by its use in AccumuloVFSClassLoader when generating the property documentation
   @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
       AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,

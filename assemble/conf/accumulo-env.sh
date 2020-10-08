@@ -93,10 +93,6 @@ JAVA_OPTS=("${JAVA_OPTS[@]}"
   "-Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
 )
 
-## JVM Option for which classloader factory to use. If none supplied then the default system class loader will be used.
-JAVA_OPTS=("${JAVA_OPTS[@]}"
-  "-Dgeneral.class.loader.factory=org.apache.accumulo.core.classloader.LegacyVFSClassLoaderFactory"
-)
 case "$cmd" in
   monitor|gc|master|tserver|tracer)
     JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configurationFile=log4j2-service.properties")

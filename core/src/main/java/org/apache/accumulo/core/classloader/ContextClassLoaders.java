@@ -20,10 +20,8 @@ package org.apache.accumulo.core.classloader;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.slf4j.Logger;
@@ -36,7 +34,6 @@ public class ContextClassLoaders {
   public static final String CONTEXT_CLASS_LOADER_FACTORY = "general.context.class.loader.factory";
 
   private static ContextClassLoaderFactory FACTORY;
-  private static final Map<String,ClassLoader> CONTEXTS = new ConcurrentHashMap<>();
   private static Supplier<Map<String,String>> CONF;
 
   /**
@@ -64,7 +61,6 @@ public class ContextClassLoaders {
           FACTORY.initialize(new Supplier<Map<String,String>>() {
             @Override
             public Map<String,String> get() {
-              LOG.debug("Returning context properties: {}", CONF.get());
               return CONF.get();
             }
           });
@@ -80,7 +76,7 @@ public class ContextClassLoaders {
         throw e;
       }
     } else {
-      LOG.warn("ContextClassLoaderFactory already initialized.");
+      LOG.debug("ContextClassLoaderFactory already initialized.");
     }
   }
 
@@ -89,28 +85,20 @@ public class ContextClassLoaders {
    *
    * @param contextName
    *          name
-   * @return ClassLoader for contextName
+   * @return ClassLoader for contextName, do not cache this
    * @throws RuntimeException
    *           if contextName not configured
    */
   public static ClassLoader getClassLoader(String contextName) {
-    ClassLoader c = CONTEXTS.get(contextName);
-    if (null == c) {
-      try {
-        c = FACTORY.getClassLoader(contextName);
-      } catch (IllegalArgumentException e) {
-        LOG.error("ContextClassLoaderFactory is not configured for context: {}", contextName);
-        throw new RuntimeException(
-            "ContextClassLoaderFactory is not configured for context: " + contextName);
-      }
-      CONTEXTS.put(contextName, c);
+    try {
+      // Cannot cache the ClassLoader result as it may change
+      // when the ClassLoader reloads
+      return FACTORY.getClassLoader(contextName);
+    } catch (IllegalArgumentException e) {
+      LOG.error("ContextClassLoaderFactory is not configured for context: {}", contextName);
+      throw new RuntimeException(
+          "ContextClassLoaderFactory is not configured for context: " + contextName);
     }
-    return c;
-  }
-
-  @Override
-  public String toString() {
-    return CONTEXTS.toString();
   }
 
   public static void resetForTests() {
