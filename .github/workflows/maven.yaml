@@ -48,6 +48,8 @@ jobs:
           !~/.m2/repository/org/apache/accumulo
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
+    - name: Show the first log message
+      run: git log -n1
     - name: Build with Maven (Fast Build)
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -PskipQA
       env:
@@ -83,18 +85,21 @@ jobs:
       env:
         MAVEN_OPTS: -Djansi.force=true
     - name: Upload unit test results
+      if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
         name: surefire-reports-${{ matrix.profile.name }}
         path: ./**/target/surefire-reports/
         if-no-files-found: ignore
     - name: Upload integration test results
+      if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
         name: failsafe-reports-${{ matrix.profile.name }}
         path: ./**/target/failsafe-reports/
         if-no-files-found: ignore
     - name: Upload mini test logs
+      if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
         name: mini-tests-logs-${{ matrix.profile.name }}
