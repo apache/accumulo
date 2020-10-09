@@ -221,9 +221,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
   public void checkConnection() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      // Use prefix so cleanupTables deletes it
-      String tablePrefix = this.getClass().getSimpleName() + "_";
-      client.tableOperations().create(tablePrefix);
+      // Run a client operation to test if accumulo is running
+      client.tableOperations().list();
 
     } catch (Exception e) {
       throw new RuntimeException("Could not connect to accumulo instance", e);
