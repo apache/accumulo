@@ -446,7 +446,6 @@ class DatafileManager {
 
       lastLocation = tablet.resetLastLocation();
 
-      tablet.setLastCompactionID(compactionId);
       t2 = System.currentTimeMillis();
     }
 
@@ -458,6 +457,7 @@ class DatafileManager {
         filesInUseByScans, newFile, compactionId, dfv,
         tablet.getTabletServer().getClientAddressString(), lastLocation,
         tablet.getTabletServer().getLock());
+    tablet.setLastCompactionID(compactionId);
     removeFilesAfterScan(filesInUseByScans);
 
     if (log.isTraceEnabled()) {
