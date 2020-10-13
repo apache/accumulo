@@ -448,7 +448,8 @@ class DatafileManager {
 
       t2 = System.currentTimeMillis();
     }
-    
+
+    // known consistency issue between minor and major compactions - see ACCUMULO-18
     Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
     if (!filesInUseByScans.isEmpty())
       log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
