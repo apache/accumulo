@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.spi.security.Action;
 import org.apache.accumulo.core.spi.security.Policy;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -258,8 +259,17 @@ public class ZKPolicyImpl implements Policy {
     }
   }
 
+  @Override
+  public void grant(String user, Action action) throws AccumuloSecurityException {
+    if (action instanceof Action.TableAction) {
+      Action.TableAction tableAction = (Action.TableAction)action;
+      if (tableAction instanceof Action.TableAction.Create)
+        grantTable(user, tableAction.getId(), TablePermission.WRITE);
+    }
+  }
+
   public void grantTable(String user, TableId tableId, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloSecurityException{
     String tId = tableId.canonical();
     Set<TablePermission> tablePerms;
     byte[] serializedPerms = zooCache.get(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + tId);

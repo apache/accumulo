@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.security.Action;
 
 public class MetadataTable {
 
@@ -27,4 +28,23 @@ public class MetadataTable {
 
   public static final TableId ID = TableId.of("!0");
   public static final String NAME = Namespace.ACCUMULO.name() + ".metadata";
+
+  // TODO find a better place
+  public static Action WRITE_ACTION = new WriteAction();
+
+  static class CompactAction extends Action.TableAction.Compact {
+    CompactAction() {
+      super(NAME, ID);
+    }
+  }
+  static class CancelCompactAction extends Action.TableAction.CancelCompact {
+    CancelCompactAction() {
+      super(NAME, ID);
+    }
+  }
+  static class WriteAction extends Action.TableAction.Write {
+    WriteAction() {
+      super(NAME, ID);
+    }
+  }
 }

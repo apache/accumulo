@@ -97,14 +97,9 @@ public class SecurityOperation {
           SecurityErrorCode.PERMISSION_DENIED);
 
     securityModule.initialize(rootPrincipal, token);
-    try {
-      // TODO figure out what the User object should contain
-      //.grantTable(rootPrincipal, MetadataTable.ID, TablePermission.ALTER_TABLE);
-      securityModule.policy().grant();
-    } catch (TableNotFoundException e) {
-      // Shouldn't happen
-      throw new RuntimeException(e);
-    }
+    // TODO figure out what the User object should contain
+    //.grantTable(rootPrincipal, MetadataTable.ID, TablePermission.ALTER_TABLE);
+    securityModule.policy().grant(rootPrincipal, MetadataTable.WRITE_ACTION);
   }
 
   // TODO move rootUserName into ServerContext... shouldn't need to be synchronized or static

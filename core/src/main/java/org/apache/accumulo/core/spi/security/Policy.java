@@ -1,5 +1,7 @@
 package org.apache.accumulo.core.spi.security;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+
 public interface Policy {
 
   /**
@@ -12,7 +14,7 @@ public interface Policy {
    * @return
    *      true if the user can perform the action, false otherwise
    */
-  default boolean canPerform(User user, Action action){
+  default boolean canPerform(String user, Action action){
     throw new UnsupportedOperationException("Not implemented");
   }
 
@@ -24,7 +26,7 @@ public interface Policy {
    * @param action
    *          the Action to check
    */
-  default void grant(User user, Action action) {
+  default void grant(String user, Action action) throws AccumuloSecurityException {
     throw new UnsupportedOperationException("Not implemented");
   }
 
@@ -36,7 +38,7 @@ public interface Policy {
    * @param action
    *          the Action to check
    */
-  default void revoke(User user, Action action) {
+  default void revoke(String user, Action action) {
     throw new UnsupportedOperationException("Not implemented");
   }
 }
