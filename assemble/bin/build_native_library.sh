@@ -40,7 +40,7 @@ fi
 mkdir -p "${final_native_target}" || exit 1
 
 # Make a directory for us to unpack the native source into
-TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXX) || exit 1
+TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXXXX) || exit 1
 
 # Unpack the tarball to our temp directory
 tar xf "${native_tarball}" -C "${TMP_DIR}"
