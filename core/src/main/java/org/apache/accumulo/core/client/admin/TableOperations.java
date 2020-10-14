@@ -862,6 +862,23 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
+   *
+   * Check if a table is online through it's current goal state only. Could run into issues if the
+   * current state of the table is inbetween states. If you require a specific state call
+   * online(tableName, true) or offline(tableName, true), this will wait until the table reaches the
+   * desired state before preceeding.
+   *
+   * @param tableName
+   *          the table to check if online
+   * @throws AccumuloException
+   *           when there is a general accumulo error
+   * @return true if table is online
+   *
+   * @since 2.1.0
+   */
+  boolean isOnline(String tableName) throws AccumuloException, TableNotFoundException;
+
+  /**
    * Clears the tablet locator cache for a specified table
    *
    * @param tableName
