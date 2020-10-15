@@ -173,6 +173,11 @@ public class TableOperationsHelperTest {
     }
 
     @Override
+    public boolean isOnline(String tableName) {
+      return true;
+    }
+
+    @Override
     public void online(String tableName) {}
 
     @Override
