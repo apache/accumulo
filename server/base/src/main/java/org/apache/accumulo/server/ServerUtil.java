@@ -95,14 +95,14 @@ public class ServerUtil {
     return getAccumuloPersistentVersion(v.getFileSystem(), path);
   }
 
-  public static synchronized int getAccumuloPersistentVersion(VolumeManager fs) {
+  public static synchronized int getAccumuloPersistentVersion(VolumeManager vm) {
     // It doesn't matter which Volume is used as they should all have the data version stored
-    return getAccumuloPersistentVersion(fs.getVolumes().iterator().next());
+    return getAccumuloPersistentVersion(vm.getFirst());
   }
 
-  public static synchronized Path getAccumuloInstanceIdPath(VolumeManager fs) {
+  public static synchronized Path getAccumuloInstanceIdPath(VolumeManager vm) {
     // It doesn't matter which Volume is used as they should all have the instance ID stored
-    return ServerConstants.getInstanceIdLocation(fs.getVolumes().iterator().next());
+    return ServerConstants.getInstanceIdLocation(vm.getFirst());
   }
 
   public static void init(ServerContext context, String application) {

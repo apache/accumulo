@@ -18,13 +18,12 @@
  */
 package org.apache.accumulo.server.gc;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
@@ -42,16 +41,8 @@ public class GcVolumeUtil {
   public static Collection<Path> expandAllVolumesUri(VolumeManager fs, Path path) {
     if (path.toString().startsWith(ALL_VOLUMES_PREFIX)) {
       String relPath = path.toString().substring(ALL_VOLUMES_PREFIX.length());
-
-      Collection<Volume> volumes = fs.getVolumes();
-
-      ArrayList<Path> ret = new ArrayList<>(volumes.size());
-      for (Volume vol : volumes) {
-        Path volPath = vol.prefixChild(relPath);
-        ret.add(volPath);
-      }
-
-      return ret;
+      return fs.getVolumes().stream().map(vol -> vol.prefixChild(relPath))
+          .collect(Collectors.toList());
     } else {
       return Collections.singleton(path);
     }

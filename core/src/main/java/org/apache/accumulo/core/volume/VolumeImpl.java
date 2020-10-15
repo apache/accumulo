@@ -34,22 +34,28 @@ import org.slf4j.LoggerFactory;
  * that filesystem.
  */
 public class VolumeImpl implements Volume {
+
   private static final Logger log = LoggerFactory.getLogger(VolumeImpl.class);
 
-  protected final FileSystem fs;
-  protected final String basePath;
+  private final FileSystem fs;
+  private final String basePath;
   private final Configuration hadoopConf;
 
-  public VolumeImpl(Path path, Configuration conf) throws IOException {
-    this.fs = requireNonNull(path).getFileSystem(requireNonNull(conf));
-    this.basePath = path.toUri().getPath();
-    this.hadoopConf = conf;
+  public VolumeImpl(Path path, Configuration hadoopConf) throws IOException {
+    this.fs = requireNonNull(path).getFileSystem(requireNonNull(hadoopConf));
+    this.basePath = stripTrailingSlashes(path.toUri().getPath());
+    this.hadoopConf = hadoopConf;
   }
 
   public VolumeImpl(FileSystem fs, String basePath) {
     this.fs = requireNonNull(fs);
-    this.basePath = requireNonNull(basePath);
+    this.basePath = stripTrailingSlashes(requireNonNull(basePath));
     this.hadoopConf = fs.getConf();
+  }
+
+  // remove any trailing whitespace or slashes
+  private static String stripTrailingSlashes(String path) {
+    return path.strip().replaceAll("/*$", "");
   }
 
   @Override
@@ -63,49 +69,33 @@ public class VolumeImpl implements Volume {
   }
 
   @Override
-  public Path prefixChild(Path p) {
-    return fs.makeQualified(new Path(basePath, p));
-  }
-
-  @Override
-  public boolean isValidPath(Path p) {
-    requireNonNull(p);
-
-    FileSystem other;
+  public boolean containsPath(Path path) {
+    FileSystem otherFS;
     try {
-      other = p.getFileSystem(hadoopConf);
+      otherFS = requireNonNull(path).getFileSystem(hadoopConf);
     } catch (IOException e) {
-      log.warn("Could not determine filesystem from path: {}", p, e);
+      log.warn("Could not determine filesystem from path: {}", path, e);
       return false;
     }
+    return equivalentFileSystems(otherFS) && isAncestorPathOf(path);
+  }
 
-    if (equivalentFileSystems(other)) {
-      return equivalentPaths(p);
+  // same if the only difference is trailing slashes
+  boolean equivalentFileSystems(FileSystem otherFS) {
+    return stripTrailingSlashes(fs.getUri().toString())
+        .equals(stripTrailingSlashes(otherFS.getUri().toString()));
+  }
+
+  // is ancestor if the path portion without the filesystem scheme
+  // is a subdirectory of this volume's basePath
+  boolean isAncestorPathOf(Path other) {
+    String otherPath = other.toUri().getPath().strip();
+    if (otherPath.startsWith(basePath)) {
+      String otherRemainingPath = otherPath.substring(basePath.length());
+      return otherRemainingPath.isEmpty()
+          || (otherRemainingPath.startsWith("/") && !otherRemainingPath.contains(".."));
     }
-
     return false;
-  }
-
-  /**
-   * Test whether the provided {@link FileSystem} object reference the same actual filesystem as the
-   * member <code>fs</code>.
-   *
-   * @param other
-   *          The filesystem to compare
-   */
-  boolean equivalentFileSystems(FileSystem other) {
-    return fs.getUri().equals(other.getUri());
-  }
-
-  /**
-   * Tests if the provided {@link Path} is rooted inside this volume, contained within
-   * <code>basePath</code>.
-   *
-   * @param other
-   *          The path to compare
-   */
-  boolean equivalentPaths(Path other) {
-    return other.toUri().getPath().startsWith(basePath);
   }
 
   @Override
@@ -130,8 +120,20 @@ public class VolumeImpl implements Volume {
   }
 
   @Override
-  public Path prefixChild(String p) {
-    return prefixChild(new Path(basePath, p));
+  public Path prefixChild(String pathString) {
+    String p = requireNonNull(pathString).strip();
+    p = p.startsWith("/") ? p.substring(1) : p;
+    if (pathString.startsWith("/")) {
+      throw new IllegalArgumentException(
+          "Cannot prefix absolute path " + pathString + " with this volume");
+    } else if (pathString.contains(":")) {
+      throw new IllegalArgumentException(
+          "Cannot prefix qualified path " + pathString + " with this volume");
+    } else if (pathString.contains("..")) {
+      throw new IllegalArgumentException(
+          "Cannot prefix path containing '../' " + pathString + " with this volume");
+    }
+    return fs.makeQualified(new Path(basePath, p));
   }
 
 }

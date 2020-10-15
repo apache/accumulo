@@ -862,8 +862,8 @@ public class TabletServer extends AbstractServer {
     TServerUtils.stopTServer(server);
 
     try {
-      log.debug("Closing filesystem");
-      getFileSystem().close();
+      log.debug("Closing filesystems");
+      getVolumeManager().close();
     } catch (IOException e) {
       log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
@@ -1194,8 +1194,8 @@ public class TabletServer extends AbstractServer {
     return new DfsLogger.ServerResources() {
 
       @Override
-      public VolumeManager getFileSystem() {
-        return TabletServer.this.getFileSystem();
+      public VolumeManager getVolumeManager() {
+        return TabletServer.this.getVolumeManager();
       }
 
       @Override
@@ -1213,7 +1213,7 @@ public class TabletServer extends AbstractServer {
     return onlineTablets.snapshot().get(extent);
   }
 
-  public VolumeManager getFileSystem() {
+  public VolumeManager getVolumeManager() {
     return getContext().getVolumeManager();
   }
 

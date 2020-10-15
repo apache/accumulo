@@ -152,7 +152,7 @@ public class Compactor implements Callable<CompactionStats> {
       List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
     this.context = context;
     this.extent = tablet.getExtent();
-    this.fs = tablet.getTabletServer().getFileSystem();
+    this.fs = context.getVolumeManager();
     this.acuTableConf = tableConfiguation;
     this.filesToCompact = files;
     this.imm = imm;
@@ -165,7 +165,7 @@ public class Compactor implements Callable<CompactionStats> {
     startTime = System.currentTimeMillis();
   }
 
-  public VolumeManager getFileSystem() {
+  public VolumeManager getVolumeManager() {
     return fs;
   }
 

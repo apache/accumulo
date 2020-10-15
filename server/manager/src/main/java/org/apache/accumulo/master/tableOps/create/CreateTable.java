@@ -30,6 +30,7 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.TableInfo;
 import org.apache.accumulo.master.tableOps.Utils;
+import org.apache.hadoop.fs.Path;
 
 public class CreateTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
@@ -37,7 +38,7 @@ public class CreateTable extends MasterRepo {
   private TableInfo tableInfo;
 
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
-      String splitFile, int splitCount, String splitDirsFile, InitialTableState initialTableState,
+      Path splitPath, int splitCount, Path splitDirsPath, InitialTableState initialTableState,
       NamespaceId namespaceId) {
     tableInfo = new TableInfo();
     tableInfo.setTableName(tableName);
@@ -45,10 +46,10 @@ public class CreateTable extends MasterRepo {
     tableInfo.setUser(user);
     tableInfo.props = props;
     tableInfo.setNamespaceId(namespaceId);
-    tableInfo.setSplitFile(splitFile);
+    tableInfo.setSplitPath(splitPath);
     tableInfo.setInitialSplitSize(splitCount);
     tableInfo.setInitialTableState(initialTableState);
-    tableInfo.setSplitDirsFile(splitDirsFile);
+    tableInfo.setSplitDirsPath(splitDirsPath);
   }
 
   @Override

@@ -22,7 +22,6 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -69,10 +68,11 @@ class FinishCreateTable extends MasterRepo {
   }
 
   private void cleanupSplitFiles(Master env) throws IOException {
-    Volume defaultVolume = env.getVolumeManager().getDefaultVolume();
-    FileSystem fs = defaultVolume.getFileSystem();
-    fs.delete(new Path(tableInfo.getSplitFile()), true);
-    fs.delete(new Path(tableInfo.getSplitDirsFile()), true);
+    // it is sufficient to delete from the parent, because both files are in the same directory, and
+    // we want to delete the directory also
+    Path p = tableInfo.getSplitPath().getParent();
+    FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
+    fs.delete(p, true);
   }
 
   @Override
