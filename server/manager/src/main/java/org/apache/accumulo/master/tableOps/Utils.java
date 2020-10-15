@@ -194,12 +194,12 @@ public class Utils {
   }
 
   /**
-   * Given an input stream and a flag indicating if the file info is base64 encoded or not, retrieve
-   * the data from a file on the file system. It is assumed that the file is textual and not binary
-   * data.
+   * Given a fully-qualified Path and a flag indicating if the file info is base64 encoded or not,
+   * retrieve the data from a file on the file system. It is assumed that the file is textual and
+   * not binary data.
    *
    * @param path
-   *          the fully qualified path
+   *          the fully-qualified path
    */
   public static SortedSet<Text> getSortedSetFromFile(Master master, Path path, boolean encoded)
       throws IOException {

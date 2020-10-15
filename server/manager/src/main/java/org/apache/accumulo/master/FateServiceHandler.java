@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.master;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.MAX_NAMESPACE_LEN;
 import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
 import static org.apache.accumulo.master.util.TableValidators.CAN_CLONE;
@@ -789,7 +790,7 @@ class FateServiceHandler implements FateService.Iface {
       for (int i = splitOffset; i < splitCount + splitOffset; i++) {
         byte[] splitBytes = ByteBufferUtil.toBytes(arguments.get(i));
         String encodedSplit = Base64.getEncoder().encodeToString(splitBytes);
-        stream.writeBytes(encodedSplit + '\n');
+        stream.write((encodedSplit + '\n').getBytes(UTF_8));
       }
     } catch (IOException e) {
       log.error("Error in FateServiceHandler while writing splits to {}: {}", splitsPath,

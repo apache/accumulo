@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.master.tableOps.create;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -100,7 +102,7 @@ class ChooseDir extends MasterRepo {
       fs.delete(p, true);
     try (FSDataOutputStream stream = fs.create(p)) {
       for (Text dir : dirs)
-        stream.writeBytes(dir + "\n");
+        stream.write((dir + "\n").getBytes(UTF_8));
     }
   }
 
