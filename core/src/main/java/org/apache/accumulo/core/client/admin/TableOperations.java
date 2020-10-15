@@ -864,15 +864,15 @@ public interface TableOperations {
   /**
    *
    * Check if a table is online through it's current goal state only. Could run into issues if the
-   * current state of the table is inbetween states. If you require a specific state call
-   * online(tableName, true) or offline(tableName, true), this will wait until the table reaches the
-   * desired state before preceeding.
+   * current state of the table is in between states. If you require a specific state, call
+   * <code>online(tableName, true)</code> or <code>offline(tableName, true)</code>, this will wait
+   * until the table reaches the desired state before proceeding.
    *
    * @param tableName
    *          the table to check if online
    * @throws AccumuloException
    *           when there is a general accumulo error
-   * @return true if table is online
+   * @return true if table's goal state is online
    *
    * @since 2.1.0
    */
