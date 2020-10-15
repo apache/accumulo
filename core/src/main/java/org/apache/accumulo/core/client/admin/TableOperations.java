@@ -862,7 +862,6 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
-   *
    * Check if a table is online through it's current goal state only. Could run into issues if the
    * current state of the table is in between states. If you require a specific state, call
    * <code>online(tableName, true)</code> or <code>offline(tableName, true)</code>, this will wait
