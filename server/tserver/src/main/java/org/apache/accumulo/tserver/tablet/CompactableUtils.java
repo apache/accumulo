@@ -441,10 +441,10 @@ public class CompactableUtils {
       }
 
       if (selectedFiles.isEmpty()) {
-        tablet.setLastCompactionID(compactionId);
-
         MetadataTableUtil.updateTabletCompactID(tablet.getExtent(), compactionId,
             tablet.getTabletServer().getContext(), tablet.getTabletServer().getLock());
+
+        tablet.setLastCompactionID(compactionId);
       }
 
       return selectedFiles;

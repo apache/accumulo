@@ -475,7 +475,10 @@ function clearTableProblems(tableID) {
   var call = '/rest/problems/summary?s=' + tableID;
   // Change plus sign to use ASCII value to send it as a URL query parameter
   call = sanitize(call);
-  $.post(call);
+  // make the rest call, passing success function callback
+  $.post(call, function () {
+    refreshProblems();
+  });
 }
 
 /**
@@ -490,7 +493,10 @@ function clearDetailsProblems(table, resource, type) {
    resource + '&ptype=' + type;
   // Changes plus sign to use ASCII value to send it as a URL query parameter
   call = sanitize(call);
-  $.post(call);
+  // make the rest call, passing success function callback
+  $.post(call, function () {
+    refreshProblems();
+  });
 }
 
 /**
