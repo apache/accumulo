@@ -105,23 +105,51 @@ public class VolumeImplTest {
   @Test
   public void testPrefixChild() throws IOException {
     FileSystem fs = new Path("file:///").getFileSystem(new Configuration(false));
-    Volume volume = new VolumeImpl(fs, "/tmp/accumulo/");
-    assertEquals("file:/tmp/accumulo/abc", volume.prefixChild("abc").toString());
-    assertEquals("file:/tmp/accumulo/abc/def", volume.prefixChild(" abc/def/ ").toString());
-    assertEquals("file:/tmp/accumulo/ghi", volume.prefixChild(" ghi/// ").toString());
-    assertEquals("file:/tmp/accumulo", volume.prefixChild(" .").toString());
-    assertEquals("file:/tmp/accumulo/abc", volume.prefixChild("./abc/.").toString());
-    assertEquals("file:/tmp/accumulo/abc/def", volume.prefixChild("abc/./def/").toString());
-    assertEquals("file:/tmp/accumulo/abc", volume.prefixChild("./abc").toString());
-    Set.of("/abc", "./abc/..", "abc/../def/", "../abc", " .. ", "file:/abc", "hdfs://host:1234")
-        .forEach(s -> {
-          assertThrows(IllegalArgumentException.class, () -> {
-            volume.prefixChild(s);
-            LoggerFactory.getLogger(VolumeImplTest.class).error("Should have thrown on " + s);
-          });
-        });
+    var volume = new VolumeImpl(fs, "/tmp/accumulo/");
+    assertEquals("file:/tmp/accumulo", volume.toString());
+    // test normalization for effectively empty child
+    Set.of(" ", "  ", "   ", " .", " ./", " .// ", " ././/./ ").forEach(s -> {
+      assertEquals("file:/tmp/accumulo", volume.prefixChild(s).toString());
+    });
+    // test normalization for single depth child
+    Set.of("/abc", "abc", " abc/ ", " abc/// ", "./abc/.", "./abc").forEach(s -> {
+      assertEquals("file:/tmp/accumulo/abc", volume.prefixChild(s).toString());
+    });
+    // test normalization for multi depth child
+    Set.of("abc/./def/", " abc/def/ ", " abc////def/ ", " ./abc/.//def/. ").forEach(s -> {
+      assertEquals("file:/tmp/accumulo/abc/def", volume.prefixChild(s).toString());
+    });
+    // test failures for absolute paths
+    Set.of("//abc", " //abc ", "///abc").forEach(s -> {
+      var e = assertThrows(IllegalArgumentException.class, () -> {
+        volume.prefixChild(s);
+        LoggerFactory.getLogger(VolumeImplTest.class).error("Should have thrown on " + s);
+      });
+      assertEquals("Cannot prefix " + s + " (absolute path) with volume file:/tmp/accumulo",
+          e.getMessage());
+    });
+    // test failures for qualified paths
+    Set.of("file:/abc", "hdfs://host:1234", " file:/def ").forEach(s -> {
+      var e = assertThrows(IllegalArgumentException.class, () -> {
+        volume.prefixChild(s);
+        LoggerFactory.getLogger(VolumeImplTest.class).error("Should have thrown on " + s);
+      });
+      assertEquals("Cannot prefix " + s + " (qualified path) with volume file:/tmp/accumulo",
+          e.getMessage());
+    });
+    // test failures for breakout paths
+    Set.of("./abc/..", "abc/../def/", "../abc", " .. ").forEach(s -> {
+      var e = assertThrows(IllegalArgumentException.class, () -> {
+        volume.prefixChild(s);
+        LoggerFactory.getLogger(VolumeImplTest.class).error("Should have thrown on " + s);
+      });
+      assertEquals("Cannot prefix " + s + " (path contains '..') with volume file:/tmp/accumulo",
+          e.getMessage());
+    });
+    // quick check to verify with hdfs
     FileSystem fs2 = new Path("hdfs://127.0.0.1:1234/").getFileSystem(new Configuration(false));
     var volume2 = new VolumeImpl(fs2, "/tmp/accumulo/");
+    assertEquals("hdfs://127.0.0.1:1234/tmp/accumulo", volume2.toString());
     assertEquals("hdfs://127.0.0.1:1234/tmp/accumulo/abc", volume2.prefixChild("abc").toString());
   }
 

@@ -116,24 +116,28 @@ public class VolumeImpl implements Volume {
 
   @Override
   public String toString() {
-    return getFileSystem() + " " + basePath;
+    return fs.makeQualified(new Path(basePath)).toString();
   }
 
   @Override
   public Path prefixChild(String pathString) {
     String p = requireNonNull(pathString).strip();
     p = p.startsWith("/") ? p.substring(1) : p;
-    if (pathString.startsWith("/")) {
-      throw new IllegalArgumentException(
-          "Cannot prefix absolute path " + pathString + " with this volume");
+    String reason;
+    if (p.isBlank()) {
+      return fs.makeQualified(new Path(basePath));
+    } else if (p.startsWith("/")) {
+      // check for starting with '//'
+      reason = "absolute path";
     } else if (pathString.contains(":")) {
-      throw new IllegalArgumentException(
-          "Cannot prefix qualified path " + pathString + " with this volume");
+      reason = "qualified path";
     } else if (pathString.contains("..")) {
-      throw new IllegalArgumentException(
-          "Cannot prefix path containing '../' " + pathString + " with this volume");
+      reason = "path contains '..'";
+    } else {
+      return fs.makeQualified(new Path(basePath, p));
     }
-    return fs.makeQualified(new Path(basePath, p));
+    throw new IllegalArgumentException(
+        String.format("Cannot prefix %s (%s) with volume %s", pathString, reason, this));
   }
 
 }
