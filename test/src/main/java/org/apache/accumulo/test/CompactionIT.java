@@ -66,17 +66,25 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.bouncycastle.util.Arrays;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.PrintWriter;
+import org.junit.runner.notification.Failure;
+import org.junit.runner.notification.RunListener;
+import org.junit.runner.notification.RunNotifier;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
+
 
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CompactionIT extends SharedMiniClusterBase {
+    public String fooString = "";
+    static PrintWriter writer = null;
+
 
     public static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
 
@@ -88,6 +96,8 @@ public class CompactionIT extends SharedMiniClusterBase {
         private List<CompactionExecutorId> executorIds;
         private EnumSet<CompactionKind> kindsToProcess = EnumSet.noneOf(CompactionKind.class);
         private Random rand = new Random();
+
+
 
         @Override
         public void init(InitParameters params) {
@@ -597,7 +607,7 @@ public class CompactionIT extends SharedMiniClusterBase {
         }
     }
 
-    @Test
+    @Test (expected = Exception.class)
     public void testCompactionSelector() throws Exception {
             PluginConfig csc = new PluginConfig(CompactionIT.FooSelector.class.getName());
             CompactionConfig compactConfig = new CompactionConfig().setSelector(csc);
@@ -615,9 +625,9 @@ public class CompactionIT extends SharedMiniClusterBase {
     public void compactionTest(CompactionConfig compactConfig) throws Exception {
         final Random rand = new Random();
         final String table = getUniqueNames(1)[0];
-        //long  fooCount = 1 + (long) rand.nextInt(5),  barCount = 1 + (long) rand.nextInt(5);
+
+       long  fooCount = 1 + (long) rand.nextInt(10),  barCount = 1 + (long) rand.nextInt(10);
         int i, k, count = 2;
-        long fooCount = 3, barCount = 4;
 
             try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
                 NewTableConfiguration ntc = new NewTableConfiguration();
@@ -642,11 +652,10 @@ public class CompactionIT extends SharedMiniClusterBase {
                         count = 1;
                         fooCount = 0;
                     }
-                    
+
                     List<IteratorSetting> iterators =
                             Collections.singletonList(new IteratorSetting(100, SummaryIT.FooFilter.class));
                     compactConfig = compactConfig.setFlush(true).setIterators(iterators).setWait(true);
-
 
                     c.tableOperations().compact(table, compactConfig);
 
@@ -657,15 +666,13 @@ public class CompactionIT extends SharedMiniClusterBase {
                                 .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
                                 .collect(groupingBy(identity(), counting())); // count different row types
 
-
                         assertEquals(fooCount, (long) counts.getOrDefault("foo", 0L));
                         assertEquals(barCount, (long) counts.getOrDefault("bar", 0L));
                         assertEquals(count, counts.size());
                     }
 
-
                 }
-
+            
     }
 
     static class fooSelectorException extends RuntimeException {
@@ -674,20 +681,76 @@ public class CompactionIT extends SharedMiniClusterBase {
         }
     }
 
+    public static class FailureListener extends RunListener {
+
+        private RunNotifier runNotifier;
+
+        public FailureListener(RunNotifier runNotifier) {
+            super();
+            this.runNotifier=runNotifier;
+        }
+
+        @Override
+        public void testFailure(Failure failure) throws Exception {
+            super.testFailure(failure);
+            this.runNotifier.pleaseStop();
+        }
+    }
+
+        public static class Retry implements TestRule {
+            private int retryCount;
+
+            public Retry(int retryCount) {
+                this.retryCount = retryCount;
+            }
+
+            public Statement apply(Statement base, Description description) {
+                return statement(base, description);
+            }
+
+            private Statement statement(final Statement base, final Description description) {
+                return new Statement() {
+                    @Override
+                    public void evaluate() throws Throwable {
+                        Throwable caughtThrowable = null;
+
+                        // implement retry logic here
+                        for (int i = 0; i < retryCount; i++) {
+                            try {
+                                base.evaluate();
+                                return;
+                            } catch (Throwable t) {
+                                caughtThrowable = t;
+                                System.err.println(description.getDisplayName() + ": run " + (i+1) + " failed");
+                            }
+                        }
+                        System.err.println(description.getDisplayName() + ": giving up after " + retryCount + " failures");
+                        throw caughtThrowable;
+                    }
+                };
+            }
+        }
+
+    @Rule
+    public Retry retry = new Retry(3);
+
+
     public static class FooSelector implements CompactionSelector {
 
+        public static final Logger log2 = LoggerFactory.getLogger(FooSelector.class);
 
         boolean odd = false;
-
 
         @Override
         public void init(InitParamaters iparams) {
         }
 
+
         @Override
         public Selection select(SelectionParameters sparams){
             Collection<Summary> summaries = sparams.getSummaries(sparams.getAvailableFiles(),
                     conf -> conf.getClassName().contains("FooCounter"));
+
 
             if (summaries.size() == 1) {
                 Summary summary = summaries.iterator().next();
@@ -695,20 +758,11 @@ public class CompactionIT extends SharedMiniClusterBase {
                 Long bars = summary.getStatistics().getOrDefault("bars", 0L);
                 odd = isOdd(foos);
 
-
-
-                try {
-                    if (odd)
-                        throw new fooSelectorException("Exception Thrown");
-
-
-                } catch ( fooSelectorException e){
-                       log.debug(e.getMessage());
-                }
-
-                    if (foos > bars)
+                    if (odd) {
+                           throw new fooSelectorException("Exception Thrown");
+                    }
+                    else if (foos > bars)
                         return new Selection(sparams.getAvailableFiles());
-
 
             }
          return new Selection(Set.of());
@@ -716,6 +770,7 @@ public class CompactionIT extends SharedMiniClusterBase {
         }
 
         boolean isOdd(long foos) {
+            System.out.println("This is Ty Barnes ");
 
             if ((foos & 0x1) == 1) {
                 return true;
