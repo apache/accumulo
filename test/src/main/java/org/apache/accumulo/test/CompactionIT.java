@@ -607,7 +607,7 @@ public class CompactionIT extends SharedMiniClusterBase {
         }
     }
 
-    @Test (expected = Exception.class)
+    @Test
     public void testCompactionSelector() throws Exception {
             PluginConfig csc = new PluginConfig(CompactionIT.FooSelector.class.getName());
             CompactionConfig compactConfig = new CompactionConfig().setSelector(csc);
@@ -672,7 +672,7 @@ public class CompactionIT extends SharedMiniClusterBase {
                     }
 
                 }
-            
+
     }
 
     static class fooSelectorException extends RuntimeException {
