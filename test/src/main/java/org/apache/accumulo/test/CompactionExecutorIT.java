@@ -77,7 +77,7 @@ import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class CompactionIT extends SharedMiniClusterBase {
+public class CompactionExecutorIT extends SharedMiniClusterBase {
 
   @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
       justification = "predictable random is okay for testing")
