@@ -278,7 +278,8 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
       Text pr = null;
       for (String s : splits) {
         Text split = new Text(s);
-        Mutation prevRow = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, split, pr));
+        Mutation prevRow = MetadataSchema.TabletsSection.TabletColumnFamily
+            .createPrevRowMutation(new KeyExtent(tableId, split, pr));
         prevRow.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME,
             new Text("123456"), new Value("127.0.0.1:1234"));
         MetadataSchema.TabletsSection.ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow,
@@ -287,7 +288,8 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
         pr = split;
       }
       // Add the default tablet
-      Mutation defaultTablet = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, null, pr));
+      Mutation defaultTablet = MetadataSchema.TabletsSection.TabletColumnFamily
+          .createPrevRowMutation(new KeyExtent(tableId, null, pr));
       defaultTablet.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME,
           new Text("123456"), new Value("127.0.0.1:1234"));
       bw.addMutation(defaultTablet);
