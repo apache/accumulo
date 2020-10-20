@@ -31,10 +31,10 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
@@ -44,7 +44,7 @@ import com.google.common.base.Preconditions;
 
 public class RootTabletStateStoreTest {
 
-  private static class TestAmple extends TabletsMetadata implements Ample {
+  private static class TestAmple implements Ample {
 
     private String json = new String(
         RootTabletMetadata.getInitialJson("dir", "hdfs://nn/acc/tables/some/dir/0000.rf"), UTF_8);
@@ -56,7 +56,7 @@ public class RootTabletStateStoreTest {
     }
 
     @Override
-    public TabletsMetadata.Builder readTablets() {
+    public AmpleImpl.Builder readTablets() {
       return null;
     }
 

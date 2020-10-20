@@ -49,6 +49,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -60,14 +61,10 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
 public class AccumuloClientIT extends AccumuloClusterHarness {
-
-  private static final Logger log = LoggerFactory.getLogger(AccumuloClientIT.class);
 
   @After
   public void deleteUsers() throws Exception {
@@ -267,9 +264,9 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
 
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
-          MetadataTable.NAME, TablePermission.WRITE);
+              MetadataTable.NAME, TablePermission.WRITE);
       BatchWriter bw =
-          accumuloClient.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+              accumuloClient.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       ClientContext cc = (ClientContext) accumuloClient;
       // Create a fake METADATA table with these splits
       String[] splits = {"a", "e", "j", "o", "t", "z"};
@@ -279,19 +276,19 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
       for (String s : splits) {
         Text split = new Text(s);
         Mutation prevRow = MetadataSchema.TabletsSection.TabletColumnFamily
-            .createPrevRowMutation(new KeyExtent(tableId, split, pr));
+                .createPrevRowMutation(new KeyExtent(tableId, split, pr));
         prevRow.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME,
-            new Text("123456"), new Value("127.0.0.1:1234"));
+                new Text("123456"), new Value("127.0.0.1:1234"));
         MetadataSchema.TabletsSection.ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow,
-            new Value("junk"));
+                new Value("junk"));
         bw.addMutation(prevRow);
         pr = split;
       }
       // Add the default tablet
       Mutation defaultTablet = MetadataSchema.TabletsSection.TabletColumnFamily
-          .createPrevRowMutation(new KeyExtent(tableId, null, pr));
+              .createPrevRowMutation(new KeyExtent(tableId, null, pr));
       defaultTablet.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME,
-          new Text("123456"), new Value("127.0.0.1:1234"));
+              new Text("123456"), new Value("127.0.0.1:1234"));
       bw.addMutation(defaultTablet);
       bw.close();
 
@@ -300,7 +297,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
 
       // Call up Ample from the client context using table "t" and build
       TabletsMetadata tablets = cc.getAmple().readTablets().forTable(tableId)
-          .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
+              .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
 
       TabletMetadata tabletMetadata0 = Iterables.get(tablets, 0);
       TabletMetadata tabletMetadata1 = Iterables.get(tablets, 1);
@@ -378,4 +375,5 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
       assertEquals(infoEndRow4, testInfoEndRow4);
     }
   }
+
 }
