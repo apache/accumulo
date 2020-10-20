@@ -26,6 +26,8 @@ import java.util.function.Supplier;
  * implementation is configured externally to Accumulo and will return a ClassLoader for a given
  * contextName.
  *
+ * @since 2.1.0
+ *
  */
 public interface ContextClassLoaderFactory {
 

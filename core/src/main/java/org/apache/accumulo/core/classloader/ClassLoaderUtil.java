@@ -22,7 +22,7 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class ClassLoaderUtil {
 
-  public static synchronized <U> Class<? extends U> loadClass(String contextName, String className,
+  public static <U> Class<? extends U> loadClass(String contextName, String className,
       Class<U> extension) throws ClassNotFoundException {
     if (contextName != null && !contextName.equals(""))
       return ContextClassLoaders.getClassLoader(contextName).loadClass(className)

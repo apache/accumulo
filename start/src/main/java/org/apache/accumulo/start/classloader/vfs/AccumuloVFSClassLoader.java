@@ -147,6 +147,7 @@ public class AccumuloVFSClassLoader {
 
       path = AccumuloClassLoader.replaceEnvVars(path, System.getenv());
 
+      log.debug("Resolving path element: {}", path);
       FileObject fo = vfs.resolveFile(path);
 
       switch (fo.getType()) {

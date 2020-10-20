@@ -91,8 +91,8 @@ public class ContextClassLoaders {
    */
   public static ClassLoader getClassLoader(String contextName) {
     try {
-      // Cannot cache the ClassLoader result as it may change
-      // when the ClassLoader reloads
+      // Cannot cache the ClassLoader result as it
+      // may change when the ClassLoader reloads
       return FACTORY.getClassLoader(contextName);
     } catch (IllegalArgumentException e) {
       LOG.error("ContextClassLoaderFactory is not configured for context: {}", contextName);
