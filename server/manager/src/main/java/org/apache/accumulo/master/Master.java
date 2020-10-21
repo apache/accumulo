@@ -1675,9 +1675,8 @@ public class Master extends AbstractServer
     }
   }
 
-  public void markDeadServerLogsAsClosed(Map<TServerInstance,List<Path>> logsForDeadServers)
-      throws WalMarkerException {
-    WalStateManager mgr = new WalStateManager(getContext());
+  public void markDeadServerLogsAsClosed(WalStateManager mgr,
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws WalMarkerException {
     for (Entry<TServerInstance,List<Path>> server : logsForDeadServers.entrySet()) {
       for (Path path : server.getValue()) {
         mgr.closeWal(server.getKey(), path);
