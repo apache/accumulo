@@ -20,9 +20,7 @@ package org.apache.accumulo.master.tableOps;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.util.Base64;
 import java.util.SortedSet;
@@ -47,7 +45,8 @@ import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -195,22 +194,24 @@ public class Utils {
   }
 
   /**
-   * Given an input stream and a flag indicating if the file info is base64 encoded or not, retrieve
-   * the data from a file on the file system. It is assumed that the file is textual and not binary
-   * data.
+   * Given a fully-qualified Path and a flag indicating if the file info is base64 encoded or not,
+   * retrieve the data from a file on the file system. It is assumed that the file is textual and
+   * not binary data.
+   *
+   * @param path
+   *          the fully-qualified path
    */
-  public static SortedSet<Text> getSortedSetFromFile(FSDataInputStream inputStream, boolean encoded)
+  public static SortedSet<Text> getSortedSetFromFile(Master master, Path path, boolean encoded)
       throws IOException {
-    SortedSet<Text> data = new TreeSet<>();
-    try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
-      String line;
-      while ((line = br.readLine()) != null) {
-        if (encoded)
-          data.add(new Text(Base64.getDecoder().decode(line)));
-        else
-          data.add(new Text(line));
+    FileSystem fs = path.getFileSystem(master.getContext().getHadoopConf());
+    var data = new TreeSet<Text>();
+    try (var file = new java.util.Scanner(fs.open(path), UTF_8)) {
+      while (file.hasNextLine()) {
+        String line = file.nextLine();
+        data.add(encoded ? new Text(Base64.getDecoder().decode(line)) : new Text(line));
       }
     }
     return data;
   }
+
 }

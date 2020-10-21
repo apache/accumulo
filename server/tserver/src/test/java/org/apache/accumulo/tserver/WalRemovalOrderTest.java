@@ -45,7 +45,7 @@ public class WalRemovalOrderTest {
       }
 
       @Override
-      public VolumeManager getFileSystem() {
+      public VolumeManager getVolumeManager() {
         throw new UnsupportedOperationException();
       }
     };

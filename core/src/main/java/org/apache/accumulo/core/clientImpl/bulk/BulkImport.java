@@ -192,13 +192,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
    * Check path of bulk directory and permissions
    */
   private Path checkPath(FileSystem fs, String dir) throws IOException, AccumuloException {
-    Path ret;
-
-    if (dir.contains(":")) {
-      ret = new Path(dir);
-    } else {
-      ret = fs.makeQualified(new Path(dir));
-    }
+    Path ret = dir.contains(":") ? new Path(dir) : fs.makeQualified(new Path(dir));
 
     try {
       if (!fs.getFileStatus(ret).isDirectory()) {

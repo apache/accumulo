@@ -271,27 +271,24 @@ class DatafileManager {
     // rename before putting in metadata table, so files in metadata table should
     // always exist
     boolean attemptedRename = false;
+    VolumeManager vm = tablet.getTabletServer().getContext().getVolumeManager();
     do {
       try {
         if (dfv.getNumEntries() == 0) {
-
-          tablet.getTabletServer().getFileSystem().deleteRecursively(tmpDatafile.getPath());
+          vm.deleteRecursively(tmpDatafile.getPath());
         } else {
-          if (!attemptedRename
-              && tablet.getTabletServer().getFileSystem().exists(newDatafile.getPath())) {
+          if (!attemptedRename && vm.exists(newDatafile.getPath())) {
             log.warn("Target map file already exist {}", newDatafile);
             throw new RuntimeException("File unexpectedly exists " + newDatafile.getPath());
           }
           // the following checks for spurious rename failures that succeeded but gave an IoE
-          if (attemptedRename
-              && tablet.getTabletServer().getFileSystem().exists(newDatafile.getPath())
-              && !tablet.getTabletServer().getFileSystem().exists(tmpDatafile.getPath())) {
+          if (attemptedRename && vm.exists(newDatafile.getPath())
+              && !vm.exists(tmpDatafile.getPath())) {
             // seems like previous rename succeeded, so break
             break;
           }
           attemptedRename = true;
-          rename(tablet.getTabletServer().getFileSystem(), tmpDatafile.getPath(),
-              newDatafile.getPath());
+          rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
         }
         break;
       } catch (IOException ioe) {
@@ -402,20 +399,20 @@ class DatafileManager {
       TabletFile tmpDatafile, TabletFile newDatafile, Long compactionId, DataFileValue dfv)
       throws IOException {
     final KeyExtent extent = tablet.getExtent();
+    VolumeManager vm = tablet.getTabletServer().getContext().getVolumeManager();
     long t1, t2;
 
-    if (tablet.getTabletServer().getFileSystem().exists(newDatafile.getPath())) {
+    if (vm.exists(newDatafile.getPath())) {
       log.error("Target map file already exist " + newDatafile, new Exception());
       throw new IllegalStateException("Target map file already exist " + newDatafile);
     }
 
     if (dfv.getNumEntries() == 0) {
-      tablet.getTabletServer().getFileSystem().deleteRecursively(tmpDatafile.getPath());
+      vm.deleteRecursively(tmpDatafile.getPath());
     } else {
       // rename before putting in metadata table, so files in metadata table should
       // always exist
-      rename(tablet.getTabletServer().getFileSystem(), tmpDatafile.getPath(),
-          newDatafile.getPath());
+      rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
     }
 
     TServerInstance lastLocation = null;

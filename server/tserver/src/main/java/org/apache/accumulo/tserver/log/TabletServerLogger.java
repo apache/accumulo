@@ -269,7 +269,7 @@ public class TabletServerLogger {
       @Override
       public void run() {
         final ServerResources conf = tserver.getServerConfig();
-        final VolumeManager fs = conf.getFileSystem();
+        final VolumeManager fs = conf.getVolumeManager();
         while (!nextLogMaker.isShutdown()) {
           log.debug("Creating next WAL");
           DfsLogger alog = null;

@@ -150,8 +150,8 @@ public class MinorCompactor extends Compactor {
 
         // clean up
         try {
-          if (getFileSystem().exists(new Path(outputFileName))) {
-            getFileSystem().deleteRecursively(new Path(outputFileName));
+          if (getVolumeManager().exists(new Path(outputFileName))) {
+            getVolumeManager().deleteRecursively(new Path(outputFileName));
           }
         } catch (IOException e) {
           log.warn("Failed to delete failed MinC file {} {}", outputFileName, e.getMessage());

@@ -135,8 +135,6 @@ import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -1708,14 +1706,6 @@ public class Master extends AbstractServer
   @Override
   public boolean isActiveService() {
     return masterInitialized.get();
-  }
-
-  public FSDataOutputStream getOutputStream(final String path) throws IOException {
-    return getVolumeManager().getDefaultVolume().getFileSystem().create(new Path(path));
-  }
-
-  public FSDataInputStream getInputStream(final String path) throws IOException {
-    return getVolumeManager().getDefaultVolume().getFileSystem().open(new Path(path));
   }
 
 }
