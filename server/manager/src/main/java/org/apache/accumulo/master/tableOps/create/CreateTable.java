@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.master.tableOps.create;
 
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
@@ -79,11 +80,13 @@ public class CreateTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) throws Exception {
+  public void undo(long tid, Master env) throws IOException {
     // Clean up split files if create table operation fails
-    Path p = tableInfo.getSplitPath().getParent();
-    FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
-    fs.delete(p, true);
+    if(tableInfo.getInitialSplitSize() > 0) {
+      Path p = tableInfo.getSplitPath().getParent();
+      FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
+      fs.delete(p, true);
+    }
     Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
   }
 
