@@ -143,7 +143,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   public interface ServerResources {
     AccumuloConfiguration getConfiguration();
 
-    VolumeManager getFileSystem();
+    VolumeManager getVolumeManager();
   }
 
   private final LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<>();
@@ -421,7 +421,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     String logger = Joiner.on("+").join(address.split(":"));
 
     log.debug("DfsLogger.open() begin");
-    VolumeManager fs = conf.getFileSystem();
+    VolumeManager fs = conf.getVolumeManager();
 
     var chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.LOGGER, context);
     logPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context)) + Path.SEPARATOR

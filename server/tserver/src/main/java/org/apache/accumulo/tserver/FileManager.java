@@ -50,7 +50,6 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -104,8 +103,6 @@ public class FileManager {
 
   private Semaphore filePermits;
 
-  private VolumeManager fs;
-
   private Cache<String,Long> fileLenCache;
 
   private long maxIdleTime;
@@ -152,8 +149,7 @@ public class FileManager {
 
   }
 
-  public FileManager(ServerContext context, VolumeManager fs, int maxOpen,
-      Cache<String,Long> fileLenCache) {
+  public FileManager(ServerContext context, int maxOpen, Cache<String,Long> fileLenCache) {
 
     if (maxOpen <= 0)
       throw new IllegalArgumentException("maxOpen <= 0");
@@ -162,7 +158,6 @@ public class FileManager {
 
     this.filePermits = new Semaphore(maxOpen, false);
     this.maxOpen = maxOpen;
-    this.fs = fs;
 
     this.openFiles = new HashMap<>();
     this.reservedReaders = new HashMap<>();
@@ -304,7 +299,7 @@ public class FileManager {
         if (!file.contains(":"))
           throw new IllegalArgumentException("Expected uri, got : " + file);
         Path path = new Path(file);
-        FileSystem ns = fs.getFileSystemByPath(path);
+        FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
         // log.debug("Opening "+file + " path " + path);
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())

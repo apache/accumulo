@@ -108,7 +108,9 @@ public enum Property {
           + " org.apache.accumulo.server.util.ChangeSecret"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
       "A comma separated list of dfs uris to use. Files will be stored across"
-          + " these filesystems. If this is empty, then instance.dfs.uri will be used."
+          + " these filesystems. In some situations, the first volume in this list"
+          + " may be treated differently, such as being preferred for writing out"
+          + " temporary files (for example, when creating a pre-split table)."
           + " After adding uris to this list, run 'accumulo init --add-volume' and then"
           + " restart tservers. If entries are removed from this list then tservers"
           + " will need to be restarted. After a uri is removed from the list Accumulo"

@@ -254,7 +254,7 @@ public class Tablet {
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(extent.tableId(), extent.endRow(), context);
     String dirUri =
-        tabletServer.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris(context))
+        tabletServer.getVolumeManager().choose(chooserEnv, ServerConstants.getBaseUris(context))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.tableId() + Path.SEPARATOR
             + dirName;
     checkTabletDir(new Path(dirUri));
@@ -271,7 +271,7 @@ public class Tablet {
     if (!checkedTabletDirs.contains(path)) {
       FileStatus[] files = null;
       try {
-        files = getTabletServer().getFileSystem().listStatus(path);
+        files = getTabletServer().getVolumeManager().listStatus(path);
       } catch (FileNotFoundException ex) {
         // ignored
       }
@@ -279,7 +279,7 @@ public class Tablet {
       if (files == null) {
         log.debug("Tablet {} had no dir, creating {}", extent, path);
 
-        getTabletServer().getFileSystem().mkdirs(path);
+        getTabletServer().getVolumeManager().mkdirs(path);
       }
       checkedTabletDirs.add(path);
     }
@@ -351,8 +351,8 @@ public class Tablet {
           absPaths.add(ref.getPathStr());
         }
 
-        tabletServer.recover(this.getTabletServer().getFileSystem(), extent, logEntries, absPaths,
-            m -> {
+        tabletServer.recover(this.getTabletServer().getVolumeManager(), extent, logEntries,
+            absPaths, m -> {
               Collection<ColumnUpdate> muts = m.getUpdates();
               for (ColumnUpdate columnUpdate : muts) {
                 if (!columnUpdate.hasTimestamp()) {
@@ -432,16 +432,14 @@ public class Tablet {
   private void removeOldTemporaryFiles() {
     // remove any temporary files created by a previous tablet server
     try {
-      Collection<Volume> volumes = getTabletServer().getFileSystem().getVolumes();
-      for (Volume volume : volumes) {
+      for (Volume volume : getTabletServer().getVolumeManager().getVolumes()) {
         String dirUri = volume.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + extent.tableId() + Path.SEPARATOR + dirName;
 
-        for (FileStatus tmp : getTabletServer().getFileSystem()
-            .globStatus(new Path(dirUri, "*_tmp"))) {
+        for (FileStatus tmp : volume.getFileSystem().globStatus(new Path(dirUri, "*_tmp"))) {
           try {
             log.debug("Removing old temp file {}", tmp.getPath());
-            getTabletServer().getFileSystem().delete(tmp.getPath());
+            volume.getFileSystem().delete(tmp.getPath(), false);
           } catch (IOException ex) {
             log.error("Unable to remove old temp file " + tmp.getPath() + ": " + ex);
           }

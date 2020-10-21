@@ -406,7 +406,7 @@ public class TabletServerResourceManager {
     fileLenCache =
         CacheBuilder.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
-    fileManager = new FileManager(context, context.getVolumeManager(), maxOpenFiles, fileLenCache);
+    fileManager = new FileManager(context, maxOpenFiles, fileLenCache);
 
     memoryManager = new LargestFirstMemoryManager();
     memoryManager.init(context);
