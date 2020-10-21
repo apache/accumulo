@@ -214,11 +214,10 @@ abstract class TabletGroupWatcher extends Daemon {
           TableId tableId = tls.extent.tableId();
           TableConfiguration tableConf = this.master.getContext().getTableConfiguration(tableId);
 
-          MergeStats mergeStats = mergeStatsCache.computeIfAbsent(tableId,
-              k -> {
-                var mergeStats = currentMerges.get(k);
-                return mergeStats != null ? mergeStats : new MergeStats(new MergeInfo());
-              });
+          MergeStats mergeStats = mergeStatsCache.computeIfAbsent(tableId, k -> {
+            var mStats = currentMerges.get(k);
+            return mStats != null ? mStats : new MergeStats(new MergeInfo());
+          });
           TabletGoalState goal = this.master.getGoalState(tls, mergeStats.getMergeInfo());
           TServerInstance server = tls.getServer();
           TabletState state = tls.getState(currentTServers.keySet());
