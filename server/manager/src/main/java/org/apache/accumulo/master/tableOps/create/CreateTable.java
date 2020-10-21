@@ -30,6 +30,7 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.TableInfo;
 import org.apache.accumulo.master.tableOps.Utils;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class CreateTable extends MasterRepo {
@@ -78,7 +79,11 @@ public class CreateTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) {
+  public void undo(long tid, Master env) throws Exception {
+    // Clean up split files if create table operation fails
+    Path p = tableInfo.getSplitPath().getParent();
+    FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
+    fs.delete(p, true);
     Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
   }
 
