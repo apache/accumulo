@@ -219,6 +219,8 @@ abstract class TabletGroupWatcher extends Daemon {
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
           TabletGoalState goal = master.getGoalState(tls, mergeStats.getMergeInfo());
+          // TODO replace TabletGoalState with Goal interface so this will look like
+          // Goal goal = master.getGoalState(tls, mergeStats.getMergeInfo());
           TServerInstance server = tls.getServer();
           TabletState state = tls.getState(currentTServers.keySet());
 
@@ -244,6 +246,7 @@ abstract class TabletGroupWatcher extends Daemon {
             }
           }
 
+          // TODO replace this with goal.workTowardsGoal()
           if (goal == TabletGoalState.HOSTED) {
             if (state != TabletState.HOSTED && !tls.walogs.isEmpty()) {
               if (master.recoveryManager.recoverLogs(tls.extent, tls.walogs))
