@@ -151,6 +151,7 @@ struct TSamplerConfiguration {
   2:map<string, string> options
 }
 
+// deprecated as of 2.1
 enum TUnloadTabletGoal {
   UNKNOWN
   UNASSIGNED
@@ -339,6 +340,7 @@ service TabletClientService extends client.ClientService {
     2:data.TKeyExtent extent
   )
 
+  // deprecated in 2.1 to drop the TUnloadTabletGoal enum from unloadTablet, use unload
   oneway void unloadTablet(
     5:trace.TInfo tinfo
     1:security.TCredentials credentials
@@ -347,6 +349,16 @@ service TabletClientService extends client.ClientService {
     6:TUnloadTabletGoal goal
     7:i64 requestTime
   )
+
+  // since 2.1
+  oneway void unload(
+      5:trace.TInfo tinfo
+      1:security.TCredentials credentials
+      4:string lock
+      2:data.TKeyExtent extent
+      6:string goal
+      7:i64 requestTime
+    )
 
   oneway void flush(
     4:trace.TInfo tinfo
