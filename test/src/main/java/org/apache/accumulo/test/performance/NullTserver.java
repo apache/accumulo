@@ -80,6 +80,7 @@ import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
 
@@ -196,6 +197,12 @@ public class NullTserver {
     @Override
     public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent,
         TUnloadTabletGoal goal, long requestTime) {}
+
+    @Override
+    public void unload(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent,
+        String goal, long requestTime) throws TException {
+
+    }
 
     @Override
     public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials) {

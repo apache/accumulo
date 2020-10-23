@@ -1454,9 +1454,16 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     }
   }
 
+  @Deprecated
   @Override
   public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent,
       TUnloadTabletGoal goal, long requestTime) {
+
+  }
+
+  @Override
+  public void unload(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent,
+      String goal, long requestTime) throws TException {
     try {
       checkPermission(credentials, lock, "unloadTablet");
     } catch (ThriftSecurityException e) {

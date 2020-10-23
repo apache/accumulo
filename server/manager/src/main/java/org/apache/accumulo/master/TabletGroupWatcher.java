@@ -329,7 +329,7 @@ abstract class TabletGroupWatcher extends Daemon {
               case HOSTED:
                 TServerConnection client = master.tserverSet.getConnection(server);
                 if (client != null) {
-                  client.unloadTablet(master.masterLock, tls.extent, goal.howUnload(),
+                  client.unloadTablet(master.masterLock, tls.extent, goal.toString(),
                       master.getSteadyTime());
                   unloaded++;
                   totalUnloaded++;

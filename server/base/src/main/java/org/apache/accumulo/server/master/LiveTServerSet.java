@@ -35,7 +35,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -107,12 +106,12 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void unloadTablet(ZooLock lock, KeyExtent extent, TUnloadTabletGoal goal,
-        long requestTime) throws TException {
+    public void unloadTablet(ZooLock lock, KeyExtent extent, String goal, long requestTime)
+        throws TException {
       TabletClientService.Client client =
           ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
-        client.unloadTablet(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
+        client.unload(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
             extent.toThrift(), goal, requestTime);
       } finally {
         ThriftUtil.returnClient(client);

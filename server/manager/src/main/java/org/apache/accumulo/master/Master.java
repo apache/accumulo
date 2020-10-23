@@ -75,7 +75,6 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.AgeOffStore;
@@ -526,21 +525,7 @@ public class Master extends AbstractServer
   }
 
   enum TabletGoalState {
-    HOSTED(TUnloadTabletGoal.UNKNOWN),
-    UNASSIGNED(TUnloadTabletGoal.UNASSIGNED),
-    DELETED(TUnloadTabletGoal.DELETED),
-    SUSPENDED(TUnloadTabletGoal.SUSPENDED);
-
-    private final TUnloadTabletGoal unloadGoal;
-
-    TabletGoalState(TUnloadTabletGoal unloadGoal) {
-      this.unloadGoal = unloadGoal;
-    }
-
-    /** The purpose of unloading this tablet. */
-    public TUnloadTabletGoal howUnload() {
-      return unloadGoal;
-    }
+    HOSTED, UNASSIGNED, DELETED, SUSPENDED
   }
 
   TabletGoalState getSystemGoalState(TabletLocationState tls) {

@@ -24,7 +24,6 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
-import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
@@ -39,11 +38,11 @@ import org.slf4j.LoggerFactory;
 class UnloadTabletHandler implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(UnloadTabletHandler.class);
   private final KeyExtent extent;
-  private final TUnloadTabletGoal goalState;
+  private final String goalState;
   private final long requestTimeSkew;
   private final TabletServer server;
 
-  public UnloadTabletHandler(TabletServer server, KeyExtent extent, TUnloadTabletGoal goalState,
+  public UnloadTabletHandler(TabletServer server, KeyExtent extent, String goalState,
       long requestTime) {
     this.extent = extent;
     this.goalState = goalState;
@@ -88,7 +87,7 @@ class UnloadTabletHandler implements Runnable {
     }
 
     try {
-      t.close(!goalState.equals(TUnloadTabletGoal.DELETED));
+      t.close(!goalState.equals("DELETED"));
     } catch (Throwable e) {
 
       if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
@@ -115,9 +114,8 @@ class UnloadTabletHandler implements Runnable {
       } catch (BadLocationStateException e) {
         log.error("Unexpected error", e);
       }
-      if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()
-          || (extent.isMeta()
-              && !server.getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE))) {
+      if (!goalState.equals("SUSPENDED") || extent.isRootTablet() || (extent.isMeta()
+          && !server.getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE))) {
         TabletStateStore.unassign(server.getContext(), tls, null);
       } else {
         TabletStateStore.suspend(server.getContext(), tls, null,
