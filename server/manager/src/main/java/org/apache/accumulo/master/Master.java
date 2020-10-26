@@ -543,24 +543,23 @@ public class Master extends AbstractServer
     }
   }
 
-  TabletGoalState getSystemGoalState(TabletLocationState tls) {
+  TabletGoalState getSystemGoalState(KeyExtent extent) {
     switch (getMasterState()) {
       case NORMAL:
         return TabletGoalState.HOSTED;
       case HAVE_LOCK: // fall-through intended
       case INITIAL: // fall-through intended
       case SAFE_MODE:
-        if (tls.extent.isMeta()) {
+        if (extent.isMeta()) {
           return TabletGoalState.HOSTED;
         }
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_METADATA_TABLETS:
-        if (tls.extent.isRootTablet()) {
+        if (extent.isRootTablet()) {
           return TabletGoalState.HOSTED;
         }
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_ROOT_TABLET:
-        return TabletGoalState.UNASSIGNED;
       case STOP:
         return TabletGoalState.UNASSIGNED;
       default:
@@ -587,8 +586,9 @@ public class Master extends AbstractServer
   TabletGoalState getGoalState(TabletLocationState tls, MergeInfo mergeInfo) {
     KeyExtent extent = tls.extent;
     // Shutting down?
-    TabletGoalState state = getSystemGoalState(tls);
+    TabletGoalState state = getSystemGoalState(extent);
     if (state == TabletGoalState.HOSTED) {
+      // TODO shouldn't this be in the upgrade code? this seems very inefficient
       if (!upgradeCoordinator.getStatus().isParentLevelUpgraded(extent)) {
         // The place where this tablet stores its metadata was not upgraded, so do not assign this
         // tablet yet.

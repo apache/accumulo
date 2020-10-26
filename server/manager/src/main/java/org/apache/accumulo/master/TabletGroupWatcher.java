@@ -218,9 +218,9 @@ abstract class TabletGroupWatcher extends Daemon {
             var mStats = currentMerges.get(k);
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
-          TabletGoalState goal = master.getGoalState(tls, mergeStats.getMergeInfo());
           // TODO replace TabletGoalState with Goal interface so this will look like
           // Goal goal = master.getGoalState(tls, mergeStats.getMergeInfo());
+          Goal goal = new AssignedTabletHostedGoal(master, tls); // temp
           TServerInstance server = tls.getServer();
           TabletState state = tls.getState(currentTServers.keySet());
 
@@ -232,118 +232,25 @@ abstract class TabletGroupWatcher extends Daemon {
           sendChopRequest(mergeStats.getMergeInfo(), state, tls);
           sendSplitRequest(mergeStats.getMergeInfo(), state, tls);
 
-          // Always follow through with assignments
-          if (state == TabletState.ASSIGNED) {
-            goal = TabletGoalState.HOSTED;
-          }
+          // Always follow through with assignments will give AssignedTabletHostedGoal
 
           // if we are shutting down all the tabletservers, we have to do it in order
-          if (goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED) {
+          // TODO figure out what this is optimization is doing
+          if (goal instanceof HostedTabletNotHostedGoal) {
             if (master.serversToShutdown.equals(currentTServers.keySet())) {
               if (dependentWatcher != null && dependentWatcher.assignedOrHosted() > 0) {
-                goal = TabletGoalState.HOSTED;
+                goal = new HostedTabletHostedGoal(master, tls);
               }
             }
           }
 
-          // TODO replace this with goal.workTowardsGoal()
-          if (goal == TabletGoalState.HOSTED) {
-            if (state != TabletState.HOSTED && !tls.walogs.isEmpty()) {
+          if (goal instanceof AbstractHostedGoal) {
+            if (goal.getCurrentState() != TabletState.HOSTED && !tls.walogs.isEmpty()) {
               if (master.recoveryManager.recoverLogs(tls.extent, tls.walogs))
                 continue;
             }
-            switch (state) {
-              case HOSTED:
-                if (server.equals(master.migrations.get(tls.extent)))
-                  master.migrations.remove(tls.extent);
-                break;
-              case ASSIGNED_TO_DEAD_SERVER:
-                assignedToDeadServers.add(tls);
-                if (server.equals(master.migrations.get(tls.extent)))
-                  master.migrations.remove(tls.extent);
-                TServerInstance tserver = tls.futureOrCurrent();
-                if (!logsForDeadServers.containsKey(tserver)) {
-                  logsForDeadServers.put(tserver, wals.getWalsInUse(tserver));
-                }
-                break;
-              case SUSPENDED:
-                if (master.getSteadyTime() - tls.suspend.suspensionTime
-                    < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
-                  // Tablet is suspended. See if its tablet server is back.
-                  TServerInstance returnInstance = null;
-                  Iterator<TServerInstance> find = destinations
-                      .tailMap(new TServerInstance(tls.suspend.server, " ")).keySet().iterator();
-                  if (find.hasNext()) {
-                    TServerInstance found = find.next();
-                    if (found.getLocation().equals(tls.suspend.server)) {
-                      returnInstance = found;
-                    }
-                  }
-
-                  // Old tablet server is back. Return this tablet to its previous owner.
-                  if (returnInstance != null) {
-                    assignments.add(new Assignment(tls.extent, returnInstance));
-                  }
-                  // else - tablet server not back. Don't ask for a new assignment right now.
-
-                } else {
-                  // Treat as unassigned, ask for a new assignment.
-                  unassigned.put(tls.extent, server);
-                }
-                break;
-              case UNASSIGNED:
-                // maybe it's a finishing migration
-                TServerInstance dest = master.migrations.get(tls.extent);
-                if (dest != null) {
-                  // if destination is still good, assign it
-                  if (destinations.containsKey(dest)) {
-                    assignments.add(new Assignment(tls.extent, dest));
-                  } else {
-                    // get rid of this migration
-                    master.migrations.remove(tls.extent);
-                    unassigned.put(tls.extent, server);
-                  }
-                } else {
-                  unassigned.put(tls.extent, server);
-                }
-                break;
-              case ASSIGNED:
-                // Send another reminder
-                assigned.add(new Assignment(tls.extent, tls.future));
-                break;
-            }
-          } else {
-            switch (state) {
-              case SUSPENDED:
-                // Request a move to UNASSIGNED, so as to allow balancing to continue.
-                suspendedToGoneServers.add(tls);
-                cancelOfflineTableMigrations(tls);
-                break;
-              case UNASSIGNED:
-                cancelOfflineTableMigrations(tls);
-                break;
-              case ASSIGNED_TO_DEAD_SERVER:
-                assignedToDeadServers.add(tls);
-                if (!logsForDeadServers.containsKey(tls.futureOrCurrent())) {
-                  logsForDeadServers.put(tls.futureOrCurrent(),
-                      wals.getWalsInUse(tls.futureOrCurrent()));
-                }
-                break;
-              case HOSTED:
-                TServerConnection client = master.tserverSet.getConnection(server);
-                if (client != null) {
-                  client.unloadTablet(master.masterLock, tls.extent, goal.howUnload(),
-                      master.getSteadyTime());
-                  unloaded++;
-                  totalUnloaded++;
-                } else {
-                  Master.log.warn("Could not connect to server {}", server);
-                }
-                break;
-              case ASSIGNED:
-                break;
-            }
           }
+          goal.workTowardsGoal();
           counts[state.ordinal()]++;
         }
 
