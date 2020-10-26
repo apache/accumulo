@@ -70,7 +70,7 @@ public class AmpleImpl implements Ample {
 
   @Override
   public TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {
-    Options builder = TabletsMetadata.builder().forTablet(extent);
+    TabletsMetadata.Options builder = TabletsMetadata.builder().forTablet(extent);
     if (colsToFetch.length > 0)
       builder.fetch(colsToFetch);
 
@@ -90,7 +90,6 @@ public class AmpleImpl implements Ample {
     private List<Text> families = new ArrayList<>();
     private List<ColumnFQ> qualifiers = new ArrayList<>();
     private Ample.DataLevel level;
-    private String table;
     private Range range;
     private EnumSet<ColumnType> fetchedCols = EnumSet.noneOf(ColumnType.class);
     private Text endRow;
@@ -103,9 +102,56 @@ public class AmpleImpl implements Ample {
       this.client = client;
     }
 
-    public Builder forTable(TableId tableID) {
+    public Builder build() {
+      if (level == DataLevel.ROOT) {
+        ClientContext ctx = ((ClientContext) this.client);
+        ZooCache zc = ctx.getZooCache();
+        String zkRoot = ctx.getZooKeeperRoot();
+        return new Builder(getRootMetadata(zkRoot, zc));
+      } else {
+        return buildNonRoot(this.client);
+      }
+    }
+
+    private Builder buildNonRoot(AccumuloClient client) {
+      try {
+        Scanner scanner =
+            new IsolatedScanner(client.createScanner(level.metaTable(), Authorizations.EMPTY));
+        scanner.setRange(range);
+
+        if (checkConsistency && !fetchedCols.contains(ColumnType.PREV_ROW)) {
+          fetch(ColumnType.PREV_ROW);
+        }
+
+        for (Text fam : families) {
+          scanner.fetchColumnFamily(fam);
+        }
+
+        for (ColumnFQ col : qualifiers) {
+          col.fetch(scanner);
+        }
+
+        if (families.isEmpty() && qualifiers.isEmpty()) {
+          fetchedCols = EnumSet.allOf(ColumnType.class);
+        }
+
+        Iterable<TabletMetadata> tmi =
+            TabletMetadata.convert(scanner, fetchedCols, checkConsistency, saveKeyValues);
+
+        if (endRow != null) {
+          // create an iterable that will stop at the tablet which contains the endRow
+          return new Builder(scanner, () -> new TabletMetadataIterator(tmi.iterator(), endRow));
+        } else {
+          return new Builder(scanner, tmi);
+        }
+      } catch (TableNotFoundException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    public Builder forTable(TableId tableId) {
       this.level = DataLevel.of(tableId);
-      this.tableId = tableID;
+      this.tableId = tableId;
       this.range = TabletsSection.getRange(tableId);
       return this;
     }
@@ -166,57 +212,6 @@ public class AmpleImpl implements Ample {
         }
       }
       return this;
-    }
-
-    public Builder build() {
-      Preconditions.checkState(level == null ^ table == null);
-      if (level == DataLevel.ROOT) {
-        ClientContext ctx = ((ClientContext) this.client);
-        ZooCache zc = ctx.getZooCache();
-        String zkRoot = ctx.getZooKeeperRoot();
-        return new Builder(getRootMetadata(zkRoot, zc));
-      } else {
-        return buildNonRoot(this.client);
-      }
-    }
-
-    private Builder buildNonRoot(AccumuloClient client) {
-      try {
-
-        String resolvedTable = table == null ? level.metaTable() : table;
-
-        Scanner scanner =
-            new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY));
-        scanner.setRange(range);
-
-        if (checkConsistency && !fetchedCols.contains(ColumnType.PREV_ROW)) {
-          fetch(ColumnType.PREV_ROW);
-        }
-
-        for (Text fam : families) {
-          scanner.fetchColumnFamily(fam);
-        }
-
-        for (ColumnFQ col : qualifiers) {
-          col.fetch(scanner);
-        }
-
-        if (families.isEmpty() && qualifiers.isEmpty()) {
-          fetchedCols = EnumSet.allOf(ColumnType.class);
-        }
-
-        Iterable<TabletMetadata> tmi =
-            TabletMetadata.convert(scanner, fetchedCols, checkConsistency, saveKeyValues);
-
-        if (endRow != null) {
-          // create an iterable that will stop at the tablet which contains the endRow
-          return new Builder(scanner, () -> new TabletMetadataIterator(tmi.iterator(), endRow));
-        } else {
-          return new Builder(scanner, tmi);
-        }
-      } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
-      }
     }
 
     public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {
