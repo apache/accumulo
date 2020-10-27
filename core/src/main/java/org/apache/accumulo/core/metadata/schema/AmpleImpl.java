@@ -19,13 +19,18 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.Options;
+import org.apache.hadoop.io.Text;
 
 import com.google.common.collect.Iterables;
 
 public class AmpleImpl implements Ample {
+  public static final Text EMPTY_TEXT = new Text();
   private final AccumuloClient client;
 
   public AmpleImpl(AccumuloClient client) {
@@ -41,5 +46,21 @@ public class AmpleImpl implements Ample {
     try (TabletsMetadata tablets = builder.build(client)) {
       return Iterables.getOnlyElement(tablets);
     }
+  }
+
+  @Override
+  public Mutation createDeleteMutation(String tabletFilePathToRemove) {
+    String path = TabletFileUtil.validate(tabletFilePathToRemove);
+    return createDelMutation(path);
+  }
+
+  public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
+    return createDelMutation(pathToRemove.getMetaUpdateDelete());
+  }
+
+  private Mutation createDelMutation(String path) {
+    Mutation delFlag = new Mutation(new Text(MetadataSchema.DeletesSection.encodeRow(path)));
+    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, MetadataSchema.DeletesSection.SkewedKeyValue.NAME);
+    return delFlag;
   }
 }

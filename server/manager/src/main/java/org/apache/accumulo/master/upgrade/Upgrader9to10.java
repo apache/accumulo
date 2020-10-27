@@ -78,7 +78,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
-import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -424,6 +423,7 @@ public class Upgrader9to10 implements Upgrader {
 
     String tableName = level.metaTable();
     AccumuloClient c = ctx;
+    Ample ample = ctx.getAmple();
 
     // find all deletes
     try (BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig())) {
@@ -441,7 +441,7 @@ public class Upgrader9to10 implements Upgrader {
           Path absolutePath = resolveRelativeDelete(olddelete, upgradeProp);
           String updatedDel = switchToAllVolumes(absolutePath);
 
-          writer.addMutation(ServerAmpleImpl.createDeleteMutation(updatedDel));
+          writer.addMutation(ample.createDeleteMutation(updatedDel));
         }
         writer.flush();
         // if nothing thrown then we're good so mark all deleted

@@ -20,7 +20,6 @@ package org.apache.accumulo.server.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET_GC_CANDIDATES;
-import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -41,7 +40,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
@@ -49,7 +47,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.Sk
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -193,20 +190,5 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     } catch (TableNotFoundException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  public static Mutation createDeleteMutation(String pathToRemove) {
-    String path = TabletFileUtil.validate(pathToRemove);
-    return createDelMutation(path);
-  }
-
-  public static Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
-    return createDelMutation(pathToRemove.getMetaUpdateDelete());
-  }
-
-  private static Mutation createDelMutation(String path) {
-    Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path)));
-    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, SkewedKeyValue.NAME);
-    return delFlag;
   }
 }
