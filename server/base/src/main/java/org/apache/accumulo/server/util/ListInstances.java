@@ -197,7 +197,7 @@ public class ListInstances {
     for (String name : names) {
       String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
       try {
-        UUID iid = UUID.fromString(new String(zk.getData(instanceNamePath, null), UTF_8));
+        UUID iid = UUID.fromString(new String(zk.getData(instanceNamePath), UTF_8));
         tm.put(name, iid);
       } catch (Exception e) {
         handleException(e, printErrors);

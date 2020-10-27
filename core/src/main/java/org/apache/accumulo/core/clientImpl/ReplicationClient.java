@@ -94,7 +94,7 @@ public class ReplicationClient {
     try {
       ZooReader reader =
           new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
-      replCoordinatorAddr = new String(reader.getData(zkPath, null), UTF_8);
+      replCoordinatorAddr = new String(reader.getData(zkPath), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch remote coordinator port", e);
       return null;

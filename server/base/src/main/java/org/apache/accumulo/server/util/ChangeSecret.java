@@ -135,7 +135,7 @@ public class ChangeSecret {
     String root = context.getZooKeeperRoot();
     recurse(orig, root, (zoo, path) -> {
       String newPath = path.replace(context.getInstanceID(), newInstanceId);
-      byte[] data = zoo.getData(path, null);
+      byte[] data = zoo.getData(path);
       List<ACL> acls = orig.getZooKeeper().getACL(path, new Stat());
       if (acls.containsAll(Ids.READ_ACL_UNSAFE)) {
         new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);

@@ -283,7 +283,7 @@ public class AdminUtil<T> {
 
         for (String node : lockNodes) {
           try {
-            byte[] data = zk.getData(lockPath + "/" + id + "/" + node, null);
+            byte[] data = zk.getData(lockPath + "/" + id + "/" + node);
             String[] lda = new String(data, UTF_8).split(":");
 
             if (lda[0].charAt(0) == 'W')
@@ -501,7 +501,7 @@ public class AdminUtil<T> {
       List<String> lockNodes = zk.getChildren(path + "/" + id);
       for (String node : lockNodes) {
         String lockPath = path + "/" + id + "/" + node;
-        byte[] data = zk.getData(path + "/" + id + "/" + node, null);
+        byte[] data = zk.getData(path + "/" + id + "/" + node);
         String[] lda = new String(data, UTF_8).split(":");
         if (lda[1].equals(txidStr))
           zk.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);

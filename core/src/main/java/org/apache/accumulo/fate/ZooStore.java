@@ -173,8 +173,7 @@ public class ZooStore<T> implements TStore<T> {
           // have reserved id, status should not change
 
           try {
-            TStatus status =
-                TStatus.valueOf(new String(zk.getData(path + "/" + txdir, null), UTF_8));
+            TStatus status = TStatus.valueOf(new String(zk.getData(path + "/" + txdir), UTF_8));
             if (status == TStatus.IN_PROGRESS || status == TStatus.FAILED_IN_PROGRESS) {
               return tid;
             } else {
@@ -288,7 +287,7 @@ public class ZooStore<T> implements TStore<T> {
           throw new RuntimeException(ex);
         }
 
-        byte[] ser = zk.getData(txpath + "/" + top, null);
+        byte[] ser = zk.getData(txpath + "/" + top);
         return (Repo<T>) deserialize(ser);
       } catch (KeeperException.NoNodeException ex) {
         log.debug("zookeeper error reading " + txpath + ": " + ex, ex);
@@ -354,7 +353,7 @@ public class ZooStore<T> implements TStore<T> {
 
   private TStatus _getStatus(long tid) {
     try {
-      return TStatus.valueOf(new String(zk.getData(getTXPath(tid), null), UTF_8));
+      return TStatus.valueOf(new String(zk.getData(getTXPath(tid)), UTF_8));
     } catch (NoNodeException nne) {
       return TStatus.UNKNOWN;
     } catch (Exception e) {
@@ -447,7 +446,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
 
     try {
-      byte[] data = zk.getData(getTXPath(tid) + "/prop_" + prop, null);
+      byte[] data = zk.getData(getTXPath(tid) + "/prop_" + prop);
 
       if (data[0] == 'O') {
         byte[] sera = new byte[data.length - 2];
@@ -502,7 +501,7 @@ public class ZooStore<T> implements TStore<T> {
         if (child.startsWith("repo_")) {
           byte[] ser;
           try {
-            ser = zk.getData(txpath + "/" + child, null);
+            ser = zk.getData(txpath + "/" + child);
             @SuppressWarnings("unchecked")
             ReadOnlyRepo<T> repo = (ReadOnlyRepo<T>) deserialize(ser);
             dops.add(repo);

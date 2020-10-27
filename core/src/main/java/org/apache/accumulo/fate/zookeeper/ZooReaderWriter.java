@@ -20,31 +20,25 @@ package org.apache.accumulo.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.fate.util.Retry;
-import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
-import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ZooReaderWriter extends ZooReader {
   public interface Mutator {
-    byte[] mutate(byte[] currentValue) throws Exception;
+    byte[] mutate(byte[] currentValue) throws AcceptableThriftTableOperationException;
   }
-
-  private static final Logger log = LoggerFactory.getLogger(ZooReaderWriter.class);
 
   public ZooReaderWriter(AccumuloConfiguration conf) {
     this(conf.get(Property.INSTANCE_ZK_HOST),
@@ -65,21 +59,116 @@ public class ZooReaderWriter extends ZooReader {
   }
 
   public List<ACL> getACL(String zPath, Stat stat) throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
+    return retryLoop(zk -> zk.getACL(zPath, stat));
+  }
+
+  /**
+   * Create a persistent node with the default ACL
+   */
+  public void putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy)
+      throws KeeperException, InterruptedException {
+    putPersistentData(zPath, data, policy, ZooUtil.PUBLIC);
+  }
+
+  public void putPrivatePersistentData(String zPath, byte[] data, NodeExistsPolicy policy)
+      throws KeeperException, InterruptedException {
+    putPersistentData(zPath, data, policy, ZooUtil.PRIVATE);
+  }
+
+  public void putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy, List<ACL> acls)
+      throws KeeperException, InterruptedException {
+    putData(zPath, data, CreateMode.PERSISTENT, policy, acls);
+  }
+
+  public String putPersistentSequential(String zPath, byte[] data)
+      throws KeeperException, InterruptedException {
+    return retryLoop(
+        zk -> zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.PERSISTENT_SEQUENTIAL));
+  }
+
+  public String putEphemeralData(String zPath, byte[] data)
+      throws KeeperException, InterruptedException {
+    return retryLoop(zk -> zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL));
+  }
+
+  public String putEphemeralSequential(String zPath, byte[] data)
+      throws KeeperException, InterruptedException {
+    return retryLoop(zk -> zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL));
+  }
+
+  public void recursiveCopyPersistentOverwrite(String source, String destination)
+      throws KeeperException, InterruptedException {
+    var stat = new Stat();
+    byte[] data = getData(source, stat);
+    // only copy persistent data
+    if (stat.getEphemeralOwner() != 0) {
+      return;
+    }
+    putData(destination, data, CreateMode.PERSISTENT, NodeExistsPolicy.OVERWRITE, ZooUtil.PUBLIC);
+    if (stat.getNumChildren() > 0) {
+      for (String child : getChildren(source)) {
+        recursiveCopyPersistentOverwrite(source + "/" + child, destination + "/" + child);
+      }
+    }
+  }
+
+  public byte[] mutate(String zPath, byte[] createValue, List<ACL> acl, Mutator mutator)
+      throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
+    if (createValue != null) {
       try {
-        return getZooKeeper().getACL(zPath, stat);
+        retryLoop(zk -> zk.create(zPath, createValue, acl, CreateMode.PERSISTENT));
+        // create node was successful; return current (new) value
+        return createValue;
       } catch (KeeperException e) {
-        final Code c = e.code();
-        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
+        // if value already exists, use mutator instead
+        if (e.code() != Code.NODEEXISTS) {
           throw e;
         }
       }
-
-      retry.waitForNextAttempt();
     }
+    return retryLoopMutator(zk -> {
+      var stat = new Stat();
+      byte[] data = zk.getData(zPath, null, stat);
+      // this mutator can throw AcceptableThriftTableOperationException
+      data = mutator.mutate(data);
+      if (data != null) {
+        zk.setData(zPath, data, stat.getVersion());
+      }
+      return data;
+    }, e -> e.code() == Code.BADVERSION); // always retry if bad version
+  }
+
+  public void mkdirs(String path) throws KeeperException, InterruptedException {
+    if (path.equals("")) {
+      // terminal condition for recursion
+      return;
+    }
+    if (!path.startsWith("/")) {
+      throw new IllegalArgumentException(path + "does not start with /");
+    }
+    if (exists(path)) {
+      return;
+    }
+    String parent = path.substring(0, path.lastIndexOf("/"));
+    mkdirs(parent);
+    putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
+  }
+
+  /**
+   * Delete the specified node, and ignore NONODE exceptions.
+   */
+  public void delete(String path) throws KeeperException, InterruptedException {
+    retryLoop(zk -> {
+      try {
+        zk.delete(path, -1);
+      } catch (KeeperException e) {
+        // ignore the case where the node doesn't exist
+        if (e.code() != Code.NONODE) {
+          throw e;
+        }
+      }
+      return null;
+    });
   }
 
   /**
@@ -90,406 +179,56 @@ public class ZooReaderWriter extends ZooReader {
    */
   public void recursiveDelete(String zPath, NodeMissingPolicy policy)
       throws KeeperException, InterruptedException {
-    if (policy.equals(NodeMissingPolicy.CREATE))
+    if (policy == NodeMissingPolicy.CREATE) {
       throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
+    }
     try {
-      List<String> children;
-      final Retry retry = getRetryFactory().createRetry();
-      while (true) {
-        try {
-          children = getZooKeeper().getChildren(zPath, false);
-          break;
-        } catch (KeeperException e) {
-          final Code c = e.code();
-          if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
-            retryOrThrow(retry, e);
-          } else {
-            throw e;
-          }
-        }
-        retry.waitForNextAttempt();
-      }
-      for (String child : children)
+      // delete children
+      for (String child : getChildren(zPath)) {
         recursiveDelete(zPath + "/" + child, NodeMissingPolicy.SKIP);
-
-      Stat stat;
-      while (true) {
-        try {
-          stat = getZooKeeper().exists(zPath, null);
-          // Node exists
-          if (stat != null) {
-            try {
-              // Try to delete it. We don't care if there was an update to the node
-              // since we got the Stat, just delete all versions (-1).
-              getZooKeeper().delete(zPath, -1);
-              return;
-            } catch (NoNodeException e) {
-              // If the node is gone now, it's ok if we have SKIP
-              if (policy.equals(NodeMissingPolicy.SKIP)) {
-                return;
-              }
-              throw e;
-            }
-            // Let other KeeperException bubble to the outer catch
-          } else {
-            // If the stat is null, the node is now gone which is fine.
-            return;
-          }
-        } catch (KeeperException e) {
-          final Code c = e.code();
-          if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
-            retryOrThrow(retry, e);
-          } else {
-            throw e;
-          }
-        }
-
-        retry.waitForNextAttempt();
       }
+
+      // delete self
+      retryLoop(zk -> {
+        zk.delete(zPath, -1);
+        return null;
+      });
     } catch (KeeperException e) {
-      if (policy.equals(NodeMissingPolicy.SKIP) && e.code().equals(KeeperException.Code.NONODE))
+      // new child appeared; try again
+      if (e.code() == Code.NOTEMPTY) {
+        recursiveDelete(zPath, policy);
+      }
+      if (policy == NodeMissingPolicy.SKIP && e.code() == Code.NONODE) {
         return;
+      }
       throw e;
     }
   }
 
-  /**
-   * Create a persistent node with the default ACL
-   *
-   * @return true if the node was created or altered; false if it was skipped
-   */
-  public boolean putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy)
-      throws KeeperException, InterruptedException {
-    return putPersistentData(zPath, data, policy, ZooUtil.PUBLIC);
-  }
-
-  public boolean putPrivatePersistentData(String zPath, byte[] data, NodeExistsPolicy policy)
-      throws KeeperException, InterruptedException {
-    return putPersistentData(zPath, data, policy, ZooUtil.PRIVATE);
-  }
-
-  public boolean putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy,
+  private void putData(String zPath, byte[] data, CreateMode mode, NodeExistsPolicy policy,
       List<ACL> acls) throws KeeperException, InterruptedException {
-    return putData(getZooKeeper(), getRetryFactory(), zPath, data, CreateMode.PERSISTENT, policy,
-        acls);
-  }
-
-  public String putPersistentSequential(String zPath, byte[] data)
-      throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        return getZooKeeper().create(zPath, data, ZooUtil.PUBLIC, CreateMode.PERSISTENT_SEQUENTIAL);
-      } catch (KeeperException e) {
-        final Code c = e.code();
-        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
-  }
-
-  public String putEphemeralData(String zPath, byte[] data)
-      throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        return getZooKeeper().create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL);
-      } catch (KeeperException e) {
-        final Code c = e.code();
-        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
-  }
-
-  public String putEphemeralSequential(String zPath, byte[] data)
-      throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        return getZooKeeper().create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
-      } catch (KeeperException e) {
-        final Code c = e.code();
-        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
-  }
-
-  public void recursiveCopyPersistent(String source, String destination, NodeExistsPolicy policy)
-      throws KeeperException, InterruptedException {
-    Stat stat = null;
-    if (getStatus(getZooKeeper(), getRetryFactory(), source) == null)
-      throw KeeperException.create(Code.NONODE, source);
-    if (getStatus(getZooKeeper(), getRetryFactory(), destination) != null) {
-      switch (policy) {
-        case OVERWRITE:
-          break;
-        case SKIP:
-          return;
-        case FAIL:
-        default:
-          throw KeeperException.create(Code.NODEEXISTS, source);
-      }
-    }
-
-    stat = new Stat();
-    byte[] data = getData(getZooKeeper(), getRetryFactory(), source, stat);
-
-    if (stat.getEphemeralOwner() == 0) {
-      if (data == null)
-        throw KeeperException.create(Code.NONODE, source);
-      putData(getZooKeeper(), getRetryFactory(), destination, data, CreateMode.PERSISTENT, policy,
-          ZooUtil.PUBLIC);
-      if (stat.getNumChildren() > 0) {
-        List<String> children;
-        final Retry retry = getRetryFactory().createRetry();
-        while (true) {
-          try {
-            children = getZooKeeper().getChildren(source, false);
-            break;
-          } catch (KeeperException e) {
-            final Code c = e.code();
-            if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT
-                || c == Code.SESSIONEXPIRED) {
-              retryOrThrow(retry, e);
-            } else {
-              throw e;
-            }
-          }
-          retry.waitForNextAttempt();
-        }
-        for (String child : children) {
-          recursiveCopyPersistent(source + "/" + child, destination + "/" + child, policy);
-        }
-      }
-    }
-  }
-
-  private static Stat getStatus(ZooKeeper zk, RetryFactory retryFactory, String zPath)
-      throws KeeperException, InterruptedException {
-    final Retry retry = retryFactory.createRetry();
-    while (true) {
-      try {
-        return zk.exists(zPath, false);
-      } catch (KeeperException e) {
-        final Code c = e.code();
-        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
-  }
-
-  private static byte[] getData(ZooKeeper zk, RetryFactory retryFactory, String zPath, Stat stat)
-      throws KeeperException, InterruptedException {
-    final Retry retry = retryFactory.createRetry();
-    while (true) {
-      try {
-        return zk.getData(zPath, false, stat);
-      } catch (KeeperException e) {
-        final Code c = e.code();
-        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
-  }
-
-  public void delete(String path, int version) throws InterruptedException, KeeperException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        getZooKeeper().delete(path, version);
-        return;
-      } catch (KeeperException e) {
-        final Code code = e.code();
-        if (code == Code.NONODE) {
-          if (retry.hasRetried()) {
-            // A retried delete could have deleted the node, assume that was the case
-            log.debug("Delete saw no node on a retry. Assuming node was deleted");
-            return;
-          }
-
-          throw e;
-        } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-            || code == Code.SESSIONEXPIRED) {
-          // retry if we have more attempts to do so
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
-  }
-
-  public byte[] mutate(String zPath, byte[] createValue, List<ACL> acl, Mutator mutator)
-      throws Exception {
-    if (createValue != null) {
-      while (true) {
-        final Retry retry = getRetryFactory().createRetry();
-        try {
-          getZooKeeper().create(zPath, createValue, acl, CreateMode.PERSISTENT);
-          return createValue;
-        } catch (KeeperException ex) {
-          final Code code = ex.code();
-          if (code == Code.NODEEXISTS) {
-            // expected
-            break;
-          } else if (code == Code.OPERATIONTIMEOUT || code == Code.CONNECTIONLOSS
-              || code == Code.SESSIONEXPIRED) {
-            retryOrThrow(retry, ex);
-          } else {
-            throw ex;
-          }
-        }
-
-        retry.waitForNextAttempt();
-      }
-    }
-    do {
-      final Retry retry = getRetryFactory().createRetry();
-      Stat stat = new Stat();
-      byte[] data = getData(zPath, stat);
-      data = mutator.mutate(data);
-      if (data == null)
-        return data;
-      try {
-        getZooKeeper().setData(zPath, data, stat.getVersion());
-        return data;
-      } catch (KeeperException ex) {
-        final Code code = ex.code();
-        if (code == Code.BADVERSION) {
-          // Retry, but don't increment. This makes it backwards compatible with the infinite
-          // loop that previously happened. I'm not sure if that's really desirable though.
-        } else if (code == Code.OPERATIONTIMEOUT || code == Code.CONNECTIONLOSS
-            || code == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, ex);
-          retry.waitForNextAttempt();
-        } else {
-          throw ex;
-        }
-      }
-    } while (true);
-  }
-
-  public boolean isLockHeld(ZooUtil.LockID lockID) throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        List<String> children = getZooKeeper().getChildren(lockID.path, false);
-
-        if (children.isEmpty()) {
-          return false;
-        }
-
-        Collections.sort(children);
-
-        String lockNode = children.get(0);
-        if (!lockID.node.equals(lockNode))
-          return false;
-
-        Stat stat = getZooKeeper().exists(lockID.path + "/" + lockID.node, false);
-        return stat != null && stat.getEphemeralOwner() == lockID.eid;
-      } catch (KeeperException ex) {
-        final Code c = ex.code();
-        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, ex);
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
-  }
-
-  public void mkdirs(String path) throws KeeperException, InterruptedException {
-    if (path.equals(""))
-      return;
-    if (!path.startsWith("/"))
-      throw new IllegalArgumentException(path + "does not start with /");
-    if (exists(path))
-      return;
-    String parent = path.substring(0, path.lastIndexOf("/"));
-    mkdirs(parent);
-    putPersistentData(path, new byte[] {}, NodeExistsPolicy.SKIP);
-  }
-
-  private static boolean putData(ZooKeeper zk, RetryFactory retryFactory, String zPath, byte[] data,
-      CreateMode mode, NodeExistsPolicy policy, List<ACL> acls)
-      throws KeeperException, InterruptedException {
-    if (policy == null)
-      policy = NodeExistsPolicy.FAIL;
-
-    final Retry retry = retryFactory.createRetry();
-    while (true) {
+    Objects.requireNonNull(policy);
+    retryLoop(zk -> {
       try {
         zk.create(zPath, data, acls, mode);
-        return true;
+        return null;
       } catch (KeeperException e) {
-        final Code code = e.code();
-        if (code == Code.NODEEXISTS) {
+        if (e.code() == Code.NODEEXISTS) {
           switch (policy) {
             case SKIP:
-              return false;
+              return null;
             case OVERWRITE:
-              // overwrite the data in the node when it already exists
-              try {
-                zk.setData(zPath, data, -1);
-                return true;
-              } catch (KeeperException e2) {
-                final Code code2 = e2.code();
-                if (code2 == Code.NONODE) {
-                  // node delete between create call and set data, so try create call again
-                  continue;
-                } else if (code2 == Code.CONNECTIONLOSS || code2 == Code.OPERATIONTIMEOUT
-                    || code2 == Code.SESSIONEXPIRED) {
-                  retryOrThrow(retry, e2);
-                  break;
-                } else {
-                  // unhandled exception on setData()
-                  throw e2;
-                }
-              }
+              zk.setData(zPath, data, -1);
+              return null;
             default:
-              throw e;
           }
-        } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-            || code == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          // unhandled exception on create()
-          throw e;
         }
+        throw e;
       }
-
-      // Catch all to wait before retrying
-      retry.waitForNextAttempt();
-    }
+    },
+        // if OVERWRITE policy is used, create() can fail with NODEEXISTS;
+        // then, the node can be deleted, causing setData() to fail with NONODE;
+        // if that happens, the following code ensures we retry
+        e -> e.code() == Code.NONODE && policy == NodeExistsPolicy.OVERWRITE);
   }
-
 }

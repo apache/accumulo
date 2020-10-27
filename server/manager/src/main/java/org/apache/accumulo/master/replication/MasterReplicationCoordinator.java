@@ -89,8 +89,8 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
     String replServiceAddr;
     try {
       replServiceAddr = new String(reader.getData(
-          master.getZooKeeperRoot() + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort(),
-          null), UTF_8);
+          master.getZooKeeperRoot() + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort()),
+          UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch repliation service port for tserver", e);
       throw new ReplicationCoordinatorException(

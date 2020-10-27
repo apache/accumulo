@@ -18,25 +18,13 @@
  */
 package org.apache.accumulo.server.tables;
 
-import static org.junit.Assert.assertEquals;
-
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.junit.Test;
 
-public class IllegalTableTransitionExceptionTest {
+public class IllegalTableTransitionException extends RuntimeException {
+  private static final long serialVersionUID = 1L;
 
-  private final TableState oldState = TableState.ONLINE;
-  private final TableState newState = TableState.OFFLINE;
-  private final String defaultMsg =
-      "Error transitioning from " + oldState + " state to " + newState + " state";
-
-  @Test
-  public void testIllegalTableTransitionExceptionDefaultMessage() {
-    try {
-      throw new IllegalTableTransitionException(oldState, newState);
-    } catch (IllegalTableTransitionException e) {
-      assertEquals(defaultMsg, e.getMessage());
-    }
+  public IllegalTableTransitionException(TableState oldState, TableState newState) {
+    super("Error transitioning from " + oldState + " state to " + newState + " state");
   }
 
 }

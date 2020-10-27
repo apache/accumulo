@@ -40,7 +40,7 @@ public class MonitorUtil {
   static String getLocation(ZooReader zr, ClientContext context)
       throws KeeperException, InterruptedException {
     try {
-      byte[] loc = zr.getData(context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR, null);
+      byte[] loc = zr.getData(context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR);
       return loc == null ? null : new String(loc, UTF_8);
     } catch (NoNodeException e) {
       // If there's no node advertising the monitor, there's no monitor.

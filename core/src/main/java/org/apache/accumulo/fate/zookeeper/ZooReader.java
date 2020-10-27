@@ -18,13 +18,16 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.zookeeper.KeeperException;
@@ -46,7 +49,7 @@ public class ZooReader {
   protected final int timeout;
 
   public ZooReader(String keepers, int timeout) {
-    this.keepers = keepers;
+    this.keepers = requireNonNull(keepers);
     this.timeout = timeout;
   }
 
@@ -58,172 +61,44 @@ public class ZooReader {
     return RETRY_FACTORY;
   }
 
-  protected static void retryOrThrow(Retry retry, KeeperException e) throws KeeperException {
-    log.warn("Saw (possibly) transient exception communicating with ZooKeeper", e);
-    if (retry.canRetry()) {
-      retry.useRetry();
-      return;
-    }
-
-    log.error("Retry attempts ({}) exceeded trying to communicate with ZooKeeper",
-        retry.retriesCompleted());
-    throw e;
+  public byte[] getData(String zPath) throws KeeperException, InterruptedException {
+    return retryLoop(zk -> zk.getData(zPath, null, null));
   }
 
   public byte[] getData(String zPath, Stat stat) throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        return getZooKeeper().getData(zPath, false, stat);
-      } catch (KeeperException e) {
-        final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-            || code == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
+    return retryLoop(zk -> zk.getData(zPath, null, requireNonNull(stat)));
   }
 
-  public byte[] getData(String zPath, Watcher watcher, Stat stat)
+  public byte[] getData(String zPath, Watcher watcher)
       throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        return getZooKeeper().getData(zPath, watcher, stat);
-      } catch (KeeperException e) {
-        final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-            || code == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
+    return retryLoop(zk -> zk.getData(zPath, requireNonNull(watcher), null));
   }
 
   public Stat getStatus(String zPath) throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        return getZooKeeper().exists(zPath, false);
-      } catch (KeeperException e) {
-        final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-            || code == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
+    return retryLoop(zk -> zk.exists(zPath, null));
   }
 
   public Stat getStatus(String zPath, Watcher watcher)
       throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        return getZooKeeper().exists(zPath, watcher);
-      } catch (KeeperException e) {
-        final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-            || code == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
+    return retryLoop(zk -> zk.exists(zPath, requireNonNull(watcher)));
   }
 
   public List<String> getChildren(String zPath) throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        return getZooKeeper().getChildren(zPath, false);
-      } catch (KeeperException e) {
-        final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-            || code == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
+    return retryLoop(zk -> zk.getChildren(zPath, null));
   }
 
   public List<String> getChildren(String zPath, Watcher watcher)
       throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        return getZooKeeper().getChildren(zPath, watcher);
-      } catch (KeeperException e) {
-        final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-            || code == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
+    return retryLoop(zk -> zk.getChildren(zPath, requireNonNull(watcher)));
   }
 
   public boolean exists(String zPath) throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        return getZooKeeper().exists(zPath, false) != null;
-      } catch (KeeperException e) {
-        final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-            || code == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
+    return getStatus(zPath) != null;
   }
 
   public boolean exists(String zPath, Watcher watcher)
       throws KeeperException, InterruptedException {
-    final Retry retry = getRetryFactory().createRetry();
-    while (true) {
-      try {
-        return getZooKeeper().exists(zPath, watcher) != null;
-      } catch (KeeperException e) {
-        final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-            || code == Code.SESSIONEXPIRED) {
-          retryOrThrow(retry, e);
-        } else {
-          throw e;
-        }
-      }
-
-      retry.waitForNextAttempt();
-    }
+    return getStatus(zPath, watcher) != null;
   }
 
   public void sync(final String path) throws KeeperException, InterruptedException {
@@ -235,9 +110,85 @@ public class ZooReader {
     }, null);
     waiter.await();
     Code code = Code.get(rc.get());
-    if (code != KeeperException.Code.OK) {
+    if (code != Code.OK) {
       throw KeeperException.create(code);
     }
+  }
+
+  protected interface ZKFunction<R> {
+    R apply(ZooKeeper zk) throws KeeperException, InterruptedException;
+  }
+
+  protected interface ZKFunctionMutator<R> {
+    R apply(ZooKeeper zk)
+        throws KeeperException, InterruptedException, AcceptableThriftTableOperationException;
+  }
+
+  /**
+   * This method executes the provided function, retrying several times for transient issues.
+   */
+  protected <R> R retryLoop(ZKFunction<R> f) throws KeeperException, InterruptedException {
+    return retryLoop(f, e -> false);
+  }
+
+  /**
+   * This method executes the provided function, retrying several times for transient issues, and
+   * retrying indefinitely for special cases. Use {@link #retryLoop(ZKFunction)} if there is no such
+   * special case.
+   */
+  protected <R> R retryLoop(ZKFunction<R> zkf, Predicate<KeeperException> alwaysRetryCondition)
+      throws KeeperException, InterruptedException {
+    try {
+      // reuse the code from retryLoopMutator, but suppress the exception
+      // because ZKFunction can't throw it
+      return retryLoopMutator(zkf::apply, alwaysRetryCondition);
+    } catch (AcceptableThriftTableOperationException e) {
+      throw new AssertionError("Not possible; " + ZKFunction.class.getName() + " can't throw "
+          + AcceptableThriftTableOperationException.class.getName());
+    }
+  }
+
+  /**
+   * This method is a special case of {@link #retryLoop(ZKFunction, Predicate)}, intended to handle
+   * {@link ZooReaderWriter#mutate(String, byte[], List, ZooReaderWriter.Mutator)}'s additional
+   * thrown exception type. Other callers should use {@link #retryLoop(ZKFunction)} or
+   * {@link #retryLoop(ZKFunction, Predicate)} instead.
+   */
+  protected <R> R retryLoopMutator(ZKFunctionMutator<R> zkf,
+      Predicate<KeeperException> alwaysRetryCondition)
+      throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
+    requireNonNull(zkf);
+    requireNonNull(alwaysRetryCondition);
+    var retries = getRetryFactory().createRetry();
+    while (true) {
+      try {
+        return zkf.apply(getZooKeeper());
+      } catch (KeeperException e) {
+        if (alwaysRetryCondition.test(e) || useRetryForTransient(retries, e)) {
+          continue;
+        }
+        throw e;
+      }
+    }
+  }
+
+  // should use an available retry if there are retries left and
+  // the issue is one that is likely to be transient
+  private static boolean useRetryForTransient(Retry retries, KeeperException e)
+      throws KeeperException, InterruptedException {
+    final Code c = e.code();
+    if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
+      log.warn("Saw (possibly) transient exception communicating with ZooKeeper", e);
+      if (retries.canRetry()) {
+        retries.useRetry();
+        retries.waitForNextAttempt();
+        return true;
+      }
+      log.error("Retry attempts ({}) exceeded trying to communicate with ZooKeeper",
+          retries.retriesCompleted());
+    }
+    // non-transient issue should always be thrown and handled by the caller
+    return false;
   }
 
 }

@@ -145,7 +145,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoAuthException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -436,7 +435,7 @@ public class Master extends AbstractServer
         if (!context.getZooReaderWriter().exists(path)) {
           return new MergeInfo();
         }
-        byte[] data = context.getZooReaderWriter().getData(path, new Stat());
+        byte[] data = context.getZooReaderWriter().getData(path);
         DataInputBuffer in = new DataInputBuffer();
         in.reset(data, data.length);
         MergeInfo info = new MergeInfo();
@@ -500,7 +499,7 @@ public class Master extends AbstractServer
     while (true) {
       try {
         byte[] data = getContext().getZooReaderWriter()
-            .getData(getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, null);
+            .getData(getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE);
         return MasterGoalState.valueOf(new String(data));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
