@@ -122,9 +122,8 @@
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <failsafe.excludedGroups />
+    <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
-    <!-- surefire/failsafe plugin option -->
-    <forkCount>1</forkCount>
     <!-- version that works when building with Hadoop 2 or 3.0; use 27.0-jre for 3.1 and later -->
     <guava.version>14.0.1</guava.version>
     <hadoop.version>2.6.5</hadoop.version>
@@ -148,6 +147,7 @@
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
+    <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
     <surefire.version>3.0.0-M3</surefire.version>
     <!-- Thrift version -->
@@ -705,6 +705,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
+            <forkCount>${surefire.forkCount}</forkCount>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
             <systemPropertyVariables>
@@ -717,6 +718,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
+            <forkCount>${failsafe.forkCount}</forkCount>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
             <systemPropertyVariables>
@@ -1389,6 +1391,18 @@
       </activation>
       <properties>
         <hadoop.version>3.0.3</hadoop.version>
+      </properties>
+    </profile>
+    <profile>
+      <id>forkCount</id>
+      <activation>
+        <property>
+          <name>forkCount</name>
+        </property>
+      </activation>
+      <properties>
+        <failsafe.forkCount>${forkCount}</failsafe.forkCount>
+        <surefire.forkCount>${forkCount}</surefire.forkCount>
       </properties>
     </profile>
   </profiles>
