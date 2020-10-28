@@ -673,8 +673,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   private List<String> buildRemoteDebugParams(int port) {
-    return Arrays.asList(new String[] {"-Xdebug",
-        String.format("-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=%d", port)});
+    return Collections.singletonList(
+        String.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=%d", port));
   }
 
   /**
