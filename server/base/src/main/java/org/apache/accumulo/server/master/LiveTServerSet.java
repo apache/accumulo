@@ -52,7 +52,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NotEmptyException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -278,10 +277,11 @@ public class LiveTServerSet implements Watcher {
 
   private void deleteServerNode(String serverNode) throws InterruptedException, KeeperException {
     try {
-      context.getZooReaderWriter().delete(serverNode, -1);
-    } catch (NotEmptyException | NoNodeException ex) {
-      // race condition: tserver created the lock after our last check; we'll see it at the next
-      // check
+      context.getZooReaderWriter().delete(serverNode);
+    } catch (NotEmptyException ex) {
+      // acceptable race condition:
+      // tserver created the lock under this server's node after our last check
+      // we'll see it at the next check
     }
   }
 

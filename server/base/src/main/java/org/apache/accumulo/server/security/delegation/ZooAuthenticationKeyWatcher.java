@@ -143,7 +143,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
       String childPath = path + "/" + child;
       try {
         // Get the node data and reset the watcher
-        AuthenticationKey key = deserializeKey(zk.getData(childPath, this, null));
+        AuthenticationKey key = deserializeKey(zk.getData(childPath, this));
         secretManager.addKey(key);
         keysAdded++;
       } catch (NoNodeException e) {
@@ -182,7 +182,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
           return;
         }
         // Get the data and reset the watcher
-        AuthenticationKey key = deserializeKey(zk.getData(path, this, null));
+        AuthenticationKey key = deserializeKey(zk.getData(path, this));
         log.debug("Adding AuthenticationKey with keyId {}", key.getKeyId());
         secretManager.addKey(key);
         break;
@@ -193,7 +193,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
           return;
         }
         // Get the data and reset the watcher
-        AuthenticationKey newKey = deserializeKey(zk.getData(path, this, null));
+        AuthenticationKey newKey = deserializeKey(zk.getData(path, this));
         // Will overwrite the old key if one exists
         secretManager.addKey(newKey);
         break;

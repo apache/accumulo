@@ -30,7 +30,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
@@ -81,8 +80,7 @@ class ImportPopulateZookeeper extends MasterRepo {
 
       String namespace = Tables.qualify(tableInfo.tableName).getFirst();
       NamespaceId namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
-      env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName,
-          NodeExistsPolicy.OVERWRITE);
+      env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName);
 
       Tables.clearCache(env.getContext());
     } finally {

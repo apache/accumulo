@@ -77,9 +77,8 @@ public class ZooAuthenticationKeyDistributorTest {
 
     // Attempt to create the directory and fail
     expect(zrw.exists(baseNode)).andReturn(false);
-    expect(
-        zrw.putPrivatePersistentData(eq(baseNode), aryEq(new byte[0]), eq(NodeExistsPolicy.FAIL)))
-            .andThrow(new AuthFailedException());
+    zrw.putPrivatePersistentData(eq(baseNode), aryEq(new byte[0]), eq(NodeExistsPolicy.FAIL));
+    expectLastCall().andThrow(new AuthFailedException());
 
     replay(zrw);
 
@@ -95,8 +94,8 @@ public class ZooAuthenticationKeyDistributorTest {
 
     // Attempt to create the directory and fail
     expect(zrw.exists(baseNode)).andReturn(false);
-    expect(zrw.putPrivatePersistentData(eq(baseNode), anyObject(), eq(NodeExistsPolicy.FAIL)))
-        .andReturn(true);
+    zrw.putPrivatePersistentData(eq(baseNode), anyObject(), eq(NodeExistsPolicy.FAIL));
+    expectLastCall();
 
     replay(zrw);
 
@@ -178,8 +177,8 @@ public class ZooAuthenticationKeyDistributorTest {
     expect(zrw.getACL(eq(baseNode), anyObject(Stat.class))).andReturn(Collections.singletonList(
         new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "accumulo:DEFAULT"))));
     expect(zrw.exists(path)).andReturn(false);
-    expect(zrw.putPrivatePersistentData(eq(path), aryEq(serialized), eq(NodeExistsPolicy.FAIL)))
-        .andReturn(true);
+    zrw.putPrivatePersistentData(eq(path), aryEq(serialized), eq(NodeExistsPolicy.FAIL));
+    expectLastCall();
 
     replay(zrw);
 
@@ -222,7 +221,7 @@ public class ZooAuthenticationKeyDistributorTest {
     expect(zrw.getACL(eq(baseNode), anyObject(Stat.class))).andReturn(Collections.singletonList(
         new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "accumulo:DEFAULT"))));
     expect(zrw.exists(path)).andReturn(true);
-    zrw.delete(path, -1);
+    zrw.delete(path);
     expectLastCall().once();
 
     replay(zrw);
@@ -275,7 +274,7 @@ public class ZooAuthenticationKeyDistributorTest {
         new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "accumulo:DEFAULT"))));
     expect(zrw.getChildren(baseNode)).andReturn(children);
     for (int i = 1; i < 6; i++) {
-      expect(zrw.getData(baseNode + "/" + i, null)).andReturn(serializedKeys.get(i - 1));
+      expect(zrw.getData(baseNode + "/" + i)).andReturn(serializedKeys.get(i - 1));
     }
 
     replay(zrw);
