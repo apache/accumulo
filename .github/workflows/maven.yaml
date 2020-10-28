@@ -60,8 +60,8 @@ jobs:
     strategy:
       matrix:
         profile:
-          - {name: 'Hadoop2', args: 'verify javadoc:jar -DskipITs -DforkCount=1C'}
-          - {name: 'Hadoop3', args: 'verify javadoc:jar -DskipITs -DforkCount=1C -Dhadoop.profile=3'}
+          - {name: 'Hadoop2', args: 'verify javadoc:jar -DskipITs'}
+          - {name: 'Hadoop3', args: 'verify javadoc:jar -DskipITs -Dhadoop.profile=3'}
       fail-fast: false
     timeout-minutes: 60
     runs-on: ubuntu-latest

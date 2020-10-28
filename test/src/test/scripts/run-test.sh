@@ -38,5 +38,5 @@ cd "$bin/.."
 tests=$1
 shift
 
-# Let the user provide additional maven options (like -DforkCount=2)
+# Let the user provide additional maven options (like -Dsurefire.forkCount=2)
 mvn verify -Dit.test="$tests" -Dtest=testnamethatdoesntexist -DfailIfNoTests=false "$@"
