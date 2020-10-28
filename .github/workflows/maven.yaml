@@ -60,7 +60,7 @@ jobs:
     strategy:
       matrix:
         profile:
-          - {name: 'unit-tests',    args: 'verify -PskipQA -DskipTests=false -DforkCount=1C'}
+          - {name: 'unit-tests',    args: 'verify -PskipQA -DskipTests=false'}
           - {name: 'qa-checks',     args: 'verify javadoc:jar -Psec-bugs -DskipTests=true -Dspotbugs.timeout=3600000'}
           - {name: 'hadoop-compat', args: 'package -DskipTests -Dhadoop.version=3.0.3'}
       fail-fast: false
