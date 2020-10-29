@@ -54,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 
 public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
@@ -120,6 +121,25 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     try (BatchWriter writer = createWriter(tableId)) {
       for (StoredTabletFile file : candidates) {
         writer.addMutation(createDeleteMutation(file));
+      }
+    } catch (MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public void putGcFdCandidates(TableId tableId, Collection<String> candidates) {
+
+    if (RootTable.ID.equals(tableId)) {
+      // Directories are unexpected for the root tablet, so convert to stored tablet file
+      mutateRootGcCandidates(
+          rgcc -> rgcc.add(Collections2.transform(candidates, StoredTabletFile::new)));
+      return;
+    }
+
+    try (BatchWriter writer = createWriter(tableId)) {
+      for (String fileOrDir : candidates) {
+        writer.addMutation(createDeleteMutation(fileOrDir));
       }
     } catch (MutationsRejectedException e) {
       throw new RuntimeException(e);

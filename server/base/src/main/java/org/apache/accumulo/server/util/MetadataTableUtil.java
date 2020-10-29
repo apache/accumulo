@@ -279,24 +279,6 @@ public class MetadataTableUtil {
     finishSplit(extent.toMetaRow(), datafileSizes, highDatafilesToRemove, context, zooLock);
   }
 
-  /**
-   * datafilesToDelete are strings because they can be a TabletFile or directory
-   */
-  public static void addDeleteEntries(KeyExtent extent, Set<String> datafilesToDelete,
-      ServerContext context, Ample ample) {
-
-    // TODO could use batch writer,would need to handle failure and retry like update does -
-    // ACCUMULO-1294
-    for (String pathToRemove : datafilesToDelete) {
-      update(context, ample.createDeleteMutation(pathToRemove), extent);
-    }
-  }
-
-  public static void addDeleteEntry(ServerContext context, TableId tableId, String path) {
-    update(context, context.getAmple().createDeleteMutation(path),
-        new KeyExtent(tableId, null, null));
-  }
-
   public static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
       ServerContext context, ZooLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
