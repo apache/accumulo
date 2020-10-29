@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -306,7 +305,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   private void addEntries(AccumuloClient client) throws Exception {
-    Ample ample = ((ClientContext) client).getAmple();
+    Ample ample = getServerContext().getAmple();
     client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
     try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
