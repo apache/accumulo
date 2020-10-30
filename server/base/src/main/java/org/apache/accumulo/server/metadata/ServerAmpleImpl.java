@@ -47,7 +47,6 @@ import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -82,26 +81,19 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
     String zpath = context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES;
     try {
-      context.getZooReaderWriter().mutate(zpath, new byte[0], ZooUtil.PUBLIC, currVal -> {
+      context.getZooReaderWriter().createPublicOrMutate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
-
         RootGcCandidates rgcc = RootGcCandidates.fromJson(currJson);
-
         log.debug("Root GC candidates before change : {}", currJson);
-
         mutator.accept(rgcc);
-
         String newJson = rgcc.toJson();
-
         log.debug("Root GC candidates after change  : {}", newJson);
-
         if (newJson.length() > 262_144) {
           log.warn(
               "Root tablet deletion candidates stored in ZK at {} are getting large ({} bytes), is"
                   + " Accumulo GC process running?  Large nodes may cause problems for Zookeeper!",
               zpath, newJson.length());
         }
-
         return newJson.getBytes(UTF_8);
       });
     } catch (Exception e) {

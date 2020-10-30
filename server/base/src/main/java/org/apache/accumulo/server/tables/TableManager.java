@@ -36,7 +36,6 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
@@ -116,7 +115,7 @@ public class TableManager {
     String statePath = zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
 
     try {
-      zoo.mutate(statePath, newState.name().getBytes(UTF_8), ZooUtil.PUBLIC, oldData -> {
+      zoo.createPublicOrMutate(statePath, newState.name().getBytes(UTF_8), oldData -> {
         TableState oldState = TableState.UNKNOWN;
         if (oldData != null)
           oldState = TableState.valueOf(new String(oldData, UTF_8));

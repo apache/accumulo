@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.master.tableOps.namespace.rename;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -62,15 +64,15 @@ public class RenameNamespace extends MasterRepo {
       final String tap = master.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
           + Constants.ZNAMESPACE_NAME;
 
-      zoo.mutate(tap, null, null, current -> {
-        final String currentName = new String(current);
+      zoo.mutateExisting(tap, current -> {
+        final String currentName = new String(current, UTF_8);
         if (currentName.equals(newName))
           return null; // assume in this case the operation is running again, so we are done
         if (!currentName.equals(oldName)) {
           throw new AcceptableThriftTableOperationException(null, oldName, TableOperation.RENAME,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Name changed while processing");
         }
-        return newName.getBytes();
+        return newName.getBytes(UTF_8);
       });
       Tables.clearCache(master.getContext());
     } finally {

@@ -28,7 +28,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.security.AuthorizationContainer;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.constraints.SystemEnvironment;
@@ -93,20 +92,13 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
       context.getZooCache().clear(zpath);
 
       // TODO examine implementation of getZooReaderWriter().mutate()
-      context.getZooReaderWriter().mutate(zpath, new byte[0], ZooUtil.PUBLIC, currVal -> {
-
+      context.getZooReaderWriter().createPublicOrMutate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
-
         log.debug("Before mutating : {}, ", currJson);
-
-        RootTabletMetadata rtm = RootTabletMetadata.fromJson(currJson);
-
+        var rtm = RootTabletMetadata.fromJson(currJson);
         rtm.update(mutation);
-
         String newJson = rtm.toJson();
-
         log.debug("After mutating : {} ", newJson);
-
         return newJson.getBytes(UTF_8);
       });
 

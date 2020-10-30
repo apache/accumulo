@@ -101,11 +101,10 @@ public class CompactRange extends MasterRepo {
     ZooReaderWriter zoo = env.getContext().getZooReaderWriter();
     byte[] cid;
     try {
-      cid = zoo.mutate(zTablePath, null, null, currentValue -> {
+      cid = zoo.mutateExisting(zTablePath, currentValue -> {
         String cvs = new String(currentValue, UTF_8);
         String[] tokens = cvs.split(",");
-        long flushID = Long.parseLong(tokens[0]);
-        flushID++;
+        long flushID = Long.parseLong(tokens[0]) + 1;
 
         String txidString = String.format("%016x", tid);
 
@@ -150,7 +149,7 @@ public class CompactRange extends MasterRepo {
 
     ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
 
-    zoo.mutate(zTablePath, null, null, currentValue -> {
+    zoo.mutateExisting(zTablePath, currentValue -> {
       String cvs = new String(currentValue, UTF_8);
       String[] tokens = cvs.split(",");
       long flushID = Long.parseLong(tokens[0]);

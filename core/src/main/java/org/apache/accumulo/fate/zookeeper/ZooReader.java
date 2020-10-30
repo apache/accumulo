@@ -150,8 +150,8 @@ public class ZooReader {
 
   /**
    * This method is a special case of {@link #retryLoop(ZKFunction, Predicate)}, intended to handle
-   * {@link ZooReaderWriter#mutate(String, byte[], List, ZooReaderWriter.Mutator)}'s additional
-   * thrown exception type. Other callers should use {@link #retryLoop(ZKFunction)} or
+   * {@link ZooReaderWriter#mutateExisting(String, ZooReaderWriter.Mutator)}'s additional thrown
+   * exception type. Other callers should use {@link #retryLoop(ZKFunction)} or
    * {@link #retryLoop(ZKFunction, Predicate)} instead.
    */
   protected <R> R retryLoopMutator(ZKFunctionMutator<R> zkf,

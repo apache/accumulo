@@ -126,10 +126,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
     ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
     byte[] fid;
     try {
-      fid = zoo.mutate(zTablePath, null, null, currentValue -> {
+      fid = zoo.mutateExisting(zTablePath, currentValue -> {
         long flushID = Long.parseLong(new String(currentValue, UTF_8));
-        flushID++;
-        return ("" + flushID).getBytes(UTF_8);
+        return Long.toString(flushID + 1).getBytes(UTF_8);
       });
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,

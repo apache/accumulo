@@ -20,9 +20,6 @@ package org.apache.accumulo.fate.zookeeper;
 
 import static org.junit.Assert.assertArrayEquals;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
@@ -34,7 +31,6 @@ import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -97,24 +93,22 @@ public class ZooReaderWriterTest {
   public void testMutateNodeCreationFails() throws Exception {
     final String path = "/foo";
     final byte[] value = {0};
-    final List<ACL> acls = Collections.emptyList();
     Mutator mutator = currentValue -> new byte[] {1};
 
-    zk.create(path, value, acls, CreateMode.PERSISTENT);
+    zk.create(path, value, ZooUtil.PUBLIC, CreateMode.PERSISTENT);
     EasyMock.expectLastCall().andThrow(new SessionExpiredException()).once();
     EasyMock.expect(retry.canRetry()).andReturn(false);
     EasyMock.expect(retry.retriesCompleted()).andReturn(1L).once();
 
     EasyMock.replay(zk, zrw, retryFactory, retry);
 
-    zrw.mutate(path, value, acls, mutator);
+    zrw.createPublicOrMutate(path, value, mutator);
   }
 
   @Test
   public void testMutateWithBadVersion() throws Exception {
     final String path = "/foo";
     final byte[] value = {0};
-    final List<ACL> acls = Collections.emptyList();
     final byte[] mutatedBytes = {1};
     Mutator mutator = currentValue -> mutatedBytes;
 
@@ -125,7 +119,7 @@ public class ZooReaderWriterTest {
 
     Stat stat = new Stat();
 
-    zk.create(path, value, acls, CreateMode.PERSISTENT);
+    zk.create(path, value, ZooUtil.PUBLIC, CreateMode.PERSISTENT);
     EasyMock.expectLastCall().andThrow(new NodeExistsException()).once();
     EasyMock.expect(zk.getData(path, null, stat)).andReturn(new byte[] {3}).times(2);
     // BadVersionException should retry
@@ -135,7 +129,7 @@ public class ZooReaderWriterTest {
 
     EasyMock.replay(zk, zrw, retryFactory, retry);
 
-    assertArrayEquals(new byte[] {1}, zrw.mutate(path, value, acls, mutator));
+    assertArrayEquals(new byte[] {1}, zrw.createPublicOrMutate(path, value, mutator));
 
     EasyMock.verify(zk, zrw, retryFactory, retry);
   }
@@ -144,7 +138,6 @@ public class ZooReaderWriterTest {
   public void testMutateWithRetryOnSetData() throws Exception {
     final String path = "/foo";
     final byte[] value = {0};
-    final List<ACL> acls = Collections.emptyList();
     final byte[] mutatedBytes = {1};
     Mutator mutator = currentValue -> mutatedBytes;
 
@@ -155,7 +148,7 @@ public class ZooReaderWriterTest {
 
     Stat stat = new Stat();
 
-    zk.create(path, value, acls, CreateMode.PERSISTENT);
+    zk.create(path, value, ZooUtil.PUBLIC, CreateMode.PERSISTENT);
     EasyMock.expectLastCall().andThrow(new NodeExistsException()).once();
     EasyMock.expect(zk.getData(path, null, stat)).andReturn(new byte[] {3}).times(2);
     // BadVersionException should retry
@@ -171,7 +164,7 @@ public class ZooReaderWriterTest {
 
     EasyMock.replay(zk, zrw, retryFactory, retry);
 
-    assertArrayEquals(new byte[] {1}, zrw.mutate(path, value, acls, mutator));
+    assertArrayEquals(new byte[] {1}, zrw.createPublicOrMutate(path, value, mutator));
 
     EasyMock.verify(zk, zrw, retryFactory, retry);
   }

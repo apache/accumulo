@@ -19,9 +19,9 @@
 package org.apache.accumulo.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -112,20 +112,10 @@ public class ZooReaderWriter extends ZooReader {
     }
   }
 
-  public byte[] mutate(String zPath, byte[] createValue, List<ACL> acl, Mutator mutator)
+  public byte[] mutateExisting(String zPath, Mutator mutator)
       throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
-    if (createValue != null) {
-      try {
-        retryLoop(zk -> zk.create(zPath, createValue, acl, CreateMode.PERSISTENT));
-        // create node was successful; return current (new) value
-        return createValue;
-      } catch (KeeperException e) {
-        // if value already exists, use mutator instead
-        if (e.code() != Code.NODEEXISTS) {
-          throw e;
-        }
-      }
-    }
+    requireNonNull(zPath);
+    requireNonNull(mutator);
     return retryLoopMutator(zk -> {
       var stat = new Stat();
       byte[] data = zk.getData(zPath, null, stat);
@@ -136,6 +126,24 @@ public class ZooReaderWriter extends ZooReader {
       }
       return data;
     }, e -> e.code() == Code.BADVERSION); // always retry if bad version
+  }
+
+  public byte[] createPublicOrMutate(String zPath, byte[] createValue, Mutator mutator)
+      throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
+    requireNonNull(zPath);
+    requireNonNull(createValue);
+    requireNonNull(mutator);
+    try {
+      retryLoop(zk -> zk.create(zPath, createValue, ZooUtil.PUBLIC, CreateMode.PERSISTENT));
+      // create node was successful; return current (new) value
+      return createValue;
+    } catch (KeeperException e) {
+      // if value already exists, use mutator instead
+      if (e.code() != Code.NODEEXISTS) {
+        throw e;
+      }
+    }
+    return mutateExisting(zPath, mutator);
   }
 
   public void mkdirs(String path) throws KeeperException, InterruptedException {
@@ -207,7 +215,7 @@ public class ZooReaderWriter extends ZooReader {
 
   private void putData(String zPath, byte[] data, CreateMode mode, NodeExistsPolicy policy,
       List<ACL> acls) throws KeeperException, InterruptedException {
-    Objects.requireNonNull(policy);
+    requireNonNull(policy);
     retryLoop(zk -> {
       try {
         zk.create(zPath, data, acls, mode);

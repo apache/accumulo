@@ -70,7 +70,6 @@ import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
@@ -217,9 +216,8 @@ public class Upgrader9to10 implements Upgrader {
       Mutation mutation = getMutation();
 
       try {
-        context.getZooReaderWriter().mutate(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET,
-            new byte[0], ZooUtil.PUBLIC, currVal -> {
-
+        context.getZooReaderWriter().createPublicOrMutate(
+            context.getZooKeeperRoot() + RootTable.ZROOT_TABLET, new byte[0], currVal -> {
               // Earlier, it was checked that root tablet metadata did not exists. However the
               // earlier check does handle race conditions. Race conditions are unexpected. This is
               // a sanity check when making the update in ZK using compare and set. If this fails
@@ -227,15 +225,10 @@ public class Upgrader9to10 implements Upgrader {
               // concurrently running upgrade could cause this to fail.
               Preconditions.checkState(currVal.length == 0,
                   "Expected root tablet metadata to be empty!");
-
-              RootTabletMetadata rtm = new RootTabletMetadata();
-
+              var rtm = new RootTabletMetadata();
               rtm.update(mutation);
-
               String json = rtm.toJson();
-
               log.info("Upgrading root tablet metadata, writing following to ZK : \n {}", json);
-
               return json.getBytes(UTF_8);
             });
       } catch (Exception e) {
