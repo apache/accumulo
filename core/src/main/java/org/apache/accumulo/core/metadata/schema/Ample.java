@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -148,6 +149,20 @@ public interface Ample {
   }
 
   default Iterator<String> getGcCandidates(DataLevel level, String continuePoint) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Return an encoded delete marker Mutation to delete the specified TabletFile path. A String is
+   * used for the parameter because the Garbage Collector is optimized to store a directory for
+   * Tablet File. Otherwise a {@link TabletFile} object could be used. The tabletFilePathToRemove is
+   * validated and normalized before creating the mutation.
+   *
+   * @param tabletFilePathToRemove
+   *          String full path of the TabletFile
+   * @return Mutation with encoded delete marker
+   */
+  default Mutation createDeleteMutation(String tabletFilePathToRemove) {
     throw new UnsupportedOperationException();
   }
 

@@ -195,18 +195,19 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
   }
 
-  public static Mutation createDeleteMutation(String pathToRemove) {
-    String path = TabletFileUtil.validate(pathToRemove);
+  @Override
+  public Mutation createDeleteMutation(String tabletFilePathToRemove) {
+    String path = TabletFileUtil.validate(tabletFilePathToRemove);
     return createDelMutation(path);
   }
 
-  public static Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
+  public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
     return createDelMutation(pathToRemove.getMetaUpdateDelete());
   }
 
-  private static Mutation createDelMutation(String path) {
+  private Mutation createDelMutation(String path) {
     Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path)));
-    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, SkewedKeyValue.NAME);
+    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.SkewedKeyValue.NAME);
     return delFlag;
   }
 }

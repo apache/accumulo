@@ -59,6 +59,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -74,6 +75,7 @@ import org.apache.accumulo.master.Master.TabletGoalState;
 import org.apache.accumulo.master.state.MergeStats;
 import org.apache.accumulo.master.state.TableCounts;
 import org.apache.accumulo.master.state.TableStats;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -89,7 +91,6 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
-import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
@@ -584,6 +585,8 @@ abstract class TabletGroupWatcher extends Daemon {
     }
     try {
       AccumuloClient client = master.getContext();
+      ServerContext context = master.getContext();
+      Ample ample = context.getAmple();
       Text start = extent.prevEndRow();
       if (start == null) {
         start = new Text();
@@ -603,7 +606,7 @@ abstract class TabletGroupWatcher extends Daemon {
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
           datafiles.add(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
           if (datafiles.size() > 1000) {
-            MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
+            MetadataTableUtil.addDeleteEntries(extent, datafiles, context, ample);
             datafiles.clear();
           }
         } else if (ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
@@ -616,12 +619,12 @@ abstract class TabletGroupWatcher extends Daemon {
               entry.getValue().toString());
           datafiles.add(path);
           if (datafiles.size() > 1000) {
-            MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
+            MetadataTableUtil.addDeleteEntries(extent, datafiles, context, ample);
             datafiles.clear();
           }
         }
       }
-      MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
+      MetadataTableUtil.addDeleteEntries(extent, datafiles, context, ample);
       BatchWriter bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       try {
         deleteTablets(info, deleteRange, bw, client);
@@ -700,7 +703,7 @@ abstract class TabletGroupWatcher extends Daemon {
         } else if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           String uri =
               GcVolumeUtil.getDeleteTabletOnAllVolumesUri(range.tableId(), value.toString());
-          bw.addMutation(ServerAmpleImpl.createDeleteMutation(uri));
+          bw.addMutation(master.getContext().getAmple().createDeleteMutation(uri));
         }
       }
 
