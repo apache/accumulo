@@ -82,12 +82,15 @@ public class CreateTable extends MasterRepo {
   @Override
   public void undo(long tid, Master env) throws IOException {
     // Clean up split files if create table operation fails
-    if (tableInfo.getInitialSplitSize() > 0) {
-      Path p = tableInfo.getSplitPath().getParent();
-      FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
-      fs.delete(p, true);
+    try {
+      if (tableInfo.getInitialSplitSize() > 0) {
+        Path p = tableInfo.getSplitPath().getParent();
+        FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
+        fs.delete(p, true);
+      }
+    } finally {
+      Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
     }
-    Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
   }
 
 }
