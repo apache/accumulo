@@ -37,7 +37,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +68,7 @@ public class ZooAuthenticationKeyDistributor {
     }
 
     if (zk.exists(baseNode)) {
-      List<ACL> acls = zk.getACL(baseNode, new Stat());
+      List<ACL> acls = zk.getACL(baseNode);
       if (acls.size() == 1) {
         ACL actualAcl = acls.get(0), expectedAcl = ZooUtil.PRIVATE.get(0);
         Id actualId = actualAcl.getId();

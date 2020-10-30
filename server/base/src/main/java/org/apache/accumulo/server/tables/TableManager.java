@@ -115,7 +115,7 @@ public class TableManager {
     String statePath = zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
 
     try {
-      zoo.createPublicOrMutate(statePath, newState.name().getBytes(UTF_8), oldData -> {
+      zoo.mutateOrCreate(statePath, newState.name().getBytes(UTF_8), oldData -> {
         TableState oldState = TableState.UNKNOWN;
         if (oldData != null)
           oldState = TableState.valueOf(new String(oldData, UTF_8));

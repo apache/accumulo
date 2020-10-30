@@ -216,7 +216,7 @@ public class Upgrader9to10 implements Upgrader {
       Mutation mutation = getMutation();
 
       try {
-        context.getZooReaderWriter().createPublicOrMutate(
+        context.getZooReaderWriter().mutateOrCreate(
             context.getZooKeeperRoot() + RootTable.ZROOT_TABLET, new byte[0], currVal -> {
               // Earlier, it was checked that root tablet metadata did not exists. However the
               // earlier check does handle race conditions. Race conditions are unexpected. This is

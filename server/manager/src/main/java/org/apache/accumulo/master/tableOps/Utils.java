@@ -70,7 +70,7 @@ public class Utils {
     try {
       ZooReaderWriter zoo = context.getZooReaderWriter();
       final String ntp = context.getZooKeeperRoot() + Constants.ZTABLES;
-      byte[] nid = zoo.createPublicOrMutate(ntp, ZERO_BYTE, currentValue -> {
+      byte[] nid = zoo.mutateOrCreate(ntp, ZERO_BYTE, currentValue -> {
         BigInteger nextId = new BigInteger(new String(currentValue, UTF_8), Character.MAX_RADIX);
         nextId = nextId.add(BigInteger.ONE);
         return nextId.toString(Character.MAX_RADIX).getBytes(UTF_8);

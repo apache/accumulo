@@ -81,7 +81,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
     String zpath = context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES;
     try {
-      context.getZooReaderWriter().createPublicOrMutate(zpath, new byte[0], currVal -> {
+      context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
         RootGcCandidates rgcc = RootGcCandidates.fromJson(currJson);
         log.debug("Root GC candidates before change : {}", currJson);
