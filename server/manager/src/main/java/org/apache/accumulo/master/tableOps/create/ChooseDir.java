@@ -35,11 +35,14 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ChooseDir extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private final TableInfo tableInfo;
+  private static final Logger log = LoggerFactory.getLogger(ChooseDir.class);
 
   ChooseDir(TableInfo ti) {
     this.tableInfo = ti;
@@ -60,9 +63,16 @@ class ChooseDir extends MasterRepo {
 
   @Override
   public void undo(long tid, Master master) throws Exception {
-    Path p = tableInfo.getSplitDirsPath();
-    FileSystem fs = p.getFileSystem(master.getContext().getHadoopConf());
-    fs.delete(p, true);
+    // Clean up split files if ChooseDir operation fails
+    try {
+      if (tableInfo.getInitialSplitSize() > 0) {
+        Path p = tableInfo.getSplitDirsPath();
+        FileSystem fs = p.getFileSystem(master.getContext().getHadoopConf());
+        fs.delete(p, true);
+      }
+    } catch (NullPointerException | IOException e) {
+      log.error("Failed to undo ChooseDir operation", e);
+    }
   }
 
   /**
