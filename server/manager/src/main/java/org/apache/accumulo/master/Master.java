@@ -100,8 +100,6 @@ import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.WalStateManager;
-import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
@@ -135,7 +133,6 @@ import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.thrift.TException;
@@ -1672,16 +1669,6 @@ public class Master extends AbstractServer
   public Set<TServerInstance> shutdownServers() {
     synchronized (serversToShutdown) {
       return new HashSet<>(serversToShutdown);
-    }
-  }
-
-  public void markDeadServerLogsAsClosed(Map<TServerInstance,List<Path>> logsForDeadServers)
-      throws WalMarkerException {
-    WalStateManager mgr = new WalStateManager(getContext());
-    for (Entry<TServerInstance,List<Path>> server : logsForDeadServers.entrySet()) {
-      for (Path path : server.getValue()) {
-        mgr.closeWal(server.getKey(), path);
-      }
     }
   }
 
