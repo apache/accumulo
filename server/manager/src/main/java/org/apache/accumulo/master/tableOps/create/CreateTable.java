@@ -33,9 +33,12 @@ import org.apache.accumulo.master.tableOps.TableInfo;
 import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CreateTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
+  private static final Logger log = LoggerFactory.getLogger(CreateTable.class);
 
   private TableInfo tableInfo;
 
@@ -88,6 +91,8 @@ public class CreateTable extends MasterRepo {
         FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
         fs.delete(p, true);
       }
+    } catch (NullPointerException | IOException e) {
+      log.error("Failed to undo CreateTable operation", e);
     } finally {
       Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
     }
