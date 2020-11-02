@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -355,5 +356,11 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    */
   default void setExecutionHints(Map<String,String> hints) {
     throw new UnsupportedOperationException();
+  }
+
+  default void forEach(BiConsumer<? super Key,? super Value> keyValueConsumer) {
+    for (Entry<Key,Value> entry : this) {
+      keyValueConsumer.accept(entry.getKey(), entry.getValue());
+    }
   }
 }
