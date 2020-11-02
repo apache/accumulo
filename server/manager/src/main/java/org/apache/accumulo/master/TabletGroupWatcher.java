@@ -862,7 +862,7 @@ abstract class TabletGroupWatcher extends Daemon {
       } else {
         store.unassign(deadTablets, deadLogs);
       }
-      master.markDeadServerLogsAsClosed(wals, deadLogs);
+      markDeadServerLogsAsClosed(wals, deadLogs);
       master.nextEvent.event(
           "Marked %d tablets as suspended because they don't have current servers",
           deadTablets.size());
@@ -925,6 +925,15 @@ abstract class TabletGroupWatcher extends Daemon {
         Master.log.warn("Could not connect to server {}", a.server);
       }
       master.assignedTablet(a.tablet);
+    }
+  }
+
+  private static void markDeadServerLogsAsClosed(WalStateManager mgr,
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws WalMarkerException {
+    for (Entry<TServerInstance,List<Path>> server : logsForDeadServers.entrySet()) {
+      for (Path path : server.getValue()) {
+        mgr.closeWal(server.getKey(), path);
+      }
     }
   }
 }
