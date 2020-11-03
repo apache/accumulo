@@ -21,10 +21,12 @@ package org.apache.accumulo.master.tableOps.create;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -71,7 +73,9 @@ class ChooseDir extends MasterRepo {
         fs.delete(p, true);
       }
     } catch (NullPointerException | IOException e) {
-      log.error("Failed to undo ChooseDir operation", e);
+      var spdir = Optional.ofNullable(tableInfo).map(TableInfo::getSplitDirsPath).orElse(null);
+      log.error("{} Failed to undo ChooseDir operation, split dir {} ", FateTxId.formatTid(tid),
+          spdir, e);
     }
   }
 

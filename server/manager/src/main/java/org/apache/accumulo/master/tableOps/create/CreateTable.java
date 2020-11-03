@@ -20,12 +20,14 @@ package org.apache.accumulo.master.tableOps.create;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -75,6 +77,9 @@ public class CreateTable extends MasterRepo {
     Utils.getIdLock().lock();
     try {
       String tName = tableInfo.getTableName();
+      if(tName.equals("ci")){
+        Thread.sleep(10000000);
+      }
       tableInfo.setTableId(Utils.getNextId(tName, master.getContext(), TableId::of));
       return new SetupPermissions(tableInfo);
     } finally {
@@ -92,7 +97,9 @@ public class CreateTable extends MasterRepo {
         fs.delete(p, true);
       }
     } catch (NullPointerException | IOException e) {
-      log.error("Failed to undo CreateTable operation", e);
+      var spdir = Optional.ofNullable(tableInfo).map(TableInfo::getSplitDirsPath).orElse(null);
+      log.error("{} Failed to undo CreateTable operation, split dir {} ", FateTxId.formatTid(tid),
+          spdir, e);
     } finally {
       Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
     }

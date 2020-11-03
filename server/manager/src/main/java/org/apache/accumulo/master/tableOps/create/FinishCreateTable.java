@@ -19,9 +19,11 @@
 package org.apache.accumulo.master.tableOps.create;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -65,12 +67,12 @@ class FinishCreateTable extends MasterRepo {
     env.getEventCoordinator().event("Created table %s ", tableInfo.getTableName());
 
     if (tableInfo.getInitialSplitSize() > 0) {
-      cleanupSplitFiles(env);
+      cleanupSplitFiles(tid, env);
     }
     return null;
   }
 
-  private void cleanupSplitFiles(Master env) throws IOException {
+  private void cleanupSplitFiles(long tid, Master env) throws IOException {
     // it is sufficient to delete from the parent, because both files are in the same directory, and
     // we want to delete the directory also
     try {
@@ -78,7 +80,9 @@ class FinishCreateTable extends MasterRepo {
       FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
       fs.delete(p, true);
     } catch (NullPointerException | IOException e) {
-      log.error("Failed to cleanup splits file after table was created", e);
+      var spdir = Optional.ofNullable(tableInfo).map(TableInfo::getSplitDirsPath).orElse(null);
+      log.error("{} Failed to cleanup splits file after table was created, split dir {} ",
+          FateTxId.formatTid(tid), spdir, e);
     }
   }
 
