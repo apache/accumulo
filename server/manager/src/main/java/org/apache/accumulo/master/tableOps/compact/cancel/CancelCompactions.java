@@ -67,7 +67,7 @@ public class CancelCompactions extends MasterRepo {
     String[] tokens = cvs.split(",");
     final long flushID = Long.parseLong(tokens[0]);
 
-    zoo.mutate(zCancelID, null, null, currentValue2 -> {
+    zoo.mutateExisting(zCancelID, currentValue2 -> {
       long cid = Long.parseLong(new String(currentValue2, UTF_8));
 
       if (cid < flushID) {

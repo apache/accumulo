@@ -42,7 +42,6 @@ import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.fate.zookeeper.ZooQueueLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReservation;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
@@ -71,7 +70,7 @@ public class Utils {
     try {
       ZooReaderWriter zoo = context.getZooReaderWriter();
       final String ntp = context.getZooKeeperRoot() + Constants.ZTABLES;
-      byte[] nid = zoo.mutate(ntp, ZERO_BYTE, ZooUtil.PUBLIC, currentValue -> {
+      byte[] nid = zoo.mutateOrCreate(ntp, ZERO_BYTE, currentValue -> {
         BigInteger nextId = new BigInteger(new String(currentValue, UTF_8), Character.MAX_RADIX);
         nextId = nextId.add(BigInteger.ONE);
         return nextId.toString(Character.MAX_RADIX).getBytes(UTF_8);

@@ -22,7 +22,6 @@ import static org.easymock.EasyMock.aryEq;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
@@ -175,8 +174,8 @@ public class ProblemReportTest {
     String path = ZooUtil.getRoot("instance") + Constants.ZPROBLEMS + "/"
         + Encoding.encodeAsBase64FileName(new Text(zpathFileName));
     byte[] encoded = encodeReportData(now, SERVER, null);
-    zoorw.putPersistentData(eq(path), aryEq(encoded), eq(NodeExistsPolicy.OVERWRITE));
-    expectLastCall();
+    expect(zoorw.putPersistentData(eq(path), aryEq(encoded), eq(NodeExistsPolicy.OVERWRITE)))
+        .andReturn(true);
     replay(zoorw);
 
     r.saveToZooKeeper(context);
