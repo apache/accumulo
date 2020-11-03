@@ -55,8 +55,8 @@ public class CompactionExecutor {
   private ThreadPoolExecutor rawExecutor;
 
   // This exist to provide an accurate count of queued compactions for metrics. The PriorityQueue is
-  // not used because it size may be off because it contains cancelled compactions. The collection
-  // below should not contain cancelled compactions. A conncurrent set was not used because those do
+  // not used because its size may be off due to it containing cancelled compactions. The collection
+  // below should not contain cancelled compactions. A concurrent set was not used because those do
   // not have constant time size operations.
   private Set<CompactionTask> queuedTask = Collections.synchronizedSet(new HashSet<>());
 
@@ -116,9 +116,9 @@ public class CompactionExecutor {
         queuedTask.remove(this);
 
       if (canceled && cancelCount.incrementAndGet() % 1024 == 0) {
-        // Need to occasionally clean the queue which could have canceled task with low priority
-        // that hang around. Avoid cleaning the queue every time something is canceled as that could
-        // be expensive.
+        // Occasionally clean the queue of canceled tasks that have hung around because of their low
+        // priority. This runs periodically, instead of every time something is canceled, to avoid
+        // hurting performance.
         queue.removeIf(runnable -> ((CompactionTask) runnable).getStatus() == Status.CANCELED);
       }
 
