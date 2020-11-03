@@ -105,13 +105,33 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
-      mutateRootGcCandidates(rgcc -> rgcc.add(candidates));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.iterator()));
       return;
     }
 
     try (BatchWriter writer = createWriter(tableId)) {
       for (StoredTabletFile file : candidates) {
         writer.addMutation(createDeleteMutation(file));
+      }
+    } catch (MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public void putGcFileAndDirCandidates(TableId tableId, Collection<String> candidates) {
+
+    if (RootTable.ID.equals(tableId)) {
+
+      // Directories are unexpected for the root tablet, so convert to stored tablet file
+      mutateRootGcCandidates(
+          rgcc -> rgcc.add(candidates.stream().map(StoredTabletFile::new).iterator()));
+      return;
+    }
+
+    try (BatchWriter writer = createWriter(tableId)) {
+      for (String fileOrDir : candidates) {
+        writer.addMutation(createDeleteMutation(fileOrDir));
       }
     } catch (MutationsRejectedException e) {
       throw new RuntimeException(e);

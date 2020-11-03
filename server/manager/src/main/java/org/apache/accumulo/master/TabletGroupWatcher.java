@@ -642,7 +642,7 @@ abstract class TabletGroupWatcher extends Daemon {
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
           datafiles.add(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
           if (datafiles.size() > 1000) {
-            MetadataTableUtil.addDeleteEntries(extent, datafiles, context, ample);
+            ample.putGcFileAndDirCandidates(extent.tableId(), datafiles);
             datafiles.clear();
           }
         } else if (ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
@@ -655,12 +655,12 @@ abstract class TabletGroupWatcher extends Daemon {
               entry.getValue().toString());
           datafiles.add(path);
           if (datafiles.size() > 1000) {
-            MetadataTableUtil.addDeleteEntries(extent, datafiles, context, ample);
+            ample.putGcFileAndDirCandidates(extent.tableId(), datafiles);
             datafiles.clear();
           }
         }
       }
-      MetadataTableUtil.addDeleteEntries(extent, datafiles, context, ample);
+      ample.putGcFileAndDirCandidates(extent.tableId(), datafiles);
       BatchWriter bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       try {
         deleteTablets(info, deleteRange, bw, client);
