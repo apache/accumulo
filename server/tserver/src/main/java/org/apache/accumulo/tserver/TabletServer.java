@@ -86,9 +86,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
-import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
-import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory.RateProvider;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
@@ -142,6 +139,7 @@ import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.log.TabletServerLogger;
 import org.apache.accumulo.tserver.mastermessage.MasterMessage;
 import org.apache.accumulo.tserver.mastermessage.SplitReportMessage;
+import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
@@ -185,6 +183,7 @@ public class TabletServer extends AbstractServer {
   final TabletServerUpdateMetrics updateMetrics;
   final TabletServerScanMetrics scanMetrics;
   final TabletServerMinCMetrics mincMetrics;
+  final CompactionExecutorsMetrics ceMetrics;
 
   public TabletServerScanMetrics getScanMetrics() {
     return scanMetrics;
@@ -340,6 +339,7 @@ public class TabletServer extends AbstractServer {
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
+    ceMetrics = new CompactionExecutorsMetrics();
     SimpleTimer.getInstance(aconf).schedule(TabletLocator::clearLocators, jitter(), jitter());
     walMarker = new WalStateManager(context);
 
@@ -705,6 +705,7 @@ public class TabletServer extends AbstractServer {
       mincMetrics.register(metricsSystem);
       scanMetrics.register(metricsSystem);
       updateMetrics.register(metricsSystem);
+      ceMetrics.register(metricsSystem);
     } catch (Exception e) {
       log.error("Error registering metrics", e);
     }
@@ -729,7 +730,7 @@ public class TabletServer extends AbstractServer {
         return Iterators.transform(onlineTablets.snapshot().values().iterator(),
             Tablet::asCompactable);
       }
-    }, getContext());
+    }, getContext(), ceMetrics);
     compactionManager.start();
 
     try {
@@ -1355,27 +1356,6 @@ public class TabletServer extends AbstractServer {
 
   public void removeBulkImportState(List<String> files) {
     bulkImportStatus.removeBulkImportStatus(files);
-  }
-
-  private static final String MAJC_READ_LIMITER_KEY = "tserv_majc_read";
-  private static final String MAJC_WRITE_LIMITER_KEY = "tserv_majc_write";
-  private final RateProvider rateProvider =
-      () -> getConfiguration().getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
-
-  /**
-   * Get the {@link RateLimiter} for reads during major compactions on this tserver. All writes
-   * performed during major compactions are throttled to conform to this RateLimiter.
-   */
-  public final RateLimiter getMajorCompactionReadLimiter() {
-    return SharedRateLimiterFactory.getInstance().create(MAJC_READ_LIMITER_KEY, rateProvider);
-  }
-
-  /**
-   * Get the RateLimiter for writes during major compactions on this tserver. All reads performed
-   * during major compactions are throttled to conform to this RateLimiter.
-   */
-  public final RateLimiter getMajorCompactionWriteLimiter() {
-    return SharedRateLimiterFactory.getInstance().create(MAJC_WRITE_LIMITER_KEY, rateProvider);
   }
 
   public CompactionManager getCompactionManager() {

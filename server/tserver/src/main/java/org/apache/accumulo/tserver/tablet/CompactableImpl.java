@@ -52,6 +52,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.CompactionServices;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.tserver.compactions.Compactable;
@@ -537,7 +538,8 @@ public class CompactableImpl implements Compactable {
   }
 
   @Override
-  public void compact(CompactionServiceId service, CompactionJob job) {
+  public void compact(CompactionServiceId service, CompactionJob job, RateLimiter readLimiter,
+      RateLimiter writeLimiter) {
 
     Set<StoredTabletFile> jobFiles = job.getFiles().stream()
         .map(cf -> ((CompactableFileImpl) cf).getStortedTabletFile()).collect(Collectors.toSet());
@@ -644,7 +646,8 @@ public class CompactableImpl implements Compactable {
       TabletLogger.compacting(getExtent(), job, localCompactionCfg);
 
       metaFile = CompactableUtils.compact(tablet, job, jobFiles, compactionId, propogateDeletes,
-          localHelper, iters, new CompactionCheck(service, job.getKind(), checkCompactionId));
+          localHelper, iters, new CompactionCheck(service, job.getKind(), checkCompactionId),
+          readLimiter, writeLimiter);
 
       TabletLogger.compacted(getExtent(), job, metaFile);
 
