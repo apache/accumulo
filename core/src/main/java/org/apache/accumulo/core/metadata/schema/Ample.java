@@ -147,7 +147,7 @@ public interface Ample {
   /**
    * Unlike {@link #putGcCandidates(TableId, Collection)} this takes file and dir GC candidates.
    */
-  default void putGcFdCandidates(TableId tableId, Collection<String> candidates) {
+  default void putGcFileAndDirCandidates(TableId tableId, Collection<String> candidates) {
     throw new UnsupportedOperationException();
   }
 

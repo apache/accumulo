@@ -60,7 +60,7 @@ public class CleanUpBulkImport extends MasterRepo {
     Path bulkDir = new Path(bulk);
     MetadataTableUtil.removeBulkLoadInProgressFlag(master.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    master.getContext().getAmple().putGcFdCandidates(tableId,
+    master.getContext().getAmple().putGcFileAndDirCandidates(tableId,
         Collections.singleton(bulkDir.toString()));
     log.debug("removing the metadata table markers for loaded files");
     AccumuloClient client = master.getContext();

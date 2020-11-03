@@ -53,7 +53,7 @@ public class CleanUpBulkImport extends MasterRepo {
     Path bulkDir = new Path(info.bulkDir);
     MetadataTableUtil.removeBulkLoadInProgressFlag(master.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    master.getContext().getAmple().putGcFdCandidates(info.tableId,
+    master.getContext().getAmple().putGcFileAndDirCandidates(info.tableId,
         Collections.singleton(bulkDir.toString()));
     if (info.tableState == TableState.ONLINE) {
       log.debug("removing the metadata table markers for loaded files");

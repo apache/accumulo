@@ -54,7 +54,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 
 public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
@@ -114,7 +113,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
-      mutateRootGcCandidates(rgcc -> rgcc.add(candidates));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.iterator()));
       return;
     }
 
@@ -128,12 +127,13 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void putGcFdCandidates(TableId tableId, Collection<String> candidates) {
+  public void putGcFileAndDirCandidates(TableId tableId, Collection<String> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
+
       // Directories are unexpected for the root tablet, so convert to stored tablet file
       mutateRootGcCandidates(
-          rgcc -> rgcc.add(Collections2.transform(candidates, StoredTabletFile::new)));
+          rgcc -> rgcc.add(candidates.stream().map(StoredTabletFile::new).iterator()));
       return;
     }
 
