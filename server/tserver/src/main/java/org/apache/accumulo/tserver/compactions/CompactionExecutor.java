@@ -116,9 +116,9 @@ public class CompactionExecutor {
         queuedTask.remove(this);
 
       if (canceled && cancelCount.incrementAndGet() % 1024 == 0) {
-        // Need to occasionally clean the queue which could have canceled task with low priority that
-        // hang around. Avoid cleaning the queue every time something is canceled as that could be
-        // expensive.
+        // Need to occasionally clean the queue which could have canceled task with low priority
+        // that hang around. Avoid cleaning the queue every time something is canceled as that could
+        // be expensive.
         queue.removeIf(runnable -> ((CompactionTask) runnable).getStatus() == Status.CANCELED);
       }
 
