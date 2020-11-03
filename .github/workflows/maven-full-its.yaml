@@ -61,7 +61,7 @@ jobs:
     - name: Show the first log message
       run: git log -n1
     - name: Build with Maven (Fast Build)
-      run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -PskipQA
+      run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat
       env:
         MAVEN_OPTS: -Djansi.force=true
   creatematrix:
