@@ -126,7 +126,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     // intentionally created parent after lock
     zk.mkdirs(parent);
 
-    zk.delete(parent, -1);
+    zk.delete(parent);
 
     zk.mkdirs(parent);
 
@@ -186,7 +186,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     assertNull(lw.exception);
     assertNull(lw.reason);
 
-    zk.delete(zl.getLockPath(), -1);
+    zk.delete(zl.getLockPath());
 
     lw.waitForChanges(2);
 
@@ -235,7 +235,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     List<String> children = zk.getChildren(parent);
     Collections.sort(children);
 
-    zk.delete(parent + "/" + children.get(1), -1);
+    zk.delete(parent + "/" + children.get(1));
 
     lw2.waitForChanges(1);
 
@@ -243,7 +243,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     assertNotNull(lw2.exception);
     assertNull(lw2.reason);
 
-    zk.delete(parent + "/" + children.get(0), -1);
+    zk.delete(parent + "/" + children.get(0));
 
     lw.waitForChanges(2);
 

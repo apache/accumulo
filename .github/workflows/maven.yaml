@@ -51,7 +51,7 @@ jobs:
     - name: Show the first log message
       run: git log -n1
     - name: Build with Maven (Fast Build)
-      run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -PskipQA
+      run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat
       env:
         MAVEN_OPTS: -Djansi.force=true
   # more complete builds with tests
@@ -60,8 +60,8 @@ jobs:
     strategy:
       matrix:
         profile:
-          - {name: 'unit-tests',    args: 'verify -PskipQA -DskipTests=false -DforkCount=1C'}
-          - {name: 'qa-checks',     args: 'verify javadoc:jar -Psec-bugs -DskipTests=true -Dspotbugs.timeout=3600000'}
+          - {name: 'unit-tests',    args: 'verify -PskipQA -DskipTests=false'}
+          - {name: 'qa-checks',     args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
           - {name: 'hadoop-compat', args: 'package -DskipTests -Dhadoop.version=3.0.3'}
       fail-fast: false
     timeout-minutes: 60
@@ -81,7 +81,7 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
     - name: Build with Maven (${{ matrix.profile.name }})
-      run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ matrix.profile.args }}
+      run: mvn -B -V -e -ntp "-Dstyle.color=always" -DskipFormat ${{ matrix.profile.args }}
       env:
         MAVEN_OPTS: -Djansi.force=true
     - name: Upload unit test results

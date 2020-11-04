@@ -967,7 +967,7 @@ public class Tablet {
     try {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
           + "/" + extent.tableId() + Constants.ZTABLE_FLUSH_ID;
-      String id = new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8);
+      String id = new String(context.getZooReaderWriter().getData(zTablePath), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
@@ -993,7 +993,7 @@ public class Tablet {
           + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_ID;
 
       String[] tokens =
-          new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8).split(",");
+          new String(context.getZooReaderWriter().getData(zTablePath), UTF_8).split(",");
       long compactID = Long.parseLong(tokens[0]);
 
       CompactionConfig overlappingConfig = null;

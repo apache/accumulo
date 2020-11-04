@@ -160,7 +160,7 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
     try {
       List<String> hosts = new ArrayList<>();
       for (String child : children) {
-        byte[] data = zoo.getData(path + "/" + child, null);
+        byte[] data = zoo.getData(path + "/" + child);
         hosts.add(new String(data, UTF_8));
       }
       this.hosts.clear();

@@ -25,7 +25,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.LoggerFactory;
 
 public class ZooReservation {
@@ -41,10 +40,9 @@ public class ZooReservation {
             NodeExistsPolicy.FAIL);
         return true;
       } catch (NodeExistsException nee) {
-        Stat stat = new Stat();
         byte[] zooData;
         try {
-          zooData = zk.getData(path, stat);
+          zooData = zk.getData(path);
         } catch (NoNodeException nne) {
           continue;
         }
@@ -62,7 +60,7 @@ public class ZooReservation {
     byte[] zooData;
 
     try {
-      zooData = zk.getData(path, null);
+      zooData = zk.getData(path);
     } catch (NoNodeException e) {
       // Just logging a warning, if data is gone then our work here is done.
       LoggerFactory.getLogger(ZooReservation.class).debug("Node does not exist {}", path);

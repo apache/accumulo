@@ -102,8 +102,6 @@ import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.WalStateManager;
-import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
@@ -135,7 +133,6 @@ import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.thrift.TException;
@@ -145,7 +142,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoAuthException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -441,7 +437,7 @@ public class Master extends AbstractServer
         if (!context.getZooReaderWriter().exists(path)) {
           return new MergeInfo();
         }
-        byte[] data = context.getZooReaderWriter().getData(path, new Stat());
+        byte[] data = context.getZooReaderWriter().getData(path);
         DataInputBuffer in = new DataInputBuffer();
         in.reset(data, data.length);
         MergeInfo info = new MergeInfo();
@@ -505,7 +501,7 @@ public class Master extends AbstractServer
     while (true) {
       try {
         byte[] data = getContext().getZooReaderWriter()
-            .getData(getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, null);
+            .getData(getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE);
         return MasterGoalState.valueOf(new String(data));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
@@ -1678,16 +1674,6 @@ public class Master extends AbstractServer
   public Set<TServerInstance> shutdownServers() {
     synchronized (serversToShutdown) {
       return new HashSet<>(serversToShutdown);
-    }
-  }
-
-  public void markDeadServerLogsAsClosed(Map<TServerInstance,List<Path>> logsForDeadServers)
-      throws WalMarkerException {
-    WalStateManager mgr = new WalStateManager(getContext());
-    for (Entry<TServerInstance,List<Path>> server : logsForDeadServers.entrySet()) {
-      for (Path path : server.getValue()) {
-        mgr.closeWal(server.getKey(), path);
-      }
     }
   }
 

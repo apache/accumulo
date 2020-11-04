@@ -95,7 +95,6 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -476,7 +475,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       try {
         for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
           String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
-          byte[] bytes = zrw.getData(instanceNamePath, new Stat());
+          byte[] bytes = zrw.getData(instanceNamePath);
           String iid = new String(bytes, UTF_8);
           if (iid.equals(instanceIdFromFile)) {
             instanceName = name;
@@ -590,8 +589,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   private List<String> buildRemoteDebugParams(int port) {
-    return Arrays.asList("-Xdebug",
-        String.format("-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=%d", port));
+    return Collections.singletonList(
+        String.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=%d", port));
   }
 
   /**

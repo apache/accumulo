@@ -100,8 +100,8 @@ public class ZooAuthenticationKeyWatcherTest {
     List<String> children = Arrays.asList("1", "2");
 
     expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
-    expect(zk.getData(baseNode + "/1", keyWatcher, null)).andReturn(serializedKey1);
-    expect(zk.getData(baseNode + "/2", keyWatcher, null)).andReturn(serializedKey2);
+    expect(zk.getData(baseNode + "/1", keyWatcher)).andReturn(serializedKey1);
+    expect(zk.getData(baseNode + "/2", keyWatcher)).andReturn(serializedKey2);
     replay(zk);
 
     keyWatcher.process(event);
@@ -121,8 +121,8 @@ public class ZooAuthenticationKeyWatcherTest {
     List<String> children = Arrays.asList("1", "2");
 
     expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
-    expect(zk.getData(baseNode + "/1", keyWatcher, null)).andReturn(serializedKey1);
-    expect(zk.getData(baseNode + "/2", keyWatcher, null)).andReturn(serializedKey2);
+    expect(zk.getData(baseNode + "/1", keyWatcher)).andReturn(serializedKey1);
+    expect(zk.getData(baseNode + "/2", keyWatcher)).andReturn(serializedKey2);
     replay(zk);
 
     keyWatcher.process(event);
@@ -174,7 +174,7 @@ public class ZooAuthenticationKeyWatcherTest {
     assertEquals(1, secretManager.getKeys().size());
     byte[] serializedKey2 = serialize(key2);
 
-    expect(zk.getData(event.getPath(), keyWatcher, null)).andReturn(serializedKey2);
+    expect(zk.getData(event.getPath(), keyWatcher)).andReturn(serializedKey2);
     replay(zk);
 
     keyWatcher.process(event);
@@ -247,10 +247,8 @@ public class ZooAuthenticationKeyWatcherTest {
 
     expect(zk.exists(baseNode, keyWatcher)).andReturn(true);
     expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
-    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher, null))
-        .andReturn(serialize(key1));
-    expect(zk.getData(baseNode + "/" + key2.getKeyId(), keyWatcher, null))
-        .andReturn(serialize(key2));
+    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher)).andReturn(serialize(key1));
+    expect(zk.getData(baseNode + "/" + key2.getKeyId(), keyWatcher)).andReturn(serialize(key2));
 
     replay(zk);
 
@@ -284,10 +282,8 @@ public class ZooAuthenticationKeyWatcherTest {
 
     expect(zk.exists(baseNode, keyWatcher)).andReturn(true);
     expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
-    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher, null))
-        .andReturn(serialize(key1));
-    expect(zk.getData(baseNode + "/" + key2.getKeyId(), keyWatcher, null))
-        .andReturn(serialize(key2));
+    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher)).andReturn(serialize(key1));
+    expect(zk.getData(baseNode + "/" + key2.getKeyId(), keyWatcher)).andReturn(serialize(key2));
 
     replay(zk);
 
@@ -306,10 +302,8 @@ public class ZooAuthenticationKeyWatcherTest {
 
     expect(zk.exists(baseNode, keyWatcher)).andReturn(true);
     expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
-    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher, null))
-        .andReturn(serialize(key1));
-    expect(zk.getData(baseNode + "/" + key2.getKeyId(), keyWatcher, null))
-        .andReturn(serialize(key2));
+    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher)).andReturn(serialize(key1));
+    expect(zk.getData(baseNode + "/" + key2.getKeyId(), keyWatcher)).andReturn(serialize(key2));
 
     replay(zk);
 
@@ -333,7 +327,7 @@ public class ZooAuthenticationKeyWatcherTest {
     // We saw key1
     expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
     // but it was gone when we tried to access it (master deleted it)
-    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher, null))
+    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher))
         .andThrow(new NoNodeException());
 
     replay(zk);

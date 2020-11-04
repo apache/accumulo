@@ -122,9 +122,8 @@
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <failsafe.excludedGroups />
+    <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
-    <!-- surefire/failsafe plugin option -->
-    <forkCount>1</forkCount>
     <hadoop.version>3.2.1</hadoop.version>
     <hk2.version>2.6.1</hk2.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
@@ -142,12 +141,14 @@
     <powermock.version>2.0.7</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2020-08-27T15:56:15Z</project.build.outputTimestamp>
+    <rat.consoleOutput>true</rat.consoleOutput>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <slf4j.version>1.7.30</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
+    <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
     <surefire.version>3.0.0-M3</surefire.version>
     <!-- Thrift version -->
@@ -939,7 +940,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
           <configuration>
-            <arguments>-P !autoformat,thrift -DskipTests</arguments>
+            <arguments>-P !autoformat,verifyformat,thrift -DskipTests</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean package</preparationGoals>
@@ -962,6 +963,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
+            <forkCount>${surefire.forkCount}</forkCount>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
             <systemPropertyVariables>
@@ -974,6 +976,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
+            <forkCount>${failsafe.forkCount}</forkCount>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
             <systemPropertyVariables>
@@ -1504,6 +1507,69 @@
       </build>
     </profile>
     <profile>
+      <!-- off by default, but enable with '-P verifyformat' or '-DverifyFormat' -->
+      <id>verifyformat</id>
+      <activation>
+        <property>
+          <name>verifyFormat</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.ekryd.sortpom</groupId>
+            <artifactId>sortpom-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>sort-pom</id>
+                <goals>
+                  <goal>verify</goal>
+                </goals>
+                <phase>process-sources</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>com.mycila</groupId>
+            <artifactId>license-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>license-headers</id>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+                <phase>process-test-resources</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.revelc.code.formatter</groupId>
+            <artifactId>formatter-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>format-java-source</id>
+                <goals>
+                  <goal>validate</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.revelc.code</groupId>
+            <artifactId>impsort-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>sort-imports</id>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <!-- on by default, but disable with '-P !autoformat' or '-DskipFormat' -->
       <id>autoformat</id>
       <activation>
@@ -1626,6 +1692,18 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>forkCount</id>
+      <activation>
+        <property>
+          <name>forkCount</name>
+        </property>
+      </activation>
+      <properties>
+        <failsafe.forkCount>${forkCount}</failsafe.forkCount>
+        <surefire.forkCount>${forkCount}</surefire.forkCount>
+      </properties>
     </profile>
   </profiles>
 </project>

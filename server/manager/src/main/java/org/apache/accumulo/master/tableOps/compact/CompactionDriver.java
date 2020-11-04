@@ -76,7 +76,7 @@ class CompactionDriver extends MasterRepo {
 
     ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
 
-    if (Long.parseLong(new String(zoo.getData(zCancelID, null))) >= compactId) {
+    if (Long.parseLong(new String(zoo.getData(zCancelID))) >= compactId) {
       // compaction was canceled
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");

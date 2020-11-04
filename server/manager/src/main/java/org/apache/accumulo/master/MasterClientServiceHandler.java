@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.master;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
@@ -125,10 +126,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
     ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
     byte[] fid;
     try {
-      fid = zoo.mutate(zTablePath, null, null, currentValue -> {
-        long flushID = Long.parseLong(new String(currentValue));
-        flushID++;
-        return ("" + flushID).getBytes();
+      fid = zoo.mutateExisting(zTablePath, currentValue -> {
+        long flushID = Long.parseLong(new String(currentValue, UTF_8));
+        return Long.toString(flushID + 1).getBytes(UTF_8);
       });
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,

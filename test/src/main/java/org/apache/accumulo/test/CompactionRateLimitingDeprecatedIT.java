@@ -16,27 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.tables;
+package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.accumulo.core.conf.Property;
 
-import org.apache.accumulo.core.master.state.tables.TableState;
-import org.junit.Test;
-
-public class IllegalTableTransitionExceptionTest {
-
-  private final TableState oldState = TableState.ONLINE;
-  private final TableState newState = TableState.OFFLINE;
-  private final String defaultMsg =
-      "Error transitioning from " + oldState + " state to " + newState + " state";
-
-  @Test
-  public void testIllegalTableTransitionExceptionDefaultMessage() {
-    try {
-      throw new IllegalTableTransitionException(oldState, newState);
-    } catch (IllegalTableTransitionException e) {
-      assertEquals(defaultMsg, e.getMessage());
-    }
+public class CompactionRateLimitingDeprecatedIT extends CompactionRateLimitingIT {
+  @Override
+  @SuppressWarnings("removal")
+  protected Property getThroughputProp() {
+    return Property.TSERV_MAJC_THROUGHPUT;
   }
-
 }

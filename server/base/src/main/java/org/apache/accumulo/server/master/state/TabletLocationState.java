@@ -87,7 +87,7 @@ public class TabletLocationState {
     return extent + "@(" + future + "," + current + "," + last + ")" + (chopped ? " chopped" : "");
   }
 
-  public TServerInstance getServer() {
+  public TServerInstance getLocation() {
     TServerInstance result = null;
     if (current != null) {
       result = current;
