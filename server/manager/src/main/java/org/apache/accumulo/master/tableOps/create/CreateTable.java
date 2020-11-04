@@ -20,14 +20,12 @@ package org.apache.accumulo.master.tableOps.create;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -87,16 +85,15 @@ public class CreateTable extends MasterRepo {
   @Override
   public void undo(long tid, Master env) throws IOException {
     // Clean up split files if create table operation fails
+    Path p = null;
     try {
       if (tableInfo.getInitialSplitSize() > 0) {
-        Path p = tableInfo.getSplitPath().getParent();
+        p = tableInfo.getSplitPath().getParent();
         FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
         fs.delete(p, true);
       }
-    } catch (NullPointerException | IOException e) {
-      var spdir = Optional.ofNullable(tableInfo).map(TableInfo::getSplitDirsPath).orElse(null);
-      log.error("{} Failed to undo CreateTable operation, split dir {} ", FateTxId.formatTid(tid),
-          spdir, e);
+    } catch (IOException e) {
+      log.error("Table failed to be created and failed to clean up split files at {}", p, e);
     } finally {
       Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
     }
