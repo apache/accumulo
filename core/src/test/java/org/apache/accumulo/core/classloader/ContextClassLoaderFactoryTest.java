@@ -22,9 +22,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.net.URLClassLoader;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.commons.io.FileUtils;
@@ -68,14 +65,7 @@ public class ContextClassLoaderFactoryTest {
     ConfigurationCopy cc = new ConfigurationCopy();
     cc.set(ContextClassLoaders.CONTEXT_CLASS_LOADER_FACTORY, URLClassLoaderFactory.class.getName());
     ContextClassLoaders.resetForTests();
-    ContextClassLoaders.initialize(new Supplier<Map<String,String>>() {
-      @Override
-      public Map<String,String> get() {
-        Map<String,String> props = new HashMap<>();
-        cc.getProperties(props, key -> !key.isBlank());
-        return props;
-      }
-    });
+    ContextClassLoaders.initialize(cc);
 
     URLClassLoader cl1 = (URLClassLoader) ContextClassLoaders.getClassLoader(uri1);
     var urls1 = cl1.getURLs();

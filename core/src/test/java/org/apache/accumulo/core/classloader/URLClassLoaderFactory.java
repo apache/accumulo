@@ -22,9 +22,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.function.Supplier;
 
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,7 @@ public class URLClassLoaderFactory implements ContextClassLoaderFactory {
   private static final Logger LOG = LoggerFactory.getLogger(URLClassLoaderFactory.class);
 
   @Override
-  public void initialize(Supplier<Map<String,String>> contextProperties) throws Exception {}
+  public void initialize(Configuration contextProperties) throws Exception {}
 
   @Override
   public ClassLoader getClassLoader(String contextName) throws IllegalArgumentException {

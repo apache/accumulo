@@ -19,11 +19,11 @@
 package org.apache.accumulo.core.classloader;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
-import java.util.function.Supplier;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +34,7 @@ public class ContextClassLoaders {
   public static final String CONTEXT_CLASS_LOADER_FACTORY = "general.context.class.loader.factory";
 
   private static ContextClassLoaderFactory FACTORY;
-  private static Supplier<Map<String,String>> CONF;
+  private static AccumuloConfiguration CONF;
 
   /**
    * Initialize the ContextClassLoaderFactory
@@ -43,11 +43,11 @@ public class ContextClassLoaders {
    *          AccumuloConfiguration object
    */
   @SuppressWarnings("unchecked")
-  public static void initialize(Supplier<Map<String,String>> conf) throws Exception {
+  public static void initialize(AccumuloConfiguration conf) throws Exception {
     if (null == CONF) {
       CONF = conf;
       LOG.info("Creating ContextClassLoaderFactory");
-      var factoryName = CONF.get().get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.toString());
+      var factoryName = CONF.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.toString());
       if (null == factoryName || factoryName.isBlank()) {
         LOG.info("No ClassLoaderFactory specified");
         return;
@@ -58,12 +58,7 @@ public class ContextClassLoaders {
           LOG.info("Creating ContextClassLoaderFactory: {}", factoryName);
           FACTORY = ((Class<? extends ContextClassLoaderFactory>) factoryClass)
               .getDeclaredConstructor().newInstance();
-          FACTORY.initialize(new Supplier<Map<String,String>>() {
-            @Override
-            public Map<String,String> get() {
-              return CONF.get();
-            }
-          });
+          FACTORY.initialize(new ConfigurationImpl(CONF));
         } else {
           throw new RuntimeException(factoryName + " does not implement ContextClassLoaderFactory");
         }

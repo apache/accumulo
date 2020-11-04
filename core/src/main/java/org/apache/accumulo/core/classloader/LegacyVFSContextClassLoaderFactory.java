@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.function.Supplier;
 
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -39,13 +39,14 @@ public class LegacyVFSContextClassLoaderFactory implements ContextClassLoaderFac
   private static final Logger LOG =
       LoggerFactory.getLogger(LegacyVFSContextClassLoaderFactory.class);
 
-  public void initialize(Supplier<Map<String,String>> contextProperties) {
+  public void initialize(Configuration contextProperties) {
     try {
       AccumuloVFSClassLoader.getContextManager()
           .setContextConfig(new ContextManager.DefaultContextsConfig() {
             @Override
             public Map<String,String> getVfsContextClasspathProperties() {
-              return contextProperties.get();
+              return contextProperties
+                  .getWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.toString());
             }
           });
       LOG.debug("ContextManager configuration set");
@@ -56,15 +57,14 @@ public class LegacyVFSContextClassLoaderFactory implements ContextClassLoaderFac
               try {
                 if (LOG.isTraceEnabled()) {
                   LOG.trace("LegacyVFSContextClassLoaderFactory-cleanup thread, properties: {}",
-                      contextProperties.get());
+                      contextProperties);
                 }
                 Set<String> configuredContexts = new HashSet<>();
-                contextProperties.get().keySet().forEach(k -> {
-                  if (k.startsWith(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.toString())) {
-                    configuredContexts.add(
-                        k.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.toString().length()));
-                  }
-                });
+                contextProperties.getWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.toString())
+                    .forEach((k, v) -> {
+                      configuredContexts.add(
+                          k.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.toString().length()));
+                    });
                 LOG.trace("LegacyVFSContextClassLoaderFactory-cleanup thread, contexts in use: {}",
                     configuredContexts);
                 AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);

@@ -18,8 +18,7 @@
  */
 package org.apache.accumulo.core.spi.common;
 
-import java.util.Map;
-import java.util.function.Supplier;
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 
 /**
  * The ClassLoaderFactory is defined by the property general.context.factory. The factory
@@ -40,7 +39,7 @@ public interface ContextClassLoaderFactory {
    * @throws Exception
    *           if error initializing ClassLoaderFactory
    */
-  void initialize(Supplier<Map<String,String>> contextProperties) throws Exception;
+  void initialize(Configuration contextProperties) throws Exception;
 
   /**
    *
