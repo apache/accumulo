@@ -67,12 +67,14 @@ public class ContextClassLoaderFactoryTest {
     ContextClassLoaders.resetForTests();
     ContextClassLoaders.initialize(cc);
 
-    URLClassLoader cl1 = (URLClassLoader) ContextClassLoaders.getClassLoader(uri1);
+    URLClassLoader cl1 =
+        (URLClassLoader) ContextClassLoaders.getContextClassLoaderFactory().getClassLoader(uri1);
     var urls1 = cl1.getURLs();
     assertEquals(1, urls1.length);
     assertEquals(uri1, urls1[0].toString());
 
-    URLClassLoader cl2 = (URLClassLoader) ContextClassLoaders.getClassLoader(uri2);
+    URLClassLoader cl2 =
+        (URLClassLoader) ContextClassLoaders.getContextClassLoaderFactory().getClassLoader(uri2);
     var urls2 = cl2.getURLs();
     assertEquals(1, urls2.length);
     assertEquals(uri2, urls2[0].toString());

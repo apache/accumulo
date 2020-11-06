@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.classloader;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -46,7 +47,7 @@ public class LegacyVFSContextClassLoaderFactory implements ContextClassLoaderFac
             @Override
             public Map<String,String> getVfsContextClasspathProperties() {
               return contextProperties
-                  .getWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.toString());
+                  .getWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey());
             }
           });
       LOG.debug("ContextManager configuration set");
@@ -60,10 +61,10 @@ public class LegacyVFSContextClassLoaderFactory implements ContextClassLoaderFac
                       contextProperties);
                 }
                 Set<String> configuredContexts = new HashSet<>();
-                contextProperties.getWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.toString())
+                contextProperties.getWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
                     .forEach((k, v) -> {
                       configuredContexts.add(
-                          k.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.toString().length()));
+                          k.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey().length()));
                     });
                 LOG.trace("LegacyVFSContextClassLoaderFactory-cleanup thread, contexts in use: {}",
                     configuredContexts);
@@ -75,7 +76,7 @@ public class LegacyVFSContextClassLoaderFactory implements ContextClassLoaderFac
           }, 60000, 60000);
       LOG.debug("Context cleanup timer started at 60s intervals");
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
 
   }
@@ -85,8 +86,8 @@ public class LegacyVFSContextClassLoaderFactory implements ContextClassLoaderFac
     try {
       return AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
     } catch (IOException e) {
-      throw new RuntimeException("Error getting context class loader for context: " + contextName,
-          e);
+      throw new UncheckedIOException(
+          "Error getting context class loader for context: " + contextName, e);
     }
   }
 

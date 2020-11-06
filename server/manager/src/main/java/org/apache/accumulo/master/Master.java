@@ -381,6 +381,9 @@ public class Master extends AbstractServer
       ContextClassLoaders.initialize(aconf);
     } catch (Exception e1) {
       log.error("Error configuring ContextClassLoaderFactory", e1);
+      if (e1 instanceof RuntimeException) {
+        throw (RuntimeException) e1;
+      }
       throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
     }
 

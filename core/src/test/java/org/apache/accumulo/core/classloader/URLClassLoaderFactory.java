@@ -25,13 +25,10 @@ import java.util.ArrayList;
 
 import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class URLClassLoaderFactory implements ContextClassLoaderFactory {
 
   private static final String COMMA = ",";
-  private static final Logger LOG = LoggerFactory.getLogger(URLClassLoaderFactory.class);
 
   @Override
   public void initialize(Configuration contextProperties) throws Exception {}
@@ -45,8 +42,7 @@ public class URLClassLoaderFactory implements ContextClassLoaderFactory {
       try {
         urls.add(new URL(p));
       } catch (MalformedURLException e) {
-        LOG.error("Error creating URL from classpath segment: " + p);
-        throw new RuntimeException("Error creating URL from classpath segment: " + p, e);
+        throw new IllegalArgumentException("Error creating URL from classpath segment: " + p, e);
       }
     }
     return URLClassLoader.newInstance(urls.toArray(new URL[urls.size()]));

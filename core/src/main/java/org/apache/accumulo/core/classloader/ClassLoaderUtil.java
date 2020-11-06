@@ -24,9 +24,9 @@ public class ClassLoaderUtil {
 
   public static <U> Class<? extends U> loadClass(String contextName, String className,
       Class<U> extension) throws ClassNotFoundException {
-    if (contextName != null && !contextName.equals(""))
-      return ContextClassLoaders.getClassLoader(contextName).loadClass(className)
-          .asSubclass(extension);
+    if (contextName != null && !contextName.isEmpty())
+      return ContextClassLoaders.getContextClassLoaderFactory().getClassLoader(contextName)
+          .loadClass(className).asSubclass(extension);
     else
       return AccumuloVFSClassLoader.loadClass(className, extension);
 

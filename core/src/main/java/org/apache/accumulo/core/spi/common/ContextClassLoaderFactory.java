@@ -42,6 +42,8 @@ public interface ContextClassLoaderFactory {
   void initialize(Configuration contextProperties) throws Exception;
 
   /**
+   * Get the classloader for the context name. Callers should not cache the ClassLoader result as it
+   * may change if/when the ClassLoader reloads
    *
    * @param contextName
    *          name of classloader context

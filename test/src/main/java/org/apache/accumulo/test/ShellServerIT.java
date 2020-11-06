@@ -837,7 +837,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void classpath() throws Exception {
     // classpath
     ts.exec("classpath", true,
-        "Level: 2, Name: app, class: jdk.internal.loader.ClassLoaders$AppClassLoader: configuration not inspectable", true);
+        "Level: 2, Name: app, class: jdk.internal.loader.ClassLoaders$AppClassLoader: configuration not inspectable",
+        true);
   }
 
   @Test

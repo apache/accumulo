@@ -42,13 +42,12 @@ public class ContextClassLoaders {
    * @param conf
    *          AccumuloConfiguration object
    */
-  @SuppressWarnings("unchecked")
-  public static void initialize(AccumuloConfiguration conf) throws Exception {
+  public static synchronized void initialize(AccumuloConfiguration conf) throws Exception {
     if (null == CONF) {
       CONF = conf;
       LOG.info("Creating ContextClassLoaderFactory");
       var factoryName = CONF.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.toString());
-      if (null == factoryName || factoryName.isBlank()) {
+      if (null == factoryName || factoryName.isEmpty()) {
         LOG.info("No ClassLoaderFactory specified");
         return;
       }
@@ -76,24 +75,12 @@ public class ContextClassLoaders {
   }
 
   /**
-   * Return the ClassLoader for the given contextName
-   *
-   * @param contextName
-   *          name
-   * @return ClassLoader for contextName, do not cache this
-   * @throws RuntimeException
-   *           if contextName not configured
+   * Get the ContextClassLoaderFactory
+   * 
+   * @return the configured context classloader factory
    */
-  public static ClassLoader getClassLoader(String contextName) {
-    try {
-      // Cannot cache the ClassLoader result as it
-      // may change when the ClassLoader reloads
-      return FACTORY.getClassLoader(contextName);
-    } catch (IllegalArgumentException e) {
-      LOG.error("ContextClassLoaderFactory is not configured for context: {}", contextName);
-      throw new RuntimeException(
-          "ContextClassLoaderFactory is not configured for context: " + contextName);
-    }
+  public static ContextClassLoaderFactory getContextClassLoaderFactory() {
+    return FACTORY;
   }
 
   public static void resetForTests() {

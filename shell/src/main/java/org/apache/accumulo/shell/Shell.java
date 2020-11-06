@@ -472,7 +472,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         log.error("Error configuring ContextClassLoaderFactory", e1);
         throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
       }
-      classloader = ContextClassLoaders.getClassLoader(tableContext);
+      classloader = ContextClassLoaders.getContextClassLoaderFactory().getClassLoader(tableContext);
     } else {
       classloader = AccumuloVFSClassLoader.getClassLoader();
     }
