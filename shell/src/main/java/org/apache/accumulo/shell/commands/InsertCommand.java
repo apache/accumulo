@@ -79,7 +79,8 @@ public class InsertCommand extends Command {
       final Value val = new Value(cl.getArgs()[3].getBytes(Shell.CHARSET));
 
       if (cl.hasOption(insertOptAuths.getOpt())) {
-        final ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(insertOptAuths.getOpt()));
+        final ColumnVisibility le =
+            new ColumnVisibility(cl.getOptionValue(insertOptAuths.getOpt()));
         Shell.log.debug("Authorization label will be set to: {}", le);
 
         if (cl.hasOption(timestampOpt.getOpt()))
@@ -91,9 +92,9 @@ public class InsertCommand extends Command {
       else
         m.put(colf, colq, val);
 
-      final BatchWriterConfig cfg = new BatchWriterConfig()
-          .setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024)).setMaxWriteThreads(1)
-          .setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
+      final BatchWriterConfig cfg =
+          new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024))
+              .setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
       if (cl.hasOption(durabilityOption.getOpt())) {
         String userDurability = cl.getOptionValue(durabilityOption.getOpt());
         switch (userDurability) {
@@ -113,8 +114,8 @@ public class InsertCommand extends Command {
             throw new IllegalArgumentException("Unknown durability: " + userDurability);
         }
       }
-      final BatchWriter bw = shellState.getAccumuloClient()
-          .createBatchWriter(shellState.getTableName(), cfg);
+      final BatchWriter bw =
+          shellState.getAccumuloClient().createBatchWriter(shellState.getTableName(), cfg);
       bw.addMutation(m);
       try {
         bw.close();
@@ -137,7 +138,8 @@ public class InsertCommand extends Command {
           // must always print something
           lines.add(" " + e.getClass().getName() + " : " + e.getMessage());
           if (e.getCause() != null)
-            lines.add("   Caused by : " + e.getCause().getClass().getName() + " : " + e.getCause().getMessage());
+            lines.add("   Caused by : " + e.getCause().getClass().getName() + " : "
+                + e.getCause().getMessage());
         }
 
         shellState.printLines(lines.iterator(), false);
@@ -147,11 +149,11 @@ public class InsertCommand extends Command {
       return 0;
 
     } finally {
-        // reset table context to initial table name
-        if (cl.hasOption(tableNameOption.getOpt())) {
-          shellState.setTableName(initialTable);
-        }
+      // reset table context to initial table name
+      if (cl.hasOption(tableNameOption.getOpt())) {
+        shellState.setTableName(initialTable);
       }
+    }
   }
 
   @Override
