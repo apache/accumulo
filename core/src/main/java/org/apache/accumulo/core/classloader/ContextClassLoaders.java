@@ -76,7 +76,7 @@ public class ContextClassLoaders {
 
   /**
    * Get the ContextClassLoaderFactory
-   * 
+   *
    * @return the configured context classloader factory
    */
   public static ContextClassLoaderFactory getContextClassLoaderFactory() {
