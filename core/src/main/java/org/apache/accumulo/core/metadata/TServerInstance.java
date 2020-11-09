@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.master.state;
+package org.apache.accumulo.core.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -27,7 +27,6 @@ import java.io.Serializable;
 
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
@@ -44,8 +43,8 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
 
   // HostAndPort is not Serializable
   private transient HostAndPort location;
-  private final String session;
-  private final String cachedStringRepresentation;
+  protected final String session;
+  protected final String cachedStringRepresentation;
 
   public TServerInstance(HostAndPort address, String session) {
     this.location = address;
@@ -73,10 +72,6 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
 
   public TServerInstance(Value address, Text session) {
     this(AddressUtil.parseAddress(new String(address.get(), UTF_8), false), session.toString());
-  }
-
-  public TServerInstance(Location location) {
-    this(location.getHostAndPort(), location.getSession());
   }
 
   @Override

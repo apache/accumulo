@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.MapCounter;
@@ -40,7 +41,6 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.thrift.TException;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +96,7 @@ class CompactionDriver extends MasterRepo {
       if (tablet.getCompactId().orElse(-1) < compactId) {
         tabletsToWaitFor++;
         if (tablet.hasCurrent()) {
-          serversToFlush.increment(new TServerInstance(tablet.getLocation()), 1);
+          serversToFlush.increment(tablet.getLocation(), 1);
         }
       }
 

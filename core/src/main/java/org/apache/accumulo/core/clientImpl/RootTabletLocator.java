@@ -118,7 +118,7 @@ public class RootTabletLocator extends TabletLocator {
       return null;
     }
 
-    String server = loc.getHostAndPort().toString();
+    String server = loc.hostPort();
 
     if (lockChecker.isLockHeld(server, loc.getSession()))
       return new TabletLocation(RootTable.EXTENT, server, loc.getSession());

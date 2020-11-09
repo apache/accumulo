@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -113,39 +114,18 @@ public class TabletMetadata {
     SPLIT_RATIO
   }
 
-  public static class Location {
-    private final String server;
-    private final String session;
+  public static class Location extends TServerInstance {
+    private static final long serialVersionUID = 1L;
+
     private final LocationType lt;
 
-    Location(String server, String session, LocationType lt) {
-      this.server = server;
-      this.session = session;
+    public Location(String server, String session, LocationType lt) {
+      super(HostAndPort.fromString(server), session);
       this.lt = lt;
-    }
-
-    public HostAndPort getHostAndPort() {
-      return HostAndPort.fromString(server);
-    }
-
-    public String getSession() {
-      return session;
     }
 
     public LocationType getType() {
       return lt;
-    }
-
-    @Override
-    public String toString() {
-      return server + ":" + session + ":" + lt;
-    }
-
-    /**
-     * @return an ID composed of host, port, and session id.
-     */
-    public String getId() {
-      return server + "[" + session + "]";
     }
   }
 

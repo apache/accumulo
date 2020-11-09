@@ -23,7 +23,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.thrift.MasterState;
-import org.apache.accumulo.server.master.state.TabletState;
+import org.apache.accumulo.core.metadata.TabletState;
 
 public class TableStats {
   private Map<TableId,TableCounts> last = new HashMap<>();

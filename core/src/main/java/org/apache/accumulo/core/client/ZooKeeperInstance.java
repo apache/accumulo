@@ -161,7 +161,7 @@ public class ZooKeeperInstance implements Instance {
       return null;
     }
 
-    return loc.getHostAndPort().toString();
+    return loc.hostPort();
   }
 
   @Override

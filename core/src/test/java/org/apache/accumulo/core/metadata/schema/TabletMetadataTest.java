@@ -116,11 +116,11 @@ public class TabletMetadataTest {
     assertEquals(rowMap, tm.getKeyValues());
     assertEquals(Map.of(new StoredTabletFile(bf1), 56L, new StoredTabletFile(bf2), 59L),
         tm.getLoaded());
-    assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
+    assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getLocation());
     assertEquals("s001", tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
     assertTrue(tm.hasCurrent());
-    assertEquals(HostAndPort.fromParts("server2", 8555), tm.getLast().getHostAndPort());
+    assertEquals(HostAndPort.fromParts("server2", 8555), tm.getLast().getLocation());
     assertEquals("s000", tm.getLast().getSession());
     assertEquals(LocationType.LAST, tm.getLast().getType());
     assertEquals(Set.of(le1.getValue() + " " + le1.timestamp, le2.getValue() + " " + le2.timestamp),
@@ -145,7 +145,7 @@ public class TabletMetadataTest {
         EnumSet.allOf(ColumnType.class), false);
 
     assertEquals(extent, tm.getExtent());
-    assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
+    assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getLocation());
     assertEquals("s001", tm.getLocation().getSession());
     assertEquals(LocationType.FUTURE, tm.getLocation().getType());
     assertFalse(tm.hasCurrent());

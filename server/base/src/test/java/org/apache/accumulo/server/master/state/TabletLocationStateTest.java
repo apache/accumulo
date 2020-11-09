@@ -31,6 +31,9 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.BeforeClass;
