@@ -253,13 +253,16 @@ public class ShellIT extends SharedMiniClusterBase {
     // without option cannot insert when not in a table context, also cannot add to a table
     // using 'accumulo shell -e "insert ...." fron command line due to no table context being set.
     exec("insert row1 f q tab1", false, "java.lang.IllegalStateException: Not in a table context");
-    // but using optino can insert to a table with tablename option without being in a table context
+    // but using option can insert to a table with tablename option without being in a table context
     exec("insert row1 f q tab1 --tablename tab1", true);
     exec("insert row3 f q tab2 --tablename tab2", true);
     exec("table tab2", true);
     // can also insert into another table even if a different table context
     exec("insert row2 f q tab1 --tablename tab1", true);
     exec("notable", true);
+    // must supply a tablename if option is used
+    exec("insert row5 f q tab5 --tablename", false,
+        "org.apache.commons.cli.MissingArgumentException: Missing argument for option:");
     // verify that -t option does not work for insertion, only tablename
     exec("insert row3 f q tab1 -t tab1", false,
         "org.apache.commons.cli.UnrecognizedOptionException: Unrecognized option: -t");
