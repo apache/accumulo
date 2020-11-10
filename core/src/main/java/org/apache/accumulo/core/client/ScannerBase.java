@@ -358,6 +358,13 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Iterates through Scanner results.
+   *
+   * @param keyValueConsumer
+   *          name of user-defined BiConsumer child class
+   * @since 2.1.0
+   */
   default void forEach(BiConsumer<? super Key,? super Value> keyValueConsumer) {
     for (Entry<Key,Value> entry : this) {
       keyValueConsumer.accept(entry.getKey(), entry.getValue());

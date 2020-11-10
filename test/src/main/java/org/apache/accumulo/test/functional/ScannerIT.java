@@ -18,14 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -39,7 +35,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class ScannerIT extends AccumuloClusterHarness {
@@ -118,47 +113,4 @@ public class ScannerIT extends AccumuloClusterHarness {
       }
     }
   }
-
-  @Test
-  public void testScannerBaseForEach() throws Exception {
-    final String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      c.tableOperations().create(table);
-
-      try (BatchWriter bw = c.createBatchWriter(table)) {
-        Mutation m = new Mutation("a");
-        m.put(new Text("cf1"), new Text("cq1"), new Value("v1"));
-        bw.addMutation(m);
-      }
-
-      Map<Key,Value> map = new HashMap<>();
-
-      Scanner s = c.createScanner(table);
-
-      class MyBiConsumer implements BiConsumer<Key,Value> {
-        @Override
-        public void accept(Key key, Value value) {
-          map.put(key, value);
-        }
-      }
-
-      BiConsumer<Key,Value> keyValueConsumer = new MyBiConsumer();
-
-      s.forEach(keyValueConsumer);
-
-      // Test the Scanner values put into the map via keyValueConsumer
-      for (Map.Entry<Key,Value> entry : map.entrySet()) {
-        String expectedCf = "cf1";
-        String actualCf = entry.getKey().getColumnFamily().toString();
-        String expectedCq = "cq1";
-        String actualCq = entry.getKey().getColumnQualifier().toString();
-        String expectedVal = "v1";
-        String actualVal = entry.getValue().toString();
-        assertEquals(expectedCf, actualCf);
-        assertEquals(expectedCq, actualCq);
-        assertEquals(expectedVal, actualVal);
-      }
-    }
-  }
-
 }
