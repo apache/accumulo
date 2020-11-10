@@ -50,7 +50,6 @@ public class InsertCommand extends Command {
   private Option insertOptAuths, timestampOpt;
   private Option timeoutOption;
   private Option durabilityOption;
-  private Option tableNameOption;
 
   protected long getTimeout(final CommandLine cl) {
     if (cl.hasOption(timeoutOption.getLongOpt())) {
@@ -65,15 +64,7 @@ public class InsertCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
       ConstraintViolationException {
 
-    String tablename = null;
-    if (cl.hasOption(tableNameOption.getOpt())) {
-      // no need to checkTableState if tablename option is supplied
-      tablename = cl.getOptionValue(tableNameOption.getOpt());
-    } else {
-      tablename = shellState.getTableName();
-      // Verify currently in a context with tablename
-      shellState.checkTableState();
-    }
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
     final Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
@@ -115,7 +106,7 @@ public class InsertCommand extends Command {
           throw new IllegalArgumentException("Unknown durability: " + userDurability);
       }
     }
-    final BatchWriter bw = shellState.getAccumuloClient().createBatchWriter(tablename, cfg);
+    final BatchWriter bw = shellState.getAccumuloClient().createBatchWriter(tableName, cfg);
     bw.addMutation(m);
     try {
       bw.close();
@@ -180,10 +171,7 @@ public class InsertCommand extends Command {
         "durability to use for insert, should be one of \"none\" \"log\" \"flush\" or \"sync\"");
     o.addOption(durabilityOption);
 
-    tableNameOption =
-        new Option("", "tablename", true, "name of table in which data is being inserted");
-    tableNameOption.setArgName("tablename");
-    o.addOption(tableNameOption);
+    o.addOption(OptUtil.tableOpt("table in which data is to be inserted"));
 
     return o;
   }
