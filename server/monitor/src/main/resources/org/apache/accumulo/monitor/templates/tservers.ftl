@@ -57,15 +57,15 @@
                 <th class="duration">Last&nbsp;Contact&nbsp;</th>
                 <th title="The time it took for the tserver to return its status." class="duration">Response&nbsp;Time&nbsp;</th>
                 <th title="Key/value pairs over each instance, table or tablet." class="big-num">Entries&nbsp;</th>
-                <th title="The number of Key/Value pairs inserted. (Note that deletes are inserted)" class="big-num">Ingest&nbsp;</th>
+                <th title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="big-num">Ingest&nbsp;</th>
                 <th title="The number of key/value pairs returned to clients. (Not the number of scans)" class="big-num">Query&nbsp;</th>
-                <th title="The amount of time that ingest operations are suspended while waiting for data to be written to disk." class="duration">Hold&nbsp;Time&nbsp;</th>
+                <th title="The amount of time live ingest (mutations, batch writer) is suspended while waiting for tserver memory to free up. Writes are attempting to exceed tserver.memory.maps.max" class="duration">Hold&nbsp;Time&nbsp;</th>
                 <th title="Information about the scans threads. Shows how many threads are running and how much work is queued for the threads.">Running<br/>Scans&nbsp;</th>
                 <th title="The action of flushing memory to disk. Multiple tablets can be compacted simultaneously, but sometimes they must wait for resources to be available. The number of tablets waiting for compaction are in parentheses.">Minor<br/>Compactions&nbsp;</th>
                 <th title="The action of gathering up many small files and rewriting them as one larger file. The number of tablets waiting for compaction are in parentheses.">Major<br/>Compactions&nbsp;</th>
                 <th title="The recent index cache hit rate." class="percent">Index Cache<br/>Hit Rate&nbsp;</th>
                 <th title="The recent data cache hit rate." class="percent">Data Cache<br/>Hit Rate&nbsp;</th>
-                <th title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval."  class="big-num">OS&nbsp;Load&nbsp;</th>
+                <th title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval." class="big-num">OS&nbsp;Load&nbsp;</th>
               </tr>
             </thead>
             <tbody></tbody>

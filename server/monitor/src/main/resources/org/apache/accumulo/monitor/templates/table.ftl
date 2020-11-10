@@ -44,7 +44,7 @@
                 <th title="Key/value pairs over each instance, table or tablet.">Entries&nbsp;</th>
                 <th title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)">Ingest&nbsp;</th>
                 <th title="The number of key/value pairs returned to clients. (Not the number of scans)">Query&nbsp;</th>
-                <th title="The amount of time that ingest operations are suspended while waiting for data to be written to disk.">Hold&nbsp;Time&nbsp;</th>
+                <th title="The amount of time live ingest (mutations, batch writer) is suspended while waiting for tserver memory to free up. Writes are attempting to exceed tserver.memory.maps.max">Hold&nbsp;Time&nbsp;</th>
                 <th title="Information about the scans threads. Shows how many threads are running and how much work is queued for the threads.">Running<br/>Scans&nbsp;</th>
                 <th title="The action of flushing memory to disk. Multiple tablets can be compacted simultaneously, but sometimes they must wait for resources to be available. The number of tablets waiting for compaction are in parentheses.">Minor<br/>Compactions&nbsp;</th>
                 <th title="The action of gathering up many small files and rewriting them as one larger file.">Major<br/>Compactions&nbsp;</th>
