@@ -171,7 +171,7 @@ public class InsertCommand extends Command {
         "durability to use for insert, should be one of \"none\" \"log\" \"flush\" or \"sync\"");
     o.addOption(durabilityOption);
 
-    o.addOption(OptUtil.tableOpt("table in which data is to be inserted"));
+    o.addOption(OptUtil.tableOpt("table into which data will be inserted"));
 
     return o;
   }
