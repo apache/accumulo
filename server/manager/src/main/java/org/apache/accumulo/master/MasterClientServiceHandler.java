@@ -293,7 +293,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       Master.log.info("Canceled migration of {}", split.oldTablet);
     }
     for (TServerInstance instance : master.tserverSet.getCurrentServers()) {
-      if (serverName.equals(instance.hostPort())) {
+      if (serverName.equals(instance.getHostPort())) {
         master.nextEvent.event("%s reported split %s, %s", serverName,
             KeyExtent.fromThrift(split.newTablets.get(0)),
             KeyExtent.fromThrift(split.newTablets.get(1)));
@@ -462,7 +462,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     Set<TServerInstance> tserverInstances = master.onlineTabletServers();
     List<String> servers = new ArrayList<>();
     for (TServerInstance tserverInstance : tserverInstances) {
-      servers.add(tserverInstance.getLocation().toString());
+      servers.add(tserverInstance.getHostAndPort().toString());
     }
 
     return servers;

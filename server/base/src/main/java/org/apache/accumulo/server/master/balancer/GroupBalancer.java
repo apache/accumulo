@@ -137,11 +137,11 @@ public abstract class GroupBalancer extends TabletBalancer {
       if (last != null) {
         // Maintain locality
         String fakeSessionID = " ";
-        TServerInstance simple = new TServerInstance(last.getLocation(), fakeSessionID);
+        TServerInstance simple = new TServerInstance(last.getHostAndPort(), fakeSessionID);
         Iterator<TServerInstance> find = current.tailMap(simple).keySet().iterator();
         if (find.hasNext()) {
           TServerInstance tserver = find.next();
-          if (tserver.host().equals(last.host())) {
+          if (tserver.getHost().equals(last.getHost())) {
             assignments.put(entry.getKey(), tserver);
             continue;
           }
@@ -416,7 +416,7 @@ public abstract class GroupBalancer extends TabletBalancer {
 
     @Override
     public String toString() {
-      return tsi.toString();
+      return tsi.getHostPortSession();
     }
 
   }

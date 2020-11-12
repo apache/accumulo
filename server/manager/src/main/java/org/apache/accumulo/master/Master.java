@@ -1447,7 +1447,7 @@ public class Master extends AbstractServer
       if (!added.isEmpty()) {
         log.info("New servers: {}", added);
         for (TServerInstance up : added) {
-          obit.delete(up.hostPort());
+          obit.delete(up.getHostPort());
         }
       }
       for (TServerInstance dead : deleted) {
@@ -1456,7 +1456,7 @@ public class Master extends AbstractServer
           cause = "clean shutdown"; // maybe an incorrect assumption
         }
         if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
-          obit.post(dead.hostPort(), cause);
+          obit.post(dead.getHostPort(), cause);
         }
       }
 
@@ -1502,13 +1502,13 @@ public class Master extends AbstractServer
     while (badIter.hasNext()) {
       TServerInstance bad = badIter.next();
       for (TServerInstance add : added) {
-        if (bad.hostPort().equals(add.hostPort())) {
+        if (bad.getHostPort().equals(add.getHostPort())) {
           badIter.remove();
           break;
         }
       }
       for (TServerInstance del : deleted) {
-        if (bad.hostPort().equals(del.hostPort())) {
+        if (bad.getHostPort().equals(del.getHostPort())) {
           badIter.remove();
           break;
         }
@@ -1630,7 +1630,7 @@ public class Master extends AbstractServer
     result.badTServers = new HashMap<>();
     synchronized (badServers) {
       for (TServerInstance bad : badServers.keySet()) {
-        result.badTServers.put(bad.hostPort(), TabletServerState.UNRESPONSIVE.getId());
+        result.badTServers.put(bad.getHostPort(), TabletServerState.UNRESPONSIVE.getId());
       }
     }
     result.state = getMasterState();
@@ -1639,7 +1639,7 @@ public class Master extends AbstractServer
     result.serversShuttingDown = new HashSet<>();
     synchronized (serversToShutdown) {
       for (TServerInstance server : serversToShutdown) {
-        result.serversShuttingDown.add(server.hostPort());
+        result.serversShuttingDown.add(server.getHostPort());
       }
     }
     DeadServerList obit =

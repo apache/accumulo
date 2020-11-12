@@ -88,14 +88,13 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
     TServerInstance tserver = getRandomTServer(tservers, rand.nextInt(tservers.size()));
     String replServiceAddr;
     try {
-      replServiceAddr = new String(reader.getData(
-          master.getZooKeeperRoot() + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort()),
-          UTF_8);
+      replServiceAddr = new String(reader.getData(master.getZooKeeperRoot()
+          + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.getHostPort()), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch repliation service port for tserver", e);
       throw new ReplicationCoordinatorException(
           ReplicationCoordinatorErrorCode.SERVICE_CONFIGURATION_UNAVAILABLE,
-          "Could not determine port for replication service running at " + tserver.hostPort());
+          "Could not determine port for replication service running at " + tserver.getHostPort());
     }
 
     return replServiceAddr;

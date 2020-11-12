@@ -20,13 +20,9 @@ package org.apache.accumulo.core.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
@@ -37,19 +33,19 @@ import org.apache.hadoop.io.Text;
  * Therefore tablet assignments can be considered out-of-date if the tablet server instance
  * information has been changed.
  */
-public class TServerInstance implements Ample.TServer, Comparable<TServerInstance>, Serializable {
+public class TServerInstance implements Comparable<TServerInstance>, Serializable {
 
   private static final long serialVersionUID = 1L;
 
   // HostAndPort is not Serializable
-  private transient HostAndPort location;
+  private transient HostAndPort hostAndPort;
   protected final String session;
   protected final String cachedStringRepresentation;
 
   public TServerInstance(HostAndPort address, String session) {
-    this.location = address;
+    this.hostAndPort = address;
     this.session = session;
-    this.cachedStringRepresentation = hostPort() + "[" + session + "]";
+    this.cachedStringRepresentation = getHostPort() + "[" + session + "]";
   }
 
   public TServerInstance(String formattedString) {
@@ -57,9 +53,9 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
     if (pos < 0 || !formattedString.endsWith("]")) {
       throw new IllegalArgumentException(formattedString);
     }
-    this.location = HostAndPort.fromString(formattedString.substring(0, pos));
+    this.hostAndPort = HostAndPort.fromString(formattedString.substring(0, pos));
     this.session = formattedString.substring(pos + 1, formattedString.length() - 1);
-    this.cachedStringRepresentation = hostPort() + "[" + session + "]";
+    this.cachedStringRepresentation = getHostPort() + "[" + session + "]";
   }
 
   public TServerInstance(HostAndPort address, long session) {
@@ -78,12 +74,12 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
   public int compareTo(TServerInstance other) {
     if (this == other)
       return 0;
-    return this.toString().compareTo(other.toString());
+    return this.getHostPortSession().compareTo(other.getHostPortSession());
   }
 
   @Override
   public int hashCode() {
-    return toString().hashCode();
+    return getHostPortSession().hashCode();
   }
 
   @Override
@@ -94,37 +90,23 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
     return false;
   }
 
-  @Override
-  public String toString() {
+  public String getHostPortSession() {
     return cachedStringRepresentation;
   }
 
-  public String host() {
-    return getLocation().getHost();
+  public String getHost() {
+    return getHostAndPort().getHost();
   }
 
-  public String hostPort() {
-    return getLocation().toString();
+  public String getHostPort() {
+    return getHostAndPort().toString();
   }
 
-  @Override
-  public HostAndPort getLocation() {
-    return location;
+  public HostAndPort getHostAndPort() {
+    return hostAndPort;
   }
 
-  @Override
   public String getSession() {
     return session;
   }
-
-  private void writeObject(ObjectOutputStream out) throws IOException {
-    out.defaultWriteObject();
-    out.writeObject(location.toString());
-  }
-
-  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-    in.defaultReadObject();
-    location = HostAndPort.fromString(in.readObject().toString());
-  }
-
 }

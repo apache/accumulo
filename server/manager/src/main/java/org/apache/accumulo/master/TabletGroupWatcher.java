@@ -405,7 +405,7 @@ abstract class TabletGroupWatcher extends Daemon {
           .tailMap(new TServerInstance(tls.suspend.server, " ")).keySet().iterator();
       if (find.hasNext()) {
         TServerInstance found = find.next();
-        if (found.getLocation().equals(tls.suspend.server)) {
+        if (found.getHostAndPort().equals(tls.suspend.server)) {
           returnInstance = found;
         }
       }

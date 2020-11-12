@@ -222,7 +222,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     if (goodServers != null) {
       List<String> servers = new ArrayList<>();
       for (TServerInstance server : goodServers)
-        servers.add(server.toString());
+        servers.add(server.getHostPortSession());
       cfg.addOption(SERVERS_OPTION, Joiner.on(",").join(servers));
     }
   }

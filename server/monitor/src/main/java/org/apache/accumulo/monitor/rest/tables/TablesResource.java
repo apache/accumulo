@@ -158,7 +158,7 @@ public class TablesResource {
         TabletLocationState state = scanner.next();
         if (state.current != null) {
           try {
-            locs.add(state.current.hostPort());
+            locs.add(state.current.getHostPort());
           } catch (Exception ex) {
             scanner.close();
             return tabletServers;

@@ -125,7 +125,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       Collections.shuffle(tserversList, RANDOM);
 
       for (int i1 = 0; i1 < count; ++i1) {
-        final String tserverName = tserversList.get(i1).toString();
+        final String tserverName = tserversList.get(i1).getHostPortSession();
         MasterClient.executeVoid(ctx, client -> {
           log.info("Sending shutdown command to {} via MasterClientService", tserverName);
           client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
@@ -323,7 +323,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
             suspended.put(tls.suspend.server, tls.extent);
             ++suspendedCount;
           } else if (tls.current != null) {
-            hosted.put(tls.current.getLocation(), tls.extent);
+            hosted.put(tls.current.getHostAndPort(), tls.extent);
             ++hostedCount;
           } else if (tls.future != null) {
             ++assignedCount;

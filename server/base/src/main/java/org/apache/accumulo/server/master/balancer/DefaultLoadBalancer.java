@@ -69,11 +69,11 @@ public class DefaultLoadBalancer extends TabletBalancer {
     if (last != null) {
       // Maintain locality
       String fakeSessionID = " ";
-      TServerInstance simple = new TServerInstance(last.getLocation(), fakeSessionID);
+      TServerInstance simple = new TServerInstance(last.getHostAndPort(), fakeSessionID);
       Iterator<TServerInstance> find = locations.tailMap(simple).keySet().iterator();
       if (find.hasNext()) {
         TServerInstance current = find.next();
-        if (current.host().equals(last.host()))
+        if (current.getHost().equals(last.getHost()))
           return current;
       }
     }

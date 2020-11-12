@@ -229,7 +229,7 @@ public abstract class TabletBalancer {
       throws ThriftSecurityException, TException {
     log.debug("Scanning tablet server {} for table {}", tserver, tableId);
     Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(),
-        tserver.getLocation(), context);
+        tserver.getHostAndPort(), context);
     try {
       return client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
     } catch (TTransportException e) {

@@ -23,6 +23,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -140,14 +141,14 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
-  public Ample.TabletMutator putLocation(Ample.TServer tsi, LocationType type) {
+  public Ample.TabletMutator putLocation(TServerInstance tsi, LocationType type) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(getLocationFamily(type), tsi.getSession(), tsi.getLocation().toString());
+    mutation.put(getLocationFamily(type), tsi.getSession(), tsi.getHostAndPort().toString());
     return this;
   }
 
   @Override
-  public Ample.TabletMutator deleteLocation(Ample.TServer tsi, LocationType type) {
+  public Ample.TabletMutator deleteLocation(TServerInstance tsi, LocationType type) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.putDelete(getLocationFamily(type), tsi.getSession());
     return this;
@@ -205,11 +206,11 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
-  public Ample.TabletMutator putSuspension(Ample.TServer tServer, long suspensionTime) {
+  public Ample.TabletMutator putSuspension(TServerInstance tServer, long suspensionTime) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.put(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
         SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier(),
-        SuspendingTServer.toValue(tServer.getLocation(), suspensionTime));
+        SuspendingTServer.toValue(tServer.getHostAndPort(), suspensionTime));
     return this;
   }
 

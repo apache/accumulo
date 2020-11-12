@@ -198,7 +198,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     LOG.debug("Performing pool recheck - regrouping tablet servers based on regular expressions");
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> newPools = new HashMap<>();
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-      List<String> poolNames = getPoolNamesForHost(e.getKey().host());
+      List<String> poolNames = getPoolNamesForHost(e.getKey().getHost());
       for (String pool : poolNames) {
         SortedMap<TServerInstance,TabletServerStatus> np = newPools.get(pool);
         if (np == null) {
@@ -407,7 +407,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
           for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
             // pool names are the same as table names, except in the DEFAULT case.
             // If this table is assigned to a pool for this host, then move on.
-            List<String> hostPools = getPoolNamesForHost(e.getKey().host());
+            List<String> hostPools = getPoolNamesForHost(e.getKey().getHost());
             if (hostPools.contains(tablePoolName)) {
               continue;
             }
@@ -453,7 +453,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
               }
             } catch (TException e1) {
               LOG.error("Error in OOB check getting tablets for table {} from server {} {}", tid,
-                  e.getKey().host(), e);
+                  e.getKey().getHost(), e);
             }
           }
         }

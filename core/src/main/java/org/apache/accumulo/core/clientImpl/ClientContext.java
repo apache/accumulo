@@ -349,7 +349,7 @@ public class ClientContext implements AccumuloClient {
       return null;
     }
 
-    return loc.hostPort();
+    return loc.getHostPort();
   }
 
   /**

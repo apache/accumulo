@@ -198,12 +198,12 @@ public class Gatherer {
                                                                                          // tablets
                                                                                          // w/o a
                                                                                          // location
-          .map(tm -> tm.getLocation().hostPort()) // convert to host:port strings
+          .map(tm -> tm.getLocation().getHostPort()) // convert to host:port strings
           .min(String::compareTo) // find minimum host:port
           .orElse(entry.getValue().stream().filter(tm -> tm.getLast() != null) // if no locations,
                                                                                // then look at last
                                                                                // locations
-              .map(tm -> tm.getLast().hostPort()) // convert to host:port strings
+              .map(tm -> tm.getLast().getHostPort()) // convert to host:port strings
               .min(String::compareTo).orElse(null)); // find minimum last location or return null
 
       if (location == null) {

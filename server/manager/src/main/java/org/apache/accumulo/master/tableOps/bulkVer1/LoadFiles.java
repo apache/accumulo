@@ -149,7 +149,7 @@ class LoadFiles extends MasterRepo {
         Pattern regex = Pattern.compile(prop);
         List<TServerInstance> subset = new ArrayList<>();
         master.onlineTabletServers().forEach(t -> {
-          if (regex.matcher(t.host()).matches()) {
+          if (regex.matcher(t.getHost()).matches()) {
             subset.add(t);
           }
         });
@@ -170,7 +170,7 @@ class LoadFiles extends MasterRepo {
               // servers serving the metadata tablets
               long timeInMillis =
                   master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
-              server = servers[random.nextInt(servers.length)].getLocation();
+              server = servers[random.nextInt(servers.length)].getHostAndPort();
               client = ThriftUtil.getTServerClient(server, master.getContext(), timeInMillis);
               List<String> attempt1 = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);

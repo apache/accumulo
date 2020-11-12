@@ -211,7 +211,7 @@ class LoadFiles extends MasterRepo {
           locationLess++;
           continue;
         } else {
-          server = location.getLocation();
+          server = location.getHostAndPort();
         }
 
         Set<TabletFile> loadedFiles = tablet.getLoaded().keySet();
@@ -275,7 +275,7 @@ class LoadFiles extends MasterRepo {
 
       for (TabletMetadata tablet : tablets) {
         if (tablet.getLocation() != null) {
-          unloadingTablets.increment(tablet.getLocation().getLocation(), 1L);
+          unloadingTablets.increment(tablet.getLocation().getHostAndPort(), 1L);
           continue;
         }
 

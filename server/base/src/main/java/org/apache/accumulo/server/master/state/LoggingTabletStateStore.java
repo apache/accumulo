@@ -85,7 +85,7 @@ class LoggingTabletStateStore implements TabletStateStore {
       logsForDeadServers = Map.of();
 
     for (TabletLocationState tls : tablets) {
-      TabletLogger.suspended(tls.extent, tls.current.getLocation(), suspensionTimestamp,
+      TabletLogger.suspended(tls.extent, tls.current.getHostAndPort(), suspensionTimestamp,
           TimeUnit.MILLISECONDS, logsForDeadServers.size());
     }
   }
