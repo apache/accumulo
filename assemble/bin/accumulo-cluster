@@ -143,8 +143,6 @@ function start_tservers() {
 function start_all() {
   unset DISPLAY
 
-  start_service "$monitor" monitor 
-
   if [[ "$1" != "--no-tservers" ]]; then
     start_tservers
   fi
@@ -160,6 +158,8 @@ function start_all() {
   for host in $(egrep -v '(^#|^\s*$)' "${conf}/tracers"); do
     start_service "$host" tracer
   done
+
+  start_service "$monitor" monitor
 }
 
 function start_here() {
