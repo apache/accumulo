@@ -101,7 +101,7 @@
               <th title="The rate of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="big-num">Ingest</th>
               <th title="The rate of Key/Value pairs read on the server side. Not all key values read may be returned to client because of filtering." class="big-num">Read</th>
               <th title="The rate of Key/Value pairs returned to clients during queries. This is not the number of scans." class="big-num">Returned</th>
-              <th title="The amount of time live ingest (mutations, batch writer) is suspended while waiting for tserver memory to free up. Writes are attempting to exceed tserver.memory.maps.max" class="duration">Hold&nbsp;Time</th>
+              <th title="The amount of time live ingest operations (mutations, batch writes) have been waiting for the tserver to free up memory." class="duration">Hold&nbsp;Time</th>
               <th title="Running scans. The number queued waiting are in parentheses.">Scans</th>
               <th title="Minor Compactions. The number of tablets waiting for compaction are in parentheses.">MinC</th>
               <th title="Major Compactions. The number of tablets waiting for compaction are in parentheses.">MajC</th>
