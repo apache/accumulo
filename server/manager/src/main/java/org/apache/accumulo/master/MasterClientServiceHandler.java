@@ -462,7 +462,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     Set<TServerInstance> tserverInstances = master.onlineTabletServers();
     List<String> servers = new ArrayList<>();
     for (TServerInstance tserverInstance : tserverInstances) {
-      servers.add(tserverInstance.getHostAndPort().toString());
+      servers.add(tserverInstance.getHostPort());
     }
 
     return servers;

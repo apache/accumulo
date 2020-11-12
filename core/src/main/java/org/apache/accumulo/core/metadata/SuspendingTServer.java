@@ -41,8 +41,8 @@ public class SuspendingTServer {
     return new SuspendingTServer(HostAndPort.fromString(parts[0]), Long.parseLong(parts[1]));
   }
 
-  public static Value toValue(HostAndPort tServer, long suspensionTime) {
-    return new Value(tServer + "|" + suspensionTime);
+  public static Value toValue(TServerInstance tServer, long suspensionTime) {
+    return new Value(tServer.getHostPort() + "|" + suspensionTime);
   }
 
   @Override

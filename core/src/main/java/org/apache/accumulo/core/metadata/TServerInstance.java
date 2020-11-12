@@ -38,14 +38,16 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   private static final long serialVersionUID = 1L;
 
   // HostAndPort is not Serializable
-  private transient HostAndPort hostAndPort;
-  protected final String session;
-  protected final String cachedStringRepresentation;
+  private final transient HostAndPort hostAndPort;
+  private final String hostPort;
+  private final String session;
+  private final String hostPortSession;
 
   public TServerInstance(HostAndPort address, String session) {
     this.hostAndPort = address;
     this.session = session;
-    this.cachedStringRepresentation = getHostPort() + "[" + session + "]";
+    this.hostPort = hostAndPort.toString();
+    this.hostPortSession = hostPort + "[" + session + "]";
   }
 
   public TServerInstance(String formattedString) {
@@ -55,7 +57,8 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     }
     this.hostAndPort = HostAndPort.fromString(formattedString.substring(0, pos));
     this.session = formattedString.substring(pos + 1, formattedString.length() - 1);
-    this.cachedStringRepresentation = getHostPort() + "[" + session + "]";
+    this.hostPort = hostAndPort.toString();
+    this.hostPortSession = hostPort + "[" + session + "]";
   }
 
   public TServerInstance(HostAndPort address, long session) {
@@ -91,15 +94,15 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
 
   public String getHostPortSession() {
-    return cachedStringRepresentation;
+    return hostPortSession;
   }
 
   public String getHost() {
-    return getHostAndPort().getHost();
+    return hostAndPort.getHost();
   }
 
   public String getHostPort() {
-    return getHostAndPort().toString();
+    return hostPort;
   }
 
   public HostAndPort getHostAndPort() {

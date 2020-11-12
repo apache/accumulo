@@ -88,9 +88,9 @@ public class ShutdownTServer extends MasterRepo {
     // suppress assignment of tablets to the server
     if (force) {
       ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
-      String path = master.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + server.getHostAndPort();
+      String path = master.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + server.getHostPort();
       ZooLock.deleteLock(zoo, path);
-      path = master.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + server.getHostAndPort();
+      path = master.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + server.getHostPort();
       zoo.putPersistentData(path, "forced down".getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     }
 

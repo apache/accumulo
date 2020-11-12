@@ -143,7 +143,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putLocation(TServerInstance tsi, LocationType type) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(getLocationFamily(type), tsi.getSession(), tsi.getHostAndPort().toString());
+    mutation.put(getLocationFamily(type), tsi.getSession(), tsi.getHostPort());
     return this;
   }
 
@@ -210,7 +210,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.put(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
         SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier(),
-        SuspendingTServer.toValue(tServer.getHostAndPort(), suspensionTime));
+        SuspendingTServer.toValue(tServer, suspensionTime));
     return this;
   }
 
