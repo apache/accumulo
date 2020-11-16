@@ -1442,8 +1442,7 @@ public class Master extends AbstractServer
       Set<TServerInstance> added) {
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {
-      DeadServerList obit =
-          new DeadServerList(getContext(), getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+      DeadServerList obit = new DeadServerList(getContext());
       if (!added.isEmpty()) {
         log.info("New servers: {}", added);
         for (TServerInstance up : added) {
@@ -1642,8 +1641,7 @@ public class Master extends AbstractServer
         result.serversShuttingDown.add(server.getHostPort());
       }
     }
-    DeadServerList obit =
-        new DeadServerList(getContext(), getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+    DeadServerList obit = new DeadServerList(getContext());
     result.deadTabletServers = obit.getList();
     result.bulkImports = bulkImportStatus.getBulkLoadStatus();
     return result;
