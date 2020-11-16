@@ -278,7 +278,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
     log.debug("Seeding FATE op to shutdown " + tabletServer + " with tid " + tid);
 
-    master.fate.seedTransaction(tid, new TraceRepo<>(new ShutdownTServer(doomed, force)), false);
+    master.fate.seedTransaction(tid,
+        new TraceRepo<>(new ShutdownTServer(doomed.getHostAndPort(), doomed.getSession(), force)),
+        false);
     master.fate.waitForCompletion(tid);
     master.fate.delete(tid);
 

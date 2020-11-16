@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -36,18 +37,21 @@ import org.slf4j.LoggerFactory;
 
 public class ShutdownTServer extends MasterRepo {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 2L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
-  private TServerInstance server;
+  private HostAndPort hostAndPort;
+  private String serverSession;
   private boolean force;
 
-  public ShutdownTServer(TServerInstance server, boolean force) {
-    this.server = server;
+  public ShutdownTServer(HostAndPort hostAndPort, String session, boolean force) {
+    this.hostAndPort = hostAndPort;
+    this.serverSession = session;
     this.force = force;
   }
 
   @Override
   public long isReady(long tid, Master master) {
+    TServerInstance server = new TServerInstance(hostAndPort, serverSession);
     // suppress assignment of tablets to the server
     if (force) {
       return 0;
@@ -88,9 +92,9 @@ public class ShutdownTServer extends MasterRepo {
     // suppress assignment of tablets to the server
     if (force) {
       ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
-      String path = master.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + server.getHostPort();
+      String path = master.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + hostAndPort;
       ZooLock.deleteLock(zoo, path);
-      path = master.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + server.getHostPort();
+      path = master.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + hostAndPort;
       zoo.putPersistentData(path, "forced down".getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     }
 

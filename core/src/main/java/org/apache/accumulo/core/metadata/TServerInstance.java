@@ -20,8 +20,6 @@ package org.apache.accumulo.core.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.Serializable;
-
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -33,12 +31,9 @@ import org.apache.hadoop.io.Text;
  * Therefore tablet assignments can be considered out-of-date if the tablet server instance
  * information has been changed.
  */
-public class TServerInstance implements Comparable<TServerInstance>, Serializable {
+public class TServerInstance implements Comparable<TServerInstance> {
 
-  private static final long serialVersionUID = 1L;
-
-  // HostAndPort is not Serializable
-  private final transient HostAndPort hostAndPort;
+  private final HostAndPort hostAndPort;
   private final String hostPort;
   private final String session;
   private final String hostPortSession;
