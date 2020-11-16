@@ -31,8 +31,6 @@ public class ContextClassLoaders {
 
   private static final Logger LOG = LoggerFactory.getLogger(ContextClassLoaders.class);
 
-  public static final String CONTEXT_CLASS_LOADER_FACTORY = "general.context.class.loader.factory";
-
   private static ContextClassLoaderFactory FACTORY;
   private static AccumuloConfiguration CONF;
 

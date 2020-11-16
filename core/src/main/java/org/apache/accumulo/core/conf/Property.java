@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.classloader.ContextClassLoaders;
 import org.apache.accumulo.core.classloader.LegacyVFSContextClassLoaderFactory;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.constraints.NoDeleteConstraint;
@@ -198,7 +197,7 @@ public enum Property {
           + "Additionally, this property no longer does property interpolation of environment "
           + "variables, such as '$ACCUMULO_HOME'. Use commons-configuration syntax,"
           + "'${env:ACCUMULO_HOME}' instead."),
-  GENERAL_CONTEXT_CLASSLOADER_FACTORY(ContextClassLoaders.CONTEXT_CLASS_LOADER_FACTORY,
+  GENERAL_CONTEXT_CLASSLOADER_FACTORY("general.context.class.loader.factory",
       LegacyVFSContextClassLoaderFactory.class.getName(), PropertyType.STRING,
       "Name of classloader factory to be used to create classloaders for named contexts."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,

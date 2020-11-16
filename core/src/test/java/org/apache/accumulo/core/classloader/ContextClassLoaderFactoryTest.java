@@ -63,7 +63,7 @@ public class ContextClassLoaderFactoryTest {
   public void differentContexts() throws Exception {
 
     ConfigurationCopy cc = new ConfigurationCopy();
-    cc.set(ContextClassLoaders.CONTEXT_CLASS_LOADER_FACTORY, URLClassLoaderFactory.class.getName());
+    cc.set("general.context.class.loader.factory", URLClassLoaderFactory.class.getName());
     ContextClassLoaders.resetForTests();
     ContextClassLoaders.initialize(cc);
 
