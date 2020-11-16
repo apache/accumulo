@@ -79,12 +79,13 @@ public class NamespaceIdTest {
     assertEquals(namespaceString, nsId.canonical());
 
     // create a bunch more and throw them away
-    for (int i = 0; i < 999; i++) {
-      NamespaceId.of(new String("namespace" + i));
+    long preGCSize = 0;
+    int i = 0;
+    while ((preGCSize = NamespaceId.cache.asMap().entrySet().stream().count()) < 100) {
+      NamespaceId.of(new String("namespace" + i++));
     }
-    long preGCSize = NamespaceId.cache.asMap().entrySet().stream().count();
     LOG.info("Entries before System.gc(): {}", preGCSize);
-    assertTrue(preGCSize > 500); // verify amount increased significantly
+    assertEquals(100, preGCSize);
     long postGCSize = preGCSize;
     while (postGCSize >= preGCSize) {
       TableIdTest.tryToGc();
