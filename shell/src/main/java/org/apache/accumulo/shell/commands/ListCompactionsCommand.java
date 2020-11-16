@@ -19,8 +19,8 @@
 package org.apache.accumulo.shell.commands;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.shell.Shell;
@@ -28,8 +28,6 @@ import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-
-import com.google.common.collect.Iterators;
 
 public class ListCompactionsCommand extends Command {
 
@@ -64,14 +62,13 @@ public class ListCompactionsCommand extends Command {
       filterText = ".*" + cl.getOptionValue(filterOption.getOpt()) + ".*";
     }
 
-    Iterator<String> activeCompactionIterator = new ActiveCompactionIterator(tservers, instanceOps);
+    Stream<String> activeCompactionStream = ActiveCompactionHelper.stream(tservers, instanceOps);
     if (filterText != null) {
-      String finalFilterText = filterText;
-      activeCompactionIterator =
-          Iterators.filter(activeCompactionIterator, t -> t.matches(finalFilterText));
+      final String finalFilterText = filterText;
+      activeCompactionStream = activeCompactionStream.filter(t -> t.matches(finalFilterText));
     }
 
-    shellState.printLines(activeCompactionIterator, paginate);
+    shellState.printLines(activeCompactionStream.iterator(), paginate);
 
     return 0;
   }
