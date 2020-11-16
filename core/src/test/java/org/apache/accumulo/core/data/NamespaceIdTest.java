@@ -40,6 +40,12 @@ public class NamespaceIdTest {
   @Rule
   public TestName name = new TestName();
 
+  private static long cacheCount() {
+    // guava cache size() is approximate, and can include garbage-collected entries
+    // so we iterate to get the actual cache size
+    return NamespaceId.cache.asMap().entrySet().stream().count();
+  }
+
   @Test
   public void testCacheNoDuplicates() {
     // the next line just preloads the built-ins, since they now exist in a separate class from
@@ -47,9 +53,9 @@ public class NamespaceIdTest {
     assertNotSame(Namespace.ACCUMULO.id(), Namespace.DEFAULT.id());
 
     String namespaceString = "namespace-" + name.getMethodName();
-    long initialSize = NamespaceId.cache.asMap().entrySet().stream().count();
+    long initialSize = cacheCount();
     NamespaceId nsId = NamespaceId.of(namespaceString);
-    assertEquals(initialSize + 1, NamespaceId.cache.asMap().entrySet().stream().count());
+    assertEquals(initialSize + 1, cacheCount());
     assertEquals(namespaceString, nsId.canonical());
 
     // ensure duplicates are not created
@@ -58,16 +64,16 @@ public class NamespaceIdTest {
     builtInNamespaceId = NamespaceId.of("+default");
     assertSame(Namespace.DEFAULT.id(), builtInNamespaceId);
     nsId = NamespaceId.of(namespaceString);
-    assertEquals(initialSize + 1, NamespaceId.cache.asMap().entrySet().stream().count());
+    assertEquals(initialSize + 1, cacheCount());
     assertEquals(namespaceString, nsId.canonical());
     NamespaceId nsId2 = NamespaceId.of(namespaceString);
-    assertEquals(initialSize + 1, NamespaceId.cache.asMap().entrySet().stream().count());
+    assertEquals(initialSize + 1, cacheCount());
     assertSame(nsId, nsId2);
   }
 
   @Test(timeout = 30_000)
   public void testCacheIncreasesAndDecreasesAfterGC() {
-    long initialSize = NamespaceId.cache.asMap().entrySet().stream().count();
+    long initialSize = cacheCount();
     assertTrue(initialSize < 20); // verify initial amount is reasonably low
     LOG.info("Initial cache size: {}", initialSize);
     LOG.info(NamespaceId.cache.asMap().toString());
@@ -75,13 +81,13 @@ public class NamespaceIdTest {
     // add one and check increase
     String namespaceString = "namespace-" + name.getMethodName();
     NamespaceId nsId = NamespaceId.of(namespaceString);
-    assertEquals(initialSize + 1, NamespaceId.cache.asMap().entrySet().stream().count());
+    assertEquals(initialSize + 1, cacheCount());
     assertEquals(namespaceString, nsId.canonical());
 
     // create a bunch more and throw them away
     long preGCSize = 0;
     int i = 0;
-    while ((preGCSize = NamespaceId.cache.asMap().entrySet().stream().count()) < 100) {
+    while ((preGCSize = cacheCount()) < 100) {
       NamespaceId.of(new String("namespace" + i++));
     }
     LOG.info("Entries before System.gc(): {}", preGCSize);
@@ -89,7 +95,7 @@ public class NamespaceIdTest {
     long postGCSize = preGCSize;
     while (postGCSize >= preGCSize) {
       TableIdTest.tryToGc();
-      postGCSize = NamespaceId.cache.asMap().entrySet().stream().count();
+      postGCSize = cacheCount();
       LOG.info("Entries after System.gc(): {}", postGCSize);
     }
   }
