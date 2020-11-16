@@ -152,7 +152,7 @@
     <surefire.groups />
     <surefire.version>3.0.0-M3</surefire.version>
     <!-- Thrift version -->
-    <thrift.version>0.12.0</thrift.version>
+    <thrift.version>0.13.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
     <zookeeper.version>3.5.8</zookeeper.version>

@@ -27,7 +27,7 @@ import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
-import org.apache.thrift.transport.AutoExpandingBufferWriteTransport;
+import org.apache.thrift.transport.TMemoryBuffer;
 import org.apache.thrift.transport.TMemoryInputTransport;
 
 /**
@@ -36,18 +36,21 @@ import org.apache.thrift.transport.TMemoryInputTransport;
  */
 public class ThriftMessageUtil {
 
-  private final AutoExpandingBufferWriteTransport transport;
-  private final TProtocol protocol;
+  private final int initialCapacity;
+
+  private final TMemoryInputTransport inputTransport;
+  private final TCompactProtocol inputProtocol;
 
   public ThriftMessageUtil() {
-    this(64, 1.5);
+    this(64);
   }
 
-  public ThriftMessageUtil(int initialCapacity, double growthCoefficient) {
+  public ThriftMessageUtil(int initialCapacity) {
     // TODO does this make sense? better to push this down to the serialize method (accept the
     // transport as an argument)?
-    this.transport = new AutoExpandingBufferWriteTransport(initialCapacity, growthCoefficient);
-    this.protocol = new TCompactProtocol(transport);
+    this.initialCapacity = initialCapacity;
+    this.inputTransport = new TMemoryInputTransport();
+    this.inputProtocol = new TCompactProtocol(inputTransport);
   }
 
   /**
@@ -61,14 +64,14 @@ public class ThriftMessageUtil {
    */
   public ByteBuffer serialize(TBase<?,?> msg) throws IOException {
     requireNonNull(msg);
-    transport.reset();
+    TMemoryBuffer transport = new TMemoryBuffer(initialCapacity);
+    TProtocol protocol = new TCompactProtocol(transport);
     try {
       msg.write(protocol);
-      // We should flush(), but we know its a noop
     } catch (TException e) {
       throw new IOException(e);
     }
-    return ByteBuffer.wrap(transport.getBuf().array(), 0, transport.getPos());
+    return ByteBuffer.wrap(transport.getArray(), 0, transport.length());
   }
 
   /**
@@ -94,10 +97,9 @@ public class ThriftMessageUtil {
   public <T extends TBase<?,?>> T deserialize(byte[] serialized, int offset, int length, T instance)
       throws IOException {
     requireNonNull(instance);
-    TCompactProtocol proto =
-        new TCompactProtocol(new TMemoryInputTransport(serialized, offset, length));
+    inputTransport.reset(serialized, offset, length);
     try {
-      instance.read(proto);
+      instance.read(inputProtocol);
     } catch (TException e) {
       throw new IOException(e);
     }
