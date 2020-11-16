@@ -220,21 +220,21 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("delete r f q", false, "java.lang.IllegalStateException: Not in a table context");
     exec("createtable test", true);
     exec("insert r f q v", true);
-    exec("scan", true, "r f:q []    v");
+    exec("scan", true, "r f:q []\tv");
     exec("delete r f q", true);
-    exec("scan", true, "r f:q []    v", false);
+    exec("scan", true, "r f:q []\tv", false);
     exec("insert \\x90 \\xa0 \\xb0 \\xc0\\xd0\\xe0\\xf0", true);
-    exec("scan", true, "\\x90 \\xA0:\\xB0 []    \\xC0\\xD0");
-    exec("scan -f 2", true, "\\x90 \\xA0:\\xB0 []    \\xC0\\xD0");
-    exec("scan -f 2", true, "\\x90 \\xA0:\\xB0 []    \\xC0\\xD0\\xE0", false);
-    exec("scan -b \\x90 -e \\x90 -c \\xA0", true, "\\x90 \\xA0:\\xB0 []    \\xC0");
-    exec("scan -b \\x90 -e \\x90 -c \\xA0:\\xB0", true, "\\x90 \\xA0:\\xB0 []    \\xC0");
-    exec("scan -b \\x90 -be", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
-    exec("scan -e \\x90 -ee", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
-    exec("scan -b \\x90\\x00", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
-    exec("scan -e \\x8f", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
+    exec("scan", true, "\\x90 \\xA0:\\xB0 []\t\\xC0\\xD0");
+    exec("scan -f 2", true, "\\x90 \\xA0:\\xB0 []\t\\xC0\\xD0");
+    exec("scan -f 2", true, "\\x90 \\xA0:\\xB0 []\t\\xC0\\xD0\\xE0", false);
+    exec("scan -b \\x90 -e \\x90 -c \\xA0", true, "\\x90 \\xA0:\\xB0 []\t\\xC0");
+    exec("scan -b \\x90 -e \\x90 -c \\xA0:\\xB0", true, "\\x90 \\xA0:\\xB0 []\t\\xC0");
+    exec("scan -b \\x90 -be", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
+    exec("scan -e \\x90 -ee", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
+    exec("scan -b \\x90\\x00", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
+    exec("scan -e \\x8f", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
     exec("delete \\x90 \\xa0 \\xb0", true);
-    exec("scan", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
+    exec("scan", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
   }
 
@@ -322,8 +322,8 @@ public class ShellIT extends SharedMiniClusterBase {
     Shell.log.debug("Starting scanTimestamp test ------------------------");
     exec("createtable test", true);
     exec("insert r f q v -ts 0", true);
-    exec("scan -st", true, "r f:q [] 0    v");
-    exec("scan -st -f 0", true, " : [] 0   ");
+    exec("scan -st", true, "r f:q [] 0\tv");
+    exec("scan -st -f 0", true, " : [] 0\t");
     exec("deletemany -f", true);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
   }
@@ -335,8 +335,8 @@ public class ShellIT extends SharedMiniClusterBase {
     // historically, showing few did not pertain to ColVis or Timestamp
     exec("insert 1 123 123456 -l '12345678' -ts 123456789 1234567890", true);
     exec("setauths -s 12345678", true);
-    String expected = "1 123:123456 [12345678] 123456789    1234567890";
-    String expectedFew = "1 123:12345 [12345678] 123456789    12345";
+    String expected = "1 123:123456 [12345678] 123456789\t1234567890";
+    String expectedFew = "1 123:12345 [12345678] 123456789\t12345";
     exec("scan -st", true, expected);
     exec("scan -st -f 5", true, expectedFew);
     // also prove that BinaryFormatter behaves same as the default
@@ -355,9 +355,9 @@ public class ShellIT extends SharedMiniClusterBase {
     @SuppressWarnings("deprecation")
     DateFormat dateFormat =
         new SimpleDateFormat(org.apache.accumulo.core.util.format.DateStringFormatter.DATE_FORMAT);
-    String expected = String.format("r f:q [] %s    v", dateFormat.format(new Date(0)));
+    String expected = String.format("r f:q [] %s\tv", dateFormat.format(new Date(0)));
     // historically, showing few did not pertain to ColVis or Timestamp
-    String expectedNoTimestamp = "r f:q []    v";
+    String expectedNoTimestamp = "r f:q []\tv";
     exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st", true, expected);
     exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st -f 1000", true,
         expected);
@@ -376,8 +376,8 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("setauths -s vis", true);
     exec("insert r f q v -ts 0 -l vis", true);
 
-    String expected = "r f:q [vis]    v";
-    String expectedTimestamp = "r f:q [vis] 0    v";
+    String expected = "r f:q [vis]\tv";
+    String expectedTimestamp = "r f:q [vis] 0\tv";
     exec("grep", false, "No terms specified");
     exec("grep non_matching_string", true, "");
     // historically, showing few did not pertain to ColVis or Timestamp
