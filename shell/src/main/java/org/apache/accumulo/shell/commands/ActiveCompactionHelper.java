@@ -97,9 +97,10 @@ class ActiveCompactionHelper {
         "TABLET SERVER", "AGE", "TYPE", "REASON", "READ", "WROTE", "TABLE", "TABLET", "INPUT",
         "OUTPUT", "ITERATORS", "ITERATOR OPTIONS"));
 
+    // use at least 4 threads (if needed), but no more than 256
+    int numThreads = Math.max(4, Math.min(tservers.size() / 10, 256));
     var threadFactory = new NamingThreadFactory("shell-listcompactions");
-    var executorService =
-        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), threadFactory);
+    var executorService = Executors.newFixedThreadPool(numThreads, threadFactory);
     try {
       Stream<String> activeCompactionLines = tservers.stream()
           // submit each tserver to executor
