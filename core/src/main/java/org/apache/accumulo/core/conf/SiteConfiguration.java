@@ -141,8 +141,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
       return this;
     }
 
-    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
-        justification = "location of props is specified by an admin")
+    @SuppressFBWarnings(value = {"URLCONNECTION_SSRF_FD", "PATH_TRAVERSAL_IN"},
+        justification = "location of props is specified by an admin, path provided by test")
     @Override
     public SiteConfiguration build() {
       // load properties from configuration file
@@ -204,6 +204,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   // load properties from config file
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
     if (accumuloPropsLocation != null) {
       var config = new PropertiesConfiguration();

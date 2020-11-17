@@ -76,6 +76,7 @@ public class AccumuloClassLoader {
    *          Value to default to if not found.
    * @return value of property or default
    */
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static String getAccumuloProperty(String propertyName, String defaultValue) {
     if (accumuloConfigUrl == null) {
       log.warn(
