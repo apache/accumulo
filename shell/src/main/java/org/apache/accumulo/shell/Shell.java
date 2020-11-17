@@ -620,7 +620,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void shutdown() {
     if (reader != null) {
-      reader.shutdown();
+      reader.close();
     }
     if (accumuloClient != null) {
       accumuloClient.close();
