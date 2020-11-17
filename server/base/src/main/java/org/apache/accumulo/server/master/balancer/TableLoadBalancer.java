@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,12 +49,8 @@ public class TableLoadBalancer extends TabletBalancer {
       throws Exception {
     String context = null;
     context = this.context.getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
-    Class<? extends TabletBalancer> clazz;
-    if (context != null && !context.equals(""))
-      clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName,
-          TabletBalancer.class);
-    else
-      clazz = AccumuloVFSClassLoader.loadClass(clazzName, TabletBalancer.class);
+    Class<? extends TabletBalancer> clazz =
+        ClassLoaderUtil.loadClass(context, clazzName, TabletBalancer.class);
     Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(TableId.class);
     return constructor.newInstance(tableId);
   }
