@@ -19,6 +19,7 @@
 package org.apache.accumulo.start.classloader;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -31,8 +32,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,10 +84,10 @@ public class AccumuloClassLoader {
       return defaultValue;
     }
     try {
-      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-              .configure(new Parameters().properties().setURL(accumuloConfigUrl));
-      PropertiesConfiguration config = propsBuilder.getConfiguration();
+      var config = new PropertiesConfiguration();
+      try (var reader = new FileReader(accumuloConfigUrl.getFile())) {
+        config.getLayout().load(config, reader);
+      }
       String value = config.getString(propertyName);
       if (value != null)
         return value;

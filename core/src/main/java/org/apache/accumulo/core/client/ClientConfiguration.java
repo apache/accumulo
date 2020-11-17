@@ -21,8 +21,12 @@ package org.apache.accumulo.core.client;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,8 +42,6 @@ import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -194,14 +196,17 @@ public class ClientConfiguration {
    *          the path to the configuration file
    * @since 1.9.0
    */
-  public static ClientConfiguration fromFile(File file) {
-    FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-        new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-            .configure(new Parameters().properties().setFile(file));
-    try {
-      return new ClientConfiguration(Collections.singletonList(propsBuilder.getConfiguration()));
+  public static ClientConfiguration fromFile(File file) throws FileNotFoundException {
+    var config = new PropertiesConfiguration();
+    try (var reader = new FileReader(file)) {
+      config.getLayout().load(config, reader);
+      return new ClientConfiguration(Collections.singletonList(config));
     } catch (ConfigurationException e) {
       throw new IllegalArgumentException("Bad configuration file: " + file, e);
+    } catch (FileNotFoundException fnfe) {
+      throw fnfe;
+    } catch (IOException e1) {
+      throw new UncheckedIOException("IOExcetion creating configuration", e1);
     }
   }
 
@@ -225,14 +230,15 @@ public class ClientConfiguration {
     for (String path : paths) {
       File conf = new File(path);
       if (conf.isFile() && conf.canRead()) {
-        FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-            new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-                .configure(new Parameters().properties().setFile(conf));
-        try {
-          configs.add(propsBuilder.getConfiguration());
+        var config = new PropertiesConfiguration();
+        try (var reader = new FileReader(conf)) {
+          config.getLayout().load(config, reader);
+          configs.add(config);
           log.info("Loaded client configuration file {}", conf);
         } catch (ConfigurationException e) {
           throw new IllegalStateException("Error loading client configuration file " + conf, e);
+        } catch (IOException e1) {
+          throw new UncheckedIOException("IOExcetion creating configuration", e1);
         }
       }
     }

@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileReader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
@@ -48,8 +49,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.junit.AfterClass;
@@ -240,13 +239,13 @@ public class MiniAccumuloClusterTest {
   public void testRandomPorts() throws Exception {
     File confDir = new File(testDir, "conf");
     File accumuloProps = new File(confDir, "accumulo.properties");
-    FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-        new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-            .configure(new Parameters().properties().setFile(accumuloProps));
-    PropertiesConfiguration conf = propsBuilder.getConfiguration();
+    var config = new PropertiesConfiguration();
+    try (var reader = new FileReader(accumuloProps)) {
+      config.getLayout().load(config, reader);
+    }
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,
         Property.MASTER_CLIENTPORT, Property.TRACE_PORT, Property.GC_PORT}) {
-      String value = conf.getString(randomPortProp.getKey());
+      String value = config.getString(randomPortProp.getKey());
       assertNotNull("Found no value for " + randomPortProp, value);
       assertEquals("0", value);
     }

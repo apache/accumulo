@@ -21,6 +21,9 @@ package org.apache.accumulo.core.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -35,8 +38,6 @@ import org.apache.commons.configuration2.AbstractConfiguration;
 import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -205,13 +206,15 @@ public class SiteConfiguration extends AccumuloConfiguration {
   // load properties from config file
   private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
     if (accumuloPropsLocation != null) {
-      var propsBuilder = new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-          .configure(new Parameters().properties().setURL(accumuloPropsLocation));
-      try {
-        return propsBuilder.getConfiguration();
+      var config = new PropertiesConfiguration();
+      try (var reader = new FileReader(accumuloPropsLocation.getFile())) {
+        config.getLayout().load(config, reader);
       } catch (ConfigurationException e) {
         throw new IllegalArgumentException(e);
+      } catch (IOException e1) {
+        throw new UncheckedIOException("IOExcetion creating configuration", e1);
       }
+      return config;
     }
     return new PropertiesConfiguration();
   }

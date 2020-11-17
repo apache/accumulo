@@ -19,7 +19,10 @@
 package org.apache.accumulo.test.metrics;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.UncheckedIOException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Iterator;
@@ -32,10 +35,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,28 +119,22 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
    * @return a configuration with http sink properties.
    */
   private Configuration loadMetricsConfig() {
-    try {
+    final URL propUrl =
+        getClass().getClassLoader().getResource(MetricsTestSinkProperties.METRICS_PROP_FILENAME);
 
-      final URL propUrl =
-          getClass().getClassLoader().getResource(MetricsTestSinkProperties.METRICS_PROP_FILENAME);
+    if (propUrl == null) {
+      throw new IllegalStateException(
+          "Could not find " + MetricsTestSinkProperties.METRICS_PROP_FILENAME + " on classpath");
+    }
 
-      if (propUrl == null) {
-        throw new IllegalStateException(
-            "Could not find " + MetricsTestSinkProperties.METRICS_PROP_FILENAME + " on classpath");
-      }
+    String filename = propUrl.getFile();
 
-      String filename = propUrl.getFile();
+    // Read data from this file
+    File propertiesFile = new File(filename);
 
-      Parameters params = new Parameters();
-      // Read data from this file
-      File propertiesFile = new File(filename);
-
-      FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
-          new FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration.class)
-              .configure(params.fileBased().setFile(propertiesFile));
-
-      Configuration config = builder.getConfiguration();
-
+    var config = new PropertiesConfiguration();
+    try (var reader = new FileReader(propertiesFile)) {
+      config.getLayout().load(config, reader);
       final Configuration sub = config.subset(metricsPrefix);
 
       if (log.isTraceEnabled()) {
@@ -153,11 +147,12 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
       }
 
       return sub;
-
-    } catch (ConfigurationException ex) {
+    } catch (ConfigurationException e) {
       throw new IllegalStateException(
           String.format("Could not find configuration file \'%s\' on classpath",
               MetricsTestSinkProperties.METRICS_PROP_FILENAME));
+    } catch (IOException e1) {
+      throw new UncheckedIOException("IOExcetion creating configuration", e1);
     }
   }
 
