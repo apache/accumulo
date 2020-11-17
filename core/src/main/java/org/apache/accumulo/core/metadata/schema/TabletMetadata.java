@@ -115,8 +115,6 @@ public class TabletMetadata {
   }
 
   public static class Location extends TServerInstance {
-    private static final long serialVersionUID = 1L;
-
     private final LocationType lt;
 
     public Location(String server, String session, LocationType lt) {
