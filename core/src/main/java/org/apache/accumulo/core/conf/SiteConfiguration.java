@@ -23,7 +23,6 @@ import static java.util.Objects.requireNonNull;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -207,15 +206,13 @@ public class SiteConfiguration extends AccumuloConfiguration {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
     if (accumuloPropsLocation != null) {
-      var config = new PropertiesConfiguration();
       try (var reader = new FileReader(accumuloPropsLocation.getFile())) {
+        var config = new PropertiesConfiguration();
         config.getLayout().load(config, reader);
-      } catch (ConfigurationException e) {
+        return config;
+      } catch (ConfigurationException | IOException e) {
         throw new IllegalArgumentException(e);
-      } catch (IOException e1) {
-        throw new UncheckedIOException("IOExcetion creating configuration", e1);
       }
-      return config;
     }
     return new PropertiesConfiguration();
   }

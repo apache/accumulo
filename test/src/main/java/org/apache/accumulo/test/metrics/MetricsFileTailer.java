@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.io.UncheckedIOException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Iterator;
@@ -147,12 +146,10 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
       }
 
       return sub;
-    } catch (ConfigurationException e) {
+    } catch (ConfigurationException | IOException e) {
       throw new IllegalStateException(
           String.format("Could not find configuration file \'%s\' on classpath",
               MetricsTestSinkProperties.METRICS_PROP_FILENAME));
-    } catch (IOException e1) {
-      throw new UncheckedIOException("IOExcetion creating configuration", e1);
     }
   }
 

@@ -21,12 +21,10 @@ package org.apache.accumulo.core.client;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -196,17 +194,13 @@ public class ClientConfiguration {
    *          the path to the configuration file
    * @since 1.9.0
    */
-  public static ClientConfiguration fromFile(File file) throws FileNotFoundException {
+  public static ClientConfiguration fromFile(File file) {
     var config = new PropertiesConfiguration();
     try (var reader = new FileReader(file)) {
       config.getLayout().load(config, reader);
       return new ClientConfiguration(Collections.singletonList(config));
-    } catch (ConfigurationException e) {
+    } catch (ConfigurationException | IOException e) {
       throw new IllegalArgumentException("Bad configuration file: " + file, e);
-    } catch (FileNotFoundException fnfe) {
-      throw fnfe;
-    } catch (IOException e1) {
-      throw new UncheckedIOException("IOExcetion creating configuration", e1);
     }
   }
 
@@ -235,10 +229,8 @@ public class ClientConfiguration {
           config.getLayout().load(config, reader);
           configs.add(config);
           log.info("Loaded client configuration file {}", conf);
-        } catch (ConfigurationException e) {
+        } catch (ConfigurationException | IOException e) {
           throw new IllegalStateException("Error loading client configuration file " + conf, e);
-        } catch (IOException e1) {
-          throw new UncheckedIOException("IOExcetion creating configuration", e1);
         }
       }
     }
