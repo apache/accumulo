@@ -27,7 +27,6 @@ import java.util.HashMap;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tserverOps.ShutdownTServer;
@@ -39,13 +38,10 @@ public class ShutdownTServerTest {
 
   @Test
   public void testSingleShutdown() throws Exception {
-    final HostAndPort hostAndPort = HostAndPort.fromParts("localhost", 1234);
-    final String session = "fake_session";
-    final TServerInstance tserver = new TServerInstance(hostAndPort, session);
-
+    final TServerInstance tserver = EasyMock.createMock(TServerInstance.class);
     final boolean force = false;
 
-    final ShutdownTServer op = new ShutdownTServer(hostAndPort, session, force);
+    final ShutdownTServer op = new ShutdownTServer(tserver, force);
 
     final Master master = EasyMock.createMock(Master.class);
     final long tid = 1L;
@@ -62,16 +58,16 @@ public class ShutdownTServerTest {
     EasyMock.expect(master.getConnection(tserver)).andReturn(tserverCnxn);
     EasyMock.expect(tserverCnxn.getTableMap(false)).andReturn(status);
 
-    EasyMock.replay(tserverCnxn, master);
+    EasyMock.replay(tserver, tserverCnxn, master);
 
     // FATE op is not ready
     long wait = op.isReady(tid, master);
     assertTrue("Expected wait to be greater than 0", wait > 0);
 
-    EasyMock.verify(tserverCnxn, master);
+    EasyMock.verify(tserver, tserverCnxn, master);
 
     // Reset the mocks
-    EasyMock.reset(tserverCnxn, master);
+    EasyMock.reset(tserver, tserverCnxn, master);
 
     // reset the table map to the empty set to simulate all tablets unloaded
     status.tableMap = new HashMap<>();
@@ -84,7 +80,7 @@ public class ShutdownTServerTest {
     tserverCnxn.halt(null);
     EasyMock.expectLastCall().once();
 
-    EasyMock.replay(tserverCnxn, master);
+    EasyMock.replay(tserver, tserverCnxn, master);
 
     // FATE op is not ready
     wait = op.isReady(tid, master);
@@ -93,7 +89,7 @@ public class ShutdownTServerTest {
     Repo<Master> op2 = op.call(tid, master);
     assertNull("Expected no follow on step", op2);
 
-    EasyMock.verify(tserverCnxn, master);
+    EasyMock.verify(tserver, tserverCnxn, master);
   }
 
 }

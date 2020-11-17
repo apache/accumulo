@@ -39,13 +39,13 @@ public class ShutdownTServer extends MasterRepo {
 
   private static final long serialVersionUID = 2L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
-  private HostAndPort hostAndPort;
-  private String serverSession;
-  private boolean force;
+  private final HostAndPort hostAndPort;
+  private final String serverSession;
+  private final boolean force;
 
-  public ShutdownTServer(HostAndPort hostAndPort, String session, boolean force) {
-    this.hostAndPort = hostAndPort;
-    this.serverSession = session;
+  public ShutdownTServer(TServerInstance server, boolean force) {
+    this.hostAndPort = server.getHostAndPort();
+    this.serverSession = server.getSession();
     this.force = force;
   }
 
