@@ -77,6 +77,7 @@ public class SiteConfigurationTest {
     assertEquals("256M", conf.get(Property.TSERV_WALOG_MAX_SIZE));
     assertEquals("org.apache.accumulo.core.cryptoImpl.AESCryptoService",
         conf.get(Property.INSTANCE_CRYPTO_SERVICE));
+    assertEquals(System.getenv("USER"), conf.get("general.test.user.name"));
   }
 
   @Test
