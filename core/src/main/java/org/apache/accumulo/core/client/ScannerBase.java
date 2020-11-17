@@ -362,7 +362,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * Iterates through Scanner results.
    *
    * @param keyValueConsumer
-   *          name of user-defined BiConsumer child class
+   *          user-defined BiConsumer
    * @since 2.1.0
    */
   default void forEach(BiConsumer<? super Key,? super Value> keyValueConsumer) {
