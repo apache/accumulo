@@ -88,6 +88,11 @@ public class TServerInstance implements Comparable<TServerInstance> {
     return false;
   }
 
+  @Override
+  public String toString() {
+    return hostPortSession;
+  }
+
   public String getHostPortSession() {
     return hostPortSession;
   }
