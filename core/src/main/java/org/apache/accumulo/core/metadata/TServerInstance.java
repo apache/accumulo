@@ -16,18 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.master.state;
+package org.apache.accumulo.core.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
@@ -38,19 +31,18 @@ import org.apache.hadoop.io.Text;
  * Therefore tablet assignments can be considered out-of-date if the tablet server instance
  * information has been changed.
  */
-public class TServerInstance implements Ample.TServer, Comparable<TServerInstance>, Serializable {
+public class TServerInstance implements Comparable<TServerInstance> {
 
-  private static final long serialVersionUID = 1L;
-
-  // HostAndPort is not Serializable
-  private transient HostAndPort location;
+  private final HostAndPort hostAndPort;
+  private final String hostPort;
   private final String session;
-  private final String cachedStringRepresentation;
+  private final String hostPortSession;
 
   public TServerInstance(HostAndPort address, String session) {
-    this.location = address;
+    this.hostAndPort = address;
     this.session = session;
-    this.cachedStringRepresentation = hostPort() + "[" + session + "]";
+    this.hostPort = hostAndPort.toString();
+    this.hostPortSession = hostPort + "[" + session + "]";
   }
 
   public TServerInstance(String formattedString) {
@@ -58,9 +50,10 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
     if (pos < 0 || !formattedString.endsWith("]")) {
       throw new IllegalArgumentException(formattedString);
     }
-    this.location = HostAndPort.fromString(formattedString.substring(0, pos));
+    this.hostAndPort = HostAndPort.fromString(formattedString.substring(0, pos));
     this.session = formattedString.substring(pos + 1, formattedString.length() - 1);
-    this.cachedStringRepresentation = hostPort() + "[" + session + "]";
+    this.hostPort = hostAndPort.toString();
+    this.hostPortSession = hostPort + "[" + session + "]";
   }
 
   public TServerInstance(HostAndPort address, long session) {
@@ -75,20 +68,16 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
     this(AddressUtil.parseAddress(new String(address.get(), UTF_8), false), session.toString());
   }
 
-  public TServerInstance(Location location) {
-    this(location.getHostAndPort(), location.getSession());
-  }
-
   @Override
   public int compareTo(TServerInstance other) {
     if (this == other)
       return 0;
-    return this.toString().compareTo(other.toString());
+    return this.getHostPortSession().compareTo(other.getHostPortSession());
   }
 
   @Override
   public int hashCode() {
-    return toString().hashCode();
+    return getHostPortSession().hashCode();
   }
 
   @Override
@@ -99,37 +88,23 @@ public class TServerInstance implements Ample.TServer, Comparable<TServerInstanc
     return false;
   }
 
-  @Override
-  public String toString() {
-    return cachedStringRepresentation;
+  public String getHostPortSession() {
+    return hostPortSession;
   }
 
-  public String host() {
-    return getLocation().getHost();
+  public String getHost() {
+    return hostAndPort.getHost();
   }
 
-  public String hostPort() {
-    return getLocation().toString();
+  public String getHostPort() {
+    return hostPort;
   }
 
-  @Override
-  public HostAndPort getLocation() {
-    return location;
+  public HostAndPort getHostAndPort() {
+    return hostAndPort;
   }
 
-  @Override
   public String getSession() {
     return session;
   }
-
-  private void writeObject(ObjectOutputStream out) throws IOException {
-    out.defaultWriteObject();
-    out.writeObject(location.toString());
-  }
-
-  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-    in.defaultReadObject();
-    location = HostAndPort.fromString(in.readObject().toString());
-  }
-
 }

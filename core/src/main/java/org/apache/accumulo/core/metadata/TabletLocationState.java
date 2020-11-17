@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.master.state;
+package org.apache.accumulo.core.metadata;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -38,7 +38,7 @@ public class TabletLocationState {
     private static final long serialVersionUID = 1L;
     private Text metadataTableEntry;
 
-    BadLocationStateException(String msg, Text row) {
+    public BadLocationStateException(String msg, Text row) {
       super(msg);
       this.metadataTableEntry = row;
     }

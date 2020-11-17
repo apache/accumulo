@@ -69,6 +69,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -111,7 +112,6 @@ import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.master.recovery.RecoveryPath;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
@@ -929,8 +929,7 @@ public class TabletServer extends AbstractServer {
 
     Location loc = meta.getLocation();
 
-    if (loc == null || loc.getType() != LocationType.FUTURE
-        || !instance.equals(new TServerInstance(loc))) {
+    if (loc == null || loc.getType() != LocationType.FUTURE || !instance.equals(loc)) {
       log.info("Unexpected location {} {}", extent, loc);
       return false;
     }

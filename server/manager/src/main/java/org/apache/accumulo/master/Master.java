@@ -72,6 +72,9 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
@@ -109,11 +112,8 @@ import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
-import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.master.state.TabletServerState;
-import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
@@ -1447,7 +1447,7 @@ public class Master extends AbstractServer
       if (!added.isEmpty()) {
         log.info("New servers: {}", added);
         for (TServerInstance up : added) {
-          obit.delete(up.hostPort());
+          obit.delete(up.getHostPort());
         }
       }
       for (TServerInstance dead : deleted) {
@@ -1456,7 +1456,7 @@ public class Master extends AbstractServer
           cause = "clean shutdown"; // maybe an incorrect assumption
         }
         if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
-          obit.post(dead.hostPort(), cause);
+          obit.post(dead.getHostPort(), cause);
         }
       }
 
@@ -1502,13 +1502,13 @@ public class Master extends AbstractServer
     while (badIter.hasNext()) {
       TServerInstance bad = badIter.next();
       for (TServerInstance add : added) {
-        if (bad.hostPort().equals(add.hostPort())) {
+        if (bad.getHostPort().equals(add.getHostPort())) {
           badIter.remove();
           break;
         }
       }
       for (TServerInstance del : deleted) {
-        if (bad.hostPort().equals(del.hostPort())) {
+        if (bad.getHostPort().equals(del.getHostPort())) {
           badIter.remove();
           break;
         }
@@ -1630,7 +1630,7 @@ public class Master extends AbstractServer
     result.badTServers = new HashMap<>();
     synchronized (badServers) {
       for (TServerInstance bad : badServers.keySet()) {
-        result.badTServers.put(bad.hostPort(), TabletServerState.UNRESPONSIVE.getId());
+        result.badTServers.put(bad.getHostPort(), TabletServerState.UNRESPONSIVE.getId());
       }
     }
     result.state = getMasterState();
@@ -1639,7 +1639,7 @@ public class Master extends AbstractServer
     result.serversShuttingDown = new HashSet<>();
     synchronized (serversToShutdown) {
       for (TServerInstance server : serversToShutdown) {
-        result.serversShuttingDown.add(server.hostPort());
+        result.serversShuttingDown.add(server.getHostPort());
       }
     }
     DeadServerList obit =
