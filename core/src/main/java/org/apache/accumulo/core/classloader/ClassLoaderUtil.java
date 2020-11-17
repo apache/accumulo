@@ -16,9 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.start.classloader.vfs;
+package org.apache.accumulo.core.classloader;
 
-@Deprecated(since = "2.1.0", forRemoval = true)
-public interface ReloadingClassLoader {
-  ClassLoader getClassLoader();
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+
+public class ClassLoaderUtil {
+
+  public static <U> Class<? extends U> loadClass(String contextName, String className,
+      Class<U> extension) throws ClassNotFoundException {
+    if (contextName != null && !contextName.isEmpty())
+      return ContextClassLoaders.getContextClassLoaderFactory().getClassLoader(contextName)
+          .loadClass(className).asSubclass(extension);
+    else
+      return AccumuloVFSClassLoader.loadClass(className, extension);
+
+  }
 }

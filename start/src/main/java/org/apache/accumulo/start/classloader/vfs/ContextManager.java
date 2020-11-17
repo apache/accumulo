@@ -29,6 +29,7 @@ import org.apache.commons.vfs2.FileSystemManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class ContextManager {
 
   private static final Logger log = LoggerFactory.getLogger(ContextManager.class);
@@ -48,6 +49,9 @@ public class ContextManager {
         return null;
 
       if (loader == null) {
+        log.debug(
+            "ClassLoader not created for context {}, creating new one. uris: {}, preDelegation: {}",
+            cconfig.name, cconfig.uris, cconfig.preDelegation);
         loader =
             new AccumuloReloadingVFSClassLoader(cconfig.uris, vfs, parent, cconfig.preDelegation);
       }
@@ -76,10 +80,12 @@ public class ContextManager {
   }
 
   public static class ContextConfig {
-    String uris;
-    boolean preDelegation;
+    final String name;
+    final String uris;
+    final boolean preDelegation;
 
-    public ContextConfig(String uris, boolean preDelegation) {
+    public ContextConfig(String name, String uris, boolean preDelegation) {
+      this.name = name;
       this.uris = uris;
       this.preDelegation = preDelegation;
     }
@@ -89,7 +95,7 @@ public class ContextManager {
       if (o instanceof ContextConfig) {
         ContextConfig oc = (ContextConfig) o;
 
-        return uris.equals(oc.uris) && preDelegation == oc.preDelegation;
+        return name.equals(oc.name) && uris.equals(oc.uris) && preDelegation == oc.preDelegation;
       }
 
       return false;
@@ -97,7 +103,8 @@ public class ContextManager {
 
     @Override
     public int hashCode() {
-      return uris.hashCode() + (preDelegation ? Boolean.TRUE : Boolean.FALSE).hashCode();
+      return name.hashCode() + uris.hashCode()
+          + (preDelegation ? Boolean.TRUE : Boolean.FALSE).hashCode();
     }
   }
 
@@ -129,7 +136,7 @@ public class ContextManager {
         preDelegate = false;
       }
 
-      return new ContextConfig(uris, preDelegate);
+      return new ContextConfig(context, uris, preDelegate);
     }
   }
 
@@ -174,9 +181,14 @@ public class ContextManager {
     ClassLoader loader = context.getClassLoader();
     if (loader == null) {
       // oops, context was closed by another thread, try again
-      return getClassLoader(contextName);
+      ClassLoader loader2 = getClassLoader(contextName);
+      log.debug("Returning new classloader {} for context {}", loader2.getClass().getSimpleName(),
+          contextName);
+      return loader2;
     }
 
+    log.debug("Returning classloader {} for context {}", loader.getClass().getSimpleName(),
+        contextName);
     return loader;
 
   }
@@ -198,11 +210,13 @@ public class ContextManager {
     // the set of currently configured contexts. We will close the contexts that are
     // no longer in the configuration.
     synchronized (this) {
+      log.debug("Managed Contexts: {}", contexts);
+      log.debug("Configured Contexts: {}", configuredContexts);
       unused = new HashMap<>(contexts);
       unused.keySet().removeAll(configuredContexts);
       contexts.keySet().removeAll(unused.keySet());
     }
-
+    log.debug("Closing contexts: {}", unused);
     for (Entry<String,Context> e : unused.entrySet()) {
       // close outside of lock
       log.info("Closing unused context: {}", e.getKey());

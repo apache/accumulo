@@ -19,22 +19,14 @@
 package org.apache.accumulo.server;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Tables;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-
-import com.google.common.collect.ImmutableMap;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 
 public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
@@ -44,98 +36,6 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
   public ServiceEnvironmentImpl(ServerContext ctx) {
     this.srvCtx = ctx;
     this.conf = new ConfigurationImpl(srvCtx.getConfiguration());
-  }
-
-  private static class ConfigurationImpl implements Configuration {
-
-    private final AccumuloConfiguration acfg;
-    private Map<String,String> customProps;
-    private Map<String,String> tableCustomProps;
-
-    ConfigurationImpl(AccumuloConfiguration acfg) {
-      this.acfg = acfg;
-    }
-
-    @Override
-    public boolean isSet(String key) {
-      Property prop = Property.getPropertyByKey(key);
-      if (prop != null) {
-        return acfg.isPropertySet(prop, false);
-      } else {
-        return acfg.get(key) != null;
-      }
-    }
-
-    @Override
-    public String get(String key) {
-      // Get prop to check if sensitive, also looking up by prop may be more efficient.
-      Property prop = Property.getPropertyByKey(key);
-      if (prop != null) {
-        if (prop.isSensitive()) {
-          return null;
-        }
-        return acfg.get(prop);
-      } else {
-        return acfg.get(key);
-      }
-    }
-
-    @Override
-    public Map<String,String> getWithPrefix(String prefix) {
-      Property propertyPrefix = Property.getPropertyByKey(prefix);
-      if (propertyPrefix != null && propertyPrefix.getType() == PropertyType.PREFIX) {
-        return acfg.getAllPropertiesWithPrefix(propertyPrefix);
-      } else {
-        return StreamSupport.stream(acfg.spliterator(), false)
-            .filter(prop -> prop.getKey().startsWith(prefix))
-            .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-      }
-    }
-
-    @Override
-    public Map<String,String> getCustom() {
-      if (customProps == null) {
-        customProps = buildCustom(Property.GENERAL_ARBITRARY_PROP_PREFIX);
-      }
-
-      return customProps;
-    }
-
-    @Override
-    public String getCustom(String keySuffix) {
-      return getCustom().get(keySuffix);
-    }
-
-    @Override
-    public Map<String,String> getTableCustom() {
-      if (tableCustomProps == null) {
-        tableCustomProps = buildCustom(Property.TABLE_ARBITRARY_PROP_PREFIX);
-      }
-
-      return tableCustomProps;
-    }
-
-    @Override
-    public String getTableCustom(String keySuffix) {
-      return getTableCustom().get(keySuffix);
-    }
-
-    private Map<String,String> buildCustom(Property customPrefix) {
-      // This could be optimized as described in #947
-      Map<String,String> props = acfg.getAllPropertiesWithPrefix(customPrefix);
-      var builder = ImmutableMap.<String,String>builder();
-      props.forEach((k, v) -> {
-        builder.put(k.substring(customPrefix.getKey().length()), v);
-      });
-
-      return builder.build();
-    }
-
-    @Override
-    public Iterator<Entry<String,String>> iterator() {
-      return StreamSupport.stream(acfg.spliterator(), false)
-          .filter(e -> !Property.isSensitive(e.getKey())).iterator();
-    }
   }
 
   @Override

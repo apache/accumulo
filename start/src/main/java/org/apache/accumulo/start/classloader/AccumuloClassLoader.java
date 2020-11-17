@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class AccumuloClassLoader {
 
   public static final String GENERAL_CLASSPATHS = "general.classpaths";
@@ -186,26 +187,28 @@ public class AccumuloClassLoader {
     if (classloader == null) {
       ArrayList<URL> urls = findAccumuloURLs();
 
-      ClassLoader parentClassLoader = AccumuloClassLoader.class.getClassLoader();
+      ClassLoader parentClassLoader = ClassLoader.getSystemClassLoader();
 
       log.debug("Create 2nd tier ClassLoader using URLs: {}", urls);
-      classloader = new URLClassLoader(urls.toArray(new URL[urls.size()]), parentClassLoader) {
-        @Override
-        protected synchronized Class<?> loadClass(String name, boolean resolve)
-            throws ClassNotFoundException {
+      classloader =
+          new URLClassLoader("AccumuloClassLoader (loads everything defined by general.classpaths)",
+              urls.toArray(new URL[urls.size()]), parentClassLoader) {
+            @Override
+            protected synchronized Class<?> loadClass(String name, boolean resolve)
+                throws ClassNotFoundException {
 
-          if (name.startsWith("org.apache.accumulo.start.classloader.vfs")) {
-            Class<?> c = findLoadedClass(name);
-            if (c == null) {
-              try {
-                // try finding this class here instead of parent
-                findClass(name);
-              } catch (ClassNotFoundException e) {}
+              if (name.startsWith("org.apache.accumulo.start.classloader.vfs")) {
+                Class<?> c = findLoadedClass(name);
+                if (c == null) {
+                  try {
+                    // try finding this class here instead of parent
+                    findClass(name);
+                  } catch (ClassNotFoundException e) {}
+                }
+              }
+              return super.loadClass(name, resolve);
             }
-          }
-          return super.loadClass(name, resolve);
-        }
-      };
+          };
     }
 
     return classloader;

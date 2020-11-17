@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Constraint;
@@ -32,7 +33,6 @@ import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.ComparableBytes;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,20 +49,12 @@ public class ConstraintChecker {
     try {
       String context = conf.get(Property.TABLE_CLASSPATH);
 
-      ClassLoader loader;
-
-      if (context != null && !context.equals("")) {
-        loader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
-      } else {
-        loader = AccumuloVFSClassLoader.getClassLoader();
-      }
-
       for (Entry<String,String> entry : conf
           .getAllPropertiesWithPrefix(Property.TABLE_CONSTRAINT_PREFIX).entrySet()) {
         if (entry.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
           String className = entry.getValue();
           Class<? extends Constraint> clazz =
-              loader.loadClass(className).asSubclass(Constraint.class);
+              ClassLoaderUtil.loadClass(context, className, Constraint.class);
 
           log.debug("Loaded constraint {} for {}", clazz.getName(),
               ((TableConfiguration) conf).getTableId());

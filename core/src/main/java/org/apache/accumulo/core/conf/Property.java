@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.LegacyVFSContextClassLoaderFactory;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -196,6 +197,9 @@ public enum Property {
           + "Additionally, this property no longer does property interpolation of environment "
           + "variables, such as '$ACCUMULO_HOME'. Use commons-configuration syntax,"
           + "'${env:ACCUMULO_HOME}' instead."),
+  GENERAL_CONTEXT_CLASSLOADER_FACTORY("general.context.class.loader.factory",
+      LegacyVFSContextClassLoaderFactory.class.getName(), PropertyType.STRING,
+      "Name of classloader factory to be used to create classloaders for named contexts."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
       "Time to wait on I/O for simple, short RPC calls"),
   @Experimental
@@ -923,10 +927,12 @@ public enum Property {
 
   // this property shouldn't be used directly; it exists solely to document the default value
   // defined by its use in AccumuloVFSClassLoader when generating the property documentation
+  @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
       AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
       "Configuration for a system level vfs classloader. Accumulo jar can be"
           + " configured here and loaded out of HDFS."),
+  @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CONTEXT_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY, null,
       PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties"
@@ -941,6 +947,7 @@ public enum Property {
 
   // this property shouldn't be used directly; it exists solely to document the default value
   // defined by its use in AccumuloVFSClassLoader when generating the property documentation
+  @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR, "${java.io.tmpdir}",
       PropertyType.ABSOLUTEPATH,
       "The base directory to use for the vfs cache. The actual cached files will be located"

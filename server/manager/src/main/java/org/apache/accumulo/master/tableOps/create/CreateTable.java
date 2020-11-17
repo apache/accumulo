@@ -33,9 +33,12 @@ import org.apache.accumulo.master.tableOps.TableInfo;
 import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CreateTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
+  private static final Logger log = LoggerFactory.getLogger(CreateTable.class);
 
   private TableInfo tableInfo;
 
@@ -82,12 +85,18 @@ public class CreateTable extends MasterRepo {
   @Override
   public void undo(long tid, Master env) throws IOException {
     // Clean up split files if create table operation fails
-    if (tableInfo.getInitialSplitSize() > 0) {
-      Path p = tableInfo.getSplitPath().getParent();
-      FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
-      fs.delete(p, true);
+    Path p = null;
+    try {
+      if (tableInfo.getInitialSplitSize() > 0) {
+        p = tableInfo.getSplitPath().getParent();
+        FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
+        fs.delete(p, true);
+      }
+    } catch (IOException e) {
+      log.error("Table failed to be created and failed to clean up split files at {}", p, e);
+    } finally {
+      Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
     }
-    Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
   }
 
 }

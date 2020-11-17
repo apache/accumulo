@@ -177,7 +177,7 @@ public interface IteratorEnvironment {
    * @since 2.1.0
    */
   default PluginEnvironment getPluginEnv() {
-    throw new UnsupportedOperationException();
+    return getServiceEnv();
   }
 
   /**

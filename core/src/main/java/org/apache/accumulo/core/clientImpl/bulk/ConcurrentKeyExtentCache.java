@@ -31,9 +31,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport.KeyExtentCache;
 import org.apache.accumulo.core.data.TableId;
@@ -85,15 +82,13 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
   }
 
   @VisibleForTesting
-  protected Stream<KeyExtent> lookupExtents(Text row)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  protected Stream<KeyExtent> lookupExtents(Text row) {
     return TabletsMetadata.builder().forTable(tableId).overlapping(row, null).checkConsistency()
         .fetch(PREV_ROW).build(ctx).stream().limit(100).map(TabletMetadata::getExtent);
   }
 
   @Override
-  public KeyExtent lookup(Text row)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public KeyExtent lookup(Text row) {
     while (true) {
       KeyExtent ke = getFromCache(row);
       if (ke != null)

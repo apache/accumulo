@@ -1126,20 +1126,6 @@
         </executions>
       </plugin>
       <plugin>
-        <!-- verify before compile; should be sorted already -->
-        <groupId>com.github.ekryd.sortpom</groupId>
-        <artifactId>sortpom-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>verify-sorted-pom</id>
-            <goals>
-              <goal>verify</goal>
-            </goals>
-            <phase>process-resources</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
         <executions>
@@ -1514,11 +1500,11 @@
             <artifactId>sortpom-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>sort-pom</id>
+                <id>verify-sorted-pom</id>
                 <goals>
                   <goal>verify</goal>
                 </goals>
-                <phase>process-sources</phase>
+                <phase>process-resources</phase>
               </execution>
             </executions>
           </plugin>
@@ -1527,7 +1513,7 @@
             <artifactId>license-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>license-headers</id>
+                <id>verify-license-headers</id>
                 <goals>
                   <goal>check</goal>
                 </goals>
@@ -1540,7 +1526,7 @@
             <artifactId>formatter-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>format-java-source</id>
+                <id>verify-formatted-java-source</id>
                 <goals>
                   <goal>validate</goal>
                 </goals>
@@ -1552,7 +1538,7 @@
             <artifactId>impsort-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>sort-imports</id>
+                <id>verify-sorted-imports</id>
                 <goals>
                   <goal>check</goal>
                 </goals>
