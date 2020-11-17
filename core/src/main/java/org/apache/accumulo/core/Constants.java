@@ -99,7 +99,7 @@ public class Constants {
   public static final long SCANNER_DEFAULT_READAHEAD_THRESHOLD = 3L;
 
   // Security configuration
-  public static final String PW_HASH_ALGORITHM = "SHA-256";
+  public static final String PW_HASH_ALGORITHM = "SHA-512";
 
   public static final int MAX_DATA_TO_PRINT = 64;
   public static final String CORE_PACKAGE_NAME = "org.apache.accumulo.core";
