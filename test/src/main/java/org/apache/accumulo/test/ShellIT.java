@@ -239,6 +239,55 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void insertIntoSpecifiedTableTest() throws IOException {
+    Shell.log.debug("Starting insertIntoSpecifiedTableTest -----------------");
+    // create two tables for insertion tests
+    exec("createtable tab1", true);
+    exec("createtable tab2", true);
+    // insert data into tab2 while in tab2 context
+    exec("insert row1 f q tab2", true);
+    // insert another with the table and t argument to verify also works
+    exec("insert row2 f q tab2 --table tab2", true);
+    exec("insert row3 f q tab2 -t tab2", true);
+    // leave all table contexts
+    exec("notable", true);
+    // without option cannot insert when not in a table context, also cannot add to a table
+    // using 'accumulo shell -e "insert ...." fron command line due to no table context being set.
+    exec("insert row1 f q tab1", false, "java.lang.IllegalStateException: Not in a table context");
+    // but using option can insert to a table with tablename option without being in a table context
+    exec("insert row1 f q tab1 --table tab1", true);
+    exec("insert row4 f q tab2 -t tab2", true);
+    exec("table tab2", true);
+    // can also insert into another table even if a different table context
+    exec("insert row2 f q tab1 -t tab1", true);
+    exec("notable", true);
+    // must supply a tablename if option is used
+    exec("insert row5 f q tab5 --table", false,
+        "org.apache.commons.cli.MissingArgumentException: Missing argument for option:");
+    exec("insert row5 f q tab5 --t", false,
+        "org.apache.commons.cli.AmbiguousOptionException: Ambiguous option: '--t'");
+    // verify expected data is in both tables
+    exec("scan -t tab1", true, "row1 f:q []\ttab1\nrow2 f:q []\ttab1");
+    exec("scan -t tab2", true,
+        "row1 f:q []\ttab2\nrow2 f:q []\ttab2\nrow3 f:q []\ttab2\nrow4 f:q []\ttab2");
+    // check that if in table context, inserting into a non-existent table does not change context
+    exec("createtable tab3", true);
+    exec("table tab3", true);
+    exec("insert row1 f1 q1 tab3", true);
+    exec("insert row2 f2 q2 tab3 --table idontexist", false,
+        "org.apache.accumulo.core.client.TableNotFoundException:");
+    exec("insert row2 f2 q2 tab3 -t idontexist", false,
+        "org.apache.accumulo.core.client.TableNotFoundException:");
+    exec("insert row3 f3 q3 tab3", true); // should be able to insert w/o changing tables
+    // verify expected data is in tab3
+    exec("scan", true, "row1 f1:q1 []\ttab3\nrow3 f3:q3 []\ttab3");
+    // cleanup
+    exec("deletetable tab1 -f", true, "Table: [tab1] has been deleted");
+    exec("deletetable tab2 -f", true, "Table: [tab2] has been deleted");
+    exec("deletetable tab3 -f", true, "Table: [tab3] has been deleted");
+  }
+
+  @Test
   public void deleteManyTest() throws IOException {
     exec("deletemany", false, "java.lang.IllegalStateException: Not in a table context");
     exec("createtable test", true);
