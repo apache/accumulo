@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -68,8 +69,6 @@ import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -187,12 +186,12 @@ public class VolumeIT extends ConfigurableMacBase {
 
       String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
-      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
-              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
-      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
-          v1 + "," + v2 + "," + v3);
-      propsBuilder.save();
+      var config = new PropertiesConfiguration();
+      config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2 + "," + v3);
+      File f = new File(cluster.getAccumuloPropertiesPath());
+      try (FileWriter out = new FileWriter(f)) {
+        config.write(out);
+      }
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -227,12 +226,12 @@ public class VolumeIT extends ConfigurableMacBase {
 
       String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
-      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
-              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
-      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
-          v2 + "," + v3);
-      propsBuilder.save();
+      var config = new PropertiesConfiguration();
+      config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
+      File f = new File(cluster.getAccumuloPropertiesPath());
+      try (FileWriter out = new FileWriter(f)) {
+        config.write(out);
+      }
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -365,12 +364,12 @@ public class VolumeIT extends ConfigurableMacBase {
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       cluster.stop();
 
-      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
-              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
-      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
-          v2.toString());
-      propsBuilder.save();
+      var config = new PropertiesConfiguration();
+      config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
+      File f = new File(cluster.getAccumuloPropertiesPath());
+      try (FileWriter out = new FileWriter(f)) {
+        config.write(out);
+      }
 
       // start cluster and verify that volume was decommissioned
       cluster.start();
@@ -429,14 +428,14 @@ public class VolumeIT extends ConfigurableMacBase {
     assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
     Path v9 = new Path(v9f.toURI());
 
-    FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-        new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
-            new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
-    PropertiesConfiguration conf = propsBuilder.getConfiguration();
-    conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
-    conf.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
+    var config = new PropertiesConfiguration();
+    config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
+    config.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
         v1 + " " + v8 + "," + v2 + " " + v9);
-    propsBuilder.save();
+    File f = new File(cluster.getAccumuloPropertiesPath());
+    try (FileWriter out = new FileWriter(f)) {
+      config.write(out);
+    }
 
     // start cluster and verify that volumes were replaced
     cluster.start();

@@ -21,6 +21,8 @@ package org.apache.accumulo.core.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -35,8 +37,6 @@ import org.apache.commons.configuration2.AbstractConfiguration;
 import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,7 +140,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
       return this;
     }
 
-    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+    @SuppressFBWarnings(value = {"URLCONNECTION_SSRF_FD"},
         justification = "location of props is specified by an admin")
     @Override
     public SiteConfiguration build() {
@@ -203,13 +203,14 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   // load properties from config file
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
     if (accumuloPropsLocation != null) {
-      var propsBuilder = new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-          .configure(new Parameters().properties().setURL(accumuloPropsLocation));
-      try {
-        return propsBuilder.getConfiguration();
-      } catch (ConfigurationException e) {
+      try (var reader = new FileReader(accumuloPropsLocation.getFile())) {
+        var config = new PropertiesConfiguration();
+        config.read(reader);
+        return config;
+      } catch (ConfigurationException | IOException e) {
         throw new IllegalArgumentException(e);
       }
     }

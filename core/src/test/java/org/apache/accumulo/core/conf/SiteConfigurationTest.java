@@ -68,6 +68,7 @@ public class SiteConfigurationTest {
 
   @Test
   public void testFile() {
+    System.setProperty("DIR", "/tmp/test/dir");
     URL propsUrl = getClass().getClassLoader().getResource("accumulo2.properties");
     var conf = new SiteConfiguration.Builder().fromUrl(propsUrl).build();
     assertEquals("myhost123:2181", conf.get(Property.INSTANCE_ZK_HOST));
@@ -77,6 +78,8 @@ public class SiteConfigurationTest {
     assertEquals("256M", conf.get(Property.TSERV_WALOG_MAX_SIZE));
     assertEquals("org.apache.accumulo.core.cryptoImpl.AESCryptoService",
         conf.get(Property.INSTANCE_CRYPTO_SERVICE));
+    assertEquals(System.getenv("USER"), conf.get("general.test.user.name"));
+    assertEquals("/tmp/test/dir", conf.get("general.test.user.dir"));
   }
 
   @Test
