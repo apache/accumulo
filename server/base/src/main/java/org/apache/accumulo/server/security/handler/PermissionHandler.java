@@ -25,13 +25,17 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.security.SecurityModule;
 import org.apache.accumulo.server.ServerContext;
 
 /**
  * This interface is used for the system which will be used for getting a users permissions. If the
  * implementation does not support configuration through Accumulo, it should throw an
  * AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
+ *
+ * @deprecated See {@link SecurityModule}
  */
+@Deprecated
 public interface PermissionHandler {
 
   /**

@@ -24,13 +24,17 @@ import java.util.List;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.security.SecurityModule;
 import org.apache.accumulo.server.ServerContext;
 
 /**
  * This interface is used for the system which will be used for getting a users Authorizations. If
  * the implementation does not support configuration through Accumulo, it should throw an
  * AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
+ *
+ * @deprecated See {@link SecurityModule}
  */
+@Deprecated
 public interface Authorizor {
 
   /**
