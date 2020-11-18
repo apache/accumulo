@@ -20,11 +20,11 @@ package org.apache.accumulo.core.summary;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class SummarizerFactory {
   private ClassLoader classloader;
@@ -48,12 +48,8 @@ public class SummarizerFactory {
       return classloader.loadClass(classname).asSubclass(Summarizer.class).getDeclaredConstructor()
           .newInstance();
     } else {
-      if (context != null && !context.equals(""))
-        return AccumuloVFSClassLoader.getContextManager()
-            .loadClass(context, classname, Summarizer.class).getDeclaredConstructor().newInstance();
-      else
-        return AccumuloVFSClassLoader.loadClass(classname, Summarizer.class)
-            .getDeclaredConstructor().newInstance();
+      return ClassLoaderUtil.loadClass(context, classname, Summarizer.class)
+          .getDeclaredConstructor().newInstance();
     }
   }
 

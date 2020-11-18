@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterState;
+import org.apache.accumulo.core.metadata.TServerInstance;
 
 public interface CurrentState {
 

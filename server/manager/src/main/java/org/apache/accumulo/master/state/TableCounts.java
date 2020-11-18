@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.master.state;
 
-import org.apache.accumulo.server.master.state.TabletState;
+import org.apache.accumulo.core.metadata.TabletState;
 
 public class TableCounts {
   int[] counts = new int[TabletState.values().length];

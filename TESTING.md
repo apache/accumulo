@@ -21,11 +21,16 @@ This document is meant to serve as a quick reference to the automated test suite
 
 # Unit tests
 
-Unit tests can be run by invoking `mvn test` at the root of the Apache Accumulo source tree.  For more information see
-the [maven-surefire-plugin docs][surefire].  This command  will run just the unit tests:
+Unit tests can be run by invoking `mvn package` at the root of the Apache Accumulo source tree, which includes the
+`test` phase of the [Maven lifecycle][lifecycle]. The `test` phase cannot be run directly, because not all of Accumulo's
+modules are Java artifacts, and therefore will not be resolvable by their sibling modules until they are created in
+their `package` phase. To avoid building against stale artifacts from previous builds that may have been published to a
+remote server or installed to your local Maven repository, always build with the `package` phase to to run the unit
+tests. The [maven-surefire-plugin][surefire] is bound to the `test` phase of the Maven lifecycle by default and will run
+the JUnit tests. To execute the unit tests, simply build the project by running:
 
 ```bash
-mvn clean test -Dspotbugs.skip -DskipITs
+mvn clean package
 ```
 
 # SpotBugs (formerly findbugs)
@@ -87,7 +92,8 @@ mvn clean verify -Dspotbugs.skip
 
 A standalone Accumulo cluster can also be configured for use by most tests. Not all the integration tests are good
 candidates to run against a standalone cluster, and some of them require classes in the test jar.  Copy the
-accumulo-test jar found in $ACCUMULO_HOME/test/target into the lib folder of your accumulo instance before running all the tests.
+accumulo-test jar found in `$ACCUMULO_HOME/test/target` into the lib folder of your accumulo instance before running all
+the tests.
 
 These tests can be run by providing a system property.  Specific ITs can be run using "-Dit.test" or run all tests using:
 
@@ -136,5 +142,6 @@ Apache Accumulo has a number of tests which are suitable for running against lar
 These test suites exist in the [accumulo-testing repo][testing].
 
 [testing]: https://github.com/apache/accumulo-testing
-[surefire]: http://maven.apache.org/surefire/maven-surefire-plugin/
-[SpotBugs]: https://spotbugs.github.io/
+[surefire]: https://maven.apache.org/surefire/maven-surefire-plugin
+[SpotBugs]: https://spotbugs.github.io
+[lifecycle]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle

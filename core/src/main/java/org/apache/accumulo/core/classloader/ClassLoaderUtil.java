@@ -16,8 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.master.state;
+package org.apache.accumulo.core.classloader;
 
-public enum TabletState {
-  UNASSIGNED, ASSIGNED, HOSTED, ASSIGNED_TO_DEAD_SERVER, SUSPENDED
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+
+public class ClassLoaderUtil {
+
+  public static <U> Class<? extends U> loadClass(String contextName, String className,
+      Class<U> extension) throws ClassNotFoundException {
+    if (contextName != null && !contextName.isEmpty())
+      return ContextClassLoaders.getContextClassLoaderFactory().getClassLoader(contextName)
+          .loadClass(className).asSubclass(extension);
+    else
+      return AccumuloVFSClassLoader.loadClass(className, extension);
+
+  }
 }

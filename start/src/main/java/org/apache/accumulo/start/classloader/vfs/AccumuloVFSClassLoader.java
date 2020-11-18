@@ -68,6 +68,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Used to load jar dynamically.
  * </pre>
  */
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class AccumuloVFSClassLoader {
 
   public static class AccumuloVFSClassLoaderShutdownThread implements Runnable {
@@ -146,6 +147,7 @@ public class AccumuloVFSClassLoader {
 
       path = AccumuloClassLoader.replaceEnvVars(path, System.getenv());
 
+      log.debug("Resolving path element: {}", path);
       FileObject fo = vfs.resolveFile(path);
 
       switch (fo.getType()) {
@@ -358,40 +360,16 @@ public class AccumuloVFSClassLoader {
           continue;
         }
 
-        String classLoaderDescription;
-        switch (level) {
-          case 1:
-            classLoaderDescription =
-                level + ": Java System Classloader (loads Java system resources)";
-            break;
-          case 2:
-            classLoaderDescription =
-                level + ": Java Classloader (loads everything defined by java classpath)";
-            break;
-          case 3:
-            classLoaderDescription =
-                level + ": Accumulo Classloader (loads everything defined by general.classpaths)";
-            break;
-          case 4:
-            classLoaderDescription = level + ": Accumulo Dynamic Classloader "
-                + "(loads everything defined by general.dynamic.classpaths)";
-            break;
-          default:
-            classLoaderDescription = level + ": Mystery Classloader ("
-                + "someone probably added a classloader and didn't update the switch statement in "
-                + AccumuloVFSClassLoader.class.getName() + ")";
-            break;
-        }
-
         boolean sawFirst = false;
+        String classLoaderDescription = "Level: " + level + ", Name: " + classLoader.getName()
+            + ", class: " + classLoader.getClass().getName();
         if (classLoader.getClass().getName().startsWith("jdk.internal")) {
           if (debug) {
-            out.print("Level " + classLoaderDescription + " " + classLoader.getClass().getName()
-                + " configuration not inspectable.\n");
+            out.print(classLoaderDescription + ": configuration not inspectable.\n");
           }
         } else if (classLoader instanceof URLClassLoader) {
           if (debug) {
-            out.print("Level " + classLoaderDescription + " URL classpath items are:\n");
+            out.print(classLoaderDescription + ": URL classpath items are:\n");
           }
           for (URL u : ((URLClassLoader) classLoader).getURLs()) {
             printJar(out, u.getFile(), debug, sawFirst);
@@ -399,7 +377,7 @@ public class AccumuloVFSClassLoader {
           }
         } else if (classLoader instanceof VFSClassLoader) {
           if (debug) {
-            out.print("Level " + classLoaderDescription + " VFS classpaths items are:\n");
+            out.print(classLoaderDescription + ": VFS classpaths items are:\n");
           }
           VFSClassLoader vcl = (VFSClassLoader) classLoader;
           for (FileObject f : vcl.getFileObjects()) {
@@ -408,7 +386,8 @@ public class AccumuloVFSClassLoader {
           }
         } else {
           if (debug) {
-            out.print("Unknown classloader configuration " + classLoader.getClass() + "\n");
+            out.print(
+                classLoaderDescription + ": Unknown classloader: " + classLoader.getClass() + "\n");
           }
         }
       }

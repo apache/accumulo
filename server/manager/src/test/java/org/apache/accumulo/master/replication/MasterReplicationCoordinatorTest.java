@@ -25,11 +25,11 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.easymock.EasyMock;
 import org.junit.Test;
 

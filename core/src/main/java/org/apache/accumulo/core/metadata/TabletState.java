@@ -16,26 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.master.state;
+package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-
-class RootTabletStateStore extends MetaDataStateStore {
-
-  RootTabletStateStore(ClientContext context, CurrentState state) {
-    super(context, state, RootTable.NAME);
-  }
-
-  @Override
-  public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(context, TabletsSection.getRange(), state, RootTable.NAME);
-  }
-
-  @Override
-  public String name() {
-    return "Metadata Tablets";
-  }
+public enum TabletState {
+  UNASSIGNED, ASSIGNED, HOSTED, ASSIGNED_TO_DEAD_SERVER, SUSPENDED
 }
