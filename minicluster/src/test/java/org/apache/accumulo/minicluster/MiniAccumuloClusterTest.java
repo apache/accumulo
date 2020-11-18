@@ -241,7 +241,7 @@ public class MiniAccumuloClusterTest {
     File accumuloProps = new File(confDir, "accumulo.properties");
     var config = new PropertiesConfiguration();
     try (var reader = new FileReader(accumuloProps)) {
-      config.getLayout().load(config, reader);
+      config.read(reader);
     }
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,
         Property.MASTER_CLIENTPORT, Property.TRACE_PORT, Property.GC_PORT}) {

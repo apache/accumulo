@@ -133,7 +133,7 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
     var config = new PropertiesConfiguration();
     try (var reader = new FileReader(propertiesFile)) {
-      config.getLayout().load(config, reader);
+      config.read(reader);
       final Configuration sub = config.subset(metricsPrefix);
 
       if (log.isTraceEnabled()) {

@@ -197,7 +197,7 @@ public class ClientConfiguration {
   public static ClientConfiguration fromFile(File file) {
     var config = new PropertiesConfiguration();
     try (var reader = new FileReader(file)) {
-      config.getLayout().load(config, reader);
+      config.read(reader);
       return new ClientConfiguration(Collections.singletonList(config));
     } catch (ConfigurationException | IOException e) {
       throw new IllegalArgumentException("Bad configuration file: " + file, e);
@@ -226,7 +226,7 @@ public class ClientConfiguration {
       if (conf.isFile() && conf.canRead()) {
         var config = new PropertiesConfiguration();
         try (var reader = new FileReader(conf)) {
-          config.getLayout().load(config, reader);
+          config.read(reader);
           configs.add(config);
           log.info("Loaded client configuration file {}", conf);
         } catch (ConfigurationException | IOException e) {

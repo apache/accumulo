@@ -88,7 +88,7 @@ public class AccumuloClassLoader {
     try {
       var config = new PropertiesConfiguration();
       try (var reader = new FileReader(accumuloConfigUrl.getFile())) {
-        config.getLayout().load(config, reader);
+        config.read(reader);
       }
       String value = config.getString(propertyName);
       if (value != null)

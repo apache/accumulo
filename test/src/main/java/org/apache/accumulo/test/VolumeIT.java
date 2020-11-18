@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -68,7 +69,6 @@ import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.io.FileHandler;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -188,9 +188,10 @@ public class VolumeIT extends ConfigurableMacBase {
 
       var config = new PropertiesConfiguration();
       config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2 + "," + v3);
-      FileHandler handler = new FileHandler(config);
       File f = new File(cluster.getAccumuloPropertiesPath());
-      handler.save(f);
+      try (FileWriter out = new FileWriter(f)) {
+        config.write(out);
+      }
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -227,9 +228,10 @@ public class VolumeIT extends ConfigurableMacBase {
 
       var config = new PropertiesConfiguration();
       config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
-      FileHandler handler = new FileHandler(config);
       File f = new File(cluster.getAccumuloPropertiesPath());
-      handler.save(f);
+      try (FileWriter out = new FileWriter(f)) {
+        config.write(out);
+      }
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -364,9 +366,10 @@ public class VolumeIT extends ConfigurableMacBase {
 
       var config = new PropertiesConfiguration();
       config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
-      FileHandler handler = new FileHandler(config);
       File f = new File(cluster.getAccumuloPropertiesPath());
-      handler.save(f);
+      try (FileWriter out = new FileWriter(f)) {
+        config.write(out);
+      }
 
       // start cluster and verify that volume was decommissioned
       cluster.start();
@@ -429,9 +432,10 @@ public class VolumeIT extends ConfigurableMacBase {
     config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
     config.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
         v1 + " " + v8 + "," + v2 + " " + v9);
-    FileHandler handler = new FileHandler(config);
     File f = new File(cluster.getAccumuloPropertiesPath());
-    handler.save(f);
+    try (FileWriter out = new FileWriter(f)) {
+      config.write(out);
+    }
 
     // start cluster and verify that volumes were replaced
     cluster.start();
