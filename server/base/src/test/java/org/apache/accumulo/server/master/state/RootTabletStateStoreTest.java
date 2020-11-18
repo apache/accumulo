@@ -31,10 +31,10 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
@@ -56,8 +56,8 @@ public class RootTabletStateStoreTest {
     }
 
     @Override
-    public AmpleImpl.Builder readTablets() {
-      return null;
+    public TabletsMetadata.TableOptions readTablets() {
+      throw new UnsupportedOperationException("This method should be implemented in subclasses");
     }
 
     @Override

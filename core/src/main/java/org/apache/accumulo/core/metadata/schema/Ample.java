@@ -126,7 +126,7 @@ public interface Ample {
    * generate the metadata.
    */
 
-  AmpleImpl.Builder readTablets();
+  TabletsMetadata.TableOptions readTablets();
 
   /**
    * Initiates mutating a single tablets persistent metadata. No data is persisted until the

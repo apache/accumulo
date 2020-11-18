@@ -34,9 +34,9 @@ import org.apache.accumulo.core.clientImpl.InstanceOperationsImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.singletons.SingletonReservation;
@@ -149,7 +149,7 @@ public class ZooKeeperInstance implements Instance {
     }
 
     Location loc =
-        AmpleImpl.Builder.getRootMetadata(ZooUtil.getRoot(getInstanceID()), zooCache).getLocation();
+        TabletsMetadata.getRootMetadata(ZooUtil.getRoot(getInstanceID()), zooCache).getLocation();
 
     if (timer != null) {
       timer.stop();
