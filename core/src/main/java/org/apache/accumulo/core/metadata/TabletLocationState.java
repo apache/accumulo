@@ -60,7 +60,7 @@ public class TabletLocationState {
       walogs = Collections.emptyList();
     this.walogs = walogs;
     this.chopped = chopped;
-    if (current != null && future != null) {
+    if (hasCurrent() && hasFuture()) {
       throw new BadLocationStateException(
           extent + " is both assigned and hosted, which should never happen: " + this,
           extent.toMetaRow());
@@ -76,7 +76,7 @@ public class TabletLocationState {
   public final boolean chopped;
 
   public TServerInstance futureOrCurrent() {
-    if (current != null) {
+    if (hasCurrent()) {
       return current;
     }
     return future;
@@ -89,9 +89,9 @@ public class TabletLocationState {
 
   public TServerInstance getLocation() {
     TServerInstance result = null;
-    if (current != null) {
+    if (hasCurrent()) {
       result = current;
-    } else if (future != null) {
+    } else if (hasFuture()) {
       result = future;
     } else {
       result = last;
@@ -99,32 +99,29 @@ public class TabletLocationState {
     return result;
   }
 
-  private static final int _HAS_CURRENT = 1 << 0;
-  private static final int _HAS_FUTURE = 1 << 1;
-  private static final int _HAS_SUSPEND = 1 << 2;
+  public boolean hasCurrent() {
+    return current != null;
+  }
+
+  public boolean hasFuture() {
+    return future != null;
+  }
+
+  public boolean hasSuspend() {
+    return suspend != null;
+  }
 
   public TabletState getState(Set<TServerInstance> liveServers) {
-    switch ((current == null ? 0 : _HAS_CURRENT) | (future == null ? 0 : _HAS_FUTURE)
-        | (suspend == null ? 0 : _HAS_SUSPEND)) {
-      case 0:
-        return TabletState.UNASSIGNED;
+    TabletState state = TabletState.UNASSIGNED;
+    if (hasFuture())
+      state =
+          liveServers.contains(future) ? TabletState.ASSIGNED : TabletState.ASSIGNED_TO_DEAD_SERVER;
+    else if (hasCurrent())
+      state =
+          liveServers.contains(current) ? TabletState.HOSTED : TabletState.ASSIGNED_TO_DEAD_SERVER;
+    else if (hasSuspend())
+      state = TabletState.SUSPENDED;
 
-      case _HAS_SUSPEND:
-        return TabletState.SUSPENDED;
-
-      case _HAS_FUTURE:
-      case (_HAS_FUTURE | _HAS_SUSPEND):
-        return liveServers.contains(future) ? TabletState.ASSIGNED
-            : TabletState.ASSIGNED_TO_DEAD_SERVER;
-
-      case _HAS_CURRENT:
-      case (_HAS_CURRENT | _HAS_SUSPEND):
-        return liveServers.contains(current) ? TabletState.HOSTED
-            : TabletState.ASSIGNED_TO_DEAD_SERVER;
-
-      default:
-        // Both current and future are set, which is prevented by constructor.
-        throw new IllegalStateException();
-    }
+    return state;
   }
 }
