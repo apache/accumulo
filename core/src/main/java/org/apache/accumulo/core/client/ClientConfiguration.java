@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
 import java.io.FileReader;
@@ -196,7 +197,7 @@ public class ClientConfiguration {
    */
   public static ClientConfiguration fromFile(File file) {
     var config = new PropertiesConfiguration();
-    try (var reader = new FileReader(file)) {
+    try (var reader = new FileReader(file, UTF_8)) {
       config.read(reader);
       return new ClientConfiguration(Collections.singletonList(config));
     } catch (ConfigurationException | IOException e) {
@@ -225,7 +226,7 @@ public class ClientConfiguration {
       File conf = new File(path);
       if (conf.isFile() && conf.canRead()) {
         var config = new PropertiesConfiguration();
-        try (var reader = new FileReader(conf)) {
+        try (var reader = new FileReader(conf, UTF_8)) {
           config.read(reader);
           configs.add(config);
           log.info("Loaded client configuration file {}", conf);
@@ -243,10 +244,10 @@ public class ClientConfiguration {
   }
 
   public static ClientConfiguration deserialize(String serializedConfig) {
-    PropertiesConfiguration propConfig = new PropertiesConfiguration();
+    var propConfig = new PropertiesConfiguration();
     try {
-      propConfig.getLayout().load(propConfig, new StringReader(serializedConfig));
-    } catch (ConfigurationException e) {
+      propConfig.read(new StringReader(serializedConfig));
+    } catch (ConfigurationException | IOException e) {
       throw new IllegalArgumentException(
           "Error deserializing client configuration: " + serializedConfig, e);
     }
@@ -300,12 +301,12 @@ public class ClientConfiguration {
   }
 
   public String serialize() {
-    PropertiesConfiguration propConfig = new PropertiesConfiguration();
+    var propConfig = new PropertiesConfiguration();
     propConfig.copy(compositeConfig);
     StringWriter writer = new StringWriter();
     try {
-      propConfig.getLayout().save(propConfig, writer);
-    } catch (ConfigurationException e) {
+      propConfig.write(writer);
+    } catch (ConfigurationException | IOException e) {
       // this should never happen
       throw new IllegalStateException(e);
     }

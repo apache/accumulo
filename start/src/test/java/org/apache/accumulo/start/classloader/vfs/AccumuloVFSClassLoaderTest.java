@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -66,7 +67,7 @@ public class AccumuloVFSClassLoaderTest {
         (AccumuloReloadingVFSClassLoader) null);
 
     File conf = folder1.newFile("accumulo.properties");
-    FileWriter out = new FileWriter(conf);
+    FileWriter out = new FileWriter(conf, UTF_8);
     out.append("general.classpaths=\n");
     out.append("general.vfs.classpaths=\n");
     out.close();
@@ -91,7 +92,7 @@ public class AccumuloVFSClassLoaderTest {
         (AccumuloReloadingVFSClassLoader) null);
 
     File conf = folder1.newFile("accumulo.properties");
-    FileWriter out = new FileWriter(conf);
+    FileWriter out = new FileWriter(conf, UTF_8);
     out.append("general.classpaths=\n");
     out.append("general.vfs.classpaths=\n");
     out.append("general.dynamic.classpaths=" + System.getProperty("user.dir") + "\n");
@@ -118,7 +119,7 @@ public class AccumuloVFSClassLoaderTest {
         folder1.newFile("HelloWorld.jar"));
 
     File conf = folder1.newFile("accumulo.properties");
-    FileWriter out = new FileWriter(conf);
+    FileWriter out = new FileWriter(conf, UTF_8);
     out.append("general.classpaths=\n");
     out.append(
         "general.vfs.classpaths=" + new File(folder1.getRoot(), "HelloWorld.jar").toURI() + "\n");
@@ -148,7 +149,7 @@ public class AccumuloVFSClassLoaderTest {
         (AccumuloReloadingVFSClassLoader) null);
 
     File conf = folder1.newFile("accumulo.properties");
-    FileWriter out = new FileWriter(conf);
+    FileWriter out = new FileWriter(conf, UTF_8);
     out.append("general.classpaths=\n");
     out.append("general.vfs.classpaths=\n");
     out.close();
@@ -184,7 +185,7 @@ public class AccumuloVFSClassLoaderTest {
     String cacheDir = "/some/random/cache/dir";
 
     File conf = folder1.newFile("accumulo.properties");
-    FileWriter out = new FileWriter(conf);
+    FileWriter out = new FileWriter(conf, UTF_8);
     out.append("general.classpaths=\n");
     out.append(AccumuloVFSClassLoader.VFS_CACHE_DIR + "=" + cacheDir + "\n");
     out.close();

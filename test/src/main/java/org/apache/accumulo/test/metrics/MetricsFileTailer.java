@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -132,7 +134,7 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
     File propertiesFile = new File(filename);
 
     var config = new PropertiesConfiguration();
-    try (var reader = new FileReader(propertiesFile)) {
+    try (var reader = new FileReader(propertiesFile, UTF_8)) {
       config.read(reader);
       final Configuration sub = config.subset(metricsPrefix);
 

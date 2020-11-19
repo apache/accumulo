@@ -18,11 +18,12 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -140,7 +141,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
       return this;
     }
 
-    @SuppressFBWarnings(value = {"URLCONNECTION_SSRF_FD"},
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
         justification = "location of props is specified by an admin")
     @Override
     public SiteConfiguration build() {
@@ -203,18 +204,16 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   // load properties from config file
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
+    var config = new PropertiesConfiguration();
     if (accumuloPropsLocation != null) {
-      try (var reader = new FileReader(accumuloPropsLocation.getFile())) {
-        var config = new PropertiesConfiguration();
+      try (var reader = new InputStreamReader(accumuloPropsLocation.openStream(), UTF_8)) {
         config.read(reader);
-        return config;
       } catch (ConfigurationException | IOException e) {
         throw new IllegalArgumentException(e);
       }
     }
-    return new PropertiesConfiguration();
+    return config;
   }
 
   // load sensitive properties from Hadoop credential provider

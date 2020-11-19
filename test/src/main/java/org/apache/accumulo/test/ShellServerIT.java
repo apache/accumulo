@@ -392,7 +392,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
       // Implement a poor-man's DistCp
       try (BufferedReader reader =
-          new BufferedReader(new FileReader(new File(exportDir, "distcp.txt")))) {
+          new BufferedReader(new FileReader(new File(exportDir, "distcp.txt"), UTF_8))) {
         for (String line; (line = reader.readLine()) != null;) {
           Path exportedFile = new Path(line);
           // There isn't a cp on FileSystem??

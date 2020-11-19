@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -189,7 +190,7 @@ public class VolumeIT extends ConfigurableMacBase {
       var config = new PropertiesConfiguration();
       config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2 + "," + v3);
       File f = new File(cluster.getAccumuloPropertiesPath());
-      try (FileWriter out = new FileWriter(f)) {
+      try (FileWriter out = new FileWriter(f, UTF_8)) {
         config.write(out);
       }
 
@@ -229,7 +230,7 @@ public class VolumeIT extends ConfigurableMacBase {
       var config = new PropertiesConfiguration();
       config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
       File f = new File(cluster.getAccumuloPropertiesPath());
-      try (FileWriter out = new FileWriter(f)) {
+      try (FileWriter out = new FileWriter(f, UTF_8)) {
         config.write(out);
       }
 
@@ -367,7 +368,7 @@ public class VolumeIT extends ConfigurableMacBase {
       var config = new PropertiesConfiguration();
       config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
       File f = new File(cluster.getAccumuloPropertiesPath());
-      try (FileWriter out = new FileWriter(f)) {
+      try (FileWriter out = new FileWriter(f, UTF_8)) {
         config.write(out);
       }
 
@@ -433,7 +434,7 @@ public class VolumeIT extends ConfigurableMacBase {
     config.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
         v1 + " " + v8 + "," + v2 + " " + v9);
     File f = new File(cluster.getAccumuloPropertiesPath());
-    try (FileWriter out = new FileWriter(f)) {
+    try (FileWriter out = new FileWriter(f, UTF_8)) {
       config.write(out);
     }
 
