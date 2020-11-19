@@ -112,16 +112,15 @@ public class TabletLocationState {
   }
 
   public TabletState getState(Set<TServerInstance> liveServers) {
-    TabletState state = TabletState.UNASSIGNED;
     if (hasFuture())
-      state =
-          liveServers.contains(future) ? TabletState.ASSIGNED : TabletState.ASSIGNED_TO_DEAD_SERVER;
+      return liveServers.contains(future) ? TabletState.ASSIGNED
+          : TabletState.ASSIGNED_TO_DEAD_SERVER;
     else if (hasCurrent())
-      state =
-          liveServers.contains(current) ? TabletState.HOSTED : TabletState.ASSIGNED_TO_DEAD_SERVER;
+      return liveServers.contains(current) ? TabletState.HOSTED
+          : TabletState.ASSIGNED_TO_DEAD_SERVER;
     else if (hasSuspend())
-      state = TabletState.SUSPENDED;
-
-    return state;
+      return TabletState.SUSPENDED;
+    else
+      return TabletState.UNASSIGNED;
   }
 }
