@@ -261,7 +261,7 @@ public class MetadataSchema {
     public static class SuspendLocationColumn {
       public static final String STR_NAME = "suspend";
       public static final ColumnFQ SUSPEND_COLUMN =
-          new ColumnFQ(new Text("suspend"), new Text("loc"));
+          new ColumnFQ(new Text(STR_NAME), new Text("loc"));
     }
 
     /**

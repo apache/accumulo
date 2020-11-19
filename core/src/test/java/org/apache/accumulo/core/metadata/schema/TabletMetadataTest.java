@@ -19,15 +19,19 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -39,6 +43,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -162,6 +169,86 @@ public class TabletMetadataTest {
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
     TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(ColumnType.class), false);
+  }
+
+  @Test
+  public void testLocationStates() {
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+    TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
+    TServerInstance ser2 = new TServerInstance(HostAndPort.fromParts("server2", 8111), "s002");
+    TServerInstance deadSer = new TServerInstance(HostAndPort.fromParts("server3", 8000), "s003");
+    Set<TServerInstance> tservers = new LinkedHashSet<>();
+    tservers.add(ser1);
+    tservers.add(ser2);
+
+    // test assigned
+    Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    mutation.at().family(FutureLocationColumnFamily.NAME).qualifier(ser1.getSession())
+        .put(ser1.getHostPort());
+    SortedMap<Key,Value> rowMap = toRowMap(mutation);
+
+    TabletMetadata tm =
+        TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.of(LOCATION), false);
+    TabletState state = tm.getTabletState(tservers);
+
+    assertEquals(TabletState.ASSIGNED, state);
+    assertEquals(ser1, tm.getLocation());
+    assertEquals(ser1.getSession(), tm.getLocation().getSession());
+    assertEquals(LocationType.FUTURE, tm.getLocation().getType());
+    assertFalse(tm.hasCurrent());
+
+    // test hosted
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier(ser2.getSession())
+        .put(ser2.getHostPort());
+    rowMap = toRowMap(mutation);
+
+    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.of(LOCATION), false);
+
+    assertEquals(TabletState.HOSTED, tm.getTabletState(tservers));
+    assertEquals(ser2, tm.getLocation());
+    assertEquals(ser2.getSession(), tm.getLocation().getSession());
+    assertEquals(LocationType.CURRENT, tm.getLocation().getType());
+    assertTrue(tm.hasCurrent());
+
+    // test ASSIGNED_TO_DEAD_SERVER
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier(deadSer.getSession())
+        .put(deadSer.getHostPort());
+    rowMap = toRowMap(mutation);
+
+    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.of(LOCATION), false);
+
+    assertEquals(TabletState.ASSIGNED_TO_DEAD_SERVER, tm.getTabletState(tservers));
+    assertEquals(deadSer, tm.getLocation());
+    assertEquals(deadSer.getSession(), tm.getLocation().getSession());
+    assertEquals(LocationType.CURRENT, tm.getLocation().getType());
+    assertTrue(tm.hasCurrent());
+
+    // test UNASSIGNED
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    rowMap = toRowMap(mutation);
+
+    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.of(LOCATION), false);
+
+    assertEquals(TabletState.UNASSIGNED, tm.getTabletState(tservers));
+    assertNull(tm.getLocation());
+    assertFalse(tm.hasCurrent());
+
+    // test SUSPENDED
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    mutation.at().family(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily())
+        .qualifier(SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier())
+        .put(SuspendingTServer.toValue(ser2, 1000L));
+    rowMap = toRowMap(mutation);
+
+    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.of(LOCATION), false);
+
+    assertEquals(TabletState.SUSPENDED, tm.getTabletState(tservers));
+    assertEquals(1000L, tm.getSuspend().suspensionTime);
+    assertEquals(ser2.getHostAndPort(), tm.getSuspend().server);
+    assertNull(tm.getLocation());
+    assertFalse(tm.hasCurrent());
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {

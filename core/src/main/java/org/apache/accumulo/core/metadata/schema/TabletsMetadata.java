@@ -163,15 +163,14 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           case FLUSH_ID:
             qualifiers.add(FLUSH_COLUMN);
             break;
-          case LAST:
-            families.add(LastLocationColumnFamily.NAME);
-            break;
           case LOADED:
             families.add(BulkFileColumnFamily.NAME);
             break;
           case LOCATION:
             families.add(CurrentLocationColumnFamily.NAME);
             families.add(FutureLocationColumnFamily.NAME);
+            families.add(LastLocationColumnFamily.NAME);
+            families.add(TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
             break;
           case LOGS:
             families.add(LogColumnFamily.NAME);

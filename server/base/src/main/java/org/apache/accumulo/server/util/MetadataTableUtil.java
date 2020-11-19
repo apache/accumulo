@@ -21,7 +21,6 @@ package org.apache.accumulo.server.util;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CLONED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
@@ -466,7 +465,7 @@ public class MetadataTableUtil {
     }
 
     return TabletsMetadata.builder().scanTable(tableName).overRange(range).checkConsistency()
-        .saveKeyValues().fetch(FILES, LOCATION, LAST, CLONED, PREV_ROW, TIME).build(client);
+        .saveKeyValues().fetch(FILES, LOCATION, CLONED, PREV_ROW, TIME).build(client);
   }
 
   @VisibleForTesting
