@@ -18,12 +18,14 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +36,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -186,12 +189,8 @@ public class VolumeIT extends ConfigurableMacBase {
 
       String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
-      var config = new PropertiesConfiguration();
-      config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2 + "," + v3);
-      File f = new File(cluster.getAccumuloPropertiesPath());
-      try (FileWriter out = new FileWriter(f)) {
-        config.write(out);
-      }
+      updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(),
+          v1 + "," + v2 + "," + v3));
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -226,12 +225,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
       String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
-      var config = new PropertiesConfiguration();
-      config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
-      File f = new File(cluster.getAccumuloPropertiesPath());
-      try (FileWriter out = new FileWriter(f)) {
-        config.write(out);
-      }
+      updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3));
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -364,12 +358,7 @@ public class VolumeIT extends ConfigurableMacBase {
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       cluster.stop();
 
-      var config = new PropertiesConfiguration();
-      config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
-      File f = new File(cluster.getAccumuloPropertiesPath());
-      try (FileWriter out = new FileWriter(f)) {
-        config.write(out);
-      }
+      updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString()));
 
       // start cluster and verify that volume was decommissioned
       cluster.start();
@@ -401,7 +390,6 @@ public class VolumeIT extends ConfigurableMacBase {
     }
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
   private void testReplaceVolume(AccumuloClient client, boolean cleanShutdown) throws Exception {
     String[] tableNames = getUniqueNames(3);
 
@@ -428,14 +416,11 @@ public class VolumeIT extends ConfigurableMacBase {
     assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
     Path v9 = new Path(v9f.toURI());
 
-    var config = new PropertiesConfiguration();
-    config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
-    config.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
-        v1 + " " + v8 + "," + v2 + " " + v9);
-    File f = new File(cluster.getAccumuloPropertiesPath());
-    try (FileWriter out = new FileWriter(f)) {
-      config.write(out);
-    }
+    updateConfig(config -> {
+      config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
+      config.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
+          v1 + " " + v8 + "," + v2 + " " + v9);
+    });
 
     // start cluster and verify that volumes were replaced
     cluster.start();
@@ -485,6 +470,19 @@ public class VolumeIT extends ConfigurableMacBase {
   public void testDirtyReplaceVolumes() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       testReplaceVolume(client, false);
+    }
+  }
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
+  private void updateConfig(Consumer<PropertiesConfiguration> updater) throws Exception {
+    var file = new File(cluster.getAccumuloPropertiesPath());
+    var config = new PropertiesConfiguration();
+    try (FileReader out = new FileReader(file, UTF_8)) {
+      config.read(out);
+    }
+    updater.accept(config);
+    try (FileWriter out = new FileWriter(file, UTF_8)) {
+      config.write(out);
     }
   }
 }

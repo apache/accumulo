@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.cluster;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Map.Entry;
@@ -69,8 +70,8 @@ public class RemoteShellOptions {
       if (f.exists() && f.isFile() && f.canRead()) {
         FileReader reader = null;
         try {
-          reader = new FileReader(f);
-        } catch (FileNotFoundException e) {
+          reader = new FileReader(f, UTF_8);
+        } catch (IOException e) {
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }
 

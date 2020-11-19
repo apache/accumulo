@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.minicluster;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -240,7 +241,7 @@ public class MiniAccumuloClusterTest {
     File confDir = new File(testDir, "conf");
     File accumuloProps = new File(confDir, "accumulo.properties");
     var config = new PropertiesConfiguration();
-    try (var reader = new FileReader(accumuloProps)) {
+    try (var reader = new FileReader(accumuloProps, UTF_8)) {
       config.read(reader);
     }
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,

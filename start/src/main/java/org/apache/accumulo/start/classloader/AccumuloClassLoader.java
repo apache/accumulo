@@ -18,9 +18,11 @@
  */
 package org.apache.accumulo.start.classloader;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -77,7 +79,8 @@ public class AccumuloClassLoader {
    *          Value to default to if not found.
    * @return value of property or default
    */
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+      justification = "url is specified by an admin, not unchecked user input")
   public static String getAccumuloProperty(String propertyName, String defaultValue) {
     if (accumuloConfigUrl == null) {
       log.warn(
@@ -87,7 +90,7 @@ public class AccumuloClassLoader {
     }
     try {
       var config = new PropertiesConfiguration();
-      try (var reader = new FileReader(accumuloConfigUrl.getFile())) {
+      try (var reader = new InputStreamReader(accumuloConfigUrl.openStream(), UTF_8)) {
         config.read(reader);
       }
       String value = config.getString(propertyName);

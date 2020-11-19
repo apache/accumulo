@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
@@ -118,7 +119,7 @@ public class AccumuloOutputFormatTest {
       File file = File.createTempFile("accumulo-client", ".properties", null);
       file.deleteOnExit();
 
-      FileWriter writer = new FileWriter(file);
+      FileWriter writer = new FileWriter(file, UTF_8);
       writer.write("auth.type=password\n");
       writer.write("instance.zookeepers=zk\n");
       writer.write("instance.name=test\n");

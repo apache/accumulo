@@ -18,9 +18,11 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.net.URL;
 import java.util.Collections;
@@ -38,6 +40,8 @@ import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class allows testing of the publishing to the hadoop metrics system by processing a file for
@@ -117,6 +121,8 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
    *
    * @return a configuration with http sink properties.
    */
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+      justification = "url specified by test code, not unchecked user input")
   private Configuration loadMetricsConfig() {
     final URL propUrl =
         getClass().getClassLoader().getResource(MetricsTestSinkProperties.METRICS_PROP_FILENAME);
@@ -126,31 +132,28 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
           "Could not find " + MetricsTestSinkProperties.METRICS_PROP_FILENAME + " on classpath");
     }
 
-    String filename = propUrl.getFile();
-
     // Read data from this file
-    File propertiesFile = new File(filename);
-
     var config = new PropertiesConfiguration();
-    try (var reader = new FileReader(propertiesFile)) {
+    try (var reader = new InputStreamReader(propUrl.openStream(), UTF_8)) {
       config.read(reader);
-      final Configuration sub = config.subset(metricsPrefix);
-
-      if (log.isTraceEnabled()) {
-        log.trace("Config {}", config);
-        Iterator<String> iterator = sub.getKeys();
-        while (iterator.hasNext()) {
-          String key = iterator.next();
-          log.trace("'{}'='{}'", key, sub.getProperty(key));
-        }
-      }
-
-      return sub;
     } catch (ConfigurationException | IOException e) {
       throw new IllegalStateException(
           String.format("Could not find configuration file \'%s\' on classpath",
               MetricsTestSinkProperties.METRICS_PROP_FILENAME));
     }
+
+    final Configuration sub = config.subset(metricsPrefix);
+
+    if (log.isTraceEnabled()) {
+      log.trace("Config {}", config);
+      Iterator<String> iterator = sub.getKeys();
+      while (iterator.hasNext()) {
+        String key = iterator.next();
+        log.trace("'{}'='{}'", key, sub.getProperty(key));
+      }
+    }
+
+    return sub;
   }
 
   /**
