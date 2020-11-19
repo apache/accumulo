@@ -18,123 +18,40 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.partialMockBuilder;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class ScannerBaseTest {
 
   @Test
   public void testScannerBaseForEach() throws Exception {
+    Map<Key,Value> expected =
+        Map.of(new Key("row1", "cf1", "cq1"), new Value("v1"), new Key("row2", "cf1", "cq1"),
+            new Value("v2"), new Key("row3", "cf1", "cq1"), new Value("v3"));
 
-    // This subclass of ScannerBase contains a List that ScannerBase.forEach() can
-    // iterate over for testing purposes.
-    class MockScanner implements ScannerBase {
+    // mock ScannerOptions subclass, because EasyMock can't mock ScannerBase, an interface;
+    // only the iterator method is mocked, because the forEach method should only call iterator()
+    ScannerBase scanner =
+        partialMockBuilder(ScannerOptions.class).addMockedMethod("iterator").createMock();
+    expect(scanner.iterator()).andReturn(expected.entrySet().iterator()).once();
+    replay(scanner);
 
-      Map<Key,Value> map;
+    // check the results from forEach; they should match what iterator() returns
+    Map<Key,Value> actual = new HashMap<>();
+    scanner.forEach((k, v) -> actual.put(k, v));
+    assertEquals(expected, actual);
 
-      MockScanner(Map<Key,Value> map) {
-        this.map = map;
-      }
-
-      @Override
-      public void addScanIterator(IteratorSetting cfg) {}
-
-      @Override
-      public void removeScanIterator(String iteratorName) {}
-
-      @Override
-      public void updateScanIteratorOption(String iteratorName, String key, String value) {}
-
-      @Override
-      public void fetchColumnFamily(Text col) {}
-
-      @Override
-      public void fetchColumn(Text colFam, Text colQual) {}
-
-      @Override
-      public void fetchColumn(IteratorSetting.Column column) {}
-
-      @Override
-      public void clearColumns() {}
-
-      @Override
-      public void clearScanIterators() {}
-
-      @Override
-      public Iterator<Map.Entry<Key,Value>> iterator() {
-        return this.map.entrySet().iterator();
-      }
-
-      @Override
-      public void setTimeout(long timeOut, TimeUnit timeUnit) {}
-
-      @Override
-      public long getTimeout(TimeUnit timeUnit) {
-        return 0;
-      }
-
-      @Override
-      public void close() {}
-
-      @Override
-      public Authorizations getAuthorizations() {
-        return null;
-      }
-
-      @Override
-      public void setSamplerConfiguration(SamplerConfiguration samplerConfig) {}
-
-      @Override
-      public SamplerConfiguration getSamplerConfiguration() {
-        return null;
-      }
-
-      @Override
-      public void clearSamplerConfiguration() {}
-
-      @Override
-      public void setBatchTimeout(long timeOut, TimeUnit timeUnit) {}
-
-      @Override
-      public long getBatchTimeout(TimeUnit timeUnit) {
-        return 0;
-      }
-
-      @Override
-      public void setClassLoaderContext(String classLoaderContext) {}
-
-      @Override
-      public void clearClassLoaderContext() {}
-
-      @Override
-      public String getClassLoaderContext() {
-        return null;
-      }
-    }
-
-    Map<Key,Value> map = new HashMap<>();
-    MockScanner ms = new MockScanner(Map
-        .of(new Key(new Text("a"), new Text("cf1"), new Text("cq1")), new Value(new Text("v1"))));
-    Map.Entry entry = ms.iterator().next();
-    // Test forEach from ScannerBase
-    ms.forEach((k, v) -> map.put(k, v));
-
-    for (Map.Entry<Key,Value> e : map.entrySet()) {
-      assertEquals(entry.getKey(), e.getKey());
-      assertEquals(entry.getValue(), e.getValue());
-    }
+    verify(scanner);
   }
 }
