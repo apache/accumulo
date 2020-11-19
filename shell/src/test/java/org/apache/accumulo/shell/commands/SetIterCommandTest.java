@@ -87,6 +87,9 @@ public class SetIterCommandTest {
     reader.flush();
     EasyMock.expectLastCall().times(3);
 
+    reader.println(EasyMock.anyObject(String.class));
+    EasyMock.expectLastCall().times(2);
+
     EasyMock.expect(shellState.getReader()).andReturn(reader);
 
     // Shell asking for negate option, we pass in an empty string to pickup the default value of
