@@ -199,10 +199,10 @@ public class ClientConfiguration {
     var config = new PropertiesConfiguration();
     try (var reader = new FileReader(file, UTF_8)) {
       config.read(reader);
-      return new ClientConfiguration(Collections.singletonList(config));
     } catch (ConfigurationException | IOException e) {
       throw new IllegalArgumentException("Bad configuration file: " + file, e);
     }
+    return new ClientConfiguration(Collections.singletonList(config));
   }
 
   /**
@@ -228,11 +228,11 @@ public class ClientConfiguration {
         var config = new PropertiesConfiguration();
         try (var reader = new FileReader(conf, UTF_8)) {
           config.read(reader);
-          configs.add(config);
-          log.info("Loaded client configuration file {}", conf);
         } catch (ConfigurationException | IOException e) {
           throw new IllegalStateException("Error loading client configuration file " + conf, e);
         }
+        configs.add(config);
+        log.info("Loaded client configuration file {}", conf);
       }
     }
     // We couldn't find the client configuration anywhere

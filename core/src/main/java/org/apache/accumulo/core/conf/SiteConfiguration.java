@@ -141,8 +141,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
       return this;
     }
 
-    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
-        justification = "location of props is specified by an admin")
     @Override
     public SiteConfiguration build() {
       // load properties from configuration file
@@ -204,6 +202,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   // load properties from config file
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+      justification = "url is specified by an admin, not unchecked user input")
   private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
     var config = new PropertiesConfiguration();
     if (accumuloPropsLocation != null) {
