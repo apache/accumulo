@@ -23,8 +23,9 @@ import java.nio.charset.Charset;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.security.handler.ZKAuthenticator;
-import org.junit.Assert;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
 
 public class ZKAuthenticatorIT extends AccumuloClusterHarness {
 
@@ -42,7 +43,7 @@ public class ZKAuthenticatorIT extends AccumuloClusterHarness {
     auth.initialize(cluster.getServerContext());
 
     auth.createUser(principal, token);
-    Assert.assertTrue(auth.authenticateUser(principal, token));
+    assertTrue(auth.authenticateUser(principal, token));
   }
 
   @Test
@@ -59,6 +60,6 @@ public class ZKAuthenticatorIT extends AccumuloClusterHarness {
     auth.initialize(cluster.getServerContext());
 
     auth.createOutdatedUser(principal, token);
-    Assert.assertTrue(auth.authenticateUser(principal, token));
+    assertTrue(auth.authenticateUser(principal, token));
   }
 }

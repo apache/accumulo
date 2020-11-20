@@ -61,7 +61,6 @@ class ZKSecurityTool {
 
   /**
    * Creates password to store in zk
-   * 
    * @deprecated since 2.1.0, only present for testing DO NOT USE!
    */
   static byte[] createOutdatedPass(byte[] password) throws AccumuloException {
@@ -120,7 +119,7 @@ class ZKSecurityTool {
       log.error("Unrecognized hash format", e);
       return false;
     }
-    return cryptHash.equals(zkDataString);
+    return MessageDigest.isEqual(zkData, cryptHash.getBytes(CRYPT_CHARSET));
   }
 
   public static Authorizations convertAuthorizations(byte[] authorizations) {
