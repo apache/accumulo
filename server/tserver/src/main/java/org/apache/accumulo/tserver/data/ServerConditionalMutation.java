@@ -20,22 +20,11 @@ package org.apache.accumulo.tserver.data;
 
 import java.util.List;
 
-import org.apache.accumulo.core.clientImpl.Translator;
 import org.apache.accumulo.core.dataImpl.thrift.TCondition;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 import org.apache.accumulo.server.data.ServerMutation;
 
 public class ServerConditionalMutation extends ServerMutation {
-
-  public static class TCMTranslator
-      extends Translator<TConditionalMutation,ServerConditionalMutation> {
-    @Override
-    public ServerConditionalMutation translate(TConditionalMutation input) {
-      return new ServerConditionalMutation(input);
-    }
-  }
-
-  public static final TCMTranslator TCMT = new TCMTranslator();
 
   private long cmid;
   private List<TCondition> conditions;

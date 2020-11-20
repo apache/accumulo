@@ -35,6 +35,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -42,8 +43,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ServerClient;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
@@ -586,10 +585,13 @@ public class BulkImporter {
         }
 
         log.debug("Asking {} to bulk load {}", location, files);
-        List<TKeyExtent> failures = client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(),
-            tid, Translator.translate(files, Translators.KET), setTime);
+        List<TKeyExtent> failures =
+            client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(), tid,
+                files.entrySet().stream()
+                    .collect(Collectors.toMap(entry -> entry.getKey().toThrift(), Entry::getValue)),
+                setTime);
 
-        return Translator.translate(failures, Translators.TKET);
+        return failures.stream().map(KeyExtent::fromThrift).collect(Collectors.toList());
       } finally {
         ThriftUtil.returnClient((TServiceClient) client);
       }

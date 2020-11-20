@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -113,7 +114,8 @@ public class ThriftScanner {
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
         InitialScan isr = client.startScan(tinfo, scanState.context.rpcCreds(), extent.toThrift(),
-            scanState.range.toThrift(), Translator.translate(scanState.columns, Translators.CT),
+            scanState.range.toThrift(),
+            scanState.columns.stream().map(Column::toThrift).collect(Collectors.toList()),
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
             scanState.readaheadThreshold, null, scanState.batchTimeOut, classLoaderContext,
@@ -455,14 +457,14 @@ public class ThriftScanner {
         TabletType ttype = TabletType.type(loc.tablet_extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
 
-        InitialScan is =
-            client.startScan(tinfo, scanState.context.rpcCreds(), loc.tablet_extent.toThrift(),
-                scanState.range.toThrift(), Translator.translate(scanState.columns, Translators.CT),
-                scanState.size, scanState.serverSideIteratorList,
-                scanState.serverSideIteratorOptions, scanState.authorizations.getAuthorizationsBB(),
-                waitForWrites, scanState.isolated, scanState.readaheadThreshold,
-                SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
-                scanState.classLoaderContext, scanState.executionHints);
+        InitialScan is = client.startScan(tinfo, scanState.context.rpcCreds(),
+            loc.tablet_extent.toThrift(), scanState.range.toThrift(),
+            scanState.columns.stream().map(Column::toThrift).collect(Collectors.toList()),
+            scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
+            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
+            scanState.readaheadThreshold,
+            SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
+            scanState.classLoaderContext, scanState.executionHints);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
 
