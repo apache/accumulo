@@ -100,6 +100,7 @@ public class Constants {
 
   // Security configuration
   public static final String PW_HASH_ALGORITHM = "SHA-512";
+  public static final String PW_HASH_ALGORITHM_OUTDATED = "SHA-256";
 
   public static final int MAX_DATA_TO_PRINT = 64;
   public static final String CORE_PACKAGE_NAME = "org.apache.accumulo.core";

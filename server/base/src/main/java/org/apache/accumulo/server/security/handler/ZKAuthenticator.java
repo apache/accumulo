@@ -52,6 +52,22 @@ public final class ZKAuthenticator implements Authenticator {
     this.context = context;
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
+    checkOutdatedHashes();
+  }
+
+  private void checkOutdatedHashes() {
+    try {
+      listUsers().forEach(user -> {
+        String zpath = ZKUserPath + "/" + user;
+        byte[] zkData = zooCache.get(zpath);
+        if (ZKSecurityTool.isOutdatedPass(zkData)) {
+          log.warn("Found user(s) with outdated password hash. These will be re-hashed" +
+              " on successful authentication.");
+        }
+      });
+    } catch (NullPointerException e){
+      // initializeSecurity was not called yet, there could be no outdated passwords stored
+    }
   }
 
   @Override
@@ -103,6 +119,31 @@ public final class ZKAuthenticator implements Authenticator {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
       PasswordToken pt = (PasswordToken) token;
       constructUser(principal, ZKSecurityTool.createPass(pt.getPassword()));
+    } catch (KeeperException e) {
+      if (e.code().equals(KeeperException.Code.NODEEXISTS))
+        throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_EXISTS, e);
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
+    } catch (InterruptedException e) {
+      log.error("{}", e.getMessage(), e);
+      throw new RuntimeException(e);
+    } catch (AccumuloException e) {
+      log.error("{}", e.getMessage(), e);
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
+    }
+  }
+
+  /**
+   * Creates user with outdated password hash for testing
+   *
+   * @deprecated since 2.1.0, only present for testing DO NOT USE!
+   */
+  public void createOutdatedUser(String principal, AuthenticationToken token)
+      throws AccumuloSecurityException {
+    try {
+      if (!(token instanceof PasswordToken))
+        throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
+      PasswordToken pt = (PasswordToken) token;
+      constructUser(principal, ZKSecurityTool.createOutdatedPass(pt.getPassword()));
     } catch (KeeperException e) {
       if (e.code().equals(KeeperException.Code.NODEEXISTS))
         throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_EXISTS, e);
@@ -180,16 +221,41 @@ public final class ZKAuthenticator implements Authenticator {
     if (!(token instanceof PasswordToken))
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     PasswordToken pt = (PasswordToken) token;
-    byte[] pass;
+    byte[] zkData;
     String zpath = ZKUserPath + "/" + principal;
-    pass = zooCache.get(zpath);
-    boolean result = ZKSecurityTool.checkPass(pt.getPassword(), pass);
+    zkData = zooCache.get(zpath);
+    boolean result = authenticateUser(principal, pt, zkData);
     if (!result) {
       zooCache.clear(zpath);
-      pass = zooCache.get(zpath);
-      result = ZKSecurityTool.checkPass(pt.getPassword(), pass);
+      zkData = zooCache.get(zpath);
+      result = authenticateUser(principal, pt, zkData);
     }
     return result;
+  }
+
+  private boolean authenticateUser(String principal, PasswordToken pt, byte[] zkData) {
+    if (zkData == null) {
+      return false;
+    }
+
+    // if the hash does not match the outdated format use Crypt to verify it
+    if (!ZKSecurityTool.isOutdatedPass(zkData)) {
+      return ZKSecurityTool.checkCryptPass(pt.getPassword(), zkData);
+    }
+
+    if (!ZKSecurityTool.checkPass(pt.getPassword(), zkData)) {
+      // if password does not match we are done
+      return false;
+    }
+
+    // if the password is correct we have to update the stored hash with new algorithm
+    try {
+      changePassword(principal, pt);
+      return true;
+    } catch (AccumuloSecurityException e) {
+      log.error("Failed to update hashed user password for user: {}", principal, e);
+    }
+    return false;
   }
 
   @Override

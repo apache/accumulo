@@ -19,9 +19,11 @@
 package org.apache.accumulo.server.security.handler;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
@@ -88,11 +90,37 @@ public class ZKAuthenticatorTest {
 
   @Test
   public void testEncryption() {
+    byte[] rawPass = "myPassword".getBytes(Charset.forName("UTF-8"));
+    byte[] storedBytes;
+    try {
+      storedBytes = ZKSecurityTool.createPass(rawPass.clone());
+      assertTrue(ZKSecurityTool.checkCryptPass(rawPass.clone(), storedBytes));
+    } catch (AccumuloException e) {
+      log.error("{}", e.getMessage(), e);
+      fail();
+    }
+  }
+
+  @Test
+  public void testOutdatedEncryption() {
     byte[] rawPass = "myPassword".getBytes();
     byte[] storedBytes;
     try {
-      storedBytes = ZKSecurityTool.createPass(rawPass);
+      storedBytes = ZKSecurityTool.createOutdatedPass(rawPass);
       assertTrue(ZKSecurityTool.checkPass(rawPass, storedBytes));
+    } catch (AccumuloException e) {
+      log.error("{}", e.getMessage(), e);
+      fail();
+    }
+  }
+
+  @Test
+  public void testEncryptionDifference() {
+    byte[] rawPass = "myPassword".getBytes();
+    byte[] storedBytes;
+    try {
+      storedBytes = ZKSecurityTool.createOutdatedPass(rawPass);
+      assertFalse(ZKSecurityTool.checkCryptPass(rawPass, storedBytes));
     } catch (AccumuloException e) {
       log.error("{}", e.getMessage(), e);
       fail();

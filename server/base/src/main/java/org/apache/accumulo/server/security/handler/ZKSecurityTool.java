@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.commons.codec.digest.Crypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +49,7 @@ import org.slf4j.LoggerFactory;
 class ZKSecurityTool {
   private static final Logger log = LoggerFactory.getLogger(ZKSecurityTool.class);
   private static final int SALT_LENGTH = 8;
+  private static final Charset CRYPT_CHARSET = Charset.forName("UTF-8");
 
   // Generates a byte array salt of length SALT_LENGTH
   private static byte[] generateSalt() {
@@ -56,16 +59,29 @@ class ZKSecurityTool {
     return salt;
   }
 
+  /**
+   * Creates password to store in zk
+   * 
+   * @deprecated since 2.1.0, only present for testing DO NOT USE!
+   */
+  static byte[] createOutdatedPass(byte[] password) throws AccumuloException {
+    byte[] salt = generateSalt();
+    try {
+      return convertPass(password, salt);
+    } catch (NoSuchAlgorithmException e) {
+      log.error("Count not create hashed password", e);
+      throw new AccumuloException("Count not create hashed password", e);
+    }
+  }
+
   private static byte[] hash(byte[] raw) throws NoSuchAlgorithmException {
-    MessageDigest md = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
+    MessageDigest md = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM_OUTDATED);
     md.update(raw);
     return md.digest();
   }
 
+  @Deprecated(since = "2.1.0")
   public static boolean checkPass(byte[] password, byte[] zkData) {
-    if (zkData == null)
-      return false;
-
     byte[] salt = new byte[SALT_LENGTH];
     System.arraycopy(zkData, 0, salt, 0, SALT_LENGTH);
     byte[] passwordToCheck;
@@ -78,16 +94,6 @@ class ZKSecurityTool {
     return MessageDigest.isEqual(passwordToCheck, zkData);
   }
 
-  public static byte[] createPass(byte[] password) throws AccumuloException {
-    byte[] salt = generateSalt();
-    try {
-      return convertPass(password, salt);
-    } catch (NoSuchAlgorithmException e) {
-      log.error("Count not create hashed password", e);
-      throw new AccumuloException("Count not create hashed password", e);
-    }
-  }
-
   private static byte[] convertPass(byte[] password, byte[] salt) throws NoSuchAlgorithmException {
     byte[] plainSalt = new byte[password.length + SALT_LENGTH];
     System.arraycopy(password, 0, plainSalt, 0, password.length);
@@ -97,6 +103,24 @@ class ZKSecurityTool {
     System.arraycopy(salt, 0, saltedHash, 0, SALT_LENGTH);
     System.arraycopy(hashed, 0, saltedHash, SALT_LENGTH, hashed.length);
     return saltedHash; // contains salt+hash(password+salt)
+  }
+
+  public static byte[] createPass(byte[] password) throws AccumuloException {
+    // we rely on default algorithm and hash length (SHA-512 and 8 byte)
+    String cryptHash = Crypt.crypt(password);
+    return cryptHash.getBytes(CRYPT_CHARSET);
+  }
+
+  public static boolean checkCryptPass(byte[] password, byte[] zkData) {
+    String zkDataString = new String(zkData, CRYPT_CHARSET);
+    String cryptHash;
+    try {
+      cryptHash = Crypt.crypt(password, zkDataString);
+    } catch (IllegalArgumentException e) {
+      log.error("Unrecognized hash format", e);
+      return false;
+    }
+    return cryptHash.equals(zkDataString);
   }
 
   public static Authorizations convertAuthorizations(byte[] authorizations) {
@@ -179,5 +203,9 @@ class ZKSecurityTool {
 
   public static String getInstancePath(String instanceId) {
     return Constants.ZROOT + "/" + instanceId;
+  }
+
+  public static boolean isOutdatedPass(byte[] zkData) {
+    return zkData.length == 40;
   }
 }
