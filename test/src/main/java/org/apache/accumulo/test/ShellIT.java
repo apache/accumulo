@@ -239,13 +239,21 @@ public class ShellIT extends SharedMiniClusterBase {
     // Add tests to verify use of --table parameter
     exec("createtable test2", true);
     exec("notable", true);
-    exec("insert r1 f1 q1 v1 -t  test2", true);
+    exec("insert r1 f1 q1 v1 -t test2", true);
     exec("insert r2 f2 q2 v2 --table test2", true);
     exec("insert r1 f1 q1 v1 -t", false,
         "org.apache.commons.cli.MissingArgumentException: Missing argument for option:");
     exec("insert r1 f1 q1 v1 -t  test3", false,
         "org.apache.accumulo.core.client.TableNotFoundException:");
     exec("scan -t test2", true, "r1 f1:q1 []    v1\nr2 f2:q2 []    v2");
+    exec("insert r3 f3 q3 v3 -t test2", true);
+    exec("delete r1 f1 q1 -t test2", true);
+    exec("delete r2 f2 q2 --table test2", true);
+    exec("scan -t test2", true, "r3 f3:q3 []    v3");
+    exec("delete r3 f3 q3 -t", false,
+        "org.apache.commons.cli.MissingArgumentException: Missing argument for option: t");
+    exec("delete r3 f3 q3 -t test4", false,
+        "org.apache.accumulo.core.client.TableNotFoundException:");
     exec("deletetable test2 -f", true, "Table: [test2] has been deleted");
   }
 
