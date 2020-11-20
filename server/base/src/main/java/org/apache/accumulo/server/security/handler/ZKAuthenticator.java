@@ -61,12 +61,12 @@ public final class ZKAuthenticator implements Authenticator {
         String zpath = ZKUserPath + "/" + user;
         byte[] zkData = zooCache.get(zpath);
         if (ZKSecurityTool.isOutdatedPass(zkData)) {
-          log.warn("Found user(s) with outdated password hash. These will be re-hashed" +
-              " on successful authentication.");
+          log.warn("Found user(s) with outdated password hash. These will be re-hashed"
+              + " on successful authentication.");
           return;
         }
       });
-    } catch (NullPointerException e){
+    } catch (NullPointerException e) {
       // initializeSecurity was not called yet, there could be no outdated passwords stored
     }
   }
