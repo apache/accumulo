@@ -63,6 +63,7 @@ public final class ZKAuthenticator implements Authenticator {
         if (ZKSecurityTool.isOutdatedPass(zkData)) {
           log.warn("Found user(s) with outdated password hash. These will be re-hashed" +
               " on successful authentication.");
+          return;
         }
       });
     } catch (NullPointerException e){
