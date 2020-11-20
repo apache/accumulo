@@ -59,10 +59,8 @@ class ZKSecurityTool {
     return salt;
   }
 
-  /**
-   * Creates password to store in zk
-   * @deprecated since 2.1.0, only present for testing DO NOT USE!
-   */
+  // only present for testing DO NOT USE!
+  @Deprecated(since = "2.1.0")
   static byte[] createOutdatedPass(byte[] password) throws AccumuloException {
     byte[] salt = generateSalt();
     try {

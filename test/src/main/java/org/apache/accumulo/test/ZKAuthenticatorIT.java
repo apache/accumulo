@@ -18,14 +18,14 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertTrue;
+
 import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.security.handler.ZKAuthenticator;
 import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
 
 public class ZKAuthenticatorIT extends AccumuloClusterHarness {
 
