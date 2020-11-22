@@ -236,6 +236,24 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("delete \\x90 \\xa0 \\xb0", true);
     exec("scan", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
+    // Add tests to verify use of --table parameter
+    exec("createtable test2", true);
+    exec("notable", true);
+    exec("insert r f q v", false, "java.lang.IllegalStateException: Not in a table context");
+    exec("insert r1 f1 q1 v1 -t test2", true);
+    exec("insert r2 f2 q2 v2 --table test2", true);
+    exec("delete r1 f1 q1 -t", false,
+        "org.apache.commons.cli.MissingArgumentException: Missing argument for option:");
+    exec("delete r1 f1 q1 -t  test3", false,
+        "org.apache.accumulo.core.client.TableNotFoundException:");
+    exec("scan -t test2", true, "r1 f1:q1 []\tv1\nr2 f2:q2 []\tv2");
+    exec("delete r1 f1 q1 -t test2", true);
+    exec("scan -t test2", true, "r1 f1:q1 []\tv1", false);
+    exec("scan -t test2", true, "r2 f2:q2 []\tv2", true);
+    exec("delete r2 f2 q2 --table test2", true);
+    exec("scan -t test2", true, "r1 f1:q1 []\tv1", false);
+    exec("scan -t test2", true, "r2 f2:q2 []\tv2", false);
+    exec("deletetable test2 -f", true, "Table: [test2] has been deleted");
   }
 
   @Test
