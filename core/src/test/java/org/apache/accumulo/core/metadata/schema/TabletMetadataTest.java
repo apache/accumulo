@@ -190,8 +190,7 @@ public class TabletMetadataTest {
         .put(ser1.getHostPort());
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
-    TabletMetadata tm =
-        TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
+    TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
     TabletState state = tm.getTabletState(tservers);
 
     assertEquals(TabletState.ASSIGNED, state);
