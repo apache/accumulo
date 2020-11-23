@@ -51,8 +51,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ServerClient;
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -320,7 +318,8 @@ public class Gatherer {
 
           try {
             TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(),
-                getRequest(), Translator.translate(files, Translators.TFT));
+                getRequest(), files.entrySet().stream().collect(
+                    Collectors.toMap(entry -> entry.getKey().getPathStr(), Entry::getValue)));
             while (!tSums.finished && !cancelFlag.get()) {
               tSums = client.contiuneGetSummaries(tinfo, tSums.sessionId);
             }

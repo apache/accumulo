@@ -39,6 +39,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -50,10 +51,6 @@ import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletType;
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translator.TKeyExtentTranslator;
-import org.apache.accumulo.core.clientImpl.Translator.TRangeTranslator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -485,8 +482,13 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       log.error("{} is not authorized", credentials.getPrincipal(), tse);
       throw tse;
     }
-    Map<KeyExtent,List<Range>> batch = Translator.translate(tbatch, new TKeyExtentTranslator(),
-        new Translator.ListTranslator<>(new TRangeTranslator()));
+
+    // @formatter:off
+    Map<KeyExtent, List<Range>> batch = tbatch.entrySet().stream().collect(Collectors.toMap(
+                    entry -> KeyExtent.fromThrift(entry.getKey()),
+                    entry -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
+    ));
+    // @formatter:on
 
     // This is used to determine which thread pool to use
     KeyExtent threadPoolExtent = batch.keySet().iterator().next();
@@ -901,10 +903,12 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       log.debug(String.format("Authentication Failures: %d, first %s", us.authFailures.size(),
           first.toString()));
     }
-
-    return new UpdateErrors(Translator.translate(us.failures, Translators.KET),
-        Translator.translate(violations, Translators.CVST),
-        Translator.translate(us.authFailures, Translators.KET));
+    return new UpdateErrors(
+        us.failures.entrySet().stream()
+            .collect(Collectors.toMap(e -> e.getKey().toThrift(), Entry::getValue)),
+        violations.stream().map(ConstraintViolationSummary::toThrift).collect(Collectors.toList()),
+        us.authFailures.entrySet().stream()
+            .collect(Collectors.toMap(e -> e.getKey().toThrift(), Entry::getValue)));
   }
 
   @Override
@@ -951,8 +955,8 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       if (prepared.tabletClosed()) {
         throw new NotServingTabletException(tkeyExtent);
       } else if (!prepared.getViolators().isEmpty()) {
-        throw new ConstraintViolationException(
-            Translator.translate(prepared.getViolations().asList(), Translators.CVST));
+        throw new ConstraintViolationException(prepared.getViolations().asList().stream()
+            .map(ConstraintViolationSummary::toThrift).collect(Collectors.toList()));
       } else {
         CommitSession session = prepared.getCommitSession();
         Durability durability = DurabilityImpl
@@ -1207,9 +1211,12 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
 
     try {
-      Map<KeyExtent,List<ServerConditionalMutation>> updates = Translator.translate(mutations,
-          Translators.TKET, new Translator.ListTranslator<>(ServerConditionalMutation.TCMT));
-
+      // @formatter:off
+      Map<KeyExtent, List<ServerConditionalMutation>> updates = mutations.entrySet().stream().collect(Collectors.toMap(
+                      entry -> KeyExtent.fromThrift(entry.getKey()),
+                      entry -> entry.getValue().stream().map(ServerConditionalMutation::new).collect(Collectors.toList())
+      ));
+      // @formatter:on
       for (KeyExtent ke : updates.keySet()) {
         if (!ke.tableId().equals(tid)) {
           throw new IllegalArgumentException("Unexpected table id " + tid + " != " + ke.tableId());
