@@ -104,10 +104,11 @@ public class TabletMetadata {
   }
 
   public enum ColumnType {
-    LOCATION, // includes all types in LocationType + SUSPEND
+    LOCATION,
     PREV_ROW,
     OLD_PREV_ROW,
     FILES,
+    LAST,
     LOADED,
     SCANS,
     DIR,
@@ -116,7 +117,8 @@ public class TabletMetadata {
     FLUSH_ID,
     LOGS,
     COMPACT_ID,
-    SPLIT_RATIO
+    SPLIT_RATIO,
+    SUSPEND
   }
 
   public static class Location extends TServerInstance {
@@ -195,12 +197,12 @@ public class TabletMetadata {
   }
 
   public Location getLast() {
-    ensureFetched(ColumnType.LOCATION);
+    ensureFetched(ColumnType.LAST);
     return last;
   }
 
   public SuspendingTServer getSuspend() {
-    ensureFetched(ColumnType.LOCATION);
+    ensureFetched(ColumnType.SUSPEND);
     return suspend;
   }
 
@@ -261,6 +263,8 @@ public class TabletMetadata {
 
   public TabletState getTabletState(Set<TServerInstance> liveTServers) {
     ensureFetched(ColumnType.LOCATION);
+    ensureFetched(ColumnType.LAST);
+    ensureFetched(ColumnType.SUSPEND);
     try {
       TServerInstance current = null;
       TServerInstance future = null;

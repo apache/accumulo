@@ -20,6 +20,7 @@ package org.apache.accumulo.core.summary;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
@@ -171,7 +172,7 @@ public class Gatherer {
       getFilesGroupedByLocation(Predicate<TabletFile> fileSelector) {
 
     Iterable<TabletMetadata> tmi = TabletsMetadata.builder().forTable(tableId)
-        .overlapping(startRow, endRow).fetch(FILES, LOCATION, PREV_ROW).build(ctx);
+        .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build(ctx);
 
     // get a subset of files
     Map<TabletFile,List<TabletMetadata>> files = new HashMap<>();
