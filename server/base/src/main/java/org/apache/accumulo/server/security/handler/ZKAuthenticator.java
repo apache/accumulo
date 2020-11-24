@@ -21,6 +21,8 @@ package org.apache.accumulo.server.security.handler;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -52,23 +54,33 @@ public final class ZKAuthenticator implements Authenticator {
     this.context = context;
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
-    checkOutdatedHashes();
   }
 
-  private void checkOutdatedHashes() {
+  /**
+   * Checks stored users and logs a warning containing the ones with outdated hashes.
+   */
+  public boolean hasOutdatedHashes() {
+    List<String> outdatedUsers = new LinkedList<String>();
     try {
       listUsers().forEach(user -> {
         String zpath = ZKUserPath + "/" + user;
         byte[] zkData = zooCache.get(zpath);
         if (ZKSecurityTool.isOutdatedPass(zkData)) {
-          log.warn("Found user(s) with outdated password hash. These will be re-hashed"
-              + " on successful authentication.");
-          return;
+          outdatedUsers.add(user);
         }
       });
     } catch (NullPointerException e) {
-      // initializeSecurity was not called yet, there could be no outdated passwords stored
+      log.debug(
+          "initializeSecurity was not called yet, there could be no outdated passwords stored");
     }
+    if (!outdatedUsers.isEmpty()) {
+      log.warn(
+          "Found {} user(s) with outdated password hash. These will be re-hashed"
+              + " on successful authentication. The user(s) : {}",
+          outdatedUsers.size(), String.join(", ", outdatedUsers));
+      return true;
+    }
+    return false;
   }
 
   @Override

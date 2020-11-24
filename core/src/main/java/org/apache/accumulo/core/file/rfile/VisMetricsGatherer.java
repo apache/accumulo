@@ -136,12 +136,12 @@ public class VisMetricsGatherer
         if (hash) {
           String encodedKey = "";
           try {
-            byte[] encodedBytes = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM)
+            byte[] encodedBytes = MessageDigest.getInstance(Constants.NON_CRYPTO_USE_HASH_ALGORITHM)
                 .digest(entry.getKey().getBytes(UTF_8));
             encodedKey = new String(encodedBytes, UTF_8);
           } catch (NoSuchAlgorithmException e) {
-            out.println("Failed to convert key to " + Constants.PW_HASH_ALGORITHM + " hash: "
-                + e.getMessage());
+            out.println("Failed to convert key to " + Constants.NON_CRYPTO_USE_HASH_ALGORITHM
+                + " hash: " + e.getMessage());
           }
           out.printf("%-20s", encodedKey.substring(0, 8));
         } else

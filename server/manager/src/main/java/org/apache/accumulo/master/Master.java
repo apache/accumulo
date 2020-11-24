@@ -1178,6 +1178,9 @@ public class Master extends AbstractServer
       log.info("All metrics modules registered");
     }
 
+    // checking stored user hashes if any of them uses an outdated algorithm
+    security.validateStoredUserCreditentials();
+
     // The master is fully initialized. Clients are allowed to connect now.
     masterInitialized.set(true);
 

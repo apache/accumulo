@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -49,7 +51,7 @@ import org.slf4j.LoggerFactory;
 class ZKSecurityTool {
   private static final Logger log = LoggerFactory.getLogger(ZKSecurityTool.class);
   private static final int SALT_LENGTH = 8;
-  private static final Charset CRYPT_CHARSET = Charset.forName("UTF-8");
+  private static final Charset CRYPT_CHARSET = UTF_8;
 
   // Generates a byte array salt of length SALT_LENGTH
   private static byte[] generateSalt() {
@@ -78,7 +80,10 @@ class ZKSecurityTool {
   }
 
   @Deprecated(since = "2.1.0")
-  public static boolean checkPass(byte[] password, byte[] zkData) {
+  static boolean checkPass(byte[] password, byte[] zkData) {
+    if (zkData == null)
+      return false;
+
     byte[] salt = new byte[SALT_LENGTH];
     System.arraycopy(zkData, 0, salt, 0, SALT_LENGTH);
     byte[] passwordToCheck;
