@@ -665,5 +665,4 @@ public class CompactionIT extends SharedMiniClusterBase {
 
     client.tableOperations().create(name, ntc);
   }
-
 }
