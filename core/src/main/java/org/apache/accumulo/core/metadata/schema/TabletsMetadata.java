@@ -185,6 +185,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             break;
           case SUSPEND:
             families.add(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
+            break;
           case TIME:
             qualifiers.add(TIME_COLUMN);
             break;
