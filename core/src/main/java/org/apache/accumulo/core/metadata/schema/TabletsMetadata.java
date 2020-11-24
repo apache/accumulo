@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
@@ -181,6 +182,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             break;
           case SCANS:
             families.add(ScanFileColumnFamily.NAME);
+            break;
+          case SUSPEND:
+            families.add(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
             break;
           case TIME:
             qualifiers.add(TIME_COLUMN);
