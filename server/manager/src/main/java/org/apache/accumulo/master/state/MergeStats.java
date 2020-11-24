@@ -34,6 +34,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -43,13 +46,9 @@ import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
-import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
-import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.TraceScope;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -272,7 +271,7 @@ public class MergeStats {
               + Constants.ZTABLES + "/" + tableId + "/merge";
           MergeInfo info = new MergeInfo();
           if (zooReaderWriter.exists(path)) {
-            byte[] data = zooReaderWriter.getData(path, new Stat());
+            byte[] data = zooReaderWriter.getData(path);
             DataInputBuffer in = new DataInputBuffer();
             in.reset(data, data.length);
             info.readFields(in);

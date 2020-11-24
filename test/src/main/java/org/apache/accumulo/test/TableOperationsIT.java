@@ -76,11 +76,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   private AccumuloClient accumuloClient;
 
   @Override
-  public boolean canRunTest(ClusterType type) {
-    return type == ClusterType.MINI;
-  }
-
-  @Override
   public int defaultTimeoutSeconds() {
     return 90;
   }

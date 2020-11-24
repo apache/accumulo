@@ -179,12 +179,14 @@ public interface VolumeManager extends AutoCloseable {
   boolean canSyncAndFlush(Path path);
 
   /**
-   * Fetch the default Volume
+   * Fetch the first configured instance Volume
    */
-  Volume getDefaultVolume();
+  default Volume getFirst() {
+    return getVolumes().iterator().next();
+  }
 
   /**
-   * Fetch the configured Volumes, excluding the default Volume
+   * Fetch the configured instance Volumes
    */
   Collection<Volume> getVolumes();
 

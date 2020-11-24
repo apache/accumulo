@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
@@ -102,40 +101,36 @@ public class CompactRange extends MasterRepo {
     ZooReaderWriter zoo = env.getContext().getZooReaderWriter();
     byte[] cid;
     try {
-      cid = zoo.mutate(zTablePath, null, null, new Mutator() {
-        @Override
-        public byte[] mutate(byte[] currentValue) throws Exception {
-          String cvs = new String(currentValue, UTF_8);
-          String[] tokens = cvs.split(",");
-          long flushID = Long.parseLong(tokens[0]);
-          flushID++;
+      cid = zoo.mutateExisting(zTablePath, currentValue -> {
+        String cvs = new String(currentValue, UTF_8);
+        String[] tokens = cvs.split(",");
+        long flushID = Long.parseLong(tokens[0]) + 1;
 
-          String txidString = String.format("%016x", tid);
+        String txidString = String.format("%016x", tid);
 
-          for (int i = 1; i < tokens.length; i++) {
-            if (tokens[i].startsWith(txidString))
-              continue; // skip self
+        for (int i = 1; i < tokens.length; i++) {
+          if (tokens[i].startsWith(txidString))
+            continue; // skip self
 
-            log.debug("txidString : {}", txidString);
-            log.debug("tokens[{}] : {}", i, tokens[i]);
+          log.debug("txidString : {}", txidString);
+          log.debug("tokens[{}] : {}", i, tokens[i]);
 
-            throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
-                TableOperation.COMPACT, TableOperationExceptionType.OTHER,
-                "Another compaction with iterators and/or a compaction strategy is running");
-          }
-
-          StringBuilder encodedIterators = new StringBuilder();
-
-          if (config != null) {
-            Hex hex = new Hex();
-            encodedIterators.append(",");
-            encodedIterators.append(txidString);
-            encodedIterators.append("=");
-            encodedIterators.append(new String(hex.encode(config), UTF_8));
-          }
-
-          return (Long.toString(flushID) + encodedIterators).getBytes(UTF_8);
+          throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
+              TableOperation.COMPACT, TableOperationExceptionType.OTHER,
+              "Another compaction with iterators and/or a compaction strategy is running");
         }
+
+        StringBuilder encodedIterators = new StringBuilder();
+
+        if (config != null) {
+          Hex hex = new Hex();
+          encodedIterators.append(",");
+          encodedIterators.append(txidString);
+          encodedIterators.append("=");
+          encodedIterators.append(new String(hex.encode(config), UTF_8));
+        }
+
+        return (Long.toString(flushID) + encodedIterators).getBytes(UTF_8);
       });
 
       return new CompactionDriver(Long.parseLong(new String(cid, UTF_8).split(",")[0]), namespaceId,
@@ -154,25 +149,22 @@ public class CompactRange extends MasterRepo {
 
     ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
 
-    zoo.mutate(zTablePath, null, null, new Mutator() {
-      @Override
-      public byte[] mutate(byte[] currentValue) {
-        String cvs = new String(currentValue, UTF_8);
-        String[] tokens = cvs.split(",");
-        long flushID = Long.parseLong(tokens[0]);
+    zoo.mutateExisting(zTablePath, currentValue -> {
+      String cvs = new String(currentValue, UTF_8);
+      String[] tokens = cvs.split(",");
+      long flushID = Long.parseLong(tokens[0]);
 
-        String txidString = String.format("%016x", txid);
+      String txidString = String.format("%016x", txid);
 
-        StringBuilder encodedIterators = new StringBuilder();
-        for (int i = 1; i < tokens.length; i++) {
-          if (tokens[i].startsWith(txidString))
-            continue;
-          encodedIterators.append(",");
-          encodedIterators.append(tokens[i]);
-        }
-
-        return (Long.toString(flushID) + encodedIterators).getBytes(UTF_8);
+      StringBuilder encodedIterators = new StringBuilder();
+      for (int i = 1; i < tokens.length; i++) {
+        if (tokens[i].startsWith(txidString))
+          continue;
+        encodedIterators.append(",");
+        encodedIterators.append(tokens[i]);
       }
+
+      return (Long.toString(flushID) + encodedIterators).getBytes(UTF_8);
     });
 
   }

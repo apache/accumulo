@@ -22,6 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -29,25 +31,27 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ShutdownTServer extends MasterRepo {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 2L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
-  private TServerInstance server;
-  private boolean force;
+  private final HostAndPort hostAndPort;
+  private final String serverSession;
+  private final boolean force;
 
   public ShutdownTServer(TServerInstance server, boolean force) {
-    this.server = server;
+    this.hostAndPort = server.getHostAndPort();
+    this.serverSession = server.getSession();
     this.force = force;
   }
 
   @Override
   public long isReady(long tid, Master master) {
+    TServerInstance server = new TServerInstance(hostAndPort, serverSession);
     // suppress assignment of tablets to the server
     if (force) {
       return 0;
@@ -88,9 +92,9 @@ public class ShutdownTServer extends MasterRepo {
     // suppress assignment of tablets to the server
     if (force) {
       ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
-      String path = master.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + server.getLocation();
+      String path = master.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + hostAndPort;
       ZooLock.deleteLock(zoo, path);
-      path = master.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + server.getLocation();
+      path = master.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + hostAndPort;
       zoo.putPersistentData(path, "forced down".getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     }
 

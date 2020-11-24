@@ -31,6 +31,9 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -104,25 +107,25 @@ public class TabletLocationStateTest {
   @Test
   public void testGetServer_Current() throws Exception {
     tls = new TabletLocationState(keyExtent, null, current, last, null, walogs, true);
-    assertSame(current, tls.getServer());
+    assertSame(current, tls.getLocation());
   }
 
   @Test
   public void testGetServer_Future() throws Exception {
     tls = new TabletLocationState(keyExtent, future, null, last, null, walogs, true);
-    assertSame(future, tls.getServer());
+    assertSame(future, tls.getLocation());
   }
 
   @Test
   public void testGetServer_Last() throws Exception {
     tls = new TabletLocationState(keyExtent, null, null, last, null, walogs, true);
-    assertSame(last, tls.getServer());
+    assertSame(last, tls.getLocation());
   }
 
   @Test
   public void testGetServer_None() throws Exception {
     tls = new TabletLocationState(keyExtent, null, null, null, null, walogs, true);
-    assertNull(tls.getServer());
+    assertNull(tls.getLocation());
   }
 
   @Test

@@ -35,6 +35,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 
 /**
  * Interface between compaction service and tablet.
@@ -81,9 +82,8 @@ public interface Compactable {
 
   Optional<Files> getFiles(CompactionServiceId service, CompactionKind kind);
 
-  // void compact(CompactionJob compactionJob);
-
-  void compact(CompactionServiceId service, CompactionJob job);
+  void compact(CompactionServiceId service, CompactionJob job, RateLimiter readLimiter,
+      RateLimiter writeLimiter);
 
   CompactionServiceId getConfiguredService(CompactionKind kind);
 

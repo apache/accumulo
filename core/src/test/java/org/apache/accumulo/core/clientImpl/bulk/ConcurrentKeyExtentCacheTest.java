@@ -31,9 +31,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
@@ -92,13 +89,9 @@ public class ConcurrentKeyExtentCacheTest {
   }
 
   private void testLookup(TestCache tc, Text lookupRow) {
-    try {
-      KeyExtent extent = tc.lookup(lookupRow);
-      assertTrue(extent.contains(lookupRow));
-      assertTrue(extentsSet.contains(extent));
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
-      throw new RuntimeException(e);
-    }
+    KeyExtent extent = tc.lookup(lookupRow);
+    assertTrue(extent.contains(lookupRow));
+    assertTrue(extentsSet.contains(extent));
   }
 
   @Test

@@ -21,18 +21,18 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -153,11 +153,32 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Unlike {@link #putGcCandidates(TableId, Collection)} this takes file and dir GC candidates.
+   */
+  default void putGcFileAndDirCandidates(TableId tableId, Collection<String> candidates) {
+    throw new UnsupportedOperationException();
+  }
+
   default void deleteGcCandidates(DataLevel level, Collection<String> paths) {
     throw new UnsupportedOperationException();
   }
 
   default Iterator<String> getGcCandidates(DataLevel level, String continuePoint) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Return an encoded delete marker Mutation to delete the specified TabletFile path. A String is
+   * used for the parameter because the Garbage Collector is optimized to store a directory for
+   * Tablet File. Otherwise a {@link TabletFile} object could be used. The tabletFilePathToRemove is
+   * validated and normalized before creating the mutation.
+   *
+   * @param tabletFilePathToRemove
+   *          String full path of the TabletFile
+   * @return Mutation with encoded delete marker
+   */
+  default Mutation createDeleteMutation(String tabletFilePathToRemove) {
     throw new UnsupportedOperationException();
   }
 
@@ -173,67 +194,48 @@ public interface Ample {
   }
 
   /**
-   * Temporary interface, place holder for some server side types like TServerInstance. Need to
-   * simplify and possibly combine these type.
-   */
-  interface TServer {
-    HostAndPort getLocation();
-
-    String getSession();
-  }
-
-  /**
-   * Temporary interface, place holder for the server side type FileRef. Need to simplify this type.
-   */
-  interface FileMeta {
-    public Text meta();
-
-    public Path path();
-  }
-
-  /**
    * Interface for changing a tablets persistent data.
    */
   interface TabletMutator {
-    public TabletMutator putPrevEndRow(Text per);
+    TabletMutator putPrevEndRow(Text per);
 
-    public TabletMutator putFile(TabletFile path, DataFileValue dfv);
+    TabletMutator putFile(TabletFile path, DataFileValue dfv);
 
-    public TabletMutator deleteFile(StoredTabletFile path);
+    TabletMutator deleteFile(StoredTabletFile path);
 
-    public TabletMutator putScan(TabletFile path);
+    TabletMutator putScan(TabletFile path);
 
-    public TabletMutator deleteScan(StoredTabletFile path);
+    TabletMutator deleteScan(StoredTabletFile path);
 
-    public TabletMutator putCompactionId(long compactionId);
+    TabletMutator putCompactionId(long compactionId);
 
-    public TabletMutator putFlushId(long flushId);
+    TabletMutator putFlushId(long flushId);
 
-    public TabletMutator putLocation(TServer tserver, LocationType type);
+    TabletMutator putLocation(TServerInstance tserver, LocationType type);
 
-    public TabletMutator deleteLocation(TServer tserver, LocationType type);
+    TabletMutator deleteLocation(TServerInstance tserver, LocationType type);
 
-    public TabletMutator putZooLock(ZooLock zooLock);
+    TabletMutator putZooLock(ZooLock zooLock);
 
-    public TabletMutator putDirName(String dirName);
+    TabletMutator putDirName(String dirName);
 
-    public TabletMutator putWal(LogEntry logEntry);
+    TabletMutator putWal(LogEntry logEntry);
 
-    public TabletMutator deleteWal(String wal);
+    TabletMutator deleteWal(String wal);
 
-    public TabletMutator deleteWal(LogEntry logEntry);
+    TabletMutator deleteWal(LogEntry logEntry);
 
-    public TabletMutator putTime(MetadataTime time);
+    TabletMutator putTime(MetadataTime time);
 
-    public TabletMutator putBulkFile(TabletFile bulkref, long tid);
+    TabletMutator putBulkFile(TabletFile bulkref, long tid);
 
-    public TabletMutator deleteBulkFile(Ample.FileMeta bulkref);
+    TabletMutator deleteBulkFile(TabletFile bulkref);
 
-    public TabletMutator putChopped();
+    TabletMutator putChopped();
 
-    public TabletMutator putSuspension(TServer tserver, long suspensionTime);
+    TabletMutator putSuspension(TServerInstance tserver, long suspensionTime);
 
-    public TabletMutator deleteSuspension();
+    TabletMutator deleteSuspension();
 
     /**
      * This method persist (or queues for persisting) previous put and deletes against this object.
@@ -247,6 +249,6 @@ public interface Ample {
      * <p>
      * After this method is called, calling any method on this object will result in an exception.
      */
-    public void mutate();
+    void mutate();
   }
 }

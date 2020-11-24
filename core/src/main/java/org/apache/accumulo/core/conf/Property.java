@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.LegacyVFSContextClassLoaderFactory;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -106,7 +107,9 @@ public enum Property {
           + " org.apache.accumulo.server.util.ChangeSecret"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
       "A comma separated list of dfs uris to use. Files will be stored across"
-          + " these filesystems. If this is empty, then instance.dfs.uri will be used."
+          + " these filesystems. In some situations, the first volume in this list"
+          + " may be treated differently, such as being preferred for writing out"
+          + " temporary files (for example, when creating a pre-split table)."
           + " After adding uris to this list, run 'accumulo init --add-volume' and then"
           + " restart tservers. If entries are removed from this list then tservers"
           + " will need to be restarted. After a uri is removed from the list Accumulo"
@@ -130,14 +133,17 @@ public enum Property {
       "The volume dfs uri containing relative tablet file paths. Relative paths may exist in the metadata from "
           + "versions prior to 1.6. This property is only required if a relative path is detected "
           + "during the upgrade process and will only be used once."),
+  @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user "
           + "has privilege to perform an action"),
+  @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_AUTHORIZOR("instance.security.authorizor",
       "org.apache.accumulo.server.security.handler.ZKAuthorizor", PropertyType.CLASSNAME,
       "The authorizor class that accumulo will use to determine what labels a "
           + "user has privilege to see"),
+  @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_PERMISSION_HANDLER("instance.security.permissionHandler",
       "org.apache.accumulo.server.security.handler.ZKPermHandler", PropertyType.CLASSNAME,
       "The permission handler class that accumulo will use to determine if a "
@@ -191,6 +197,9 @@ public enum Property {
           + "Additionally, this property no longer does property interpolation of environment "
           + "variables, such as '$ACCUMULO_HOME'. Use commons-configuration syntax,"
           + "'${env:ACCUMULO_HOME}' instead."),
+  GENERAL_CONTEXT_CLASSLOADER_FACTORY("general.context.class.loader.factory",
+      LegacyVFSContextClassLoaderFactory.class.getName(), PropertyType.STRING,
+      "Name of classloader factory to be used to create classloaders for named contexts."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
       "Time to wait on I/O for simple, short RPC calls"),
   @Experimental
@@ -416,6 +425,10 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for root tablet service"),
+  TSERV_COMPACTION_SERVICE_ROOT_RATE_LIMIT("tserver.compaction.major.service.root.rate.limit", "0B",
+      PropertyType.BYTES,
+      "Maximum number of bytes to read or write per second over all major"
+          + " compactions in this compaction service, or 0B for unlimited."),
   TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
       "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
       "The maximum number of files a compaction will open"),
@@ -428,6 +441,10 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for metadata table"),
+  TSERV_COMPACTION_SERVICE_META_RATE_LIMIT("tserver.compaction.major.service.meta.rate.limit", "0B",
+      PropertyType.BYTES,
+      "Maximum number of bytes to read or write per second over all major"
+          + " compactions in this compaction service, or 0B for unlimited."),
   TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
       "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
       "The maximum number of files a compaction will open"),
@@ -440,6 +457,10 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service."),
+  TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT("tserver.compaction.major.service.default.rate.limit",
+      "0B", PropertyType.BYTES,
+      "Maximum number of bytes to read or write per second over all major"
+          + " compactions in this compaction service, or 0B for unlimited."),
   TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
       "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
       "The maximum number of files a compaction will open"),
@@ -458,9 +479,11 @@ public enum Property {
   @ReplacedBy(property = Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS)
   TSERV_MAJC_MAXCONCURRENT("tserver.compaction.major.concurrent.max", "3", PropertyType.COUNT,
       "The maximum number of concurrent major compactions for a tablet server"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT)
   TSERV_MAJC_THROUGHPUT("tserver.compaction.major.throughput", "0B", PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
-          + " compactions on a TabletServer, or 0B for unlimited."),
+          + " compactions within each compaction service, or 0B for unlimited."),
   TSERV_MINC_MAXCONCURRENT("tserver.compaction.minor.concurrent.max", "4", PropertyType.COUNT,
       "The maximum number of concurrent minor compactions for a tablet server"),
   TSERV_MAJC_TRACE_PERCENT("tserver.compaction.major.trace.percent", "0.1", PropertyType.FRACTION,
@@ -904,10 +927,12 @@ public enum Property {
 
   // this property shouldn't be used directly; it exists solely to document the default value
   // defined by its use in AccumuloVFSClassLoader when generating the property documentation
+  @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
       AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
       "Configuration for a system level vfs classloader. Accumulo jar can be"
           + " configured here and loaded out of HDFS."),
+  @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CONTEXT_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY, null,
       PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties"
@@ -922,6 +947,7 @@ public enum Property {
 
   // this property shouldn't be used directly; it exists solely to document the default value
   // defined by its use in AccumuloVFSClassLoader when generating the property documentation
+  @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR, "${java.io.tmpdir}",
       PropertyType.ABSOLUTEPATH,
       "The base directory to use for the vfs cache. The actual cached files will be located"

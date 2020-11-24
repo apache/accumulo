@@ -67,6 +67,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
@@ -92,9 +93,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
-import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -280,23 +279,6 @@ public class MetadataTableUtil {
     finishSplit(extent.toMetaRow(), datafileSizes, highDatafilesToRemove, context, zooLock);
   }
 
-  /**
-   * datafilesToDelete are strings because they can be a TabletFile or directory
-   */
-  public static void addDeleteEntries(KeyExtent extent, Set<String> datafilesToDelete,
-      ServerContext context) {
-
-    // TODO could use batch writer,would need to handle failure and retry like update does -
-    // ACCUMULO-1294
-    for (String pathToRemove : datafilesToDelete) {
-      update(context, ServerAmpleImpl.createDeleteMutation(pathToRemove), extent);
-    }
-  }
-
-  public static void addDeleteEntry(ServerContext context, TableId tableId, String path) {
-    update(context, ServerAmpleImpl.createDeleteMutation(path), new KeyExtent(tableId, null, null));
-  }
-
   public static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
       ServerContext context, ZooLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
@@ -365,6 +347,7 @@ public class MetadataTableUtil {
 
       // scan metadata for our table and delete everything we find
       Mutation m = null;
+      Ample ample = context.getAmple();
       ms.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
       // insert deletes before deleting data from metadata... this makes the code fault tolerant
@@ -377,15 +360,14 @@ public class MetadataTableUtil {
           Key key = cell.getKey();
 
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            FileRef ref =
-                new FileRef(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
-            bw.addMutation(ServerAmpleImpl.createDeleteMutation(ref.meta().toString()));
+            String ref = TabletFileUtil.validate(key.getColumnQualifierData().toString());
+            bw.addMutation(ample.createDeleteMutation(ref));
           }
 
           if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
             String uri =
                 GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, cell.getValue().toString());
-            bw.addMutation(ServerAmpleImpl.createDeleteMutation(uri));
+            bw.addMutation(ample.createDeleteMutation(uri));
           }
         }
 

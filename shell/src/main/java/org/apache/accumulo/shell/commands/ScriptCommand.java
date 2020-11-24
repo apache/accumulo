@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -121,7 +123,7 @@ public class ScriptCommand extends Command {
       Writer writer = null;
       if (cl.hasOption(out.getOpt())) {
         File f = new File(cl.getOptionValue(out.getOpt()));
-        writer = new FileWriter(f);
+        writer = new FileWriter(f, UTF_8);
         ctx.setWriter(writer);
       }
 
@@ -134,7 +136,7 @@ public class ScriptCommand extends Command {
           shellState.printException(new Exception(f.getAbsolutePath() + " not found"));
           return 1;
         }
-        Reader reader = new FileReader(f);
+        Reader reader = new FileReader(f, UTF_8);
         try {
           engine.eval(reader, ctx);
           if (invoke) {

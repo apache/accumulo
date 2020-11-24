@@ -98,10 +98,8 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
       var updateTimestamp = System.currentTimeMillis();
 
-      // Read two updates, throw away the first snapshot - it could have been from a previous run
-      // or another test (the file appends.)
-      LineUpdate firstUpdate = waitForUpdate(-1, gcTail);
-      firstUpdate = waitForUpdate(firstUpdate.getLastUpdate(), gcTail);
+      // Get next update after current time
+      LineUpdate firstUpdate = waitForUpdate(updateTimestamp, gcTail);
 
       Map<String,Long> firstSeenMap = parseLine(firstUpdate.getLine());
 
@@ -111,8 +109,9 @@ public class GcMetricsIT extends ConfigurableMacBase {
       assertTrue(lookForExpectedKeys(firstSeenMap));
       sanity(updateTimestamp, firstSeenMap);
 
-      updateTimestamp = System.currentTimeMillis();
-      LineUpdate nextUpdate = waitForUpdate(firstUpdate.getLastUpdate(), gcTail);
+      // Get next update after the first one
+      updateTimestamp = firstUpdate.getLastUpdate();
+      LineUpdate nextUpdate = waitForUpdate(updateTimestamp, gcTail);
 
       Map<String,Long> updateSeenMap = parseLine(nextUpdate.getLine());
 
@@ -162,7 +161,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
     start = values.get("AccGcWalStarted");
     finished = values.get("AccGcWalFinished");
 
-    log.debug("test start: {}, gc start: {}, gc finished: {}", testStart, start, finished);
+    log.debug("test start: {}, walgc start: {}, walgc finished: {}", testStart, start, finished);
 
     assertTrue(start >= testStart);
     assertTrue(finished >= start);
@@ -243,14 +242,12 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
   private LineUpdate waitForUpdate(final long prevUpdate, final MetricsFileTailer tail) {
 
-    long start = System.currentTimeMillis();
-
     for (int count = 0; count < NUM_TAIL_ATTEMPTS; count++) {
 
       String line = tail.getLast();
       long currUpdate = tail.getLastUpdate();
 
-      if (line != null && (currUpdate != prevUpdate) && isValidTimestamp(line, start)) {
+      if (line != null && (currUpdate != prevUpdate) && isValidTimestamp(line, prevUpdate)) {
         return new LineUpdate(tail.getLastUpdate(), line);
       }
 
@@ -269,7 +266,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
   private static final Pattern timestampPattern = Pattern.compile("^\\s*(?<timestamp>\\d+).*");
 
-  private boolean isValidTimestamp(final String line, final long start) {
+  private boolean isValidTimestamp(final String line, final long prevTimestamp) {
 
     if (Objects.isNull(line)) {
       return false;
@@ -280,7 +277,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
     if (m.matches()) {
       try {
         var timestamp = Long.parseLong(m.group("timestamp"));
-        return timestamp >= start;
+        return timestamp > prevTimestamp;
       } catch (NumberFormatException ex) {
         log.trace("Could not parse timestamp from line '{}", line);
         return false;

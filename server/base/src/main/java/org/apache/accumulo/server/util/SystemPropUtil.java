@@ -34,7 +34,7 @@ public class SystemPropUtil {
 
   private static final Logger log = LoggerFactory.getLogger(SystemPropUtil.class);
 
-  public static boolean setSystemProperty(ServerContext context, String property, String value)
+  public static void setSystemProperty(ServerContext context, String property, String value)
       throws KeeperException, InterruptedException {
     if (!Property.isValidZooPropertyKey(property)) {
       IllegalArgumentException iae =
@@ -64,7 +64,7 @@ public class SystemPropUtil {
     // create the zk node for this property and set it's data to the specified value
     String zPath = context.getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
 
-    return context.getZooReaderWriter().putPersistentData(zPath, value.getBytes(UTF_8),
+    context.getZooReaderWriter().putPersistentData(zPath, value.getBytes(UTF_8),
         NodeExistsPolicy.OVERWRITE);
   }
 

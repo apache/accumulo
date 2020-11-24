@@ -56,6 +56,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -70,15 +71,12 @@ import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
-import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -217,9 +215,8 @@ public class Upgrader9to10 implements Upgrader {
       Mutation mutation = getMutation();
 
       try {
-        context.getZooReaderWriter().mutate(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET,
-            new byte[0], ZooUtil.PUBLIC, currVal -> {
-
+        context.getZooReaderWriter().mutateOrCreate(
+            context.getZooKeeperRoot() + RootTable.ZROOT_TABLET, new byte[0], currVal -> {
               // Earlier, it was checked that root tablet metadata did not exists. However the
               // earlier check does handle race conditions. Race conditions are unexpected. This is
               // a sanity check when making the update in ZK using compare and set. If this fails
@@ -227,15 +224,10 @@ public class Upgrader9to10 implements Upgrader {
               // concurrently running upgrade could cause this to fail.
               Preconditions.checkState(currVal.length == 0,
                   "Expected root tablet metadata to be empty!");
-
-              RootTabletMetadata rtm = new RootTabletMetadata();
-
+              var rtm = new RootTabletMetadata();
               rtm.update(mutation);
-
               String json = rtm.toJson();
-
               log.info("Upgrading root tablet metadata, writing following to ZK : \n {}", json);
-
               return json.getBytes(UTF_8);
             });
       } catch (Exception e) {
@@ -276,7 +268,7 @@ public class Upgrader9to10 implements Upgrader {
         for (String child : zoo.getChildren(root)) {
           try {
             @SuppressWarnings("removal")
-            LogEntry e = LogEntry.fromBytes(zoo.getData(root + "/" + child, null));
+            LogEntry e = LogEntry.fromBytes(zoo.getData(root + "/" + child));
             // upgrade from !0;!0<< -> +r<<
             e = new LogEntry(RootTable.EXTENT, 0, e.filename);
             result.add(e);
@@ -297,7 +289,7 @@ public class Upgrader9to10 implements Upgrader {
 
   private String getFromZK(ServerContext ctx, String relpath) {
     try {
-      byte[] data = ctx.getZooReaderWriter().getData(ctx.getZooKeeperRoot() + relpath, null);
+      byte[] data = ctx.getZooReaderWriter().getData(ctx.getZooKeeperRoot() + relpath);
       if (data == null)
         return null;
 
@@ -424,6 +416,7 @@ public class Upgrader9to10 implements Upgrader {
 
     String tableName = level.metaTable();
     AccumuloClient c = ctx;
+    Ample ample = ctx.getAmple();
 
     // find all deletes
     try (BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig())) {
@@ -441,7 +434,7 @@ public class Upgrader9to10 implements Upgrader {
           Path absolutePath = resolveRelativeDelete(olddelete, upgradeProp);
           String updatedDel = switchToAllVolumes(absolutePath);
 
-          writer.addMutation(ServerAmpleImpl.createDeleteMutation(updatedDel));
+          writer.addMutation(ample.createDeleteMutation(updatedDel));
         }
         writer.flush();
         // if nothing thrown then we're good so mark all deleted

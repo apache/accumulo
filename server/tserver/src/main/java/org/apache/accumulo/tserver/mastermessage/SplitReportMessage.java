@@ -20,9 +20,8 @@ package org.apache.accumulo.tserver.mastermessage;
 
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -49,7 +48,8 @@ public class SplitReportMessage implements MasterMessage {
       throws TException, ThriftSecurityException {
     TabletSplit split = new TabletSplit();
     split.oldTablet = old_extent.toThrift();
-    split.newTablets = Translator.translate(extents.keySet(), Translators.KET);
+    split.newTablets =
+        extents.keySet().stream().map(KeyExtent::toThrift).collect(Collectors.toList());
     client.reportSplitExtent(TraceUtil.traceInfo(), credentials, serverName, split);
   }
 

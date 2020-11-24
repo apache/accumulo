@@ -53,6 +53,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.ContextClassLoaders;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
@@ -68,6 +69,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -86,9 +88,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
-import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
-import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory.RateProvider;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
@@ -113,7 +112,6 @@ import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.master.recovery.RecoveryPath;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
@@ -130,8 +128,6 @@ import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
 import org.apache.accumulo.tserver.compactions.Compactable;
@@ -142,6 +138,7 @@ import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.log.TabletServerLogger;
 import org.apache.accumulo.tserver.mastermessage.MasterMessage;
 import org.apache.accumulo.tserver.mastermessage.SplitReportMessage;
+import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
@@ -185,6 +182,7 @@ public class TabletServer extends AbstractServer {
   final TabletServerUpdateMetrics updateMetrics;
   final TabletServerScanMetrics scanMetrics;
   final TabletServerMinCMetrics mincMetrics;
+  final CompactionExecutorsMetrics ceMetrics;
 
   public TabletServerScanMetrics getScanMetrics() {
     return scanMetrics;
@@ -340,6 +338,7 @@ public class TabletServer extends AbstractServer {
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
+    ceMetrics = new CompactionExecutorsMetrics();
     SimpleTimer.getInstance(aconf).schedule(TabletLocator::clearLocators, jitter(), jitter());
     walMarker = new WalStateManager(context);
 
@@ -705,6 +704,7 @@ public class TabletServer extends AbstractServer {
       mincMetrics.register(metricsSystem);
       scanMetrics.register(metricsSystem);
       updateMetrics.register(metricsSystem);
+      ceMetrics.register(metricsSystem);
     } catch (Exception e) {
       log.error("Error registering metrics", e);
     }
@@ -729,7 +729,7 @@ public class TabletServer extends AbstractServer {
         return Iterators.transform(onlineTablets.snapshot().values().iterator(),
             Tablet::asCompactable);
       }
-    }, getContext());
+    }, getContext(), ceMetrics);
     compactionManager.start();
 
     try {
@@ -862,8 +862,8 @@ public class TabletServer extends AbstractServer {
     TServerUtils.stopTServer(server);
 
     try {
-      log.debug("Closing filesystem");
-      getFileSystem().close();
+      log.debug("Closing filesystems");
+      getVolumeManager().close();
     } catch (IOException e) {
       log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
@@ -929,8 +929,7 @@ public class TabletServer extends AbstractServer {
 
     Location loc = meta.getLocation();
 
-    if (loc == null || loc.getType() != LocationType.FUTURE
-        || !instance.equals(new TServerInstance(loc))) {
+    if (loc == null || loc.getType() != LocationType.FUTURE || !instance.equals(loc)) {
       log.info("Unexpected location {} {}", extent, loc);
       return false;
     }
@@ -996,38 +995,14 @@ public class TabletServer extends AbstractServer {
     majorCompactorThread.start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
+
+    final AccumuloConfiguration aconf = getConfiguration();
     try {
-      AccumuloVFSClassLoader.getContextManager()
-          .setContextConfig(new ContextManager.DefaultContextsConfig() {
-            @Override
-            public Map<String,String> getVfsContextClasspathProperties() {
-              return getConfiguration()
-                  .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-            }
-          });
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      ContextClassLoaders.initialize(aconf);
+    } catch (Exception e1) {
+      log.error("Error configuring ContextClassLoaderFactory", e1);
+      throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
     }
-
-    // A task that cleans up unused classloader contexts
-    Runnable contextCleaner = () -> {
-      Set<String> contextProperties = getConfiguration()
-          .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY).keySet();
-      Set<String> configuredContexts = new HashSet<>();
-      for (String prop : contextProperties) {
-        configuredContexts
-            .add(prop.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.name().length()));
-      }
-
-      try {
-        AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);
-      } catch (IOException e) {
-        log.warn("{}", e.getMessage(), e);
-      }
-    };
-
-    AccumuloConfiguration aconf = getConfiguration();
-    SimpleTimer.getInstance(aconf).schedule(contextCleaner, 60000, 60000);
 
     FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
 
@@ -1194,8 +1169,8 @@ public class TabletServer extends AbstractServer {
     return new DfsLogger.ServerResources() {
 
       @Override
-      public VolumeManager getFileSystem() {
-        return TabletServer.this.getFileSystem();
+      public VolumeManager getVolumeManager() {
+        return TabletServer.this.getVolumeManager();
       }
 
       @Override
@@ -1213,7 +1188,7 @@ public class TabletServer extends AbstractServer {
     return onlineTablets.snapshot().get(extent);
   }
 
-  public VolumeManager getFileSystem() {
+  public VolumeManager getVolumeManager() {
     return getContext().getVolumeManager();
   }
 
@@ -1355,27 +1330,6 @@ public class TabletServer extends AbstractServer {
 
   public void removeBulkImportState(List<String> files) {
     bulkImportStatus.removeBulkImportStatus(files);
-  }
-
-  private static final String MAJC_READ_LIMITER_KEY = "tserv_majc_read";
-  private static final String MAJC_WRITE_LIMITER_KEY = "tserv_majc_write";
-  private final RateProvider rateProvider =
-      () -> getConfiguration().getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
-
-  /**
-   * Get the {@link RateLimiter} for reads during major compactions on this tserver. All writes
-   * performed during major compactions are throttled to conform to this RateLimiter.
-   */
-  public final RateLimiter getMajorCompactionReadLimiter() {
-    return SharedRateLimiterFactory.getInstance().create(MAJC_READ_LIMITER_KEY, rateProvider);
-  }
-
-  /**
-   * Get the RateLimiter for writes during major compactions on this tserver. All reads performed
-   * during major compactions are throttled to conform to this RateLimiter.
-   */
-  public final RateLimiter getMajorCompactionWriteLimiter() {
-    return SharedRateLimiterFactory.getInstance().create(MAJC_WRITE_LIMITER_KEY, rateProvider);
   }
 
   public CompactionManager getCompactionManager() {

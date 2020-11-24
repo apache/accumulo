@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -40,8 +41,8 @@ public class DeadServerList {
   private final String path;
   private final ZooReaderWriter zoo;
 
-  public DeadServerList(ServerContext context, String path) {
-    this.path = path;
+  public DeadServerList(ServerContext context) {
+    this.path = context.getZooKeeperRoot() + Constants.ZDEADTSERVERS;
     zoo = context.getZooReaderWriter();
     try {
       context.getZooReaderWriter().mkdirs(path);

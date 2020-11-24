@@ -145,12 +145,12 @@ public class SimpleGarbageCollectorTest {
   @Test
   public void testMinimizeDeletes() {
     Volume vol1 = createMock(Volume.class);
-    expect(vol1.isValidPath(anyObject()))
+    expect(vol1.containsPath(anyObject()))
         .andAnswer(() -> getCurrentArguments()[0].toString().startsWith("hdfs://nn1/accumulo"))
         .anyTimes();
 
     Volume vol2 = createMock(Volume.class);
-    expect(vol2.isValidPath(anyObject()))
+    expect(vol2.containsPath(anyObject()))
         .andAnswer(() -> getCurrentArguments()[0].toString().startsWith("hdfs://nn2/accumulo"))
         .anyTimes();
 

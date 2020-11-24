@@ -1301,7 +1301,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           lastRow = tablet.getExtent().toMetaRow();
 
           if (loc != null) {
-            serverCounts.increment(loc.getId(), 1);
+            serverCounts.increment(loc.getHostPortSession(), 1);
           }
         }
 
@@ -1374,6 +1374,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
+  public boolean isOnline(String tableName) throws AccumuloException, TableNotFoundException {
+    checkArgument(tableName != null, "tableName is null");
+
+    TableId tableId = Tables.getTableId(context, tableName);
+
+    TableState expectedState = Tables.getTableState(context, tableId, true);
+    return expectedState == TableState.ONLINE;
+  }
+
+  @Override
   public void online(String tableName)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     online(tableName, false);
@@ -1390,8 +1400,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
      * ACCUMULO-4574 if table is already online return without executing fate operation.
      */
 
-    TableState expectedState = Tables.getTableState(context, tableId, true);
-    if (expectedState == TableState.ONLINE) {
+    if (isOnline(tableName)) {
       if (wait)
         waitForTableStateTransition(tableId, TableState.ONLINE);
       return;

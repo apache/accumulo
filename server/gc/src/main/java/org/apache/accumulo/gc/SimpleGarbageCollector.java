@@ -26,7 +26,6 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -699,7 +698,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   static void minimizeDeletes(SortedMap<String,String> confirmedDeletes,
       List<String> processedDeletes, VolumeManager fs) {
     Set<Path> seenVolumes = new HashSet<>();
-    Collection<Volume> volumes = fs.getVolumes();
 
     // when deleting a dir and all files in that dir, only need to delete the dir
     // the dir will sort right before the files... so remove the files in this case
@@ -726,8 +724,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             if (seenVolumes.contains(vol)) {
               sameVol = true;
             } else {
-              for (Volume cvol : volumes) {
-                if (cvol.isValidPath(vol)) {
+              for (Volume cvol : fs.getVolumes()) {
+                if (cvol.containsPath(vol)) {
                   seenVolumes.add(vol);
                   sameVol = true;
                 }

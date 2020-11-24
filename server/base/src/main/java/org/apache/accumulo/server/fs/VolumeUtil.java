@@ -57,8 +57,9 @@ public class VolumeUtil {
   }
 
   public static Path removeTrailingSlash(Path path) {
-    if (path.toString().endsWith("/"))
-      return new Path(removeTrailingSlash(path.toString()));
+    String pathStr = path.toString();
+    if (pathStr.endsWith("/"))
+      return new Path(removeTrailingSlash(pathStr));
     return path;
   }
 

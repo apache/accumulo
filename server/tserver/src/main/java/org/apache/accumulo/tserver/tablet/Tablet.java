@@ -71,6 +71,7 @@ import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -93,7 +94,6 @@ import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -105,7 +105,6 @@ import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
@@ -255,7 +254,7 @@ public class Tablet {
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(extent.tableId(), extent.endRow(), context);
     String dirUri =
-        tabletServer.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris(context))
+        tabletServer.getVolumeManager().choose(chooserEnv, ServerConstants.getBaseUris(context))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.tableId() + Path.SEPARATOR
             + dirName;
     checkTabletDir(new Path(dirUri));
@@ -272,7 +271,7 @@ public class Tablet {
     if (!checkedTabletDirs.contains(path)) {
       FileStatus[] files = null;
       try {
-        files = getTabletServer().getFileSystem().listStatus(path);
+        files = getTabletServer().getVolumeManager().listStatus(path);
       } catch (FileNotFoundException ex) {
         // ignored
       }
@@ -280,7 +279,7 @@ public class Tablet {
       if (files == null) {
         log.debug("Tablet {} had no dir, creating {}", extent, path);
 
-        getTabletServer().getFileSystem().mkdirs(path);
+        getTabletServer().getVolumeManager().mkdirs(path);
       }
       checkedTabletDirs.add(path);
     }
@@ -352,8 +351,8 @@ public class Tablet {
           absPaths.add(ref.getPathStr());
         }
 
-        tabletServer.recover(this.getTabletServer().getFileSystem(), extent, logEntries, absPaths,
-            m -> {
+        tabletServer.recover(this.getTabletServer().getVolumeManager(), extent, logEntries,
+            absPaths, m -> {
               Collection<ColumnUpdate> muts = m.getUpdates();
               for (ColumnUpdate columnUpdate : muts) {
                 if (!columnUpdate.hasTimestamp()) {
@@ -409,13 +408,6 @@ public class Tablet {
           getTabletMemory().getNumEntries());
     }
 
-    String contextName = tableConfiguration.get(Property.TABLE_CLASSPATH);
-    if (contextName != null && !contextName.equals("")) {
-      // initialize context classloader, instead of possibly waiting for it to initialize for a scan
-      // TODO this could hang, causing other tablets to fail to load - ACCUMULO-1292
-      AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
-    }
-
     // do this last after tablet is completely setup because it
     // could cause major compaction to start
     datafileManager = new DatafileManager(this, datafiles);
@@ -440,16 +432,14 @@ public class Tablet {
   private void removeOldTemporaryFiles() {
     // remove any temporary files created by a previous tablet server
     try {
-      Collection<Volume> volumes = getTabletServer().getFileSystem().getVolumes();
-      for (Volume volume : volumes) {
+      for (Volume volume : getTabletServer().getVolumeManager().getVolumes()) {
         String dirUri = volume.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + extent.tableId() + Path.SEPARATOR + dirName;
 
-        for (FileStatus tmp : getTabletServer().getFileSystem()
-            .globStatus(new Path(dirUri, "*_tmp"))) {
+        for (FileStatus tmp : volume.getFileSystem().globStatus(new Path(dirUri, "*_tmp"))) {
           try {
             log.debug("Removing old temp file {}", tmp.getPath());
-            getTabletServer().getFileSystem().delete(tmp.getPath());
+            volume.getFileSystem().delete(tmp.getPath(), false);
           } catch (IOException ex) {
             log.error("Unable to remove old temp file " + tmp.getPath() + ": " + ex);
           }
@@ -977,7 +967,7 @@ public class Tablet {
     try {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
           + "/" + extent.tableId() + Constants.ZTABLE_FLUSH_ID;
-      String id = new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8);
+      String id = new String(context.getZooReaderWriter().getData(zTablePath), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
@@ -1003,7 +993,7 @@ public class Tablet {
           + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_ID;
 
       String[] tokens =
-          new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8).split(",");
+          new String(context.getZooReaderWriter().getData(zTablePath), UTF_8).split(",");
       long compactID = Long.parseLong(tokens[0]);
 
       CompactionConfig overlappingConfig = null;

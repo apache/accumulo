@@ -108,7 +108,7 @@ public class CompactableUtils {
       Set<StoredTabletFile> allFiles) throws IOException {
     final Map<StoredTabletFile,Pair<Key,Key>> result = new HashMap<>();
     final FileOperations fileFactory = FileOperations.getInstance();
-    final VolumeManager fs = tablet.getTabletServer().getFileSystem();
+    final VolumeManager fs = tablet.getTabletServer().getVolumeManager();
     for (StoredTabletFile file : allFiles) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       try (FileSKVIterator openReader = fileFactory.newReaderBuilder()
@@ -150,7 +150,7 @@ public class CompactableUtils {
     BlockCache ic = trsm.getIndexCache();
     Cache<String,Long> fileLenCache = trsm.getFileLenCache();
     MajorCompactionRequest request = new MajorCompactionRequest(tablet.getExtent(),
-        CompactableUtils.from(kind), tablet.getTabletServer().getFileSystem(),
+        CompactableUtils.from(kind), tablet.getTabletServer().getVolumeManager(),
         tablet.getTableConfiguration(), sc, ic, fileLenCache, tablet.getContext());
 
     request.setFiles(datafiles);
@@ -347,7 +347,7 @@ public class CompactableUtils {
         try {
           FileOperations fileFactory = FileOperations.getInstance();
           Path path = new Path(file.getUri());
-          FileSystem ns = tablet.getTabletServer().getFileSystem().getFileSystemByPath(path);
+          FileSystem ns = tablet.getTabletServer().getVolumeManager().getFileSystemByPath(path);
           var fiter = fileFactory.newReaderBuilder()
               .forFile(path.toString(), ns, ns.getConf(), tablet.getContext().getCryptoService())
               .withTableConfiguration(tablet.getTableConfiguration()).seekToBeginning().build();
@@ -441,10 +441,10 @@ public class CompactableUtils {
       }
 
       if (selectedFiles.isEmpty()) {
-        tablet.setLastCompactionID(compactionId);
-
         MetadataTableUtil.updateTabletCompactID(tablet.getExtent(), compactionId,
             tablet.getTabletServer().getContext(), tablet.getTabletServer().getLock());
+
+        tablet.setLastCompactionID(compactionId);
       }
 
       return selectedFiles;
@@ -530,8 +530,8 @@ public class CompactableUtils {
 
   static StoredTabletFile compact(Tablet tablet, CompactionJob job, Set<StoredTabletFile> jobFiles,
       Long compactionId, boolean propogateDeletes, CompactableImpl.CompactionHelper helper,
-      List<IteratorSetting> iters, CompactionCheck compactionCheck)
-      throws IOException, CompactionCanceledException {
+      List<IteratorSetting> iters, CompactionCheck compactionCheck, RateLimiter readLimiter,
+      RateLimiter writeLimiter) throws IOException, CompactionCanceledException {
     StoredTabletFile metaFile;
     CompactionEnv cenv = new CompactionEnv() {
       @Override
@@ -546,12 +546,12 @@ public class CompactableUtils {
 
       @Override
       public RateLimiter getReadLimiter() {
-        return tablet.getTabletServer().getMajorCompactionReadLimiter();
+        return readLimiter;
       }
 
       @Override
       public RateLimiter getWriteLimiter() {
-        return tablet.getTabletServer().getMajorCompactionWriteLimiter();
+        return writeLimiter;
       }
     };
 

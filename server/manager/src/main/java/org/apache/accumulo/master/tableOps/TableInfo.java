@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.hadoop.fs.Path;
 
 public class TableInfo implements Serializable {
 
@@ -87,20 +88,22 @@ public class TableInfo implements Serializable {
     this.user = user;
   }
 
-  public String getSplitFile() {
-    return splitFile;
+  public Path getSplitPath() {
+    return new Path(splitFile);
   }
 
-  public void setSplitFile(String splitFile) {
-    this.splitFile = splitFile;
+  // stored as string for Java serialization
+  public void setSplitPath(Path splitPath) {
+    this.splitFile = splitPath == null ? null : splitPath.toString();
   }
 
-  public String getSplitDirsFile() {
-    return splitDirsFile;
+  public Path getSplitDirsPath() {
+    return new Path(splitDirsFile);
   }
 
-  public void setSplitDirsFile(String splitDirsFile) {
-    this.splitDirsFile = splitDirsFile;
+  // stored as string for Java serialization
+  public void setSplitDirsPath(Path splitDirsPath) {
+    this.splitDirsFile = splitDirsPath == null ? null : splitDirsPath.toString();
   }
 
   public InitialTableState getInitialTableState() {

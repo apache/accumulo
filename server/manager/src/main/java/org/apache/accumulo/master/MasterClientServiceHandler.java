@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.master;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
@@ -64,6 +65,7 @@ import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -84,7 +86,6 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.balancer.TabletBalancer;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
@@ -125,10 +126,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
     ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
     byte[] fid;
     try {
-      fid = zoo.mutate(zTablePath, null, null, currentValue -> {
-        long flushID = Long.parseLong(new String(currentValue));
-        flushID++;
-        return ("" + flushID).getBytes();
+      fid = zoo.mutateExisting(zTablePath, currentValue -> {
+        long flushID = Long.parseLong(new String(currentValue, UTF_8));
+        return Long.toString(flushID + 1).getBytes(UTF_8);
       });
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
@@ -193,7 +193,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
           if ((tablet.hasCurrent() || logs > 0) && tablet.getFlushId().orElse(-1) < flushID) {
             tabletsToWaitFor++;
             if (tablet.hasCurrent())
-              serversToFlush.add(new TServerInstance(tablet.getLocation()));
+              serversToFlush.add(tablet.getLocation());
           }
 
           tabletCount++;
@@ -292,7 +292,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       Master.log.info("Canceled migration of {}", split.oldTablet);
     }
     for (TServerInstance instance : master.tserverSet.getCurrentServers()) {
-      if (serverName.equals(instance.hostPort())) {
+      if (serverName.equals(instance.getHostPort())) {
         master.nextEvent.event("%s reported split %s, %s", serverName,
             KeyExtent.fromThrift(split.newTablets.get(0)),
             KeyExtent.fromThrift(split.newTablets.get(1)));
@@ -461,7 +461,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     Set<TServerInstance> tserverInstances = master.onlineTabletServers();
     List<String> servers = new ArrayList<>();
     for (TServerInstance tserverInstance : tserverInstances) {
-      servers.add(tserverInstance.getLocation().toString());
+      servers.add(tserverInstance.getHostPort());
     }
 
     return servers;

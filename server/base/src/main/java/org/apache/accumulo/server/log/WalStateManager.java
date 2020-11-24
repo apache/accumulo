@@ -28,12 +28,12 @@ import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -81,7 +81,7 @@ public class WalStateManager {
 
   public static final String ZWALS = "/wals";
 
-  public static enum WalState {
+  public enum WalState {
     /* log is open, and may be written to */
     OPEN,
     /* log is closed, and will not be written to again */
@@ -169,7 +169,7 @@ public class WalStateManager {
           // This function is called by the Master. Its possible that Accumulo GC deletes an
           // unreferenced WAL in ZK after the call to getChildren above. Catch this exception inside
           // the loop so that not all children are ignored.
-          zdata = zoo.getData(zpath + "/" + child, null);
+          zdata = zoo.getData(zpath + "/" + child);
         } catch (KeeperException.NoNodeException e) {
           log.debug("WAL state removed {} {} during getWalsInUse.  Likely a race condition between "
               + "master and GC.", tsi, child);
@@ -215,7 +215,7 @@ public class WalStateManager {
   public Pair<WalState,Path> state(TServerInstance instance, UUID uuid) throws WalMarkerException {
     try {
       String path = root() + "/" + instance + "/" + uuid;
-      return parse(zoo.getData(path, null));
+      return parse(zoo.getData(path));
     } catch (KeeperException | InterruptedException e) {
       throw new WalMarkerException(e);
     }
@@ -240,7 +240,7 @@ public class WalStateManager {
     try {
       log.debug("Removing {}", uuid);
       String path = root() + "/" + instance + "/" + uuid;
-      zoo.delete(path, -1);
+      zoo.delete(path);
     } catch (InterruptedException | KeeperException e) {
       throw new WalMarkerException(e);
     }

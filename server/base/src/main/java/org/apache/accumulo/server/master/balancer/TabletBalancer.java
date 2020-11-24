@@ -30,6 +30,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -229,7 +229,7 @@ public abstract class TabletBalancer {
       throws ThriftSecurityException, TException {
     log.debug("Scanning tablet server {} for table {}", tserver, tableId);
     Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(),
-        tserver.getLocation(), context);
+        tserver.getHostAndPort(), context);
     try {
       return client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
     } catch (TTransportException e) {

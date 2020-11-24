@@ -106,8 +106,7 @@ public class TabletServerResource {
   @Consumes(MediaType.TEXT_PLAIN)
   public void clearDeadServer(
       @QueryParam("server") @NotNull @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
-    DeadServerList obit = new DeadServerList(monitor.getContext(),
-        monitor.getContext().getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+    DeadServerList obit = new DeadServerList(monitor.getContext());
     obit.delete(server);
   }
 

@@ -121,13 +121,10 @@
     <curator.version>4.3.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
-    <!-- extra release args for testing -->
-    <extraReleaseArguments />
     <failsafe.excludedGroups />
+    <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
-    <!-- surefire/failsafe plugin option -->
-    <forkCount>1</forkCount>
-    <hadoop.version>3.2.1</hadoop.version>
+    <hadoop.version>3.3.0</hadoop.version>
     <hk2.version>2.6.1</hk2.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.2.0-incubating</htrace.version>
@@ -144,12 +141,14 @@
     <powermock.version>2.0.7</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2020-08-27T15:56:15Z</project.build.outputTimestamp>
+    <rat.consoleOutput>true</rat.consoleOutput>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <slf4j.version>1.7.30</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
+    <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
     <surefire.version>3.0.0-M3</surefire.version>
     <!-- Thrift version -->
@@ -222,11 +221,6 @@
         <version>2.3.0.1</version>
       </dependency>
       <dependency>
-        <groupId>commons-beanutils</groupId>
-        <artifactId>commons-beanutils</artifactId>
-        <version>1.9.4</version>
-      </dependency>
-      <dependency>
         <groupId>commons-cli</groupId>
         <artifactId>commons-cli</artifactId>
         <version>1.4</version>
@@ -294,12 +288,12 @@
       <dependency>
         <groupId>jline</groupId>
         <artifactId>jline</artifactId>
-        <version>2.11</version>
+        <version>2.14.6</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.13</version>
+        <version>4.13.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -941,10 +935,10 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
           <configuration>
-            <arguments>-P !autoformat,thrift,sunny -Dtimeout.factor=2 ${extraReleaseArguments}</arguments>
+            <arguments>-P !autoformat,verifyformat,thrift -DskipTests</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
-            <preparationGoals>clean verify</preparationGoals>
+            <preparationGoals>clean package</preparationGoals>
             <tagNameFormat>rel/@{project.version}</tagNameFormat>
             <releaseProfiles>apache-release,accumulo-release</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
@@ -964,6 +958,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
+            <forkCount>${surefire.forkCount}</forkCount>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
             <systemPropertyVariables>
@@ -976,6 +971,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
+            <forkCount>${failsafe.forkCount}</forkCount>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
             <systemPropertyVariables>
@@ -1108,8 +1104,6 @@
                 <unusedDeclaredDependency>com.github.spotbugs:spotbugs-annotations:jar:*</unusedDeclaredDependency>
                 <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
                 <unusedDeclaredDependency>org.apache.accumulo:accumulo-native:tar.gz:*</unusedDeclaredDependency>
-                <!-- ignore runtime dependencies of commons-configuration2 -->
-                <unusedDeclaredDependency>commons-beanutils:commons-beanutils:jar:*</unusedDeclaredDependency>
                 <!-- ignore runtime log4j dependencies at test scope -->
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
@@ -1128,20 +1122,6 @@
             <goals>
               <goal>parse-version</goal>
             </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <!-- verify before compile; should be sorted already -->
-        <groupId>com.github.ekryd.sortpom</groupId>
-        <artifactId>sortpom-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>verify-sorted-pom</id>
-            <goals>
-              <goal>verify</goal>
-            </goals>
-            <phase>process-resources</phase>
           </execution>
         </executions>
       </plugin>
@@ -1506,6 +1486,69 @@
       </build>
     </profile>
     <profile>
+      <!-- off by default, but enable with '-P verifyformat' or '-DverifyFormat' -->
+      <id>verifyformat</id>
+      <activation>
+        <property>
+          <name>verifyFormat</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.ekryd.sortpom</groupId>
+            <artifactId>sortpom-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>verify-sorted-pom</id>
+                <goals>
+                  <goal>verify</goal>
+                </goals>
+                <phase>process-resources</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>com.mycila</groupId>
+            <artifactId>license-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>verify-license-headers</id>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+                <phase>process-test-resources</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.revelc.code.formatter</groupId>
+            <artifactId>formatter-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>verify-formatted-java-source</id>
+                <goals>
+                  <goal>validate</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.revelc.code</groupId>
+            <artifactId>impsort-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>verify-sorted-imports</id>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <!-- on by default, but disable with '-P !autoformat' or '-DskipFormat' -->
       <id>autoformat</id>
       <activation>
@@ -1628,6 +1671,18 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>forkCount</id>
+      <activation>
+        <property>
+          <name>forkCount</name>
+        </property>
+      </activation>
+      <properties>
+        <failsafe.forkCount>${forkCount}</failsafe.forkCount>
+        <surefire.forkCount>${forkCount}</surefire.forkCount>
+      </properties>
     </profile>
   </profiles>
 </project>

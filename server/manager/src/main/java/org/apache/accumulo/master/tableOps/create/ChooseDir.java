@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.master.tableOps.create;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -28,17 +30,19 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.TableInfo;
 import org.apache.accumulo.master.tableOps.Utils;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ChooseDir extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private final TableInfo tableInfo;
+  private static final Logger log = LoggerFactory.getLogger(ChooseDir.class);
 
   ChooseDir(TableInfo ti) {
     this.tableInfo = ti;
@@ -59,8 +63,18 @@ class ChooseDir extends MasterRepo {
 
   @Override
   public void undo(long tid, Master master) throws Exception {
-    VolumeManager fs = master.getVolumeManager();
-    fs.deleteRecursively(new Path(tableInfo.getSplitDirsFile()));
+    // Clean up split files if ChooseDir operation fails
+    Path p = null;
+    try {
+      if (tableInfo.getInitialSplitSize() > 0) {
+        p = tableInfo.getSplitDirsPath();
+        FileSystem fs = p.getFileSystem(master.getContext().getHadoopConf());
+        fs.delete(p, true);
+      }
+    } catch (IOException e) {
+      log.error("Failed to undo ChooseDir operation and failed to clean up split files at {}", p,
+          e);
+    }
   }
 
   /**
@@ -68,8 +82,7 @@ class ChooseDir extends MasterRepo {
    * to the file system for later use during this FATE operation.
    */
   private void createTableDirectoriesInfo(Master master) throws IOException {
-    SortedSet<Text> splits =
-        Utils.getSortedSetFromFile(master.getInputStream(tableInfo.getSplitFile()), true);
+    SortedSet<Text> splits = Utils.getSortedSetFromFile(master, tableInfo.getSplitPath(), true);
     SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(master, splits.size());
     writeTabletDirectoriesToFileSystem(master, tabletDirectoryInfo);
   }
@@ -78,7 +91,7 @@ class ChooseDir extends MasterRepo {
    * Create a set of unique table directories. These will be associated with splits in a follow-on
    * FATE step.
    */
-  private SortedSet<Text> createTabletDirectoriesSet(Master master, int num) {
+  private static SortedSet<Text> createTabletDirectoriesSet(Master master, int num) {
     String tabletDir;
     UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
     SortedSet<Text> splitDirs = new TreeSet<>();
@@ -95,12 +108,13 @@ class ChooseDir extends MasterRepo {
    */
   private void writeTabletDirectoriesToFileSystem(Master master, SortedSet<Text> dirs)
       throws IOException {
-    FileSystem fs = master.getVolumeManager().getDefaultVolume().getFileSystem();
-    if (fs.exists(new Path(tableInfo.getSplitDirsFile())))
-      fs.delete(new Path(tableInfo.getSplitDirsFile()), true);
-    try (FSDataOutputStream stream = master.getOutputStream(tableInfo.getSplitDirsFile())) {
+    Path p = tableInfo.getSplitDirsPath();
+    FileSystem fs = p.getFileSystem(master.getContext().getHadoopConf());
+    if (fs.exists(p))
+      fs.delete(p, true);
+    try (FSDataOutputStream stream = fs.create(p)) {
       for (Text dir : dirs)
-        stream.writeBytes(dir + "\n");
+        stream.write((dir + "\n").getBytes(UTF_8));
     }
   }
 

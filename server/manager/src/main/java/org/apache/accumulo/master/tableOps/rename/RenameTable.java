@@ -84,7 +84,7 @@ public class RenameTable extends MasterRepo {
       final String tap =
           master.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
 
-      zoo.mutate(tap, null, null, current -> {
+      zoo.mutateExisting(tap, current -> {
         final String currentName = new String(current, UTF_8);
         if (currentName.equals(newName))
           return null; // assume in this case the operation is running again, so we are done

@@ -54,7 +54,7 @@ function build_native() {
   mkdir -p "${final_native_target}" || exit 1
 
   # Make a directory for us to unpack the native source into
-  TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXX) || exit 1
+  TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXXXX) || exit 1
 
   # Unpack the tarball to our temp directory
   if ! tar xf "${native_tarballs[0]}" -C "${TMP_DIR}"

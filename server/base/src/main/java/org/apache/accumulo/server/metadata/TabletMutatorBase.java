@@ -22,6 +22,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -42,7 +44,6 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.master.state.SuspendingTServer;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -140,14 +141,14 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
-  public Ample.TabletMutator putLocation(Ample.TServer tsi, LocationType type) {
+  public Ample.TabletMutator putLocation(TServerInstance tsi, LocationType type) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(getLocationFamily(type), tsi.getSession(), tsi.getLocation().toString());
+    mutation.put(getLocationFamily(type), tsi.getSession(), tsi.getHostPort());
     return this;
   }
 
   @Override
-  public Ample.TabletMutator deleteLocation(Ample.TServer tsi, LocationType type) {
+  public Ample.TabletMutator deleteLocation(TServerInstance tsi, LocationType type) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.putDelete(getLocationFamily(type), tsi.getSession());
     return this;
@@ -191,9 +192,9 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
-  public Ample.TabletMutator deleteBulkFile(Ample.FileMeta bulkref) {
+  public Ample.TabletMutator deleteBulkFile(TabletFile bulkref) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(BulkFileColumnFamily.NAME, bulkref.meta());
+    mutation.putDelete(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText());
     return this;
   }
 
@@ -205,11 +206,11 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
-  public Ample.TabletMutator putSuspension(Ample.TServer tServer, long suspensionTime) {
+  public Ample.TabletMutator putSuspension(TServerInstance tServer, long suspensionTime) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.put(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
         SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier(),
-        SuspendingTServer.toValue(tServer.getLocation(), suspensionTime));
+        SuspendingTServer.toValue(tServer, suspensionTime));
     return this;
   }
 

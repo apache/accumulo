@@ -83,7 +83,7 @@ public class ZooQueueLock implements QueueLock {
       for (String name : children) {
         // this try catch must be done inside the loop because some subset of the children may exist
         try {
-          byte[] data = zoo.getData(path + "/" + name, null);
+          byte[] data = zoo.getData(path + "/" + name);
           long order = Long.parseLong(name.substring(PREFIX.length()));
           if (order <= entry)
             result.put(order, data);
@@ -103,8 +103,8 @@ public class ZooQueueLock implements QueueLock {
       zoo.recursiveDelete(path + String.format("/%s%010d", PREFIX, entry), NodeMissingPolicy.SKIP);
       try {
         // try to delete the parent if it has no children
-        zoo.delete(path, -1);
-      } catch (NotEmptyException | NoNodeException nee) {
+        zoo.delete(path);
+      } catch (NotEmptyException nee) {
         // the path had other lock nodes, no big deal
       }
     } catch (Exception ex) {

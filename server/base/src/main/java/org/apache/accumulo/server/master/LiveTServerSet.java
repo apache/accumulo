@@ -33,6 +33,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
@@ -45,14 +46,12 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NotEmptyException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -278,10 +277,11 @@ public class LiveTServerSet implements Watcher {
 
   private void deleteServerNode(String serverNode) throws InterruptedException, KeeperException {
     try {
-      context.getZooReaderWriter().delete(serverNode, -1);
-    } catch (NotEmptyException | NoNodeException ex) {
-      // race condition: tserver created the lock after our last check; we'll see it at the next
-      // check
+      context.getZooReaderWriter().delete(serverNode);
+    } catch (NotEmptyException ex) {
+      // acceptable race condition:
+      // tserver created the lock under this server's node after our last check
+      // we'll see it at the next check
     }
   }
 
@@ -401,7 +401,7 @@ public class LiveTServerSet implements Watcher {
       addr = AddressUtil.parseAddress(tabletServer, false);
     }
     for (Entry<String,TServerInfo> entry : servers.entrySet()) {
-      if (entry.getValue().instance.getLocation().equals(addr)) {
+      if (entry.getValue().instance.getHostAndPort().equals(addr)) {
         // Return the instance if we have no desired session ID, or we match the desired session ID
         if (sessionId == null || sessionId.equals(entry.getValue().instance.getSession()))
           return entry.getValue().instance;

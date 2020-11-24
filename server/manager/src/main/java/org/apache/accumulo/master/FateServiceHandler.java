@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.master;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.MAX_NAMESPACE_LEN;
 import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
 import static org.apache.accumulo.master.util.TableValidators.CAN_CLONE;
@@ -169,12 +170,14 @@ class FateServiceHandler implements FateService.Iface {
             InitialTableState.valueOf(ByteBufferUtil.toString(arguments.get(2)));
         int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(3)));
         validateArgumentCount(arguments, tableOp, SPLIT_OFFSET + splitCount);
-        String splitFile = null;
-        String splitDirsFile = null;
+        Path splitsPath = null;
+        Path splitsDirsPath = null;
         if (splitCount > 0) {
           try {
-            splitFile = writeSplitsToFile(opid, arguments, splitCount, SPLIT_OFFSET);
-            splitDirsFile = createSplitDirsFile(opid);
+            Path tmpDir = mkTempDir(opid);
+            splitsPath = new Path(tmpDir, "splits");
+            splitsDirsPath = new Path(tmpDir, "splitsDirs");
+            writeSplitsToFile(splitsPath, arguments, splitCount, SPLIT_OFFSET);
           } catch (IOException e) {
             throw new ThriftTableOperationException(null, tableName, tableOp,
                 TableOperationExceptionType.OTHER,
@@ -196,7 +199,7 @@ class FateServiceHandler implements FateService.Iface {
 
         master.fate.seedTransaction(opid,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
-                splitFile, splitCount, splitDirsFile, initialTableState, namespaceId)),
+                splitsPath, splitCount, splitsDirsPath, initialTableState, namespaceId)),
             autoCleanup);
 
         break;
@@ -779,65 +782,37 @@ class FateServiceHandler implements FateService.Iface {
   /**
    * Create a file on the file system to hold the splits to be created at table creation.
    */
-  private String writeSplitsToFile(final long opid, final List<ByteBuffer> arguments,
+  private void writeSplitsToFile(Path splitsPath, final List<ByteBuffer> arguments,
       final int splitCount, final int splitOffset) throws IOException {
-    String opidStr = String.format("%016x", opid);
-    String splitsPath = getSplitPath("/tmp/splits-" + opidStr);
-    removeAndCreateTempFile(splitsPath);
-    try (FSDataOutputStream stream = master.getOutputStream(splitsPath)) {
-      writeSplitsToFileSystem(stream, arguments, splitCount, splitOffset);
+    FileSystem fs = splitsPath.getFileSystem(master.getContext().getHadoopConf());
+    try (FSDataOutputStream stream = fs.create(splitsPath)) {
+      // base64 encode because splits can contain binary
+      for (int i = splitOffset; i < splitCount + splitOffset; i++) {
+        byte[] splitBytes = ByteBufferUtil.toBytes(arguments.get(i));
+        String encodedSplit = Base64.getEncoder().encodeToString(splitBytes);
+        stream.write((encodedSplit + '\n').getBytes(UTF_8));
+      }
     } catch (IOException e) {
-      log.error("Error in FateServiceHandler while writing splits for opid: " + opidStr + ": "
-          + e.getMessage());
+      log.error("Error in FateServiceHandler while writing splits to {}: {}", splitsPath,
+          e.getMessage());
       throw e;
     }
-    return splitsPath;
   }
 
   /**
-   * Always check for and delete the splits file if it exists to prevent issues in case of server
-   * failure and/or FateServiceHandler retries.
+   * Creates a temporary directory for the given FaTE operation (deleting any existing, to avoid
+   * issues in case of server retry).
+   *
+   * @return the path of the created directory
    */
-  private void removeAndCreateTempFile(String path) throws IOException {
-    FileSystem fs = master.getVolumeManager().getDefaultVolume().getFileSystem();
-    if (fs.exists(new Path(path)))
-      fs.delete(new Path(path), true);
-    fs.create(new Path(path));
+  public Path mkTempDir(long opid) throws IOException {
+    Volume vol = master.getVolumeManager().getFirst();
+    Path p = vol.prefixChild("/tmp/fate-" + String.format("%016x", opid));
+    FileSystem fs = vol.getFileSystem();
+    if (fs.exists(p))
+      fs.delete(p, true);
+    fs.mkdirs(p);
+    return p;
   }
 
-  /**
-   * Check for and delete the temp file if it exists to prevent issues in case of server failure
-   * and/or FateServiceHandler retries. Then create/recreate the file.
-   */
-  private String createSplitDirsFile(final long opid) throws IOException {
-    String opidStr = String.format("%016x", opid);
-    String splitDirPath = getSplitPath("/tmp/splitDirs-" + opidStr);
-    removeAndCreateTempFile(splitDirPath);
-    return splitDirPath;
-  }
-
-  /**
-   * Write the split values to a tmp directory with unique name. Given that it is not known if the
-   * supplied splits will be textual or binary, all splits will be encoded to enable proper handling
-   * of binary data.
-   */
-  private void writeSplitsToFileSystem(final FSDataOutputStream stream,
-      final List<ByteBuffer> arguments, final int splitCount, final int splitOffset)
-      throws IOException {
-    for (int i = splitOffset; i < splitCount + splitOffset; i++) {
-      byte[] splitBytes = ByteBufferUtil.toBytes(arguments.get(i));
-      String encodedSplit = Base64.getEncoder().encodeToString(splitBytes);
-      stream.writeBytes(encodedSplit + '\n');
-    }
-  }
-
-  /**
-   * Get full path to location where initial splits are stored on file system.
-   */
-  private String getSplitPath(String relPath) {
-    Volume defaultVolume = master.getVolumeManager().getDefaultVolume();
-    String uri = defaultVolume.getFileSystem().getUri().toString();
-    String basePath = defaultVolume.getBasePath();
-    return uri + basePath + relPath;
-  }
 }

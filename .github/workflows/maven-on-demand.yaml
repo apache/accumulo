@@ -29,6 +29,10 @@ on:
     # these inputs break down the Maven command-line, somewhat arbitrarily, so
     # the UI when starting a run is easier to use
     inputs:
+      buildRef:
+        description: Ref to build
+        required: true
+        default: refs/heads/main
       mvnOpts:
         description: Maven options
         required: true
@@ -48,7 +52,7 @@ on:
       addOpts:
         description: Additional options
         required: true
-        default: -Dspotbugs.skip -Dcheckstyle.skip
+        default: -Dspotbugs.skip -Dcheckstyle.skip -DskipFormat -DverifyFormat
 
 jobs:
   mvn:
@@ -57,6 +61,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.inputs.buildRef }}
     - name: Set up JDK 11
       uses: actions/setup-java@v1
       with:
@@ -69,23 +75,28 @@ jobs:
           !~/.m2/repository/org/apache/accumulo
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
+    - name: Show the first log message
+      run: git log -n1
     - name: Build with Maven
       run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ github.event.inputs.mvnOpts }} ${{ github.event.inputs.goals }} ${{ github.event.inputs.utOpts }} ${{ github.event.inputs.itOpts }} ${{ github.event.inputs.addOpts }}
       env:
         MAVEN_OPTS: -Djansi.force=true
     - name: Upload unit test results
+      if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
         name: surefire-reports
         path: ./**/target/surefire-reports/
         if-no-files-found: ignore
     - name: Upload integration test results
+      if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
         name: failsafe-reports
         path: ./**/target/failsafe-reports/
         if-no-files-found: ignore
     - name: Upload mini test logs
+      if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
         name: mini-tests-logs

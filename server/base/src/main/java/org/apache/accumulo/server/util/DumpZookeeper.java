@@ -69,7 +69,7 @@ public class DumpZookeeper {
   private static void writeXml(PrintStream out, String root)
       throws KeeperException, InterruptedException {
     write(out, 0, "<dump root='%s'>", root);
-    for (String child : zk.getChildren(root, null)) {
+    for (String child : zk.getChildren(root)) {
       if (!child.equals("zookeeper")) {
         childXml(out, root, child, 1);
       }
@@ -107,7 +107,7 @@ public class DumpZookeeper {
         write(out, indent, "<%s name='%s' encoding='%s' value='%s'>", type, child, value.encoding,
             value.value);
       }
-      for (String c : zk.getChildren(path, null)) {
+      for (String c : zk.getChildren(path)) {
         childXml(out, path, c, indent + 1);
       }
       write(out, indent, "</node>");
@@ -115,7 +115,7 @@ public class DumpZookeeper {
   }
 
   private static Encoded value(String path) throws KeeperException, InterruptedException {
-    byte[] data = zk.getData(path, null);
+    byte[] data = zk.getData(path);
     for (byte element : data) {
       // does this look like simple ascii?
       if (element < ' ' || element > '~') {
@@ -135,7 +135,7 @@ public class DumpZookeeper {
   private static void writeHumanReadable(PrintStream out, String root)
       throws KeeperException, InterruptedException {
     write(out, 0, "%s:", root);
-    for (String child : zk.getChildren(root, null)) {
+    for (String child : zk.getChildren(root)) {
       if (!child.equals("zookeeper")) {
         childHumanReadable(out, root, child, 1);
       }
@@ -162,7 +162,7 @@ public class DumpZookeeper {
       write(out, indent, "%s:  %s", node, value(path).value);
     }
     if (stat.getNumChildren() > 0) {
-      for (String c : zk.getChildren(path, null)) {
+      for (String c : zk.getChildren(path)) {
         childHumanReadable(out, path, c, indent + 1);
       }
     }
