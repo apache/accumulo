@@ -82,7 +82,7 @@ public abstract class GroupBalancer extends TabletBalancer {
   protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
     return () -> {
       try {
-        return TabletsMetadata.builder().forTable(tableId).fetch(LOCATION, PREV_ROW).build(context)
+        return TabletsMetadata.builder(context).forTable(tableId).fetch(LOCATION, PREV_ROW).build()
             .stream().map(tm -> {
               Location loc = Location.NONE;
               if (tm.hasCurrent()) {

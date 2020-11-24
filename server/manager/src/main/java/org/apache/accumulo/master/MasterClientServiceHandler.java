@@ -181,9 +181,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
       serversToFlush.clear();
 
-      try (TabletsMetadata tablets =
-          TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow)
-              .fetch(FLUSH_ID, LOCATION, LOGS, PREV_ROW).build(master.getContext())) {
+      try (TabletsMetadata tablets = TabletsMetadata.builder(master.getContext()).forTable(tableId)
+          .overlapping(startRow, endRow).fetch(FLUSH_ID, LOCATION, LOGS, PREV_ROW).build()) {
         int tabletsToWaitFor = 0;
         int tabletCount = 0;
 

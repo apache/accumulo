@@ -1276,8 +1276,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       else
         range = new Range(startRow, lastRow);
 
-      TabletsMetadata tablets = TabletsMetadata.builder().scanMetadataTable().overRange(range)
-          .fetch(LOCATION, PREV_ROW).build(context);
+      TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
+          .overRange(range).fetch(LOCATION, PREV_ROW).build();
 
       KeyExtent lastExtent = null;
 

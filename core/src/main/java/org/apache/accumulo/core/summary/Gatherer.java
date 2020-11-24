@@ -171,8 +171,8 @@ public class Gatherer {
   private Map<String,Map<TabletFile,List<TRowRange>>>
       getFilesGroupedByLocation(Predicate<TabletFile> fileSelector) {
 
-    Iterable<TabletMetadata> tmi = TabletsMetadata.builder().forTable(tableId)
-        .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build(ctx);
+    Iterable<TabletMetadata> tmi = TabletsMetadata.builder(ctx).forTable(tableId)
+        .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
 
     // get a subset of files
     Map<TabletFile,List<TabletMetadata>> files = new HashMap<>();
@@ -535,8 +535,8 @@ public class Gatherer {
 
   private int countFiles() {
     // TODO use a batch scanner + iterator to parallelize counting files
-    return TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow)
-        .fetch(FILES, PREV_ROW).build(ctx).stream().mapToInt(tm -> tm.getFiles().size()).sum();
+    return TabletsMetadata.builder(ctx).forTable(tableId).overlapping(startRow, endRow)
+        .fetch(FILES, PREV_ROW).build().stream().mapToInt(tm -> tm.getFiles().size()).sum();
   }
 
   private class GatherRequest implements Supplier<SummaryCollection> {

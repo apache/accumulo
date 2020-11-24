@@ -260,8 +260,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         tabletStream =
             Stream.of(getContext().getAmple().readTablet(RootTable.EXTENT, DIR, FILES, SCANS));
       } else {
-        tabletStream = TabletsMetadata.builder().scanTable(level.metaTable()).checkConsistency()
-            .fetch(DIR, FILES, SCANS).build(getContext()).stream();
+        tabletStream = TabletsMetadata.builder(getContext()).scanTable(level.metaTable())
+            .checkConsistency().fetch(DIR, FILES, SCANS).build().stream();
       }
 
       Stream<Reference> refStream = tabletStream.flatMap(tm -> {

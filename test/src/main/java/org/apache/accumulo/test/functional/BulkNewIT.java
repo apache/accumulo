@@ -513,8 +513,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
     Set<String> endRowsSeen = new HashSet<>();
 
     String id = client.tableOperations().tableIdMap().get(tableName);
-    try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(TableId.of(id))
-        .fetch(FILES, LOADED, PREV_ROW).build(client)) {
+    try (TabletsMetadata tablets = TabletsMetadata.builder(client).forTable(TableId.of(id))
+        .fetch(FILES, LOADED, PREV_ROW).build()) {
       for (TabletMetadata tablet : tablets) {
         assertTrue(tablet.getLoaded().isEmpty());
 

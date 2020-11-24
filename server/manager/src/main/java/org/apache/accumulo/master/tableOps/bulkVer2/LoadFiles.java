@@ -321,8 +321,8 @@ class LoadFiles extends MasterRepo {
     Text startRow = loadMapEntry.getKey().prevEndRow();
 
     Iterator<TabletMetadata> tabletIter =
-        TabletsMetadata.builder().forTable(tableId).overlapping(startRow, null).checkConsistency()
-            .fetch(PREV_ROW, LOCATION, LOADED).build(master.getContext()).iterator();
+        TabletsMetadata.builder(master.getContext()).forTable(tableId).overlapping(startRow, null)
+            .checkConsistency().fetch(PREV_ROW, LOCATION, LOADED).build().iterator();
 
     Loader loader;
     if (bulkInfo.tableState == TableState.ONLINE) {

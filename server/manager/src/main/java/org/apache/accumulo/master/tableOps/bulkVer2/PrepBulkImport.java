@@ -191,9 +191,9 @@ public class PrepBulkImport extends MasterRepo {
     try (LoadMappingIterator lmi =
         BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
 
-      TabletIterFactory tabletIterFactory = startRow -> TabletsMetadata.builder()
+      TabletIterFactory tabletIterFactory = startRow -> TabletsMetadata.builder(master.getContext())
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetch(PREV_ROW)
-          .build(master.getContext()).stream().map(TabletMetadata::getExtent).iterator();
+          .build().stream().map(TabletMetadata::getExtent).iterator();
 
       sanityCheckLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets, tid);
     }

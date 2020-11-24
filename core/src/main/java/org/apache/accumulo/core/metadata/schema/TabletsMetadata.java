@@ -85,10 +85,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       this._client = client;
     }
 
-    Builder() {
-
-    }
-
     @Override
     public TabletsMetadata build(AccumuloClient client) {
       Preconditions.checkState(level == null ^ table == null);
@@ -370,10 +366,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       }
       return next;
     }
-  }
-
-  public static TableOptions builder() {
-    return new Builder();
   }
 
   public static TableOptions builder(AccumuloClient client) {

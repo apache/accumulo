@@ -88,9 +88,8 @@ class CompactionDriver extends MasterRepo {
     int tabletsToWaitFor = 0;
     int tabletCount = 0;
 
-    TabletsMetadata tablets =
-        TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow)
-            .fetch(LOCATION, PREV_ROW, COMPACT_ID).build(master.getContext());
+    TabletsMetadata tablets = TabletsMetadata.builder(master.getContext()).forTable(tableId)
+        .overlapping(startRow, endRow).fetch(LOCATION, PREV_ROW, COMPACT_ID).build();
 
     for (TabletMetadata tablet : tablets) {
       if (tablet.getCompactId().orElse(-1) < compactId) {
