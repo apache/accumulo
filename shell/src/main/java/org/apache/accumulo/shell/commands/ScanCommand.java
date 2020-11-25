@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -50,7 +51,6 @@ import org.apache.accumulo.shell.Shell.PrintFile;
 import org.apache.accumulo.shell.ShellCommandException;
 import org.apache.accumulo.shell.ShellCommandException.ErrorCode;
 import org.apache.accumulo.shell.ShellUtil;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -223,13 +223,13 @@ public class ScanCommand extends Command {
         Shell.log
             .warn("Scan Interpreter option is deprecated and will be removed in a future version.");
 
-        clazz = AccumuloVFSClassLoader.loadClass(cl.getOptionValue(interpreterOpt.getOpt()),
+        clazz = ClassLoaderUtil.loadClass(cl.getOptionValue(interpreterOpt.getOpt()),
             ScanInterpreter.class);
       } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
         Shell.log
             .warn("Scan Interpreter option is deprecated and will be removed in a future version.");
 
-        clazz = AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()),
+        clazz = ClassLoaderUtil.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()),
             ScanInterpreter.class);
       }
     } catch (ClassNotFoundException e) {
@@ -398,8 +398,8 @@ public class ScanCommand extends Command {
     o.addOption(interpreterOpt);
     o.addOption(formatterInterpeterOpt);
     o.addOption(timeoutOption);
-    if (Arrays.asList(new String[] {ScanCommand.class.getName(), GrepCommand.class.getName(),
-        EGrepCommand.class.getName()}).contains(this.getClass().getName())) {
+    if (Arrays.asList(ScanCommand.class.getName(), GrepCommand.class.getName(),
+        EGrepCommand.class.getName()).contains(this.getClass().getName())) {
       // supported subclasses must handle the output file option properly
       // only add this option to commands which handle it correctly
       o.addOption(outputFileOpt);

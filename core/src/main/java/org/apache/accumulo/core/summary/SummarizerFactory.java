@@ -24,7 +24,6 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 
 public class SummarizerFactory {
   private ClassLoader classloader;
@@ -39,7 +38,7 @@ public class SummarizerFactory {
   }
 
   public SummarizerFactory(AccumuloConfiguration tableConfig) {
-    this.context = tableConfig.get(Property.TABLE_CLASSPATH);
+    this.context = ClassLoaderUtil.tableContext(tableConfig);
   }
 
   private Summarizer newSummarizer(String classname)

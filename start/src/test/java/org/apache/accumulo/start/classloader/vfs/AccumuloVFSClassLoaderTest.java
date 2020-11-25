@@ -43,6 +43,8 @@ import org.powermock.reflect.Whitebox;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressWarnings("deprecation")
+@Deprecated
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(AccumuloVFSClassLoader.class)

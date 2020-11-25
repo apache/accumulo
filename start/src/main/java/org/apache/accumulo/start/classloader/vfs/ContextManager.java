@@ -23,14 +23,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Deprecated(since = "2.1.0", forRemoval = true)
-public class ContextManager {
+@Deprecated
+class ContextManager {
 
   private static final Logger log = LoggerFactory.getLogger(ContextManager.class);
 
@@ -79,6 +80,7 @@ public class ContextManager {
     this.parent = parent;
   }
 
+  @Deprecated
   public static class ContextConfig {
     final String name;
     final String uris;
@@ -112,15 +114,20 @@ public class ContextManager {
     ContextConfig getContextConfig(String context);
   }
 
-  public abstract static class DefaultContextsConfig implements ContextsConfig {
+  public static class DefaultContextsConfig implements ContextsConfig {
 
-    public abstract Map<String,String> getVfsContextClasspathProperties();
+    private final Supplier<Map<String,String>> vfsContextClasspathPropertiesProvider;
+
+    public DefaultContextsConfig(
+        Supplier<Map<String,String>> vfsContextClasspathPropertiesProvider) {
+      this.vfsContextClasspathPropertiesProvider = vfsContextClasspathPropertiesProvider;
+    }
 
     @Override
     public ContextConfig getContextConfig(String context) {
 
       String prop = AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY + context;
-      Map<String,String> props = getVfsContextClasspathProperties();
+      Map<String,String> props = vfsContextClasspathPropertiesProvider.get();
 
       String uris = props.get(prop);
 

@@ -122,7 +122,7 @@ public class BloomFilterLayer {
        * load KeyFunctor
        */
       try {
-        String context = acuconf.get(Property.TABLE_CLASSPATH);
+        String context = ClassLoaderUtil.tableContext(acuconf);
         String classname = acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR);
         Class<? extends KeyFunctor> clazz;
         if (!useAccumuloStart)
@@ -213,7 +213,7 @@ public class BloomFilterLayer {
 
       loadThreshold = acuconf.getCount(Property.TABLE_BLOOM_LOAD_THRESHOLD);
 
-      final String context = acuconf.get(Property.TABLE_CLASSPATH);
+      final String context = ClassLoaderUtil.tableContext(acuconf);
 
       loadTask = () -> {
         // no need to load the bloom filter if the map file is closed

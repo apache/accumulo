@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
-import static org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassPath;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -47,5 +46,10 @@ public class AccumuloClasspathTest {
     assertPattern(getClassPath(false), "(?s).*\\s+.*\\n$", false);
     assertFalse(getClassPath(false).contains("app"));
     assertFalse(getClassPath(false).contains("Level"));
+  }
+
+  @SuppressWarnings("deprecation")
+  private String getClassPath(boolean b) {
+    return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassPath(b);
   }
 }

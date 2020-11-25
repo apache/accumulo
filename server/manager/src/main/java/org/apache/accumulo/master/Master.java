@@ -46,7 +46,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.classloader.ContextClassLoaders;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -376,16 +375,6 @@ public class Master extends AbstractServer
     this.tabletBalancer = Property.createInstanceFromPropertyName(aconf,
         Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
     this.tabletBalancer.init(context);
-
-    try {
-      ContextClassLoaders.initialize(aconf);
-    } catch (Exception e1) {
-      log.error("Error configuring ContextClassLoaderFactory", e1);
-      if (e1 instanceof RuntimeException) {
-        throw (RuntimeException) e1;
-      }
-      throw new RuntimeException("Error configuring ContextClassLoaderFactory", e1);
-    }
 
     this.security = AuditedSecurityOperation.getInstance(context);
 
