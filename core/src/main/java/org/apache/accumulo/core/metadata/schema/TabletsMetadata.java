@@ -87,19 +87,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
-    public TabletsMetadata build(AccumuloClient client) {
-      Preconditions.checkState(level == null ^ table == null);
-      if (level == DataLevel.ROOT) {
-        ClientContext ctx = ((ClientContext) client);
-        ZooCache zc = ctx.getZooCache();
-        String zkRoot = ctx.getZooKeeperRoot();
-        return new TabletsMetadata(getRootMetadata(zkRoot, zc));
-      } else {
-        return buildNonRoot(client);
-      }
-    }
-
-    @Override
     public TabletsMetadata build() {
       Preconditions.checkState((level == null) != (table == null));
       if (level == DataLevel.ROOT) {
@@ -266,7 +253,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   }
 
   public interface Options {
-    TabletsMetadata build(AccumuloClient client);
 
     TabletsMetadata build();
 

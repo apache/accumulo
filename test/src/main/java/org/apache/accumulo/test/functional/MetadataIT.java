@@ -38,8 +38,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
@@ -175,8 +173,7 @@ public class MetadataIT extends AccumuloClusterHarness {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
           MetadataTable.NAME, TablePermission.WRITE);
-      BatchWriter bw =
-          accumuloClient.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+
       ClientContext cc = (ClientContext) accumuloClient;
 
       SortedSet<Text> partitionKeys = new TreeSet<Text>();
