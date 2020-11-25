@@ -101,7 +101,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public TabletsMetadata build() {
-      Preconditions.checkState(level == null ^ table == null);
+      Preconditions.checkState((level == null) != (table == null));
       if (level == DataLevel.ROOT) {
         ClientContext ctx = ((ClientContext) _client);
         ZooCache zc = ctx.getZooCache();
