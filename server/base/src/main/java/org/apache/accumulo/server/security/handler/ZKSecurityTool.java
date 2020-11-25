@@ -25,7 +25,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -51,7 +50,6 @@ import org.slf4j.LoggerFactory;
 class ZKSecurityTool {
   private static final Logger log = LoggerFactory.getLogger(ZKSecurityTool.class);
   private static final int SALT_LENGTH = 8;
-  private static final Charset CRYPT_CHARSET = UTF_8;
 
   // Generates a byte array salt of length SALT_LENGTH
   private static byte[] generateSalt() {
@@ -110,11 +108,11 @@ class ZKSecurityTool {
   public static byte[] createPass(byte[] password) throws AccumuloException {
     // we rely on default algorithm and hash length (SHA-512 and 8 byte)
     String cryptHash = Crypt.crypt(password);
-    return cryptHash.getBytes(CRYPT_CHARSET);
+    return cryptHash.getBytes(UTF_8);
   }
 
   public static boolean checkCryptPass(byte[] password, byte[] zkData) {
-    String zkDataString = new String(zkData, CRYPT_CHARSET);
+    String zkDataString = new String(zkData, UTF_8);
     String cryptHash;
     try {
       cryptHash = Crypt.crypt(password, zkDataString);
@@ -122,7 +120,7 @@ class ZKSecurityTool {
       log.error("Unrecognized hash format", e);
       return false;
     }
-    return MessageDigest.isEqual(zkData, cryptHash.getBytes(CRYPT_CHARSET));
+    return MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
   }
 
   public static Authorizations convertAuthorizations(byte[] authorizations) {

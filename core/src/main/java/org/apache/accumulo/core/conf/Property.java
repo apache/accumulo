@@ -86,8 +86,8 @@ public enum Property {
   /**
    * @since 2.1.0
    */
-  SYSTEM_TOKEN_HASH_TYPE("system.token.hash.type", Constants.PW_HASH_ALGORITHM_OUTDATED,
-      PropertyType.STRING,
+  INSTANCE_SYSTEM_TOKEN_HASH_TYPE("instance.system.token.hash.type",
+      Constants.PW_HASH_ALGORITHM_OUTDATED, PropertyType.STRING,
       "Hash algorithm used for creating SystemTokens."
           + " It is recommended to use SHA-512, but the default is SHA-256 to not break rolling"
           + " restart on update."),

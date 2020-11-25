@@ -145,31 +145,6 @@ public final class ZKAuthenticator implements Authenticator {
     }
   }
 
-  /**
-   * Creates user with outdated password hash for testing
-   *
-   * @deprecated since 2.1.0, only present for testing DO NOT USE!
-   */
-  public void createOutdatedUser(String principal, AuthenticationToken token)
-      throws AccumuloSecurityException {
-    try {
-      if (!(token instanceof PasswordToken))
-        throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
-      PasswordToken pt = (PasswordToken) token;
-      constructUser(principal, ZKSecurityTool.createOutdatedPass(pt.getPassword()));
-    } catch (KeeperException e) {
-      if (e.code().equals(KeeperException.Code.NODEEXISTS))
-        throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_EXISTS, e);
-      throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
-    } catch (InterruptedException e) {
-      log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
-    } catch (AccumuloException e) {
-      log.error("{}", e.getMessage(), e);
-      throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
-    }
-  }
-
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
     try {

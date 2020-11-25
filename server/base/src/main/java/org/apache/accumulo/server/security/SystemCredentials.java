@@ -102,7 +102,7 @@ public final class SystemCredentials extends Credentials {
       byte[] confChecksum;
       MessageDigest md;
       try {
-        String hashAlgorithm = siteConfig.get(Property.SYSTEM_TOKEN_HASH_TYPE);
+        String hashAlgorithm = siteConfig.get(Property.INSTANCE_SYSTEM_TOKEN_HASH_TYPE);
         md = MessageDigest.getInstance(hashAlgorithm);
       } catch (NoSuchAlgorithmException e) {
         throw new RuntimeException("Failed to compute configuration checksum", e);
