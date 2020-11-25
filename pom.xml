@@ -1331,8 +1331,13 @@
   </build>
   <profiles>
     <profile>
-      <!-- This profile skips all Quality Assurance checks  -->
+      <!-- This profile skips all Quality Assurance checks; activate with -PskipQA OR -DskipQA  -->
       <id>skipQA</id>
+      <activation>
+        <property>
+          <name>skipQA</name>
+        </property>
+      </activation>
       <properties>
         <accumulo.skip>true</accumulo.skip>
         <apilyzer.skip>true</apilyzer.skip>
