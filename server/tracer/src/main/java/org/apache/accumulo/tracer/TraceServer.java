@@ -21,7 +21,6 @@ package org.apache.accumulo.tracer;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -34,6 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -60,7 +60,6 @@ import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Processor;
@@ -265,9 +264,9 @@ public class TraceServer implements Watcher, AutoCloseable {
           at = new PasswordToken(conf.get(p).getBytes(UTF_8));
         } else {
           Properties props = new Properties();
-          AuthenticationToken token =
-              AccumuloVFSClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE))
-                  .asSubclass(AuthenticationToken.class).getDeclaredConstructor().newInstance();
+          AuthenticationToken token = ClassLoaderUtil
+              .loadClass(conf.get(Property.TRACE_TOKEN_TYPE), AuthenticationToken.class)
+              .getDeclaredConstructor().newInstance();
 
           int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
           for (Entry<String,String> entry : loginMap.entrySet()) {
@@ -289,7 +288,7 @@ public class TraceServer implements Watcher, AutoCloseable {
         accumuloClient.tableOperations().setProperty(tableName,
             Property.TABLE_FORMATTER_CLASS.getKey(), TraceFormatter.class.getName());
         break;
-      } catch (AccumuloException | TableExistsException | TableNotFoundException | IOException
+      } catch (AccumuloException | TableExistsException | TableNotFoundException
           | RuntimeException ex) {
         log.info("Waiting to checking/create the trace table.", ex);
         sleepUninterruptibly(1, TimeUnit.SECONDS);
@@ -362,8 +361,8 @@ public class TraceServer implements Watcher, AutoCloseable {
 
   private static void loginTracer(AccumuloConfiguration acuConf) {
     try {
-      Class<? extends AuthenticationToken> traceTokenType = AccumuloVFSClassLoader.getClassLoader()
-          .loadClass(acuConf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class);
+      Class<? extends AuthenticationToken> traceTokenType = ClassLoaderUtil
+          .loadClass(acuConf.get(Property.TRACE_TOKEN_TYPE), AuthenticationToken.class);
 
       if (KerberosToken.class.isAssignableFrom(traceTokenType)) {
         // We're using Kerberos to talk to Accumulo, so check for trace user specific auth details.
@@ -395,7 +394,7 @@ public class TraceServer implements Watcher, AutoCloseable {
         log.info("Handling login under the assumption that Accumulo users are not using Kerberos.");
         SecurityUtil.serverLogin(acuConf);
       }
-    } catch (IOException | ClassNotFoundException exception) {
+    } catch (ClassNotFoundException exception) {
       final String msg =
           String.format("Failed to retrieve trace user token information based on property %1s.",
               Property.TRACE_TOKEN_TYPE);

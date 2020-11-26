@@ -47,7 +47,7 @@ public class ConstraintChecker {
     constrains = new ArrayList<>();
 
     try {
-      String context = conf.get(Property.TABLE_CLASSPATH);
+      String context = ClassLoaderUtil.tableContext(conf);
 
       for (Entry<String,String> entry : conf
           .getAllPropertiesWithPrefix(Property.TABLE_CONSTRAINT_PREFIX).entrySet()) {

@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -269,7 +270,7 @@ public class CompactableUtils {
 
   static <T> T newInstance(AccumuloConfiguration tableConfig, String className,
       Class<T> baseClass) {
-    String context = tableConfig.get(Property.TABLE_CLASSPATH);
+    String context = ClassLoaderUtil.tableContext(tableConfig);
     try {
       return ConfigurationTypeHelper.getClassInstance(context, className, baseClass);
     } catch (IOException | ReflectiveOperationException e) {

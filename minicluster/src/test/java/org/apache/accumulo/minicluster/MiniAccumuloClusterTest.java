@@ -63,6 +63,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterTest {
 
+  @SuppressWarnings("removal")
+  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
+      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
+
   public static File testDir;
 
   private static MiniAccumuloCluster accumulo;
@@ -180,9 +184,10 @@ public class MiniAccumuloClusterTest {
     File jarFile = folder.newFile("iterator.jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), jarFile);
 
-    conn.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1",
+    conn.instanceOperations().setProperty(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1",
         jarFile.toURI().toString());
-    conn.tableOperations().setProperty("table2", Property.TABLE_CLASSPATH.getKey(), "cx1");
+    conn.tableOperations().setProperty("table2", Property.TABLE_CLASSLOADER_CONTEXT.getKey(),
+        "cx1");
     conn.tableOperations().attachIterator("table2",
         new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
 
@@ -212,8 +217,7 @@ public class MiniAccumuloClusterTest {
 
     assertEquals(2, count);
 
-    conn.instanceOperations()
-        .removeProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
+    conn.instanceOperations().removeProperty(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
     conn.tableOperations().delete("table2");
   }
 

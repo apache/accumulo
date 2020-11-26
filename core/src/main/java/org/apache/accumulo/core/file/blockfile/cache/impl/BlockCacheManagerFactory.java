@@ -43,7 +43,7 @@ public class BlockCacheManagerFactory {
       throws Exception {
     String impl = conf.get(Property.TSERV_CACHE_MANAGER_IMPL);
     Class<? extends BlockCacheManager> clazz =
-        ClassLoaderUtil.loadClass(null, impl, BlockCacheManager.class);
+        ClassLoaderUtil.loadClass(impl, BlockCacheManager.class);
     LOG.info("Created new block cache manager of type: {}", clazz.getSimpleName());
     return clazz.getDeclaredConstructor().newInstance();
   }

@@ -107,6 +107,7 @@ public enum PropertyType {
           + "config file using '${env:ACCUMULO_HOME}' or similar."),
 
   // VFS_CLASSLOADER_CACHE_DIR's default value is a special case, for documentation purposes
+  @SuppressWarnings("removal")
   ABSOLUTEPATH("absolute path",
       x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute()
           || x.equals(Property.VFS_CLASSLOADER_CACHE_DIR.getDefaultValue()),

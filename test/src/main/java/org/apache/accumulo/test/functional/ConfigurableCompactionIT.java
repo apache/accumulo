@@ -121,7 +121,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
           Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
       Map<String,String> props = new HashMap<>();
       props.put(Property.TABLE_MAJC_RATIO.getKey(), "10");
-      props.put(Property.TABLE_CLASSPATH.getKey(), "context1");
+      props.put(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "context1");
       // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
       // compacted.
       props.put(Property.TABLE_COMPACTION_STRATEGY.getKey(),

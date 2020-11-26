@@ -184,7 +184,7 @@ public class IterConfigUtil {
     }
 
     IterLoad il = loadIterConf(scope, ssiList, ssio, conf);
-    il = il.iterEnv(env).useAccumuloClassLoader(true).context(conf.get(Property.TABLE_CLASSPATH));
+    il = il.iterEnv(env).useAccumuloClassLoader(true).context(ClassLoaderUtil.tableContext(conf));
     return loadIterators(source, il);
   }
 

@@ -353,17 +353,16 @@ public class ClientServiceHandler implements ClientService.Iface {
     return transactionWatcher.isActive(tid);
   }
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public boolean checkClass(TInfo tinfo, TCredentials credentials, String className,
       String interfaceMatch) throws TException {
     security.authenticateUser(credentials, credentials);
 
     ClassLoader loader = getClass().getClassLoader();
-    Class shouldMatch;
+    Class<?> shouldMatch;
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
-      Class test = ClassLoaderUtil.loadClass(null, className, shouldMatch);
+      Class<?> test = ClassLoaderUtil.loadClass(className, shouldMatch);
       test.getDeclaredConstructor().newInstance();
       return true;
     } catch (ClassCastException | ReflectiveOperationException e) {
@@ -386,7 +385,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
       AccumuloConfiguration conf = context.getTableConfiguration(tableId);
-      String context = conf.get(Property.TABLE_CLASSPATH);
+      String context = ClassLoaderUtil.tableContext(conf);
       Class<?> test = ClassLoaderUtil.loadClass(context, className, shouldMatch);
       test.getDeclaredConstructor().newInstance();
       return true;
@@ -410,7 +409,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
       AccumuloConfiguration conf = context.getNamespaceConfiguration(namespaceId);
-      String context = conf.get(Property.TABLE_CLASSPATH);
+      String context = ClassLoaderUtil.tableContext(conf);
       Class<?> test = ClassLoaderUtil.loadClass(context, className, shouldMatch);
       test.getDeclaredConstructor().newInstance();
       return true;
