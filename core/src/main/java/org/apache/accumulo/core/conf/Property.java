@@ -40,7 +40,6 @@ import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1035,7 +1034,8 @@ public enum Property {
           + "HDFS directory in which accumulo instance will run. "
           + "Do not change after accumulo is initialized."),
   @Deprecated(since = "2.0.0")
-  GENERAL_CLASSPATHS(AccumuloClassLoader.GENERAL_CLASSPATHS, "", PropertyType.STRING,
+  GENERAL_CLASSPATHS(org.apache.accumulo.start.classloader.AccumuloClassLoader.GENERAL_CLASSPATHS,
+      "", PropertyType.STRING,
       "This property is deprecated since 2.0.0. The class path should instead be configured"
           + " by the launch environment (for example, accumulo-env.sh). A list of all"
           + " of the places to look for a class. Order does matter, as it will look for"

@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Deprecated
 public class AccumuloClassLoader {
 
   public static final String GENERAL_CLASSPATHS = "general.classpaths";
