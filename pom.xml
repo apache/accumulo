@@ -1342,7 +1342,6 @@
         <accumulo.skip>true</accumulo.skip>
         <apilyzer.skip>true</apilyzer.skip>
         <checkstyle.skip>true</checkstyle.skip>
-        <enforcer.skip>true</enforcer.skip>
         <formatter.skip>true</formatter.skip>
         <impsort.skip>true</impsort.skip>
         <mdep.analyze.skip>true</mdep.analyze.skip>
