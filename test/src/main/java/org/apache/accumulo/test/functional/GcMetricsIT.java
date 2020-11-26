@@ -20,8 +20,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.gc.metrics.GcMetrics;
@@ -85,12 +88,10 @@ public class GcMetricsIT extends AccumuloClusterHarness {
 
     try {
 
-      long testStart = System.currentTimeMillis();
+      long updateTimestamp = System.currentTimeMillis();
 
-      // Read two updates, throw away the first snapshot - it could have been from a previous run
-      // or another test (the file appends.)
-      LineUpdate firstUpdate = waitForUpdate(-1, gcTail);
-      firstUpdate = waitForUpdate(firstUpdate.getLastUpdate(), gcTail);
+      // Get next update after current time
+      LineUpdate firstUpdate = waitForUpdate(updateTimestamp, gcTail);
 
       Map<String,Long> firstSeenMap = parseLine(firstUpdate.getLine());
 
@@ -98,9 +99,11 @@ public class GcMetricsIT extends AccumuloClusterHarness {
       log.trace("M:{}", firstSeenMap);
 
       assertTrue(lookForExpectedKeys(firstSeenMap));
-      sanity(testStart, firstSeenMap);
+      sanity(updateTimestamp, firstSeenMap);
 
-      LineUpdate nextUpdate = waitForUpdate(firstUpdate.getLastUpdate(), gcTail);
+      // Get next update after the first one
+      updateTimestamp = firstUpdate.getLastUpdate();
+      LineUpdate nextUpdate = waitForUpdate(updateTimestamp, gcTail);
 
       Map<String,Long> updateSeenMap = parseLine(nextUpdate.getLine());
 
@@ -108,7 +111,7 @@ public class GcMetricsIT extends AccumuloClusterHarness {
       log.trace("Mapped values:{}", updateSeenMap);
 
       assertTrue(lookForExpectedKeys(updateSeenMap));
-      sanity(testStart, updateSeenMap);
+      sanity(updateTimestamp, updateSeenMap);
 
       validate(firstSeenMap, updateSeenMap);
 
@@ -150,7 +153,7 @@ public class GcMetricsIT extends AccumuloClusterHarness {
     start = values.get("AccGcWalStarted");
     finished = values.get("AccGcWalFinished");
 
-    log.debug("test start: {}, gc start: {}, gc finished: {}", testStart, start, finished);
+    log.debug("test start: {}, walgc start: {}, walgc finished: {}", testStart, start, finished);
 
     assertTrue(start >= testStart);
     assertTrue(finished >= start);
@@ -236,7 +239,7 @@ public class GcMetricsIT extends AccumuloClusterHarness {
       String line = tail.getLast();
       long currUpdate = tail.getLastUpdate();
 
-      if (line != null && (currUpdate != prevUpdate)) {
+      if (line != null && (currUpdate != prevUpdate) && isValidTimestamp(line, prevUpdate)) {
         return new LineUpdate(tail.getLastUpdate(), line);
       }
 
@@ -251,6 +254,28 @@ public class GcMetricsIT extends AccumuloClusterHarness {
     throw new IllegalStateException(
         String.format("File source update not received after %d tries in %d sec", NUM_TAIL_ATTEMPTS,
             TimeUnit.MILLISECONDS.toSeconds(TAIL_DELAY * NUM_TAIL_ATTEMPTS)));
+  }
+
+  private static final Pattern timestampPattern = Pattern.compile("^\\s*(?<timestamp>\\d+).*");
+
+  private boolean isValidTimestamp(final String line, final long prevTimestamp) {
+
+    if (Objects.isNull(line)) {
+      return false;
+    }
+
+    Matcher m = timestampPattern.matcher(line);
+
+    if (m.matches()) {
+      try {
+        long timestamp = Long.parseLong(m.group("timestamp"));
+        return timestamp > prevTimestamp;
+      } catch (NumberFormatException ex) {
+        log.trace("Could not parse timestamp from line '{}", line);
+        return false;
+      }
+    }
+    return false;
   }
 
   private boolean lookForExpectedKeys(final Map<String,Long> received) {
