@@ -141,6 +141,7 @@
     <powermock.version>2.0.7</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2020-08-27T15:56:15Z</project.build.outputTimestamp>
+    <rat.consoleOutput>true</rat.consoleOutput>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <slf4j.version>1.7.25</slf4j.version>
@@ -850,7 +851,8 @@
                   <version>[3.5.0,)</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
-                  <version>[11,)</version>
+                  <!-- 15 dropped support for UseConcMarkSweepGC flag that Accumulo 1.x uses -->
+                  <version>[11,15)</version>
                 </requireJavaVersion>
               </rules>
             </configuration>
@@ -1064,7 +1066,6 @@
         <accumulo.skip>true</accumulo.skip>
         <apilyzer.skip>true</apilyzer.skip>
         <checkstyle.skip>true</checkstyle.skip>
-        <enforcer.skip>true</enforcer.skip>
         <formatter.skip>true</formatter.skip>
         <impsort.skip>true</impsort.skip>
         <maven.plugin.skip>true</maven.plugin.skip>
