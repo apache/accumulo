@@ -904,8 +904,7 @@ public class RangeTest {
         new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true, false);
     TRange tr = r.toThrift();
     try {
-      @SuppressWarnings("unused")
-      Range r2 = new Range(tr);
+      new Range(tr);
       fail("Thrift constructor allowed invalid range");
     } catch (IllegalArgumentException exc) {
       /* good! */

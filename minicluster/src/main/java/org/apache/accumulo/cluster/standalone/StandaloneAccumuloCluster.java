@@ -44,8 +44,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -53,8 +51,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * AccumuloCluster implementation to connect to an existing deployment of Accumulo
  */
 public class StandaloneAccumuloCluster implements AccumuloCluster {
-  @SuppressWarnings("unused")
-  private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
 
   static final List<ServerType> ALL_SERVER_TYPES =
       Collections.unmodifiableList(Arrays.asList(ServerType.MANAGER, ServerType.TABLET_SERVER,

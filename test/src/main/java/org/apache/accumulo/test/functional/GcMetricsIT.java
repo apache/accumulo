@@ -74,8 +74,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void gcMetricsPublished() {
-
+  public void gcMetricsPublished() throws InterruptedException {
     boolean gcMetricsEnabled =
         cluster.getSiteConfiguration().getBoolean(Property.GC_METRICS_ENABLED);
 
@@ -92,7 +91,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
     t1.start();
 
     // uncomment for manual jmx / jconsole validation - not for automated testing
-    // manualValidationPause();
+    // Thread.sleep(320_000);
 
     try {
 
@@ -125,20 +124,6 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
     } catch (Exception ex) {
       log.debug("reads", ex);
-    }
-  }
-
-  /**
-   * This method just sleeps for a while (test will likely time out) The pause is to allow manual
-   * validation of metrics by connecting to the running gc process with jconsole (or other jmx
-   * utility). It should not be used for automatic testing.
-   */
-  @SuppressWarnings("unused")
-  private void manualValidationPause() {
-    try {
-      Thread.sleep(320_000);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
     }
   }
 

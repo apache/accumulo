@@ -52,17 +52,10 @@ import org.slf4j.LoggerFactory;
 public class ChaoticLoadBalancer extends TabletBalancer {
   private static final Logger log = LoggerFactory.getLogger(ChaoticLoadBalancer.class);
 
-  @SuppressWarnings("unused")
-  private final String tableName;
-
-  public ChaoticLoadBalancer() {
-    this.tableName = null;
-  }
+  public ChaoticLoadBalancer() {}
 
   // Required constructor
-  public ChaoticLoadBalancer(String tableName) {
-    this.tableName = tableName;
-  }
+  public ChaoticLoadBalancer(String tableName) {}
 
   Random r = new SecureRandom();
 
