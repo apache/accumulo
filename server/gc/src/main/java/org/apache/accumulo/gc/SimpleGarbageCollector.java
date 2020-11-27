@@ -36,6 +36,7 @@ import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -654,7 +655,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    int[] port = getConfiguration().getPort(Property.GC_PORT);
+    IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
