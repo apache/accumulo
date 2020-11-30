@@ -19,7 +19,7 @@
 package org.apache.accumulo.server.util.time;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertSame;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -69,43 +69,54 @@ public class SimpleTimerTest {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testOneTimeSchedule() throws InterruptedException {
     AtomicInteger i = new AtomicInteger();
     Incrementer r = new Incrementer(i);
     t.schedule(r, DELAY);
     Thread.sleep(DELAY + PAD);
-    assertEquals(1, i.get());
+    while (true) {
+      if (i.get() == 1) {
+        break;
+      }
+      Thread.sleep(PAD);
+    }
     r.cancel();
   }
 
-  @Test
+  @Test(timeout = 10000)
   public void testFixedDelaySchedule() throws InterruptedException {
     AtomicInteger i = new AtomicInteger();
     Incrementer r = new Incrementer(i);
     t.schedule(r, DELAY, PERIOD);
     Thread.sleep(DELAY + (2 * PERIOD) + PAD);
-    assertEquals(3, i.get());
-    r.cancel();
-  }
-
-  @Test
-  public void testFailure() throws InterruptedException {
-    Thrower r = new Thrower();
-    t.schedule(r, DELAY);
-    Thread.sleep(DELAY + PAD);
-    assertTrue(r.wasRun);
-  }
-
-  @Test(timeout = 5000)
-  public void testSingleton() throws InterruptedException {
     while (true) {
-      SimpleTimer t2 = SimpleTimer.getInstance(2);
-      if((SimpleTimer.getInstanceThreadPoolSize() == 1) && (t == t2)) {
+      if (i.get() == 3) {
         break;
       }
       Thread.sleep(PAD);
     }
+    r.cancel();
+  }
+
+  @Test(timeout = 5000)
+  public void testFailure() throws InterruptedException {
+    Thrower r = new Thrower();
+    t.schedule(r, DELAY);
+    Thread.sleep(DELAY + PAD);
+    while (true) {
+      if (r.wasRun) {
+        break;
+      }
+      Thread.sleep(PAD);
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testSingleton() {
+    assertEquals(1, SimpleTimer.getInstanceThreadPoolSize());
+    SimpleTimer t2 = SimpleTimer.getInstance(2);
+    assertSame(t, t2);
     assertEquals(1, SimpleTimer.getInstanceThreadPoolSize()); // unchanged
   }
 }
