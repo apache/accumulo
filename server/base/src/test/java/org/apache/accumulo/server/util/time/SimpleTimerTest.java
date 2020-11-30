@@ -19,13 +19,13 @@
 package org.apache.accumulo.server.util.time;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Before;
 import org.junit.Test;
+
 public class SimpleTimerTest {
   private static final long DELAY = 1000L;
   private static final long PERIOD = 2000L;
