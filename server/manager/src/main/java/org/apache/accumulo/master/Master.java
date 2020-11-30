@@ -886,9 +886,9 @@ public class Master extends AbstractServer
       gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE);
-    ExecutorService tp = threads == 0
-        ? Executors.newCachedThreadPool(new NamingThreadFactory("GatherTableInformation"))
-        : Executors.newFixedThreadPool(threads, new NamingThreadFactory("GatherTableInformation"));
+    var threadFactory = new NamingThreadFactory("GatherTableInformation");
+    ExecutorService tp = threads == 0 ? Executors.newCachedThreadPool(threadFactory)
+        : Executors.newFixedThreadPool(threads, threadFactory);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);

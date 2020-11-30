@@ -22,21 +22,25 @@ public class Daemon extends Thread {
 
   public Daemon() {
     setDaemon(true);
+    setUncaughtExceptionHandler(new AccumuloUncaughtExceptionHandler());
   }
 
   public Daemon(Runnable target) {
     super(target);
     setDaemon(true);
+    setUncaughtExceptionHandler(new AccumuloUncaughtExceptionHandler());
   }
 
   public Daemon(String name) {
     super(name);
     setDaemon(true);
+    setUncaughtExceptionHandler(new AccumuloUncaughtExceptionHandler());
   }
 
   public Daemon(Runnable target, String name) {
     super(target, name);
     setDaemon(true);
+    setUncaughtExceptionHandler(new AccumuloUncaughtExceptionHandler());
   }
 
 }

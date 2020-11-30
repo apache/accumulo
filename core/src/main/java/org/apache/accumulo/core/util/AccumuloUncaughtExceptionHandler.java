@@ -31,13 +31,13 @@ public class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandle
   @Override
   public void uncaughtException(Thread t, Throwable e) {
     if (e instanceof Exception) {
-      log.error(String.format("Caught an exception in %s. Thread is dead.", t), e);
+      log.error("Caught an exception in {}. Thread is dead.", t, e);
     } else {
       if (System.getProperty(HALT_PROPERTY, "false").equals("true")) {
-        log.error(String.format("Caught an exception in %s.", t), e);
+        log.error("Caught an exception in {}.", t, e);
         Halt.halt(String.format("Caught an exception in %s. Halting VM, check the logs.", t));
       } else {
-        log.error(String.format("Caught an exception in %s. Thread is dead.", t), e);
+        log.error("Caught an exception in {}. Thread is dead.", t, e);
       }
     }
   }

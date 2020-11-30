@@ -27,7 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Generic singleton timer for critical tasks.
+ * Generic singleton timer for critical tasks. Overrides {@link #getUncaughtExceptionHandler()} to
+ * use {@link AccumuloUncaughtExceptionHandler}
  */
 public class SimpleCriticalTimer extends SimpleTimer {
 
