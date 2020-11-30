@@ -36,6 +36,7 @@ import java.util.TimerTask;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.Halt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

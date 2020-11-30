@@ -36,7 +36,7 @@ import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
-import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.util.time.SimpleCriticalTimer;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
@@ -217,7 +217,7 @@ class AssignmentHandler implements Runnable {
       server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       long reschedule = Math.min((1L << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000L);
       log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
-      SimpleTimer.getInstance(server.getConfiguration()).schedule(new TimerTask() {
+      SimpleCriticalTimer.getInstance(server.getConfiguration()).schedule(new TimerTask() {
         @Override
         public void run() {
           log.info("adding tablet {} back to the assignment pool (retry {})", extent, retryAttempt);

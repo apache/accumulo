@@ -38,18 +38,11 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 public class SimpleTimer {
   private static final Logger log = LoggerFactory.getLogger(SimpleTimer.class);
 
-  private static class ExceptionHandler implements Thread.UncaughtExceptionHandler {
-    @Override
-    public void uncaughtException(Thread t, Throwable e) {
-      log.warn("SimpleTimer task failed", e);
-    }
-  }
-
   private static int instanceThreadPoolSize = -1;
   private static SimpleTimer instance;
   private ScheduledExecutorService executor;
 
-  private static final int DEFAULT_THREAD_POOL_SIZE = 1;
+  protected static final int DEFAULT_THREAD_POOL_SIZE = 1;
 
   /**
    * Gets the timer instance. If an instance has already been created, it will have the number of
@@ -100,10 +93,19 @@ public class SimpleTimer {
     return instanceThreadPoolSize;
   }
 
-  private SimpleTimer(int threadPoolSize) {
+  protected SimpleTimer(int threadPoolSize) {
     executor = Executors.newScheduledThreadPool(threadPoolSize,
         new ThreadFactoryBuilder().setNameFormat("SimpleTimer-%d").setDaemon(true)
-            .setUncaughtExceptionHandler(new ExceptionHandler()).build());
+            .setUncaughtExceptionHandler(getUncaughtExceptionHandler()).build());
+  }
+
+  protected Thread.UncaughtExceptionHandler getUncaughtExceptionHandler() {
+    return new Thread.UncaughtExceptionHandler() {
+      @Override
+      public void uncaughtException(Thread t, Throwable e) {
+        log.warn("SimpleTimer task failed", e);
+      }
+    };
   }
 
   /**

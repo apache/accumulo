@@ -81,6 +81,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processo
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
@@ -122,9 +123,9 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
 import org.apache.accumulo.server.util.FileSystemMonitor;
-import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
+import org.apache.accumulo.server.util.time.SimpleCriticalTimer;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
@@ -764,7 +765,7 @@ public class TabletServer extends AbstractServer {
     }
     final AccumuloConfiguration aconf = getConfiguration();
     // if the replication name is ever set, then start replication services
-    SimpleTimer.getInstance(aconf).schedule(() -> {
+    SimpleCriticalTimer.getInstance(aconf).schedule(() -> {
       if (this.replServer == null) {
         if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
           log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");

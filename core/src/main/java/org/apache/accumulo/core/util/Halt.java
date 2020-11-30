@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.core.util;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.util.Daemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

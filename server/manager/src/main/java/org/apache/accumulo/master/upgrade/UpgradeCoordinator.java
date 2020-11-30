@@ -24,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.master.EventCoordinator;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -162,29 +163,30 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do metadata upgrade %s", status);
 
     if (currentVersion < ServerConstants.DATA_VERSION) {
-      return Executors.newCachedThreadPool().submit(() -> {
-        try {
-          for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
-            log.info("Upgrading Root from data version {}", v);
-            upgraders.get(v).upgradeRoot(context);
-          }
+      return Executors.newCachedThreadPool(new NamingThreadFactory("UpgradeMetadataThreads"))
+          .submit(() -> {
+            try {
+              for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+                log.info("Upgrading Root from data version {}", v);
+                upgraders.get(v).upgradeRoot(context);
+              }
 
-          setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
+              setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
-          for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
-            log.info("Upgrading Metadata from data version {}", v);
-            upgraders.get(v).upgradeMetadata(context);
-          }
+              for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+                log.info("Upgrading Metadata from data version {}", v);
+                upgraders.get(v).upgradeMetadata(context);
+              }
 
-          log.info("Updating persistent data version.");
-          ServerUtil.updateAccumuloVersion(context.getVolumeManager(), currentVersion);
-          log.info("Upgrade complete");
-          setStatus(UpgradeStatus.COMPLETE, eventCoordinator);
-        } catch (Exception e) {
-          handleFailure(e);
-        }
-        return null;
-      });
+              log.info("Updating persistent data version.");
+              ServerUtil.updateAccumuloVersion(context.getVolumeManager(), currentVersion);
+              log.info("Upgrade complete");
+              setStatus(UpgradeStatus.COMPLETE, eventCoordinator);
+            } catch (Exception e) {
+              handleFailure(e);
+            }
+            return null;
+          });
     } else {
       return CompletableFuture.completedFuture(null);
     }

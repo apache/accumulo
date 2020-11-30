@@ -26,10 +26,20 @@ import org.slf4j.LoggerFactory;
 public class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloUncaughtExceptionHandler.class);
+  private static final String HALT_PROPERTY = "HaltVMOnThreadError";
 
   @Override
   public void uncaughtException(Thread t, Throwable e) {
-    log.error(String.format("Caught an exception in %s.  Shutting down.", t), e);
+    if (e instanceof Exception) {
+      log.error(String.format("Caught an exception in %s. Thread is dead.", t), e);
+    } else {
+      if (System.getProperty(HALT_PROPERTY, "false").equals("true")) {
+        log.error(String.format("Caught an exception in %s.", t), e);
+        Halt.halt(String.format("Caught an exception in %s. Halting VM, check the logs.", t));
+      } else {
+        log.error(String.format("Caught an exception in %s. Thread is dead.", t), e);
+      }
+    }
   }
 
 }

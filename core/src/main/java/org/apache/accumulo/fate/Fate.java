@@ -24,13 +24,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.logging.FateLogger;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -226,13 +225,7 @@ public class Fate<T> {
    * Launches the specified number of worker threads.
    */
   public void startTransactionRunners(int numThreads) {
-    final AtomicInteger runnerCount = new AtomicInteger(0);
-    executor = Executors.newFixedThreadPool(numThreads, r -> {
-      Thread t =
-          new Thread(new LoggingRunnable(log, r), "Repo runner " + runnerCount.getAndIncrement());
-      t.setDaemon(true);
-      return t;
-    });
+    executor = Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("Repo Runner"));
     for (int i = 0; i < numThreads; i++) {
       executor.execute(new TransactionRunner());
     }

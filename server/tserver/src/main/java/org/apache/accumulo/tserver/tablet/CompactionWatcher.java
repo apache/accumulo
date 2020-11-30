@@ -27,7 +27,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.util.time.SimpleCriticalTimer;
 import org.slf4j.LoggerFactory;
 
 public class CompactionWatcher implements Runnable {
@@ -105,7 +105,7 @@ public class CompactionWatcher implements Runnable {
 
   public static synchronized void startWatching(AccumuloConfiguration config) {
     if (!watching) {
-      SimpleTimer.getInstance(config).schedule(new CompactionWatcher(config), 10000, 10000);
+      SimpleCriticalTimer.getInstance(config).schedule(new CompactionWatcher(config), 10000, 10000);
       watching = true;
     }
   }

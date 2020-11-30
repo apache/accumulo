@@ -59,7 +59,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.util.time.SimpleCriticalTimer;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Processor;
@@ -302,8 +302,8 @@ public class TraceServer implements Watcher, AutoCloseable {
   }
 
   public void run() {
-    SimpleTimer.getInstance(context.getConfiguration()).schedule(this::flush, SCHEDULE_DELAY,
-        SCHEDULE_PERIOD);
+    SimpleCriticalTimer.getInstance(context.getConfiguration()).schedule(this::flush,
+        SCHEDULE_DELAY, SCHEDULE_PERIOD);
     server.serve();
   }
 

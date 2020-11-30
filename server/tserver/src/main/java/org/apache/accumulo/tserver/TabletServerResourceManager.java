@@ -72,6 +72,7 @@ import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
 import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
 import org.apache.accumulo.server.tabletserver.TabletState;
+import org.apache.accumulo.server.util.time.SimpleCriticalTimer;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.session.ScanSession;
@@ -154,7 +155,7 @@ public class TabletServerResourceManager {
             tp.setMaximumPoolSize(max);
           }
         }
-      } catch (Throwable t) {
+      } catch (Exception t) {
         log.error("Failed to change thread pool size", t);
       }
     }, 1000, 10_000);
@@ -413,7 +414,7 @@ public class TabletServerResourceManager {
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
 
-    SimpleTimer timer = SimpleTimer.getInstance(context.getConfiguration());
+    SimpleTimer timer = SimpleCriticalTimer.getInstance(context.getConfiguration());
 
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.

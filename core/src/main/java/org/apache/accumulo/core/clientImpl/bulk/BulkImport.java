@@ -77,6 +77,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.commons.io.FilenameUtils;
@@ -463,11 +464,13 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     if (this.executor != null) {
       executor = this.executor;
     } else if (numThreads > 0) {
-      executor = service = Executors.newFixedThreadPool(numThreads);
+      executor = service =
+          Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("BulkImportThread"));
     } else {
       String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
       executor =
-          service = Executors.newFixedThreadPool(ConfigurationTypeHelper.getNumThreads(threads));
+          service = Executors.newFixedThreadPool(ConfigurationTypeHelper.getNumThreads(threads),
+              new NamingThreadFactory("BulkImportThread"));
     }
 
     try {

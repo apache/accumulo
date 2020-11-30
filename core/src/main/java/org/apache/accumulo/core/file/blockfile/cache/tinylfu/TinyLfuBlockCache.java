@@ -34,6 +34,7 @@ import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheEntry.Weighable;
 import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * A block cache that is memory bounded using the W-TinyLFU eviction algorithm. This implementation
@@ -68,8 +68,8 @@ public final class TinyLfuBlockCache implements BlockCache {
           return keyWeight + block.weight();
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
     policy = cache.policy().eviction().get();
-    statsExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-        .setNameFormat("TinyLfuBlockCacheStatsExecutor").setDaemon(true).build());
+    statsExecutor = Executors.newScheduledThreadPool(1,
+        new NamingThreadFactory("TinyLfuBlockCacheStatsExecutor"));
     statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC,
         TimeUnit.SECONDS);
   }

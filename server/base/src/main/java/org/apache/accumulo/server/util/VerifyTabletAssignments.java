@@ -54,6 +54,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.TraceScope;
@@ -120,7 +121,8 @@ public class VerifyTabletAssignments {
       }
     }
 
-    ExecutorService tp = Executors.newFixedThreadPool(20);
+    ExecutorService tp =
+        Executors.newFixedThreadPool(20, new NamingThreadFactory("CheckTabletServer"));
     for (final Entry<HostAndPort,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = () -> {
         try {

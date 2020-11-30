@@ -33,7 +33,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.util.time.SimpleCriticalTimer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.WatchedEvent;
@@ -219,7 +219,7 @@ public class DistributedWorkQueue {
     lookForWork(processor, children);
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
-    SimpleTimer.getInstance(config).schedule(new Runnable() {
+    SimpleCriticalTimer.getInstance(config).schedule(new Runnable() {
       @Override
       public void run() {
         log.debug("Looking for work in {}", path);
