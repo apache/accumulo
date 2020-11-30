@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Before;
 import org.junit.Test;
-
 public class SimpleTimerTest {
   private static final long DELAY = 1000L;
   private static final long PERIOD = 2000L;
@@ -98,11 +97,15 @@ public class SimpleTimerTest {
     assertTrue(r.wasRun);
   }
 
-  @Test
-  public void testSingleton() {
-    assertEquals(1, SimpleTimer.getInstanceThreadPoolSize());
-    SimpleTimer t2 = SimpleTimer.getInstance(2);
-    assertSame(t, t2);
+  @Test(timeout = 5000)
+  public void testSingleton() throws InterruptedException {
+    while (true) {
+      SimpleTimer t2 = SimpleTimer.getInstance(2);
+      if((SimpleTimer.getInstanceThreadPoolSize() == 1) && (t == t2)) {
+        break;
+      }
+      Thread.sleep(PAD);
+    }
     assertEquals(1, SimpleTimer.getInstanceThreadPoolSize()); // unchanged
   }
 }
