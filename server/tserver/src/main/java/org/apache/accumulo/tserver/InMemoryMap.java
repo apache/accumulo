@@ -130,9 +130,10 @@ public class InMemoryMap {
 
   public InMemoryMap(AccumuloConfiguration config, String tableId) {
 
-    boolean useNativeMap = config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
+    boolean useNativeMap =
+        Boolean.parseBoolean(config.getWithoutWatch(Property.TSERV_NATIVEMAP_ENABLED));
 
-    this.memDumpDir = config.get(Property.TSERV_MEMDUMP_DIR);
+    this.memDumpDir = config.getWithoutWatch(Property.TSERV_MEMDUMP_DIR);
     this.lggroups = LocalityGroupUtil.getLocalityGroupsIgnoringErrors(config, tableId);
 
     this.config = config;

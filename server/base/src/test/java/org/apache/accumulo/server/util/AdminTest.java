@@ -56,7 +56,8 @@ public class AdminTest {
 
     String serverPath = root + "/" + server;
     EasyMock.expect(zc.getChildren(serverPath)).andReturn(Collections.singletonList("child"));
-    EasyMock.expect(zc.get(EasyMock.eq(serverPath + "/child"), EasyMock.anyObject(ZcStat.class)))
+    EasyMock
+        .expect(zc.get(EasyMock.eq(serverPath + "/child"), EasyMock.anyObject(ZcStat.class), false))
         .andAnswer(new IAnswer<byte[]>() {
 
           @Override

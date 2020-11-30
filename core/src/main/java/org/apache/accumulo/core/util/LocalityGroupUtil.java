@@ -112,7 +112,7 @@ public class LocalityGroupUtil {
   public static Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuconf)
       throws LocalityGroupConfigurationError {
     Map<String,Set<ByteSequence>> result = new HashMap<>();
-    String[] groups = acuconf.get(Property.TABLE_LOCALITY_GROUPS).split(",");
+    String[] groups = acuconf.getWithoutWatch(Property.TABLE_LOCALITY_GROUPS).split(",");
     for (String group : groups) {
       if (group.length() > 0)
         result.put(group, new HashSet<ByteSequence>());

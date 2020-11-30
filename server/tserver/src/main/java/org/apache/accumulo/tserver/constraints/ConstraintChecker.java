@@ -52,7 +52,7 @@ public class ConstraintChecker {
     this.conf = conf;
 
     try {
-      String context = conf.get(Property.TABLE_CLASSPATH);
+      String context = conf.getWithoutWatch(Property.TABLE_CLASSPATH);
 
       if (context != null && !context.equals("")) {
         loader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);

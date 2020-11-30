@@ -160,6 +160,10 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   public abstract String get(Property property);
 
+  public String getWithoutWatch(Property property) {
+    return get(property);
+  }
+
   /**
    * Returns property key/value pairs in this configuration. The pairs include those defined in this
    * configuration which pass the given filter, and those supplied from the parent configuration

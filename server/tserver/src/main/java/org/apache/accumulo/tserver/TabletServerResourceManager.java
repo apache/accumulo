@@ -687,7 +687,9 @@ public class TabletServerResourceManager {
           idleTime = System.currentTimeMillis() - lastReportedCommitTime;
         }
 
-        if (idleTime < tableConf.getTimeInMillis(Property.TABLE_MAJC_COMPACTALL_IDLETIME)) {
+        ;
+        if (idleTime < AccumuloConfiguration
+            .getTimeInMillis(tableConf.getWithoutWatch(Property.TABLE_MAJC_COMPACTALL_IDLETIME))) {
           return false;
         }
       }

@@ -89,7 +89,7 @@ public class ZooCacheTest {
     replay(zk);
 
     assertFalse(zc.dataCached(ZPATH));
-    assertArrayEquals(DATA, (fillStat ? zc.get(ZPATH, myStat) : zc.get(ZPATH)));
+    assertArrayEquals(DATA, (fillStat ? zc.get(ZPATH, myStat, false) : zc.get(ZPATH)));
     verify(zk);
     if (fillStat) {
       assertEquals(ephemeralOwner, myStat.getEphemeralOwner());

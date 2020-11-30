@@ -39,7 +39,7 @@ public class ReplicationConfigurationUtil {
       return false;
     }
 
-    return conf.getBoolean(Property.TABLE_REPLICATION);
+    return Boolean.parseBoolean(conf.getWithoutWatch(Property.TABLE_REPLICATION));
   }
 
 }

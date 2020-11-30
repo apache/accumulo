@@ -426,7 +426,8 @@ public class ZooLock implements Watcher {
       return false;
 
     ZcStat stat = new ZcStat();
-    return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
+    return zc.get(lid.path + "/" + lid.node, stat, false) != null
+        && stat.getEphemeralOwner() == lid.eid;
   }
 
   public static byte[] getLockData(ZooKeeper zk, String path)
@@ -462,7 +463,7 @@ public class ZooLock implements Watcher {
       throw new RuntimeException("Node " + lockNode + " at " + path + " is not a lock node");
     }
 
-    return zc.get(path + "/" + lockNode, stat);
+    return zc.get(path + "/" + lockNode, stat, false);
   }
 
   public static long getSessionId(ZooCache zc, String path)
@@ -479,7 +480,7 @@ public class ZooLock implements Watcher {
     String lockNode = children.get(0);
 
     ZcStat stat = new ZcStat();
-    if (zc.get(path + "/" + lockNode, stat) != null)
+    if (zc.get(path + "/" + lockNode, stat, false) != null)
       return stat.getEphemeralOwner();
     return 0;
   }

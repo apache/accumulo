@@ -349,12 +349,22 @@ public class ZooCache {
    * @return path data, or null if non-existent
    */
   public byte[] get(final String zPath) {
-    return get(zPath, null);
+    return get(zPath, null, false);
+  }
+
+  /**
+   * Same functionality as get(), except don't set a watch when checking exists(). Some situations
+   * don't need a watch so the param existsWithoutWatch is set to true to avoid lingering watches
+   * from polluting ZK.
+   */
+  public byte[] getWithoutWatch(final String zPath) {
+    return get(zPath, null, true);
   }
 
   /**
    * Gets data at the given path, filling status information into the given <code>Stat</code>
-   * object. A watch is established by this call.
+   * object. A watch is established by this call. Some situations don't need a watch so the param
+   * existsWithoutWatch is set to true to avoid lingering watches from polluting ZK.
    *
    * @param zPath
    *          path to get
@@ -362,7 +372,7 @@ public class ZooCache {
    *          status object to populate
    * @return path data, or null if non-existent
    */
-  public byte[] get(final String zPath, final ZcStat status) {
+  public byte[] get(final String zPath, final ZcStat status, boolean existsWithoutWatch) {
     ZooRunnable<byte[]> zr = new ZooRunnable<byte[]>() {
 
       @Override
@@ -391,7 +401,12 @@ public class ZooCache {
         cacheWriteLock.lock();
         try {
           final ZooKeeper zooKeeper = getZooKeeper();
-          Stat stat = zooKeeper.exists(zPath, watcher);
+          Stat stat;
+          if (existsWithoutWatch)
+            stat = zooKeeper.exists(zPath, null);
+          else {
+            stat = zooKeeper.exists(zPath, watcher);
+          }
           byte[] data = null;
           if (stat == null) {
             if (log.isTraceEnabled()) {

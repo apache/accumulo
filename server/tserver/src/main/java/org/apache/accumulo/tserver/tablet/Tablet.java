@@ -560,7 +560,7 @@ public class Tablet implements TabletCommitter {
     } else {
       try {
         ColumnVisibility cv = new ColumnVisibility(
-            tableConfiguration.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
+            tableConfiguration.getWithoutWatch(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
         this.defaultSecurityLabel = cv.getExpression();
       } catch (Exception e) {
         log.error(e, e);
@@ -1620,8 +1620,10 @@ public class Tablet implements TabletCommitter {
     // check if we already decided that we can never split
     // check to see if we're big enough to split
 
-    long splitThreshold = tableConfiguration.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
-    long maxEndRow = tableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE);
+    long splitThreshold = TableConfiguration
+        .getMemoryInBytes(tableConfiguration.getWithoutWatch(Property.TABLE_SPLIT_THRESHOLD));
+    long maxEndRow = TableConfiguration
+        .getMemoryInBytes(tableConfiguration.getWithoutWatch(Property.TABLE_MAX_END_ROW_SIZE));
 
     if (extent.isRootTablet() || estimateTabletSize() <= splitThreshold) {
       return null;
@@ -2555,7 +2557,8 @@ public class Tablet implements TabletCommitter {
   public void checkIfMinorCompactionNeededForLogs(List<DfsLogger> closedLogs) {
 
     // grab this outside of tablet lock.
-    int maxLogs = tableConfiguration.getCount(Property.TABLE_MINC_LOGS_MAX);
+    int maxLogs =
+        Integer.parseInt(tableConfiguration.getWithoutWatch(Property.TABLE_MINC_LOGS_MAX));
 
     String reason = null;
     synchronized (this) {

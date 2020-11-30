@@ -1299,8 +1299,8 @@ public enum Property {
    */
   public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf,
       Property property, Class<T> base, T defaultInstance) {
-    String clazzName = conf.get(property);
-    String context = conf.get(TABLE_CLASSPATH);
+    String clazzName = conf.getWithoutWatch(property);
+    String context = conf.getWithoutWatch(TABLE_CLASSPATH);
 
     return createInstance(context, clazzName, base, defaultInstance);
   }

@@ -122,6 +122,11 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   @Override
+  public String getWithoutWatch(Property property) {
+    return getPropCacheAccessor().getWithoutWatch(property, getPath(), parent);
+  }
+
+  @Override
   @SuppressModernizer
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     getPropCacheAccessor().getProperties(props, getPath(), filter, parent, null);

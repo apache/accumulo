@@ -103,6 +103,20 @@ public class ZooCachePropertyAccessor {
     String key = property.getKey();
     String value = get(path + "/" + key);
 
+    return checkValue(property, parent, key, value);
+  }
+
+  private String get(String path) {
+    byte[] v = propCache.get(path);
+    if (v != null) {
+      return new String(v, UTF_8);
+    } else {
+      return null;
+    }
+  }
+
+  private String checkValue(Property property, AccumuloConfiguration parent, String key,
+      String value) {
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null) {
         log.error("Using default value for " + key + " due to improperly formatted "
@@ -115,8 +129,15 @@ public class ZooCachePropertyAccessor {
     return value;
   }
 
-  private String get(String path) {
-    byte[] v = propCache.get(path);
+  public String getWithoutWatch(Property property, String path, AccumuloConfiguration parent) {
+    String key = property.getKey();
+    String value = getWithoutWatch(path + "/" + key);
+
+    return checkValue(property, parent, key, value);
+  }
+
+  private String getWithoutWatch(String path) {
+    byte[] v = propCache.getWithoutWatch(path);
     if (v != null) {
       return new String(v, UTF_8);
     } else {
