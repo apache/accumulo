@@ -166,18 +166,17 @@ public class ZooCache {
           break;
         case None:
           switch (event.getState()) {
+            case Closed:
+              // Intentional fall through of case; Closed is a new event in 3.5, generated
+              // client-side when the client closes the connection
             case Disconnected:
-              if (log.isTraceEnabled()) {
-                log.trace("Zoo keeper connection disconnected, clearing cache");
-              }
+              log.trace("Zoo keeper connection disconnected, clearing cache");
               clear();
               break;
             case SyncConnected:
               break;
             case Expired:
-              if (log.isTraceEnabled()) {
-                log.trace("Zoo keeper connection expired, clearing cache");
-              }
+              log.trace("Zoo keeper connection expired, clearing cache");
               clear();
               break;
             default:

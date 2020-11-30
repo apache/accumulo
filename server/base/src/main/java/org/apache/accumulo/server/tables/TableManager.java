@@ -280,8 +280,7 @@ public class TableManager {
         case None:
           switch (event.getState()) {
             case Expired:
-              if (log.isTraceEnabled())
-                log.trace("Session expired {}", event);
+              log.trace("Session expired {}", event);
               synchronized (observers) {
                 for (TableObserver to : observers)
                   to.sessionExpired();
@@ -289,8 +288,7 @@ public class TableManager {
               break;
             case SyncConnected:
             default:
-              if (log.isTraceEnabled())
-                log.trace("Ignored {}", event);
+              log.trace("Ignored {}", event);
           }
           break;
         default:
