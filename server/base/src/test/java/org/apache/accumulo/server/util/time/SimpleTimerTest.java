@@ -75,10 +75,7 @@ public class SimpleTimerTest {
     Incrementer r = new Incrementer(i);
     t.schedule(r, DELAY);
     Thread.sleep(DELAY + PAD);
-    while (true) {
-      if (i.get() == 1) {
-        break;
-      }
+    while (i.get() != 1) {
       Thread.sleep(PAD);
     }
     r.cancel();
@@ -90,10 +87,7 @@ public class SimpleTimerTest {
     Incrementer r = new Incrementer(i);
     t.schedule(r, DELAY, PERIOD);
     Thread.sleep(DELAY + (2 * PERIOD) + PAD);
-    while (true) {
-      if (i.get() == 3) {
-        break;
-      }
+    while (i.get() != 3) {
       Thread.sleep(PAD);
     }
     r.cancel();
@@ -104,10 +98,7 @@ public class SimpleTimerTest {
     Thrower r = new Thrower();
     t.schedule(r, DELAY);
     Thread.sleep(DELAY + PAD);
-    while (true) {
-      if (r.wasRun) {
-        break;
-      }
+    while (!r.wasRun) {
       Thread.sleep(PAD);
     }
   }
