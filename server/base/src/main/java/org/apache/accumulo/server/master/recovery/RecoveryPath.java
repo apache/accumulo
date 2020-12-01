@@ -19,17 +19,18 @@
 package org.apache.accumulo.server.master.recovery;
 
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RecoveryPath {
 
-  // given a wal path, transform it to a recovery path
-  public static Path getRecoveryPath(Path walPath) {
+  private static final Logger log = LoggerFactory.getLogger(RecoveryPath.class);
 
-    ServerUtilOpts opts = new ServerUtilOpts();
-    ServerContext context = opts.getServerContext();
+  // given a wal path, transform it to a recovery path
+  public static Path getRecoveryPath(Path walPath, ServerContext context) {
+
 
     if (walPath.depth() >= 3 && walPath.toUri().getScheme() != null) {
       // its a fully qualified path
@@ -49,7 +50,8 @@ public class RecoveryPath {
       walPath = walPath.getParent();
 
       walPath = new Path(walPath,
-          FileType.RECOVERY.getDirectory() + '/' + context.getUniqueNameAllocator().getNextName());
+          FileType.RECOVERY.getDirectory() + '-' + context.getUniqueNameAllocator().getNextName());
+      log.debug("Unique Name Allocated:  " + walPath);
       walPath = new Path(walPath, uuid);
 
       return walPath;
