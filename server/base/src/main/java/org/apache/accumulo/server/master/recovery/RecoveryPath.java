@@ -50,7 +50,7 @@ public class RecoveryPath {
 
       walPath = new Path(walPath,
           FileType.RECOVERY.getDirectory() + '-' + context.getUniqueNameAllocator().getNextName());
-      log.debug("Unique Name Allocated:  " + walPath);
+      log.debug("Directory selected for WAL recovery:  " + walPath);
       walPath = new Path(walPath, uuid);
 
       return walPath;
