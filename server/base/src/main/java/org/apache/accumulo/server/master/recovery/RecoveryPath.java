@@ -55,7 +55,7 @@ public class RecoveryPath {
 
       return walPath;
     }
-    
+
     throw new IllegalArgumentException("Bad path " + walPath);
   }
 }
