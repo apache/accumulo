@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver.compactions;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -33,11 +34,10 @@ import java.util.function.Consumer;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
-import org.apache.htrace.wrappers.TraceExecutorService;
 import org.apache.htrace.wrappers.TraceRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,14 +147,12 @@ public class CompactionExecutor {
 
     queue = new PriorityBlockingQueue<Runnable>(100, comparator);
 
-    ThreadPoolExecutor tp = new ThreadPoolExecutor(threads, threads, 60, TimeUnit.SECONDS, queue,
-        new NamingThreadFactory("compaction." + ceid));
-    tp.allowCoreThreadTimeOut(true);
+    rawExecutor = (ThreadPoolExecutor) ThreadPools.getSimpleThreadPool(threads, threads, 60,
+        TimeUnit.SECONDS, "compaction." + ceid, queue, OptionalInt.empty());
+    executor = ThreadPools.traceWrap(rawExecutor);
 
-    rawExecutor = tp;
-    executor = new TraceExecutorService(tp);
-
-    metricCloser = ceMetrics.addExecutor(ceid, () -> tp.getActiveCount(), () -> queuedTask.size());
+    metricCloser =
+        ceMetrics.addExecutor(ceid, () -> rawExecutor.getActiveCount(), () -> queuedTask.size());
 
     this.readLimiter = readLimiter;
     this.writeLimiter = writeLimiter;

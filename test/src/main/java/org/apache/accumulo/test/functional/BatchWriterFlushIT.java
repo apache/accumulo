@@ -34,6 +34,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -47,7 +48,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -209,9 +210,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         allMuts.add(muts);
       }
 
-      SimpleThreadPool threads = new SimpleThreadPool(NUM_THREADS, "ClientThreads");
-      threads.allowCoreThreadTimeOut(false);
-      threads.prestartAllCoreThreads();
+      ExecutorService threads = ThreadPools.getSimpleThreadPool(NUM_THREADS, "ClientThreads");
 
       BatchWriterConfig cfg = new BatchWriterConfig();
       cfg.setMaxLatency(10, TimeUnit.SECONDS);

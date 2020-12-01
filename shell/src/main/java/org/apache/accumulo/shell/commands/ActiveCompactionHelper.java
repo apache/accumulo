@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -32,7 +31,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.util.Duration;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 
 class ActiveCompactionHelper {
 
@@ -99,8 +98,7 @@ class ActiveCompactionHelper {
 
     // use at least 4 threads (if needed), but no more than 256
     int numThreads = Math.max(4, Math.min(tservers.size() / 10, 256));
-    var threadFactory = new NamingThreadFactory("shell-listcompactions");
-    var executorService = Executors.newFixedThreadPool(numThreads, threadFactory);
+    var executorService = ThreadPools.getSimpleThreadPool(numThreads, "shell-listcompactions");
     try {
       Stream<String> activeCompactionLines = tservers.stream()
           // submit each tserver to executor

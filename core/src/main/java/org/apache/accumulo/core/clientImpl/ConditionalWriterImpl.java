@@ -32,11 +32,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -76,7 +77,7 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
@@ -93,9 +94,8 @@ import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool =
-      new ThreadPoolExecutor(1, 1, 3, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
-          new NamingThreadFactory("Conditional Writer Cleanup Thread"));
+  private static ThreadPoolExecutor cleanupThreadPool = (ThreadPoolExecutor) ThreadPools
+      .getSimpleThreadPool(1, 3, TimeUnit.SECONDS, "Conditional Writer Cleanup Thread");
 
   static {
     cleanupThreadPool.allowCoreThreadTimeOut(true);
@@ -122,7 +122,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   private Map<String,ServerQueue> serverQueues;
   private DelayQueue<QCMutation> failedMutations = new DelayQueue<>();
-  private ScheduledThreadPoolExecutor threadPool;
+  private ScheduledExecutorService threadPool;
 
   private class RQIterator implements Iterator<Result> {
 
@@ -373,8 +373,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads(),
-        new NamingThreadFactory(this.getClass().getSimpleName()));
+    this.threadPool = ThreadPools.getScheduledExecutorService(config.getMaxWriteThreads(),
+        this.getClass().getSimpleName(), OptionalInt.empty());
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;

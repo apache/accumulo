@@ -29,10 +29,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -53,7 +50,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -80,9 +77,8 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      BlockingQueue<Runnable> q = new LinkedBlockingQueue<>();
-      loadThreadPool = new ThreadPoolExecutor(0, maxLoadThreads, 60, TimeUnit.SECONDS, q,
-          new NamingThreadFactory("bloom-loader"));
+      loadThreadPool =
+          ThreadPools.getSimpleThreadPool(0, maxLoadThreads, 60, TimeUnit.SECONDS, "bloom-loader");
     }
 
     return loadThreadPool;

@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -44,7 +43,7 @@ import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -125,8 +124,7 @@ public class RemoveEntriesForMissingFiles {
     @SuppressWarnings({"rawtypes"})
     Map cache = new LRUMap(100000);
     Set<Path> processing = new HashSet<>();
-    ExecutorService threadPool =
-        Executors.newFixedThreadPool(16, new NamingThreadFactory("CheckFileTasks"));
+    ExecutorService threadPool = ThreadPools.getSimpleThreadPool(16, "CheckFileTasks");
 
     System.out.printf("Scanning : %s %s\n", tableName, range);
 

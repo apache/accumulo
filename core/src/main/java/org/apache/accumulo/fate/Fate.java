@@ -21,13 +21,11 @@ package org.apache.accumulo.fate;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.logging.FateLogger;
-import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -224,10 +222,10 @@ public class Fate<T> {
   /**
    * Launches the specified number of worker threads.
    */
-  public void startTransactionRunners(int numThreads) {
-    executor = Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("Repo Runner"));
+  public void startTransactionRunners(ExecutorService executor, int numThreads) {
+    this.executor = executor;
     for (int i = 0; i < numThreads; i++) {
-      executor.execute(new TransactionRunner());
+      this.executor.execute(new TransactionRunner());
     }
   }
 

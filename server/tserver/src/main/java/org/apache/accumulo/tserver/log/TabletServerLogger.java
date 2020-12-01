@@ -41,7 +41,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
@@ -264,7 +264,7 @@ public class TabletServerLogger {
     if (nextLogMaker != null) {
       return;
     }
-    nextLogMaker = new SimpleThreadPool(1, "WALog creator");
+    nextLogMaker = (ThreadPoolExecutor) ThreadPools.getSimpleThreadPool(1, "WALog creator");
     nextLogMaker.submit(new LoggingRunnable(log, new Runnable() {
       @Override
       public void run() {

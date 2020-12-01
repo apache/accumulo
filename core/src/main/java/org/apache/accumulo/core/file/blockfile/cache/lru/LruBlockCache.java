@@ -24,9 +24,9 @@ import static org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize.CONCU
 
 import java.lang.ref.WeakReference;
 import java.util.Objects;
+import java.util.OptionalInt;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -37,7 +37,7 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,8 +101,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   private final EvictionThread evictionThread;
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
-  private final ScheduledExecutorService scheduleThreadPool =
-      Executors.newScheduledThreadPool(1, new NamingThreadFactory("LRUBlockCacheStats"));
+  private final ScheduledExecutorService scheduleThreadPool;
 
   /** Current size of cache */
   private final AtomicLong size;
@@ -161,6 +160,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     } else {
       this.evictionThread = null;
     }
+    this.scheduleThreadPool =
+        ThreadPools.getScheduledExecutorService(1, "LRUBlockCacheStats", OptionalInt.empty());
     this.scheduleThreadPool.scheduleAtFixedRate(new StatisticsThread(this), statThreadPeriod,
         statThreadPeriod, TimeUnit.SECONDS);
   }

@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -71,7 +72,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 import org.apache.thrift.TApplicationException;
@@ -635,7 +636,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     private static final int MUTATION_BATCH_SIZE = 1 << 17;
     private final ExecutorService sendThreadPool;
-    private final SimpleThreadPool binningThreadPool;
+    private final ExecutorService binningThreadPool;
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
     private final Map<TableId,TabletLocator> locators;
@@ -643,10 +644,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
-      sendThreadPool = new SimpleThreadPool(numSendThreads, this.getClass().getName());
+      sendThreadPool = ThreadPools.getSimpleThreadPool(numSendThreads, this.getClass().getName());
       locators = new HashMap<>();
-      binningThreadPool = new SimpleThreadPool(1, "BinMutations", new SynchronousQueue<>());
-      binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+      binningThreadPool = ThreadPools.getSimpleThreadPool(1, 1, 180000L, TimeUnit.MILLISECONDS,
+          "BinMutations", new SynchronousQueue<>(), OptionalInt.empty());
+      ((ThreadPoolExecutor) binningThreadPool)
+          .setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     private synchronized TabletLocator getLocator(TableId tableId) {

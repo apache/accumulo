@@ -27,14 +27,14 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Random;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Client;
@@ -108,7 +108,7 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
   protected void setInitialTraceHosts() {
     // Make a single thread pool with a daemon thread
     final ScheduledExecutorService svc =
-        Executors.newScheduledThreadPool(1, new NamingThreadFactory("SetTraceHosts"));
+        ThreadPools.getScheduledExecutorService(1, "SetTraceHosts", OptionalInt.empty());
     final Runnable task = new Runnable() {
       @Override
       public void run() {

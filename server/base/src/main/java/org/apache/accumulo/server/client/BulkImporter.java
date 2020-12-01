@@ -33,7 +33,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -58,8 +57,8 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.StopWatch;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -132,8 +131,7 @@ public class BulkImporter {
           Collections.synchronizedSortedMap(new TreeMap<>());
 
       timer.start(Timers.EXAMINE_MAP_FILES);
-      ExecutorService threadPool =
-          Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("findOverlapping"));
+      ExecutorService threadPool = ThreadPools.getSimpleThreadPool(numThreads, "findOverlapping");
 
       for (Path path : paths) {
         final Path mapFile = path;
@@ -353,8 +351,7 @@ public class BulkImporter {
 
     final Map<Path,List<AssignmentInfo>> ais = Collections.synchronizedMap(new TreeMap<>());
 
-    ExecutorService threadPool =
-        Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("estimateSizes"));
+    ExecutorService threadPool = ThreadPools.getSimpleThreadPool(numThreads, "estimateSizes");
 
     for (final Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
       if (entry.getValue().size() == 1) {
@@ -538,8 +535,7 @@ public class BulkImporter {
       }
     });
 
-    ExecutorService threadPool =
-        Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("submit"));
+    ExecutorService threadPool = ThreadPools.getSimpleThreadPool(numThreads, "submit");
 
     for (Entry<String,Map<KeyExtent,List<PathSize>>> entry : assignmentsPerTabletServer
         .entrySet()) {

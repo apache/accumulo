@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -43,11 +44,11 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.time.SimpleCriticalTimer;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
@@ -249,8 +250,8 @@ public class LiveTServerSet implements Watcher {
 
   public synchronized void startListeningForTabletServerChanges() {
     scanServers();
-    SimpleCriticalTimer.getInstance(context.getConfiguration()).schedule(this::scanServers, 0,
-        5000);
+    ThreadPools.getGeneralScheduledExecutorService(context.getConfiguration())
+        .scheduleWithFixedDelay(this::scanServers, 0, 5000, TimeUnit.MILLISECONDS);
   }
 
   public synchronized void scanServers() {

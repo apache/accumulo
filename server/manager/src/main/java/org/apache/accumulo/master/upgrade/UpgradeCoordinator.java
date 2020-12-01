@@ -19,12 +19,14 @@
 package org.apache.accumulo.master.upgrade;
 
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.master.EventCoordinator;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -163,7 +165,9 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do metadata upgrade %s", status);
 
     if (currentVersion < ServerConstants.DATA_VERSION) {
-      return Executors.newCachedThreadPool(new NamingThreadFactory("UpgradeMetadataThreads"))
+      return ThreadPools
+          .getSimpleThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
+              "UpgradeMetadataThreads", new SynchronousQueue<Runnable>(), OptionalInt.empty())
           .submit(() -> {
             try {
               for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {

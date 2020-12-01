@@ -38,7 +38,6 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -82,7 +81,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.util.Retry;
@@ -131,8 +130,6 @@ import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tables.TableObserver;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
-import org.apache.accumulo.server.util.time.SimpleCriticalTimer;
-import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.thrift.TException;
@@ -243,11 +240,12 @@ public class Master extends AbstractServer
     if (newState == MasterState.STOP) {
       // Give the server a little time before shutdown so the client
       // thread requesting the stop can return
-      SimpleTimer.getInstance(getConfiguration()).schedule(() -> {
-        // This frees the main thread and will cause the master to exit
-        clientService.stop();
-        Master.this.nextEvent.event("stopped event loop");
-      }, 100L, 1000L);
+      ThreadPools.getGeneralScheduledExecutorService(getConfiguration())
+          .scheduleWithFixedDelay(() -> {
+            // This frees the main thread and will cause the master to exit
+            clientService.stop();
+            Master.this.nextEvent.event("stopped event loop");
+          }, 100L, 1000L, TimeUnit.MILLISECONDS);
     }
 
     if (oldState != newState && (newState == MasterState.HAVE_LOCK)) {
@@ -886,9 +884,8 @@ public class Master extends AbstractServer
       gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE);
-    var threadFactory = new NamingThreadFactory("GatherTableInformation");
-    ExecutorService tp = threads == 0 ? Executors.newCachedThreadPool(threadFactory)
-        : Executors.newFixedThreadPool(threads, threadFactory);
+    ExecutorService tp =
+        ThreadPools.getExecutorService(getConfiguration(), Property.MASTER_STATUS_THREAD_POOL_SIZE);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
@@ -1095,12 +1092,13 @@ public class Master extends AbstractServer
       final AgeOffStore<Master> store = new AgeOffStore<>(new org.apache.accumulo.fate.ZooStore<>(
           getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()), 1000 * 60 * 60 * 8);
 
-      int threads = getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
-
       fate = new Fate<>(this, store, TraceRepo::toLogString);
-      fate.startTransactionRunners(threads);
+      fate.startTransactionRunners(
+          ThreadPools.getExecutorService(getConfiguration(), Property.MASTER_FATE_THREADPOOL_SIZE),
+          getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE));
 
-      SimpleCriticalTimer.getInstance(getConfiguration()).schedule(store::ageOff, 63000, 63000);
+      ThreadPools.getGeneralScheduledExecutorService(getConfiguration())
+          .scheduleWithFixedDelay(store::ageOff, 63000, 63000, TimeUnit.MILLISECONDS);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
@@ -1148,18 +1146,19 @@ public class Master extends AbstractServer
 
     // if the replication name is ever set, then start replication services
     final AtomicReference<TServer> replServer = new AtomicReference<>();
-    SimpleCriticalTimer.getInstance(getConfiguration()).schedule(() -> {
-      try {
-        if (replServer.get() == null) {
-          if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-            log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
-            replServer.set(setupReplication());
+    ThreadPools.getGeneralScheduledExecutorService(getConfiguration())
+        .scheduleWithFixedDelay(() -> {
+          try {
+            if (replServer.get() == null) {
+              if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
+                log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
+                replServer.set(setupReplication());
+              }
+            }
+          } catch (UnknownHostException | KeeperException | InterruptedException e) {
+            log.error("Error occurred starting replication services. ", e);
           }
-        }
-      } catch (UnknownHostException | KeeperException | InterruptedException e) {
-        log.error("Error occurred starting replication services. ", e);
-      }
-    }, 0, 5000);
+        }, 0, 5000, TimeUnit.MILLISECONDS);
 
     // Register metrics modules
     int failureCount = new MasterMetricsFactory(getConfiguration()).register(this);

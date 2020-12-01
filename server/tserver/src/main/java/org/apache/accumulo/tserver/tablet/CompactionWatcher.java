@@ -24,10 +24,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.util.time.SimpleCriticalTimer;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.slf4j.LoggerFactory;
 
 public class CompactionWatcher implements Runnable {
@@ -105,7 +106,8 @@ public class CompactionWatcher implements Runnable {
 
   public static synchronized void startWatching(AccumuloConfiguration config) {
     if (!watching) {
-      SimpleCriticalTimer.getInstance(config).schedule(new CompactionWatcher(config), 10000, 10000);
+      ThreadPools.getGeneralScheduledExecutorService(config).scheduleWithFixedDelay(
+          new CompactionWatcher(config), 10000, 10000, TimeUnit.MILLISECONDS);
       watching = true;
     }
   }

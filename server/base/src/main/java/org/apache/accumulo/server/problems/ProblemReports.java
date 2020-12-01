@@ -25,11 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.OptionalInt;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -45,7 +45,7 @@ import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
@@ -68,8 +68,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
    * processed because the whole system is in a really bad state (like HDFS is down) and everything
    * is reporting lots of problems, but problem reports can not be processed
    */
-  private ExecutorService reportExecutor = new ThreadPoolExecutor(0, 1, 60, TimeUnit.SECONDS,
-      new LinkedBlockingQueue<>(500), new NamingThreadFactory("acu-problem-reporter"));
+  private ExecutorService reportExecutor =
+      ThreadPools.getSimpleThreadPool(0, 1, 60, TimeUnit.SECONDS, "acu-problem-reporter",
+          new LinkedBlockingQueue<>(500), OptionalInt.empty());
 
   private final ServerContext context;
 

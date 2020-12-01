@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.Executors;
+import java.util.OptionalInt;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -34,7 +34,7 @@ import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheEntry.Weighable;
 import org.apache.accumulo.core.spi.cache.CacheType;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,8 +68,8 @@ public final class TinyLfuBlockCache implements BlockCache {
           return keyWeight + block.weight();
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
     policy = cache.policy().eviction().get();
-    statsExecutor = Executors.newScheduledThreadPool(1,
-        new NamingThreadFactory("TinyLfuBlockCacheStatsExecutor"));
+    statsExecutor = ThreadPools.getScheduledExecutorService(1, "TinyLfuBlockCacheStatsExecutor",
+        OptionalInt.empty());
     statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC,
         TimeUnit.SECONDS);
   }

@@ -30,13 +30,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Queue;
-import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -65,19 +62,16 @@ import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
 import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
 import org.apache.accumulo.server.tabletserver.TabletState;
-import org.apache.accumulo.server.util.time.SimpleCriticalTimer;
-import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.tablet.Tablet;
-import org.apache.htrace.wrappers.TraceExecutorService;
 import org.apache.htrace.wrappers.TraceRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,7 +100,6 @@ public class TabletServerResourceManager {
   private final ExecutorService summaryRetrievalPool;
   private final ExecutorService summaryParitionPool;
   private final ExecutorService summaryRemotePool;
-  private final Map<String,ExecutorService> threadPools = new TreeMap<>();
 
   private final Map<String,ExecutorService> scanExecutors;
   private final Map<String,ScanExecutor> scanExecutorChoices;
@@ -127,56 +120,37 @@ public class TabletServerResourceManager {
 
   private Cache<String,Long> fileLenCache;
 
-  private ExecutorService addEs(String name, ExecutorService tp) {
-    if (threadPools.containsKey(name)) {
-      throw new IllegalArgumentException(
-          "Cannot create two executor services with same name " + name);
-    }
-    tp = new TraceExecutorService(tp);
-    threadPools.put(name, tp);
-    return tp;
-  }
-
-  private ExecutorService addEs(IntSupplier maxThreads, String name, final ThreadPoolExecutor tp) {
-    ExecutorService result = addEs(name, tp);
-    SimpleTimer.getInstance(context.getConfiguration()).schedule(() -> {
-      try {
-        int max = maxThreads.getAsInt();
-        int currentMax = tp.getMaximumPoolSize();
-        if (currentMax != max) {
-          log.info("Changing max threads for {} from {} to {}", name, currentMax, max);
-          if (max > currentMax) {
-            // increasing, increase the max first, or the core will fail to be increased
-            tp.setMaximumPoolSize(max);
-            tp.setCorePoolSize(max);
-          } else {
-            // decreasing, lower the core size first, or the max will fail to be lowered
-            tp.setCorePoolSize(max);
-            tp.setMaximumPoolSize(max);
+  /**
+   * This method creates a task that changes the number of core and maximum threads on the thread
+   * pool executor
+   * 
+   * @param maxThreads
+   * @param name
+   * @param tp
+   * @return
+   */
+  private void watchThreadSizes(IntSupplier maxThreads, String name, final ThreadPoolExecutor tp) {
+    ThreadPools.getGeneralScheduledExecutorService(context.getConfiguration())
+        .scheduleWithFixedDelay(() -> {
+          try {
+            int max = maxThreads.getAsInt();
+            int currentMax = tp.getMaximumPoolSize();
+            if (currentMax != max) {
+              log.info("Changing max threads for {} from {} to {}", name, currentMax, max);
+              if (max > currentMax) {
+                // increasing, increase the max first, or the core will fail to be increased
+                tp.setMaximumPoolSize(max);
+                tp.setCorePoolSize(max);
+              } else {
+                // decreasing, lower the core size first, or the max will fail to be lowered
+                tp.setCorePoolSize(max);
+                tp.setMaximumPoolSize(max);
+              }
+            }
+          } catch (Exception t) {
+            log.error("Failed to change thread pool size", t);
           }
-        }
-      } catch (Exception t) {
-        log.error("Failed to change thread pool size", t);
-      }
-    }, 1000, 10_000);
-    return result;
-  }
-
-  private ExecutorService createIdlingEs(Property max, String name) {
-    LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
-    int maxThreads = context.getConfiguration().getCount(max);
-    ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 60, TimeUnit.SECONDS,
-        queue, new NamingThreadFactory(name));
-    tp.allowCoreThreadTimeOut(true);
-    return addEs(() -> context.getConfiguration().getCount(max), name, tp);
-  }
-
-  private ExecutorService createEs() {
-    return addEs("splitter", Executors.newFixedThreadPool(1, new NamingThreadFactory("splitter")));
-  }
-
-  private ExecutorService createEs(Property max, String name) {
-    return createEs(max, name, new LinkedBlockingQueue<>());
+        }, 1000, 10_000, TimeUnit.MILLISECONDS);
   }
 
   private ExecutorService createPriorityExecutor(ScanExecutorConfig sec,
@@ -223,25 +197,12 @@ public class TabletServerResourceManager {
 
     scanExecQueues.put(sec.name, queue);
 
-    return createEs(sec::getCurrentMaxThreads, "scan-" + sec.name, queue, sec.priority);
-  }
+    ExecutorService es = ThreadPools.traceWrap(
+        ThreadPools.getSimpleThreadPool(sec.getCurrentMaxThreads(), sec.getCurrentMaxThreads(), 0L,
+            TimeUnit.MILLISECONDS, "scan-" + sec.name, queue, sec.priority));
+    watchThreadSizes(sec::getCurrentMaxThreads, "scan-" + sec.name, (ThreadPoolExecutor) es);
+    return es;
 
-  private ExecutorService createEs(IntSupplier maxThreadsSupplier, String name,
-      BlockingQueue<Runnable> queue, OptionalInt priority) {
-    int maxThreads = maxThreadsSupplier.getAsInt();
-    ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 0L,
-        TimeUnit.MILLISECONDS, queue, new NamingThreadFactory(name, priority));
-    return addEs(maxThreadsSupplier, name, tp);
-  }
-
-  private ExecutorService createEs(Property max, String name, BlockingQueue<Runnable> queue) {
-    IntSupplier maxThreadsSupplier = () -> context.getConfiguration().getCount(max);
-    return createEs(maxThreadsSupplier, name, queue, OptionalInt.empty());
-  }
-
-  private ExecutorService createEs(int timeout, String name) {
-    return addEs(name, new ThreadPoolExecutor(0, 1, timeout, TimeUnit.SECONDS,
-        new LinkedBlockingQueue<>(), new NamingThreadFactory(name)));
   }
 
   protected Map<String,ExecutorService> createScanExecutors(
@@ -372,30 +333,58 @@ public class TabletServerResourceManager {
       log.warn("In-memory map may not fit into local memory space.");
     }
 
-    minorCompactionThreadPool = createEs(Property.TSERV_MINC_MAXCONCURRENT, "minor compactor");
+    minorCompactionThreadPool =
+        ThreadPools.getExecutorService(acuConf, Property.TSERV_MINC_MAXCONCURRENT);
+    watchThreadSizes(() -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
+        "minor compactor", (ThreadPoolExecutor) minorCompactionThreadPool);
 
-    splitThreadPool = createEs();
-    defaultSplitThreadPool = createEs(60, "md splitter");
+    splitThreadPool = ThreadPools
+        .traceWrap(ThreadPools.getSimpleThreadPool(0, 1, 1, TimeUnit.SECONDS, "splitter"));
 
-    defaultMigrationPool = createEs(60, "metadata tablet migration");
-    migrationPool = createEs(Property.TSERV_MIGRATE_MAXCONCURRENT, "tablet migration");
+    defaultSplitThreadPool = ThreadPools
+        .traceWrap(ThreadPools.getSimpleThreadPool(0, 1, 60, TimeUnit.SECONDS, "md splitter"));
+
+    defaultMigrationPool = ThreadPools.traceWrap(
+        ThreadPools.getSimpleThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet migration"));
+
+    migrationPool = ThreadPools.getExecutorService(acuConf, Property.TSERV_MIGRATE_MAXCONCURRENT);
+    watchThreadSizes(
+        () -> context.getConfiguration().getCount(Property.TSERV_MIGRATE_MAXCONCURRENT),
+        "tablet migration", (ThreadPoolExecutor) migrationPool);
 
     // not sure if concurrent assignments can run safely... even if they could there is probably no
     // benefit at startup because
     // individual tablet servers are already running assignments concurrently... having each
     // individual tablet server run
     // concurrent assignments would put more load on the metadata table at startup
-    assignmentPool = createEs(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "tablet assignment");
+    assignmentPool =
+        ThreadPools.getExecutorService(acuConf, Property.TSERV_ASSIGNMENT_MAXCONCURRENT);
+    watchThreadSizes(
+        () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
+        "tablet assignment", (ThreadPoolExecutor) assignmentPool);
 
-    assignMetaDataPool = createEs(60, "metadata tablet assignment");
+    assignMetaDataPool = ThreadPools.traceWrap(
+        ThreadPools.getSimpleThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet assignment"));
 
     activeAssignments = new ConcurrentHashMap<>();
 
     summaryRetrievalPool =
-        createIdlingEs(Property.TSERV_SUMMARY_RETRIEVAL_THREADS, "summary file retriever");
-    summaryRemotePool = createIdlingEs(Property.TSERV_SUMMARY_REMOTE_THREADS, "summary remote");
+        ThreadPools.getExecutorService(acuConf, Property.TSERV_SUMMARY_RETRIEVAL_THREADS);
+    watchThreadSizes(
+        () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_RETRIEVAL_THREADS),
+        "summary file retriever", (ThreadPoolExecutor) summaryRetrievalPool);
+
+    summaryRemotePool =
+        ThreadPools.getExecutorService(acuConf, Property.TSERV_SUMMARY_REMOTE_THREADS);
+    watchThreadSizes(
+        () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_REMOTE_THREADS),
+        "summary remote", (ThreadPoolExecutor) summaryRemotePool);
+
     summaryParitionPool =
-        createIdlingEs(Property.TSERV_SUMMARY_PARTITION_THREADS, "summary partition");
+        ThreadPools.getExecutorService(acuConf, Property.TSERV_SUMMARY_PARTITION_THREADS);
+    watchThreadSizes(
+        () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_PARTITION_THREADS),
+        "summary partition", (ThreadPoolExecutor) summaryParitionPool);
 
     Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors();
     Map<String,Queue<?>> scanExecQueues = new HashMap<>();
@@ -414,11 +403,10 @@ public class TabletServerResourceManager {
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
 
-    SimpleTimer timer = SimpleCriticalTimer.getInstance(context.getConfiguration());
-
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
-    timer.schedule(new AssignmentWatcher(acuConf, activeAssignments, timer), 5000);
+    ThreadPools.getGeneralScheduledExecutorService(context.getConfiguration())
+        .schedule(new AssignmentWatcher(acuConf, activeAssignments), 5000, TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -431,13 +419,11 @@ public class TabletServerResourceManager {
 
     private final Map<KeyExtent,RunnableStartedAt> activeAssignments;
     private final AccumuloConfiguration conf;
-    private final SimpleTimer timer;
 
     public AssignmentWatcher(AccumuloConfiguration conf,
-        Map<KeyExtent,RunnableStartedAt> activeAssignments, SimpleTimer timer) {
+        Map<KeyExtent,RunnableStartedAt> activeAssignments) {
       this.conf = conf;
       this.activeAssignments = activeAssignments;
-      this.timer = timer;
     }
 
     @Override
@@ -469,7 +455,8 @@ public class TabletServerResourceManager {
         if (log.isTraceEnabled()) {
           log.trace("Rescheduling assignment watcher to run in {}ms", delay);
         }
-        timer.schedule(this, delay);
+        ThreadPools.getGeneralScheduledExecutorService(conf).schedule(this, delay,
+            TimeUnit.MILLISECONDS);
       }
     }
   }

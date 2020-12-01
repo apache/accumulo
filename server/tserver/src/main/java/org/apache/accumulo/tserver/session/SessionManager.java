@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -42,7 +43,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ScanState;
 import org.apache.accumulo.core.tabletserver.thrift.ScanType;
 import org.apache.accumulo.core.util.MapCounter;
-import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.session.Session.State;
@@ -87,7 +88,8 @@ public class SessionManager {
       }
     };
 
-    SimpleTimer.getInstance(conf).schedule(r, 0, Math.max(maxIdle / 2, 1000));
+    ThreadPools.getGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(r, 0,
+        Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS);
   }
 
   public long createSession(Session session, boolean reserve) {
@@ -292,7 +294,8 @@ public class SessionManager {
         }
       };
 
-      SimpleTimer.getInstance(aconf).schedule(r, delay);
+      ThreadPools.getGeneralScheduledExecutorService(aconf).schedule(r, delay,
+          TimeUnit.MILLISECONDS);
     }
   }
 

@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.OptionalInt;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -39,7 +40,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -65,8 +66,9 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private ScannerImpl.Reporter reporter;
 
   private static ThreadPoolExecutor readaheadPool =
-      new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3L, TimeUnit.SECONDS, new SynchronousQueue<>(),
-          new NamingThreadFactory("Accumulo scanner read ahead thread"));
+      (ThreadPoolExecutor) ThreadPools.getSimpleThreadPool(0, Integer.MAX_VALUE, 3L,
+          TimeUnit.SECONDS, "Accumulo scanner read ahead thread", new SynchronousQueue<>(),
+          OptionalInt.empty());
 
   private boolean closed = false;
 
