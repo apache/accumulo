@@ -99,7 +99,8 @@ public class RecoveryManager {
       this.sortId = sortId;
     }
 
-    @Override public void run() {
+    @Override
+    public void run() {
       boolean rescheduled = false;
       try {
         long time = closer.close(master.getConfiguration(), master.getContext().getHadoopConf(),
@@ -176,8 +177,9 @@ public class RecoveryManager {
           sortQueued = sortsQueued.contains(sortId);
         }
 
-        if (sortQueued && zooCache
-            .get(master.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId) == null) {
+        if (sortQueued
+            && zooCache.get(master.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId)
+                == null) {
           synchronized (this) {
             sortsQueued.remove(sortId);
           }
@@ -196,9 +198,8 @@ public class RecoveryManager {
         synchronized (this) {
           if (!closeTasksQueued.contains(sortId) && !sortsQueued.contains(sortId)) {
             AccumuloConfiguration aconf = master.getConfiguration();
-            LogCloser closer = Property
-                .createInstanceFromPropertyName(aconf, Property.MASTER_WALOG_CLOSER_IMPLEMETATION,
-                    LogCloser.class, new HadoopLogCloser());
+            LogCloser closer = Property.createInstanceFromPropertyName(aconf,
+                Property.MASTER_WALOG_CLOSER_IMPLEMETATION, LogCloser.class, new HadoopLogCloser());
             Long delay = recoveryDelay.get(sortId);
             if (delay == null) {
               delay = aconf.getTimeInMillis(Property.MASTER_RECOVERY_DELAY);
