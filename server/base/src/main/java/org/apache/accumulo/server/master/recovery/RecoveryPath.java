@@ -31,7 +31,6 @@ public class RecoveryPath {
   // given a wal path, transform it to a recovery path
   public static Path getRecoveryPath(Path walPath, ServerContext context) {
 
-
     if (walPath.depth() >= 3 && walPath.toUri().getScheme() != null) {
       // its a fully qualified path
       String uuid = walPath.getName();
@@ -56,9 +55,7 @@ public class RecoveryPath {
 
       return walPath;
     }
-
+    
     throw new IllegalArgumentException("Bad path " + walPath);
-
   }
-
 }
