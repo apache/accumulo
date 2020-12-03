@@ -51,7 +51,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.ThreadPools;
-import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -78,7 +77,7 @@ public class BloomFilterLayer {
 
     if (maxLoadThreads > 0) {
       loadThreadPool =
-          ThreadPools.getSimpleThreadPool(0, maxLoadThreads, 60, TimeUnit.SECONDS, "bloom-loader");
+          ThreadPools.getThreadPool(0, maxLoadThreads, 60, TimeUnit.SECONDS, "bloom-loader", false);
     }
 
     return loadThreadPool;
@@ -296,7 +295,7 @@ public class BloomFilterLayer {
             loadTask.run();
           } else {
             // load the bloom filter in the background
-            ltp.execute(new LoggingRunnable(LOG, loadTask));
+            ltp.execute(loadTask);
           }
         } finally {
           // set load task to null so no one else can initiate the load

@@ -59,14 +59,12 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.StopWatch;
 import org.apache.accumulo.core.util.ThreadPools;
-import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.wrappers.TraceRunnable;
 import org.apache.thrift.TServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,7 +129,8 @@ public class BulkImporter {
           Collections.synchronizedSortedMap(new TreeMap<>());
 
       timer.start(Timers.EXAMINE_MAP_FILES);
-      ExecutorService threadPool = ThreadPools.getSimpleThreadPool(numThreads, "findOverlapping");
+      ExecutorService threadPool =
+          ThreadPools.getFixedThreadPool(numThreads, "findOverlapping", true);
 
       for (Path path : paths) {
         final Path mapFile = path;
@@ -153,7 +152,7 @@ public class BulkImporter {
               assignments.put(mapFile, tabletsToAssignMapFileTo);
           }
         };
-        threadPool.submit(new TraceRunnable(new LoggingRunnable(log, getAssignments)));
+        threadPool.submit(getAssignments);
       }
       threadPool.shutdown();
       while (!threadPool.isTerminated()) {
@@ -351,7 +350,7 @@ public class BulkImporter {
 
     final Map<Path,List<AssignmentInfo>> ais = Collections.synchronizedMap(new TreeMap<>());
 
-    ExecutorService threadPool = ThreadPools.getSimpleThreadPool(numThreads, "estimateSizes");
+    ExecutorService threadPool = ThreadPools.getFixedThreadPool(numThreads, "estimateSizes", true);
 
     for (final Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
       if (entry.getValue().size() == 1) {
@@ -395,7 +394,7 @@ public class BulkImporter {
         }
       };
 
-      threadPool.submit(new TraceRunnable(new LoggingRunnable(log, estimationTask)));
+      threadPool.submit(estimationTask);
     }
 
     threadPool.shutdown();
@@ -535,7 +534,7 @@ public class BulkImporter {
       }
     });
 
-    ExecutorService threadPool = ThreadPools.getSimpleThreadPool(numThreads, "submit");
+    ExecutorService threadPool = ThreadPools.getFixedThreadPool(numThreads, "submit", false);
 
     for (Entry<String,Map<KeyExtent,List<PathSize>>> entry : assignmentsPerTabletServer
         .entrySet()) {

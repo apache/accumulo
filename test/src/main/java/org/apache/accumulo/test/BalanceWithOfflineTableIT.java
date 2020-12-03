@@ -77,7 +77,7 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
       log.info("Waiting for balance");
 
-      ExecutorService pool = ThreadPools.getSimpleThreadPool(1, "waitForBalance");
+      ExecutorService pool = ThreadPools.getFixedThreadPool(1, "waitForBalance", false);
       Future<Boolean> wait = pool.submit(() -> {
         c.instanceOperations().waitForBalance();
         return true;

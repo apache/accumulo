@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,9 +62,8 @@ import org.apache.accumulo.core.spi.scan.ScanExecutor;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.ThreadPools;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.Threads;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
@@ -129,7 +129,8 @@ public class TabletServerResourceManager {
    * @param tp
    * @return
    */
-  private void watchThreadSizes(IntSupplier maxThreads, String name, final ThreadPoolExecutor tp) {
+  private void modifyThreadPoolSizesAtRuntime(IntSupplier maxThreads, String name,
+      final ThreadPoolExecutor tp) {
     ThreadPools.getGeneralScheduledExecutorService(context.getConfiguration())
         .scheduleWithFixedDelay(() -> {
           try {
@@ -197,10 +198,11 @@ public class TabletServerResourceManager {
 
     scanExecQueues.put(sec.name, queue);
 
-    ExecutorService es = ThreadPools.traceWrap(
-        ThreadPools.getSimpleThreadPool(sec.getCurrentMaxThreads(), sec.getCurrentMaxThreads(), 0L,
-            TimeUnit.MILLISECONDS, "scan-" + sec.name, queue, sec.priority));
-    watchThreadSizes(sec::getCurrentMaxThreads, "scan-" + sec.name, (ThreadPoolExecutor) es);
+    ExecutorService es =
+        ThreadPools.getThreadPool(sec.getCurrentMaxThreads(), sec.getCurrentMaxThreads(), 0L,
+            TimeUnit.MILLISECONDS, "scan-" + sec.name, queue, sec.priority, true);
+    modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads, "scan-" + sec.name,
+        (ThreadPoolExecutor) es);
     return es;
 
   }
@@ -335,20 +337,20 @@ public class TabletServerResourceManager {
 
     minorCompactionThreadPool =
         ThreadPools.getExecutorService(acuConf, Property.TSERV_MINC_MAXCONCURRENT);
-    watchThreadSizes(() -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
+    modifyThreadPoolSizesAtRuntime(
+        () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
         "minor compactor", (ThreadPoolExecutor) minorCompactionThreadPool);
 
-    splitThreadPool = ThreadPools
-        .traceWrap(ThreadPools.getSimpleThreadPool(0, 1, 1, TimeUnit.SECONDS, "splitter"));
+    splitThreadPool = ThreadPools.getThreadPool(0, 1, 1, TimeUnit.SECONDS, "splitter", true);
 
-    defaultSplitThreadPool = ThreadPools
-        .traceWrap(ThreadPools.getSimpleThreadPool(0, 1, 60, TimeUnit.SECONDS, "md splitter"));
+    defaultSplitThreadPool =
+        ThreadPools.getThreadPool(0, 1, 60, TimeUnit.SECONDS, "md splitter", true);
 
-    defaultMigrationPool = ThreadPools.traceWrap(
-        ThreadPools.getSimpleThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet migration"));
+    defaultMigrationPool =
+        ThreadPools.getThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet migration", true);
 
     migrationPool = ThreadPools.getExecutorService(acuConf, Property.TSERV_MIGRATE_MAXCONCURRENT);
-    watchThreadSizes(
+    modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MIGRATE_MAXCONCURRENT),
         "tablet migration", (ThreadPoolExecutor) migrationPool);
 
@@ -359,30 +361,30 @@ public class TabletServerResourceManager {
     // concurrent assignments would put more load on the metadata table at startup
     assignmentPool =
         ThreadPools.getExecutorService(acuConf, Property.TSERV_ASSIGNMENT_MAXCONCURRENT);
-    watchThreadSizes(
+    modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
         "tablet assignment", (ThreadPoolExecutor) assignmentPool);
 
-    assignMetaDataPool = ThreadPools.traceWrap(
-        ThreadPools.getSimpleThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet assignment"));
+    assignMetaDataPool =
+        ThreadPools.getThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet assignment", true);
 
     activeAssignments = new ConcurrentHashMap<>();
 
     summaryRetrievalPool =
         ThreadPools.getExecutorService(acuConf, Property.TSERV_SUMMARY_RETRIEVAL_THREADS);
-    watchThreadSizes(
+    modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_RETRIEVAL_THREADS),
         "summary file retriever", (ThreadPoolExecutor) summaryRetrievalPool);
 
     summaryRemotePool =
         ThreadPools.getExecutorService(acuConf, Property.TSERV_SUMMARY_REMOTE_THREADS);
-    watchThreadSizes(
+    modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_REMOTE_THREADS),
         "summary remote", (ThreadPoolExecutor) summaryRemotePool);
 
     summaryParitionPool =
         ThreadPools.getExecutorService(acuConf, Property.TSERV_SUMMARY_PARTITION_THREADS);
-    watchThreadSizes(
+    modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_PARTITION_THREADS),
         "summary partition", (ThreadPoolExecutor) summaryParitionPool);
 
@@ -518,17 +520,10 @@ public class TabletServerResourceManager {
       tabletReports = Collections.synchronizedMap(new HashMap<>());
       memUsageReports = new LinkedBlockingQueue<>();
       maxMem = context.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
-
-      Runnable r1 = this::processTabletMemStats;
-
-      memoryGuardThread = new Daemon(new LoggingRunnable(log, r1));
-      memoryGuardThread.setPriority(Thread.NORM_PRIORITY + 1);
-      memoryGuardThread.setName("Accumulo Memory Guard");
-
-      Runnable r2 = this::manageMemory;
-
-      minorCompactionInitiatorThread = new Daemon(new LoggingRunnable(log, r2));
-      minorCompactionInitiatorThread.setName("Accumulo Minor Compaction Initiator");
+      memoryGuardThread = Threads.createThread("Accumulo Memory Guard",
+          OptionalInt.of(Thread.NORM_PRIORITY + 1), this::processTabletMemStats);
+      minorCompactionInitiatorThread =
+          Threads.createThread("Accumulo Minor Compaction Initiator", this::manageMemory);
     }
 
     void startThreads() {
@@ -791,7 +786,7 @@ public class TabletServerResourceManager {
     // this allows us to control how many minor compactions
     // run concurrently in a tablet server
     public void executeMinorCompaction(final Runnable r) {
-      minorCompactionThreadPool.execute(new LoggingRunnable(log, r));
+      minorCompactionThreadPool.execute(r);
     }
 
     public void close() throws IOException {
@@ -885,14 +880,14 @@ public class TabletServerResourceManager {
   }
 
   public void addAssignment(KeyExtent extent, Logger log, AssignmentHandler assignmentHandler) {
-    assignmentPool.execute(new ActiveAssignmentRunnable(activeAssignments, extent,
-        new LoggingRunnable(log, assignmentHandler)));
+    assignmentPool
+        .execute(new ActiveAssignmentRunnable(activeAssignments, extent, assignmentHandler));
   }
 
   public void addMetaDataAssignment(KeyExtent extent, Logger log,
       AssignmentHandler assignmentHandler) {
-    assignMetaDataPool.execute(new ActiveAssignmentRunnable(activeAssignments, extent,
-        new LoggingRunnable(log, assignmentHandler)));
+    assignMetaDataPool
+        .execute(new ActiveAssignmentRunnable(activeAssignments, extent, assignmentHandler));
   }
 
   public void addMigration(KeyExtent tablet, Runnable migrationHandler) {

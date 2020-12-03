@@ -80,7 +80,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
@@ -88,7 +87,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.ThreadPools;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.Threads;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -208,8 +207,6 @@ public class TabletServer extends AbstractServer {
 
   private final BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<>();
 
-  private Thread majorCompactorThread;
-
   HostAndPort clientAddress;
 
   private volatile boolean serverStopRequested = false;
@@ -260,42 +257,47 @@ public class TabletServer extends AbstractServer {
     // This thread will calculate and log out the busiest tablets based on ingest count and
     // query count every #{logBusiestTabletsDelay}
     if (numBusyTabletsToLog > 0) {
-      ThreadPools.getGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(new Runnable() {
-        private BusiestTracker ingestTracker =
-            BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
-        private BusiestTracker queryTracker =
-            BusiestTracker.newBusiestQueryTracker(numBusyTabletsToLog);
+      ThreadPools.getGeneralScheduledExecutorService(aconf)
+          .scheduleWithFixedDelay(Threads.createNamedRunnable("BusyTabletLogger", new Runnable() {
+            private BusiestTracker ingestTracker =
+                BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
+            private BusiestTracker queryTracker =
+                BusiestTracker.newBusiestQueryTracker(numBusyTabletsToLog);
 
-        @Override
-        public void run() {
-          Collection<Tablet> tablets = onlineTablets.snapshot().values();
-          logBusyTablets(ingestTracker.computeBusiest(tablets), "ingest count");
-          logBusyTablets(queryTracker.computeBusiest(tablets), "query count");
-        }
+            @Override
+            public void run() {
+              Collection<Tablet> tablets = onlineTablets.snapshot().values();
+              logBusyTablets(ingestTracker.computeBusiest(tablets), "ingest count");
+              logBusyTablets(queryTracker.computeBusiest(tablets), "query count");
+            }
 
-        private void logBusyTablets(List<ComparablePair<Long,KeyExtent>> busyTablets,
-            String label) {
+            private void logBusyTablets(List<ComparablePair<Long,KeyExtent>> busyTablets,
+                String label) {
 
-          int i = 1;
-          for (Pair<Long,KeyExtent> pair : busyTablets) {
-            log.debug("{} busiest tablet by {}: {} -- extent: {} ", i, label.toLowerCase(),
-                pair.getFirst(), pair.getSecond());
-            i++;
-          }
-        }
-      }, logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
+              int i = 1;
+              for (Pair<Long,KeyExtent> pair : busyTablets) {
+                log.debug("{} busiest tablet by {}: {} -- extent: {} ", i, label.toLowerCase(),
+                    pair.getFirst(), pair.getSecond());
+                i++;
+              }
+            }
+          }), logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
     }
 
-    ThreadPools.getGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
-      long now = System.currentTimeMillis();
-      for (Tablet tablet : getOnlineTablets().values()) {
-        try {
-          tablet.updateRates(now);
-        } catch (Exception ex) {
-          log.error("Error updating rates for {}", tablet.getExtent(), ex);
-        }
-      }
-    }, 5000, 5000, TimeUnit.MILLISECONDS);
+    ThreadPools.getGeneralScheduledExecutorService(aconf)
+        .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", new Runnable() {
+          @Override
+          public void run() {
+            long now = System.currentTimeMillis();
+            for (Tablet tablet : getOnlineTablets().values()) {
+              try {
+                tablet.updateRates(now);
+              } catch (Exception ex) {
+                log.error("Error updating rates for {}", tablet.getExtent(), ex);
+              }
+            }
+          }
+        }), 5000, 5000, TimeUnit.MILLISECONDS);
 
     final long walogMaxSize = aconf.getAsBytes(Property.TSERV_WALOG_MAX_SIZE);
     final long walogMaxAge = aconf.getTimeInMillis(Property.TSERV_WALOG_MAX_AGE);
@@ -408,8 +410,7 @@ public class TabletServer extends AbstractServer {
   }
 
   public void executeSplit(Tablet tablet) {
-    resourceManager.executeSplit(tablet.getExtent(),
-        new LoggingRunnable(log, new SplitRunner(tablet)));
+    resourceManager.executeSplit(tablet.getExtent(), new SplitRunner(tablet));
   }
 
   private class MajorCompactor implements Runnable {
@@ -990,10 +991,7 @@ public class TabletServer extends AbstractServer {
 
   private void config() {
     log.info("Tablet server starting on {}", getHostname());
-    majorCompactorThread =
-        new Daemon(new LoggingRunnable(log, new MajorCompactor(getConfiguration())));
-    majorCompactorThread.setName("Split/MajC initiator");
-    majorCompactorThread.start();
+    Threads.createThread("Split/MajC initiator", new MajorCompactor(getConfiguration())).start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
 

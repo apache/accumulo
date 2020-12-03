@@ -32,12 +32,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -78,7 +77,7 @@ import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ThreadPools;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.Threads;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.commons.collections4.map.LRUMap;
@@ -89,19 +88,15 @@ import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool = (ThreadPoolExecutor) ThreadPools
-      .getSimpleThreadPool(1, 3, TimeUnit.SECONDS, "Conditional Writer Cleanup Thread");
+  private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.getFixedThreadPool(1, 3,
+      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread", false);
 
   static {
     cleanupThreadPool.allowCoreThreadTimeOut(true);
   }
-
-  private static final Logger log = LoggerFactory.getLogger(ConditionalWriterImpl.class);
 
   private static final int MAX_SLEEP = 30000;
 
@@ -122,7 +117,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   private Map<String,ServerQueue> serverQueues;
   private DelayQueue<QCMutation> failedMutations = new DelayQueue<>();
-  private ScheduledExecutorService threadPool;
+  private ScheduledThreadPoolExecutor threadPool;
 
   private class RQIterator implements Iterator<Result> {
 
@@ -320,7 +315,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       serverQueue.queue.add(mutations);
       // never execute more than one task per server
       if (!serverQueue.taskQueued) {
-        threadPool.execute(new LoggingRunnable(log, Trace.wrap(new SendTask(location))));
+        threadPool.execute(Trace.wrap(new SendTask(location)));
         serverQueue.taskQueued = true;
       }
     }
@@ -340,7 +335,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (serverQueue.queue.isEmpty())
         serverQueue.taskQueued = false;
       else
-        threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
+        threadPool.execute(Trace.wrap(task));
     }
 
   }
@@ -374,7 +369,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
     this.threadPool = ThreadPools.getScheduledExecutorService(config.getMaxWriteThreads(),
-        this.getClass().getSimpleName(), OptionalInt.empty());
+        this.getClass().getSimpleName(), false);
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
@@ -388,8 +383,6 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (!mutations.isEmpty())
         queue(mutations);
     };
-
-    failureHandler = new LoggingRunnable(log, failureHandler);
 
     threadPool.scheduleAtFixedRate(failureHandler, 250, 250, TimeUnit.MILLISECONDS);
   }
@@ -809,7 +802,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
   @Override
   public void close() {
     threadPool.shutdownNow();
-    cleanupThreadPool.execute(new CleanupTask(getActiveSessions()));
+    cleanupThreadPool.execute(Threads.createNamedRunnable("ConditionalWriterCleanupTask",
+        new CleanupTask(getActiveSessions())));
   }
 
 }

@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -74,8 +73,7 @@ public class RecoveryManager {
         CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
             .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
-    executor =
-        ThreadPools.getScheduledExecutorService(4, "Walog sort starter ", OptionalInt.empty());
+    executor = ThreadPools.getScheduledExecutorService(4, "Walog sort starter ", false);
     zooCache = new ZooCache(master.getContext().getZooReaderWriter(), null);
     try {
       List<String> workIDs =

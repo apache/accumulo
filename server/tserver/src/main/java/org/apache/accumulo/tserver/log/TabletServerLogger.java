@@ -42,7 +42,6 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.ThreadPools;
-import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -264,8 +263,8 @@ public class TabletServerLogger {
     if (nextLogMaker != null) {
       return;
     }
-    nextLogMaker = (ThreadPoolExecutor) ThreadPools.getSimpleThreadPool(1, "WALog creator");
-    nextLogMaker.submit(new LoggingRunnable(log, new Runnable() {
+    nextLogMaker = ThreadPools.getFixedThreadPool(1, "WALog creator", false);
+    nextLogMaker.submit(new Runnable() {
       @Override
       public void run() {
         final ServerResources conf = tserver.getServerConfig();
@@ -351,7 +350,7 @@ public class TabletServerLogger {
           }
         }
       }
-    }));
+    });
   }
 
   private synchronized void close() throws IOException {

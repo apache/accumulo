@@ -44,12 +44,11 @@ import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ThreadPools;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.Threads;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.security.SaslRpcServer;
@@ -318,8 +317,8 @@ public class TServerUtils {
   public static ThreadPoolExecutor createSelfResizingThreadPool(final String serverName,
       final int executorThreads, long threadTimeOut, final AccumuloConfiguration conf,
       long timeBetweenThreadChecks) {
-    final ThreadPoolExecutor pool = (ThreadPoolExecutor) ThreadPools
-        .getSimpleThreadPool(executorThreads, threadTimeOut, TimeUnit.MILLISECONDS, "ClientPool");
+    final ThreadPoolExecutor pool = ThreadPools.getFixedThreadPool(executorThreads, threadTimeOut,
+        TimeUnit.MILLISECONDS, serverName + "-ClientPool", false);
     // periodically adjust the number of threads we need by checking how busy our threads are
     ThreadPools.getGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(() -> {
       // there is a minor race condition between sampling the current state of the thread pool and
@@ -683,17 +682,14 @@ public class TServerUtils {
     }
 
     final TServer finalServer = serverAddress.server;
-    Runnable serveTask = () -> {
+
+    Threads.createThread(threadName, () -> {
       try {
         finalServer.serve();
       } catch (Error e) {
         Halt.halt("Unexpected error in TThreadPoolServer " + e + ", halting.", 1);
       }
-    };
-
-    serveTask = new LoggingRunnable(TServerUtils.log, serveTask);
-    Thread thread = new Daemon(serveTask, threadName);
-    thread.start();
+    }).start();
 
     // check for the special "bind to everything address"
     if (serverAddress.address.getHost().equals("0.0.0.0")) {

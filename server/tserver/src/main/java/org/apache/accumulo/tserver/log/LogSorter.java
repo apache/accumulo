@@ -223,8 +223,8 @@ public class LogSorter {
     this.context = context;
     this.conf = conf;
     int threadPoolSize = conf.getCount(Property.TSERV_RECOVERY_MAX_CONCURRENT);
-    this.threadPool = (ThreadPoolExecutor) ThreadPools.getSimpleThreadPool(threadPoolSize,
-        this.getClass().getName());
+    this.threadPool =
+        ThreadPools.getFixedThreadPool(threadPoolSize, this.getClass().getName(), false);
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);
   }
 

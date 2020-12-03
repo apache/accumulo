@@ -30,9 +30,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.ThreadPools;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.Threads;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -227,8 +226,7 @@ class AssignmentHandler implements Runnable {
               AssignmentHandler handler = new AssignmentHandler(server, extent, retryAttempt + 1);
               if (extent.isMeta()) {
                 if (extent.isRootTablet()) {
-                  new Daemon(new LoggingRunnable(log, handler), "Root tablet assignment retry")
-                      .start();
+                  Threads.createThread("Root tablet assignment retry", handler).start();
                 } else {
                   server.resourceManager.addMetaDataAssignment(extent, log, handler);
                 }

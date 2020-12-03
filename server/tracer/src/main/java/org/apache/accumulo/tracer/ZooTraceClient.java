@@ -27,7 +27,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
 import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -108,7 +107,7 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
   protected void setInitialTraceHosts() {
     // Make a single thread pool with a daemon thread
     final ScheduledExecutorService svc =
-        ThreadPools.getScheduledExecutorService(1, "SetTraceHosts", OptionalInt.empty());
+        ThreadPools.getScheduledExecutorService(1, "SetTraceHosts", false);
     final Runnable task = new Runnable() {
       @Override
       public void run() {

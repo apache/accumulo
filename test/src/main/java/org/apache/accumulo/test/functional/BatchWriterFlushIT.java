@@ -34,7 +34,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -210,7 +210,10 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         allMuts.add(muts);
       }
 
-      ExecutorService threads = ThreadPools.getSimpleThreadPool(NUM_THREADS, "ClientThreads");
+      ThreadPoolExecutor threads =
+          ThreadPools.getFixedThreadPool(NUM_THREADS, "ClientThreads", false);
+      threads.allowCoreThreadTimeOut(false);
+      threads.prestartAllCoreThreads();
 
       BatchWriterConfig cfg = new BatchWriterConfig();
       cfg.setMaxLatency(10, TimeUnit.SECONDS);

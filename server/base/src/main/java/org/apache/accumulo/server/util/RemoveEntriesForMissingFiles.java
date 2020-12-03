@@ -124,7 +124,7 @@ public class RemoveEntriesForMissingFiles {
     @SuppressWarnings({"rawtypes"})
     Map cache = new LRUMap(100000);
     Set<Path> processing = new HashSet<>();
-    ExecutorService threadPool = ThreadPools.getSimpleThreadPool(16, "CheckFileTasks");
+    ExecutorService threadPool = ThreadPools.getFixedThreadPool(16, "CheckFileTasks", false);
 
     System.out.printf("Scanning : %s %s\n", tableName, range);
 

@@ -20,11 +20,12 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.lang.ref.Cleaner.Cleanable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,17 +36,23 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ThreadPools;
+import org.apache.accumulo.core.util.ThreadPools.CloseableThreadPoolExecutor;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TabletServerBatchReader extends ScannerOptions implements BatchScanner {
+  private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReader.class);
   private static final AtomicInteger nextBatchReaderInstance = new AtomicInteger(1);
 
   private final int batchReaderInstance = nextBatchReaderInstance.getAndIncrement();
   private final TableId tableId;
   private final int numThreads;
-  private final ExecutorService queryThreadPool;
+  private final ThreadPoolExecutor queryThreadPool;
   private final ClientContext context;
   private final Authorizations authorizations;
   private final AtomicBoolean closed = new AtomicBoolean(false);
+  private final Cleanable cleanable;
 
   private ArrayList<Range> ranges = null;
 
@@ -64,13 +71,18 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.tableId = tableId;
     this.numThreads = numQueryThreads;
 
-    queryThreadPool = ThreadPools.getSimpleThreadPool(numQueryThreads,
-        "batch scanner " + batchReaderInstance + "-");
+    queryThreadPool = ThreadPools.getFixedThreadPool(numQueryThreads,
+        "batch scanner " + batchReaderInstance + "-", false);
+    cleanable = CleanerUtil.unclosed(this, scopeClass, closed, log,
+        new CloseableThreadPoolExecutor(queryThreadPool));
   }
 
   @Override
   public void close() {
     if (closed.compareAndSet(false, true)) {
+      // deregister cleanable, but it won't run because it checks
+      // the value of closed first, which is now true
+      cleanable.clean();
       queryThreadPool.shutdownNow();
     }
   }

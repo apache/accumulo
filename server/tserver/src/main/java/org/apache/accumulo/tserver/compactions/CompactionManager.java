@@ -32,7 +32,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.CompactionServices;
-import org.apache.accumulo.core.util.ThreadPools;
+import org.apache.accumulo.core.util.Threads;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
@@ -292,7 +292,7 @@ public class CompactionManager {
 
   public void start() {
     log.debug("Started compaction manager");
-    ThreadPools.getSimpleThreadPool(1, "Compaction Manager").execute(() -> mainLoop());
+    Threads.createThread("Compaction Manager", () -> mainLoop()).start();
   }
 
   public CompactionServices getServices() {

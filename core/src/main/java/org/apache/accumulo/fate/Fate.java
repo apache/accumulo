@@ -25,8 +25,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.util.ShutdownUtil;
+import org.apache.accumulo.core.util.ThreadPools;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.slf4j.Logger;
@@ -222,10 +225,11 @@ public class Fate<T> {
   /**
    * Launches the specified number of worker threads.
    */
-  public void startTransactionRunners(ExecutorService executor, int numThreads) {
-    this.executor = executor;
+  public void startTransactionRunners(AccumuloConfiguration conf) {
+    int numThreads = conf.getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
+    executor = ThreadPools.getExecutorService(conf, Property.MASTER_FATE_THREADPOOL_SIZE);
     for (int i = 0; i < numThreads; i++) {
-      this.executor.execute(new TransactionRunner());
+      executor.execute(new TransactionRunner());
     }
   }
 

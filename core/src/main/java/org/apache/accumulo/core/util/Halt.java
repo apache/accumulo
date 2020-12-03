@@ -50,9 +50,10 @@ public class Halt {
   public static void halt(final int status, Runnable runnable) {
     try {
       // give ourselves a little time to try and do something
-      new Daemon() {
+      new Thread() {
         @Override
         public void run() {
+          setDaemon(true);
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
           Runtime.getRuntime().halt(status);
         }

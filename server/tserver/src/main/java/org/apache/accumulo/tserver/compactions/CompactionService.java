@@ -157,7 +157,7 @@ public class CompactionService {
     this.executors = Map.copyOf(tmpExecutors);
 
     this.planningExecutor =
-        ThreadPools.getSimpleThreadPool(1, 1, 0L, TimeUnit.MILLISECONDS, "CompactionPlanner");
+        ThreadPools.getThreadPool(1, 1, 0L, TimeUnit.MILLISECONDS, "CompactionPlanner", false);
 
     this.queuedForPlanning = new EnumMap<>(CompactionKind.class);
     for (CompactionKind kind : CompactionKind.values()) {

@@ -55,13 +55,12 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.Threads;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -462,23 +461,21 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
     }
 
-    new Daemon(new LoggingRunnable(log, new ZooKeeperStatus(context)), "ZooKeeperStatus").start();
+    Threads.createThread("ZooKeeperStatus", new ZooKeeperStatus(context)).start();
 
     // need to regularly fetch data so plot data is updated
-    new Daemon(new LoggingRunnable(log, () -> {
+    Threads.createThread("Data fetcher", () -> {
       while (true) {
         try {
           fetchData();
         } catch (Exception e) {
           log.warn("{}", e.getMessage(), e);
         }
-
         sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
       }
+    }).start();
 
-    }), "Data fetcher").start();
-
-    new Daemon(new LoggingRunnable(log, () -> {
+    Threads.createThread("Scan scanner", () -> {
       while (true) {
         try {
           fetchScans();
@@ -487,7 +484,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         }
         sleepUninterruptibly(5, TimeUnit.SECONDS);
       }
-    }), "Scan scanner").start();
+    }).start();
 
     monitorInitialized.set(true);
   }

@@ -30,12 +30,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -635,8 +633,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private class MutationWriter {
 
     private static final int MUTATION_BATCH_SIZE = 1 << 17;
-    private final ExecutorService sendThreadPool;
-    private final ExecutorService binningThreadPool;
+    private final ThreadPoolExecutor sendThreadPool;
+    private final ThreadPoolExecutor binningThreadPool;
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
     private final Map<TableId,TabletLocator> locators;
@@ -644,12 +642,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
-      sendThreadPool = ThreadPools.getSimpleThreadPool(numSendThreads, this.getClass().getName());
+      sendThreadPool =
+          ThreadPools.getFixedThreadPool(numSendThreads, this.getClass().getName(), false);
       locators = new HashMap<>();
-      binningThreadPool = ThreadPools.getSimpleThreadPool(1, 1, 180000L, TimeUnit.MILLISECONDS,
-          "BinMutations", new SynchronousQueue<>(), OptionalInt.empty());
-      ((ThreadPoolExecutor) binningThreadPool)
-          .setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+      binningThreadPool =
+          ThreadPools.getFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(), false);
+      binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     private synchronized TabletLocator getLocator(TableId tableId) {

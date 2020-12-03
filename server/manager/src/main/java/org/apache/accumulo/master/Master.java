@@ -79,9 +79,9 @@ import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.ThreadPools;
+import org.apache.accumulo.core.util.Threads;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.util.Retry;
@@ -181,8 +181,8 @@ public class Master extends AbstractServer
       Collections.synchronizedSortedMap(new TreeMap<>());
   final EventCoordinator nextEvent = new EventCoordinator();
   private final Object mergeLock = new Object();
-  private ReplicationDriver replicationWorkDriver;
-  private WorkDriver replicationWorkAssigner;
+  private Thread replicationWorkThread;
+  private Thread replicationAssignerThread;
   RecoveryManager recoveryManager = null;
   private final MasterTime timeKeeper;
 
@@ -631,11 +631,10 @@ public class Master extends AbstractServer
     return state;
   }
 
-  private class MigrationCleanupThread extends Daemon {
+  private class MigrationCleanupThread implements Runnable {
 
     @Override
     public void run() {
-      setName("Migration Cleanup Thread");
       while (stillMaster()) {
         if (!migrations.isEmpty()) {
           try {
@@ -684,7 +683,7 @@ public class Master extends AbstractServer
     }
   }
 
-  private class StatusThread extends Daemon {
+  private class StatusThread implements Runnable {
 
     private boolean goodStats() {
       int start;
@@ -711,7 +710,6 @@ public class Master extends AbstractServer
 
     @Override
     public void run() {
-      setName("Status Thread");
       EventCoordinator.Listener eventListener = nextEvent.getListener();
       while (stillMaster()) {
         long wait = DEFAULT_WAIT_FOR_WATCHER;
@@ -1014,11 +1012,10 @@ public class Master extends AbstractServer
 
     context.getTableManager().addObserver(this);
 
-    StatusThread statusThread = new StatusThread();
+    Thread statusThread = Threads.createThread("Status Thread", new StatusThread());
     statusThread.start();
 
-    MigrationCleanupThread migrationCleanupThread = new MigrationCleanupThread();
-    migrationCleanupThread.start();
+    Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
 
     tserverSet.startListeningForTabletServerChanges();
 
@@ -1083,7 +1080,9 @@ public class Master extends AbstractServer
     // Once we are sure the upgrade is complete, we can safely allow fate use.
     try {
       // wait for metadata upgrade running in background to complete
-      upgradeMetadataFuture.get();
+      if (null != upgradeMetadataFuture) {
+        upgradeMetadataFuture.get();
+      }
     } catch (ExecutionException | InterruptedException e) {
       throw new IllegalStateException("Metadata upgrade failed", e);
     }
@@ -1093,9 +1092,7 @@ public class Master extends AbstractServer
           getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()), 1000 * 60 * 60 * 8);
 
       fate = new Fate<>(this, store, TraceRepo::toLogString);
-      fate.startTransactionRunners(
-          ThreadPools.getExecutorService(getConfiguration(), Property.MASTER_FATE_THREADPOOL_SIZE),
-          getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE));
+      fate.startTransactionRunners(getConfiguration());
 
       ThreadPools.getGeneralScheduledExecutorService(getConfiguration())
           .scheduleWithFixedDelay(store::ageOff, 63000, 63000, TimeUnit.MILLISECONDS);
@@ -1111,6 +1108,7 @@ public class Master extends AbstractServer
 
     // Make sure that we have a secret key (either a new one or an old one from ZK) before we start
     // the master client service.
+    Thread authenticationTokenKeyManagerThread = null;
     if (authenticationTokenKeyManager != null && keyDistributor != null) {
       log.info("Starting delegation-token key manager");
       try {
@@ -1118,7 +1116,9 @@ public class Master extends AbstractServer
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Exception setting up delegation-token key manager", e);
       }
-      authenticationTokenKeyManager.start();
+      authenticationTokenKeyManagerThread =
+          Threads.createThread("Delegation Token Key Manager", authenticationTokenKeyManager);
+      authenticationTokenKeyManagerThread.start();
       boolean logged = false;
       while (!authenticationTokenKeyManager.isInitialized()) {
         // Print out a status message when we start waiting for the key manager to get initialized
@@ -1184,14 +1184,14 @@ public class Master extends AbstractServer
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {
       statusThread.join(remaining(deadline));
-      if (replicationWorkAssigner != null) {
-        replicationWorkAssigner.join(remaining(deadline));
+      if (null != replicationAssignerThread) {
+        replicationAssignerThread.join(remaining(deadline));
       }
-      if (replicationWorkDriver != null) {
-        replicationWorkDriver.join(remaining(deadline));
+      if (null != replicationWorkThread) {
+        replicationWorkThread.join(remaining(deadline));
       }
     } catch (InterruptedException e) {
-      throw new IllegalStateException("Exception starting replication workers", e);
+      throw new IllegalStateException("Exception stopping replication workers", e);
     }
     TServerUtils.stopTServer(replServer.get());
 
@@ -1199,7 +1199,9 @@ public class Master extends AbstractServer
     if (authenticationTokenKeyManager != null) {
       authenticationTokenKeyManager.gracefulStop();
       try {
-        authenticationTokenKeyManager.join(remaining(deadline));
+        if (null != authenticationTokenKeyManagerThread) {
+          authenticationTokenKeyManagerThread.join(remaining(deadline));
+        }
       } catch (InterruptedException e) {
         throw new IllegalStateException("Exception waiting on delegation-token key manager", e);
       }
@@ -1318,12 +1320,13 @@ public class Master extends AbstractServer
 
     log.info("Started replication coordinator service at " + replAddress.address);
     // Start the daemon to scan the replication table and make units of work
-    replicationWorkDriver = new ReplicationDriver(this);
-    replicationWorkDriver.start();
+    replicationWorkThread = Threads.createThread("Replication Driver", new ReplicationDriver(this));
+    replicationWorkThread.start();
 
     // Start the daemon to assign work to tservers to replicate to our peers
-    replicationWorkAssigner = new WorkDriver(this);
-    replicationWorkAssigner.start();
+    WorkDriver wd = new WorkDriver(this);
+    replicationAssignerThread = Threads.createThread(wd.getName(), wd);
+    replicationAssignerThread.start();
 
     // Advertise that port we used so peers don't have to be told what it is
     context.getZooReaderWriter().putPersistentData(
