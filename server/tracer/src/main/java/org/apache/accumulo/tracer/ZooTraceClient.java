@@ -114,7 +114,11 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
 
   @Override
   public void process(WatchedEvent event) {
-    log.debug("Processing event for trace server zk watch");
+    if (event.getType() == Watcher.Event.EventType.None) {
+      log.debug("Ignoring event for trace server zk watch: {}", event);
+      return;
+    }
+    log.debug("Processing event for trace server zk watch: {}", event);
     try {
       updateHostsFromZooKeeper();
     } catch (Exception ex) {
