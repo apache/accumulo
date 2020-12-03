@@ -83,8 +83,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
       return;
     }
 
-    // log.trace("Client started, properties:{}", accumuloClient.properties());
-    log.trace("Client started, properties:{}", accumuloClient.properties());
+    log.debug("Client started, properties:{}", accumuloClient.properties());
 
     MetricsFileTailer gcTail = new MetricsFileTailer("accumulo.sink.file-gc");
     Thread t1 = new Thread(gcTail);
@@ -102,8 +101,8 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
       Map<String,Long> firstSeenMap = parseLine(firstUpdate.getLine());
 
-      log.trace("L:{}", firstUpdate.getLine());
-      log.trace("M:{}", firstSeenMap);
+      log.debug("L:{}", firstUpdate.getLine());
+      log.debug("M:{}", firstSeenMap);
 
       assertTrue(lookForExpectedKeys(firstSeenMap));
       sanity(updateTimestamp, firstSeenMap);
@@ -115,7 +114,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
       Map<String,Long> updateSeenMap = parseLine(nextUpdate.getLine());
 
       log.debug("Line received:{}", nextUpdate.getLine());
-      log.trace("Mapped values:{}", updateSeenMap);
+      log.debug("Mapped values:{}", updateSeenMap);
 
       assertTrue(lookForExpectedKeys(updateSeenMap));
       sanity(updateTimestamp, updateSeenMap);
@@ -264,7 +263,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
         var timestamp = Long.parseLong(m.group("timestamp"));
         return timestamp > prevTimestamp;
       } catch (NumberFormatException ex) {
-        log.trace("Could not parse timestamp from line '{}", line);
+        log.debug("Could not parse timestamp from line '{}", line);
         return false;
       }
     }
