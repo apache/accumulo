@@ -293,10 +293,9 @@ public class TServerUtils {
   }
 
   /**
-   * Creates a {@link ThreadPoolExecutor} which uses
-   * {@link ThreadPools.getGeneralScheduledExecutorService()} to inspect the core pool size and
-   * number of active threads of the {@link ThreadPoolExecutor} and increase or decrease the core
-   * pool size based on activity (excessive or lack thereof).
+   * Creates a {@link ThreadPoolExecutor} which uses a {@link ScheduledThreadPoolExecutor} to
+   * inspect the core pool size and number of active threads of the {@link ThreadPoolExecutor} and
+   * increase or decrease the core pool size based on activity (excessive or lack thereof).
    *
    * @param serverName
    *          A name to describe the thrift server this executor will service
@@ -305,9 +304,8 @@ public class TServerUtils {
    * @param threadTimeOut
    *          The time after which threads are allowed to terminate including core threads. If set
    *          to 0, the core threads will indefinitely stay running waiting for work.
-   * @param simpleTimerThreads
-   *          The numbers of threads used to get the
-   *          {@link ThreadPools.getGeneralScheduledExecutorService()} instance
+   * @param conf
+   *          Accumulo Configuration
    * @param timeBetweenThreadChecks
    *          The amount of time, in millis, between attempts to resize the executor thread pool
    * @return A {@link ThreadPoolExecutor} which will resize itself automatically
