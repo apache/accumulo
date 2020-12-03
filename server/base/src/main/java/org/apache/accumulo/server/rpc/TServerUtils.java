@@ -293,9 +293,9 @@ public class TServerUtils {
   }
 
   /**
-   * Creates a {@link ThreadPoolExecutor} which uses a {@link ScheduledThreadPoolExecutor} to
-   * inspect the core pool size and number of active threads of the {@link ThreadPoolExecutor} and
-   * increase or decrease the core pool size based on activity (excessive or lack thereof).
+   * Creates a {@link ThreadPoolExecutor} which uses a ScheduledThreadPoolExecutor to inspect the
+   * core pool size and number of active threads of the {@link ThreadPoolExecutor} and increase or
+   * decrease the core pool size based on activity (excessive or lack thereof).
    *
    * @param serverName
    *          A name to describe the thrift server this executor will service
@@ -441,7 +441,7 @@ public class TServerUtils {
                 + Arrays.toString(protocols));
       }
 
-      // Set the protocol(s) on the server socket
+      // Set the protocol(s) on the server socketlong
       sslServerSock.setEnabledProtocols(socketEnabledProtocols.toArray(new String[0]));
     }
 
@@ -598,8 +598,8 @@ public class TServerUtils {
 
   /**
    * @see #startTServer(ThriftServerType, TimedProcessor, TProtocolFactory, String, String, int,
-   *      long, int, long, long, SslConnectionParams, SaslServerConnectionParams, long,
-   *      HostAndPort...)
+   *      long, AccumuloConfiguration, long, long, SslConnectionParams, SaslServerConnectionParams,
+   *      long, HostAndPort...)
    */
   public static ServerAddress startTServer(ThriftServerType serverType, TimedProcessor processor,
       String serverName, String threadName, int numThreads, long threadTimeOut,
