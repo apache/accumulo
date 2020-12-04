@@ -96,7 +96,7 @@ JAVA_OPTS=("${JAVA_OPTS[@]}"
 
 case "$cmd" in
   monitor|gc|master|tserver|tracer)
-    JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configurationFile=log4j2-service.properties" "-DHaltVMOnThreadError=true")
+    JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configurationFile=log4j2-service.properties")
     ;;
   *)
     # let log4j use its default behavior (log4j2.properties, etc.)

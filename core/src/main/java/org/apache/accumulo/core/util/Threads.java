@@ -18,11 +18,8 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.io.IOError;
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.util.Date;
 import java.util.OptionalInt;
-import java.util.ServiceConfigurationError;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,47 +69,28 @@ public class Threads {
   }
 
   /**
-   * UncaughtExceptionHandler that logs all Exceptions and Errors thrown from a Thread. If the
-   * system property HaltVMOnThreadError is set to true, then this object will also stop the JVM
-   * when specific types of Error are thrown.
+   * UncaughtExceptionHandler that logs all Exceptions and Errors thrown from a Thread. If an Error
+   * is thrown, halt the JVM.
    *
    */
   private static class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
 
     private static final Logger LOG =
         LoggerFactory.getLogger(AccumuloUncaughtExceptionHandler.class);
-    private static final String HALT_PROPERTY = "HaltVMOnThreadError";
-
-    private void logError(String msg, Thread t, Throwable e) {
-      try {
-        LOG.error(msg, t, e);
-      } catch (Exception e1) {
-        // maybe the logging system is screwed up OR there is a bug in the exception, like
-        // t.getMessage() throws a NPE
-        System.err.println(
-            "ERROR " + new Date() + " Failed to log message about thread death " + e1.getMessage());
-        e1.printStackTrace();
-
-        // try to print original exception
-        System.err
-            .println("ERROR " + new Date() + " Exception that failed to log : " + e.getMessage());
-        e.printStackTrace();
-
-      }
-    }
 
     @Override
     public void uncaughtException(Thread t, Throwable e) {
       if (e instanceof Exception) {
-        logError("Caught an Exception in {}. Thread is dead.", t, e);
-      } else if (e instanceof VirtualMachineError || e instanceof LinkageError
-          || e instanceof ThreadDeath || e instanceof IOError
-          || e instanceof ServiceConfigurationError) {
-        if (System.getProperty(HALT_PROPERTY, "false").equals("true")) {
-          logError("Caught an Error in {}. Halting VM.", t, e);
-          Halt.halt(String.format("Caught an exception in %s. Halting VM, check the logs.", t));
-        } else {
-          logError("Caught an Error in {}. Thread is dead.", t, e);
+        LOG.error("Caught an Exception in {}. Thread is dead.", t, e);
+      } else if (e instanceof Error) {
+        try {
+          e.printStackTrace();
+          System.err.println("Error thrown in thread: " + t + ", halting VM.");
+        } catch (Throwable e1) {
+          // If e == OutOfMemoryError, then it's probably that another Error might be
+          // thrown when trying to print to System.err.
+        } finally {
+          Runtime.getRuntime().halt(-1);
         }
       }
     }
