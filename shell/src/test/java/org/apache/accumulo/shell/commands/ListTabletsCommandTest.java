@@ -128,8 +128,6 @@ public class ListTabletsCommandTest {
     EasyMock.expect(shellState.getAccumuloClient()).andReturn(client).anyTimes();
     EasyMock.expect(shellState.getContext()).andReturn(context).anyTimes();
     EasyMock.expect(client.tableOperations()).andReturn(tableOps).anyTimes();
-    tableOps.flush(tableName, null, null, true);
-    EasyMock.expectLastCall();
 
     Map<String,String> idMap = new TreeMap<>();
     idMap.put(tableName, tableId.canonical());
