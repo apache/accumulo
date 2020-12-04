@@ -71,7 +71,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
 import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
-import org.apache.accumulo.server.tabletserver.TabletState;
+import org.apache.accumulo.server.tabletserver.TabletMem;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.session.ScanSession;
@@ -473,14 +473,14 @@ public class TabletServerResourceManager {
     }
   }
 
-  private static class TabletStateImpl implements TabletState, Cloneable {
+  private static class TabletMemImpl implements TabletMem, Cloneable {
 
     private final long lct;
     private final Tablet tablet;
     private final long mts;
     private final long mcmts;
 
-    public TabletStateImpl(Tablet t, long mts, long lct, long mcmts) {
+    public TabletMemImpl(Tablet t, long mts, long lct, long mcmts) {
       this.tablet = t;
       this.mts = mts;
       this.lct = lct;
@@ -512,14 +512,14 @@ public class TabletServerResourceManager {
     }
 
     @Override
-    public TabletStateImpl clone() throws CloneNotSupportedException {
-      return (TabletStateImpl) super.clone();
+    public TabletMemImpl clone() throws CloneNotSupportedException {
+      return (TabletMemImpl) super.clone();
     }
   }
 
   private class MemoryManagementFramework {
-    private final Map<KeyExtent,TabletStateImpl> tabletReports;
-    private final LinkedBlockingQueue<TabletStateImpl> memUsageReports;
+    private final Map<KeyExtent,TabletMemImpl> tabletReports;
+    private final LinkedBlockingQueue<TabletMemImpl> memUsageReports;
     private long lastMemCheckTime = System.currentTimeMillis();
     private long maxMem;
     private long lastMemTotal = 0;
@@ -552,7 +552,7 @@ public class TabletServerResourceManager {
       while (true) {
         try {
 
-          TabletStateImpl report = memUsageReports.take();
+          TabletMemImpl report = memUsageReports.take();
 
           while (report != null) {
             tabletReports.put(report.getExtent(), report);
@@ -566,7 +566,7 @@ public class TabletServerResourceManager {
             long totalMemUsed = 0;
 
             synchronized (tabletReports) {
-              for (TabletStateImpl tsi : tabletReports.values()) {
+              for (TabletMemImpl tsi : tabletReports.values()) {
                 totalMemUsed += tsi.getMemTableSize();
                 totalMemUsed += tsi.getMinorCompactingMemTableSize();
               }
@@ -591,13 +591,13 @@ public class TabletServerResourceManager {
       while (true) {
         MemoryManagementActions mma = null;
 
-        Map<KeyExtent,TabletStateImpl> tabletReportsCopy = null;
+        Map<KeyExtent,TabletMemImpl> tabletReportsCopy = null;
         try {
           synchronized (tabletReports) {
             tabletReportsCopy = new HashMap<>(tabletReports);
           }
-          ArrayList<TabletState> tabletStates = new ArrayList<>(tabletReportsCopy.values());
-          mma = memoryManager.getMemoryManagementActions(tabletStates);
+          ArrayList<TabletMem> tabletMems = new ArrayList<>(tabletReportsCopy.values());
+          mma = memoryManager.getMemoryManagementActions(tabletMems);
 
         } catch (Throwable t) {
           log.error("Memory manager failed {}", t.getMessage(), t);
@@ -607,7 +607,7 @@ public class TabletServerResourceManager {
           if (mma != null && mma.tabletsToMinorCompact != null
               && !mma.tabletsToMinorCompact.isEmpty()) {
             for (KeyExtent keyExtent : mma.tabletsToMinorCompact) {
-              TabletStateImpl tabletReport = tabletReportsCopy.get(keyExtent);
+              TabletMemImpl tabletReport = tabletReportsCopy.get(keyExtent);
 
               if (tabletReport == null) {
                 log.warn("Memory manager asked to compact nonexistent tablet"
@@ -619,7 +619,7 @@ public class TabletServerResourceManager {
                 if (tablet.isClosed()) {
                   // attempt to remove it from the current reports if still there
                   synchronized (tabletReports) {
-                    TabletStateImpl latestReport = tabletReports.remove(keyExtent);
+                    TabletMemImpl latestReport = tabletReports.remove(keyExtent);
                     if (latestReport != null) {
                       if (latestReport.getTablet() == tablet) {
                         log.debug("Cleaned up report for closed tablet {}", keyExtent);
@@ -650,7 +650,7 @@ public class TabletServerResourceManager {
 
     public void updateMemoryUsageStats(Tablet tablet, long size, long lastCommitTime,
         long mincSize) {
-      memUsageReports.add(new TabletStateImpl(tablet, size, lastCommitTime, mincSize));
+      memUsageReports.add(new TabletMemImpl(tablet, size, lastCommitTime, mincSize));
     }
 
     public void tabletClosed(KeyExtent extent) {

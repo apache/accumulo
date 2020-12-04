@@ -34,7 +34,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
 import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
-import org.apache.accumulo.server.tabletserver.TabletState;
+import org.apache.accumulo.server.tabletserver.TabletMem;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
@@ -229,14 +229,14 @@ public class LargestFirstMemoryManagerTest {
     return new KeyExtent(TableId.of("1"), new Text(endRow), null);
   }
 
-  private static class TestTabletState implements TabletState {
+  private static class TestTabletMem implements TabletMem {
 
     private final KeyExtent extent;
     private final long lastCommit;
     private final long memSize;
     private final long compactingSize;
 
-    TestTabletState(KeyExtent extent, long commit, long memsize, long compactingTableSize) {
+    TestTabletMem(KeyExtent extent, long commit, long memsize, long compactingTableSize) {
       this.extent = extent;
       this.lastCommit = commit;
       this.memSize = memsize;
@@ -265,11 +265,11 @@ public class LargestFirstMemoryManagerTest {
 
   }
 
-  private TabletState t(KeyExtent ke, long lastCommit, long memSize, long compactingSize) {
-    return new TestTabletState(ke, lastCommit, memSize, compactingSize);
+  private TabletMem t(KeyExtent ke, long lastCommit, long memSize, long compactingSize) {
+    return new TestTabletMem(ke, lastCommit, memSize, compactingSize);
   }
 
-  private static List<TabletState> tablets(TabletState... states) {
+  private static List<TabletMem> tablets(TabletMem... states) {
     return Arrays.asList(states);
   }
 
