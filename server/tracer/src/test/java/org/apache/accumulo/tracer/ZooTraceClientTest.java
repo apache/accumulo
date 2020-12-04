@@ -50,7 +50,7 @@ public class ZooTraceClientTest {
     AtomicBoolean done = new AtomicBoolean(false);
 
     client.updateHostsFromZooKeeper();
-    EasyMock.expectLastCall().andThrow(new RuntimeException()).once();
+    EasyMock.expectLastCall().andThrow(new RuntimeException("mocked error")).once();
     client.updateHostsFromZooKeeper();
     // Expect the second call to updateHostsFromZooKeeper, but wait for it to fire before
     // verification
