@@ -144,9 +144,9 @@ public class CompactionService {
 
     this.rateLimit.set(maxRate);
 
-    this.readLimiter = SharedRateLimiterFactory.getInstance().create("CS_" + serviceName + "_read",
-        () -> rateLimit.get());
-    this.writeLimiter = SharedRateLimiterFactory.getInstance()
+    this.readLimiter = SharedRateLimiterFactory.getInstance(this.serverCtx.getConfiguration())
+        .create("CS_" + serviceName + "_read", () -> rateLimit.get());
+    this.writeLimiter = SharedRateLimiterFactory.getInstance(this.serverCtx.getConfiguration())
         .create("CS_" + serviceName + "_write", () -> rateLimit.get());
 
     initParams.requestedExecutors.forEach((ceid, numThreads) -> {

@@ -31,9 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeSet;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -71,6 +70,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ThreadPools;
+import org.apache.accumulo.core.util.Threads;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 import org.apache.thrift.TApplicationException;
@@ -122,7 +122,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private final MutationWriter writer;
 
   // latency timers
-  private final Timer jtimer = new Timer("BatchWriterLatencyTimer", true);
+  private final ScheduledThreadPoolExecutor executor;
   private final Map<String,TimeoutTracker> timeoutTrackers =
       Collections.synchronizedMap(new HashMap<>());
 
@@ -152,7 +152,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private final Violations violations = new Violations();
   private final Map<KeyExtent,Set<SecurityErrorCode>> authorizationFailures = new HashMap<>();
   private final HashSet<String> serverSideErrors = new HashSet<>();
-  private final FailedMutations failedMutations = new FailedMutations();
+  private final FailedMutations failedMutations;
   private int unknownErrors = 0;
   private boolean somethingFailed = false;
   private Throwable lastUnknownError = null;
@@ -197,6 +197,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
+    this.executor = ThreadPools.getGeneralScheduledExecutorService(this.context.getConfiguration());
+    this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE
         : config.getMaxLatency(TimeUnit.MILLISECONDS);
@@ -208,20 +210,17 @@ public class TabletServerBatchWriter implements AutoCloseable {
     this.writer = new MutationWriter(config.getMaxWriteThreads());
 
     if (this.maxLatency != Long.MAX_VALUE) {
-      jtimer.schedule(new TimerTask() {
-        @Override
-        public void run() {
-          try {
-            synchronized (TabletServerBatchWriter.this) {
-              if ((System.currentTimeMillis() - lastProcessingStartTime)
-                  > TabletServerBatchWriter.this.maxLatency)
-                startProcessing();
-            }
-          } catch (Throwable t) {
-            updateUnknownErrors("Max latency task failed " + t.getMessage(), t);
+      executor.scheduleWithFixedDelay(Threads.createNamedRunnable("latency timer", () -> {
+        try {
+          synchronized (TabletServerBatchWriter.this) {
+            if ((System.currentTimeMillis() - lastProcessingStartTime)
+                > TabletServerBatchWriter.this.maxLatency)
+              startProcessing();
           }
+        } catch (Throwable t) {
+          updateUnknownErrors("Max latency task failed " + t.getMessage(), t);
         }
-      }, 0, this.maxLatency / 4);
+      }), 0, this.maxLatency / 4, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -346,7 +345,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       // make a best effort to release these resources
       writer.binningThreadPool.shutdownNow();
       writer.sendThreadPool.shutdownNow();
-      jtimer.cancel();
+      executor.shutdownNow();
     }
   }
 
@@ -570,13 +569,17 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
   }
 
-  private class FailedMutations extends TimerTask {
+  private class FailedMutations {
 
     private MutationSet recentFailures = null;
     private long initTime;
+    private final Runnable task;
 
     FailedMutations() {
-      jtimer.schedule(this, 0, 500);
+      task = Threads.createNamedRunnable("failed mutations handler", () -> {
+        run();
+      });
+      executor.scheduleWithFixedDelay(task, 0, 500, TimeUnit.MILLISECONDS);
     }
 
     private MutationSet init() {
@@ -600,7 +603,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
       tsm.getMutations().forEach((ke, muts) -> recentFailures.addAll(ke.tableId(), muts));
     }
 
-    @Override
     public void run() {
       try {
         MutationSet rf = null;
@@ -621,7 +623,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       } catch (Throwable t) {
         updateUnknownErrors("tid=" + Thread.currentThread().getId()
             + "  Failed to requeue failed mutations " + t.getMessage(), t);
-        cancel();
+        executor.remove(task);
       }
     }
   }

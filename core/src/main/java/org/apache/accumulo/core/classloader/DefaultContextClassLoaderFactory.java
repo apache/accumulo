@@ -20,15 +20,16 @@ package org.apache.accumulo.core.classloader;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
+import org.apache.accumulo.core.util.ThreadPools;
+import org.apache.accumulo.core.util.Threads;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,18 +60,20 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
   }
 
   private static void startCleanupThread(final Supplier<Map<String,String>> contextConfigSupplier) {
-    new Timer(className + "-cleanup", true).scheduleAtFixedRate(new TimerTask() {
-      @Override
-      public void run() {
-        Map<String,String> contextConfigs = contextConfigSupplier.get();
-        LOG.trace("{}-cleanup thread, properties: {}", className, contextConfigs);
-        int prefixlen = Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey().length();
-        Set<String> contextsInUse = contextConfigs.keySet().stream()
-            .map(k -> k.substring(prefixlen)).collect(Collectors.toSet());
-        LOG.trace("{}-cleanup thread, contexts in use: {}", className, contextsInUse);
-        AccumuloVFSClassLoader.removeUnusedContexts(contextsInUse);
-      }
-    }, 60_000, 60_000);
+    final ConfigurationCopy cc = new ConfigurationCopy(contextConfigSupplier.get());
+    String size = cc.get(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
+    if (null == size || size.isEmpty()) {
+      cc.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE,
+          Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
+    }
+    ThreadPools.getGeneralScheduledExecutorService(cc)
+        .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
+          LOG.trace("{}-cleanup thread, properties: {}", className, cc);
+          Set<String> contextsInUse = cc
+              .getAllPropertiesWithPrefixStripped(Property.VFS_CONTEXT_CLASSPATH_PROPERTY).keySet();
+          LOG.trace("{}-cleanup thread, contexts in use: {}", className, contextsInUse);
+          AccumuloVFSClassLoader.removeUnusedContexts(contextsInUse);
+        }), 60_000, 60_000, TimeUnit.MILLISECONDS);
     LOG.debug("Context cleanup timer started at 60s intervals");
   }
 

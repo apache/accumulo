@@ -368,7 +368,7 @@ public class Master extends AbstractServer
 
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", getInstanceID());
-    timeKeeper = new MasterTime(this);
+    timeKeeper = new MasterTime(this, aconf);
     ThriftTransportPool.getInstance()
         .setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(context, this);
@@ -1177,9 +1177,6 @@ public class Master extends AbstractServer
     }
     log.info("Shutting down fate.");
     fate.shutdown();
-
-    log.info("Shutting down timekeeping.");
-    timeKeeper.shutdown();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {

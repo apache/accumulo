@@ -22,7 +22,6 @@ import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 import java.util.Arrays;
 import java.util.Set;
-import java.util.TimerTask;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
@@ -218,7 +217,7 @@ class AssignmentHandler implements Runnable {
       long reschedule = Math.min((1L << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000L);
       log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
       ThreadPools.getGeneralScheduledExecutorService(server.getConfiguration())
-          .schedule(new TimerTask() {
+          .schedule(new Runnable() {
             @Override
             public void run() {
               log.info("adding tablet {} back to the assignment pool (retry {})", extent,
