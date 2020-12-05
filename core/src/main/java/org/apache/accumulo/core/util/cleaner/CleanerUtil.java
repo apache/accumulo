@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.lang.ref.Cleaner;
 import java.lang.ref.Cleaner.Cleanable;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -98,6 +99,20 @@ public class CleanerUtil {
         } catch (Exception e1) {
           log.error("{} internal error; exception closing {}", objClass, closeableClassName, e1);
         }
+      }
+    });
+  }
+
+  public static Cleanable shutdownThreadPoolExecutor(Object tpe, Logger log) {
+    requireNonNull(tpe);
+    requireNonNull(log);
+    return CLEANER.register(tpe, () -> {
+      log.warn("{} found unreferenced without calling shutdown() or shutdownNow()",
+          tpe.getClass().getSimpleName());
+      try {
+        ((ThreadPoolExecutor) tpe).shutdownNow();
+      } catch (Exception e) {
+        log.error("internal error; exception closing {}", tpe.getClass().getSimpleName(), e);
       }
     });
   }

@@ -35,9 +35,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.ThreadPools;
-import org.apache.accumulo.core.util.ThreadPools.CloseableThreadPoolExecutor;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,8 +72,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
 
     queryThreadPool = ThreadPools.getFixedThreadPool(numQueryThreads,
         "batch scanner " + batchReaderInstance + "-", false);
-    cleanable = CleanerUtil.unclosed(this, scopeClass, closed, log,
-        new CloseableThreadPoolExecutor(queryThreadPool));
+    cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, log);
   }
 
   @Override
