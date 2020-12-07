@@ -279,9 +279,8 @@ public class Initialize implements KeywordExecutable {
       LineReader c = getLineReader();
       Terminal t = c.getTerminal();
       t.writer().println();
-      // Unsure on beep replacement. Possible with Capabilities
-      // c.beep()
-      // t.getBooleanCapability(Capability.bell);
+      // This could be it. Having trouble testing.
+      c.setVariable(LineReader.BELL_STYLE, "audible");
       t.writer().println();
       t.writer().println();
 

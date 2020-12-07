@@ -554,11 +554,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       log.warn("Unable to make directory for history at {}", accumuloDir);
     }
     // LOOK INTO THIS
-    // final FileHistory history = new FileHistory(new File(historyPath));
     final History history = new DefaultHistory(reader);
     reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
-    history.add(historyPath);
-    // reader.setHistory(history);
     ;
     // Add shutdown hook to flush file history, per jline javadocs
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
