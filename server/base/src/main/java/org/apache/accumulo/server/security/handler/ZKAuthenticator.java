@@ -240,10 +240,11 @@ public final class ZKAuthenticator implements Authenticator {
 
     // if the password is correct we have to update the stored hash with new algorithm
     try {
+      log.debug("Upgrading hashed password for {} to new format", principal);
       changePassword(principal, pt);
       return true;
     } catch (AccumuloSecurityException e) {
-      log.error("Failed to update hashed user password for user: {}", principal, e);
+      log.error("Failed to upgrade hashed password for {} to new format", principal, e);
     }
     return false;
   }
