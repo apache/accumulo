@@ -119,6 +119,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.impl.LineReaderImpl;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.slf4j.Logger;
@@ -280,7 +281,9 @@ public class Initialize implements KeywordExecutable {
       Terminal t = c.getTerminal();
       t.writer().println();
       // This could be it. Having trouble testing.
-      c.setVariable(LineReader.BELL_STYLE, "audible");
+      // I believe we can do this for beep baseed on devs on mailing list
+      //c.setVariable(LineReader.BELL_STYLE, "audible");
+      ((LineReaderImpl) c).beep();
       t.writer().println();
       t.writer().println();
 

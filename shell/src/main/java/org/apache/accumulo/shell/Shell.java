@@ -176,6 +176,7 @@ import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
+import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -530,7 +531,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public static void main(String[] args) throws IOException {
-    Terminal terminal = TerminalBuilder.builder().build();
+    Terminal terminal = TerminalBuilder.builder().system(true).nativeSignals(true).signalHandler(Terminal.SignalHandler.SIG_IGN).build();
     LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
     new Shell(reader).execute(args);
   }
@@ -554,13 +555,14 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       log.warn("Unable to make directory for history at {}", accumuloDir);
     }
     // LOOK INTO THIS
-    final History history = new DefaultHistory(reader);
+    //final History history = new DefaultHistory(reader);
     reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
+    reader.getHistory().load();
     ;
     // Add shutdown hook to flush file history, per jline javadocs
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       try {
-        history.save();
+        reader.getHistory().save();
       } catch (IOException e) {
         log.warn("Could not save history to file.");
       }
@@ -568,9 +570,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     // Turn Ctrl+C into Exception instead of JVM exit
     // LOOK INTO THIS
-    // reader.setHandleUserInterrupt(true);
-    Thread executeThread = Thread.currentThread();
-    terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
+    // Testing it in the terminal builder
+//    Thread executeThread = Thread.currentThread();
+//    terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
 
     ShellCompletor userCompletor = null;
 
@@ -601,19 +603,19 @@ public class Shell extends ShellOptions implements KeywordExecutable {
             // reader.
             // reader.removeCompleter(userCompletor);
             // reader.setCompleter(userCompletor);
-            reader =
-                LineReaderBuilder.builder().terminal(terminal).completer(userCompletor).build();
+            ((LineReaderImpl) reader).setCompleter(userCompletor);
+
+//            reader =
+//                LineReaderBuilder.builder().terminal(terminal).completer(userCompletor).build();
           }
 
           userCompletor = setupCompletion();
+          ((LineReaderImpl) reader).setCompleter(userCompletor);
           // reader.addCompleter(userCompletor);
           // reader
-          reader = LineReaderBuilder.builder().terminal(terminal).completer(userCompletor).build();
+          //reader = LineReaderBuilder.builder().terminal(terminal).completer(userCompletor).build();
         }
-        terminal.writer().println(getDefaultPrompt());
-        // reader.setPrompt(getDefaultPrompt());
-        // reader.setVariable();
-        input = reader.readLine();
+        input = reader.readLine(getDefaultPrompt());
         if (input == null) {
           terminal.writer().println();
           return exitCode;
