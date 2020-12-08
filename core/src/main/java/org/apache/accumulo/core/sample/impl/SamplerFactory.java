@@ -20,26 +20,22 @@ package org.apache.accumulo.core.sample.impl;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class SamplerFactory {
   public static Sampler newSampler(SamplerConfigurationImpl config, AccumuloConfiguration acuconf,
       boolean useAccumuloStart) throws IOException {
-    String context = acuconf.get(Property.TABLE_CLASSPATH);
+    String context = ClassLoaderUtil.tableContext(acuconf);
 
     Class<? extends Sampler> clazz;
     try {
       if (!useAccumuloStart)
         clazz = SamplerFactory.class.getClassLoader().loadClass(config.getClassName())
             .asSubclass(Sampler.class);
-      if (context != null && !context.equals(""))
-        clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, config.getClassName(),
-            Sampler.class);
       else
-        clazz = AccumuloVFSClassLoader.loadClass(config.getClassName(), Sampler.class);
+        clazz = ClassLoaderUtil.loadClass(context, config.getClassName(), Sampler.class);
 
       Sampler sampler = clazz.getDeclaredConstructor().newInstance();
 

@@ -113,5 +113,4 @@ public class ScannerIT extends AccumuloClusterHarness {
       }
     }
   }
-
 }

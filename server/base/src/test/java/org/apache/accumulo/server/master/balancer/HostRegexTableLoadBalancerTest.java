@@ -43,11 +43,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.junit.Test;
 
@@ -311,7 +311,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Ensure assignments are correct
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().getHost());
       }
     }
   }
@@ -357,7 +357,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Ensure assignments are correct
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().getHost());
       }
     }
   }
@@ -374,9 +374,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Remove the BAR tablet servers from current
     List<TServerInstance> removals = new ArrayList<>();
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-      if (e.getKey().host().equals("192.168.0.6") || e.getKey().host().equals("192.168.0.7")
-          || e.getKey().host().equals("192.168.0.8") || e.getKey().host().equals("192.168.0.9")
-          || e.getKey().host().equals("192.168.0.10")) {
+      if (e.getKey().getHost().equals("192.168.0.6") || e.getKey().getHost().equals("192.168.0.7")
+          || e.getKey().getHost().equals("192.168.0.8")
+          || e.getKey().getHost().equals("192.168.0.9")
+          || e.getKey().getHost().equals("192.168.0.10")) {
         removals.add(e.getKey());
       }
     }
@@ -390,7 +391,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Ensure tablets are assigned in default pool
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet unexpectedly in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet unexpectedly in bounds: " + e.getKey() + " -> " + e.getValue().getHost());
       }
     }
   }
@@ -408,11 +409,15 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Remove the BAR tablet servers and default pool from current
     List<TServerInstance> removals = new ArrayList<>();
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-      if (e.getKey().host().equals("192.168.0.6") || e.getKey().host().equals("192.168.0.7")
-          || e.getKey().host().equals("192.168.0.8") || e.getKey().host().equals("192.168.0.9")
-          || e.getKey().host().equals("192.168.0.10") || e.getKey().host().equals("192.168.0.11")
-          || e.getKey().host().equals("192.168.0.12") || e.getKey().host().equals("192.168.0.13")
-          || e.getKey().host().equals("192.168.0.14") || e.getKey().host().equals("192.168.0.15")) {
+      if (e.getKey().getHost().equals("192.168.0.6") || e.getKey().getHost().equals("192.168.0.7")
+          || e.getKey().getHost().equals("192.168.0.8")
+          || e.getKey().getHost().equals("192.168.0.9")
+          || e.getKey().getHost().equals("192.168.0.10")
+          || e.getKey().getHost().equals("192.168.0.11")
+          || e.getKey().getHost().equals("192.168.0.12")
+          || e.getKey().getHost().equals("192.168.0.13")
+          || e.getKey().getHost().equals("192.168.0.14")
+          || e.getKey().getHost().equals("192.168.0.15")) {
         removals.add(e.getKey());
       }
     }
@@ -428,7 +433,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Ensure tablets are assigned in default pool
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet unexpectedly in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet unexpectedly in bounds: " + e.getKey() + " -> " + e.getValue().getHost());
       }
     }
   }
@@ -449,7 +454,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId tableId) {
     // Report incorrect information so that balance will create an assignment
     List<TabletStats> tablets = new ArrayList<>();
-    if (tableId.equals(BAR.getId()) && tserver.host().equals("192.168.0.1")) {
+    if (tableId.equals(BAR.getId()) && tserver.getHost().equals("192.168.0.1")) {
       // Report that we have a bar tablet on this server
       TKeyExtent tke = new TKeyExtent();
       tke.setTable(BAR.getId().canonical().getBytes(UTF_8));
@@ -458,7 +463,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       TabletStats ts = new TabletStats();
       ts.setExtent(tke);
       tablets.add(ts);
-    } else if (tableId.equals(FOO.getId()) && tserver.host().equals("192.168.0.6")) {
+    } else if (tableId.equals(FOO.getId()) && tserver.getHost().equals("192.168.0.6")) {
       // Report that we have a foo tablet on this server
       TKeyExtent tke = new TKeyExtent();
       tke.setTable(FOO.getId().canonical().getBytes(UTF_8));

@@ -45,6 +45,12 @@ public class TableIdTest {
   @Rule
   public TestName name = new TestName();
 
+  private static long cacheCount() {
+    // guava cache size() is approximate, and can include garbage-collected entries
+    // so we iterate to get the actual cache size
+    return TableId.cache.asMap().entrySet().stream().count();
+  }
+
   @Test
   public void testCacheNoDuplicates() {
     // the next two lines just preloads the built-ins, since they now exist in a separate class from
@@ -53,9 +59,9 @@ public class TableIdTest {
     assertNotSame(RootTable.ID, ReplicationTable.ID);
 
     String tableString = "table-" + name.getMethodName();
-    long initialSize = TableId.cache.asMap().entrySet().stream().count();
+    long initialSize = cacheCount();
     TableId table1 = TableId.of(tableString);
-    assertEquals(initialSize + 1, TableId.cache.asMap().entrySet().stream().count());
+    assertEquals(initialSize + 1, cacheCount());
     assertEquals(tableString, table1.canonical());
 
     // ensure duplicates are not created
@@ -66,17 +72,17 @@ public class TableIdTest {
     builtInTableId = TableId.of("+rep");
     assertSame(ReplicationTable.ID, builtInTableId);
     table1 = TableId.of(tableString);
-    assertEquals(initialSize + 1, TableId.cache.asMap().entrySet().stream().count());
+    assertEquals(initialSize + 1, cacheCount());
     assertEquals(tableString, table1.canonical());
     TableId table2 = TableId.of(tableString);
-    assertEquals(initialSize + 1, TableId.cache.asMap().entrySet().stream().count());
+    assertEquals(initialSize + 1, cacheCount());
     assertEquals(tableString, table2.canonical());
     assertSame(table1, table2);
   }
 
   @Test(timeout = 30_000)
   public void testCacheIncreasesAndDecreasesAfterGC() {
-    long initialSize = TableId.cache.asMap().entrySet().stream().count();
+    long initialSize = cacheCount();
     assertTrue(initialSize < 20); // verify initial amount is reasonably low
     LOG.info("Initial cache size: {}", initialSize);
     LOG.info(TableId.cache.asMap().toString());
@@ -84,20 +90,21 @@ public class TableIdTest {
     // add one and check increase
     String tableString = "table-" + name.getMethodName();
     TableId table1 = TableId.of(tableString);
-    assertEquals(initialSize + 1, TableId.cache.asMap().entrySet().stream().count());
+    assertEquals(initialSize + 1, cacheCount());
     assertEquals(tableString, table1.canonical());
 
     // create a bunch more and throw them away
-    for (int i = 0; i < 999; i++) {
-      TableId.of(new String("table" + i));
+    long preGCSize = 0;
+    int i = 0;
+    while ((preGCSize = cacheCount()) < 100) {
+      TableId.of(new String("table" + i++));
     }
-    long preGCSize = TableId.cache.asMap().entrySet().stream().count();
     LOG.info("Entries before System.gc(): {}", preGCSize);
-    assertTrue(preGCSize > 500); // verify amount increased significantly
+    assertEquals(100, preGCSize);
     long postGCSize = preGCSize;
     while (postGCSize >= preGCSize) {
       tryToGc();
-      postGCSize = TableId.cache.asMap().entrySet().stream().count();
+      postGCSize = cacheCount();
       LOG.info("Entries after System.gc(): {}", postGCSize);
     }
   }

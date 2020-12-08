@@ -124,7 +124,7 @@
     <failsafe.excludedGroups />
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
-    <hadoop.version>3.2.1</hadoop.version>
+    <hadoop.version>3.3.0</hadoop.version>
     <hk2.version>2.6.1</hk2.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.2.0-incubating</htrace.version>
@@ -132,7 +132,9 @@
     <javax.el.version>3.0.1-b06</javax.el.version>
     <jaxb.version>2.3.0.1</jaxb.version>
     <jersey.version>2.30.1</jersey.version>
-    <jetty.version>9.4.27.v20200227</jetty.version>
+    <jetty.version>9.4.35.v20201120</jetty.version>
+    <!-- prevent introduction of new compiler warnings -->
+    <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
     <maven.compiler.release>11</maven.compiler.release>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
@@ -221,11 +223,6 @@
         <version>2.3.0.1</version>
       </dependency>
       <dependency>
-        <groupId>commons-beanutils</groupId>
-        <artifactId>commons-beanutils</artifactId>
-        <version>1.9.4</version>
-      </dependency>
-      <dependency>
         <groupId>commons-cli</groupId>
         <artifactId>commons-cli</artifactId>
         <version>1.4</version>
@@ -293,7 +290,7 @@
       <dependency>
         <groupId>jline</groupId>
         <artifactId>jline</artifactId>
-        <version>2.11</version>
+        <version>2.14.6</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
@@ -767,7 +764,7 @@
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
-        <version>2.13.1</version>
+        <version>2.14.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -1109,8 +1106,6 @@
                 <unusedDeclaredDependency>com.github.spotbugs:spotbugs-annotations:jar:*</unusedDeclaredDependency>
                 <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
                 <unusedDeclaredDependency>org.apache.accumulo:accumulo-native:tar.gz:*</unusedDeclaredDependency>
-                <!-- ignore runtime dependencies of commons-configuration2 -->
-                <unusedDeclaredDependency>commons-beanutils:commons-beanutils:jar:*</unusedDeclaredDependency>
                 <!-- ignore runtime log4j dependencies at test scope -->
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
@@ -1152,6 +1147,20 @@
                   <version>[11,)</version>
                 </requireJavaVersion>
                 <dependencyConvergence />
+                <bannedDependencies>
+                  <excludes>
+                    <!-- we redirect logging to log4j2, so we should have those bridges instead -->
+                    <!-- commons-logging is allowed because log4j-jcl uses it as a dependency -->
+                    <exclude>ch.qos.logback:*</exclude>
+                    <exclude>log4j:*</exclude>
+                    <exclude>org.apache.logging.log4j:log4j-to-slf4j</exclude>
+                    <exclude>org.slf4j:*</exclude>
+                  </excludes>
+                  <includes>
+                    <!-- only allow API jar for slf4j, but no other slf4j implementations -->
+                    <include>org.slf4j:slf4j-api</include>
+                  </includes>
+                </bannedDependencies>
               </rules>
             </configuration>
           </execution>
@@ -1338,13 +1347,17 @@
   </build>
   <profiles>
     <profile>
-      <!-- This profile skips all Quality Assurance checks  -->
+      <!-- This profile skips all Quality Assurance checks; activate with -PskipQA OR -DskipQA  -->
       <id>skipQA</id>
+      <activation>
+        <property>
+          <name>skipQA</name>
+        </property>
+      </activation>
       <properties>
         <accumulo.skip>true</accumulo.skip>
         <apilyzer.skip>true</apilyzer.skip>
         <checkstyle.skip>true</checkstyle.skip>
-        <enforcer.skip>true</enforcer.skip>
         <formatter.skip>true</formatter.skip>
         <impsort.skip>true</impsort.skip>
         <mdep.analyze.skip>true</mdep.analyze.skip>

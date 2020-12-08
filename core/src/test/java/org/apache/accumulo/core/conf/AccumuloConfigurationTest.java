@@ -37,6 +37,10 @@ import org.junit.Test;
 
 public class AccumuloConfigurationTest {
 
+  @SuppressWarnings("removal")
+  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
+      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
+
   @Test
   public void testGetPropertyByString() {
     AccumuloConfiguration c = DefaultConfiguration.getInstance();
@@ -227,8 +231,8 @@ public class AccumuloConfigurationTest {
     expected2.put(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1.opt", "o99");
     assertEquals(expected2, pm3);
 
-    Map<String,String> pm5 = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-    Map<String,String> pm6 = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pm5 = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pm6 = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
     assertSame(pm5, pm6);
     assertEquals(0, pm5.size());
 
@@ -239,7 +243,7 @@ public class AccumuloConfigurationTest {
     Map<String,String> pm8 = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     assertSame(pm3, pm8);
 
-    Map<String,String> pm9 = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pm9 = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
     assertSame(pm5, pm9);
 
     tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
@@ -260,14 +264,13 @@ public class AccumuloConfigurationTest {
     assertSame(pmC, pmD);
     assertEquals(expected1, pmC);
 
-    tc.set(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
+    tc.set(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
 
-    Map<String,String> pmE = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-    Map<String,String> pmF = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pmE = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pmF = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
     assertSame(pmE, pmF);
     assertNotSame(pm5, pmE);
-    assertEquals(
-        Map.of(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1"), pmE);
+    assertEquals(Map.of(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1"), pmE);
 
     Map<String,String> pmG = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     Map<String,String> pmH = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
@@ -281,7 +284,7 @@ public class AccumuloConfigurationTest {
     assertSame(pmI, pmJ);
     assertEquals(expected1, pmI);
 
-    Map<String,String> pmK = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pmK = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
     assertSame(pmE, pmK);
 
     Map<String,String> pmL = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);

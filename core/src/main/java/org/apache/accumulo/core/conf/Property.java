@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -39,8 +40,6 @@ import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,8 +193,10 @@ public enum Property {
       "Properties in this category affect the behavior of accumulo overall, but"
           + " do not have to be consistent throughout a cloud."),
   @Deprecated(since = "2.0.0")
-  GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME,
-      AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE, PropertyType.STRING,
+  GENERAL_DYNAMIC_CLASSPATHS(
+      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME,
+      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE,
+      PropertyType.STRING,
       "This property is deprecated since 2.0.0. A list of all of the places where changes "
           + "in jars or classes will force a reload of the classloader. Built-in dynamic class "
           + "loading will be removed in a future version. If this is needed, consider overriding "
@@ -204,6 +205,10 @@ public enum Property {
           + "Additionally, this property no longer does property interpolation of environment "
           + "variables, such as '$ACCUMULO_HOME'. Use commons-configuration syntax,"
           + "'${env:ACCUMULO_HOME}' instead."),
+  GENERAL_CONTEXT_CLASSLOADER_FACTORY("general.context.class.loader.factory", "",
+      PropertyType.CLASSNAME,
+      "Name of classloader factory to be used to create classloaders for named contexts,"
+          + " such as per-table contexts set by `table.class.loader.context`."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
       "Time to wait on I/O for simple, short RPC calls"),
   @Experimental
@@ -883,6 +888,11 @@ public enum Property {
       "The Formatter class to apply on results in the shell"),
   TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(),
       PropertyType.STRING, "The ScanInterpreter class to apply on scan arguments in the shell"),
+  TABLE_CLASSLOADER_CONTEXT("table.class.loader.context", "", PropertyType.STRING,
+      "The context to use for loading per-table resources, such as iterators"
+          + " from the configured factory in `general.context.class.loader.factory`."),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = TABLE_CLASSLOADER_CONTEXT)
   TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING,
       "Per table classpath context"),
   TABLE_REPLICATION("table.replication", "false", PropertyType.BOOLEAN,
@@ -931,12 +941,16 @@ public enum Property {
 
   // this property shouldn't be used directly; it exists solely to document the default value
   // defined by its use in AccumuloVFSClassLoader when generating the property documentation
+  @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
-      AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
+      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY,
+      "", PropertyType.STRING,
       "Configuration for a system level vfs classloader. Accumulo jar can be"
           + " configured here and loaded out of HDFS."),
-  VFS_CONTEXT_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY, null,
-      PropertyType.PREFIX,
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  VFS_CONTEXT_CLASSPATH_PROPERTY(
+      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY,
+      null, PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties"
           + " start  with the category prefix, followed by a context name. The value is"
           + " a comma separated list of URIs. Supports full regex on filename alone."
@@ -949,8 +963,10 @@ public enum Property {
 
   // this property shouldn't be used directly; it exists solely to document the default value
   // defined by its use in AccumuloVFSClassLoader when generating the property documentation
-  VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR, "${java.io.tmpdir}",
-      PropertyType.ABSOLUTEPATH,
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  VFS_CLASSLOADER_CACHE_DIR(
+      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CACHE_DIR,
+      "${java.io.tmpdir}", PropertyType.ABSOLUTEPATH,
       "The base directory to use for the vfs cache. The actual cached files will be located"
           + " in a subdirectory, `accumulo-vfs-cache-<jvmProcessName>-${user.name}`, where"
           + " `<jvmProcessName>` is determined by the JVM's internal management engine."
@@ -1026,7 +1042,8 @@ public enum Property {
           + "HDFS directory in which accumulo instance will run. "
           + "Do not change after accumulo is initialized."),
   @Deprecated(since = "2.0.0")
-  GENERAL_CLASSPATHS(AccumuloClassLoader.GENERAL_CLASSPATHS, "", PropertyType.STRING,
+  GENERAL_CLASSPATHS(org.apache.accumulo.start.classloader.AccumuloClassLoader.GENERAL_CLASSPATHS,
+      "", PropertyType.STRING,
       "This property is deprecated since 2.0.0. The class path should instead be configured"
           + " by the launch environment (for example, accumulo-env.sh). A list of all"
           + " of the places to look for a class. Order does matter, as it will look for"
@@ -1372,12 +1389,11 @@ public enum Property {
    * @param defaultInstance
    *          instance to use if creation fails
    * @return new class instance, or default instance if creation failed
-   * @see AccumuloVFSClassLoader
    */
   public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf,
       Property property, Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
-    String context = conf.get(TABLE_CLASSPATH);
+    String context = ClassLoaderUtil.tableContext(conf);
     return ConfigurationTypeHelper.getClassInstance(context, clazzName, base, defaultInstance);
   }
 
@@ -1393,7 +1409,6 @@ public enum Property {
    * @param defaultInstance
    *          instance to use if creation fails
    * @return new class instance, or default instance if creation failed
-   * @see AccumuloVFSClassLoader
    */
   public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property,
       Class<T> base, T defaultInstance) {

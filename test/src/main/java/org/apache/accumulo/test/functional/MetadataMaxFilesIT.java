@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
 
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -40,7 +39,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
@@ -72,7 +70,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
           "10000");
       // propagation time
       sleepUninterruptibly(5, TimeUnit.SECONDS);
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < 2; i++) {
         String tableName = "table" + i;
         log.info("Creating {}", tableName);
         c.tableOperations().create(tableName);
@@ -82,11 +80,6 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         c.tableOperations().flush(MetadataTable.NAME, null, null, true);
         c.tableOperations().flush(RootTable.NAME, null, null, true);
       }
-      log.info("shutting down");
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
-      cluster.stop();
-      log.info("starting up");
-      cluster.start();
 
       while (true) {
         MasterMonitorInfo stats;
@@ -113,7 +106,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
           }
         }
         log.info("Online tablets " + tablets);
-        if (tablets == 5005)
+        if (tablets == 2002)
           break;
         sleepUninterruptibly(1, TimeUnit.SECONDS);
       }

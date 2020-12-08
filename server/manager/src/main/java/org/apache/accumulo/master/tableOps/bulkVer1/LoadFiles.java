@@ -45,6 +45,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -54,7 +55,6 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -149,7 +149,7 @@ class LoadFiles extends MasterRepo {
         Pattern regex = Pattern.compile(prop);
         List<TServerInstance> subset = new ArrayList<>();
         master.onlineTabletServers().forEach(t -> {
-          if (regex.matcher(t.host()).matches()) {
+          if (regex.matcher(t.getHost()).matches()) {
             subset.add(t);
           }
         });
@@ -170,7 +170,7 @@ class LoadFiles extends MasterRepo {
               // servers serving the metadata tablets
               long timeInMillis =
                   master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
-              server = servers[random.nextInt(servers.length)].getLocation();
+              server = servers[random.nextInt(servers.length)].getHostAndPort();
               client = ThriftUtil.getTServerClient(server, master.getContext(), timeInMillis);
               List<String> attempt1 = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);

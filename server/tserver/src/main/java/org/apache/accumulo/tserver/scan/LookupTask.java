@@ -26,10 +26,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -154,9 +153,14 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       for (KVEntry entry : results)
         retResults
             .add(new TKeyValue(entry.getKey().toThrift(), ByteBuffer.wrap(entry.getValue().get())));
-      Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translators.KET,
-          new Translator.ListTranslator<>(Translators.RT));
-      List<TKeyExtent> retFullScans = Translator.translate(fullScans, Translators.KET);
+      // @formatter:off
+      Map<TKeyExtent,List<TRange>> retFailures = failures.entrySet().stream().collect(Collectors.toMap(
+                      entry -> entry.getKey().toThrift(),
+                      entry -> entry.getValue().stream().map(Range::toThrift).collect(Collectors.toList())
+      ));
+      // @formatter:on
+      List<TKeyExtent> retFullScans =
+          fullScans.stream().map(KeyExtent::toThrift).collect(Collectors.toList());
       TKeyExtent retPartScan = null;
       TKey retPartNextKey = null;
       if (partScan != null) {

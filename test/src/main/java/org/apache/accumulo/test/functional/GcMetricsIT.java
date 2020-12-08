@@ -74,8 +74,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void gcMetricsPublished() {
-
+  public void gcMetricsPublished() throws InterruptedException {
     boolean gcMetricsEnabled =
         cluster.getSiteConfiguration().getBoolean(Property.GC_METRICS_ENABLED);
 
@@ -84,15 +83,14 @@ public class GcMetricsIT extends ConfigurableMacBase {
       return;
     }
 
-    // log.trace("Client started, properties:{}", accumuloClient.properties());
-    log.trace("Client started, properties:{}", accumuloClient.properties());
+    log.debug("Client started, properties:{}", accumuloClient.properties());
 
     MetricsFileTailer gcTail = new MetricsFileTailer("accumulo.sink.file-gc");
     Thread t1 = new Thread(gcTail);
     t1.start();
 
     // uncomment for manual jmx / jconsole validation - not for automated testing
-    // manualValidationPause();
+    // Thread.sleep(320_000);
 
     try {
 
@@ -103,8 +101,8 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
       Map<String,Long> firstSeenMap = parseLine(firstUpdate.getLine());
 
-      log.trace("L:{}", firstUpdate.getLine());
-      log.trace("M:{}", firstSeenMap);
+      log.debug("L:{}", firstUpdate.getLine());
+      log.debug("M:{}", firstSeenMap);
 
       assertTrue(lookForExpectedKeys(firstSeenMap));
       sanity(updateTimestamp, firstSeenMap);
@@ -116,7 +114,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
       Map<String,Long> updateSeenMap = parseLine(nextUpdate.getLine());
 
       log.debug("Line received:{}", nextUpdate.getLine());
-      log.trace("Mapped values:{}", updateSeenMap);
+      log.debug("Mapped values:{}", updateSeenMap);
 
       assertTrue(lookForExpectedKeys(updateSeenMap));
       sanity(updateTimestamp, updateSeenMap);
@@ -125,20 +123,6 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
     } catch (Exception ex) {
       log.debug("reads", ex);
-    }
-  }
-
-  /**
-   * This method just sleeps for a while (test will likely time out) The pause is to allow manual
-   * validation of metrics by connecting to the running gc process with jconsole (or other jmx
-   * utility). It should not be used for automatic testing.
-   */
-  @SuppressWarnings("unused")
-  private void manualValidationPause() {
-    try {
-      Thread.sleep(320_000);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
     }
   }
 
@@ -279,7 +263,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
         var timestamp = Long.parseLong(m.group("timestamp"));
         return timestamp > prevTimestamp;
       } catch (NumberFormatException ex) {
-        log.trace("Could not parse timestamp from line '{}", line);
+        log.debug("Could not parse timestamp from line '{}", line);
         return false;
       }
     }

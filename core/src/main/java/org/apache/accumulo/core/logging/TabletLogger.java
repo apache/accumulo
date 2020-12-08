@@ -27,8 +27,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -58,7 +58,7 @@ public class TabletLogger {
    * A decision was made to assign a tablet to a tablet server process. Accumulo will stick to this
    * decision until the tablet server loads the tablet or dies.
    */
-  public static void assigned(KeyExtent extent, Ample.TServer server) {
+  public static void assigned(KeyExtent extent, TServerInstance server) {
     locLog.debug("Assigned {} to {}", extent, server);
   }
 
@@ -66,7 +66,7 @@ public class TabletLogger {
    * A tablet server has received an assignment message from master and queued the tablet for
    * loading.
    */
-  public static void loading(KeyExtent extent, Ample.TServer server) {
+  public static void loading(KeyExtent extent, TServerInstance server) {
     locLog.debug("Loading {} on {}", extent, server);
   }
 
@@ -80,7 +80,7 @@ public class TabletLogger {
     locLog.debug("Unsuspended " + extent);
   }
 
-  public static void loaded(KeyExtent extent, Ample.TServer server) {
+  public static void loaded(KeyExtent extent, TServerInstance server) {
     locLog.debug("Loaded {} on {}", extent, server);
   }
 
@@ -89,7 +89,7 @@ public class TabletLogger {
   }
 
   public static void split(KeyExtent parent, KeyExtent lowChild, KeyExtent highChild,
-      Ample.TServer server) {
+      TServerInstance server) {
     locLog.debug("Split {} into {} and {} on {}", parent, lowChild, highChild, server);
   }
 
@@ -97,7 +97,7 @@ public class TabletLogger {
    * Called when a tablet's current assignment state does not match the goal state.
    */
   public static void missassigned(KeyExtent extent, String goalState, String currentState,
-      Ample.TServer future, Ample.TServer current, int walogs) {
+      TServerInstance future, TServerInstance current, int walogs) {
     // usually this is only called when the states are not equal, but for the root tablet this
     // method is currently always called
     if (!goalState.equals(currentState)) {

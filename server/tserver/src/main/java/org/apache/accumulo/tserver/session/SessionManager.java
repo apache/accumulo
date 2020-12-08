@@ -31,11 +31,11 @@ import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
@@ -388,12 +388,12 @@ public class SessionManager {
         }
 
         var params = ss.scanParams;
-        ActiveScan activeScan =
-            new ActiveScan(ss.client, ss.getUser(), ss.extent.tableId().canonical(),
-                ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE, state,
-                ss.extent.toThrift(), Translator.translate(params.getColumnSet(), Translators.CT),
-                params.getSsiList(), params.getSsio(),
-                params.getAuthorizations().getAuthorizationsBB(), params.getClassLoaderContext());
+        ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(),
+            ss.extent.tableId().canonical(), ct - ss.startTime, ct - ss.lastAccessTime,
+            ScanType.SINGLE, state, ss.extent.toThrift(),
+            params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
+            params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
+            params.getClassLoaderContext());
 
         // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in
         // ActiveScan constructor
@@ -427,8 +427,8 @@ public class SessionManager {
         activeScans.add(new ActiveScan(mss.client, mss.getUser(),
             mss.threadPoolExtent.tableId().canonical(), ct - mss.startTime, ct - mss.lastAccessTime,
             ScanType.BATCH, state, mss.threadPoolExtent.toThrift(),
-            Translator.translate(params.getColumnSet(), Translators.CT), params.getSsiList(),
-            params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
+            params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
+            params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
             params.getClassLoaderContext()));
       }
     }

@@ -97,7 +97,7 @@ public class SingletonManager {
     try {
       service.enable();
     } catch (RuntimeException e) {
-      log.error("Failed to enable singleton service ", e);
+      log.error("Failed to enable singleton service", e);
     }
   }
 
@@ -186,20 +186,23 @@ public class SingletonManager {
   }
 
   private static void transition() {
-    if (enabled && ((reservations == 0 && mode == Mode.CLIENT) || mode == Mode.CLOSED)) {
-      for (SingletonService service : services) {
-        disable(service);
+    if (enabled) {
+      // if we're in an enabled state AND
+      // the mode is CLOSED or there are no active clients,
+      // then disable everything
+      if (mode == Mode.CLOSED || (mode == Mode.CLIENT && reservations == 0)) {
+        services.forEach(SingletonManager::disable);
+        enabled = false;
       }
-      enabled = false;
-    }
-
-    if (!enabled && (mode == Mode.CONNECTOR || mode == Mode.SERVER
-        || (mode == Mode.CLIENT && reservations > 0))) {
-      for (SingletonService service : services) {
-        enable(service);
+    } else {
+      // if we're in a disabled state AND
+      // the mode is CONNECTOR or SERVER or if there are active clients,
+      // then enable everything
+      if (mode == Mode.CONNECTOR || mode == Mode.SERVER
+          || (mode == Mode.CLIENT && reservations > 0)) {
+        services.forEach(SingletonManager::enable);
+        enabled = true;
       }
-
-      enabled = true;
     }
   }
 }

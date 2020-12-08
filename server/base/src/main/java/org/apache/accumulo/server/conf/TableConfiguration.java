@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.Property;
@@ -75,8 +76,7 @@ public class TableConfiguration extends AccumuloConfiguration {
         Map<String,Map<String,String>> allOpts = new HashMap<>();
         List<IterInfo> iters =
             IterConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts, conf);
-        return new ParsedIteratorConfig(iters, allOpts, conf.get(Property.TABLE_CLASSPATH));
-
+        return new ParsedIteratorConfig(iters, allOpts, ClassLoaderUtil.tableContext(conf));
       }));
     }
 

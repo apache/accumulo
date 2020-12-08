@@ -53,6 +53,9 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
   public void process(WatchedEvent event) {
     if (event.getType() == EventType.None) {
       switch (event.getState()) {
+        case Closed:
+          // Intentional fall through of case; Closed is a new event in 3.5, generated
+          // client-side when the client closes the connection
         case Disconnected: // Intentional fall through of case
         case Expired: // ZooReader is handling the Expiration of the original ZooKeeper object for
                       // us

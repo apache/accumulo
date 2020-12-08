@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.bloomfilter.DynamicBloomFilter;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -54,7 +55,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -122,16 +122,13 @@ public class BloomFilterLayer {
        * load KeyFunctor
        */
       try {
-        String context = acuconf.get(Property.TABLE_CLASSPATH);
+        String context = ClassLoaderUtil.tableContext(acuconf);
         String classname = acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR);
         Class<? extends KeyFunctor> clazz;
         if (!useAccumuloStart)
           clazz = Writer.class.getClassLoader().loadClass(classname).asSubclass(KeyFunctor.class);
-        else if (context != null && !context.equals(""))
-          clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, classname,
-              KeyFunctor.class);
         else
-          clazz = AccumuloVFSClassLoader.loadClass(classname, KeyFunctor.class);
+          clazz = ClassLoaderUtil.loadClass(context, classname, KeyFunctor.class);
 
         transformer = clazz.getDeclaredConstructor().newInstance();
 
@@ -216,7 +213,7 @@ public class BloomFilterLayer {
 
       loadThreshold = acuconf.getCount(Property.TABLE_BLOOM_LOAD_THRESHOLD);
 
-      final String context = acuconf.get(Property.TABLE_CLASSPATH);
+      final String context = ClassLoaderUtil.tableContext(acuconf);
 
       loadTask = () -> {
         // no need to load the bloom filter if the map file is closed
@@ -238,12 +235,8 @@ public class BloomFilterLayer {
            */
           ClassName = in.readUTF();
 
-          Class<? extends KeyFunctor> clazz;
-          if (context != null && !context.equals(""))
-            clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, ClassName,
-                KeyFunctor.class);
-          else
-            clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
+          Class<? extends KeyFunctor> clazz =
+              ClassLoaderUtil.loadClass(context, ClassName, KeyFunctor.class);
           transformer = clazz.getDeclaredConstructor().newInstance();
 
           /**

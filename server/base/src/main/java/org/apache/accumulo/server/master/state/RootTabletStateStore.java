@@ -20,6 +20,7 @@ package org.apache.accumulo.server.master.state;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 
 class RootTabletStateStore extends MetaDataStateStore {

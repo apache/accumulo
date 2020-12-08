@@ -68,6 +68,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -110,7 +111,6 @@ import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.master.recovery.RecoveryPath;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
@@ -127,8 +127,6 @@ import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
 import org.apache.accumulo.tserver.compactions.Compactable;
@@ -930,8 +928,7 @@ public class TabletServer extends AbstractServer {
 
     Location loc = meta.getLocation();
 
-    if (loc == null || loc.getType() != LocationType.FUTURE
-        || !instance.equals(new TServerInstance(loc))) {
+    if (loc == null || loc.getType() != LocationType.FUTURE || !instance.equals(loc)) {
       log.info("Unexpected location {} {}", extent, loc);
       return false;
     }
@@ -997,38 +994,8 @@ public class TabletServer extends AbstractServer {
     majorCompactorThread.start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
-    try {
-      AccumuloVFSClassLoader.getContextManager()
-          .setContextConfig(new ContextManager.DefaultContextsConfig() {
-            @Override
-            public Map<String,String> getVfsContextClasspathProperties() {
-              return getConfiguration()
-                  .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-            }
-          });
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
 
-    // A task that cleans up unused classloader contexts
-    Runnable contextCleaner = () -> {
-      Set<String> contextProperties = getConfiguration()
-          .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY).keySet();
-      Set<String> configuredContexts = new HashSet<>();
-      for (String prop : contextProperties) {
-        configuredContexts
-            .add(prop.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.name().length()));
-      }
-
-      try {
-        AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);
-      } catch (IOException e) {
-        log.warn("{}", e.getMessage(), e);
-      }
-    };
-
-    AccumuloConfiguration aconf = getConfiguration();
-    SimpleTimer.getInstance(aconf).schedule(contextCleaner, 60000, 60000);
+    final AccumuloConfiguration aconf = getConfiguration();
 
     FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
 

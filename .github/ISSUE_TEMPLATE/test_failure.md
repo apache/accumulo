@@ -1,7 +1,7 @@
 ---
 name: Test failure
-about: Report a broken or flakey test
-title: 'Broken or Flakey test: [test names]'
+about: Report a broken or flaky test
+title: 'Broken or Flaky test: [test names]'
 labels: bug, test
 assignees: ''
 

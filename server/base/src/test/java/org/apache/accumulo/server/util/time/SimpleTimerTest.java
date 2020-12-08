@@ -20,7 +20,6 @@ package org.apache.accumulo.server.util.time;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -70,35 +69,41 @@ public class SimpleTimerTest {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testOneTimeSchedule() throws InterruptedException {
     AtomicInteger i = new AtomicInteger();
     Incrementer r = new Incrementer(i);
     t.schedule(r, DELAY);
     Thread.sleep(DELAY + PAD);
-    assertEquals(1, i.get());
+    while (i.get() != 1) {
+      Thread.sleep(PAD);
+    }
     r.cancel();
   }
 
-  @Test
+  @Test(timeout = 10000)
   public void testFixedDelaySchedule() throws InterruptedException {
     AtomicInteger i = new AtomicInteger();
     Incrementer r = new Incrementer(i);
     t.schedule(r, DELAY, PERIOD);
     Thread.sleep(DELAY + (2 * PERIOD) + PAD);
-    assertEquals(3, i.get());
+    while (i.get() != 3) {
+      Thread.sleep(PAD);
+    }
     r.cancel();
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testFailure() throws InterruptedException {
     Thrower r = new Thrower();
     t.schedule(r, DELAY);
     Thread.sleep(DELAY + PAD);
-    assertTrue(r.wasRun);
+    while (!r.wasRun) {
+      Thread.sleep(PAD);
+    }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testSingleton() {
     assertEquals(1, SimpleTimer.getInstanceThreadPoolSize());
     SimpleTimer t2 = SimpleTimer.getInstance(2);
