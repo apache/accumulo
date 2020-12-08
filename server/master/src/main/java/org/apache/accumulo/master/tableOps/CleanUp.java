@@ -102,8 +102,9 @@ class CleanUp extends MasterRepo {
       if (!state.equals(TabletState.UNASSIGNED)) {
         // This code will even wait on tablets that are assigned to dead tablets servers. This is
         // intentional because the master may make metadata writes for these tablets. See #587
-        log.debug("Still waiting for table to be deleted: " + tableId + " locationState: "
-            + locationState);
+        log.debug(
+            "Still waiting for table({}) to be deleted, Tablet state to be UNASSIGNED. Tablet state: {} locationState: {}",
+            tableId, state, locationState);
         done = false;
         break;
       }
