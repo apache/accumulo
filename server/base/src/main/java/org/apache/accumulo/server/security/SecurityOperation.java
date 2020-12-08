@@ -227,13 +227,15 @@ public class SecurityOperation {
     }
   }
 
-  public boolean canAskAboutUser(TCredentials credentials, String user)
+  private boolean canAskAboutUser(TCredentials credentials, String user)
       throws ThriftSecurityException {
     // Authentication done in canPerformSystemActions
-    if (!(canPerformSystemActions(credentials) || credentials.getPrincipal().equals(user)))
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    return true;
+    // check if user is current user first, to avoid unnecessary audit log if not a system user
+    // current user can always ask about themselves
+    if (credentials.getPrincipal().equals(user) || canPerformSystemActions(credentials))
+      return true;
+    throw new ThriftSecurityException(credentials.getPrincipal(),
+        SecurityErrorCode.PERMISSION_DENIED);
   }
 
   public boolean authenticateUser(TCredentials credentials, TCredentials toAuth)
