@@ -45,11 +45,8 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.EasyMock;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ZKAuthenticatorTest {
-  private static final Logger log = LoggerFactory.getLogger(ZKAuthenticatorTest.class);
 
   @Test
   public void testPermissionIdConversions() {
@@ -108,6 +105,7 @@ public class ZKAuthenticatorTest {
     assertTrue(ZKSecurityTool.checkCryptPass(rawPass.clone(), storedBytes));
   }
 
+  @Deprecated
   @Test
   public void testOutdatedEncryption() throws AccumuloException {
     byte[] rawPass = "myPassword".getBytes();
@@ -120,9 +118,8 @@ public class ZKAuthenticatorTest {
   @Test
   public void testEncryptionDifference() throws AccumuloException {
     byte[] rawPass = "myPassword".getBytes();
-    byte[] storedBytes;
-
-    storedBytes = ZKSecurityTool.createOutdatedPass(rawPass);
+    @SuppressWarnings("deprecation")
+    byte[] storedBytes = ZKSecurityTool.createOutdatedPass(rawPass);
     assertFalse(ZKSecurityTool.checkCryptPass(rawPass, storedBytes));
   }
 
@@ -165,6 +162,7 @@ public class ZKAuthenticatorTest {
     String principal = "myTestUser";
     byte[] rawPass = "myPassword".getBytes(UTF_8);
     // creating hash with outdated algorithm
+    @SuppressWarnings("deprecation")
     byte[] outdatedHash = ZKSecurityTool.createOutdatedPass(rawPass);
 
     // mocking zk interaction

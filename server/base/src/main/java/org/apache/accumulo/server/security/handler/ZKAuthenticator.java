@@ -60,7 +60,7 @@ public final class ZKAuthenticator implements Authenticator {
    * Checks stored users and logs a warning containing the ones with outdated hashes.
    */
   public boolean hasOutdatedHashes() {
-    List<String> outdatedUsers = new LinkedList<String>();
+    List<String> outdatedUsers = new LinkedList<>();
     try {
       listUsers().forEach(user -> {
         String zpath = ZKUserPath + "/" + user;
@@ -231,7 +231,9 @@ public final class ZKAuthenticator implements Authenticator {
       return ZKSecurityTool.checkCryptPass(pt.getPassword(), zkData);
     }
 
-    if (!ZKSecurityTool.checkPass(pt.getPassword(), zkData)) {
+    @SuppressWarnings("deprecation")
+    boolean oldFormatValidates = ZKSecurityTool.checkPass(pt.getPassword(), zkData);
+    if (!oldFormatValidates) {
       // if password does not match we are done
       return false;
     }
