@@ -531,7 +531,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public static void main(String[] args) throws IOException {
-    Terminal terminal = TerminalBuilder.builder().system(true).nativeSignals(true).signalHandler(Terminal.SignalHandler.SIG_IGN).build();
+    //Terminal terminal = TerminalBuilder.builder().system(true).nativeSignals(true).signalHandler(Terminal.SignalHandler.SIG_IGN).build();
+    Terminal terminal = TerminalBuilder.builder().build();
     LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
     new Shell(reader).execute(args);
   }
@@ -559,7 +560,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
     reader.getHistory().load();
     ;
-    // Add shutdown hook to flush file history, per jline javadocs
+    // Add shutdown hook to save file history, per jline javadocs
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       try {
         reader.getHistory().save();
@@ -571,8 +572,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     // Turn Ctrl+C into Exception instead of JVM exit
     // LOOK INTO THIS
     // Testing it in the terminal builder
-//    Thread executeThread = Thread.currentThread();
-//    terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
+    Thread executeThread = Thread.currentThread();
+    terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
 
     ShellCompletor userCompletor = null;
 
