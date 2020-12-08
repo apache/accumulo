@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -47,6 +46,7 @@ import com.google.common.util.concurrent.AtomicLongMap;
  */
 public class VisMetricsGatherer
     implements MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> {
+  static final String KEY_HASH_ALGORITHM = "SHA-256";
 
   protected Map<String,AtomicLongMap<String>> metric;
   protected Map<String,AtomicLongMap<String>> blocks;
@@ -136,12 +136,12 @@ public class VisMetricsGatherer
         if (hash) {
           String encodedKey = "";
           try {
-            byte[] encodedBytes = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM)
+            byte[] encodedBytes = MessageDigest.getInstance(KEY_HASH_ALGORITHM)
                 .digest(entry.getKey().getBytes(UTF_8));
             encodedKey = new String(encodedBytes, UTF_8);
           } catch (NoSuchAlgorithmException e) {
-            out.println("Failed to convert key to " + Constants.PW_HASH_ALGORITHM + " hash: "
-                + e.getMessage());
+            out.println(
+                "Failed to convert key to " + KEY_HASH_ALGORITHM + " hash: " + e.getMessage());
           }
           out.printf("%-20s", encodedKey.substring(0, 8));
         } else

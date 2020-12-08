@@ -28,7 +28,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Credentials;
@@ -103,7 +102,8 @@ public final class SystemCredentials extends Credentials {
       byte[] confChecksum;
       MessageDigest md;
       try {
-        md = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
+        String hashAlgorithm = siteConfig.get(Property.INSTANCE_SYSTEM_TOKEN_HASH_TYPE);
+        md = MessageDigest.getInstance(hashAlgorithm);
       } catch (NoSuchAlgorithmException e) {
         throw new RuntimeException("Failed to compute configuration checksum", e);
       }

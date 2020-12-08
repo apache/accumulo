@@ -932,4 +932,11 @@ public class SecurityOperation {
     return hasTablePermission(credentials, tableId, namespaceId, TablePermission.GET_SUMMARIES,
         false);
   }
+
+  public boolean validateStoredUserCreditentials() {
+    if (authenticator instanceof ZKAuthenticator) {
+      return !((ZKAuthenticator) authenticator).hasOutdatedHashes();
+    }
+    return true;
+  }
 }

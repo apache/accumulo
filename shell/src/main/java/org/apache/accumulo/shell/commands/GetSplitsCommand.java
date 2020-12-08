@@ -113,7 +113,7 @@ public class GetSplitsCommand extends Command {
   private static String obscuredTabletName(final KeyExtent extent) {
     MessageDigest digester;
     try {
-      digester = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
+      digester = MessageDigest.getInstance(Constants.NON_CRYPTO_USE_HASH_ALGORITHM);
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException(e);
     }

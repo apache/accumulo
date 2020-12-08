@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -35,6 +37,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.commons.codec.digest.Crypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,13 +59,26 @@ class ZKSecurityTool {
     return salt;
   }
 
+  // only present for testing DO NOT USE!
+  @Deprecated(since = "2.1.0")
+  static byte[] createOutdatedPass(byte[] password) throws AccumuloException {
+    byte[] salt = generateSalt();
+    try {
+      return convertPass(password, salt);
+    } catch (NoSuchAlgorithmException e) {
+      log.error("Count not create hashed password", e);
+      throw new AccumuloException("Count not create hashed password", e);
+    }
+  }
+
   private static byte[] hash(byte[] raw) throws NoSuchAlgorithmException {
-    MessageDigest md = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
+    MessageDigest md = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM_OUTDATED);
     md.update(raw);
     return md.digest();
   }
 
-  public static boolean checkPass(byte[] password, byte[] zkData) {
+  @Deprecated(since = "2.1.0")
+  static boolean checkPass(byte[] password, byte[] zkData) {
     if (zkData == null)
       return false;
 
@@ -78,16 +94,6 @@ class ZKSecurityTool {
     return MessageDigest.isEqual(passwordToCheck, zkData);
   }
 
-  public static byte[] createPass(byte[] password) throws AccumuloException {
-    byte[] salt = generateSalt();
-    try {
-      return convertPass(password, salt);
-    } catch (NoSuchAlgorithmException e) {
-      log.error("Count not create hashed password", e);
-      throw new AccumuloException("Count not create hashed password", e);
-    }
-  }
-
   private static byte[] convertPass(byte[] password, byte[] salt) throws NoSuchAlgorithmException {
     byte[] plainSalt = new byte[password.length + SALT_LENGTH];
     System.arraycopy(password, 0, plainSalt, 0, password.length);
@@ -97,6 +103,24 @@ class ZKSecurityTool {
     System.arraycopy(salt, 0, saltedHash, 0, SALT_LENGTH);
     System.arraycopy(hashed, 0, saltedHash, SALT_LENGTH, hashed.length);
     return saltedHash; // contains salt+hash(password+salt)
+  }
+
+  public static byte[] createPass(byte[] password) throws AccumuloException {
+    // we rely on default algorithm and hash length (SHA-512 and 8 byte)
+    String cryptHash = Crypt.crypt(password);
+    return cryptHash.getBytes(UTF_8);
+  }
+
+  public static boolean checkCryptPass(byte[] password, byte[] zkData) {
+    String zkDataString = new String(zkData, UTF_8);
+    String cryptHash;
+    try {
+      cryptHash = Crypt.crypt(password, zkDataString);
+    } catch (IllegalArgumentException e) {
+      log.error("Unrecognized hash format", e);
+      return false;
+    }
+    return MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
   }
 
   public static Authorizations convertAuthorizations(byte[] authorizations) {
@@ -179,5 +203,9 @@ class ZKSecurityTool {
 
   public static String getInstancePath(String instanceId) {
     return Constants.ZROOT + "/" + instanceId;
+  }
+
+  public static boolean isOutdatedPass(byte[] zkData) {
+    return zkData.length == 40;
   }
 }

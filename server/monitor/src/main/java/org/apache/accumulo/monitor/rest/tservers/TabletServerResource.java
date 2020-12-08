@@ -323,7 +323,7 @@ public class TabletServerResource {
 
       KeyExtent extent = KeyExtent.fromThrift(info.extent);
       TableId tableId = extent.tableId();
-      MessageDigest digester = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
+      MessageDigest digester = MessageDigest.getInstance(Constants.NON_CRYPTO_USE_HASH_ALGORITHM);
       if (extent.endRow() != null && extent.endRow().getLength() > 0) {
         digester.update(extent.endRow().getBytes(), 0, extent.endRow().getLength());
       }
