@@ -459,7 +459,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
       auditAccumuloClient.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
     } catch (AccumuloSecurityException ex) {}
     try {
-      auditAccumuloClient.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, true,
+      auditAccumuloClient.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, false,
           Collections.emptyMap(), Collections.emptySet());
     } catch (AccumuloSecurityException ex) {}
     try {
