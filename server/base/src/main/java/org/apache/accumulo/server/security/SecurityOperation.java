@@ -227,19 +227,18 @@ public class SecurityOperation {
     }
   }
 
-  public boolean canAskAboutUser(TCredentials credentials, String user)
-      throws ThriftSecurityException {
-    // Authentication done in canPerformSystemActions
-    if (!(canPerformSystemActions(credentials) || credentials.getPrincipal().equals(user)))
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    return true;
-  }
-
   public boolean authenticateUser(TCredentials credentials, TCredentials toAuth)
       throws ThriftSecurityException {
-    canAskAboutUser(credentials, toAuth.getPrincipal());
-    // User is already authenticated from canAskAboutUser
+    authenticate(credentials); // authenticate the current user first
+
+    // if the user to authenticate is not the current user, and the current user lacks
+    // the SYSTEM permission, then deny the request
+    if (!credentials.getPrincipal().equals(toAuth.getPrincipal())
+        && !hasSystemPermission(credentials, SystemPermission.SYSTEM, false))
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+
+    // the user is already authenticated above if the credentials to authenticate are the same
     if (credentials.equals(toAuth))
       return true;
     try {
