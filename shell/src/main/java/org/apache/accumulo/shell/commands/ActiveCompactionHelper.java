@@ -90,7 +90,7 @@ class ActiveCompactionHelper {
         compactions.add(formatActiveCompactionLine(tserver, ac));
       }
     } catch (Exception e) {
-      log.debug("Exception thrown while attempting to list active compactions", e);
+      log.debug("Failed to list active compactions for server {}", tserver, e);
       compactions.add(tserver + " ERROR " + e.getMessage());
     }
     return compactions;
