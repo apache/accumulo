@@ -105,7 +105,7 @@ public final class HostAndPort implements Serializable {
    *           occurring.
    */
   public int getPort() {
-    checkState(hasPort(), "The given address does not include a port");
+    checkState(hasPort(), "the address does not include a port");
     return port;
   }
 
