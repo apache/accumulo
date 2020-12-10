@@ -21,9 +21,7 @@ package org.apache.accumulo.monitor.rest.tservers;
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
 
 import java.lang.management.ManagementFactory;
-import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -38,7 +36,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.TableId;
@@ -323,12 +320,7 @@ public class TabletServerResource {
 
       KeyExtent extent = KeyExtent.fromThrift(info.extent);
       TableId tableId = extent.tableId();
-      MessageDigest digester = MessageDigest.getInstance(Constants.NON_CRYPTO_USE_HASH_ALGORITHM);
-      if (extent.endRow() != null && extent.endRow().getLength() > 0) {
-        digester.update(extent.endRow().getBytes(), 0, extent.endRow().getLength());
-      }
-      String obscuredExtent = Base64.getEncoder().encodeToString(digester.digest());
-      String displayExtent = String.format("[%s]", obscuredExtent);
+      String displayExtent = String.format("[%s]", extent.obscured());
 
       String tableName = Tables.getPrintableTableInfoFromId(monitor.getContext(), tableId);
 

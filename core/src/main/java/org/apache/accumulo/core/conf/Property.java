@@ -82,14 +82,6 @@ public enum Property {
   RPC_SASL_QOP("rpc.sasl.qop", "auth", PropertyType.STRING,
       "The quality of protection to be used with SASL. Valid values are 'auth', 'auth-int',"
           + " and 'auth-conf'"),
-  /**
-   * @since 2.1.0
-   */
-  INSTANCE_SYSTEM_TOKEN_HASH_TYPE("instance.system.token.hash.type",
-      Constants.PW_HASH_ALGORITHM_OUTDATED, PropertyType.STRING,
-      "Hash algorithm used for creating SystemTokens."
-          + " It is recommended to use SHA-512, but the default is SHA-256 to not break rolling"
-          + " restart on update."),
 
   // instance properties (must be the same for every node in an instance)
   INSTANCE_PREFIX("instance.", null, PropertyType.PREFIX,

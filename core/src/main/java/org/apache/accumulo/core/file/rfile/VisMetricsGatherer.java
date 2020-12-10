@@ -46,7 +46,7 @@ import com.google.common.util.concurrent.AtomicLongMap;
  */
 public class VisMetricsGatherer
     implements MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> {
-  static final String KEY_HASH_ALGORITHM = "SHA-256";
+  private static final String KEY_HASH_ALGORITHM = "SHA-256";
 
   protected Map<String,AtomicLongMap<String>> metric;
   protected Map<String,AtomicLongMap<String>> blocks;

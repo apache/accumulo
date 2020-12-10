@@ -71,8 +71,10 @@ class ZKSecurityTool {
     }
   }
 
+  private static final String PW_HASH_ALGORITHM_OUTDATED = "SHA-256";
+
   private static byte[] hash(byte[] raw) throws NoSuchAlgorithmException {
-    MessageDigest md = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM_OUTDATED);
+    MessageDigest md = MessageDigest.getInstance(PW_HASH_ALGORITHM_OUTDATED);
     md.update(raw);
     return md.digest();
   }
@@ -106,7 +108,7 @@ class ZKSecurityTool {
   }
 
   public static byte[] createPass(byte[] password) throws AccumuloException {
-    // we rely on default algorithm and hash length (SHA-512 and 8 byte)
+    // we rely on default algorithm and salt length (SHA-512 and 8 bytes)
     String cryptHash = Crypt.crypt(password);
     return cryptHash.getBytes(UTF_8);
   }

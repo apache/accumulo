@@ -27,6 +27,9 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map.Entry;
@@ -56,6 +59,8 @@ import org.apache.hadoop.io.Text;
  * keeps track of information needed to identify a tablet
  */
 public class KeyExtent implements Comparable<KeyExtent> {
+
+  private static final String OBSCURING_HASH_ALGORITHM = "SHA-256";
 
   private final TableId tableId;
   private final Text endRow;
@@ -472,4 +477,18 @@ public class KeyExtent implements Comparable<KeyExtent> {
   public boolean isRootTablet() {
     return tableId().equals(RootTable.ID);
   }
+
+  public String obscured() {
+    MessageDigest digester;
+    try {
+      digester = MessageDigest.getInstance(OBSCURING_HASH_ALGORITHM);
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException(e);
+    }
+    if (endRow() != null && endRow().getLength() > 0) {
+      digester.update(endRow().getBytes(), 0, endRow().getLength());
+    }
+    return Base64.getEncoder().encodeToString(digester.digest());
+  }
+
 }
