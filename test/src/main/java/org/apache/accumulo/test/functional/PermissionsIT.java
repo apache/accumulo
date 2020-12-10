@@ -660,6 +660,14 @@ public class PermissionsIT extends AccumuloClusterHarness {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
             throw e;
         }
+        // Now see if we can flush
+        try {
+          test_user_conn.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"), false);
+          throw new IllegalStateException("Should NOT be able to flsuh a table");
+        } catch (AccumuloSecurityException e){
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+              throw e;
+        }
         break;
       case BULK_IMPORT:
         // test for bulk import permission would go here
@@ -717,6 +725,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
           iter.next();
         break;
       case WRITE:
+        test_user_conn.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"), false);
         writer = test_user_conn.createBatchWriter(tableName, new BatchWriterConfig());
         m = new Mutation(new Text("row"));
         m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
