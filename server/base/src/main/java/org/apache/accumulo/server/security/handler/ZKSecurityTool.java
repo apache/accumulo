@@ -108,7 +108,7 @@ class ZKSecurityTool {
   }
 
   public static byte[] createPass(byte[] password) throws AccumuloException {
-    // we rely on default algorithm and hash length (SHA-512 and 8 byte)
+    // we rely on default algorithm and salt length (SHA-512 and 8 bytes)
     String cryptHash = Crypt.crypt(password);
     return cryptHash.getBytes(UTF_8);
   }

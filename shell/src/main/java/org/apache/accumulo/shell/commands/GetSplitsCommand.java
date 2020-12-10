@@ -19,12 +19,9 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
@@ -82,9 +79,9 @@ public class GetSplitsCommand extends Command {
             KeyExtent extent = KeyExtent.fromMetaPrevRow(next);
             final String pr = encode(encode, extent.prevEndRow());
             final String er = encode(encode, extent.endRow());
-            final String line = String.format("%-26s (%s, %s%s", obscuredTabletName(extent),
-                pr == null ? "-inf" : pr, er == null ? "+inf" : er,
-                er == null ? ") Default Tablet " : "]");
+            final String line =
+                String.format("%-26s (%s, %s%s", extent.obscured(), pr == null ? "-inf" : pr,
+                    er == null ? "+inf" : er, er == null ? ") Default Tablet " : "]");
             p.print(line);
           }
         }
@@ -108,19 +105,6 @@ public class GetSplitsCommand extends Command {
     final int length = text.getLength();
     return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text))
         : DefaultFormatter.appendText(new StringBuilder(), text, length).toString();
-  }
-
-  private static String obscuredTabletName(final KeyExtent extent) {
-    MessageDigest digester;
-    try {
-      digester = MessageDigest.getInstance(Constants.NON_CRYPTO_USE_HASH_ALGORITHM);
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException(e);
-    }
-    if (extent.endRow() != null && extent.endRow().getLength() > 0) {
-      digester.update(extent.endRow().getBytes(), 0, extent.endRow().getLength());
-    }
-    return Base64.getEncoder().encodeToString(digester.digest());
   }
 
   @Override
