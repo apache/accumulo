@@ -50,7 +50,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "0");
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "50ms");
   }
 
   @Override
