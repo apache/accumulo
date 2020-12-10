@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
@@ -40,6 +41,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -53,6 +55,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
+import org.apache.commons.configuration.SystemConfiguration;
 import org.apache.hadoop.io.Text;
 import org.junit.Assume;
 import org.junit.Before;
@@ -271,7 +274,19 @@ public class PermissionsIT extends AccumuloClusterHarness {
         }
         break;
       case SYSTEM:
-        // test for system permission would go here
+        user = "__TEMP_USER_WITHOUT_PERM_TEST__";
+        loginAs(rootUser);
+        root_conn.securityOperations().createLocalUser(user,
+                (passwordBased ? new PasswordToken(password) : null));
+        try{
+          loginAs(testUser);
+          test_user_conn.securityOperations().getUserAuthorizations(user);
+          throw new IllegalStateException("Should NOT be able to get User Auths");
+        } catch (AccumuloSecurityException e) {
+          loginAs(rootUser);
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+            throw e;
+        }
         break;
       case CREATE_NAMESPACE:
         namespace = "__CREATE_NAMESPACE_WITHOUT_PERM_TEST__";
@@ -458,7 +473,12 @@ public class PermissionsIT extends AccumuloClusterHarness {
           throw new IllegalStateException("Should be able to alter a user");
         break;
       case SYSTEM:
-        // test for system permission would go here
+        user = "__TEMP_USER_WITH_PERM_TEST__";
+        loginAs(rootUser);
+        root_conn.securityOperations().createLocalUser(user,
+                (passwordBased ? new PasswordToken(password) : null));
+        loginAs(testUser);
+        test_user_conn.securityOperations().getUserAuthorizations(user);
         break;
       case CREATE_NAMESPACE:
         namespace = "__CREATE_NAMESPACE_WITH_PERM_TEST__";
