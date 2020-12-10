@@ -31,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -46,8 +47,6 @@ import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -174,7 +173,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
           TablePermission.WRITE);
 
       BatchDeleter bd = c.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY, 1);
-      bd.setRanges(Collections.singleton(extent.toMetadataRange()));
+      bd.setRanges(Collections.singleton(extent.toMetaRange()));
       bd.fetchColumnFamily(BulkFileColumnFamily.NAME);
       bd.delete();
 
@@ -240,7 +239,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     HashSet<Path> files = new HashSet<>();
 
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(extent.toMetadataRange());
+    scanner.setRange(extent.toMetaRange());
     scanner.fetchColumnFamily(fam);
 
     for (Entry<Key,Value> entry : scanner) {
@@ -259,8 +258,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       Map<String,MapFileInfo> val = Map.of(path.toString(), new MapFileInfo(size));
       Map<KeyExtent,Map<String,MapFileInfo>> files = Map.of(extent, val);
 
-      client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(), txid,
-          Translator.translate(files, Translators.KET), false);
+      client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(), txid, files.entrySet().stream()
+          .collect(Collectors.toMap(entry -> entry.getKey().toThrift(), Entry::getValue)), false);
       if (expectFailure) {
         fail("Expected RPC to fail");
       }
@@ -283,7 +282,9 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       Map<KeyExtent,Map<String,MapFileInfo>> files = Map.of(extent, val);
 
       client.loadFiles(TraceUtil.traceInfo(), context.rpcCreds(), txid, path.getParent().toString(),
-          Translator.translate(files, Translators.KET), false);
+          files.entrySet().stream().collect(
+              Collectors.toMap(entry -> entry.getKey().toThrift(), Entry::getValue)),
+          false);
 
       if (!expectFailure) {
         while (!getLoaded(context, extent).contains(path)) {
@@ -299,7 +300,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
   protected static TabletClientService.Iface getClient(ClientContext context, KeyExtent extent)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TTransportException {
-    TabletLocator locator = TabletLocator.getLocator(context, extent.getTableId());
+    TabletLocator locator = TabletLocator.getLocator(context, extent.tableId());
 
     locator.invalidateCache(extent);
 

@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.groupingBy;
+import static org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.pathToCacheId;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -62,7 +63,6 @@ import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -76,7 +76,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.util.Retry;
@@ -124,11 +123,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     TableId tableId = Tables.getTableId(context, tableName);
 
-    Map<String,String> props = context.instanceOperations().getSystemConfiguration();
-    AccumuloConfiguration conf = new ConfigurationCopy(props);
-
-    FileSystem fs =
-        VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf).getFileSystem();
+    FileSystem fs = VolumeConfiguration.fileSystemForPath(dir, context.getHadoopConf());
 
     Path srcPath = checkPath(fs, dir);
 
@@ -197,13 +192,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
    * Check path of bulk directory and permissions
    */
   private Path checkPath(FileSystem fs, String dir) throws IOException, AccumuloException {
-    Path ret;
-
-    if (dir.contains(":")) {
-      ret = new Path(dir);
-    } else {
-      ret = fs.makeQualified(new Path(dir));
-    }
+    Path ret = dir.contains(":") ? new Path(dir) : fs.makeQualified(new Path(dir));
 
     try {
       if (!fs.getFileStatus(ret).isDirectory()) {
@@ -313,35 +302,25 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   public interface KeyExtentCache {
-    KeyExtent lookup(Text row)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+    KeyExtent lookup(Text row);
   }
 
   public static List<KeyExtent> findOverlappingTablets(KeyExtentCache extentCache,
-      FileSKVIterator reader)
-      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
-
-    Text startRow = null;
-    Text endRow = null;
+      FileSKVIterator reader) throws IOException {
 
     List<KeyExtent> result = new ArrayList<>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
-    Text row = startRow;
-    if (row == null)
-      row = new Text();
+    Text row = new Text();
     while (true) {
-      // log.debug(filename + " Seeking to row " + row);
       reader.seek(new Range(row, null), columnFamilies, false);
       if (!reader.hasTop()) {
-        // log.debug(filename + " not found");
         break;
       }
       row = reader.getTopKey().getRow();
       KeyExtent extent = extentCache.lookup(row);
-      // log.debug(filename + " found row " + row + " at location " + tabletLocation);
       result.add(extent);
-      row = extent.getEndRow();
-      if (row != null && (endRow == null || row.compareTo(endRow) < 0)) {
+      row = extent.endRow();
+      if (row != null) {
         row = nextRow(row);
       } else
         break;
@@ -358,8 +337,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   public static List<KeyExtent> findOverlappingTablets(ClientContext context,
       KeyExtentCache extentCache, Path file, FileSystem fs, Cache<String,Long> fileLenCache,
-      CryptoService cs)
-      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      CryptoService cs) throws IOException {
     try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
         .forFile(file.toString(), fs, fs.getConf(), cs)
         .withTableConfiguration(context.getConfiguration()).withFileLenCache(fileLenCache)
@@ -372,7 +350,6 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     HashMap<String,Long> fileLens = new HashMap<>();
     for (FileStatus status : statuses) {
       fileLens.put(status.getPath().getName(), status.getLen());
-      status.getLen();
     }
 
     return fileLens;
@@ -382,9 +359,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Map<String,Long> fileLens = getFileLenMap(statuses);
 
     Map<String,Long> absFileLens = new HashMap<>();
-    fileLens.forEach((k, v) -> {
-      absFileLens.put(CachableBlockFile.pathToCacheId(new Path(dir, k)), v);
-    });
+    fileLens.forEach((k, v) -> absFileLens.put(pathToCacheId(new Path(dir, k)), v));
 
     Cache<String,Long> fileLenCache = CacheBuilder.newBuilder().build();
 
@@ -451,8 +426,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   private Set<KeyExtent> mapDestinationsToExtents(TableId tableId, KeyExtentCache kec,
-      List<Destination> destinations)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      List<Destination> destinations) {
     Set<KeyExtent> extents = new HashSet<>();
 
     for (Destination dest : destinations) {
@@ -467,8 +441,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
         extents.add(extent);
 
-        while (!extent.contains(endRow) && extent.getEndRow() != null) {
-          extent = kec.lookup(nextRow(extent.getEndRow()));
+        while (!extent.contains(endRow) && extent.endRow() != null) {
+          extent = kec.lookup(nextRow(extent.endRow()));
           extents.add(extent);
         }
 
@@ -581,9 +555,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     for (CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future : futures) {
       try {
         Map<KeyExtent,Bulk.FileInfo> pathMapping = future.get();
-        pathMapping.forEach((extent, path) -> {
-          mappings.computeIfAbsent(extent, k -> new Bulk.Files()).add(path);
-        });
+        pathMapping.forEach((ext, fi) -> mappings.computeIfAbsent(ext, k -> new Files()).add(fi));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new RuntimeException(e);

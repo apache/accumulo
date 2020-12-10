@@ -91,21 +91,11 @@ public class TabletServerMetricsUtil {
   }
 
   public int getMajorCompactions() {
-    int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      if (tablet.isMajorCompactionRunning())
-        result++;
-    }
-    return result;
+    return tserver.getCompactionManager().getCompactionsRunning();
   }
 
   public int getMajorCompactionsQueued() {
-    int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      if (tablet.isMajorCompactionQueued())
-        result++;
-    }
-    return result;
+    return tserver.getCompactionManager().getCompactionsQueued();
   }
 
   public int getMinorCompactions() {

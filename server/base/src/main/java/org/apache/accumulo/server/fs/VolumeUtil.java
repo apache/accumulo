@@ -57,8 +57,9 @@ public class VolumeUtil {
   }
 
   public static Path removeTrailingSlash(Path path) {
-    if (path.toString().endsWith("/"))
-      return new Path(removeTrailingSlash(path.toString()));
+    String pathStr = path.toString();
+    if (pathStr.endsWith("/"))
+      return new Path(removeTrailingSlash(pathStr));
     return path;
   }
 
@@ -104,7 +105,7 @@ public class VolumeUtil {
       return null;
     }
 
-    LogEntry newLogEntry = new LogEntry(le.extent, le.timestamp, le.server, switchedString);
+    LogEntry newLogEntry = le.switchFile(switchedString);
 
     log.trace("Switched {} to {}", le, newLogEntry);
 

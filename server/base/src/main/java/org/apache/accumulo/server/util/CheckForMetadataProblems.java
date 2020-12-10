@@ -22,19 +22,20 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
@@ -43,69 +44,69 @@ import org.apache.htrace.TraceScope;
 public class CheckForMetadataProblems {
   private static boolean sawProblems = false;
 
-  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets) {
+  private static void checkTable(TableId tableId, TreeSet<KeyExtent> tablets) {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
 
     if (tablets.isEmpty()) {
-      System.out.println("No entries found in metadata table for table " + tablename);
+      System.out.println("No entries found in metadata table for table " + tableId);
       sawProblems = true;
       return;
     }
 
-    if (tablets.first().getPrevEndRow() != null) {
-      System.out.println("First entry for table " + tablename + "- " + tablets.first()
+    if (tablets.first().prevEndRow() != null) {
+      System.out.println("First entry for table " + tableId + "- " + tablets.first()
           + " - has non null prev end row");
       sawProblems = true;
       return;
     }
 
-    if (tablets.last().getEndRow() != null) {
+    if (tablets.last().endRow() != null) {
       System.out.println(
-          "Last entry for table " + tablename + "- " + tablets.last() + " - has non null end row");
+          "Last entry for table " + tableId + "- " + tablets.last() + " - has non null end row");
       sawProblems = true;
       return;
     }
 
     Iterator<KeyExtent> tabIter = tablets.iterator();
-    Text lastEndRow = tabIter.next().getEndRow();
+    Text lastEndRow = tabIter.next().endRow();
     boolean everythingLooksGood = true;
     while (tabIter.hasNext()) {
       KeyExtent tabke = tabIter.next();
       boolean broke = false;
-      if (tabke.getPrevEndRow() == null) {
+      if (tabke.prevEndRow() == null) {
         System.out
-            .println("Table " + tablename + " has null prev end row in middle of table " + tabke);
+            .println("Table " + tableId + " has null prev end row in middle of table " + tabke);
         broke = true;
-      } else if (!tabke.getPrevEndRow().equals(lastEndRow)) {
+      } else if (!tabke.prevEndRow().equals(lastEndRow)) {
         System.out.println(
-            "Table " + tablename + " has a hole " + tabke.getPrevEndRow() + " != " + lastEndRow);
+            "Table " + tableId + " has a hole " + tabke.prevEndRow() + " != " + lastEndRow);
         broke = true;
       }
       if (broke) {
         everythingLooksGood = false;
       }
 
-      lastEndRow = tabke.getEndRow();
+      lastEndRow = tabke.endRow();
     }
     if (everythingLooksGood)
-      System.out.println("All is well for table " + tablename);
+      System.out.println("All is well for table " + tableId);
     else
       sawProblems = true;
   }
 
-  public static void checkMetadataAndRootTableEntries(String tableNameToCheck, ServerUtilOpts opts)
+  private static void checkMetadataAndRootTableEntries(String tableNameToCheck, ServerUtilOpts opts)
       throws Exception {
     System.out.println("Checking table: " + tableNameToCheck);
-    Map<String,TreeSet<KeyExtent>> tables = new HashMap<>();
+    Map<TableId,TreeSet<KeyExtent>> tables = new HashMap<>();
 
     try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
 
       Scanner scanner = client.createScanner(tableNameToCheck, Authorizations.EMPTY);
 
-      scanner.setRange(MetadataSchema.TabletsSection.getRange());
-      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+      scanner.setRange(TabletsSection.getRange());
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
 
       Text colf = new Text();
       Text colq = new Text();
@@ -119,28 +120,24 @@ public class CheckForMetadataProblems {
 
         count++;
 
-        String tableName =
-            (new KeyExtent(entry.getKey().getRow(), (Text) null)).getTableId().canonical();
+        TableId tableId = KeyExtent.fromMetaRow(entry.getKey().getRow()).tableId();
 
-        TreeSet<KeyExtent> tablets = tables.get(tableName);
+        TreeSet<KeyExtent> tablets = tables.get(tableId);
         if (tablets == null) {
-          Set<Entry<String,TreeSet<KeyExtent>>> es = tables.entrySet();
 
-          for (Entry<String,TreeSet<KeyExtent>> entry2 : es) {
-            checkTable(entry2.getKey(), entry2.getValue());
-          }
+          tables.forEach(CheckForMetadataProblems::checkTable);
 
           tables.clear();
 
           tablets = new TreeSet<>();
-          tables.put(tableName, tablets);
+          tables.put(tableId, tablets);
         }
 
-        if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
-          KeyExtent tabletKe = new KeyExtent(entry.getKey().getRow(), entry.getValue());
+        if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
+          KeyExtent tabletKe = KeyExtent.fromMetaPrevRow(entry);
           tablets.add(tabletKe);
           justLoc = false;
-        } else if (colf.equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
+        } else if (colf.equals(CurrentLocationColumnFamily.NAME)) {
           if (justLoc) {
             System.out.println("Problem at key " + entry.getKey());
             sawProblems = true;
@@ -155,11 +152,7 @@ public class CheckForMetadataProblems {
       }
     }
 
-    Set<Entry<String,TreeSet<KeyExtent>>> es = tables.entrySet();
-
-    for (Entry<String,TreeSet<KeyExtent>> entry : es) {
-      checkTable(entry.getKey(), entry.getValue());
-    }
+    tables.forEach(CheckForMetadataProblems::checkTable);
 
     if (!sawProblems) {
       System.out.println("No problems found");

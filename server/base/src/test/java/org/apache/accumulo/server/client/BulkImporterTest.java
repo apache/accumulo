@@ -31,7 +31,9 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -59,9 +61,9 @@ public class BulkImporterTest {
     fakeMetaData.add(new KeyExtent(tableId, new Text("a"), null));
     for (String part : new String[] {"b", "bm", "c", "cm", "d", "dm", "e", "em", "f", "g", "h", "i",
         "j", "k", "l"}) {
-      fakeMetaData.add(new KeyExtent(tableId, new Text(part), fakeMetaData.last().getEndRow()));
+      fakeMetaData.add(new KeyExtent(tableId, new Text(part), fakeMetaData.last().endRow()));
     }
-    fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().getEndRow()));
+    fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().endRow()));
   }
 
   class MockTabletLocator extends TabletLocator {
@@ -112,8 +114,9 @@ public class BulkImporterTest {
     MockTabletLocator locator = new MockTabletLocator();
     FileSystem fs = FileSystem.getLocal(new Configuration());
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance())
-        .anyTimes();
+    ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    conf.set(Property.INSTANCE_VOLUMES, "file:///");
+    EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
     EasyMock.expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
         .anyTimes();
     EasyMock.replay(context);

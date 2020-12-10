@@ -48,7 +48,6 @@
         <include>com.google.protobuf:protobuf-java</include>
         <include>com.lmax:disruptor</include>
         <include>com.sun.xml.bind</include>
-        <include>commons-beanutils:commons-beanutils</include>
         <include>commons-cli:commons-cli</include>
         <include>commons-codec:commons-codec</include>
         <include>commons-io:commons-io</include>
@@ -72,6 +71,8 @@
         <include>org.apache.logging.log4j:log4j-1.2-api</include>
         <include>org.apache.logging.log4j:log4j-api</include>
         <include>org.apache.logging.log4j:log4j-core</include>
+        <include>org.apache.logging.log4j:log4j-jcl</include>
+        <include>org.apache.logging.log4j:log4j-jul</include>
         <include>org.apache.logging.log4j:log4j-slf4j-impl</include>
         <include>org.apache.logging.log4j:log4j-web</include>
         <include>org.apache.thrift:libthrift</include>

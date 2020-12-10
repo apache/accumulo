@@ -40,6 +40,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -500,7 +501,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       // was a table deleted?
       HashSet<TableId> tableIds = new HashSet<>();
       for (KeyExtent ke : authorizationFailures.keySet())
-        tableIds.add(ke.getTableId());
+        tableIds.add(ke.tableId());
 
       Tables.clearCache(context);
       for (TableId tableId : tableIds)
@@ -509,17 +510,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       synchronized (this) {
         somethingFailed = true;
-        mergeAuthorizationFailures(this.authorizationFailures, authorizationFailures);
+        // add these authorizationFailures to those collected by this batch writer
+        authorizationFailures.forEach((ke, code) -> this.authorizationFailures
+            .computeIfAbsent(ke, k -> new HashSet<>()).add(code));
         this.notifyAll();
       }
     }
-  }
-
-  private void mergeAuthorizationFailures(Map<KeyExtent,Set<SecurityErrorCode>> source,
-      Map<KeyExtent,SecurityErrorCode> addition) {
-    addition.forEach((ke, sec) -> {
-      source.computeIfAbsent(ke, p -> new HashSet<>()).add(sec);
-    });
   }
 
   private synchronized void updateServerErrors(String server, Exception e) {
@@ -602,7 +598,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     synchronized void add(TabletServerMutations<Mutation> tsm) {
       init();
-      tsm.getMutations().forEach((ke, muts) -> recentFailures.addAll(ke.getTableId(), muts));
+      tsm.getMutations().forEach((ke, muts) -> recentFailures.addAll(ke.tableId(), muts));
     }
 
     @Override
@@ -826,7 +822,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           Set<TableId> tableIds = new TreeSet<>();
           for (Map.Entry<KeyExtent,List<Mutation>> entry : mutationBatch.entrySet()) {
             count += entry.getValue().size();
-            tableIds.add(entry.getKey().getTableId());
+            tableIds.add(entry.getKey().tableId());
           }
 
           String msg = "sending " + String.format("%,d", count) + " mutations to "
@@ -872,7 +868,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
           HashSet<TableId> tables = new HashSet<>();
           for (KeyExtent ke : mutationBatch.keySet())
-            tables.add(ke.getTableId());
+            tables.add(ke.tableId());
 
           for (TableId table : tables)
             getLocator(table).invalidateCache(context, location);
@@ -913,11 +909,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
               client.update(tinfo, context.rpcCreds(), entry.getKey().toThrift(),
                   entry.getValue().get(0).toThrift(), DurabilityImpl.toThrift(durability));
             } catch (NotServingTabletException e) {
-              allFailures.addAll(entry.getKey().getTableId(), entry.getValue());
-              getLocator(entry.getKey().getTableId()).invalidateCache(entry.getKey());
+              allFailures.addAll(entry.getKey().tableId(), entry.getValue());
+              getLocator(entry.getKey().tableId()).invalidateCache(entry.getKey());
             } catch (ConstraintViolationException e) {
-              updatedConstraintViolations(
-                  Translator.translate(e.violationSummaries, Translators.TCVST));
+              updatedConstraintViolations(e.violationSummaries.stream()
+                  .map(ConstraintViolationSummary::new).collect(Collectors.toList()));
             }
             timeoutTracker.madeProgress();
           } else {
@@ -944,13 +940,20 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
             UpdateErrors updateErrors = client.closeUpdate(tinfo, usid);
 
-            Map<KeyExtent,Long> failures =
-                Translator.translate(updateErrors.failedExtents, Translators.TKET);
-            updatedConstraintViolations(
-                Translator.translate(updateErrors.violationSummaries, Translators.TCVST));
-            updateAuthorizationFailures(
-                Translator.translate(updateErrors.authorizationFailures, Translators.TKET));
-
+            // @formatter:off
+            Map<KeyExtent,Long> failures = updateErrors.failedExtents.entrySet().stream().collect(Collectors.toMap(
+                            entry -> KeyExtent.fromThrift(entry.getKey()),
+                            Entry::getValue
+            ));
+            // @formatter:on
+            updatedConstraintViolations(updateErrors.violationSummaries.stream()
+                .map(ConstraintViolationSummary::new).collect(Collectors.toList()));
+            // @formatter:off
+            updateAuthorizationFailures(updateErrors.authorizationFailures.entrySet().stream().collect(Collectors.toMap(
+                            entry -> KeyExtent.fromThrift(entry.getKey()),
+                            Entry::getValue
+            )));
+            // @formatter:on
             long totalCommitted = 0;
 
             for (Entry<KeyExtent,Long> entry : failures.entrySet()) {
@@ -958,7 +961,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
               int numCommitted = (int) (long) entry.getValue();
               totalCommitted += numCommitted;
 
-              TableId tableId = failedExtent.getTableId();
+              TableId tableId = failedExtent.tableId();
 
               getLocator(tableId).invalidateCache(failedExtent);
 

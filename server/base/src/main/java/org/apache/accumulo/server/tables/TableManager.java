@@ -36,8 +36,6 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
@@ -112,78 +110,44 @@ public class TableManager {
     return tableStateCache.get(tableId);
   }
 
-  public static class IllegalTableTransitionException extends Exception {
-    private static final long serialVersionUID = 1L;
-
-    final TableState oldState;
-    final TableState newState;
-    final String message;
-
-    public IllegalTableTransitionException(TableState oldState, TableState newState) {
-      this(oldState, newState, "");
-    }
-
-    public IllegalTableTransitionException(TableState oldState, TableState newState,
-        String message) {
-      this.oldState = oldState;
-      this.newState = newState;
-
-      if (message != null && !message.isEmpty())
-        this.message = message;
-      else {
-        this.message = "Error transitioning from " + oldState + " state to " + newState + " state";
-      }
-    }
-
-    @Override
-    public String getMessage() {
-      return message;
-    }
-
-  }
-
   public synchronized void transitionTableState(final TableId tableId, final TableState newState) {
     Preconditions.checkArgument(newState != TableState.UNKNOWN);
     String statePath = zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
 
     try {
-      zoo.mutate(statePath, newState.name().getBytes(UTF_8), ZooUtil.PUBLIC, new Mutator() {
-        @Override
-        public byte[] mutate(byte[] oldData) throws Exception {
-          TableState oldState = TableState.UNKNOWN;
-          if (oldData != null)
-            oldState = TableState.valueOf(new String(oldData, UTF_8));
+      zoo.mutateOrCreate(statePath, newState.name().getBytes(UTF_8), oldData -> {
+        TableState oldState = TableState.UNKNOWN;
+        if (oldData != null)
+          oldState = TableState.valueOf(new String(oldData, UTF_8));
 
-          // this check makes the transition operation idempotent
-          if (oldState == newState)
-            return null; // already at desired state, so nothing to do
+        // this check makes the transition operation idempotent
+        if (oldState == newState)
+          return null; // already at desired state, so nothing to do
 
-          boolean transition = true;
-          // +--------+
-          // v |
-          // NEW -> (ONLINE|OFFLINE)+--- DELETING
-          switch (oldState) {
-            case NEW:
-              transition = (newState == TableState.OFFLINE || newState == TableState.ONLINE);
-              break;
-            case ONLINE: // fall-through intended
-            case UNKNOWN:// fall through intended
-            case OFFLINE:
-              transition = (newState != TableState.NEW);
-              break;
-            case DELETING:
-              // Can't transition to any state from DELETING
-              transition = false;
-              break;
-          }
-          if (!transition)
-            throw new IllegalTableTransitionException(oldState, newState);
-          log.debug("Transitioning state for table {} from {} to {}", tableId, oldState, newState);
-          return newState.name().getBytes(UTF_8);
+        boolean transition = true;
+        // +--------+
+        // v |
+        // NEW -> (ONLINE|OFFLINE)+--- DELETING
+        switch (oldState) {
+          case NEW:
+            transition = (newState == TableState.OFFLINE || newState == TableState.ONLINE);
+            break;
+          case ONLINE: // fall-through intended
+          case UNKNOWN:// fall through intended
+          case OFFLINE:
+            transition = (newState != TableState.NEW);
+            break;
+          case DELETING:
+            // Can't transition to any state from DELETING
+            transition = false;
+            break;
         }
+        if (!transition)
+          throw new IllegalTableTransitionException(oldState, newState);
+        log.debug("Transitioning state for table {} from {} to {}", tableId, oldState, newState);
+        return newState.name().getBytes(UTF_8);
       });
     } catch (Exception e) {
-      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       log.error("FATAL Failed to transition table to state {}", newState);
       throw new RuntimeException(e);
     }
@@ -216,25 +180,24 @@ public class TableManager {
     }
   }
 
-  public void addTable(TableId tableId, NamespaceId namespaceId, String tableName,
-      NodeExistsPolicy existsPolicy)
+  public void addTable(TableId tableId, NamespaceId namespaceId, String tableName)
       throws KeeperException, InterruptedException, NamespaceNotFoundException {
     prepareNewTableState(zoo, instanceID, tableId, namespaceId, tableName, TableState.NEW,
-        existsPolicy);
+        NodeExistsPolicy.OVERWRITE);
     updateTableStateCache(tableId);
   }
 
   public void cloneTable(TableId srcTableId, TableId tableId, String tableName,
-      NamespaceId namespaceId, Map<String,String> propertiesToSet, Set<String> propertiesToExclude,
-      NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
+      NamespaceId namespaceId, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
+      throws KeeperException, InterruptedException {
     prepareNewTableState(zoo, instanceID, tableId, namespaceId, tableName, TableState.NEW,
-        existsPolicy);
+        NodeExistsPolicy.OVERWRITE);
 
     String srcTablePath = Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + srcTableId
         + Constants.ZTABLE_CONF;
     String newTablePath = Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_CONF;
-    zoo.recursiveCopyPersistent(srcTablePath, newTablePath, NodeExistsPolicy.OVERWRITE);
+    zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
     for (Entry<String,String> entry : propertiesToSet.entrySet())
       TablePropUtil.setTableProperty(context, tableId, entry.getKey(), entry.getValue());
@@ -317,8 +280,7 @@ public class TableManager {
         case None:
           switch (event.getState()) {
             case Expired:
-              if (log.isTraceEnabled())
-                log.trace("Session expired {}", event);
+              log.trace("Session expired {}", event);
               synchronized (observers) {
                 for (TableObserver to : observers)
                   to.sessionExpired();
@@ -326,8 +288,7 @@ public class TableManager {
               break;
             case SyncConnected:
             default:
-              if (log.isTraceEnabled())
-                log.trace("Ignored {}", event);
+              log.trace("Ignored {}", event);
           }
           break;
         default:

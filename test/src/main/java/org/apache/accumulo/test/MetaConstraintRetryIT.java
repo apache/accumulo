@@ -50,7 +50,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
       Writer w = new Writer(context, MetadataTable.ID);
       KeyExtent extent = new KeyExtent(TableId.of("5"), null, null);
 
-      Mutation m = new Mutation(extent.getMetadataEntry());
+      Mutation m = new Mutation(extent.toMetaRow());
       // unknown columns should cause constraint violation
       m.put("badcolfam", "badcolqual", "3");
 

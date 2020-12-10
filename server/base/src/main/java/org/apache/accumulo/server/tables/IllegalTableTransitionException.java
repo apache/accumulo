@@ -16,8 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.master.state;
+package org.apache.accumulo.server.tables;
 
-public enum TabletState {
-  UNASSIGNED, ASSIGNED, HOSTED, ASSIGNED_TO_DEAD_SERVER, SUSPENDED
+import org.apache.accumulo.core.master.state.tables.TableState;
+
+public class IllegalTableTransitionException extends RuntimeException {
+  private static final long serialVersionUID = 1L;
+
+  public IllegalTableTransitionException(TableState oldState, TableState newState) {
+    super("Error transitioning from " + oldState + " state to " + newState + " state");
+  }
+
 }

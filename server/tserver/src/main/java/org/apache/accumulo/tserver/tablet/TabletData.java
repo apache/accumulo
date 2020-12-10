@@ -27,12 +27,12 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.master.state.TServerInstance;
 
 /*
  * Basic information needed to create a tablet.
@@ -60,7 +60,7 @@ public class TabletData {
     scanFiles.addAll(meta.getScans());
 
     if (meta.getLast() != null)
-      this.lastLocation = new TServerInstance(meta.getLast());
+      this.lastLocation = meta.getLast();
 
     dataFiles.putAll(meta.getFilesMap());
 

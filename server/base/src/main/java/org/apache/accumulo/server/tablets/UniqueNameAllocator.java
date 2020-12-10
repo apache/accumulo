@@ -25,8 +25,6 @@ import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 
 /**
@@ -55,15 +53,10 @@ public class UniqueNameAllocator {
       final int allocate = 100 + rand.nextInt(100);
 
       try {
-        byte[] max = context.getZooReaderWriter().mutate(nextNamePath, null, ZooUtil.PRIVATE,
-            new ZooReaderWriter.Mutator() {
-              @Override
-              public byte[] mutate(byte[] currentValue) {
-                long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
-                l += allocate;
-                return Long.toString(l, Character.MAX_RADIX).getBytes(UTF_8);
-              }
-            });
+        byte[] max = context.getZooReaderWriter().mutateExisting(nextNamePath, currentValue -> {
+          long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
+          return Long.toString(l + allocate, Character.MAX_RADIX).getBytes(UTF_8);
+        });
 
         maxAllocated = Long.parseLong(new String(max, UTF_8), Character.MAX_RADIX);
         next = maxAllocated - allocate;

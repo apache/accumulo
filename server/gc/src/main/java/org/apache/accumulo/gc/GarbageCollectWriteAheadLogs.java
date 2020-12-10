@@ -36,8 +36,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
@@ -50,9 +53,6 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.master.LiveTServerSet;
-import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -343,11 +343,11 @@ public class GarbageCollectWriteAheadLogs {
       }
 
       final Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      scanner.fetchColumnFamily(MetadataSchema.ReplicationSection.COLF);
-      scanner.setRange(MetadataSchema.ReplicationSection.getRange());
+      scanner.fetchColumnFamily(ReplicationSection.COLF);
+      scanner.setRange(ReplicationSection.getRange());
       for (Entry<Key,Value> entry : scanner) {
         Text file = new Text();
-        MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);
+        ReplicationSection.getFile(entry.getKey(), file);
         UUID id = path2uuid(new Path(file.toString()));
         candidates.remove(id);
         log.info("Ignore closed log " + id + " because it is being replicated");

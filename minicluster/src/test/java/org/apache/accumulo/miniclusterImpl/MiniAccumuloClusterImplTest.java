@@ -89,7 +89,7 @@ public class MiniAccumuloClusterImplTest {
 
     assertTrue(procs.containsKey(ServerType.GARBAGE_COLLECTOR));
 
-    for (ServerType t : new ServerType[] {ServerType.MASTER, ServerType.TABLET_SERVER,
+    for (ServerType t : new ServerType[] {ServerType.MANAGER, ServerType.TABLET_SERVER,
         ServerType.ZOOKEEPER}) {
       assertTrue(procs.containsKey(t));
       Collection<ProcessReference> procRefs = procs.get(t);

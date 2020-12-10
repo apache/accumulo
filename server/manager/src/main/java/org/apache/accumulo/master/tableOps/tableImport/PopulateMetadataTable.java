@@ -41,8 +41,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -124,8 +125,8 @@ class PopulateMetadataTable extends MasterRepo {
             key.readFields(in);
             val.readFields(in);
 
-            Text endRow = new KeyExtent(key.getRow(), (Text) null).getEndRow();
-            Text metadataRow = new KeyExtent(tableInfo.tableId, endRow, null).getMetadataEntry();
+            Text endRow = KeyExtent.fromMetaRow(key.getRow()).endRow();
+            Text metadataRow = new KeyExtent(tableInfo.tableId, endRow, null).toMetaRow();
 
             Text cq;
 
@@ -152,7 +153,7 @@ class PopulateMetadataTable extends MasterRepo {
                   UTF_8);
 
               m = new Mutation(metadataRow);
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
+              ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
               currentRow = metadataRow;
             }
 
@@ -166,13 +167,12 @@ class PopulateMetadataTable extends MasterRepo {
                   UTF_8);
 
               m = new Mutation(metadataRow);
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
+              ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
             }
 
             m.put(key.getColumnFamily(), cq, val);
 
-            if (endRow == null
-                && TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+            if (endRow == null && TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
               mbw.addMutation(m);
               break; // its the last column in the last row
             }

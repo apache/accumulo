@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.master;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
@@ -64,6 +65,7 @@ import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -78,14 +80,12 @@ import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.balancer.TabletBalancer;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
@@ -118,7 +118,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
       throws ThriftSecurityException, ThriftTableOperationException {
     TableId tableId = TableId.of(tableIdStr);
     NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
-    master.security.canFlush(c, tableId, namespaceId);
+    if (!master.security.canFlush(c, tableId, namespaceId))
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     String zTablePath = Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_FLUSH_ID;
@@ -126,13 +127,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
     ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
     byte[] fid;
     try {
-      fid = zoo.mutate(zTablePath, null, null, new Mutator() {
-        @Override
-        public byte[] mutate(byte[] currentValue) {
-          long flushID = Long.parseLong(new String(currentValue));
-          flushID++;
-          return ("" + flushID).getBytes();
-        }
+      fid = zoo.mutateExisting(zTablePath, currentValue -> {
+        long flushID = Long.parseLong(new String(currentValue, UTF_8));
+        return Long.toString(flushID + 1).getBytes(UTF_8);
       });
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
@@ -151,7 +148,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
       throws ThriftSecurityException, ThriftTableOperationException {
     TableId tableId = TableId.of(tableIdStr);
     NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
-    master.security.canFlush(c, tableId, namespaceId);
+    if (!master.security.canFlush(c, tableId, namespaceId))
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     Text startRow = ByteBufferUtil.toText(startRowBB);
     Text endRow = ByteBufferUtil.toText(endRowBB);
@@ -198,7 +196,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
           if ((tablet.hasCurrent() || logs > 0) && tablet.getFlushId().orElse(-1) < flushID) {
             tabletsToWaitFor++;
             if (tablet.hasCurrent())
-              serversToFlush.add(new TServerInstance(tablet.getLocation()));
+              serversToFlush.add(tablet.getLocation());
           }
 
           tabletCount++;
@@ -253,7 +251,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public void shutdown(TInfo info, TCredentials c, boolean stopTabletServers)
       throws ThriftSecurityException {
-    master.security.canPerformSystemActions(c);
+    if (!master.security.canPerformSystemActions(c))
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     if (stopTabletServers) {
       master.setMasterGoalState(MasterGoalState.CLEAN_STOP);
       EventCoordinator.Listener eventListener = master.nextEvent.getListener();
@@ -267,7 +266,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public void shutdownTabletServer(TInfo info, TCredentials c, String tabletServer, boolean force)
       throws ThriftSecurityException {
-    master.security.canPerformSystemActions(c);
+    if (!master.security.canPerformSystemActions(c))
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     final TServerInstance doomed = master.tserverSet.find(tabletServer);
     if (!force) {
@@ -292,14 +292,15 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public void reportSplitExtent(TInfo info, TCredentials credentials, String serverName,
       TabletSplit split) {
-    KeyExtent oldTablet = new KeyExtent(split.oldTablet);
+    KeyExtent oldTablet = KeyExtent.fromThrift(split.oldTablet);
     if (master.migrations.remove(oldTablet) != null) {
       Master.log.info("Canceled migration of {}", split.oldTablet);
     }
     for (TServerInstance instance : master.tserverSet.getCurrentServers()) {
-      if (serverName.equals(instance.hostPort())) {
+      if (serverName.equals(instance.getHostPort())) {
         master.nextEvent.event("%s reported split %s, %s", serverName,
-            new KeyExtent(split.newTablets.get(0)), new KeyExtent(split.newTablets.get(1)));
+            KeyExtent.fromThrift(split.newTablets.get(0)),
+            KeyExtent.fromThrift(split.newTablets.get(1)));
         return;
       }
     }
@@ -309,7 +310,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public void reportTabletStatus(TInfo info, TCredentials credentials, String serverName,
       TabletLoadState status, TKeyExtent ttablet) {
-    KeyExtent tablet = new KeyExtent(ttablet);
+    KeyExtent tablet = KeyExtent.fromThrift(ttablet);
 
     switch (status) {
       case LOAD_FAILURE:
@@ -339,7 +340,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public void setMasterGoalState(TInfo info, TCredentials c, MasterGoalState state)
       throws ThriftSecurityException {
-    master.security.canPerformSystemActions(c);
+    if (!master.security.canPerformSystemActions(c))
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     master.setMasterGoalState(state);
   }
@@ -347,7 +349,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public void removeSystemProperty(TInfo info, TCredentials c, String property)
       throws ThriftSecurityException {
-    master.security.canPerformSystemActions(c);
+    if (!master.security.canPerformSystemActions(c))
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     try {
       SystemPropUtil.removeSystemProperty(master.getContext(), property);
@@ -361,7 +364,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public void setSystemProperty(TInfo info, TCredentials c, String property, String value)
       throws ThriftSecurityException, TException {
-    master.security.canPerformSystemActions(c);
+    if (!master.security.canPerformSystemActions(c))
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     try {
       SystemPropUtil.setSystemProperty(master.getContext(), property, value);
@@ -465,7 +469,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     Set<TServerInstance> tserverInstances = master.onlineTabletServers();
     List<String> servers = new ArrayList<>();
     for (TServerInstance tserverInstance : tserverInstances) {
-      servers.add(tserverInstance.getLocation().toString());
+      servers.add(tserverInstance.getHostPort());
     }
 
     return servers;

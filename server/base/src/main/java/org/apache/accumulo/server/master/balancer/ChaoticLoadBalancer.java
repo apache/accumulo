@@ -34,8 +34,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -52,17 +52,10 @@ import org.slf4j.LoggerFactory;
 public class ChaoticLoadBalancer extends TabletBalancer {
   private static final Logger log = LoggerFactory.getLogger(ChaoticLoadBalancer.class);
 
-  @SuppressWarnings("unused")
-  private final String tableName;
-
-  public ChaoticLoadBalancer() {
-    this.tableName = null;
-  }
+  public ChaoticLoadBalancer() {}
 
   // Required constructor
-  public ChaoticLoadBalancer(String tableName) {
-    this.tableName = tableName;
-  }
+  public ChaoticLoadBalancer(String tableName) {}
 
   Random r = new SecureRandom();
 
@@ -140,7 +133,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
           continue;
         try {
           for (TabletStats ts : getOnlineTabletsForTable(e.getKey(), id)) {
-            KeyExtent ke = new KeyExtent(ts.extent);
+            KeyExtent ke = KeyExtent.fromThrift(ts.extent);
             int index = r.nextInt(underCapacityTServer.size());
             TServerInstance dest = underCapacityTServer.get(index);
             if (dest.equals(e.getKey()))

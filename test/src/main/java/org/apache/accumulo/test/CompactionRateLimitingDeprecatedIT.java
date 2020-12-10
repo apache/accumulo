@@ -16,16 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.tabletserver;
+package org.apache.accumulo.test;
 
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.conf.Property;
 
-public interface TabletState {
-  KeyExtent getExtent();
-
-  long getLastCommitTime();
-
-  long getMemTableSize();
-
-  long getMinorCompactingMemTableSize();
+public class CompactionRateLimitingDeprecatedIT extends CompactionRateLimitingIT {
+  @Override
+  @SuppressWarnings("removal")
+  protected Property getThroughputProp() {
+    return Property.TSERV_MAJC_THROUGHPUT;
+  }
 }

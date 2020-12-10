@@ -45,8 +45,8 @@ import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -81,26 +81,19 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
     String zpath = context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES;
     try {
-      context.getZooReaderWriter().mutate(zpath, new byte[0], ZooUtil.PUBLIC, currVal -> {
+      context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
-
         RootGcCandidates rgcc = RootGcCandidates.fromJson(currJson);
-
         log.debug("Root GC candidates before change : {}", currJson);
-
         mutator.accept(rgcc);
-
         String newJson = rgcc.toJson();
-
         log.debug("Root GC candidates after change  : {}", newJson);
-
         if (newJson.length() > 262_144) {
           log.warn(
               "Root tablet deletion candidates stored in ZK at {} are getting large ({} bytes), is"
                   + " Accumulo GC process running?  Large nodes may cause problems for Zookeeper!",
               zpath, newJson.length());
         }
-
         return newJson.getBytes(UTF_8);
       });
     } catch (Exception e) {
@@ -112,13 +105,33 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
-      mutateRootGcCandidates(rgcc -> rgcc.add(candidates));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.iterator()));
       return;
     }
 
     try (BatchWriter writer = createWriter(tableId)) {
       for (StoredTabletFile file : candidates) {
         writer.addMutation(createDeleteMutation(file));
+      }
+    } catch (MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public void putGcFileAndDirCandidates(TableId tableId, Collection<String> candidates) {
+
+    if (RootTable.ID.equals(tableId)) {
+
+      // Directories are unexpected for the root tablet, so convert to stored tablet file
+      mutateRootGcCandidates(
+          rgcc -> rgcc.add(candidates.stream().map(StoredTabletFile::new).iterator()));
+      return;
+    }
+
+    try (BatchWriter writer = createWriter(tableId)) {
+      for (String fileOrDir : candidates) {
+        writer.addMutation(createDeleteMutation(fileOrDir));
       }
     } catch (MutationsRejectedException e) {
       throw new RuntimeException(e);
@@ -144,6 +157,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
   }
 
+  @Override
   public Iterator<String> getGcCandidates(DataLevel level, String continuePoint) {
     if (level == DataLevel.ROOT) {
       byte[] json = context.getZooCache()
@@ -171,7 +185,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       }
       scanner.setRange(range);
       return StreamSupport.stream(scanner.spliterator(), false)
-          .filter(entry -> entry.getValue().equals(DeletesSection.SkewedKeyValue.NAME))
+          .filter(entry -> entry.getValue().equals(SkewedKeyValue.NAME))
           .map(entry -> DeletesSection.decodeRow(entry.getKey().getRow().toString())).iterator();
     } else {
       throw new IllegalArgumentException();
@@ -193,16 +207,17 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
   }
 
-  public static Mutation createDeleteMutation(String pathToRemove) {
-    String path = TabletFileUtil.validate(pathToRemove);
+  @Override
+  public Mutation createDeleteMutation(String tabletFilePathToRemove) {
+    String path = TabletFileUtil.validate(tabletFilePathToRemove);
     return createDelMutation(path);
   }
 
-  public static Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
+  public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
     return createDelMutation(pathToRemove.getMetaUpdateDelete());
   }
 
-  private static Mutation createDelMutation(String path) {
+  private Mutation createDelMutation(String path) {
     Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path)));
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.SkewedKeyValue.NAME);
     return delFlag;

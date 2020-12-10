@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -69,13 +71,13 @@ class ZooTabletStateStore implements TabletStateStore {
           Location loc = rootMeta.getLocation();
 
           if (loc != null && loc.getType() == LocationType.FUTURE)
-            futureSession = new TServerInstance(loc);
+            futureSession = loc;
 
           if (rootMeta.getLast() != null)
-            lastSession = new TServerInstance(rootMeta.getLast());
+            lastSession = rootMeta.getLast();
 
           if (loc != null && loc.getType() == LocationType.CURRENT) {
-            currentSession = new TServerInstance(loc);
+            currentSession = loc;
           }
 
           List<Collection<String>> logs = new ArrayList<>();
@@ -84,9 +86,8 @@ class ZooTabletStateStore implements TabletStateStore {
             log.debug("root tablet log {}", logEntry.filename);
           });
 
-          TabletLocationState result = new TabletLocationState(RootTable.EXTENT, futureSession,
-              currentSession, lastSession, null, logs, false);
-          return result;
+          return new TabletLocationState(RootTable.EXTENT, futureSession, currentSession,
+              lastSession, null, logs, false);
         } catch (Exception ex) {
           throw new RuntimeException(ex);
         }
@@ -148,8 +149,8 @@ class ZooTabletStateStore implements TabletStateStore {
       List<Path> logs = logsForDeadServers.get(tls.futureOrCurrent());
       if (logs != null) {
         for (Path entry : logs) {
-          LogEntry logEntry = new LogEntry(RootTable.EXTENT, System.currentTimeMillis(),
-              tls.futureOrCurrent().getLocation().toString(), entry.toString());
+          LogEntry logEntry =
+              new LogEntry(RootTable.EXTENT, System.currentTimeMillis(), entry.toString());
           tabletMutator.putWal(logEntry);
         }
       }

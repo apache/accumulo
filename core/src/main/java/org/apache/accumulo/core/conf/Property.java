@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -39,8 +40,6 @@ import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +105,9 @@ public enum Property {
           + " org.apache.accumulo.server.util.ChangeSecret"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
       "A comma separated list of dfs uris to use. Files will be stored across"
-          + " these filesystems. If this is empty, then instance.dfs.uri will be used."
+          + " these filesystems. In some situations, the first volume in this list"
+          + " may be treated differently, such as being preferred for writing out"
+          + " temporary files (for example, when creating a pre-split table)."
           + " After adding uris to this list, run 'accumulo init --add-volume' and then"
           + " restart tservers. If entries are removed from this list then tservers"
           + " will need to be restarted. After a uri is removed from the list Accumulo"
@@ -130,14 +131,17 @@ public enum Property {
       "The volume dfs uri containing relative tablet file paths. Relative paths may exist in the metadata from "
           + "versions prior to 1.6. This property is only required if a relative path is detected "
           + "during the upgrade process and will only be used once."),
+  @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user "
           + "has privilege to perform an action"),
+  @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_AUTHORIZOR("instance.security.authorizor",
       "org.apache.accumulo.server.security.handler.ZKAuthorizor", PropertyType.CLASSNAME,
       "The authorizor class that accumulo will use to determine what labels a "
           + "user has privilege to see"),
+  @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_PERMISSION_HANDLER("instance.security.permissionHandler",
       "org.apache.accumulo.server.security.handler.ZKPermHandler", PropertyType.CLASSNAME,
       "The permission handler class that accumulo will use to determine if a "
@@ -181,8 +185,10 @@ public enum Property {
       "Properties in this category affect the behavior of accumulo overall, but"
           + " do not have to be consistent throughout a cloud."),
   @Deprecated(since = "2.0.0")
-  GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME,
-      AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE, PropertyType.STRING,
+  GENERAL_DYNAMIC_CLASSPATHS(
+      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME,
+      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE,
+      PropertyType.STRING,
       "This property is deprecated since 2.0.0. A list of all of the places where changes "
           + "in jars or classes will force a reload of the classloader. Built-in dynamic class "
           + "loading will be removed in a future version. If this is needed, consider overriding "
@@ -191,6 +197,10 @@ public enum Property {
           + "Additionally, this property no longer does property interpolation of environment "
           + "variables, such as '$ACCUMULO_HOME'. Use commons-configuration syntax,"
           + "'${env:ACCUMULO_HOME}' instead."),
+  GENERAL_CONTEXT_CLASSLOADER_FACTORY("general.context.class.loader.factory", "",
+      PropertyType.CLASSNAME,
+      "Name of classloader factory to be used to create classloaders for named contexts,"
+          + " such as per-table contexts set by `table.class.loader.context`."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
       "Time to wait on I/O for simple, short RPC calls"),
   @Experimental
@@ -347,7 +357,7 @@ public enum Property {
       "When a tablet server has more than this many write ahead logs, any tablet referencing older "
           + "logs over this threshold is minor compacted.  Also any tablet referencing this many "
           + "logs or more will be compacted."),
-  TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1g", PropertyType.BYTES,
+  TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1G", PropertyType.BYTES,
       "The maximum size for each write-ahead log. See comment for property"
           + " tserver.memory.maps.max"),
   TSERV_WALOG_MAX_AGE("tserver.walog.max.age", "24h", PropertyType.TIMEDURATION,
@@ -416,6 +426,10 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for root tablet service"),
+  TSERV_COMPACTION_SERVICE_ROOT_RATE_LIMIT("tserver.compaction.major.service.root.rate.limit", "0B",
+      PropertyType.BYTES,
+      "Maximum number of bytes to read or write per second over all major"
+          + " compactions in this compaction service, or 0B for unlimited."),
   TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
       "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
       "The maximum number of files a compaction will open"),
@@ -428,6 +442,10 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for metadata table"),
+  TSERV_COMPACTION_SERVICE_META_RATE_LIMIT("tserver.compaction.major.service.meta.rate.limit", "0B",
+      PropertyType.BYTES,
+      "Maximum number of bytes to read or write per second over all major"
+          + " compactions in this compaction service, or 0B for unlimited."),
   TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
       "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
       "The maximum number of files a compaction will open"),
@@ -440,6 +458,10 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service."),
+  TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT("tserver.compaction.major.service.default.rate.limit",
+      "0B", PropertyType.BYTES,
+      "Maximum number of bytes to read or write per second over all major"
+          + " compactions in this compaction service, or 0B for unlimited."),
   TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
       "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
       "The maximum number of files a compaction will open"),
@@ -458,9 +480,11 @@ public enum Property {
   @ReplacedBy(property = Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS)
   TSERV_MAJC_MAXCONCURRENT("tserver.compaction.major.concurrent.max", "3", PropertyType.COUNT,
       "The maximum number of concurrent major compactions for a tablet server"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT)
   TSERV_MAJC_THROUGHPUT("tserver.compaction.major.throughput", "0B", PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
-          + " compactions on a TabletServer, or 0B for unlimited."),
+          + " compactions within each compaction service, or 0B for unlimited."),
   TSERV_MINC_MAXCONCURRENT("tserver.compaction.minor.concurrent.max", "4", PropertyType.COUNT,
       "The maximum number of concurrent minor compactions for a tablet server"),
   TSERV_MAJC_TRACE_PERCENT("tserver.compaction.major.trace.percent", "0.1", PropertyType.FRACTION,
@@ -553,11 +577,11 @@ public enum Property {
           + " debugging information will be written."),
   TSERV_SUMMARY_PARTITION_THREADS("tserver.summary.partition.threads", "10", PropertyType.COUNT,
       "Summary data must be retrieved from RFiles. For a large number of"
-          + " RFiles, the files are broken into partitions of 100K files. This setting"
-          + " determines how many of these groups of 100K RFiles will be processed"
+          + " RFiles, the files are broken into partitions of 100k files. This setting"
+          + " determines how many of these groups of 100k RFiles will be processed"
           + " concurrently."),
   TSERV_SUMMARY_REMOTE_THREADS("tserver.summary.remote.threads", "128", PropertyType.COUNT,
-      "For a partitioned group of 100K RFiles, those files are grouped by"
+      "For a partitioned group of 100k RFiles, those files are grouped by"
           + " tablet server. Then a remote tablet server is asked to gather summary"
           + " data. This setting determines how many concurrent request are made per"
           + " partition."),
@@ -568,6 +592,8 @@ public enum Property {
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector."),
+  GC_CANDIDATE_BATCH_SIZE("gc.candidate.batch.size", "8M", PropertyType.BYTES,
+      "The batch size used for garbage collection."),
   GC_CYCLE_START("gc.cycle.start", "30s", PropertyType.TIMEDURATION,
       "Time to wait before attempting to garbage collect any old RFiles or write-ahead logs."),
   GC_CYCLE_DELAY("gc.cycle.delay", "5m", PropertyType.TIMEDURATION,
@@ -683,7 +709,7 @@ public enum Property {
           + " place for tablets that have one or more RFiles."),
   TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.BYTES,
       "A tablet is split when the combined size of RFiles exceeds this amount."),
-  TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10K", PropertyType.BYTES,
+  TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row"),
   @Deprecated(since = "2.0.0")
   @ReplacedBy(property = Property.TSERV_WALOG_MAX_REFERENCED)
@@ -726,7 +752,7 @@ public enum Property {
           + " table.  The metadata table always dispatches to a scan executor named `meta`."),
   TABLE_SCAN_DISPATCHER_OPTS("table.scan.dispatcher.opts.", null, PropertyType.PREFIX,
       "Options for the table scan dispatcher"),
-  TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.BYTES,
+  TABLE_SCAN_MAXMEM("table.scan.max.memory", "512k", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client."),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.STRING,
@@ -738,9 +764,9 @@ public enum Property {
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING,
       "Compression algorithm used on index and data blocks before they are"
           + " written. Possible values: zstd, gz, snappy, lzo, none"),
-  TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.BYTES,
+  TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100k", PropertyType.BYTES,
       "The maximum size of data blocks in RFiles before they are compressed and written."),
-  TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128K",
+  TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128k",
       PropertyType.BYTES,
       "The maximum size of index blocks in RFiles before they are compressed and written."),
   TABLE_FILE_BLOCK_SIZE("table.file.blocksize", "0B", PropertyType.BYTES,
@@ -756,7 +782,7 @@ public enum Property {
           + " it default to tserver.scan.files.open.max-1, this will prevent a tablet"
           + " from having more RFiles than can be opened. Setting this property low may"
           + " throttle ingest and increase query performance."),
-  TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256K", PropertyType.BYTES,
+  TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256k", PropertyType.BYTES,
       "The maximum size summary that will be stored. The number of RFiles that"
           + " had summary data exceeding this threshold is reported by"
           + " Summary.getFileStatistics().getLarge(). When adjusting this consider the"
@@ -854,6 +880,11 @@ public enum Property {
       "The Formatter class to apply on results in the shell"),
   TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(),
       PropertyType.STRING, "The ScanInterpreter class to apply on scan arguments in the shell"),
+  TABLE_CLASSLOADER_CONTEXT("table.class.loader.context", "", PropertyType.STRING,
+      "The context to use for loading per-table resources, such as iterators"
+          + " from the configured factory in `general.context.class.loader.factory`."),
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  @ReplacedBy(property = TABLE_CLASSLOADER_CONTEXT)
   TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING,
       "Per table classpath context"),
   TABLE_REPLICATION("table.replication", "false", PropertyType.BOOLEAN,
@@ -902,12 +933,16 @@ public enum Property {
 
   // this property shouldn't be used directly; it exists solely to document the default value
   // defined by its use in AccumuloVFSClassLoader when generating the property documentation
+  @Deprecated(since = "2.1.0", forRemoval = true)
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
-      AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
+      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY,
+      "", PropertyType.STRING,
       "Configuration for a system level vfs classloader. Accumulo jar can be"
           + " configured here and loaded out of HDFS."),
-  VFS_CONTEXT_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY, null,
-      PropertyType.PREFIX,
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  VFS_CONTEXT_CLASSPATH_PROPERTY(
+      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY,
+      null, PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties"
           + " start  with the category prefix, followed by a context name. The value is"
           + " a comma separated list of URIs. Supports full regex on filename alone."
@@ -920,8 +955,10 @@ public enum Property {
 
   // this property shouldn't be used directly; it exists solely to document the default value
   // defined by its use in AccumuloVFSClassLoader when generating the property documentation
-  VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR, "${java.io.tmpdir}",
-      PropertyType.ABSOLUTEPATH,
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  VFS_CLASSLOADER_CACHE_DIR(
+      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CACHE_DIR,
+      "${java.io.tmpdir}", PropertyType.ABSOLUTEPATH,
       "The base directory to use for the vfs cache. The actual cached files will be located"
           + " in a subdirectory, `accumulo-vfs-cache-<jvmProcessName>-${user.name}`, where"
           + " `<jvmProcessName>` is determined by the JVM's internal management engine."
@@ -997,7 +1034,8 @@ public enum Property {
           + "HDFS directory in which accumulo instance will run. "
           + "Do not change after accumulo is initialized."),
   @Deprecated(since = "2.0.0")
-  GENERAL_CLASSPATHS(AccumuloClassLoader.GENERAL_CLASSPATHS, "", PropertyType.STRING,
+  GENERAL_CLASSPATHS(org.apache.accumulo.start.classloader.AccumuloClassLoader.GENERAL_CLASSPATHS,
+      "", PropertyType.STRING,
       "This property is deprecated since 2.0.0. The class path should instead be configured"
           + " by the launch environment (for example, accumulo-env.sh). A list of all"
           + " of the places to look for a class. Order does matter, as it will look for"
@@ -1343,12 +1381,11 @@ public enum Property {
    * @param defaultInstance
    *          instance to use if creation fails
    * @return new class instance, or default instance if creation failed
-   * @see AccumuloVFSClassLoader
    */
   public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf,
       Property property, Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
-    String context = conf.get(TABLE_CLASSPATH);
+    String context = ClassLoaderUtil.tableContext(conf);
     return ConfigurationTypeHelper.getClassInstance(context, clazzName, base, defaultInstance);
   }
 
@@ -1364,7 +1401,6 @@ public enum Property {
    * @param defaultInstance
    *          instance to use if creation fails
    * @return new class instance, or default instance if creation failed
-   * @see AccumuloVFSClassLoader
    */
   public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property,
       Class<T> base, T defaultInstance) {

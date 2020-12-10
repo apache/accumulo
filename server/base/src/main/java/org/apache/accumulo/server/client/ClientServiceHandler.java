@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -60,13 +61,11 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,15 +74,12 @@ public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
   protected final TransactionWatcher transactionWatcher;
   protected final ServerContext context;
-  protected final VolumeManager fs;
   protected final SecurityOperation security;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
-  public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher,
-      VolumeManager fs) {
+  public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher) {
     this.context = context;
     this.transactionWatcher = transactionWatcher;
-    this.fs = fs;
     this.security = AuditedSecurityOperation.getInstance(context);
   }
 
@@ -357,17 +353,16 @@ public class ClientServiceHandler implements ClientService.Iface {
     return transactionWatcher.isActive(tid);
   }
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public boolean checkClass(TInfo tinfo, TCredentials credentials, String className,
       String interfaceMatch) throws TException {
     security.authenticateUser(credentials, credentials);
 
     ClassLoader loader = getClass().getClassLoader();
-    Class shouldMatch;
+    Class<?> shouldMatch;
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
-      Class test = AccumuloVFSClassLoader.loadClass(className, shouldMatch);
+      Class<?> test = ClassLoaderUtil.loadClass(className, shouldMatch);
       test.getDeclaredConstructor().newInstance();
       return true;
     } catch (ClassCastException | ReflectiveOperationException e) {
@@ -389,20 +384,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     Class<?> shouldMatch;
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
-
       AccumuloConfiguration conf = context.getTableConfiguration(tableId);
-
-      String context = conf.get(Property.TABLE_CLASSPATH);
-
-      ClassLoader currentLoader;
-
-      if (context != null && !context.equals("")) {
-        currentLoader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
-      } else {
-        currentLoader = AccumuloVFSClassLoader.getClassLoader();
-      }
-
-      Class<?> test = currentLoader.loadClass(className).asSubclass(shouldMatch);
+      String context = ClassLoaderUtil.tableContext(conf);
+      Class<?> test = ClassLoaderUtil.loadClass(context, className, shouldMatch);
       test.getDeclaredConstructor().newInstance();
       return true;
     } catch (Exception e) {
@@ -424,20 +408,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     Class<?> shouldMatch;
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
-
       AccumuloConfiguration conf = context.getNamespaceConfiguration(namespaceId);
-
-      String context = conf.get(Property.TABLE_CLASSPATH);
-
-      ClassLoader currentLoader;
-
-      if (context != null && !context.equals("")) {
-        currentLoader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
-      } else {
-        currentLoader = AccumuloVFSClassLoader.getClassLoader();
-      }
-
-      Class<?> test = currentLoader.loadClass(className).asSubclass(shouldMatch);
+      String context = ClassLoaderUtil.tableContext(conf);
+      Class<?> test = ClassLoaderUtil.loadClass(context, className, shouldMatch);
       test.getDeclaredConstructor().newInstance();
       return true;
     } catch (Exception e) {
@@ -463,7 +436,8 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
 
       // use the same set of tableIds that were validated above to avoid race conditions
-      Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(tableIds, fs, context);
+      Map<TreeSet<String>,Long> diskUsage =
+          TableDiskUsage.getDiskUsage(tableIds, context.getVolumeManager(), context);
       List<TDiskUsage> retUsages = new ArrayList<>();
       for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
         retUsages.add(new TDiskUsage(new ArrayList<>(usageItem.getKey()), usageItem.getValue()));

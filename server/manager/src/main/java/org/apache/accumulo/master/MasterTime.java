@@ -58,8 +58,8 @@ public class MasterTime extends TimerTask {
 
     try {
       zk.putPersistentData(zPath, "0".getBytes(UTF_8), NodeExistsPolicy.SKIP);
-      skewAmount = new AtomicLong(
-          Long.parseLong(new String(zk.getData(zPath, null), UTF_8)) - System.nanoTime());
+      skewAmount =
+          new AtomicLong(Long.parseLong(new String(zk.getData(zPath), UTF_8)) - System.nanoTime());
     } catch (Exception ex) {
       throw new IOException("Error updating master time", ex);
     }
@@ -91,7 +91,7 @@ public class MasterTime extends TimerTask {
       case INITIAL:
       case STOP:
         try {
-          long zkTime = Long.parseLong(new String(zk.getData(zPath, null), UTF_8));
+          long zkTime = Long.parseLong(new String(zk.getData(zPath), UTF_8));
           skewAmount.set(zkTime - System.nanoTime());
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {

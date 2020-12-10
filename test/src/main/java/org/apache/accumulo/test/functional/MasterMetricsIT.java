@@ -52,6 +52,11 @@ import org.slf4j.LoggerFactory;
  */
 public class MasterMetricsIT extends AccumuloClusterHarness {
 
+  @Override
+  public boolean canRunTest(ClusterType type) {
+    return type == ClusterType.MINI;
+  }
+
   private static final Logger log = LoggerFactory.getLogger(MasterMetricsIT.class);
 
   private AccumuloClient accumuloClient;
@@ -87,7 +92,8 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
 
   @After
   public void cleanup() {
-    metricsTail.close();
+    if (metricsTail != null)
+      metricsTail.close();
   }
 
   @Override

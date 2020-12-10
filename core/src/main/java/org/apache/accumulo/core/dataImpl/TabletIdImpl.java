@@ -37,17 +37,17 @@ public class TabletIdImpl implements TabletId {
 
   @Override
   public Text getTableId() {
-    return new Text(ke.getTableId().canonical());
+    return new Text(ke.tableId().canonical());
   }
 
   @Override
   public Text getEndRow() {
-    return ke.getEndRow();
+    return ke.endRow();
   }
 
   @Override
   public Text getPrevEndRow() {
-    return ke.getPrevEndRow();
+    return ke.prevEndRow();
   }
 
   @Override

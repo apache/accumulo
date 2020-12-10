@@ -34,7 +34,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -44,13 +46,9 @@ import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
-import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
-import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.TraceScope;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,9 +67,9 @@ public class MergeStats {
     this.info = info;
     if (info.getState().equals(MergeState.NONE))
       return;
-    if (info.getExtent().getEndRow() == null)
+    if (info.getExtent().endRow() == null)
       upperSplit = true;
-    if (info.getExtent().getPrevEndRow() == null)
+    if (info.getExtent().prevEndRow() == null)
       lowerSplit = true;
   }
 
@@ -82,12 +80,12 @@ public class MergeStats {
   public void update(KeyExtent ke, TabletState state, boolean chopped, boolean hasWALs) {
     if (info.getState().equals(MergeState.NONE))
       return;
-    if (!upperSplit && info.getExtent().getEndRow().equals(ke.getPrevEndRow())) {
-      log.info("Upper split found: {}", ke.getPrevEndRow());
+    if (!upperSplit && info.getExtent().endRow().equals(ke.prevEndRow())) {
+      log.info("Upper split found: {}", ke.prevEndRow());
       upperSplit = true;
     }
-    if (!lowerSplit && info.getExtent().getPrevEndRow().equals(ke.getEndRow())) {
-      log.info("Lower split found: {}", ke.getEndRow());
+    if (!lowerSplit && info.getExtent().prevEndRow().equals(ke.endRow())) {
+      log.info("Lower split found: {}", ke.endRow());
       lowerSplit = true;
     }
     if (!info.overlaps(ke))
@@ -95,9 +93,7 @@ public class MergeStats {
     if (info.needsToBeChopped(ke)) {
       this.needsToBeChopped++;
       if (chopped) {
-        if (state.equals(TabletState.HOSTED)) {
-          this.chopped++;
-        } else if (!hasWALs) {
+        if (state.equals(TabletState.HOSTED) || !hasWALs) {
           this.chopped++;
         }
       }
@@ -197,14 +193,14 @@ public class MergeStats {
     Scanner scanner = accumuloClient
         .createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
-    Text start = extent.getPrevEndRow();
+    Text start = extent.prevEndRow();
     if (start == null) {
       start = new Text();
     }
-    TableId tableId = extent.getTableId();
-    Text first = TabletsSection.getRow(tableId, start);
+    TableId tableId = extent.tableId();
+    Text first = TabletsSection.encodeRow(tableId, start);
     Range range = new Range(first, false, null, true);
-    scanner.setRange(range.clip(MetadataSchema.TabletsSection.getRange()));
+    scanner.setRange(range.clip(TabletsSection.getRange()));
     KeyExtent prevExtent = null;
 
     log.debug("Scanning range {}", range);
@@ -217,7 +213,7 @@ public class MergeStats {
         return false;
       }
       log.debug("consistency check: {} walogs {}", tls, tls.walogs.size());
-      if (!tls.extent.getTableId().equals(tableId)) {
+      if (!tls.extent.tableId().equals(tableId)) {
         break;
       }
 
@@ -229,7 +225,7 @@ public class MergeStats {
       if (prevExtent == null) {
         // this is the first tablet observed, it must be offline and its prev row must be less than
         // the start of the merge range
-        if (tls.extent.getPrevEndRow() != null && tls.extent.getPrevEndRow().compareTo(start) > 0) {
+        if (tls.extent.prevEndRow() != null && tls.extent.prevEndRow().compareTo(start) > 0) {
           log.debug("failing consistency: prev row is too high {}", start);
           return false;
         }
@@ -250,8 +246,8 @@ public class MergeStats {
       verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped,
           !tls.walogs.isEmpty());
       // stop when we've seen the tablet just beyond our range
-      if (tls.extent.getPrevEndRow() != null && extent.getEndRow() != null
-          && tls.extent.getPrevEndRow().compareTo(extent.getEndRow()) > 0) {
+      if (tls.extent.prevEndRow() != null && extent.endRow() != null
+          && tls.extent.prevEndRow().compareTo(extent.endRow()) > 0) {
         break;
       }
     }
@@ -275,7 +271,7 @@ public class MergeStats {
               + Constants.ZTABLES + "/" + tableId + "/merge";
           MergeInfo info = new MergeInfo();
           if (zooReaderWriter.exists(path)) {
-            byte[] data = zooReaderWriter.getData(path, new Stat());
+            byte[] data = zooReaderWriter.getData(path);
             DataInputBuffer in = new DataInputBuffer();
             in.reset(data, data.length);
             info.readFields(in);

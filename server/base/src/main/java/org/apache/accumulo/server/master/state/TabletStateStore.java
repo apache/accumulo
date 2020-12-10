@@ -25,6 +25,8 @@ import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
@@ -99,7 +101,7 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
   }
 
   static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {
-    return getStoreForLevel(DataLevel.of(extent.getTableId()), context);
+    return getStoreForLevel(DataLevel.of(extent.tableId()), context);
   }
 
   public static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context) {

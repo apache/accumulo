@@ -19,12 +19,9 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
@@ -35,7 +32,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
@@ -71,20 +68,20 @@ public class GetSplitsCommand extends Command {
             MetadataTable.NAME.equals(tableName) ? RootTable.NAME : MetadataTable.NAME;
         final Scanner scanner =
             shellState.getAccumuloClient().createScanner(systemTableToCheck, Authorizations.EMPTY);
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+        TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
         final Text start =
             new Text(shellState.getAccumuloClient().tableOperations().tableIdMap().get(tableName));
         final Text end = new Text(start);
         end.append(new byte[] {'<'}, 0, 1);
         scanner.setRange(new Range(start, end));
         for (final Entry<Key,Value> next : scanner) {
-          if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(next.getKey())) {
-            KeyExtent extent = new KeyExtent(next.getKey().getRow(), next.getValue());
-            final String pr = encode(encode, extent.getPrevEndRow());
-            final String er = encode(encode, extent.getEndRow());
-            final String line = String.format("%-26s (%s, %s%s", obscuredTabletName(extent),
-                pr == null ? "-inf" : pr, er == null ? "+inf" : er,
-                er == null ? ") Default Tablet " : "]");
+          if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(next.getKey())) {
+            KeyExtent extent = KeyExtent.fromMetaPrevRow(next);
+            final String pr = encode(encode, extent.prevEndRow());
+            final String er = encode(encode, extent.endRow());
+            final String line =
+                String.format("%-26s (%s, %s%s", extent.obscured(), pr == null ? "-inf" : pr,
+                    er == null ? "+inf" : er, er == null ? ") Default Tablet " : "]");
             p.print(line);
           }
         }
@@ -108,19 +105,6 @@ public class GetSplitsCommand extends Command {
     final int length = text.getLength();
     return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text))
         : DefaultFormatter.appendText(new StringBuilder(), text, length).toString();
-  }
-
-  private static String obscuredTabletName(final KeyExtent extent) {
-    MessageDigest digester;
-    try {
-      digester = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException(e);
-    }
-    if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
-      digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
-    }
-    return Base64.getEncoder().encodeToString(digester.digest());
   }
 
   @Override

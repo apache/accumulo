@@ -40,11 +40,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -84,8 +84,9 @@ public class TableLoadBalancerTest {
     // generate some fake tablets
     for (int i = 0; i < tableInfo.tableMap.get(tableId.canonical()).onlineTablets; i++) {
       TabletStats stats = new TabletStats();
-      stats.extent = new KeyExtent(tableId, new Text(tserver.host() + String.format("%03d", i + 1)),
-          new Text(tserver.host() + String.format("%03d", i))).toThrift();
+      stats.extent =
+          new KeyExtent(tableId, new Text(tserver.getHost() + String.format("%03d", i + 1)),
+              new Text(tserver.getHost() + String.format("%03d", i))).toThrift();
       result.add(stats);
     }
     return result;
@@ -147,7 +148,11 @@ public class TableLoadBalancerTest {
   public void test() {
     final ServerContext context = createMockContext();
     TableConfiguration conf = createMock(TableConfiguration.class);
-    expect(conf.get(Property.TABLE_CLASSPATH)).andReturn("").anyTimes();
+    @SuppressWarnings("removal")
+    Property TABLE_CLASSPATH = Property.TABLE_CLASSPATH;
+    expect(conf.resolve(Property.TABLE_CLASSLOADER_CONTEXT, TABLE_CLASSPATH))
+        .andReturn(Property.TABLE_CLASSLOADER_CONTEXT).anyTimes();
+    expect(conf.get(Property.TABLE_CLASSLOADER_CONTEXT)).andReturn("").anyTimes();
     expect(context.getTableConfiguration(EasyMock.anyObject())).andReturn(conf).anyTimes();
     replay(context, conf);
 
@@ -177,7 +182,7 @@ public class TableLoadBalancerTest {
       if (migration.oldServer.equals(svr)) {
         count++;
       }
-      TableId key = migration.tablet.getTableId();
+      TableId key = migration.tablet.tableId();
       movedByTable.put(key, movedByTable.get(key) + 1);
     }
     assertEquals(15, count);

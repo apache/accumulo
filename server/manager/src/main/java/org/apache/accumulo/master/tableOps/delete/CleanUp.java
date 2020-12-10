@@ -37,7 +37,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletState;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
@@ -47,8 +49,6 @@ import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
-import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -92,7 +92,7 @@ class CleanUp extends MasterRepo {
     }
 
     boolean done = true;
-    Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();
+    Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     Scanner scanner = master.getContext().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
     scanner.setRange(tableRange);
@@ -129,8 +129,8 @@ class CleanUp extends MasterRepo {
       AccumuloClient client = master.getContext();
       try (BatchScanner bs =
           client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
-        Range allTables = MetadataSchema.TabletsSection.getRange();
-        Range tableRange = MetadataSchema.TabletsSection.getRange(tableId);
+        Range allTables = TabletsSection.getRange();
+        Range tableRange = TabletsSection.getRange(tableId);
         Range beforeTable =
             new Range(allTables.getStartKey(), true, tableRange.getStartKey(), false);
         Range afterTable = new Range(tableRange.getEndKey(), false, allTables.getEndKey(), true);

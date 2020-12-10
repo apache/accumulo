@@ -689,8 +689,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ArrayList<Text> endRows = new ArrayList<>(tabletLocations.size());
 
     for (KeyExtent ke : tabletLocations.keySet())
-      if (ke.getEndRow() != null)
-        endRows.add(ke.getEndRow());
+      if (ke.endRow() != null)
+        endRows.add(ke.endRow());
 
     return endRows;
 
@@ -1176,8 +1176,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       if (unmergedExtents.size() >= 2) {
         KeyExtent first = unmergedExtents.removeFirst();
         KeyExtent second = unmergedExtents.removeFirst();
-        first.setEndRow(second.getEndRow());
-        mergedExtents.add(first);
+        KeyExtent merged = new KeyExtent(first.tableId(), second.endRow(), first.prevEndRow());
+        mergedExtents.add(merged);
       } else {
         mergedExtents.addAll(unmergedExtents);
         unmergedExtents.clear();
@@ -1198,18 +1198,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private Path checkPath(String dir, String kind, String type)
       throws IOException, AccumuloException, AccumuloSecurityException {
-    Path ret;
-    Map<String,String> props = context.instanceOperations().getSystemConfiguration();
-    AccumuloConfiguration conf = new ConfigurationCopy(props);
-
-    FileSystem fs =
-        VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf).getFileSystem();
-
-    if (dir.contains(":")) {
-      ret = new Path(dir);
-    } else {
-      ret = fs.makeQualified(new Path(dir));
-    }
+    FileSystem fs = VolumeConfiguration.fileSystemForPath(dir, context.getHadoopConf());
+    Path ret = dir.contains(":") ? new Path(dir) : fs.makeQualified(new Path(dir));
 
     try {
       if (!fs.getFileStatus(ret).isDirectory()) {
@@ -1282,7 +1272,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       Range range;
       if (startRow == null || lastRow == null)
-        range = new KeyExtent(tableId, null, null).toMetadataRange();
+        range = new KeyExtent(tableId, null, null).toMetaRange();
       else
         range = new Range(startRow, lastRow);
 
@@ -1306,16 +1296,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
             && (loc == null || loc.getType() == LocationType.FUTURE))
             || (expectedState == TableState.OFFLINE && loc != null)) {
           if (continueRow == null)
-            continueRow = tablet.getExtent().getMetadataEntry();
+            continueRow = tablet.getExtent().toMetaRow();
           waitFor++;
-          lastRow = tablet.getExtent().getMetadataEntry();
+          lastRow = tablet.getExtent().toMetaRow();
 
           if (loc != null) {
-            serverCounts.increment(loc.getId(), 1);
+            serverCounts.increment(loc.getHostPortSession(), 1);
           }
         }
 
-        if (!tablet.getExtent().getTableId().equals(tableId)) {
+        if (!tablet.getExtent().tableId().equals(tableId)) {
           throw new AccumuloException(
               "Saw unexpected table Id " + tableId + " " + tablet.getExtent());
         }
@@ -1384,6 +1374,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
+  public boolean isOnline(String tableName) throws AccumuloException, TableNotFoundException {
+    checkArgument(tableName != null, "tableName is null");
+
+    TableId tableId = Tables.getTableId(context, tableName);
+
+    TableState expectedState = Tables.getTableState(context, tableId, true);
+    return expectedState == TableState.ONLINE;
+  }
+
+  @Override
   public void online(String tableName)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     online(tableName, false);
@@ -1400,8 +1400,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
      * ACCUMULO-4574 if table is already online return without executing fate operation.
      */
 
-    TableState expectedState = Tables.getTableState(context, tableId, true);
-    if (expectedState == TableState.ONLINE) {
+    if (isOnline(tableName)) {
       if (wait)
         waitForTableStateTransition(tableId, TableState.ONLINE);
       return;
@@ -1791,11 +1790,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       if (groupedByRanges == null) {
         Map<Range,List<TabletId>> tmp = new HashMap<>();
 
-        groupedByTablets.forEach((table, rangeList) -> {
-          for (Range range : rangeList) {
-            tmp.computeIfAbsent(range, k -> new ArrayList<>()).add(table);
-          }
-        });
+        groupedByTablets.forEach((tabletId, rangeList) -> rangeList
+            .forEach(range -> tmp.computeIfAbsent(range, k -> new ArrayList<>()).add(tabletId)));
 
         Map<Range,List<TabletId>> tmp2 = new HashMap<>();
         for (Entry<Range,List<TabletId>> entry : tmp.entrySet()) {

@@ -35,6 +35,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -42,8 +43,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ServerClient;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
@@ -464,11 +463,9 @@ public class BulkImporter {
       failures.forEach(ke -> {
         List<PathSize> mapFiles = assignmentsPerTablet.get(ke);
         synchronized (assignmentFailures) {
-          mapFiles.forEach(pathSize -> {
-            assignmentFailures.computeIfAbsent(pathSize.path, k -> new ArrayList<>()).add(ke);
-          });
+          mapFiles.forEach(pathSize -> assignmentFailures
+              .computeIfAbsent(pathSize.path, k -> new ArrayList<>()).add(ke));
         }
-
         log.info("Could not assign {} map files to tablet {} because : {}.  Will retry ...",
             mapFiles.size(), ke, message);
       });
@@ -514,13 +511,10 @@ public class BulkImporter {
 
     // group assignments by tablet
     Map<KeyExtent,List<PathSize>> assignmentsPerTablet = new TreeMap<>();
-
-    assignments.forEach((mapFile, tabletsToAssignMapFileTo) -> {
-      tabletsToAssignMapFileTo.forEach(ai -> {
-        assignmentsPerTablet.computeIfAbsent(ai.ke, k -> new ArrayList<>())
-            .add(new PathSize(mapFile, ai.estSize));
-      });
-    });
+    assignments.forEach((mapFile, tabletsToAssignMapFileTo) -> tabletsToAssignMapFileTo
+        .forEach(assignmentInfo -> assignmentsPerTablet
+            .computeIfAbsent(assignmentInfo.ke, k -> new ArrayList<>())
+            .add(new PathSize(mapFile, assignmentInfo.estSize))));
 
     // group assignments by tabletserver
 
@@ -528,27 +522,21 @@ public class BulkImporter {
 
     TreeMap<String,Map<KeyExtent,List<PathSize>>> assignmentsPerTabletServer = new TreeMap<>();
 
-    for (Entry<KeyExtent,List<PathSize>> entry : assignmentsPerTablet.entrySet()) {
-      KeyExtent ke = entry.getKey();
+    assignmentsPerTablet.forEach((ke, pathSizes) -> {
       String location = locations.get(ke);
-
       if (location == null) {
-        for (PathSize pathSize : entry.getValue()) {
-          synchronized (assignmentFailures) {
-            assignmentFailures.computeIfAbsent(pathSize.path, k -> new ArrayList<>()).add(ke);
-          }
+        synchronized (assignmentFailures) {
+          pathSizes.forEach(pathSize -> assignmentFailures
+              .computeIfAbsent(pathSize.path, k -> new ArrayList<>()).add(ke));
         }
-
         log.warn(
             "Could not assign {} map files to tablet {} because it had no location, will retry ...",
-            entry.getValue().size(), ke);
-
-        continue;
+            pathSizes.size(), ke);
+      } else {
+        assignmentsPerTabletServer.computeIfAbsent(location, k -> new TreeMap<>()).put(ke,
+            pathSizes);
       }
-
-      assignmentsPerTabletServer.computeIfAbsent(location, k -> new TreeMap<>()).put(entry.getKey(),
-          entry.getValue());
-    }
+    });
 
     ExecutorService threadPool =
         Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("submit"));
@@ -597,10 +585,13 @@ public class BulkImporter {
         }
 
         log.debug("Asking {} to bulk load {}", location, files);
-        List<TKeyExtent> failures = client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(),
-            tid, Translator.translate(files, Translators.KET), setTime);
+        List<TKeyExtent> failures =
+            client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(), tid,
+                files.entrySet().stream()
+                    .collect(Collectors.toMap(entry -> entry.getKey().toThrift(), Entry::getValue)),
+                setTime);
 
-        return Translator.translate(failures, Translators.TKET);
+        return failures.stream().map(KeyExtent::fromThrift).collect(Collectors.toList());
       } finally {
         ThriftUtil.returnClient((TServiceClient) client);
       }
@@ -621,11 +612,11 @@ public class BulkImporter {
       TabletLocator locator, Path file, KeyExtent failed) throws Exception {
     locator.invalidateCache(failed);
     Text start = getStartRowForExtent(failed);
-    return findOverlappingTablets(context, fs, locator, file, start, failed.getEndRow());
+    return findOverlappingTablets(context, fs, locator, file, start, failed.endRow());
   }
 
   protected static Text getStartRowForExtent(KeyExtent extent) {
-    Text start = extent.getPrevEndRow();
+    Text start = extent.prevEndRow();
     if (start != null) {
       start = new Text(start);
       // ACCUMULO-3967 We want the first possible key in this tablet, not the following row from the
@@ -661,7 +652,7 @@ public class BulkImporter {
         TabletLocation tabletLocation = locator.locateTablet(context, row, false, true);
         // log.debug(filename + " found row " + row + " at location " + tabletLocation);
         result.add(tabletLocation);
-        row = tabletLocation.tablet_extent.getEndRow();
+        row = tabletLocation.tablet_extent.endRow();
         if (row != null && (endRow == null || row.compareTo(endRow) < 0)) {
           row = new Text(row);
           row.append(byte0, 0, byte0.length);

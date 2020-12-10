@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -93,8 +94,8 @@ public class ServerConstants {
   public static synchronized Set<String> getBaseUris(AccumuloConfiguration conf,
       Configuration hadoopConf) {
     if (baseUris == null) {
-      baseUris = Collections.unmodifiableSet(checkBaseUris(conf, hadoopConf,
-          VolumeConfiguration.getVolumeUris(conf, hadoopConf), false));
+      baseUris = Collections.unmodifiableSet(
+          checkBaseUris(conf, hadoopConf, VolumeConfiguration.getVolumeUris(conf), false));
     }
 
     return baseUris;
@@ -115,7 +116,7 @@ public class ServerConstants {
       String currentIid;
       int currentVersion;
       try {
-        currentIid = VolumeManager.getInstanceIDFromHdfs(path, conf, hadoopConf);
+        currentIid = VolumeManager.getInstanceIDFromHdfs(path, hadoopConf);
         Path vpath = new Path(baseDir, VERSION_DIR);
         currentVersion =
             ServerUtil.getAccumuloPersistentVersion(vpath.getFileSystem(hadoopConf), vpath);
@@ -155,12 +156,18 @@ public class ServerConstants {
   public static final String RECOVERY_DIR = "recovery";
   public static final String WAL_DIR = "wal";
 
+  private static Set<String> prefix(Set<String> bases, String suffix) {
+    String actualSuffix = suffix.startsWith("/") ? suffix.substring(1) : suffix;
+    return bases.stream().map(base -> base + (base.endsWith("/") ? "" : "/") + actualSuffix)
+        .collect(Collectors.toCollection(LinkedHashSet::new));
+  }
+
   public static Set<String> getTablesDirs(ServerContext context) {
-    return VolumeConfiguration.prefix(getBaseUris(context), TABLE_DIR);
+    return prefix(getBaseUris(context), TABLE_DIR);
   }
 
   public static Set<String> getRecoveryDirs(ServerContext context) {
-    return VolumeConfiguration.prefix(getBaseUris(context), RECOVERY_DIR);
+    return prefix(getBaseUris(context), RECOVERY_DIR);
   }
 
   public static Path getInstanceIdLocation(Volume v) {

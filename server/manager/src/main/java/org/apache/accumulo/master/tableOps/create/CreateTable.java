@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.master.tableOps.create;
 
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
@@ -30,14 +31,19 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.TableInfo;
 import org.apache.accumulo.master.tableOps.Utils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CreateTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
+  private static final Logger log = LoggerFactory.getLogger(CreateTable.class);
 
   private TableInfo tableInfo;
 
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
-      String splitFile, int splitCount, String splitDirsFile, InitialTableState initialTableState,
+      Path splitPath, int splitCount, Path splitDirsPath, InitialTableState initialTableState,
       NamespaceId namespaceId) {
     tableInfo = new TableInfo();
     tableInfo.setTableName(tableName);
@@ -45,10 +51,10 @@ public class CreateTable extends MasterRepo {
     tableInfo.setUser(user);
     tableInfo.props = props;
     tableInfo.setNamespaceId(namespaceId);
-    tableInfo.setSplitFile(splitFile);
+    tableInfo.setSplitPath(splitPath);
     tableInfo.setInitialSplitSize(splitCount);
     tableInfo.setInitialTableState(initialTableState);
-    tableInfo.setSplitDirsFile(splitDirsFile);
+    tableInfo.setSplitDirsPath(splitDirsPath);
   }
 
   @Override
@@ -77,8 +83,20 @@ public class CreateTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) {
-    Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
+  public void undo(long tid, Master env) throws IOException {
+    // Clean up split files if create table operation fails
+    Path p = null;
+    try {
+      if (tableInfo.getInitialSplitSize() > 0) {
+        p = tableInfo.getSplitPath().getParent();
+        FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
+        fs.delete(p, true);
+      }
+    } catch (IOException e) {
+      log.error("Table failed to be created and failed to clean up split files at {}", p, e);
+    } finally {
+      Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
+    }
   }
 
 }

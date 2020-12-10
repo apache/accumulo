@@ -64,7 +64,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
@@ -78,9 +77,9 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
@@ -2336,48 +2335,44 @@ public class RFileTest {
 
     // mfw.startDefaultLocalityGroup();
 
-    Text tableExtent = new Text(TabletsSection.getRow(MetadataTable.ID,
-        MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
+    Text tableExtent = new Text(
+        TabletsSection.encodeRow(MetadataTable.ID, TabletsSection.getRange().getEndKey().getRow()));
 
     // table tablet's directory
-    Key tableDirKey =
-        new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-            TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    Key tableDirKey = new Key(tableExtent, ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+        ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableDirKey, new Value(/* TABLE_TABLETS_TABLET_DIR */"/table_info"));
 
     // table tablet time
-    Key tableTimeKey =
-        new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-            TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    Key tableTimeKey = new Key(tableExtent, ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+        ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableTimeKey, new Value(/* TabletTime.LOGICAL_TIME_ID */'L' + "0"));
 
     // table tablet's prevRow
-    Key tablePrevRowKey =
-        new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-            TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
+    Key tablePrevRowKey = new Key(tableExtent, TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+        TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    mfw.append(tablePrevRowKey, TabletColumnFamily.encodePrevEndRow(null));
 
     // ----------] default tablet info
-    Text defaultExtent = new Text(TabletsSection.getRow(MetadataTable.ID, null));
+    Text defaultExtent = new Text(TabletsSection.encodeRow(MetadataTable.ID, null));
 
     // default's directory
     Key defaultDirKey =
-        new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-            TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+        new Key(defaultExtent, ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+            ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultDirKey, new Value(ServerColumnFamily.DEFAULT_TABLET_DIR_NAME));
 
     // default's time
-    Key defaultTimeKey =
-        new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-            TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    Key defaultTimeKey = new Key(defaultExtent, ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+        ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultTimeKey, new Value(/* TabletTime.LOGICAL_TIME_ID */'L' + "0"));
 
     // default's prevRow
     Key defaultPrevRowKey =
-        new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-            TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+        new Key(defaultExtent, TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+            TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultPrevRowKey,
-        KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
+        TabletColumnFamily.encodePrevEndRow(TabletsSection.getRange().getEndKey().getRow()));
 
     testRfile.closeWriter();
 

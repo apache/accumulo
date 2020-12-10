@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.tabletserver;
+package org.apache.accumulo.core.metadata;
 
-import java.util.List;
-
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-
-public class MemoryManagementActions {
-  public List<KeyExtent> tabletsToMinorCompact;
+public enum TabletState {
+  UNASSIGNED, ASSIGNED, HOSTED, ASSIGNED_TO_DEAD_SERVER, SUSPENDED
 }

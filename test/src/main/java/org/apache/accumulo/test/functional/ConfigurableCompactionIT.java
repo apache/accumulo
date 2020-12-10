@@ -39,7 +39,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -121,7 +121,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
           Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
       Map<String,String> props = new HashMap<>();
       props.put(Property.TABLE_MAJC_RATIO.getKey(), "10");
-      props.put(Property.TABLE_CLASSPATH.getKey(), "context1");
+      props.put(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "context1");
       // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
       // compacted.
       props.put(Property.TABLE_COMPACTION_STRATEGY.getKey(),
@@ -187,7 +187,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   private int countFiles(AccumuloClient c) throws Exception {
     try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      s.fetchColumnFamily(DataFileColumnFamily.NAME);
       return Iterators.size(s.iterator());
     }
   }

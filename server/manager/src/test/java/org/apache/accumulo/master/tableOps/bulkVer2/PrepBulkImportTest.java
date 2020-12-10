@@ -145,7 +145,7 @@ public class PrepBulkImportTest {
   }
 
   static String toRangeStrings(Collection<KeyExtent> extents) {
-    return extents.stream().map(ke -> "(" + ke.getPrevEndRow() + "," + ke.getEndRow() + "]")
+    return extents.stream().map(ke -> "(" + ke.prevEndRow() + "," + ke.endRow() + "]")
         .collect(Collectors.joining(","));
   }
 
@@ -201,11 +201,11 @@ public class PrepBulkImportTest {
 
       Set<String> rows = new HashSet<>();
       for (KeyExtent ke : loadRanges) {
-        if (ke.getPrevEndRow() != null) {
-          rows.add(ke.getPrevEndRow().toString());
+        if (ke.prevEndRow() != null) {
+          rows.add(ke.prevEndRow().toString());
         }
-        if (ke.getEndRow() != null) {
-          rows.add(ke.getEndRow().toString());
+        if (ke.endRow() != null) {
+          rows.add(ke.endRow().toString());
         }
       }
 

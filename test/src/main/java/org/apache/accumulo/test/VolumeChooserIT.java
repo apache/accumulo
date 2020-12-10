@@ -47,6 +47,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.fs.PerTableVolumeChooser;
@@ -79,8 +80,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   private static final Text EMPTY = new Text();
   private static final Value EMPTY_VALUE = new Value(new byte[] {});
   private File volDirBase;
-  @SuppressWarnings("unused")
-  private Path v1, v2, v3, v4;
+  private Path v1, v2, v3;
   public static String[] alpha_rows =
       "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
   private String namespace1;
@@ -89,7 +89,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 60;
+    return 120;
   }
 
   @Override
@@ -112,14 +112,12 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     File v1f = new File(volDirBase, "v1");
     File v2f = new File(volDirBase, "v2");
     File v3f = new File(volDirBase, "v3");
-    File v4f = new File(volDirBase, "v4");
     v1 = new Path("file://" + v1f.getAbsolutePath());
     v2 = new Path("file://" + v2f.getAbsolutePath());
     v3 = new Path("file://" + v3f.getAbsolutePath());
-    v4 = new Path("file://" + v4f.getAbsolutePath());
 
     systemPreferredVolumes = v1 + "," + v2;
-    // exclude v4
+    // exclude v3
     siteConfig.put(PREFERRED_CHOOSER_PROP, systemPreferredVolumes);
     cfg.setSiteConfig(siteConfig);
 
@@ -131,7 +129,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in
     // the options list when they are choosing
-    cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2 + "," + v4);
+    cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2 + "," + v3);
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -252,7 +250,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     TreeSet<String> volumesSeen = new TreeSet<>();
     try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
-      scanner.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
+      scanner.fetchColumnFamily(LogColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
         boolean inVolume = false;
         for (String volume : volumes) {
@@ -297,8 +295,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     // Create namespace
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      createAndVerify(client, namespace1, v1 + "," + v2 + "," + v4);
-      createAndVerify(client, namespace2, v1 + "," + v2 + "," + v4);
+      createAndVerify(client, namespace1, v1 + "," + v2 + "," + v3);
+      createAndVerify(client, namespace2, v1 + "," + v2 + "," + v3);
     }
   }
 
@@ -321,7 +319,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     // Create namespace
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      createAndVerify(c, namespace1, v1 + "," + v2 + "," + v4);
+      createAndVerify(c, namespace1, v1 + "," + v2 + "," + v3);
       configureNamespace(c, PreferredVolumeChooser.class.getName(), v1.toString(), namespace2);
       // Create table2 on namespace2
       verifyVolumesForWritesToNewTable(c, namespace2, v1.toString());
@@ -334,7 +332,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       // the following table will be configured to go to the excluded volume
-      String configuredVolumes = v4.toString();
+      String configuredVolumes = v3.toString();
       configureNamespace(client, PreferredVolumeChooser.class.getName(), configuredVolumes,
           namespace2);
       verifyVolumesForWritesToNewTable(client, namespace2, configuredVolumes);

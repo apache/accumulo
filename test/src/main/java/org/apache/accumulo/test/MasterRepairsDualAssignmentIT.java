@@ -28,23 +28,23 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.state.ClosableIterator;
-import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
@@ -74,6 +74,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
     // make some tablets, spread 'em around
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       ClientContext context = (ClientContext) c;
+      ServerContext serverContext = cluster.getServerContext();
       String table = this.getUniqueNames(1)[0];
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
@@ -134,19 +135,16 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
       }
       assertNotEquals(null, moved);
       // throw a mutation in as if we were the dying tablet
-      BatchWriter bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      Mutation assignment = new Mutation(moved.extent.getMetadataEntry());
-      moved.current.putLocation(assignment);
-      bw.addMutation(assignment);
-      bw.close();
+      TabletMutator tabletMutator = serverContext.getAmple().mutateTablet(moved.extent);
+      tabletMutator.putLocation(moved.current, LocationType.CURRENT);
+      tabletMutator.mutate();
       // wait for the master to fix the problem
       waitForCleanStore(store);
       // now jam up the metadata table
-      bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      assignment = new Mutation(new KeyExtent(MetadataTable.ID, null, null).getMetadataEntry());
-      moved.current.putLocation(assignment);
-      bw.addMutation(assignment);
-      bw.close();
+      tabletMutator =
+          serverContext.getAmple().mutateTablet(new KeyExtent(MetadataTable.ID, null, null));
+      tabletMutator.putLocation(moved.current, LocationType.CURRENT);
+      tabletMutator.mutate();
       waitForCleanStore(TabletStateStore.getStoreForLevel(DataLevel.METADATA, context));
     }
   }

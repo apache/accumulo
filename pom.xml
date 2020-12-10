@@ -116,18 +116,15 @@
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.64</bouncycastle.version>
+    <bouncycastle.version>1.66</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>4.3.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
-    <!-- extra release args for testing -->
-    <extraReleaseArguments />
     <failsafe.excludedGroups />
+    <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
-    <!-- surefire/failsafe plugin option -->
-    <forkCount>1</forkCount>
-    <hadoop.version>3.2.1</hadoop.version>
+    <hadoop.version>3.3.0</hadoop.version>
     <hk2.version>2.6.1</hk2.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.2.0-incubating</htrace.version>
@@ -135,19 +132,25 @@
     <javax.el.version>3.0.1-b06</javax.el.version>
     <jaxb.version>2.3.0.1</jaxb.version>
     <jersey.version>2.30.1</jersey.version>
-    <jetty.version>9.4.27.v20200227</jetty.version>
+    <jetty.version>9.4.35.v20201120</jetty.version>
+    <!-- prevent introduction of new compiler warnings -->
+    <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
     <maven.compiler.release>11</maven.compiler.release>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>2.0.5</powermock.version>
+    <powermock.version>2.0.7</powermock.version>
+    <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
+    <project.build.outputTimestamp>2020-08-27T15:56:15Z</project.build.outputTimestamp>
+    <rat.consoleOutput>true</rat.consoleOutput>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <slf4j.version>1.7.30</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
+    <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
     <surefire.version>3.0.0-M3</surefire.version>
     <!-- Thrift version -->
@@ -220,11 +223,6 @@
         <version>2.3.0.1</version>
       </dependency>
       <dependency>
-        <groupId>commons-beanutils</groupId>
-        <artifactId>commons-beanutils</artifactId>
-        <version>1.9.4</version>
-      </dependency>
-      <dependency>
         <groupId>commons-cli</groupId>
         <artifactId>commons-cli</artifactId>
         <version>1.4</version>
@@ -237,7 +235,7 @@
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.6</version>
+        <version>2.7</version>
       </dependency>
       <dependency>
         <groupId>commons-logging</groupId>
@@ -292,12 +290,12 @@
       <dependency>
         <groupId>jline</groupId>
         <artifactId>jline</artifactId>
-        <version>2.11</version>
+        <version>2.14.6</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.13</version>
+        <version>4.13.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -766,7 +764,7 @@
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
-        <version>2.13.1</version>
+        <version>2.14.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -848,6 +846,12 @@
           <version>3.1.0</version>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <!-- Must use 3.1.1 until https://issues.apache.org/jira/browse/MASSEMBLY-941 is fixed -->
+          <version>3.1.1</version>
+        </plugin>
+        <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
           <version>2.10.0</version>
@@ -888,7 +892,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.1</version>
           <configuration>
             <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
@@ -934,10 +937,10 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
           <configuration>
-            <arguments>-P !autoformat,thrift,sunny -Dtimeout.factor=2 ${extraReleaseArguments}</arguments>
+            <arguments>-P !autoformat,verifyformat,thrift -DskipTests</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
-            <preparationGoals>clean verify</preparationGoals>
+            <preparationGoals>clean package</preparationGoals>
             <tagNameFormat>rel/@{project.version}</tagNameFormat>
             <releaseProfiles>apache-release,accumulo-release</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
@@ -956,8 +959,8 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>${surefire.version}</version>
           <configuration>
+            <forkCount>${surefire.forkCount}</forkCount>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
             <systemPropertyVariables>
@@ -969,8 +972,8 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>${surefire.version}</version>
           <configuration>
+            <forkCount>${failsafe.forkCount}</forkCount>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
             <systemPropertyVariables>
@@ -991,12 +994,6 @@
           <version>1.5.0</version>
         </plugin>
         <plugin>
-          <!-- Allows us to get the apache-ds bundle artifacts -->
-          <groupId>org.apache.felix</groupId>
-          <artifactId>maven-bundle-plugin</artifactId>
-          <version>4.2.0</version>
-        </plugin>
-        <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>apilyzer-maven-plugin</artifactId>
           <version>1.2.0</version>
@@ -1004,7 +1001,7 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.11.0</version>
+          <version>2.12.2</version>
           <configuration>
             <configFile>${eclipseFormatterStyle}</configFile>
             <compilerCompliance>${maven.compiler.source}</compilerCompliance>
@@ -1035,6 +1032,7 @@
               <exclude>nbactions.xml</exclude>
               <exclude>.vscode/**</exclude>
               <exclude>.factorypath</exclude>
+              <exclude>.github/**</exclude>
             </excludes>
           </configuration>
         </plugin>
@@ -1108,8 +1106,6 @@
                 <unusedDeclaredDependency>com.github.spotbugs:spotbugs-annotations:jar:*</unusedDeclaredDependency>
                 <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
                 <unusedDeclaredDependency>org.apache.accumulo:accumulo-native:tar.gz:*</unusedDeclaredDependency>
-                <!-- ignore runtime dependencies of commons-configuration2 -->
-                <unusedDeclaredDependency>commons-beanutils:commons-beanutils:jar:*</unusedDeclaredDependency>
                 <!-- ignore runtime log4j dependencies at test scope -->
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
@@ -1132,20 +1128,6 @@
         </executions>
       </plugin>
       <plugin>
-        <!-- verify before compile; should be sorted already -->
-        <groupId>com.github.ekryd.sortpom</groupId>
-        <artifactId>sortpom-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>verify-sorted-pom</id>
-            <goals>
-              <goal>verify</goal>
-            </goals>
-            <phase>process-resources</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
         <executions>
@@ -1159,13 +1141,26 @@
             <configuration>
               <rules>
                 <requireMavenVersion>
-                  <!-- org.apache.felix:maven-bundle-plugin declares that it needs 3.5.0 -->
                   <version>[3.5.0,)</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
                   <version>[11,)</version>
                 </requireJavaVersion>
                 <dependencyConvergence />
+                <bannedDependencies>
+                  <excludes>
+                    <!-- we redirect logging to log4j2, so we should have those bridges instead -->
+                    <!-- commons-logging is allowed because log4j-jcl uses it as a dependency -->
+                    <exclude>ch.qos.logback:*</exclude>
+                    <exclude>log4j:*</exclude>
+                    <exclude>org.apache.logging.log4j:log4j-to-slf4j</exclude>
+                    <exclude>org.slf4j:*</exclude>
+                  </excludes>
+                  <includes>
+                    <!-- only allow API jar for slf4j, but no other slf4j implementations -->
+                    <include>org.slf4j:slf4j-api</include>
+                  </includes>
+                </bannedDependencies>
               </rules>
             </configuration>
           </execution>
@@ -1348,24 +1343,21 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <!-- Allows us to get the apache-ds bundle artifacts -->
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <extensions>true</extensions>
-        <inherited>true</inherited>
-      </plugin>
     </plugins>
   </build>
   <profiles>
     <profile>
-      <!-- This profile skips all Quality Assurance checks  -->
+      <!-- This profile skips all Quality Assurance checks; activate with -PskipQA OR -DskipQA  -->
       <id>skipQA</id>
+      <activation>
+        <property>
+          <name>skipQA</name>
+        </property>
+      </activation>
       <properties>
         <accumulo.skip>true</accumulo.skip>
         <apilyzer.skip>true</apilyzer.skip>
         <checkstyle.skip>true</checkstyle.skip>
-        <enforcer.skip>true</enforcer.skip>
         <formatter.skip>true</formatter.skip>
         <impsort.skip>true</impsort.skip>
         <mdep.analyze.skip>true</mdep.analyze.skip>
@@ -1514,6 +1506,69 @@
       </build>
     </profile>
     <profile>
+      <!-- off by default, but enable with '-P verifyformat' or '-DverifyFormat' -->
+      <id>verifyformat</id>
+      <activation>
+        <property>
+          <name>verifyFormat</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.ekryd.sortpom</groupId>
+            <artifactId>sortpom-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>verify-sorted-pom</id>
+                <goals>
+                  <goal>verify</goal>
+                </goals>
+                <phase>process-resources</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>com.mycila</groupId>
+            <artifactId>license-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>verify-license-headers</id>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+                <phase>process-test-resources</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.revelc.code.formatter</groupId>
+            <artifactId>formatter-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>verify-formatted-java-source</id>
+                <goals>
+                  <goal>validate</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.revelc.code</groupId>
+            <artifactId>impsort-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>verify-sorted-imports</id>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <!-- on by default, but disable with '-P !autoformat' or '-DskipFormat' -->
       <id>autoformat</id>
       <activation>
@@ -1636,6 +1691,18 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>forkCount</id>
+      <activation>
+        <property>
+          <name>forkCount</name>
+        </property>
+      </activation>
+      <properties>
+        <failsafe.forkCount>${forkCount}</failsafe.forkCount>
+        <surefire.forkCount>${forkCount}</surefire.forkCount>
+      </properties>
     </profile>
   </profiles>
 </project>

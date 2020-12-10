@@ -24,6 +24,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -37,15 +38,12 @@ import java.util.concurrent.ExecutorService;
 
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Iface;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Processor;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -54,27 +52,12 @@ import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.easymock.EasyMock;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class TServerUtilsTest {
-
-  protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
-
-    private ConfigurationCopy conf = null;
-
-    public TestServerConfigurationFactory(ServerContext context) {
-      super(context, SiteConfiguration.auto());
-      conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    }
-
-    @Override
-    public synchronized AccumuloConfiguration getSystemConfiguration() {
-      return conf;
-    }
-
-  }
 
   private static class TServerWithoutES extends TServer {
     boolean stopCalled;
@@ -107,18 +90,21 @@ public class TServerUtilsTest {
   @Test
   public void testStopTServer_ES() {
     TServerSocket socket = createNiceMock(TServerSocket.class);
+    replay(socket);
     TServerWithES s = new TServerWithES(socket);
     TServerUtils.stopTServer(s);
     assertTrue(s.stopCalled);
-    verify(s.executorService_);
+    verify(socket, s.executorService_);
   }
 
   @Test
   public void testStopTServer_NoES() {
     TServerSocket socket = createNiceMock(TServerSocket.class);
+    replay(socket);
     TServerWithoutES s = new TServerWithoutES(socket);
     TServerUtils.stopTServer(s);
     assertTrue(s.stopCalled);
+    verify(socket);
   }
 
   @Test
@@ -127,42 +113,35 @@ public class TServerUtilsTest {
     // not dying is enough
   }
 
-  private static AccumuloConfiguration config =
-      new ConfigurationCopy(DefaultConfiguration.getInstance());
+  private ServerContext ctx;
+  private final ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
-  private static ServerContext createMockContext() {
-    ServerContext context = EasyMock.createMock(ServerContext.class);
-    expect(context.getZooReaderWriter()).andReturn(null);
-    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
-    expect(context.getZooKeepers()).andReturn("").anyTimes();
-    expect(context.getInstanceName()).andReturn("instance").anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
-    expect(context.getInstanceID()).andReturn("11111").anyTimes();
-    expect(context.getConfiguration()).andReturn(config).anyTimes();
-    return context;
+  @Before
+  public void createMockServerContext() {
+    ctx = EasyMock.createMock(ServerContext.class);
+    expect(ctx.getZooReaderWriter()).andReturn(null).anyTimes();
+    expect(ctx.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(ctx.getZooKeepers()).andReturn("").anyTimes();
+    expect(ctx.getInstanceName()).andReturn("instance").anyTimes();
+    expect(ctx.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
+    expect(ctx.getInstanceID()).andReturn("11111").anyTimes();
+    expect(ctx.getConfiguration()).andReturn(conf).anyTimes();
+    expect(ctx.getThriftServerType()).andReturn(ThriftServerType.THREADPOOL).anyTimes();
+    expect(ctx.getServerSslParams()).andReturn(null).anyTimes();
+    expect(ctx.getSaslParams()).andReturn(null).anyTimes();
+    expect(ctx.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
+    replay(ctx);
   }
-
-  private static ServerContext createReplayMockInfo() {
-    ServerContext context = createMockContext();
-    replay(context);
-    return context;
-  }
-
-  private static final TestServerConfigurationFactory factory =
-      new TestServerConfigurationFactory(createReplayMockInfo());
 
   @After
-  public void resetProperty() {
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT,
-        Property.TSERV_CLIENTPORT.getDefaultValue());
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_PORTSEARCH,
-        Property.TSERV_PORTSEARCH.getDefaultValue());
+  public void verifyMockServerContext() {
+    verify(ctx);
   }
 
   @Test
   public void testStartServerZeroPort() throws Exception {
     TServer server = null;
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT, "0");
+    conf.set(Property.TSERV_CLIENTPORT, "0");
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -180,8 +159,7 @@ public class TServerUtilsTest {
   public void testStartServerFreePort() throws Exception {
     TServer server = null;
     int port = getFreePort(1024);
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT,
-        Integer.toString(port));
+    conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port));
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -201,8 +179,7 @@ public class TServerUtilsTest {
     int port = getFreePort(1024);
     InetAddress addr = InetAddress.getByName("localhost");
     // Bind to the port
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT,
-        Integer.toString(port));
+    conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port));
     try (ServerSocket s = new ServerSocket(port, 50, addr)) {
       assertNotNull(s);
       startServer();
@@ -216,9 +193,8 @@ public class TServerUtilsTest {
     int[] port = findTwoFreeSequentialPorts(1024);
     // Bind to the port
     InetAddress addr = InetAddress.getByName("localhost");
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT,
-        Integer.toString(port[0]));
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_PORTSEARCH, "true");
+    conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port[0]));
+    conf.set(Property.TSERV_PORTSEARCH, "true");
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
       assertNotNull(s);
       ServerAddress address = startServer();
@@ -249,32 +225,26 @@ public class TServerUtilsTest {
     // 5. One free port - this is the one that we expect the TServer to finally use
     int[] ports = findTwoFreeSequentialPorts(1024);
     int tserverDefaultPort = ports[0];
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT,
-        Integer.toString(tserverDefaultPort));
+    conf.set(Property.TSERV_CLIENTPORT, Integer.toString(tserverDefaultPort));
     int gcPort = ports[1];
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.GC_PORT,
-        Integer.toString(gcPort));
+    conf.set(Property.GC_PORT, Integer.toString(gcPort));
 
     ports = findTwoFreeSequentialPorts(gcPort + 1);
     int masterPort = ports[0];
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.MASTER_CLIENTPORT,
-        Integer.toString(masterPort));
+    conf.set(Property.MASTER_CLIENTPORT, Integer.toString(masterPort));
     int monitorPort = ports[1];
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.MONITOR_PORT,
-        Integer.toString(monitorPort));
+    conf.set(Property.MONITOR_PORT, Integer.toString(monitorPort));
 
     ports = findTwoFreeSequentialPorts(monitorPort + 1);
     int masterReplCoordPort = ports[0];
-    ((ConfigurationCopy) factory.getSystemConfiguration())
-        .set(Property.MASTER_REPLICATION_COORDINATOR_PORT, Integer.toString(masterReplCoordPort));
+    conf.set(Property.MASTER_REPLICATION_COORDINATOR_PORT, Integer.toString(masterReplCoordPort));
     int tserverFinalPort = ports[1];
 
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_PORTSEARCH, "true");
+    conf.set(Property.TSERV_PORTSEARCH, "true");
 
     // Ensure that the TServer client port we set above is NOT in the reserved ports
-    Map<Integer,Property> reservedPorts =
-        TServerUtils.getReservedPorts(factory.getSystemConfiguration());
-    assertTrue(!reservedPorts.containsKey(tserverDefaultPort));
+    Map<Integer,Property> reservedPorts = TServerUtils.getReservedPorts(conf);
+    assertFalse(reservedPorts.containsKey(tserverDefaultPort));
 
     // Ensure that all the ports we assigned (GC, Master, Monitor) are included in the reserved
     // ports as returned by TServerUtils
@@ -305,8 +275,7 @@ public class TServerUtilsTest {
     TServer server = null;
     int[] port = findTwoFreeSequentialPorts(1024);
     String portRange = Integer.toString(port[0]) + "-" + Integer.toString(port[1]);
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT,
-        portRange);
+    conf.set(Property.TSERV_CLIENTPORT, portRange);
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -329,8 +298,7 @@ public class TServerUtilsTest {
     int[] port = findTwoFreeSequentialPorts(1024);
     String portRange = Integer.toString(port[0]) + "-" + Integer.toString(port[1]);
     // Bind to the port
-    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT,
-        portRange);
+    conf.set(Property.TSERV_CLIENTPORT, portRange);
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
       assertNotNull(s);
       ServerAddress address = startServer();
@@ -374,16 +342,7 @@ public class TServerUtilsTest {
   }
 
   private ServerAddress startServer() throws Exception {
-    ServerContext ctx = createMock(ServerContext.class);
-    expect(ctx.getZooReaderWriter()).andReturn(null).anyTimes();
-    expect(ctx.getInstanceID()).andReturn("instance").anyTimes();
-    expect(ctx.getConfiguration()).andReturn(factory.getSystemConfiguration()).anyTimes();
-    expect(ctx.getThriftServerType()).andReturn(ThriftServerType.THREADPOOL);
-    expect(ctx.getServerSslParams()).andReturn(null).anyTimes();
-    expect(ctx.getSaslParams()).andReturn(null).anyTimes();
-    expect(ctx.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
-    replay(ctx);
-    ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null, null);
+    ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null);
     Iface rpcProxy = TraceUtil.wrapService(clientHandler);
     Processor<Iface> processor = new Processor<>(rpcProxy);
     // "localhost" explicitly to make sure we can always bind to that interface (avoids DNS

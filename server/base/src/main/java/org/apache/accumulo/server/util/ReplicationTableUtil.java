@@ -44,7 +44,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -106,8 +105,7 @@ public class ReplicationTableUtil {
       // Set our combiner and combine all columns
       // Need to set the combiner beneath versioning since we don't want to turn it off
       IteratorSetting setting = new IteratorSetting(9, COMBINER_NAME, StatusCombiner.class);
-      Combiner.setColumns(setting,
-          Collections.singletonList(new Column(MetadataSchema.ReplicationSection.COLF)));
+      Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
       try {
         tops.attachIterator(tableName, setting);
       } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
@@ -191,7 +189,7 @@ public class ReplicationTableUtil {
 
   private static Mutation createUpdateMutation(Text row, Value v, KeyExtent extent) {
     Mutation m = new Mutation(row);
-    m.put(MetadataSchema.ReplicationSection.COLF, new Text(extent.getTableId().canonical()), v);
+    m.put(ReplicationSection.COLF, new Text(extent.tableId().canonical()), v);
     return m;
   }
 }

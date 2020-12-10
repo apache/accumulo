@@ -72,9 +72,11 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @After
   public void checkForDanglingFateLocks() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      assertNotNull(c);
-      FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
+    if (getClusterType() == ClusterType.MINI) {
+      try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+        assertNotNull(c);
+        FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
+      }
     }
   }
 
@@ -162,7 +164,8 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       c.instanceOperations().setProperty(
           Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
-      c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
+      c.tableOperations().setProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey(),
+          "context1");
 
       c.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("efg"))));
 

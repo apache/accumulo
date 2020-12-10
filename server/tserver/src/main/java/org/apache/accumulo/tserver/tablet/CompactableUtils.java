@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -108,7 +109,7 @@ public class CompactableUtils {
       Set<StoredTabletFile> allFiles) throws IOException {
     final Map<StoredTabletFile,Pair<Key,Key>> result = new HashMap<>();
     final FileOperations fileFactory = FileOperations.getInstance();
-    final VolumeManager fs = tablet.getTabletServer().getFileSystem();
+    final VolumeManager fs = tablet.getTabletServer().getVolumeManager();
     for (StoredTabletFile file : allFiles) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       try (FileSKVIterator openReader = fileFactory.newReaderBuilder()
@@ -150,7 +151,7 @@ public class CompactableUtils {
     BlockCache ic = trsm.getIndexCache();
     Cache<String,Long> fileLenCache = trsm.getFileLenCache();
     MajorCompactionRequest request = new MajorCompactionRequest(tablet.getExtent(),
-        CompactableUtils.from(kind), tablet.getTabletServer().getFileSystem(),
+        CompactableUtils.from(kind), tablet.getTabletServer().getVolumeManager(),
         tablet.getTableConfiguration(), sc, ic, fileLenCache, tablet.getContext());
 
     request.setFiles(datafiles);
@@ -237,7 +238,7 @@ public class CompactableUtils {
 
       @Override
       public TableId getTableId() {
-        return tablet.getExtent().getTableId();
+        return tablet.getExtent().tableId();
       }
     });
 
@@ -254,7 +255,7 @@ public class CompactableUtils {
 
       @Override
       public TableId getTableId() {
-        return tablet.getExtent().getTableId();
+        return tablet.getExtent().tableId();
       }
     });
 
@@ -269,7 +270,7 @@ public class CompactableUtils {
 
   static <T> T newInstance(AccumuloConfiguration tableConfig, String className,
       Class<T> baseClass) {
-    String context = tableConfig.get(Property.TABLE_CLASSPATH);
+    String context = ClassLoaderUtil.tableContext(tableConfig);
     try {
       return ConfigurationTypeHelper.getClassInstance(context, className, baseClass);
     } catch (IOException | ReflectiveOperationException e) {
@@ -296,7 +297,7 @@ public class CompactableUtils {
 
       @Override
       public TableId getTableId() {
-        return tablet.getExtent().getTableId();
+        return tablet.getExtent().tableId();
       }
     });
 
@@ -338,7 +339,7 @@ public class CompactableUtils {
 
       @Override
       public TableId getTableId() {
-        return tablet.getExtent().getTableId();
+        return tablet.getExtent().tableId();
       }
 
       @Override
@@ -347,7 +348,7 @@ public class CompactableUtils {
         try {
           FileOperations fileFactory = FileOperations.getInstance();
           Path path = new Path(file.getUri());
-          FileSystem ns = tablet.getTabletServer().getFileSystem().getFileSystemByPath(path);
+          FileSystem ns = tablet.getTabletServer().getVolumeManager().getFileSystemByPath(path);
           var fiter = fileFactory.newReaderBuilder()
               .forFile(path.toString(), ns, ns.getConf(), tablet.getContext().getCryptoService())
               .withTableConfiguration(tablet.getTableConfiguration()).seekToBeginning().build();
@@ -441,10 +442,10 @@ public class CompactableUtils {
       }
 
       if (selectedFiles.isEmpty()) {
-        tablet.setLastCompactionID(compactionId);
-
         MetadataTableUtil.updateTabletCompactID(tablet.getExtent(), compactionId,
             tablet.getTabletServer().getContext(), tablet.getTabletServer().getLock());
+
+        tablet.setLastCompactionID(compactionId);
       }
 
       return selectedFiles;
@@ -491,11 +492,11 @@ public class CompactableUtils {
         var stratClassName = tconf.get(Property.TABLE_COMPACTION_STRATEGY);
 
         try {
-          strategyWarningsCache.get(tablet.getExtent().getTableId(), () -> {
+          strategyWarningsCache.get(tablet.getExtent().tableId(), () -> {
             log.warn(
                 "Table id {} set {} to {}.  Compaction strategies are deprecated.  See the Javadoc"
                     + " for class {} for more details.",
-                tablet.getExtent().getTableId(), Property.TABLE_COMPACTION_STRATEGY.getKey(),
+                tablet.getExtent().tableId(), Property.TABLE_COMPACTION_STRATEGY.getKey(),
                 stratClassName, CompactionStrategyConfig.class.getName());
             return true;
           });
@@ -530,8 +531,8 @@ public class CompactableUtils {
 
   static StoredTabletFile compact(Tablet tablet, CompactionJob job, Set<StoredTabletFile> jobFiles,
       Long compactionId, boolean propogateDeletes, CompactableImpl.CompactionHelper helper,
-      List<IteratorSetting> iters, CompactionCheck compactionCheck)
-      throws IOException, CompactionCanceledException {
+      List<IteratorSetting> iters, CompactionCheck compactionCheck, RateLimiter readLimiter,
+      RateLimiter writeLimiter) throws IOException, CompactionCanceledException {
     StoredTabletFile metaFile;
     CompactionEnv cenv = new CompactionEnv() {
       @Override
@@ -546,12 +547,12 @@ public class CompactableUtils {
 
       @Override
       public RateLimiter getReadLimiter() {
-        return tablet.getTabletServer().getMajorCompactionReadLimiter();
+        return readLimiter;
       }
 
       @Override
       public RateLimiter getWriteLimiter() {
-        return tablet.getTabletServer().getMajorCompactionWriteLimiter();
+        return writeLimiter;
       }
     };
 

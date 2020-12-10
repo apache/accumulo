@@ -45,12 +45,12 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 import org.apache.accumulo.monitor.rest.tservers.TabletServers;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
-import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.io.Text;
@@ -150,15 +150,15 @@ public class TablesResource {
       String systemTableName =
           MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
       MetaDataTableScanner scanner = new MetaDataTableScanner(monitor.getContext(),
-          new Range(TabletsSection.getRow(tableId, new Text()),
-              TabletsSection.getRow(tableId, null)),
+          new Range(TabletsSection.encodeRow(tableId, new Text()),
+              TabletsSection.encodeRow(tableId, null)),
           systemTableName);
 
       while (scanner.hasNext()) {
         TabletLocationState state = scanner.next();
         if (state.current != null) {
           try {
-            locs.add(state.current.hostPort());
+            locs.add(state.current.getHostPort());
           } catch (Exception ex) {
             scanner.close();
             return tabletServers;

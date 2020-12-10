@@ -71,6 +71,7 @@ import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -93,7 +94,6 @@ import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -105,7 +105,6 @@ import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
@@ -253,10 +252,10 @@ public class Tablet {
 
   private String chooseTabletDir() throws IOException {
     VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(extent.getTableId(), extent.getEndRow(), context);
+        new VolumeChooserEnvironmentImpl(extent.tableId(), extent.endRow(), context);
     String dirUri =
-        tabletServer.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris(context))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.getTableId() + Path.SEPARATOR
+        tabletServer.getVolumeManager().choose(chooserEnv, ServerConstants.getBaseUris(context))
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.tableId() + Path.SEPARATOR
             + dirName;
     checkTabletDir(new Path(dirUri));
     return dirUri;
@@ -272,7 +271,7 @@ public class Tablet {
     if (!checkedTabletDirs.contains(path)) {
       FileStatus[] files = null;
       try {
-        files = getTabletServer().getFileSystem().listStatus(path);
+        files = getTabletServer().getVolumeManager().listStatus(path);
       } catch (FileNotFoundException ex) {
         // ignored
       }
@@ -280,7 +279,7 @@ public class Tablet {
       if (files == null) {
         log.debug("Tablet {} had no dir, creating {}", extent, path);
 
-        getTabletServer().getFileSystem().mkdirs(path);
+        getTabletServer().getVolumeManager().mkdirs(path);
       }
       checkedTabletDirs.add(path);
     }
@@ -306,7 +305,7 @@ public class Tablet {
     if (tblConf == null) {
       Tables.clearCache(tabletServer.getContext());
       tblConf = tabletServer.getTableConfiguration(extent);
-      requireNonNull(tblConf, "Could not get table configuration for " + extent.getTableId());
+      requireNonNull(tblConf, "Could not get table configuration for " + extent.tableId());
     }
 
     this.tableConfiguration = tblConf;
@@ -352,8 +351,8 @@ public class Tablet {
           absPaths.add(ref.getPathStr());
         }
 
-        tabletServer.recover(this.getTabletServer().getFileSystem(), extent, logEntries, absPaths,
-            m -> {
+        tabletServer.recover(this.getTabletServer().getVolumeManager(), extent, logEntries,
+            absPaths, m -> {
               Collection<ColumnUpdate> muts = m.getUpdates();
               for (ColumnUpdate columnUpdate : muts) {
                 if (!columnUpdate.hasTimestamp()) {
@@ -409,13 +408,6 @@ public class Tablet {
           getTabletMemory().getNumEntries());
     }
 
-    String contextName = tableConfiguration.get(Property.TABLE_CLASSPATH);
-    if (contextName != null && !contextName.equals("")) {
-      // initialize context classloader, instead of possibly waiting for it to initialize for a scan
-      // TODO this could hang, causing other tablets to fail to load - ACCUMULO-1292
-      AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
-    }
-
     // do this last after tablet is completely setup because it
     // could cause major compaction to start
     datafileManager = new DatafileManager(this, datafiles);
@@ -440,16 +432,14 @@ public class Tablet {
   private void removeOldTemporaryFiles() {
     // remove any temporary files created by a previous tablet server
     try {
-      Collection<Volume> volumes = getTabletServer().getFileSystem().getVolumes();
-      for (Volume volume : volumes) {
+      for (Volume volume : getTabletServer().getVolumeManager().getVolumes()) {
         String dirUri = volume.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + extent.getTableId() + Path.SEPARATOR + dirName;
+            + extent.tableId() + Path.SEPARATOR + dirName;
 
-        for (FileStatus tmp : getTabletServer().getFileSystem()
-            .globStatus(new Path(dirUri, "*_tmp"))) {
+        for (FileStatus tmp : volume.getFileSystem().globStatus(new Path(dirUri, "*_tmp"))) {
           try {
             log.debug("Removing old temp file {}", tmp.getPath());
-            getTabletServer().getFileSystem().delete(tmp.getPath());
+            volume.getFileSystem().delete(tmp.getPath(), false);
           } catch (IOException ex) {
             log.error("Unable to remove old temp file " + tmp.getPath() + ": " + ex);
           }
@@ -976,8 +966,8 @@ public class Tablet {
   public long getFlushID() throws NoNodeException {
     try {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-          + "/" + extent.getTableId() + Constants.ZTABLE_FLUSH_ID;
-      String id = new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8);
+          + "/" + extent.tableId() + Constants.ZTABLE_FLUSH_ID;
+      String id = new String(context.getZooReaderWriter().getData(zTablePath), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
@@ -992,7 +982,7 @@ public class Tablet {
 
   long getCompactionCancelID() {
     String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-        + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
+        + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
     String id = new String(context.getZooCache().get(zTablePath), UTF_8);
     return Long.parseLong(id);
   }
@@ -1000,10 +990,10 @@ public class Tablet {
   public Pair<Long,CompactionConfig> getCompactionID() throws NoNodeException {
     try {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-          + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_ID;
+          + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_ID;
 
       String[] tokens =
-          new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8).split(",");
+          new String(context.getZooReaderWriter().getData(zTablePath), UTF_8).split(",");
       long compactID = Long.parseLong(tokens[0]);
 
       CompactionConfig overlappingConfig = null;
@@ -1016,7 +1006,7 @@ public class Tablet {
 
         var compactionConfig = UserCompactionUtils.decodeCompactionConfig(dis);
 
-        KeyExtent ke = new KeyExtent(extent.getTableId(), compactionConfig.getEndRow(),
+        KeyExtent ke = new KeyExtent(extent.tableId(), compactionConfig.getEndRow(),
             compactionConfig.getStartRow());
 
         if (ke.overlaps(extent)) {
@@ -1299,7 +1289,7 @@ public class Tablet {
         }
       }
       if (err != null) {
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId(),
+        ProblemReports.getInstance(context).report(new ProblemReport(extent.tableId(),
             ProblemType.TABLET_LOAD, this.extent.toString(), err));
         log.error("Tablet closed consistency check has failed for {} giving up and closing",
             this.extent);
@@ -1407,8 +1397,8 @@ public class Tablet {
 
     try {
       // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(context, chooseTabletDir(), extent.getPrevEndRow(),
-          extent.getEndRow(), files, .25);
+      keys = FileUtil.findMidPoint(context, chooseTabletDir(), extent.prevEndRow(), extent.endRow(),
+          files, .25);
     } catch (IOException e) {
       log.error("Failed to find midpoint {}", e.getMessage());
       return null;
@@ -1424,11 +1414,11 @@ public class Tablet {
     try {
 
       Text lastRow;
-      if (extent.getEndRow() == null) {
+      if (extent.endRow() == null) {
         Key lastKey = (Key) FileUtil.findLastKey(context, files);
         lastRow = lastKey.getRow();
       } else {
-        lastRow = extent.getEndRow();
+        lastRow = extent.endRow();
       }
 
       // We expect to get a midPoint for this set of files. If we don't get one, we have a problem.
@@ -1608,9 +1598,9 @@ public class Tablet {
 
   public TreeMap<KeyExtent,TabletData> split(byte[] sp) throws IOException {
 
-    if (sp != null && extent.getEndRow() != null && extent.getEndRow().equals(new Text(sp))) {
+    if (sp != null && extent.endRow() != null && extent.endRow().equals(new Text(sp))) {
       throw new IllegalArgumentException(
-          "Attempting to split on EndRow " + extent.getEndRow() + " for " + extent);
+          "Attempting to split on EndRow " + extent.endRow() + " for " + extent);
     }
 
     if (sp != null && sp.length > tableConfiguration.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE)) {
@@ -1653,7 +1643,7 @@ public class Tablet {
       } else {
         Text tsp = new Text(sp);
         splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(context, chooseTabletDir(),
-            extent.getPrevEndRow(), extent.getEndRow(), getDatafileManager().getFiles(), tsp), tsp);
+            extent.prevEndRow(), extent.endRow(), getDatafileManager().getFiles(), tsp), tsp);
       }
 
       if (splitPoint == null || splitPoint.row == null) {
@@ -1668,8 +1658,8 @@ public class Tablet {
       Text midRow = splitPoint.row;
       double splitRatio = splitPoint.splitRatio;
 
-      KeyExtent low = new KeyExtent(extent.getTableId(), midRow, extent.getPrevEndRow());
-      KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
+      KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
+      KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
 
       String lowDirectoryName = createTabletDirectoryName(context, midRow);
 
@@ -1687,7 +1677,7 @@ public class Tablet {
 
       MetadataTime time = tabletTime.getMetadataTime();
 
-      MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio,
+      MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio,
           getTabletServer().getContext(), getTabletServer().getLock());
       MasterMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
           getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time, lastFlushID,

@@ -21,52 +21,22 @@ package org.apache.accumulo.server.tables;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.server.tables.TableManager.IllegalTableTransitionException;
 import org.junit.Test;
 
 public class IllegalTableTransitionExceptionTest {
 
-  final TableState oldState = TableState.ONLINE;
-  final TableState newState = TableState.OFFLINE;
-  final String defaultMsg =
+  private final TableState oldState = TableState.ONLINE;
+  private final TableState newState = TableState.OFFLINE;
+  private final String defaultMsg =
       "Error transitioning from " + oldState + " state to " + newState + " state";
-
-  @Test
-  public void testIllegalTableTransitionExceptionMessage() {
-    String userMessage = null;
-    try {
-      userMessage =
-          "User suppled message - Exception from " + oldState + " state to " + newState + " state";
-      throw new TableManager.IllegalTableTransitionException(oldState, newState, userMessage);
-    } catch (IllegalTableTransitionException e) {
-      assertEquals(userMessage, e.getMessage());
-    }
-  }
 
   @Test
   public void testIllegalTableTransitionExceptionDefaultMessage() {
     try {
-      throw new TableManager.IllegalTableTransitionException(oldState, newState);
+      throw new IllegalTableTransitionException(oldState, newState);
     } catch (IllegalTableTransitionException e) {
       assertEquals(defaultMsg, e.getMessage());
     }
   }
 
-  @Test
-  public void testIllegalTableTransitionExceptionWithNull() {
-    try {
-      throw new TableManager.IllegalTableTransitionException(oldState, newState, null);
-    } catch (IllegalTableTransitionException e) {
-      assertEquals(defaultMsg, e.getMessage());
-    }
-  }
-
-  @Test
-  public void testIllegalTableTransitionExceptionEmptyMessage() {
-    try {
-      throw new TableManager.IllegalTableTransitionException(oldState, newState, "");
-    } catch (IllegalTableTransitionException e) {
-      assertEquals(defaultMsg, e.getMessage());
-    }
-  }
 }

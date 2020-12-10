@@ -21,16 +21,14 @@ package org.apache.accumulo.server.security;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.Tables;
-import org.apache.accumulo.core.clientImpl.Translator;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -157,7 +155,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     if (shouldAudit(credentials, tableId)) {
       Range convertedRange = new Range(range);
       List<String> convertedColumns =
-          truncate(Translator.translate(columns, new Translator.TColumnTranslator()));
+          truncate(columns.stream().map(Column::new).collect(Collectors.toList()));
       String tableName = getTableName(tableId);
 
       try {
@@ -186,16 +184,15 @@ public class AuditedSecurityOperation extends SecurityOperation {
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations)
       throws ThriftSecurityException {
     if (shouldAudit(credentials, tableId)) {
-      @SuppressWarnings({"unchecked", "rawtypes"})
-      Map<KeyExtent,List<Range>> convertedBatch =
-          Translator.translate(tbatch, new Translator.TKeyExtentTranslator(),
-              new Translator.ListTranslator(new Translator.TRangeTranslator()));
-      Map<KeyExtent,List<String>> truncated = new HashMap<>();
-      for (Entry<KeyExtent,List<Range>> entry : convertedBatch.entrySet()) {
-        truncated.put(entry.getKey(), truncate(entry.getValue()));
-      }
+
+      // @formatter:off
+      Map<KeyExtent, List<String>> truncated = tbatch.entrySet().stream().collect(Collectors.toMap(
+                      entry -> KeyExtent.fromThrift(entry.getKey()),
+                      entry -> truncate(entry.getValue().stream().map(Range::new).collect(Collectors.toList()))
+      ));
+      // @formatter:on
       List<Column> convertedColumns =
-          Translator.translate(tcolumns, new Translator.TColumnTranslator());
+          tcolumns.stream().map(Column::new).collect(Collectors.toList());
       String tableName = getTableName(tableId);
 
       try {

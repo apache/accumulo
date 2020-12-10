@@ -56,10 +56,13 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -68,15 +71,12 @@ import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
-import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -103,7 +103,7 @@ public class Upgrader9to10 implements Upgrader {
   public static final String ZROOT_TABLET_WALOGS = ZROOT_TABLET + "/walogs";
   public static final String ZROOT_TABLET_CURRENT_LOGS = ZROOT_TABLET + "/current_logs";
   public static final String ZROOT_TABLET_PATH = ZROOT_TABLET + "/dir";
-  public static final Value UPGRADED = MetadataSchema.DeletesSection.SkewedKeyValue.NAME;
+  public static final Value UPGRADED = SkewedKeyValue.NAME;
   public static final String OLD_DELETE_PREFIX = "~del";
 
   // effectively an 8MB batch size, since this number is the number of Chars
@@ -160,7 +160,7 @@ public class Upgrader9to10 implements Upgrader {
 
       UpgradeMutator tabletMutator = new UpgradeMutator(ctx);
 
-      tabletMutator.putPrevEndRow(RootTable.EXTENT.getPrevEndRow());
+      tabletMutator.putPrevEndRow(RootTable.EXTENT.prevEndRow());
 
       tabletMutator.putDirName(upgradeDirColumn(dir));
 
@@ -215,9 +215,8 @@ public class Upgrader9to10 implements Upgrader {
       Mutation mutation = getMutation();
 
       try {
-        context.getZooReaderWriter().mutate(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET,
-            new byte[0], ZooUtil.PUBLIC, currVal -> {
-
+        context.getZooReaderWriter().mutateOrCreate(
+            context.getZooKeeperRoot() + RootTable.ZROOT_TABLET, new byte[0], currVal -> {
               // Earlier, it was checked that root tablet metadata did not exists. However the
               // earlier check does handle race conditions. Race conditions are unexpected. This is
               // a sanity check when making the update in ZK using compare and set. If this fails
@@ -225,15 +224,10 @@ public class Upgrader9to10 implements Upgrader {
               // concurrently running upgrade could cause this to fail.
               Preconditions.checkState(currVal.length == 0,
                   "Expected root tablet metadata to be empty!");
-
-              RootTabletMetadata rtm = new RootTabletMetadata();
-
+              var rtm = new RootTabletMetadata();
               rtm.update(mutation);
-
               String json = rtm.toJson();
-
               log.info("Upgrading root tablet metadata, writing following to ZK : \n {}", json);
-
               return json.getBytes(UTF_8);
             });
       } catch (Exception e) {
@@ -273,9 +267,10 @@ public class Upgrader9to10 implements Upgrader {
         result.clear();
         for (String child : zoo.getChildren(root)) {
           try {
-            LogEntry e = LogEntry.fromBytes(zoo.getData(root + "/" + child, null));
+            @SuppressWarnings("removal")
+            LogEntry e = LogEntry.fromBytes(zoo.getData(root + "/" + child));
             // upgrade from !0;!0<< -> +r<<
-            e = new LogEntry(RootTable.EXTENT, 0, e.server, e.filename);
+            e = new LogEntry(RootTable.EXTENT, 0, e.filename);
             result.add(e);
           } catch (KeeperException.NoNodeException ex) {
             // TODO I think this is a bug, probably meant to continue to while loop... was probably
@@ -294,7 +289,7 @@ public class Upgrader9to10 implements Upgrader {
 
   private String getFromZK(ServerContext ctx, String relpath) {
     try {
-      byte[] data = ctx.getZooReaderWriter().getData(ctx.getZooKeeperRoot() + relpath, null);
+      byte[] data = ctx.getZooReaderWriter().getData(ctx.getZooKeeperRoot() + relpath);
       if (data == null)
         return null;
 
@@ -421,6 +416,7 @@ public class Upgrader9to10 implements Upgrader {
 
     String tableName = level.metaTable();
     AccumuloClient c = ctx;
+    Ample ample = ctx.getAmple();
 
     // find all deletes
     try (BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig())) {
@@ -438,7 +434,7 @@ public class Upgrader9to10 implements Upgrader {
           Path absolutePath = resolveRelativeDelete(olddelete, upgradeProp);
           String updatedDel = switchToAllVolumes(absolutePath);
 
-          writer.addMutation(ServerAmpleImpl.createDeleteMutation(updatedDel));
+          writer.addMutation(ample.createDeleteMutation(updatedDel));
         }
         writer.flush();
         // if nothing thrown then we're good so mark all deleted
@@ -480,7 +476,7 @@ public class Upgrader9to10 implements Upgrader {
    */
   private Iterator<String> getOldCandidates(ServerContext ctx, String tableName)
       throws TableNotFoundException {
-    Range range = MetadataSchema.DeletesSection.getRange();
+    Range range = DeletesSection.getRange();
     Scanner scanner = ctx.createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(range);
     return StreamSupport.stream(scanner.spliterator(), false)
@@ -564,7 +560,7 @@ public class Upgrader9to10 implements Upgrader {
     try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
         BatchWriter writer = c.createBatchWriter(tableName)) {
 
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         String metaEntry = key.getColumnQualifier().toString();
@@ -609,7 +605,7 @@ public class Upgrader9to10 implements Upgrader {
 
     try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
       log.info("Looking for relative paths in {}", tableName);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         String metaEntry = key.getColumnQualifier().toString();
@@ -647,7 +643,7 @@ public class Upgrader9to10 implements Upgrader {
       return new Path(prefix + metadataEntry.substring(3));
     } else {
       // resolve style "/t-0003/C0004.rf"
-      TableId tableId = KeyExtent.tableOfMetadataRow(key.getRow());
+      TableId tableId = KeyExtent.fromMetaRow(key.getRow()).tableId();
       return new Path(prefix + tableId.canonical() + metadataEntry);
     }
   }

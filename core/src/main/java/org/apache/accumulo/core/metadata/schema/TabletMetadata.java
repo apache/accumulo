@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.function.Function;
 
@@ -46,7 +48,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -83,6 +89,7 @@ public class TabletMetadata {
   private EnumSet<ColumnType> fetchedCols;
   private KeyExtent extent;
   private Location last;
+  private SuspendingTServer suspend;
   private String dirName;
   private MetadataTime time;
   private String cloned;
@@ -110,42 +117,20 @@ public class TabletMetadata {
     FLUSH_ID,
     LOGS,
     COMPACT_ID,
-    SPLIT_RATIO
+    SPLIT_RATIO,
+    SUSPEND
   }
 
-  public static class Location {
-    private final String server;
-    private final String session;
+  public static class Location extends TServerInstance {
     private final LocationType lt;
 
-    Location(String server, String session, LocationType lt) {
-      this.server = server;
-      this.session = session;
+    public Location(String server, String session, LocationType lt) {
+      super(HostAndPort.fromString(server), session);
       this.lt = lt;
-    }
-
-    public HostAndPort getHostAndPort() {
-      return HostAndPort.fromString(server);
-    }
-
-    public String getSession() {
-      return session;
     }
 
     public LocationType getType() {
       return lt;
-    }
-
-    @Override
-    public String toString() {
-      return server + ":" + session + ":" + lt;
-    }
-
-    /**
-     * @return an ID composed of host, port, and session id.
-     */
-    public String getId() {
-      return server + "[" + session + "]";
     }
   }
 
@@ -216,6 +201,11 @@ public class TabletMetadata {
     return last;
   }
 
+  public SuspendingTServer getSuspend() {
+    ensureFetched(ColumnType.SUSPEND);
+    return suspend;
+  }
+
   public Collection<StoredTabletFile> getFiles() {
     ensureFetched(ColumnType.FILES);
     return files.keySet();
@@ -271,6 +261,26 @@ public class TabletMetadata {
     return keyValues;
   }
 
+  public TabletState getTabletState(Set<TServerInstance> liveTServers) {
+    ensureFetched(ColumnType.LOCATION);
+    ensureFetched(ColumnType.LAST);
+    ensureFetched(ColumnType.SUSPEND);
+    try {
+      TServerInstance current = null;
+      TServerInstance future = null;
+      if (hasCurrent()) {
+        current = location;
+      } else {
+        future = location;
+      }
+      // only care about the state so don't need walogs and chopped params
+      var tls = new TabletLocationState(extent, future, current, last, suspend, null, false);
+      return tls.getState(liveTServers);
+    } catch (TabletLocationState.BadLocationStateException blse) {
+      throw new IllegalArgumentException("Error creating TabletLocationState", blse);
+    }
+  }
+
   @VisibleForTesting
   public static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter,
       EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap) {
@@ -289,11 +299,11 @@ public class TabletMetadata {
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
-      Entry<Key,Value> kv = rowIter.next();
-      Key key = kv.getKey();
-      String val = kv.getValue().toString();
-      String fam = key.getColumnFamilyData().toString();
-      String qual = key.getColumnQualifierData().toString();
+      final Entry<Key,Value> kv = rowIter.next();
+      final Key key = kv.getKey();
+      final String val = kv.getValue().toString();
+      final String fam = key.getColumnFamilyData().toString();
+      final String qual = key.getColumnQualifierData().toString();
 
       if (buildKeyValueMap) {
         kvBuilder.put(key, kv.getValue());
@@ -301,9 +311,9 @@ public class TabletMetadata {
 
       if (row == null) {
         row = key.getRowData();
-        KeyExtent ke = new KeyExtent(key.getRow(), (Text) null);
-        te.endRow = ke.getEndRow();
-        te.tableId = ke.getTableId();
+        KeyExtent ke = KeyExtent.fromMetaRow(key.getRow());
+        te.endRow = ke.endRow();
+        te.tableId = ke.tableId();
       } else if (!row.equals(key.getRowData())) {
         throw new IllegalArgumentException(
             "Input contains more than one row : " + row + " " + key.getRowData());
@@ -313,11 +323,11 @@ public class TabletMetadata {
         case TabletColumnFamily.STR_NAME:
           switch (qual) {
             case PREV_ROW_QUAL:
-              te.prevEndRow = KeyExtent.decodePrevEndRow(kv.getValue());
+              te.prevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
               te.sawPrevEndRow = true;
               break;
             case OLD_PREV_ROW_QUAL:
-              te.oldPrevEndRow = KeyExtent.decodePrevEndRow(kv.getValue());
+              te.oldPrevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
               te.sawOldPrevEndRow = true;
               break;
             case SPLIT_RATIO_QUAL:
@@ -359,6 +369,9 @@ public class TabletMetadata {
         case LastLocationColumnFamily.STR_NAME:
           te.last = new Location(val, qual, LocationType.LAST);
           break;
+        case SuspendLocationColumn.STR_NAME:
+          te.suspend = SuspendingTServer.fromValue(kv.getValue());
+          break;
         case ScanFileColumnFamily.STR_NAME:
           scansBuilder.add(new StoredTabletFile(qual));
           break;
@@ -366,7 +379,7 @@ public class TabletMetadata {
           te.cloned = val;
           break;
         case LogColumnFamily.STR_NAME:
-          logsBuilder.add(LogEntry.fromKeyValue(key, val));
+          logsBuilder.add(LogEntry.fromMetaWalEntry(kv));
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);

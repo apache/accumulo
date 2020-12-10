@@ -21,7 +21,6 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -30,13 +29,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
@@ -45,8 +43,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,45 +68,6 @@ public class CompactionIT extends AccumuloClusterHarness {
     return 4 * 60;
   }
 
-  private String majcThreadMaxOpen, majcDelay, majcMaxConcurrent;
-
-  @Before
-  public void alterConfig() throws Exception {
-    if (getClusterType() == ClusterType.STANDALONE) {
-      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        InstanceOperations iops = client.instanceOperations();
-        Map<String,String> config = iops.getSystemConfiguration();
-        majcThreadMaxOpen = config.get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey());
-        majcDelay = config.get(Property.TSERV_MAJC_DELAY.getKey());
-        majcMaxConcurrent = config.get(Property.TSERV_MAJC_MAXCONCURRENT.getKey());
-
-        iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), "4");
-        iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1");
-        iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
-
-        getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-        getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-      }
-    }
-  }
-
-  @After
-  public void resetConfig() throws Exception {
-    // We set the values..
-    if (majcThreadMaxOpen != null) {
-      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        InstanceOperations iops = client.instanceOperations();
-
-        iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), majcThreadMaxOpen);
-        iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-        iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), majcMaxConcurrent);
-
-        getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-        getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-      }
-    }
-  }
-
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
@@ -118,8 +75,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
       FileSystem fs = getFileSystem();
-      Path root =
-          new Path(fs.getUri().toString() + cluster.getTemporaryPath(), getClass().getName());
+      Path root = new Path(cluster.getTemporaryPath(), getClass().getName());
       fs.deleteOnExit(root);
       Path testrf = new Path(root, "testrf");
       fs.deleteOnExit(testrf);
@@ -173,8 +129,8 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   private int countFiles(AccumuloClient c) throws Exception {
     try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.TabletColumnFamily.NAME));
-      s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME));
+      s.fetchColumnFamily(new Text(TabletColumnFamily.NAME));
+      s.fetchColumnFamily(new Text(DataFileColumnFamily.NAME));
       return Iterators.size(s.iterator());
     }
   }

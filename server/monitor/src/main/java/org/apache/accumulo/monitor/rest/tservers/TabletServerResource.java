@@ -21,9 +21,7 @@ package org.apache.accumulo.monitor.rest.tservers;
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
 
 import java.lang.management.ManagementFactory;
-import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -38,7 +36,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.TableId;
@@ -106,8 +103,7 @@ public class TabletServerResource {
   @Consumes(MediaType.TEXT_PLAIN)
   public void clearDeadServer(
       @QueryParam("server") @NotNull @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
-    DeadServerList obit = new DeadServerList(monitor.getContext(),
-        monitor.getContext().getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+    DeadServerList obit = new DeadServerList(monitor.getContext());
     obit.delete(server);
   }
 
@@ -322,14 +318,9 @@ public class TabletServerResource {
       ActionStatsUpdator.update(total.minors, info.minors);
       ActionStatsUpdator.update(total.majors, info.majors);
 
-      KeyExtent extent = new KeyExtent(info.extent);
-      TableId tableId = extent.getTableId();
-      MessageDigest digester = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
-      if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
-        digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
-      }
-      String obscuredExtent = Base64.getEncoder().encodeToString(digester.digest());
-      String displayExtent = String.format("[%s]", obscuredExtent);
+      KeyExtent extent = KeyExtent.fromThrift(info.extent);
+      TableId tableId = extent.tableId();
+      String displayExtent = String.format("[%s]", extent.obscured());
 
       String tableName = Tables.getPrintableTableInfoFromId(monitor.getContext(), tableId);
 

@@ -68,6 +68,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -86,9 +87,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
-import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
-import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory.RateProvider;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
@@ -113,7 +111,6 @@ import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.master.recovery.RecoveryPath;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
@@ -130,8 +127,6 @@ import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
 import org.apache.accumulo.tserver.compactions.Compactable;
@@ -142,6 +137,7 @@ import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.log.TabletServerLogger;
 import org.apache.accumulo.tserver.mastermessage.MasterMessage;
 import org.apache.accumulo.tserver.mastermessage.SplitReportMessage;
+import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
@@ -185,6 +181,7 @@ public class TabletServer extends AbstractServer {
   final TabletServerUpdateMetrics updateMetrics;
   final TabletServerScanMetrics scanMetrics;
   final TabletServerMinCMetrics mincMetrics;
+  final CompactionExecutorsMetrics ceMetrics;
 
   public TabletServerScanMetrics getScanMetrics() {
     return scanMetrics;
@@ -201,8 +198,6 @@ public class TabletServer extends AbstractServer {
 
   private final AtomicLong flushCounter = new AtomicLong(0);
   private final AtomicLong syncCounter = new AtomicLong(0);
-
-  private final VolumeManager fs;
 
   final OnlineTablets onlineTablets = new OnlineTablets();
   final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<>());
@@ -248,13 +243,12 @@ public class TabletServer extends AbstractServer {
     ServerContext context = super.getContext();
     context.setupCrypto();
     this.masterLockCache = new ZooCache(context.getZooReaderWriter(), null);
-    this.fs = context.getVolumeManager();
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
     this.sessionManager = new SessionManager(aconf);
-    this.logSorter = new LogSorter(context, fs, aconf);
-    this.replWorker = new ReplicationWorker(context, fs);
+    this.logSorter = new LogSorter(context, aconf);
+    this.replWorker = new ReplicationWorker(context);
     this.statsKeeper = new TabletStatsKeeper();
     final int numBusyTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSY_TABLETS_COUNT);
     final long logBusyTabletsDelay =
@@ -343,6 +337,7 @@ public class TabletServer extends AbstractServer {
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
+    ceMetrics = new CompactionExecutorsMetrics();
     SimpleTimer.getInstance(aconf).schedule(TabletLocator::clearLocators, jitter(), jitter());
     walMarker = new WalStateManager(context);
 
@@ -708,6 +703,7 @@ public class TabletServer extends AbstractServer {
       mincMetrics.register(metricsSystem);
       scanMetrics.register(metricsSystem);
       updateMetrics.register(metricsSystem);
+      ceMetrics.register(metricsSystem);
     } catch (Exception e) {
       log.error("Error registering metrics", e);
     }
@@ -732,7 +728,7 @@ public class TabletServer extends AbstractServer {
         return Iterators.transform(onlineTablets.snapshot().values().iterator(),
             Tablet::asCompactable);
       }
-    }, getContext());
+    }, getContext(), ceMetrics);
     compactionManager.start();
 
     try {
@@ -865,8 +861,8 @@ public class TabletServer extends AbstractServer {
     TServerUtils.stopTServer(server);
 
     try {
-      log.debug("Closing filesystem");
-      fs.close();
+      log.debug("Closing filesystems");
+      getVolumeManager().close();
     } catch (IOException e) {
       log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
@@ -932,8 +928,7 @@ public class TabletServer extends AbstractServer {
 
     Location loc = meta.getLocation();
 
-    if (loc == null || loc.getType() != LocationType.FUTURE
-        || !instance.equals(new TServerInstance(loc))) {
+    if (loc == null || loc.getType() != LocationType.FUTURE || !instance.equals(loc)) {
       log.info("Unexpected location {} {}", extent, loc);
       return false;
     }
@@ -962,13 +957,13 @@ public class TabletServer extends AbstractServer {
     }
   }
 
-  private void checkWalCanSync(ServerContext context) {
+  private static void checkWalCanSync(ServerContext context) {
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.ChooserScope.LOGGER, context);
     Set<String> prefixes;
     var options = ServerConstants.getBaseUris(context);
     try {
-      prefixes = fs.choosable(chooserEnv, options);
+      prefixes = context.getVolumeManager().choosable(chooserEnv, options);
     } catch (RuntimeException e) {
       log.warn("Unable to determine if WAL directories ({}) support sync or flush. "
           + "Data loss may occur.", Arrays.asList(options), e);
@@ -978,7 +973,7 @@ public class TabletServer extends AbstractServer {
     boolean warned = false;
     for (String prefix : prefixes) {
       String logPath = prefix + Path.SEPARATOR + ServerConstants.WAL_DIR;
-      if (!fs.canSyncAndFlush(new Path(logPath))) {
+      if (!context.getVolumeManager().canSyncAndFlush(new Path(logPath))) {
         // sleep a few seconds in case this is at cluster start...give monitor
         // time to start so the warning will be more visible
         if (!warned) {
@@ -999,38 +994,8 @@ public class TabletServer extends AbstractServer {
     majorCompactorThread.start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
-    try {
-      AccumuloVFSClassLoader.getContextManager()
-          .setContextConfig(new ContextManager.DefaultContextsConfig() {
-            @Override
-            public Map<String,String> getVfsContextClasspathProperties() {
-              return getConfiguration()
-                  .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-            }
-          });
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
 
-    // A task that cleans up unused classloader contexts
-    Runnable contextCleaner = () -> {
-      Set<String> contextProperties = getConfiguration()
-          .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY).keySet();
-      Set<String> configuredContexts = new HashSet<>();
-      for (String prop : contextProperties) {
-        configuredContexts
-            .add(prop.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.name().length()));
-      }
-
-      try {
-        AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);
-      } catch (IOException e) {
-        log.warn("{}", e.getMessage(), e);
-      }
-    };
-
-    AccumuloConfiguration aconf = getConfiguration();
-    SimpleTimer.getInstance(aconf).schedule(contextCleaner, 60000, 60000);
+    final AccumuloConfiguration aconf = getConfiguration();
 
     FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
 
@@ -1046,7 +1011,7 @@ public class TabletServer extends AbstractServer {
     final Map<String,TableInfo> tables = new HashMap<>();
 
     getOnlineTablets().forEach((ke, tablet) -> {
-      String tableId = ke.getTableId().canonical();
+      String tableId = ke.tableId().canonical();
       TableInfo table = tables.get(tableId);
       if (table == null) {
         table = new TableInfo();
@@ -1106,7 +1071,7 @@ public class TabletServer extends AbstractServer {
     }
 
     for (KeyExtent extent : offlineTabletsCopy) {
-      String tableId = extent.getTableId().canonical();
+      String tableId = extent.tableId().canonical();
       TableInfo table = tables.get(tableId);
       if (table == null) {
         table = new TableInfo();
@@ -1191,15 +1156,15 @@ public class TabletServer extends AbstractServer {
   }
 
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
-    return getContext().getTableConfiguration(extent.getTableId());
+    return getContext().getTableConfiguration(extent.tableId());
   }
 
   public DfsLogger.ServerResources getServerConfig() {
     return new DfsLogger.ServerResources() {
 
       @Override
-      public VolumeManager getFileSystem() {
-        return fs;
+      public VolumeManager getVolumeManager() {
+        return TabletServer.this.getVolumeManager();
       }
 
       @Override
@@ -1217,8 +1182,8 @@ public class TabletServer extends AbstractServer {
     return onlineTablets.snapshot().get(extent);
   }
 
-  public VolumeManager getFileSystem() {
-    return fs;
+  public VolumeManager getVolumeManager() {
+    return getContext().getVolumeManager();
   }
 
   public int getOpeningCount() {
@@ -1359,27 +1324,6 @@ public class TabletServer extends AbstractServer {
 
   public void removeBulkImportState(List<String> files) {
     bulkImportStatus.removeBulkImportStatus(files);
-  }
-
-  private static final String MAJC_READ_LIMITER_KEY = "tserv_majc_read";
-  private static final String MAJC_WRITE_LIMITER_KEY = "tserv_majc_write";
-  private final RateProvider rateProvider =
-      () -> getConfiguration().getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
-
-  /**
-   * Get the {@link RateLimiter} for reads during major compactions on this tserver. All writes
-   * performed during major compactions are throttled to conform to this RateLimiter.
-   */
-  public final RateLimiter getMajorCompactionReadLimiter() {
-    return SharedRateLimiterFactory.getInstance().create(MAJC_READ_LIMITER_KEY, rateProvider);
-  }
-
-  /**
-   * Get the RateLimiter for writes during major compactions on this tserver. All reads performed
-   * during major compactions are throttled to conform to this RateLimiter.
-   */
-  public final RateLimiter getMajorCompactionWriteLimiter() {
-    return SharedRateLimiterFactory.getInstance().create(MAJC_WRITE_LIMITER_KEY, rateProvider);
   }
 
   public CompactionManager getCompactionManager() {

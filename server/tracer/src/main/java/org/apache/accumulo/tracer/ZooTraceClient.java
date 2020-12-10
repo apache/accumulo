@@ -21,6 +21,7 @@ package org.apache.accumulo.tracer;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.lang.ref.Cleaner.Cleanable;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.SecureRandom;
@@ -31,9 +32,13 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Client;
@@ -61,14 +66,19 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
 
   private static final int DEFAULT_TIMEOUT = 30 * 1000;
 
-  ZooReader zoo = null;
-  String path;
-  boolean pathExists = false;
-  final Random random = new SecureRandom();
-  final List<String> hosts = new ArrayList<>();
-  long retryPause = 5000L;
+  private ZooReader zoo = null;
+  private String path;
+  private boolean pathExists = false;
+  private final Random random = new SecureRandom();
+  private final List<String> hosts = new ArrayList<>();
+  private long retryPause = 5000L;
+  private SingletonReservation reservation;
+  private Cleanable cleanable;
+  private final AtomicBoolean closed;
 
-  ZooTraceClient() {}
+  ZooTraceClient() {
+    closed = new AtomicBoolean(true);
+  }
 
   public ZooTraceClient(HTraceConfiguration conf) {
     super(conf);
@@ -77,6 +87,13 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
     if (keepers == null)
       throw new IllegalArgumentException("Must configure " + TraceUtil.TRACER_ZK_HOST);
     int timeout = conf.getInt(TraceUtil.TRACER_ZK_TIMEOUT, DEFAULT_TIMEOUT);
+
+    // we need a client reservation for ZooSession, which is used by ZooReader
+    // the reservation is registered in the Cleaner, since span receivers aren't Closeable
+    closed = new AtomicBoolean(false);
+    reservation = SingletonManager.getClientReservation();
+    cleanable = CleanerUtil.unclosed(this, ZooTraceClient.class, closed, log, reservation);
+
     zoo = new ZooReader(keepers, timeout);
     path = conf.get(TraceUtil.TRACER_ZK_PATH, Constants.ZTRACERS);
     setInitialTraceHosts();
@@ -97,7 +114,11 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
 
   @Override
   public void process(WatchedEvent event) {
-    log.debug("Processing event for trace server zk watch");
+    if (event.getType() == Watcher.Event.EventType.None) {
+      log.debug("Ignoring event for trace server zk watch: {}", event);
+      return;
+    }
+    log.debug("Processing event for trace server zk watch: {}", event);
     try {
       updateHostsFromZooKeeper();
     } catch (Exception ex) {
@@ -160,7 +181,7 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
     try {
       List<String> hosts = new ArrayList<>();
       for (String child : children) {
-        byte[] data = zoo.getData(path + "/" + child, null);
+        byte[] data = zoo.getData(path + "/" + child);
         hosts.add(new String(data, UTF_8));
       }
       this.hosts.clear();
@@ -207,5 +228,16 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
         throw ex;
       }
     }
+  }
+
+  @Override
+  public void close() {
+    if (closed.compareAndSet(false, true)) {
+      // deregister cleanable, but it won't run because it checks
+      // the value of closed first, which is now true
+      cleanable.clean();
+      reservation.close();
+    }
+    super.close();
   }
 }

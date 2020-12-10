@@ -37,14 +37,11 @@ import java.util.function.Function;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.MapCounter;
-import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
-
-import com.google.common.collect.Iterables;
 
 public class GroupBalancerTest {
 
@@ -52,8 +49,8 @@ public class GroupBalancerTest {
 
     @Override
     public String apply(KeyExtent input) {
-      return (input == null || input.getEndRow() == null) ? null
-          : input.getEndRow().toString().substring(0, 2);
+      return (input == null || input.endRow() == null) ? null
+          : input.endRow().toString().substring(0, 2);
     }
   };
 
@@ -86,9 +83,8 @@ public class GroupBalancerTest {
       GroupBalancer balancer = new GroupBalancer(TableId.of("1")) {
 
         @Override
-        protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
-          return Iterables.transform(tabletLocs.entrySet(),
-              input -> new Pair<>(input.getKey(), new Location(input.getValue())));
+        protected Map<KeyExtent,TServerInstance> getLocationProvider() {
+          return tabletLocs;
         }
 
         @Override

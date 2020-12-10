@@ -24,7 +24,6 @@ import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
@@ -64,7 +63,7 @@ class CloneZookeeper extends MasterRepo {
 
       environment.getTableManager().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
           cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
-          cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
+          cloneInfo.propertiesToExclude);
       Tables.clearCache(environment.getContext());
 
       return new CloneMetadata(cloneInfo);

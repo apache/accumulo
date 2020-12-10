@@ -36,10 +36,10 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.junit.Test;
 
@@ -87,7 +87,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // Ensure assignments are correct
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().getHost());
       }
     }
     Set<KeyExtent> migrations = new HashSet<>();
@@ -107,11 +107,11 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
     assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
-      assertTrue(migration.newServer.host().startsWith("192.168.0.1")
-          || migration.newServer.host().startsWith("192.168.0.2")
-          || migration.newServer.host().startsWith("192.168.0.3")
-          || migration.newServer.host().startsWith("192.168.0.4")
-          || migration.newServer.host().startsWith("192.168.0.5"));
+      assertTrue(migration.newServer.getHost().startsWith("192.168.0.1")
+          || migration.newServer.getHost().startsWith("192.168.0.2")
+          || migration.newServer.getHost().startsWith("192.168.0.3")
+          || migration.newServer.getHost().startsWith("192.168.0.4")
+          || migration.newServer.getHost().startsWith("192.168.0.5"));
     }
   }
 
@@ -120,7 +120,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     List<TabletStats> tablets = new ArrayList<>();
     // Report assignment information
     for (Entry<KeyExtent,TServerInstance> e : this.assignments.entrySet()) {
-      if (e.getValue().equals(tserver) && e.getKey().getTableId().equals(tableId)) {
+      if (e.getValue().equals(tserver) && e.getKey().tableId().equals(tableId)) {
         TabletStats ts = new TabletStats();
         ts.setExtent(e.getKey().toThrift());
         tablets.add(ts);

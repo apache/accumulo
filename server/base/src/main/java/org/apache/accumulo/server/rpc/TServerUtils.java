@@ -34,12 +34,14 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.net.ssl.SSLServerSocket;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
+import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
@@ -90,12 +92,9 @@ public class TServerUtils {
    *          array of ports
    * @return array of HostAndPort objects
    */
-  public static HostAndPort[] getHostAndPorts(String hostname, int[] ports) {
-    HostAndPort[] addresses = new HostAndPort[ports.length];
-    for (int i = 0; i < ports.length; i++) {
-      addresses[i] = HostAndPort.fromParts(hostname, ports[i]);
-    }
-    return addresses;
+  public static HostAndPort[] getHostAndPorts(String hostname, IntStream ports) {
+    return ports.mapToObj(port -> HostAndPort.fromParts(hostname, port))
+        .toArray(HostAndPort[]::new);
   }
 
   /**
@@ -108,9 +107,8 @@ public class TServerUtils {
   public static Map<Integer,Property> getReservedPorts(AccumuloConfiguration config) {
     return EnumSet.allOf(Property.class).stream()
         .filter(p -> p.getType() == PropertyType.PORT && p != Property.TSERV_CLIENTPORT)
-        .flatMap(rp -> {
-          return Arrays.stream(config.getPort(rp)).mapToObj(portNum -> new Pair<>(portNum, rp));
-        }).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+        .flatMap(rp -> config.getPortStream(rp).mapToObj(portNum -> new Pair<>(portNum, rp)))
+        .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
   }
 
   /**
@@ -145,7 +143,7 @@ public class TServerUtils {
       Property maxMessageSizeProperty) throws UnknownHostException {
     final AccumuloConfiguration config = service.getConfiguration();
 
-    final int[] portHint = config.getPort(portHintProperty);
+    final IntStream portHint = config.getPortStream(portHintProperty);
 
     int minThreads = 2;
     if (minThreadProperty != null) {
@@ -208,7 +206,7 @@ public class TServerUtils {
             continue;
           }
 
-          if (port > 65535) {
+          if (PortRange.VALID_RANGE.isBefore(port)) {
             break;
           }
           try {
@@ -632,7 +630,7 @@ public class TServerUtils {
     // would require changes in how the transports
     // work at the Thrift layer to ensure that both the SSL and SASL handshakes function. SASL's
     // quality of protection addresses privacy issues.
-    checkArgument(!(sslParams != null && saslParams != null),
+    checkArgument(sslParams == null || saslParams == null,
         "Cannot start a Thrift server using both SSL and SASL");
 
     ServerAddress serverAddress = null;

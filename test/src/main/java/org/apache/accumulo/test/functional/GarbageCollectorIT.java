@@ -44,7 +44,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ServerServices;
@@ -59,7 +61,6 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
-import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
@@ -189,7 +190,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   private Mutation createDelMutation(String path, String cf, String cq, String val) {
-    Text row = new Text(MetadataSchema.DeletesSection.encodeRow(path));
+    Text row = new Text(DeletesSection.encodeRow(path));
     Mutation delFlag = new Mutation(row);
     delFlag.put(cf, cq, val);
     return delFlag;
@@ -219,8 +220,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         // path is invalid but value is expected - only way the invalid entry will come through
         // processing and
         // show up to produce error in output to allow while loop to end
-        bw.addMutation(
-            createDelMutation("/", "", "", MetadataSchema.DeletesSection.SkewedKeyValue.STR_NAME));
+        bw.addMutation(createDelMutation("/", "", "", SkewedKeyValue.STR_NAME));
       }
 
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
@@ -262,7 +262,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {
-          locks = zk.getChildren(path, null);
+          locks = zk.getChildren(path);
         } catch (NoNodeException e) {
           Thread.sleep(5000);
           continue;
@@ -273,7 +273,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
           String lockPath = path + "/" + locks.get(0);
 
-          String gcLoc = new String(zk.getData(lockPath, null));
+          String gcLoc = new String(zk.getData(lockPath));
 
           assertTrue("Found unexpected data in zookeeper for GC location: " + gcLoc,
               gcLoc.startsWith(Service.GC_CLIENT.name()));
@@ -305,14 +305,14 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   private void addEntries(AccumuloClient client) throws Exception {
+    Ample ample = getServerContext().getAmple();
     client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
     try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
       for (int i = 0; i < 100000; ++i) {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
-        Mutation delFlag =
-            ServerAmpleImpl.createDeleteMutation(String.format("file:/%020d/%s", i, longpath));
+        Mutation delFlag = ample.createDeleteMutation(String.format("file:/%020d/%s", i, longpath));
         bw.addMutation(delFlag);
       }
     }

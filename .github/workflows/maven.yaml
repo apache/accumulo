@@ -18,7 +18,8 @@
 #
 
 # This workflow will build a Java project with Maven
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+# See also:
+#   https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
 
 name: QA
 
@@ -29,12 +30,38 @@ on:
     branches: [ '*' ]
 
 jobs:
+  # fast build to populate the local maven repository cache
+  fastbuild:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 11
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
+    - name: Cache local maven repository
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.m2/repository/
+          !~/.m2/repository/org/apache/accumulo
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+    - name: Show the first log message
+      run: git log -n1
+    - name: Build with Maven (Fast Build)
+      run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat
+      env:
+        MAVEN_OPTS: -Djansi.force=true
+  # more complete builds with tests
   mvn:
+    needs: fastbuild
     strategy:
       matrix:
         profile:
-          - {name: 'unit-tests',    args: 'verify -PskipQA -DskipTests=false -DforkCount=1C'}
-          - {name: 'qa-checks',     args: 'verify javadoc:jar -Psec-bugs -DskipTests=true -Dspotbugs.timeout=3600000'}
+          - {name: 'unit-tests',    args: 'verify -PskipQA -DskipTests=false'}
+          - {name: 'qa-checks',     args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
           - {name: 'hadoop-compat', args: 'package -DskipTests -Dhadoop.version=3.0.3'}
       fail-fast: false
     timeout-minutes: 60
@@ -54,22 +81,25 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
     - name: Build with Maven (${{ matrix.profile.name }})
-      run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ matrix.profile.args }}
+      run: mvn -B -V -e -ntp "-Dstyle.color=always" -DskipFormat ${{ matrix.profile.args }}
       env:
         MAVEN_OPTS: -Djansi.force=true
     - name: Upload unit test results
+      if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
         name: surefire-reports-${{ matrix.profile.name }}
         path: ./**/target/surefire-reports/
         if-no-files-found: ignore
     - name: Upload integration test results
+      if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
         name: failsafe-reports-${{ matrix.profile.name }}
         path: ./**/target/failsafe-reports/
         if-no-files-found: ignore
     - name: Upload mini test logs
+      if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
         name: mini-tests-logs-${{ matrix.profile.name }}

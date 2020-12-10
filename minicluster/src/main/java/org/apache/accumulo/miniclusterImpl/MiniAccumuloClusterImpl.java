@@ -95,7 +95,6 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -357,8 +356,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       writeConfig(hdfsFile, conf);
 
       Map<String,String> siteConfig = config.getSiteConfig();
-      siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), dfsUri);
-      siteConfig.put(Property.INSTANCE_DFS_DIR.getKey(), "/accumulo");
+      siteConfig.put(Property.INSTANCE_VOLUMES.getKey(), dfsUri + "/accumulo");
       config.setSiteConfig(siteConfig);
     } else if (config.useExistingInstance()) {
       dfsUri = config.getHadoopConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
@@ -391,7 +389,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     if (!config.useExistingInstance() && !config.useExistingZooKeepers()) {
       zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
-      FileWriter fileWriter = new FileWriter(zooCfgFile);
+      FileWriter fileWriter = new FileWriter(zooCfgFile, UTF_8);
 
       // zookeeper uses Properties to read its config, so use that to write in order to properly
       // escape things like Windows paths
@@ -420,7 +418,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private void writeConfig(File file, Iterable<Map.Entry<String,String>> settings)
       throws IOException {
-    FileWriter fileWriter = new FileWriter(file);
+    FileWriter fileWriter = new FileWriter(file, UTF_8);
     fileWriter.append("<configuration>\n");
 
     for (Entry<String,String> entry : settings) {
@@ -434,7 +432,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   private void writeConfigProperties(File file, Map<String,String> settings) throws IOException {
-    FileWriter fileWriter = new FileWriter(file);
+    FileWriter fileWriter = new FileWriter(file, UTF_8);
 
     for (Entry<String,String> entry : settings.entrySet()) {
       fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
@@ -467,8 +465,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         throw new RuntimeException(e);
       }
 
-      String instanceIdFromFile =
-          VolumeManager.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
+      String instanceIdFromFile = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
       ZooReaderWriter zrw = new ZooReaderWriter(cc.get(Property.INSTANCE_ZK_HOST),
           (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET));
 
@@ -478,7 +475,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       try {
         for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
           String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
-          byte[] bytes = zrw.getData(instanceNamePath, new Stat());
+          byte[] bytes = zrw.getData(instanceNamePath);
           String iid = new String(bytes, UTF_8);
           if (iid.equals(instanceIdFromFile)) {
             instanceName = name;
@@ -583,7 +580,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           + ". Check the logs in " + config.getLogDir() + " for errors.");
     }
 
-    control.start(ServerType.MASTER);
+    control.start(ServerType.MANAGER);
     control.start(ServerType.GARBAGE_COLLECTOR);
 
     if (executor == null) {
@@ -592,8 +589,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   private List<String> buildRemoteDebugParams(int port) {
-    return Arrays.asList("-Xdebug",
-        String.format("-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=%d", port));
+    return Collections.singletonList(
+        String.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=%d", port));
   }
 
   /**
@@ -615,7 +612,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
-    result.put(ServerType.MASTER, references(control.masterProcess));
+    result.put(ServerType.MANAGER, references(control.masterProcess));
     result.put(ServerType.TABLET_SERVER,
         references(control.tabletServerProcesses.toArray(new Process[0])));
     if (control.zooKeeperProcess != null) {
@@ -665,7 +662,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     MiniAccumuloClusterControl control = getClusterControl();
 
     control.stop(ServerType.GARBAGE_COLLECTOR, null);
-    control.stop(ServerType.MASTER, null);
+    control.stop(ServerType.MANAGER, null);
     control.stop(ServerType.TABLET_SERVER, null);
     control.stop(ServerType.ZOOKEEPER, null);
 
@@ -793,13 +790,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public Path getTemporaryPath() {
+    String p;
     if (config.useMiniDFS()) {
-      return new Path("/tmp/");
+      p = "/tmp/";
     } else {
       File tmp = new File(config.getDir(), "tmp");
       mkdirs(tmp);
-      return new Path(tmp.toString());
+      p = tmp.toString();
     }
+    return getFileSystem().makeQualified(new Path(p));
   }
 
   @Override

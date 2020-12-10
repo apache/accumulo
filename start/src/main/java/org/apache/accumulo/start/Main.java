@@ -29,7 +29,6 @@ import java.util.ServiceLoader;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable.UsageGroup;
 import org.slf4j.Logger;
@@ -49,8 +48,10 @@ public class Main {
       ClassLoader loader = getClassLoader();
       Class<?> confClass = null;
       try {
-        confClass =
-            AccumuloClassLoader.getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
+        @SuppressWarnings("deprecation")
+        var deprecatedConfClass = org.apache.accumulo.start.classloader.AccumuloClassLoader
+            .getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
+        confClass = deprecatedConfClass;
       } catch (ClassNotFoundException e) {
         log.error("Unable to find Hadoop Configuration class on classpath, check configuration.",
             e);
@@ -113,11 +114,13 @@ public class Main {
     return classLoader;
   }
 
-  public static synchronized Class<?> getVFSClassLoader()
+  @Deprecated
+  private static synchronized Class<?> getVFSClassLoader()
       throws IOException, ClassNotFoundException {
     if (vfsClassLoader == null) {
-      Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
-      vfsClassLoader = AccumuloClassLoader.getClassLoader()
+      Thread.currentThread().setContextClassLoader(
+          org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader());
+      vfsClassLoader = org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader()
           .loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
     }
     return vfsClassLoader;

@@ -156,7 +156,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private ClientContext context;
   private ScannerOptions options;
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
-  private AccumuloConfiguration config;
 
   public OfflineIterator(ScannerOptions options, ClientContext context,
       Authorizations authorizations, Text table, Range range) {
@@ -174,7 +173,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<>();
 
     try {
-      config = new ConfigurationCopy(context.instanceOperations().getSiteConfiguration());
       nextTablet();
 
       while (iter != null && !iter.hasTop())
@@ -222,20 +220,20 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       else
         startRow = new Text();
 
-      nextRange = new Range(TabletsSection.getRow(tableId, startRow), true, null, false);
+      nextRange = new Range(TabletsSection.encodeRow(tableId, startRow), true, null, false);
     } else {
 
-      if (currentExtent.getEndRow() == null) {
+      if (currentExtent.endRow() == null) {
         iter = null;
         return;
       }
 
-      if (range.afterEndKey(new Key(currentExtent.getEndRow()).followingKey(PartialKey.ROW))) {
+      if (range.afterEndKey(new Key(currentExtent.endRow()).followingKey(PartialKey.ROW))) {
         iter = null;
         return;
       }
 
-      nextRange = new Range(currentExtent.getMetadataEntry(), false, null, false);
+      nextRange = new Range(currentExtent.toMetaRow(), false, null, false);
     }
 
     TabletMetadata tablet = getTabletFiles(nextRange);
@@ -254,7 +252,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       tablet = getTabletFiles(nextRange);
     }
 
-    if (!tablet.getExtent().getTableId().equals(tableId)) {
+    if (!tablet.getExtent().tableId().equals(tableId)) {
       throw new AccumuloException(
           " did not find tablets for table " + tableId + " " + tablet.getExtent());
     }
@@ -310,8 +308,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     // TODO need to close files - ACCUMULO-1303
     for (TabletFile file : absFiles) {
-      FileSystem fs =
-          VolumeConfiguration.getVolume(file.getPathStr(), conf, config).getFileSystem();
+      FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getPathStr(), conf);
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file.getPathStr(), fs, conf, CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(acuTableConf).build();

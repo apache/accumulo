@@ -67,14 +67,14 @@ public class DeleteZooInstance {
     uuids.remove("instances");
     if (instances.contains(opts.instance)) {
       String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + opts.instance;
-      byte[] data = zk.getData(path, null);
+      byte[] data = zk.getData(path);
       deleteRetry(zk, path);
       deleteRetry(zk, Constants.ZROOT + "/" + new String(data, UTF_8));
     } else if (uuids.contains(opts.instance)) {
       // look for the real instance name
       for (String instance : instances) {
         String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + instance;
-        byte[] data = zk.getData(path, null);
+        byte[] data = zk.getData(path);
         if (opts.instance.equals(new String(data, UTF_8))) {
           deleteRetry(zk, path);
         }

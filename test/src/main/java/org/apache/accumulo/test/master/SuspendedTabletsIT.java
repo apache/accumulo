@@ -52,13 +52,13 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
-import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -125,7 +125,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       Collections.shuffle(tserversList, RANDOM);
 
       for (int i1 = 0; i1 < count; ++i1) {
-        final String tserverName = tserversList.get(i1).toString();
+        final String tserverName = tserversList.get(i1).getHostPortSession();
         MasterClient.executeVoid(ctx, client -> {
           log.info("Sending shutdown command to {} via MasterClientService", tserverName);
           client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
@@ -315,7 +315,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         while (scanner.hasNext()) {
           TabletLocationState tls = scanner.next();
 
-          if (!tls.extent.getTableId().canonical().equals(tableId)) {
+          if (!tls.extent.tableId().canonical().equals(tableId)) {
             continue;
           }
           locationStates.put(tls.extent, tls);
@@ -323,7 +323,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
             suspended.put(tls.suspend.server, tls.extent);
             ++suspendedCount;
           } else if (tls.current != null) {
-            hosted.put(tls.current.getLocation(), tls.extent);
+            hosted.put(tls.current.getHostAndPort(), tls.extent);
             ++hostedCount;
           } else if (tls.future != null) {
             ++assignedCount;

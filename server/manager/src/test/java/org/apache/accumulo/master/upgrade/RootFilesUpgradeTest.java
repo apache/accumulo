@@ -31,7 +31,6 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.RandomVolumeChooser;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -58,36 +57,34 @@ public class RootFilesUpgradeTest {
 
   private class TestWrapper {
     File rootTabletDir;
-    Set<FileRef> oldDatafiles;
+    Set<Path> oldDatafiles;
     String compactName;
-    FileRef tmpDatafile;
-    FileRef newDatafile;
+    Path tmpDatafile;
+    Path newDatafile;
     VolumeManager vm;
     AccumuloConfiguration conf;
 
-    public void prepareReplacement(VolumeManager fs, Path location, Set<FileRef> oldDatafiles,
+    public void prepareReplacement(VolumeManager fs, Path location, Set<Path> oldDatafiles,
         String compactName) throws IOException {
-      for (FileRef ref : oldDatafiles) {
-        Path path = ref.path();
+      for (Path path : oldDatafiles) {
         rename(fs, path, new Path(location + "/delete+" + compactName + "+" + path.getName()));
       }
     }
 
-    public void renameReplacement(VolumeManager fs, FileRef tmpDatafile, FileRef newDatafile)
+    public void renameReplacement(VolumeManager fs, Path tmpDatafile, Path newDatafile)
         throws IOException {
-      if (fs.exists(newDatafile.path())) {
+      if (fs.exists(newDatafile)) {
         throw new IllegalStateException("Target map file already exist " + newDatafile);
       }
 
-      rename(fs, tmpDatafile.path(), newDatafile.path());
+      rename(fs, tmpDatafile, newDatafile);
     }
 
     public void finishReplacement(AccumuloConfiguration acuTableConf, VolumeManager fs,
-        Path location, Set<FileRef> oldDatafiles, String compactName) throws IOException {
+        Path location, Set<Path> oldDatafiles, String compactName) throws IOException {
       // start deleting files, if we do not finish they will be cleaned
       // up later
-      for (FileRef ref : oldDatafiles) {
-        Path path = ref.path();
+      for (Path path : oldDatafiles) {
         Path deleteFile = new Path(location + "/delete+" + compactName + "+" + path.getName());
         if (acuTableConf.getBoolean(Property.GC_TRASH_IGNORE) || !fs.moveToTrash(deleteFile))
           fs.deleteRecursively(deleteFile);
@@ -105,16 +102,16 @@ public class RootFilesUpgradeTest {
       for (String filename : inputFiles) {
         File file = new File(rootTabletDir, filename);
         assertTrue(file.createNewFile());
-        oldDatafiles.add(new FileRef(file.toURI().toString()));
+        oldDatafiles.add(new Path(file.toURI()));
       }
 
       this.compactName = compactName;
 
       File tmpFile = new File(rootTabletDir, compactName + "_tmp");
       assertTrue(tmpFile.createNewFile());
-      tmpDatafile = new FileRef(tmpFile.toURI().toString());
+      tmpDatafile = new Path(tmpFile.toURI());
 
-      newDatafile = new FileRef(new File(rootTabletDir, compactName).toURI().toString());
+      newDatafile = new Path(new File(rootTabletDir, compactName).toURI());
     }
 
     void prepareReplacement() throws IOException {
@@ -158,13 +155,11 @@ public class RootFilesUpgradeTest {
     }
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void testFileReplacement() throws IOException {
 
     ConfigurationCopy conf = new ConfigurationCopy();
-    conf.set(Property.INSTANCE_DFS_URI, "file:///");
-    conf.set(Property.INSTANCE_DFS_DIR, "/");
+    conf.set(Property.INSTANCE_VOLUMES, "file:///");
     conf.set(Property.GENERAL_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
     try (var vm = VolumeManagerImpl.get(conf, new Configuration())) {

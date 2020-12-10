@@ -114,8 +114,8 @@ public class RestartIT extends AccumuloClusterHarness {
         }
       });
 
-      control.stopAllServers(ServerType.MASTER);
-      control.startAllServers(ServerType.MASTER);
+      control.stopAllServers(ServerType.MANAGER);
+      control.startAllServers(ServerType.MANAGER);
       assertEquals(0, ret.get().intValue());
       VerifyIngest.verifyIngest(c, params);
     }
@@ -132,7 +132,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
       // TODO implement a kill all too?
       // cluster.stop() would also stop ZooKeeper
-      control.stopAllServers(ServerType.MASTER);
+      control.stopAllServers(ServerType.MANAGER);
       control.stopAllServers(ServerType.TRACER);
       control.stopAllServers(ServerType.TABLET_SERVER);
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
@@ -153,7 +153,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
       cluster.start();
       sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
-      control.stopAllServers(ServerType.MASTER);
+      control.stopAllServers(ServerType.MANAGER);
 
       masterLockData = new byte[0];
       do {
@@ -189,7 +189,7 @@ public class RestartIT extends AccumuloClusterHarness {
         }
       });
 
-      control.stopAllServers(ServerType.MASTER);
+      control.stopAllServers(ServerType.MANAGER);
 
       ClientInfo info = ClientInfo.from(c.properties());
       ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());

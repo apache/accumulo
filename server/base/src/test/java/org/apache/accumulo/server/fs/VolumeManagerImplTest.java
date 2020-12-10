@@ -38,7 +38,6 @@ public class VolumeManagerImplTest {
   public void invalidChooserConfigured() throws Exception {
     List<String> volumes = Arrays.asList("file://one/", "file://two/", "file://three/");
     ConfigurationCopy conf = new ConfigurationCopy();
-    conf.set(INSTANCE_DFS_URI, volumes.get(0));
     conf.set(Property.INSTANCE_VOLUMES, String.join(",", volumes));
     conf.set(Property.GENERAL_VOLUME_CHOOSER,
         "org.apache.accumulo.server.fs.ChooserThatDoesntExist");
@@ -64,15 +63,11 @@ public class VolumeManagerImplTest {
     }
   }
 
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
-
   // Expected to throw a runtime exception when the WrongVolumeChooser picks an invalid volume.
   @Test
   public void chooseFromOptions() throws Exception {
     Set<String> volumes = Set.of("file://one/", "file://two/", "file://three/");
     ConfigurationCopy conf = new ConfigurationCopy();
-    conf.set(INSTANCE_DFS_URI, volumes.iterator().next());
     conf.set(Property.INSTANCE_VOLUMES, String.join(",", volumes));
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     try (var vm = VolumeManagerImpl.get(conf, hadoopConf)) {

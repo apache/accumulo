@@ -32,6 +32,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
@@ -66,8 +68,8 @@ abstract class TableMetadataServicer extends MetadataServicer {
 
     Scanner scanner = context.createScanner(getServicingTableName(), Authorizations.EMPTY);
 
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+    TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
 
     // position at first entry in metadata table for given table
     scanner.setRange(TabletsSection.getRange(getServicedTableId()));
@@ -93,12 +95,12 @@ abstract class TableMetadataServicer extends MetadataServicer {
       colf = entry.getKey().getColumnFamily(colf);
       colq = entry.getKey().getColumnQualifier(colq);
 
-      if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
-        currentKeyExtent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
+      if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
+        currentKeyExtent = KeyExtent.fromMetaPrevRow(entry);
         tablets.put(currentKeyExtent, location);
         currentKeyExtent = null;
         location = null;
-      } else if (colf.equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
+      } else if (colf.equals(CurrentLocationColumnFamily.NAME)) {
         location = entry.getValue().toString();
       }
 
@@ -115,28 +117,28 @@ abstract class TableMetadataServicer extends MetadataServicer {
       throw new AccumuloException(
           "No entries found in metadata table for table " + getServicedTableId());
 
-    if (tabletsKeys.first().getPrevEndRow() != null)
+    if (tabletsKeys.first().prevEndRow() != null)
       throw new AccumuloException("Problem with metadata table, first entry for table "
           + getServicedTableId() + "- " + tabletsKeys.first() + " - has non null prev end row");
 
-    if (tabletsKeys.last().getEndRow() != null)
+    if (tabletsKeys.last().endRow() != null)
       throw new AccumuloException("Problem with metadata table, last entry for table "
           + getServicedTableId() + "- " + tabletsKeys.first() + " - has non null end row");
 
     Iterator<KeyExtent> tabIter = tabletsKeys.iterator();
-    Text lastEndRow = tabIter.next().getEndRow();
+    Text lastEndRow = tabIter.next().endRow();
     while (tabIter.hasNext()) {
       KeyExtent tabke = tabIter.next();
 
-      if (tabke.getPrevEndRow() == null)
+      if (tabke.prevEndRow() == null)
         throw new AccumuloException(
             "Problem with metadata table, it has null prev end row in middle of table " + tabke);
 
-      if (!tabke.getPrevEndRow().equals(lastEndRow))
+      if (!tabke.prevEndRow().equals(lastEndRow))
         throw new AccumuloException("Problem with metadata table, it has a hole "
-            + tabke.getPrevEndRow() + " != " + lastEndRow);
+            + tabke.prevEndRow() + " != " + lastEndRow);
 
-      lastEndRow = tabke.getEndRow();
+      lastEndRow = tabke.endRow();
     }
 
     // end METADATA table sanity check

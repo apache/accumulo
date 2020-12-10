@@ -26,7 +26,6 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -37,6 +36,7 @@ import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -58,7 +58,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
@@ -115,8 +115,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
-  // effectively an 8MB batch size, since this number is the number of Chars
-  public static final long CANDIDATE_BATCH_SIZE = 4_000_000;
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
@@ -152,7 +150,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
     log.info("safemode: {}", inSafeMode());
-    log.info("candidate batch size: {} bytes", CANDIDATE_BATCH_SIZE);
+    log.info("candidate batch size: {} bytes", getCandidateBatchSize());
     log.info("delete threads: {}", getNumDeleteThreads());
     log.info("gc post metadata action: {}", useFullCompaction);
   }
@@ -185,6 +183,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   /**
+   * Gets the batch size for garbage collecting.
+   *
+   * @return candidate batch size.
+   */
+  long getCandidateBatchSize() {
+    return getConfiguration().getAsBytes(Property.GC_CANDIDATE_BATCH_SIZE);
+  }
+
+  /**
    * Checks if safemode is set - files will not be deleted.
    *
    * @return number of delete threads
@@ -207,6 +214,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
       Iterator<String> candidates = getContext().getAmple().getGcCandidates(level, continuePoint);
       long candidateLength = 0;
+      // Converting the bytes to approximate number of characters for batch size.
+      long candidateBatchSize = getCandidateBatchSize() / 2;
 
       result.clear();
 
@@ -214,7 +223,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         String candidate = candidates.next();
         candidateLength += candidate.length();
         result.add(candidate);
-        if (candidateLength > CANDIDATE_BATCH_SIZE) {
+        if (candidateLength > candidateBatchSize) {
           log.info(
               "Candidate batch of size {} has exceeded the"
                   + " threshold. Attempting to delete what has been gathered so far.",
@@ -236,10 +245,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       IsolatedScanner scanner =
           new IsolatedScanner(getContext().createScanner(level.metaTable(), Authorizations.EMPTY));
 
-      scanner.setRange(MetadataSchema.BlipSection.getRange());
+      scanner.setRange(BlipSection.getRange());
 
       return Iterators.transform(scanner.iterator(), entry -> entry.getKey().getRow().toString()
-          .substring(MetadataSchema.BlipSection.getRowPrefix().length()));
+          .substring(BlipSection.getRowPrefix().length()));
     }
 
     @Override
@@ -646,7 +655,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    int[] port = getConfiguration().getPort(Property.GC_PORT);
+    IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
@@ -690,7 +699,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   static void minimizeDeletes(SortedMap<String,String> confirmedDeletes,
       List<String> processedDeletes, VolumeManager fs) {
     Set<Path> seenVolumes = new HashSet<>();
-    Collection<Volume> volumes = fs.getVolumes();
 
     // when deleting a dir and all files in that dir, only need to delete the dir
     // the dir will sort right before the files... so remove the files in this case
@@ -717,8 +725,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             if (seenVolumes.contains(vol)) {
               sameVol = true;
             } else {
-              for (Volume cvol : volumes) {
-                if (cvol.isValidPath(vol)) {
+              for (Volume cvol : fs.getVolumes()) {
+                if (cvol.containsPath(vol)) {
                   seenVolumes.add(vol);
                   sameVol = true;
                 }

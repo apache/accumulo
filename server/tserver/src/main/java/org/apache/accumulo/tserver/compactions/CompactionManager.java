@@ -26,6 +26,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -34,6 +35,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionServices;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,27 +58,50 @@ public class CompactionManager {
 
   private long lastConfigCheckTime = System.nanoTime();
 
+  private CompactionExecutorsMetrics ceMetrics;
+
   public static final CompactionServiceId DEFAULT_SERVICE = CompactionServiceId.of("default");
 
   private static class Config {
     Map<String,String> planners = new HashMap<>();
+    Map<String,Long> rateLimits = new HashMap<>();
     Map<String,Map<String,String>> options = new HashMap<>();
+    long defaultRateLimit = 0;
+
+    @SuppressWarnings("removal")
+    private static long getDefaultThroughput(AccumuloConfiguration aconf) {
+      if (aconf.isPropertySet(Property.TSERV_MAJC_THROUGHPUT, true)) {
+        return aconf.getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
+      }
+
+      return ConfigurationTypeHelper
+          .getMemoryAsBytes(Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());
+    }
 
     Config(AccumuloConfiguration aconf) {
       Map<String,String> configs =
           aconf.getAllPropertiesWithPrefix(Property.TSERV_COMPACTION_SERVICE_PREFIX);
 
       configs.forEach((prop, val) -> {
+
         var suffix = prop.substring(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey().length());
         String[] tokens = suffix.split("\\.");
         if (tokens.length == 4 && tokens[1].equals("planner") && tokens[2].equals("opts")) {
           options.computeIfAbsent(tokens[0], k -> new HashMap<>()).put(tokens[3], val);
         } else if (tokens.length == 2 && tokens[1].equals("planner")) {
           planners.put(tokens[0], val);
+        } else if (tokens.length == 3 && tokens[1].equals("rate") && tokens[2].equals("limit")) {
+          var eprop = Property.getPropertyByKey(prop);
+          if (eprop == null || aconf.isPropertySet(eprop, true)
+              || !isDeprecatedThroughputSet(aconf)) {
+            rateLimits.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
+          }
         } else {
           throw new IllegalArgumentException("Malformed compaction service property " + prop);
         }
       });
+
+      defaultRateLimit = getDefaultThroughput(aconf);
 
       var diff = Sets.difference(options.keySet(), planners.keySet());
 
@@ -87,11 +112,21 @@ public class CompactionManager {
 
     }
 
+    @SuppressWarnings("removal")
+    private boolean isDeprecatedThroughputSet(AccumuloConfiguration aconf) {
+      return aconf.isPropertySet(Property.TSERV_MAJC_THROUGHPUT, true);
+    }
+
+    public long getRateLimit(String serviceName) {
+      return rateLimits.getOrDefault(serviceName, defaultRateLimit);
+    }
+
     @Override
     public boolean equals(Object o) {
       if (o instanceof Config) {
         var oc = (Config) o;
-        return planners.equals(oc.planners) && options.equals(oc.options);
+        return planners.equals(oc.planners) && options.equals(oc.options)
+            && rateLimits.equals(oc.rateLimits);
       }
 
       return false;
@@ -99,7 +134,7 @@ public class CompactionManager {
 
     @Override
     public int hashCode() {
-      return Objects.hash(planners, options);
+      return Objects.hash(planners, options, rateLimits);
     }
   }
 
@@ -173,19 +208,24 @@ public class CompactionManager {
     }
   }
 
-  public CompactionManager(Iterable<Compactable> compactables, ServerContext ctx) {
+  public CompactionManager(Iterable<Compactable> compactables, ServerContext ctx,
+      CompactionExecutorsMetrics ceMetrics) {
     this.compactables = compactables;
 
     this.currentCfg = new Config(ctx.getConfiguration());
 
     this.ctx = ctx;
 
+    this.ceMetrics = ceMetrics;
+
     Map<CompactionServiceId,CompactionService> tmpServices = new HashMap<>();
 
     currentCfg.planners.forEach((serviceName, plannerClassName) -> {
       try {
-        tmpServices.put(CompactionServiceId.of(serviceName), new CompactionService(serviceName,
-            plannerClassName, currentCfg.options.getOrDefault(serviceName, Map.of()), ctx));
+        tmpServices.put(CompactionServiceId.of(serviceName),
+            new CompactionService(serviceName, plannerClassName,
+                currentCfg.getRateLimit(serviceName),
+                currentCfg.options.getOrDefault(serviceName, Map.of()), ctx, ceMetrics));
       } catch (RuntimeException e) {
         log.error("Failed to create compaction service {} with planner:{} options:{}", serviceName,
             plannerClassName, currentCfg.options.getOrDefault(serviceName, Map.of()));
@@ -220,10 +260,12 @@ public class CompactionManager {
             var csid = CompactionServiceId.of(serviceName);
             var service = services.get(csid);
             if (service == null) {
-              tmpServices.put(csid, new CompactionService(serviceName, plannerClassName,
-                  tmpCfg.options.getOrDefault(serviceName, Map.of()), ctx));
+              tmpServices.put(csid,
+                  new CompactionService(serviceName, plannerClassName,
+                      tmpCfg.getRateLimit(serviceName),
+                      tmpCfg.options.getOrDefault(serviceName, Map.of()), ctx, ceMetrics));
             } else {
-              service.configurationChanged(plannerClassName,
+              service.configurationChanged(plannerClassName, tmpCfg.getRateLimit(serviceName),
                   tmpCfg.options.getOrDefault(serviceName, Map.of()));
               tmpServices.put(csid, service);
             }
@@ -267,5 +309,13 @@ public class CompactionManager {
   public boolean isCompactionQueued(KeyExtent extent, Set<CompactionServiceId> servicesUsed) {
     return servicesUsed.stream().map(services::get).filter(Objects::nonNull)
         .anyMatch(compactionService -> compactionService.isCompactionQueued(extent));
+  }
+
+  public int getCompactionsRunning() {
+    return services.values().stream().mapToInt(CompactionService::getCompactionsRunning).sum();
+  }
+
+  public int getCompactionsQueued() {
+    return services.values().stream().mapToInt(CompactionService::getCompactionsQueued).sum();
   }
 }

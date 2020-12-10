@@ -47,7 +47,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.AdminUtil.FateStatus;
@@ -67,8 +69,8 @@ public class FunctionalTestUtils {
   public static int countRFiles(AccumuloClient c, String tableName) throws Exception {
     try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
-      scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      scanner.setRange(TabletsSection.getRange(tableId));
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       return Iterators.size(scanner.iterator());
     }
   }
@@ -78,8 +80,8 @@ public class FunctionalTestUtils {
     try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-      MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
 
       HashMap<Text,Integer> tabletFileCounts = new HashMap<>();
 
@@ -90,8 +92,7 @@ public class FunctionalTestUtils {
         Integer count = tabletFileCounts.get(row);
         if (count == null)
           count = 0;
-        if (entry.getKey().getColumnFamily()
-            .equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
           count = count + 1;
         }
 

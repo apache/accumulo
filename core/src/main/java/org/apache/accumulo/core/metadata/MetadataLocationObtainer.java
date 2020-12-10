@@ -53,7 +53,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
@@ -70,9 +72,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   public MetadataLocationObtainer() {
 
     locCols = new TreeSet<>();
-    locCols.add(
-        new Column(TextUtil.getBytes(TabletsSection.CurrentLocationColumnFamily.NAME), null, null));
-    locCols.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
+    locCols.add(new Column(TextUtil.getBytes(CurrentLocationColumnFamily.NAME), null, null));
+    locCols.add(TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
     columns = new ArrayList<>(locCols);
   }
 
@@ -86,7 +87,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
       if (log.isTraceEnabled()) {
         log.trace("tid={} Looking up in {} row={} extent={} tserver={}",
-            Thread.currentThread().getId(), src.tablet_extent.getTableId(), TextUtil.truncate(row),
+            Thread.currentThread().getId(), src.tablet_extent.tableId(), TextUtil.truncate(row),
             src.tablet_extent, src.tablet_location);
         timer = new OpTimer().start();
       }
@@ -133,12 +134,12 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled())
-        log.trace("{} lookup failed, {} server side exception", src.tablet_extent.getTableId(),
+        log.trace("{} lookup failed, {} server side exception", src.tablet_extent.tableId(),
             src.tablet_location);
       throw ase;
     } catch (AccumuloException e) {
       if (log.isTraceEnabled())
-        log.trace("{} lookup failed", src.tablet_extent.getTableId(), e);
+        log.trace("{} lookup failed", src.tablet_extent.tableId(), e);
       parent.invalidateCache(context, src.tablet_location);
     }
 
@@ -210,11 +211,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
 
   public static TabletLocations getMetadataLocationEntries(SortedMap<Key,Value> entries) {
-    Key key;
-    Value val;
     Text location = null;
     Text session = null;
-    Value prevRow = null;
     KeyExtent ke;
 
     List<TabletLocation> results = new ArrayList<>();
@@ -227,11 +225,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     Text colq = new Text();
 
     for (Entry<Key,Value> entry : entries.entrySet()) {
-      key = entry.getKey();
-      val = entry.getValue();
+      Key key = entry.getKey();
+      Value val = entry.getValue();
 
       if (key.compareRow(lastRowFromKey) != 0) {
-        prevRow = null;
         location = null;
         session = null;
         key.getRow(lastRowFromKey);
@@ -241,26 +238,20 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       colq = key.getColumnQualifier(colq);
 
       // interpret the row id as a key extent
-      if (colf.equals(TabletsSection.CurrentLocationColumnFamily.NAME)
-          || colf.equals(TabletsSection.FutureLocationColumnFamily.NAME)) {
+      if (colf.equals(CurrentLocationColumnFamily.NAME)
+          || colf.equals(FutureLocationColumnFamily.NAME)) {
         if (location != null) {
           throw new IllegalStateException("Tablet has multiple locations : " + lastRowFromKey);
         }
         location = new Text(val.toString());
         session = new Text(colq);
-      } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
-        prevRow = new Value(val);
-      }
-
-      if (prevRow != null) {
-        ke = new KeyExtent(key.getRow(), prevRow);
+      } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
+        ke = KeyExtent.fromMetaPrevRow(entry);
         if (location != null)
           results.add(new TabletLocation(ke, location.toString(), session.toString()));
         else
           locationless.add(ke);
-
         location = null;
-        prevRow = null;
       }
     }
 

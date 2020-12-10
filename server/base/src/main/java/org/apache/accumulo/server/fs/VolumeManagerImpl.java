@@ -72,14 +72,12 @@ public class VolumeManagerImpl implements VolumeManager {
 
   private final Map<String,Volume> volumesByName;
   private final Multimap<URI,Volume> volumesByFileSystemUri;
-  private final Volume defaultVolume;
   private final VolumeChooser chooser;
   private final Configuration hadoopConf;
 
-  protected VolumeManagerImpl(Map<String,Volume> volumes, Volume defaultVolume,
-      AccumuloConfiguration conf, Configuration hadoopConf) {
+  protected VolumeManagerImpl(Map<String,Volume> volumes, AccumuloConfiguration conf,
+      Configuration hadoopConf) {
     this.volumesByName = volumes;
-    this.defaultVolume = defaultVolume;
     // We may have multiple directories used in a single FileSystem (e.g. testing)
     this.volumesByFileSystemUri = invertVolumesByFileSystem(volumesByName);
     ensureSyncIsEnabled();
@@ -110,9 +108,10 @@ public class VolumeManagerImpl implements VolumeManager {
   public static VolumeManager getLocalForTesting(String localBasePath) throws IOException {
     AccumuloConfiguration accConf = DefaultConfiguration.getInstance();
     Configuration hadoopConf = new Configuration();
-    Volume defaultLocalVolume = new VolumeImpl(FileSystem.getLocal(hadoopConf), localBasePath);
-    return new VolumeManagerImpl(Collections.singletonMap("", defaultLocalVolume),
-        defaultLocalVolume, accConf, hadoopConf);
+    FileSystem localFS = FileSystem.getLocal(hadoopConf);
+    Volume defaultLocalVolume = new VolumeImpl(localFS, localBasePath);
+    return new VolumeManagerImpl(Collections.singletonMap("", defaultLocalVolume), accConf,
+        hadoopConf);
   }
 
   @Override
@@ -244,19 +243,16 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public FileSystem getFileSystemByPath(Path path) {
-    if (!requireNonNull(path).toString().contains(":")) {
-      return defaultVolume.getFileSystem();
-    }
     FileSystem desiredFs;
     try {
-      desiredFs = path.getFileSystem(hadoopConf);
+      desiredFs = requireNonNull(path).getFileSystem(hadoopConf);
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
     }
     URI desiredFsUri = desiredFs.getUri();
     Collection<Volume> candidateVolumes = volumesByFileSystemUri.get(desiredFsUri);
     if (candidateVolumes != null) {
-      return candidateVolumes.stream().filter(volume -> volume.isValidPath(path))
+      return candidateVolumes.stream().filter(volume -> volume.containsPath(path))
           .map(Volume::getFileSystem).findFirst().orElse(desiredFs);
     } else {
       log.debug("Could not determine volume for Path: {}", path);
@@ -350,8 +346,10 @@ public class VolumeManagerImpl implements VolumeManager {
       throws IOException {
     final Map<String,Volume> volumes = new HashMap<>();
 
+    Set<String> volumeStrings = VolumeConfiguration.getVolumeUris(conf);
+
     // The "default" Volume for Accumulo (in case no volumes are specified)
-    for (String volumeUriOrDir : VolumeConfiguration.getVolumeUris(conf, hadoopConf)) {
+    for (String volumeUriOrDir : volumeStrings) {
       if (volumeUriOrDir.isBlank())
         throw new IllegalArgumentException("Empty volume specified in configuration");
 
@@ -367,8 +365,7 @@ public class VolumeManagerImpl implements VolumeManager {
       }
     }
 
-    Volume defaultVolume = VolumeConfiguration.getDefaultVolume(hadoopConf, conf);
-    return new VolumeManagerImpl(volumes, defaultVolume, conf, hadoopConf);
+    return new VolumeManagerImpl(volumes, conf, hadoopConf);
   }
 
   @Override
@@ -446,11 +443,6 @@ public class VolumeManagerImpl implements VolumeManager {
       }
     }
     return true;
-  }
-
-  @Override
-  public Volume getDefaultVolume() {
-    return defaultVolume;
   }
 
   @Override

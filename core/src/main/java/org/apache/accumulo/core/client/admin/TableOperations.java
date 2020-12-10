@@ -674,7 +674,7 @@ public interface TableOperations {
 
   /**
    * Bulk import all the files in a directory into a table. Files can be created using
-   * {@code AccumuloFileOutputFormat} and {@link RFile#newWriter()}
+   * {@link RFile#newWriter()}
    *
    * @param tableName
    *          the name of the table
@@ -784,7 +784,7 @@ public interface TableOperations {
 
   /**
    * Bulk import the files in a directory into a table. Files can be created using
-   * {@code AccumuloFileOutputFormat} and {@link RFile#newWriter()}.
+   * {@link RFile#newWriter()}.
    * <p>
    * This new method of bulk import examines files in the current process outside of holding a table
    * lock. The old bulk import method ({@link #importDirectory(String, String, String, boolean)})
@@ -860,6 +860,22 @@ public interface TableOperations {
    */
   void online(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+
+  /**
+   * Check if a table is online through its current goal state only. Could run into issues if the
+   * current state of the table is in between states. If you require a specific state, call
+   * <code>online(tableName, true)</code> or <code>offline(tableName, true)</code>, this will wait
+   * until the table reaches the desired state before proceeding.
+   *
+   * @param tableName
+   *          the table to check if online
+   * @throws AccumuloException
+   *           when there is a general accumulo error
+   * @return true if table's goal state is online
+   *
+   * @since 2.1.0
+   */
+  boolean isOnline(String tableName) throws AccumuloException, TableNotFoundException;
 
   /**
    * Clears the tablet locator cache for a specified table

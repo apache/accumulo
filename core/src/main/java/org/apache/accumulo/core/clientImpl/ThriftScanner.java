@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -105,7 +106,7 @@ public class ThriftScanner {
       try {
         // not reading whole rows (or stopping on row boundaries) so there is no need to enable
         // isolation below
-        ScanState scanState = new ScanState(context, extent.getTableId(), authorizations, range,
+        ScanState scanState = new ScanState(context, extent.tableId(), authorizations, range,
             fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, false,
             Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext,
             null);
@@ -113,7 +114,8 @@ public class ThriftScanner {
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
         InitialScan isr = client.startScan(tinfo, scanState.context.rpcCreds(), extent.toThrift(),
-            scanState.range.toThrift(), Translator.translate(scanState.columns, Translators.CT),
+            scanState.range.toThrift(),
+            scanState.columns.stream().map(Column::toThrift).collect(Collectors.toList()),
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
             scanState.readaheadThreshold, null, scanState.batchTimeOut, classLoaderContext,
@@ -289,7 +291,7 @@ public class ThriftScanner {
               if (scanState.range.getStartKey() != null
                   && dataRange.afterEndKey(scanState.range.getStartKey())) {
                 // go to the next tablet
-                scanState.startRow = loc.tablet_extent.getEndRow();
+                scanState.startRow = loc.tablet_extent.endRow();
                 scanState.skipStartRow = true;
                 loc = null;
               } else if (scanState.range.getEndKey() != null
@@ -441,7 +443,7 @@ public class ThriftScanner {
 
       if (scanState.scanID == null) {
         Thread.currentThread().setName("Starting scan tserver=" + loc.tablet_location + " tableId="
-            + loc.tablet_extent.getTableId());
+            + loc.tablet_extent.tableId());
 
         if (log.isTraceEnabled()) {
           String msg = "Starting scan tserver=" + loc.tablet_location + " tablet="
@@ -455,14 +457,14 @@ public class ThriftScanner {
         TabletType ttype = TabletType.type(loc.tablet_extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
 
-        InitialScan is =
-            client.startScan(tinfo, scanState.context.rpcCreds(), loc.tablet_extent.toThrift(),
-                scanState.range.toThrift(), Translator.translate(scanState.columns, Translators.CT),
-                scanState.size, scanState.serverSideIteratorList,
-                scanState.serverSideIteratorOptions, scanState.authorizations.getAuthorizationsBB(),
-                waitForWrites, scanState.isolated, scanState.readaheadThreshold,
-                SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
-                scanState.classLoaderContext, scanState.executionHints);
+        InitialScan is = client.startScan(tinfo, scanState.context.rpcCreds(),
+            loc.tablet_extent.toThrift(), scanState.range.toThrift(),
+            scanState.columns.stream().map(Column::toThrift).collect(Collectors.toList()),
+            scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
+            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
+            scanState.readaheadThreshold,
+            SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
+            scanState.classLoaderContext, scanState.executionHints);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
 
@@ -502,7 +504,7 @@ public class ThriftScanner {
       } else {
         // log.debug("No more : tab end row = "+loc.tablet_extent.getEndRow()+" range =
         // "+scanState.range);
-        if (loc.tablet_extent.getEndRow() == null) {
+        if (loc.tablet_extent.endRow() == null) {
           scanState.finished = true;
 
           if (timer != null) {
@@ -513,8 +515,8 @@ public class ThriftScanner {
           }
 
         } else if (scanState.range.getEndKey() == null || !scanState.range
-            .afterEndKey(new Key(loc.tablet_extent.getEndRow()).followingKey(PartialKey.ROW))) {
-          scanState.startRow = loc.tablet_extent.getEndRow();
+            .afterEndKey(new Key(loc.tablet_extent.endRow()).followingKey(PartialKey.ROW))) {
+          scanState.startRow = loc.tablet_extent.endRow();
           scanState.skipStartRow = true;
 
           if (timer != null) {
