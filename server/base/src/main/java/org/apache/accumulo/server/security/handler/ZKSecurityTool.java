@@ -71,8 +71,10 @@ class ZKSecurityTool {
     }
   }
 
+  private static final String PW_HASH_ALGORITHM_OUTDATED = "SHA-256";
+
   private static byte[] hash(byte[] raw) throws NoSuchAlgorithmException {
-    MessageDigest md = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM_OUTDATED);
+    MessageDigest md = MessageDigest.getInstance(PW_HASH_ALGORITHM_OUTDATED);
     md.update(raw);
     return md.digest();
   }
