@@ -34,10 +34,6 @@ public class ClearCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException {
-    // custom clear screen, so I don't have to redraw the prompt twice
-    if (!shellState.getTerminal().getBooleanCapability(Capability.clear_screen)) {
-      throw new IOException("Terminal does not support ANSI commands");
-    }
 
     shellState.getTerminal().puts(Capability.clear_screen);
     shellState.getTerminal().puts(Capability.cursor_address, 1, 1);

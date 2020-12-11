@@ -177,6 +177,7 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -532,17 +533,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public static void main(String[] args) throws IOException {
-    // Terminal terminal = TerminalBuilder.builder().system(true).nativeSignals(true)
-    // .signalHandler(Terminal.SignalHandler.SIG_IGN).build();
-    // // Terminal terminal = TerminalBuilder.builder().build();
-    // LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-    // // This lets you hit tab with nothing entered on the prompt and get auto-complete
-    // reader.unsetOpt(LineReader.Option.INSERT_TAB);
-    // // Makes auto complete case insensitive
-    // reader.setOpt(LineReader.Option.CASE_INSENSITIVE);
-    // // Makes i-search case insensitive (Ctrl-R and Ctrl-S)
-    // reader.setOpt(LineReader.Option.CASE_INSENSITIVE_SEARCH);
+//     Terminal terminal = TerminalBuilder.builder().system(true).nativeSignals(true)
+//     .signalHandler(Terminal.SignalHandler.SIG_IGN).build();
     LineReader reader = LineReaderBuilder.builder().build();
+    // This lets you hit tab with nothing entered on the prompt and get auto-complete
+    reader.unsetOpt(LineReader.Option.INSERT_TAB);
+    // Makes auto complete case insensitive
+    reader.setOpt(LineReader.Option.CASE_INSENSITIVE);
     new Shell(reader).execute(args);
   }
 
