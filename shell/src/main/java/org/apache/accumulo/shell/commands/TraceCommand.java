@@ -78,29 +78,29 @@ public class TraceCommand extends Command {
                 }
               });
               if (traceCount > 0) {
-                shellState.getReader().print(sb.toString());
+                shellState.getReader().getTerminal().writer().print(sb.toString());
                 break;
               }
             } catch (Exception ex) {
               shellState.printException(ex);
             }
-            shellState.getReader().println("Waiting for trace information");
-            shellState.getReader().flush();
+            shellState.getReader().getTerminal().writer().println("Waiting for trace information");
+            shellState.getReader().getTerminal().writer().flush();
             sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
           }
           if (traceCount < 0) {
             // display the trace even though there are unrooted spans
-            shellState.getReader().print(sb.toString());
+            shellState.getReader().getTerminal().writer().print(sb.toString());
           }
         } else {
-          shellState.getReader().println("Not tracing");
+          shellState.getReader().getTerminal().writer().println("Not tracing");
         }
       } else {
         throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand,
             fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else if (cl.getArgs().length == 0) {
-      shellState.getReader().println(Trace.isTracing() ? "on" : "off");
+      shellState.getReader().getTerminal().writer().println(Trace.isTracing() ? "on" : "off");
     } else {
       shellState.printException(new IllegalArgumentException(
           "Expected 0 or 1 argument. There were " + cl.getArgs().length + "."));

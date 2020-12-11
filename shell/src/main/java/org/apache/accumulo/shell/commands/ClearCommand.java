@@ -23,6 +23,7 @@ import java.io.IOException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
+import org.jline.utils.InfoCmp.Capability;
 
 public class ClearCommand extends Command {
   @Override
@@ -34,16 +35,18 @@ public class ClearCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException {
     // custom clear screen, so I don't have to redraw the prompt twice
-    if (!shellState.getReader().getTerminal().isAnsiSupported()) {
+    // --------Not sure what the correct Capability check to do for this but Something
+    // Similar to how this is done.
+    if (!shellState.getReader().getTerminal().getBooleanCapability(Capability.clear_screen)) {
       throw new IOException("Terminal does not support ANSI commands");
     }
     // send the ANSI code to clear the screen
-    shellState.getReader().print(((char) 27) + "[2J");
-    shellState.getReader().flush();
+    shellState.getReader().getTerminal().writer().print(((char) 27) + "[2J");
+    shellState.getReader().getTerminal().writer().flush();
 
     // then send the ANSI code to go to position 1,1
-    shellState.getReader().print(((char) 27) + "[1;1H");
-    shellState.getReader().flush();
+    shellState.getReader().getTerminal().writer().print(((char) 27) + "[1;1H");
+    shellState.getReader().getTerminal().writer().flush();
 
     return 0;
   }

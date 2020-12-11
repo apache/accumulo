@@ -26,8 +26,10 @@ import java.util.Set;
 
 import org.apache.accumulo.shell.Shell.Command.CompletionSet;
 import org.apache.accumulo.shell.commands.QuotedStringTokenizer;
-
-import jline.console.completer.Completer;
+import org.jline.reader.Buffer;
+import org.jline.reader.Completer;
+import org.jline.reader.LineReader;
+import org.jline.reader.ParsedLine;
 
 public class ShellCompletor implements Completer {
 
@@ -43,19 +45,30 @@ public class ShellCompletor implements Completer {
     this.options = options;
   }
 
+  // Come back to this
+  // @Override
+  // @SuppressWarnings({"unchecked", "rawtypes"})
+  // public int complete(String buffer, int cursor, List candidates) {
+  // try {
+  // return _complete(buffer, cursor, candidates);
+  // } catch (Exception e) {
+  // candidates.add("");
+  // candidates.add(e.getMessage());
+  // return cursor;
+  // }
+  // }
   @Override
   @SuppressWarnings({"unchecked", "rawtypes"})
-  public int complete(String buffer, int cursor, List candidates) {
+  public void complete(LineReader reader, ParsedLine line, List candidates) {
     try {
-      return _complete(buffer, cursor, candidates);
+      _complete(reader.getBuffer(), line.cursor(), candidates);
     } catch (Exception e) {
       candidates.add("");
       candidates.add(e.getMessage());
-      return cursor;
     }
   }
 
-  private int _complete(String fullBuffer, int cursor, List<String> candidates) {
+  private void _complete(Buffer fullBuffer, int cursor, List<String> candidates) {
     boolean inTableFlag = false, inUserFlag = false, inNamespaceFlag = false;
     // Only want to grab the buffer up to the cursor because
     // the user could be trying to tab complete in the middle
@@ -69,7 +82,7 @@ public class ShellCompletor implements Completer {
     // tabbing with no text
     if (buffer.isEmpty()) {
       candidates.addAll(root.getSubcommandNames());
-      return 0;
+      return;
     }
 
     String prefix = "";
@@ -114,7 +127,7 @@ public class ShellCompletor implements Completer {
             }
           }
           Collections.sort(candidates);
-          return (prefix.length());
+          return;
         }
         // need to match current command
         // if we're in -t <table>, -u <user>, or -tn <namespace> complete those
@@ -134,7 +147,7 @@ public class ShellCompletor implements Completer {
           candidates.addAll(current_command_token.getSubcommandNames(current_string_token));
 
         Collections.sort(candidates);
-        return (prefix.length());
+        return;
       }
 
       if (current_string_token.trim().equals("-" + Shell.tableOption))
@@ -156,6 +169,5 @@ public class ShellCompletor implements Completer {
         current_command_token = current_command_token.getSubcommand(current_string_token);
 
     }
-    return 0;
   }
 }

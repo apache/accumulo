@@ -70,10 +70,6 @@
       <artifactId>commons-logging</artifactId>
     </dependency>
     <dependency>
-      <groupId>jline</groupId>
-      <artifactId>jline</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
     </dependency>
@@ -128,6 +124,10 @@
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper-jute</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jline</groupId>
+      <artifactId>jline</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

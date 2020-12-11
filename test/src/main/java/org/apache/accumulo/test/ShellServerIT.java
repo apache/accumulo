@@ -102,6 +102,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
+import org.jline.utils.InfoCmp.Capability;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -118,7 +124,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import jline.console.ConsoleReader;
 
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 public class ShellServerIT extends SharedMiniClusterBase {
@@ -182,6 +187,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     public TestOutputStream output;
     public StringInputStream input;
     public Shell shell;
+    public LineReader reader;
+    public Terminal terminal;
 
     TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile)
         throws IOException {
@@ -189,7 +196,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
       // start the shell
       output = new TestOutputStream();
       input = new StringInputStream();
-      shell = new Shell(new ConsoleReader(input, output));
+      // Not sure if DumbTerminal is correct but was having trouble
+      // with the typical way
+      terminal = new DumbTerminal(input, output);
+      terminal.setSize(new Size(80, 24));
+      reader = LineReaderBuilder.builder().terminal(terminal).build();
+      shell = new Shell(reader);
       shell.setLogErrorsToConsole();
       if (info.saslEnabled()) {
         // Pull the kerberos principal out when we're using SASL
@@ -849,7 +861,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void clearCls() throws Exception {
     // clear/cls
-    if (ts.shell.getReader().getTerminal().isAnsiSupported()) {
+    if (ts.shell.getReader().getTerminal().getBooleanCapability(Capability.clear_screen)) {
       ts.exec("cls", true, "[1;1H");
       ts.exec("clear", true, "[2J");
     } else {
@@ -874,7 +886,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", true, "value", true);
     ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
     ts.exec("config -t " + clone + " -np", true, "123M", true);
-    ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
+    ts.exec("getsplits -t " + clone, true, "abc");
     ts.exec("deletetable -f " + table);
     ts.exec("deletetable -f " + clone);
   }
@@ -895,7 +907,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", false, "TableOfflineException", true);
     ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
     ts.exec("config -t " + clone + " -np", true, "123M", true);
-    ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
+    ts.exec("getsplits -t " + clone, true, "abc");
     ts.exec("deletetable -f " + table);
     ts.exec("deletetable -f " + clone);
   }

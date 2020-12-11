@@ -117,6 +117,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +129,6 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Joiner;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import jline.console.ConsoleReader;
 
 /**
  * This class is used to setup the directory structure and the root tablet to get an instance
@@ -138,12 +141,14 @@ public class Initialize implements KeywordExecutable {
   private static final String DEFAULT_ROOT_USER = "root";
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
 
-  private static ConsoleReader reader = null;
+  private static LineReader reader = null;
   private static ZooReaderWriter zoo = null;
 
-  private static ConsoleReader getConsoleReader() throws IOException {
+  private static LineReader getLineReader() throws IOException {
+    Terminal terminal = TerminalBuilder.builder().build();
+    LineReaderBuilder builder = LineReaderBuilder.builder().terminal(terminal);
     if (reader == null) {
-      reader = new ConsoleReader();
+      reader = builder.build();
     }
     return reader;
   }
@@ -271,19 +276,26 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
     if (sconf.get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
-      ConsoleReader c = getConsoleReader();
-      c.beep();
-      c.println();
-      c.println();
-      c.println("Warning!!! Your instance secret is still set to the default,"
+      LineReader c = getLineReader();
+      Terminal t = c.getTerminal();
+      t.writer().println();
+      // Unsure on beep replacement. Possible with Capabilities
+      // c.beep()
+      // t.getBooleanCapability(Capability.bell);
+      t.writer().println();
+      t.writer().println();
+
+      t.writer().println("Warning!!! Your instance secret is still set to the default,"
           + " this is not secure. We highly recommend you change it.");
-      c.println();
-      c.println();
-      c.println("You can change the instance secret in accumulo by using:");
-      c.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
-      c.println("You will also need to edit your secret in your configuration"
-          + " file by adding the property instance.secret to your"
-          + " accumulo.properties. Without this accumulo will not operate" + " correctly");
+      t.writer().println();
+      t.writer().println();
+      t.writer().println("You can change the instance secret in accumulo by using:");
+      t.writer().println(
+          "   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
+      t.writer()
+          .println("You will also need to edit your secret in your configuration"
+              + " file by adding the property instance.secret to your"
+              + " accumulo.properties. Without this accumulo will not operate" + " correctly");
     }
     try {
       if (isInitialized(fs, sconf)) {
@@ -668,7 +680,7 @@ public class Initialize implements KeywordExecutable {
     boolean exists = true;
     do {
       if (opts.cliInstanceName == null) {
-        instanceName = getConsoleReader().readLine("Instance name : ");
+        instanceName = getLineReader().readLine("Instance name : ");
       } else {
         instanceName = opts.cliInstanceName;
       }
@@ -686,7 +698,7 @@ public class Initialize implements KeywordExecutable {
         // ACCUMULO-4401 setting exists=false is just as important as setting it to true
         exists = zoo.exists(instanceNamePath);
         if (exists) {
-          String decision = getConsoleReader().readLine("Instance name \"" + instanceName
+          String decision = getLineReader().readLine("Instance name \"" + instanceName
               + "\" exists. Delete existing entry from zookeeper? [Y/N] : ");
           if (decision == null) {
             System.exit(0);
@@ -708,8 +720,8 @@ public class Initialize implements KeywordExecutable {
       return DEFAULT_ROOT_USER;
     }
 
-    ConsoleReader c = getConsoleReader();
-    c.println("Running against secured HDFS");
+    LineReader c = getLineReader();
+    c.getTerminal().writer().println("Running against secured HDFS");
 
     if (opts.rootUser != null) {
       return opts.rootUser;
@@ -735,13 +747,13 @@ public class Initialize implements KeywordExecutable {
     String rootpass;
     String confirmpass;
     do {
-      rootpass = getConsoleReader().readLine(
+      rootpass = getLineReader().readLine(
           "Enter initial password for " + rootUser + getInitialPasswordWarning(siteConfig), '*');
       if (rootpass == null) {
         System.exit(0);
       }
       confirmpass =
-          getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ", '*');
+          getLineReader().readLine("Confirm initial password for " + rootUser + ": ", '*');
       if (confirmpass == null) {
         System.exit(0);
       }
@@ -832,7 +844,7 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static void setMetadataReplication(int replication, String reason) throws IOException {
-    String rep = getConsoleReader()
+    String rep = getLineReader()
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
             + MetadataTable.NAME + " replication of 5. What do you want to set your "
             + MetadataTable.NAME + " replication to? (" + replication + ") ");
@@ -955,7 +967,7 @@ public class Initialize implements KeywordExecutable {
           try (ServerContext context = new ServerContext(siteConfig)) {
             if (isInitialized(fs, siteConfig)) {
               if (!opts.forceResetSecurity) {
-                ConsoleReader c = getConsoleReader();
+                LineReader c = getLineReader();
                 String userEnteredName = c.readLine("WARNING: This will remove all"
                     + " users from Accumulo! If you wish to proceed enter the instance"
                     + " name: ");

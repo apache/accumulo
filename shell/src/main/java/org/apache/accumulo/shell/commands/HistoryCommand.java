@@ -26,10 +26,9 @@ import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.jline.reader.History.Entry;
 
 import com.google.common.collect.Iterators;
-
-import jline.console.history.History.Entry;
 
 public class HistoryCommand extends Command {
   private Option clearHist;
@@ -39,11 +38,14 @@ public class HistoryCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException {
     if (cl.hasOption(clearHist.getOpt())) {
-      shellState.getReader().getHistory().clear();
+      // NOt sure
+      // shellState.getReader().getHistory().clear();
+      shellState.getReader().getHistory().purge();
     } else {
-      Iterator<Entry> source = shellState.getReader().getHistory().entries();
+      // Not sure on this
+      Iterator<Entry> source = shellState.getReader().getHistory().iterator();
       Iterator<String> historyIterator = Iterators.transform(source,
-          input -> String.format("%d: %s", input.index() + 1, input.value()));
+          input -> String.format("%d: %s", input.index() + 1, input.line()));
       shellState.printLines(historyIterator, !cl.hasOption(disablePaginationOpt.getOpt()));
     }
 

@@ -33,6 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
@@ -44,11 +45,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.shell.Shell;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.Before;
 import org.junit.Test;
-
-import jline.UnsupportedTerminal;
-import jline.console.ConsoleReader;
 
 public class DeleterFormatterTest {
   DeleterFormatter formatter;
@@ -56,9 +58,11 @@ public class DeleterFormatterTest {
   BatchWriter writer;
   BatchWriter exceptionWriter;
   Shell shellState;
+  PrintWriter pw;
 
   ByteArrayOutputStream baos;
-  ConsoleReader reader;
+  LineReader reader;
+  Terminal terminal;
 
   SettableInputStream input;
 
@@ -84,6 +88,8 @@ public class DeleterFormatterTest {
 
     writer = createNiceMock(BatchWriter.class);
     exceptionWriter = createNiceMock(BatchWriter.class);
+    // terminal = createNiceMock(Terminal.class);
+    // reader = createNiceMock(LineReader.class);
     exceptionWriter.close();
     expectLastCall().andThrow(mre);
     exceptionWriter.addMutation(anyObject(Mutation.class));
@@ -91,7 +97,9 @@ public class DeleterFormatterTest {
 
     shellState = createNiceMock(Shell.class);
 
-    reader = new ConsoleReader(input, baos, new UnsupportedTerminal());
+    terminal = new DumbTerminal(input, baos);
+    reader = LineReaderBuilder.builder().terminal(terminal).build();
+
     expect(shellState.getReader()).andReturn(reader).anyTimes();
 
     replay(writer, exceptionWriter, shellState);
@@ -133,6 +141,7 @@ public class DeleterFormatterTest {
     assertTrue(formatter.hasNext());
   }
 
+  // Need to properly fix this test.
   @Test
   public void testNoConfirmation() throws IOException {
     input.set("");
@@ -175,7 +184,7 @@ public class DeleterFormatterTest {
   }
 
   private void verify(String... chunks) throws IOException {
-    reader.flush();
+    reader.getTerminal().writer().flush();
 
     String output = baos.toString();
     for (String chunk : chunks) {

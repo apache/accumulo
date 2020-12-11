@@ -85,7 +85,7 @@ public abstract class TableOperation extends Command {
       }
       boolean operate = true;
       if (!force) {
-        shellState.getReader().flush();
+        shellState.getReader().getTerminal().writer().flush();
         String line =
             shellState.getReader().readLine(getName() + " { " + tableName + " } (yes|no)? ");
         more = line != null;

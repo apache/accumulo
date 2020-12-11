@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.shell.format;
 
-import java.io.IOException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -31,6 +30,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.shell.Shell;
+import org.jline.reader.EndOfFileException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,33 +79,37 @@ public class DeleterFormatter extends DefaultFormatter {
     Mutation m = new Mutation(key.getRow());
     String entryStr = formatEntry(next, isDoTimestamps());
     boolean delete = force;
-    try {
-      if (!force) {
-        shellState.getReader().flush();
+    if (!force) {
+      try {
+        shellState.getReader().getTerminal().writer().flush();
+        // this will cause end of file Exception for one of the formatter tests
         String line = shellState.getReader().readLine("Delete { " + entryStr + " } ? ");
         more = line != null;
         delete = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+      } catch (EndOfFileException ignored) {
+        more = false;
+        shellState.getReader().getTerminal().writer()
+            .print(String.format("[%s] %s%n", "SKIPPED", entryStr));
+        return null;
       }
-      if (delete) {
-        m.putDelete(key.getColumnFamily(), key.getColumnQualifier(),
-            new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp());
-        try {
-          writer.addMutation(m);
-        } catch (MutationsRejectedException e) {
-          log.error(e.toString());
-          if (Shell.log.isTraceEnabled()) {
-            for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
-              log.trace(cvs.toString());
-            }
+    }
+    if (delete) {
+      m.putDelete(key.getColumnFamily(), key.getColumnQualifier(),
+          new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp());
+      try {
+        writer.addMutation(m);
+      } catch (MutationsRejectedException e) {
+        log.error(e.toString());
+        if (Shell.log.isTraceEnabled()) {
+          for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
+            log.trace(cvs.toString());
           }
         }
       }
-      shellState.getReader()
-          .print(String.format("[%s] %s%n", delete ? "DELETED" : "SKIPPED", entryStr));
-    } catch (IOException e) {
-      log.error("Cannot write to console", e);
-      throw new RuntimeException(e);
     }
+    shellState.getReader().getTerminal().writer()
+        .print(String.format("[%s] %s%n", delete ? "DELETED" : "SKIPPED", entryStr));
+
     return null;
   }
 }

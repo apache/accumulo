@@ -18,26 +18,19 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
-
-import jline.console.ConsoleReader;
+import org.jline.reader.LineReader;
 
 public class ClasspathCommand extends Command {
   @SuppressWarnings("deprecation")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) {
-    final ConsoleReader reader = shellState.getReader();
+
+    final LineReader reader = shellState.getReader();
     org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.printClassPath(s -> {
-      try {
-        reader.print(s);
-      } catch (IOException ex) {
-        throw new UncheckedIOException(ex);
-      }
+      reader.getTerminal().writer().print(s);
     }, true);
     return 0;
   }

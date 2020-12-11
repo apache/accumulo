@@ -29,13 +29,16 @@ import java.io.IOException;
 
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
+import org.jline.reader.History;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.impl.history.DefaultHistory;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp.Capability;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-
-import jline.console.ConsoleReader;
-import jline.console.history.History;
-import jline.console.history.MemoryHistory;
 
 public class HistoryCommandTest {
 
@@ -43,7 +46,8 @@ public class HistoryCommandTest {
   CommandLine cl;
 
   ByteArrayOutputStream baos;
-  ConsoleReader reader;
+  LineReader reader;
+  Terminal terminal;
   Shell shell;
 
   @Before
@@ -56,15 +60,16 @@ public class HistoryCommandTest {
     expect(cl.hasOption("np")).andReturn(true);
     replay(cl);
 
-    History history = new MemoryHistory();
+    History history = new DefaultHistory();
     history.add("foo");
     history.add("bar");
 
     baos = new ByteArrayOutputStream();
 
     String input = String.format("!1%n"); // Construct a platform dependent new-line
-    reader = new ConsoleReader(new ByteArrayInputStream(input.getBytes()), baos);
-    reader.setHistory(history);
+    terminal =
+        TerminalBuilder.builder().streams(new ByteArrayInputStream(input.getBytes()), baos).build();
+    reader = LineReaderBuilder.builder().history(history).terminal(terminal).build();
 
     shell = new Shell(reader);
   }
@@ -72,7 +77,7 @@ public class HistoryCommandTest {
   @Test
   public void testCorrectNumbering() throws IOException {
     command.execute("", cl, shell);
-    reader.flush();
+    terminal.writer().flush();
 
     assertTrue(baos.toString().contains("2: bar"));
   }
@@ -83,7 +88,9 @@ public class HistoryCommandTest {
     // magic buffer manipulations.
     // This has been observed to be the case on certain versions of Eclipse. However, mvn is usually
     // fine.
-    Assume.assumeTrue(reader.getTerminal().isSupported());
+
+    // Find better way to confirm terminal is supported. Maybe its not necessary anymore. not sure
+    Assume.assumeTrue(reader.getTerminal().getBooleanCapability(Capability.clear_screen));
 
     reader.readLine();
 

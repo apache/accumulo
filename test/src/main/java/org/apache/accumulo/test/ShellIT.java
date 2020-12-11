@@ -37,6 +37,11 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.categories.SunnyDayTests;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -45,8 +50,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import jline.console.ConsoleReader;
 
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 public class ShellIT extends SharedMiniClusterBase {
@@ -108,6 +111,8 @@ public class ShellIT extends SharedMiniClusterBase {
   private TestOutputStream output;
   private Shell shell;
   private File config;
+  public LineReader reader;
+  public Terminal terminal;
 
   void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings)
       throws IOException {
@@ -158,7 +163,12 @@ public class ShellIT extends SharedMiniClusterBase {
     output = new TestOutputStream();
     input = new StringInputStream();
     config = Files.createTempFile(null, null).toFile();
-    shell = new Shell(new ConsoleReader(input, output));
+    // Not sure if DumbTerminal is correct but was having trouble
+    // with the typical way
+    terminal = new DumbTerminal(input, output);
+    terminal.setSize(new Size(80, 24));
+    reader = LineReaderBuilder.builder().terminal(terminal).build();
+    shell = new Shell(reader);
     shell.setLogErrorsToConsole();
     shell.config("--config-file", config.toString(), "-u", "root", "-p", getRootPassword(), "-zi",
         getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers());
@@ -207,9 +217,9 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("addsplits arg", false, "java.lang.IllegalStateException: Not in a table context");
     exec("createtable test", true);
     exec("addsplits 1 \\x80", true);
-    exec("getsplits", true, "1\n\\x80");
+    exec("getsplits", true, "1\\x80");
     exec("getsplits -m 1", true, "1");
-    exec("getsplits -b64", true, "MQ==\ngA==");
+    exec("getsplits -b64", true, "MQ==gA==");
     exec("deletetable test -f", true, "Table: [test] has been deleted");
   }
 

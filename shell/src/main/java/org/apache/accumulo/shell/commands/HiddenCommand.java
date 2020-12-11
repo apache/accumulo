@@ -42,9 +42,11 @@ public class HiddenCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
     if (rand.nextInt(10) == 0) {
-      shellState.getReader().beep();
-      shellState.getReader().println();
-      shellState.getReader()
+      // Check for this replacement
+      // shellState.getReader().beep();
+      // shellState.getReader().getTerminal().echo()
+      shellState.getReader().getTerminal().writer().println();
+      shellState.getReader().getTerminal().writer()
           .println(new String(Base64.getDecoder()
               .decode("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8g"
                   + "IF88LgogICAgLyB8ICd8ICcgXAogICAvICB8Xy58Xy4gIFwKICAvIC98ICAgIC"

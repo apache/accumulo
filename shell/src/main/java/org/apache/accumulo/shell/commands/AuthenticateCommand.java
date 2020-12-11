@@ -39,13 +39,13 @@ public class AuthenticateCommand extends Command {
     final String user = cl.getArgs()[0];
     final String p = shellState.readMaskedLine("Enter current password for '" + user + "': ", '*');
     if (p == null) {
-      shellState.getReader().println();
+      shellState.getReader().getTerminal().writer().println();
       return 0;
     } // user canceled
     final byte[] password = p.getBytes(UTF_8);
     final boolean valid = shellState.getAccumuloClient().securityOperations().authenticateUser(user,
         new PasswordToken(password));
-    shellState.getReader().println((valid ? "V" : "Not v") + "alid");
+    shellState.getReader().getTerminal().writer().println((valid ? "V" : "Not v") + "alid");
     return 0;
   }
 

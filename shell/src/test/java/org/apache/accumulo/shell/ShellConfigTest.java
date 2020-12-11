@@ -29,13 +29,13 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 
+import org.jline.reader.impl.LineReaderImpl;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import jline.console.ConsoleReader;
 
 public class ShellConfigTest {
 
@@ -69,7 +69,8 @@ public class ShellConfigTest {
     System.setOut(new PrintStream(output));
     config = Files.createTempFile(null, null).toFile();
 
-    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output));
+    shell = new Shell(
+        new LineReaderImpl(new DumbTerminal(new FileInputStream(FileDescriptor.in), output)));
     shell.setLogErrorsToConsole();
   }
 

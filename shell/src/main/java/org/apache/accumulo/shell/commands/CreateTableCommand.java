@@ -75,7 +75,7 @@ public class CreateTableCommand extends Command {
     NewTableConfiguration ntc = new NewTableConfiguration();
 
     if (!testTableName.matches(Tables.VALID_NAME_REGEX)) {
-      shellState.getReader()
+      shellState.getReader().getTerminal().writer()
           .println("Only letters, numbers and underscores are allowed for use in table names.");
       throw new IllegalArgumentException();
     }
