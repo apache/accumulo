@@ -36,7 +36,7 @@ public class ClearCommand extends Command {
       throws IOException {
 
     shellState.getTerminal().puts(Capability.clear_screen);
-    shellState.getTerminal().puts(Capability.cursor_address, 1, 1);
+    shellState.getTerminal().puts(Capability.cursor_address, 0, 1);
     shellState.getTerminal().flush();
 
     return 0;

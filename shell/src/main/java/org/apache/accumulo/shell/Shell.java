@@ -177,7 +177,6 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -533,8 +532,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public static void main(String[] args) throws IOException {
-//     Terminal terminal = TerminalBuilder.builder().system(true).nativeSignals(true)
-//     .signalHandler(Terminal.SignalHandler.SIG_IGN).build();
+    // Terminal terminal = TerminalBuilder.builder().system(true).nativeSignals(true)
+    // .signalHandler(Terminal.SignalHandler.SIG_IGN).build();
     LineReader reader = LineReaderBuilder.builder().build();
     // This lets you hit tab with nothing entered on the prompt and get auto-complete
     reader.unsetOpt(LineReader.Option.INSERT_TAB);
@@ -1072,13 +1071,14 @@ public class Shell extends ShellOptions implements KeywordExecutable {
                 int numdashes = (termWidth - prompt.length()) / 2;
                 String nextPrompt = repeat("-", numdashes) + prompt + repeat("-", numdashes);
                 lastPromptLength = nextPrompt.length();
-                writer.println(nextPrompt);
-                writer.flush();
+                // writer.println(nextPrompt);
+                // writer.flush();
 
-                if (Character.toUpperCase((char) reader.getTerminal().reader().read()) == 'Q') {
-                  writer.println();
+                if (reader.readLine(nextPrompt).equalsIgnoreCase("Q")) {
+                  // writer.println();
                   return;
                 }
+                writer.flush();
                 writer.println();
                 termWidth = terminal.getWidth();
                 maxLines = terminal.getHeight();
