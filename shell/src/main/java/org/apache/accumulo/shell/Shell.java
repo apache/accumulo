@@ -542,7 +542,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     // reader.setOpt(LineReader.Option.CASE_INSENSITIVE);
     // // Makes i-search case insensitive (Ctrl-R and Ctrl-S)
     // reader.setOpt(LineReader.Option.CASE_INSENSITIVE_SEARCH);
-    new Shell(null).execute(args);
+    LineReader reader = LineReaderBuilder.builder().build();
+    new Shell(reader).execute(args);
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
