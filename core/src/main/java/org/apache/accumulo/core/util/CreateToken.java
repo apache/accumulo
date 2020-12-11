@@ -40,10 +40,9 @@ public class CreateToken implements KeywordExecutable {
   private LineReader reader = null;
 
   private LineReader getConsoleReader() throws IOException {
-    LineReaderBuilder builder = LineReaderBuilder.builder();
 
     if (reader == null)
-      reader = builder.build();
+      reader = LineReaderBuilder.builder().build();
     return reader;
   }
 

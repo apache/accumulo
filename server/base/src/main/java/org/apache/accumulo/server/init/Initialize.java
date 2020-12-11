@@ -119,9 +119,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.impl.LineReaderImpl;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,10 +144,8 @@ public class Initialize implements KeywordExecutable {
   private static ZooReaderWriter zoo = null;
 
   private static LineReader getLineReader() throws IOException {
-    Terminal terminal = TerminalBuilder.builder().build();
-    LineReaderBuilder builder = LineReaderBuilder.builder().terminal(terminal);
     if (reader == null) {
-      reader = builder.build();
+      reader = LineReaderBuilder.builder().build();
     }
     return reader;
   }
@@ -278,23 +274,19 @@ public class Initialize implements KeywordExecutable {
     }
     if (sconf.get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
       LineReader c = getLineReader();
-      Terminal t = c.getTerminal();
-      t.writer().println();
-      // This could be it. Having trouble testing.
-      // I believe we can do this for beep baseed on devs on mailing list
-      //c.setVariable(LineReader.BELL_STYLE, "audible");
-      ((LineReaderImpl) c).beep();
-      t.writer().println();
-      t.writer().println();
+      c.getTerminal().puts(InfoCmp.Capability.bell);
+      c.getTerminal().writer().println();
+      c.getTerminal().writer().println();
 
-      t.writer().println("Warning!!! Your instance secret is still set to the default,"
-          + " this is not secure. We highly recommend you change it.");
-      t.writer().println();
-      t.writer().println();
-      t.writer().println("You can change the instance secret in accumulo by using:");
-      t.writer().println(
+      c.getTerminal().writer()
+          .println("Warning!!! Your instance secret is still set to the default,"
+              + " this is not secure. We highly recommend you change it.");
+      c.getTerminal().writer().println();
+      c.getTerminal().writer().println();
+      c.getTerminal().writer().println("You can change the instance secret in accumulo by using:");
+      c.getTerminal().writer().println(
           "   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
-      t.writer()
+      c.getTerminal().writer()
           .println("You will also need to edit your secret in your configuration"
               + " file by adding the property instance.secret to your"
               + " accumulo.properties. Without this accumulo will not operate" + " correctly");

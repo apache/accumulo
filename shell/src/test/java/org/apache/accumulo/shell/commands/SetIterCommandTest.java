@@ -92,9 +92,10 @@ public class SetIterCommandTest {
     EasyMock.expectLastCall().times(3);
 
     pw.println(EasyMock.anyObject(String.class));
-    EasyMock.expectLastCall().times(3);
+    EasyMock.expectLastCall().times(2);
 
     EasyMock.expect(shellState.getReader()).andReturn(reader);
+    EasyMock.expect(shellState.getWriter()).andReturn(pw);
 
     // Shell asking for negate option, we pass in an empty string to pickup the default value of
     // 'false'
@@ -128,13 +129,13 @@ public class SetIterCommandTest {
 
     EasyMock.expect(shellState.getTableName()).andReturn("foo").anyTimes();
 
-    EasyMock.replay(client, cli, shellState, reader, tableOperations, terminal);
+    EasyMock.replay(client, cli, shellState, reader, tableOperations, pw);
 
     cmd.execute(
         "setiter -all -p 21 -t foo"
             + " -class org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter",
         cli, shellState);
 
-    EasyMock.verify(client, cli, shellState, reader, tableOperations);
+    EasyMock.verify(client, cli, shellState, reader, tableOperations, pw);
   }
 }

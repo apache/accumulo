@@ -31,7 +31,7 @@ public class UsersCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, IOException {
     for (String user : shellState.getAccumuloClient().securityOperations().listLocalUsers()) {
-      shellState.getReader().getTerminal().writer().println(user);
+      shellState.getWriter().println(user);
     }
     return 0;
   }

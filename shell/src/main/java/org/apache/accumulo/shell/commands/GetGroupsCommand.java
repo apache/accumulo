@@ -40,7 +40,7 @@ public class GetGroupsCommand extends Command {
         shellState.getAccumuloClient().tableOperations().getLocalityGroups(tableName);
 
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
-      shellState.getReader().getTerminal().writer()
+      shellState.getWriter()
           .println(entry.getKey() + "=" + LocalityGroupUtil.encodeColumnFamilies(entry.getValue()));
     }
     return 0;

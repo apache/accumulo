@@ -53,7 +53,7 @@ public class MergeCommand extends Command {
       size = ConfigurationTypeHelper.getFixedMemoryAsBytes(cl.getOptionValue(sizeOpt.getOpt()));
     }
     if (startRow == null && endRow == null && size < 0 && !all) {
-      shellState.getReader().getTerminal().writer().flush();
+      shellState.getWriter().flush();
       String line = shellState.getReader()
           .readLine("Merge the entire table { " + tableName + " } into one tablet (yes|no)? ");
       if (line == null)
@@ -69,7 +69,7 @@ public class MergeCommand extends Command {
         @Override
         protected void message(String fmt, Object... args) {
           if (finalVerbose) {
-            shellState.getReader().getTerminal().writer().println(String.format(fmt, args));
+            shellState.getWriter().println(String.format(fmt, args));
           }
         }
       };

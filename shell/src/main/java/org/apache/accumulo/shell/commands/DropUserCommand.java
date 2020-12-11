@@ -51,7 +51,7 @@ public class DropUserCommand extends Command {
     boolean operate = true;
 
     if (!force) {
-      shellState.getReader().getTerminal().writer().flush();
+      shellState.getWriter().flush();
       String line = shellState.getReader().readLine(getName() + " { " + user + " } (yes|no)? ");
       operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
     }

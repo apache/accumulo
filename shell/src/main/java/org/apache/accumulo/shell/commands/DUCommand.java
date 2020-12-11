@@ -85,7 +85,7 @@ public class DUCommand extends Command {
       for (DiskUsage usage : shellState.getAccumuloClient().tableOperations()
           .getDiskUsage(tables)) {
         Object value = prettyPrint ? NumUtil.bigNumberForSize(usage.getUsage()) : usage.getUsage();
-        shellState.getReader().getTerminal().writer()
+        shellState.getWriter()
             .println(String.format(valueFormat + " %s", value, usage.getTables()));
       }
     } catch (Exception ex) {

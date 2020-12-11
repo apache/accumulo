@@ -26,7 +26,6 @@ import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.easymock.EasyMock;
 import org.jline.reader.LineReader;
-import org.jline.terminal.Terminal;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,7 +47,6 @@ public class DropUserCommandTest {
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     LineReader reader = EasyMock.createMock(LineReader.class);
-    Terminal terminal = EasyMock.createMock(Terminal.class);
     PrintWriter pw = EasyMock.createMock(PrintWriter.class);
     SecurityOperations secOps = EasyMock.createMock(SecurityOperations.class);
 
@@ -63,13 +61,11 @@ public class DropUserCommandTest {
     // Force option was not provided
     EasyMock.expect(cli.hasOption("f")).andReturn(false);
     EasyMock.expect(shellState.getReader()).andReturn(reader);
-    EasyMock.expect(reader.getTerminal()).andReturn(terminal);
-    EasyMock.expect(terminal.writer()).andReturn(pw);
+    EasyMock.expect(shellState.getWriter()).andReturn(pw);
     pw.flush();
     EasyMock.expectLastCall().once();
 
     // Fake a "yes" response
-    EasyMock.expect(shellState.getReader()).andReturn(reader);
     EasyMock.expect(reader.readLine(EasyMock.anyObject(String.class))).andReturn("yes");
     EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
 
@@ -77,11 +73,11 @@ public class DropUserCommandTest {
     secOps.dropLocalUser("user");
     EasyMock.expectLastCall();
 
-    EasyMock.replay(client, cli, shellState, reader, terminal, pw, secOps);
+    EasyMock.replay(client, cli, shellState, reader, secOps);
 
     cmd.execute("dropuser foo -f", cli, shellState);
 
-    EasyMock.verify(client, cli, shellState, reader, terminal, pw, secOps);
+    EasyMock.verify(client, cli, shellState, reader, secOps);
   }
 
 }

@@ -81,15 +81,14 @@ public class DeleterFormatter extends DefaultFormatter {
     boolean delete = force;
     if (!force) {
       try {
-        shellState.getReader().getTerminal().writer().flush();
+        shellState.getWriter().flush();
         // this will cause end of file Exception for one of the formatter tests
         String line = shellState.getReader().readLine("Delete { " + entryStr + " } ? ");
         more = line != null;
         delete = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       } catch (EndOfFileException ignored) {
         more = false;
-        shellState.getReader().getTerminal().writer()
-            .print(String.format("[%s] %s%n", "SKIPPED", entryStr));
+        shellState.getWriter().print(String.format("[%s] %s%n", "SKIPPED", entryStr));
         return null;
       }
     }
@@ -107,7 +106,7 @@ public class DeleterFormatter extends DefaultFormatter {
         }
       }
     }
-    shellState.getReader().getTerminal().writer()
+    shellState.getWriter()
         .print(String.format("[%s] %s%n", delete ? "DELETED" : "SKIPPED", entryStr));
 
     return null;

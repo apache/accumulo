@@ -49,7 +49,7 @@ public class PasswdCommand extends Command {
     oldPassword =
         shellState.readMaskedLine("Enter current password for '" + currentUser + "': ", '*');
     if (oldPassword == null) {
-      shellState.getReader().getTerminal().writer().println();
+      shellState.getWriter().println();
       return 0;
     } // user canceled
 
@@ -59,13 +59,13 @@ public class PasswdCommand extends Command {
 
     password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
     if (password == null) {
-      shellState.getReader().getTerminal().writer().println();
+      shellState.getWriter().println();
       return 0;
     } // user canceled
     passwordConfirm =
         shellState.readMaskedLine("Please confirm new password for '" + user + "': ", '*');
     if (passwordConfirm == null) {
-      shellState.getReader().getTerminal().writer().println();
+      shellState.getWriter().println();
       return 0;
     } // user canceled
 

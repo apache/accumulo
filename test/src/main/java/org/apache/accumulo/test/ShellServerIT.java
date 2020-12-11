@@ -861,7 +861,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void clearCls() throws Exception {
     // clear/cls
-    if (ts.shell.getReader().getTerminal().getBooleanCapability(Capability.clear_screen)) {
+    if (ts.shell.getTerminal().getBooleanCapability(Capability.clear_screen)) {
       ts.exec("cls", true, "[1;1H");
       ts.exec("clear", true, "[2J");
     } else {

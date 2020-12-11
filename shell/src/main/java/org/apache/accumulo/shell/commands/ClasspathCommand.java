@@ -18,19 +18,20 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.io.PrintWriter;
+
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
-import org.jline.reader.LineReader;
 
 public class ClasspathCommand extends Command {
   @SuppressWarnings("deprecation")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) {
 
-    final LineReader reader = shellState.getReader();
+    final PrintWriter reader = shellState.getWriter();
     org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.printClassPath(s -> {
-      reader.getTerminal().writer().print(s);
+      reader.print(s);
     }, true);
     return 0;
   }

@@ -35,18 +35,13 @@ public class ClearCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException {
     // custom clear screen, so I don't have to redraw the prompt twice
-    // --------Not sure what the correct Capability check to do for this but Something
-    // Similar to how this is done.
-    if (!shellState.getReader().getTerminal().getBooleanCapability(Capability.clear_screen)) {
+    if (!shellState.getTerminal().getBooleanCapability(Capability.clear_screen)) {
       throw new IOException("Terminal does not support ANSI commands");
     }
-    // send the ANSI code to clear the screen
-    shellState.getReader().getTerminal().writer().print(((char) 27) + "[2J");
-    shellState.getReader().getTerminal().writer().flush();
 
-    // then send the ANSI code to go to position 1,1
-    shellState.getReader().getTerminal().writer().print(((char) 27) + "[1;1H");
-    shellState.getReader().getTerminal().writer().flush();
+    shellState.getTerminal().puts(Capability.clear_screen);
+    shellState.getTerminal().puts(Capability.cursor_address, 1, 1);
+    shellState.getTerminal().flush();
 
     return 0;
   }

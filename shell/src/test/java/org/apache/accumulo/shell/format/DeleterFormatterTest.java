@@ -88,8 +88,6 @@ public class DeleterFormatterTest {
 
     writer = createNiceMock(BatchWriter.class);
     exceptionWriter = createNiceMock(BatchWriter.class);
-    // terminal = createNiceMock(Terminal.class);
-    // reader = createNiceMock(LineReader.class);
     exceptionWriter.close();
     expectLastCall().andThrow(mre);
     exceptionWriter.addMutation(anyObject(Mutation.class));
@@ -99,8 +97,10 @@ public class DeleterFormatterTest {
 
     terminal = new DumbTerminal(input, baos);
     reader = LineReaderBuilder.builder().terminal(terminal).build();
+    pw = terminal.writer();
 
     expect(shellState.getReader()).andReturn(reader).anyTimes();
+    expect(shellState.getWriter()).andReturn(pw).anyTimes();
 
     replay(writer, exceptionWriter, shellState);
 

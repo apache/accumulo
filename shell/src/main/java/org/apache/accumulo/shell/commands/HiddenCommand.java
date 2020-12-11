@@ -45,8 +45,8 @@ public class HiddenCommand extends Command {
     if (rand.nextInt(10) == 0) {
       // This could be it. Having trouble testing.
       shellState.getReader().setVariable(LineReader.BELL_STYLE, "audible");
-      shellState.getReader().getTerminal().writer().println();
-      shellState.getReader().getTerminal().writer()
+      shellState.getWriter().println();
+      shellState.getWriter()
           .println(new String(Base64.getDecoder()
               .decode("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8g"
                   + "IF88LgogICAgLyB8ICd8ICcgXAogICAvICB8Xy58Xy4gIFwKICAvIC98ICAgIC"

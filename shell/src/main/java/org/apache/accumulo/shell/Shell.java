@@ -172,14 +172,11 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.vfs2.FileSystemException;
-import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.LineReaderImpl;
-import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -214,6 +211,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private ClientContext context;
   protected LineReader reader;
   protected Terminal terminal;
+  protected PrintWriter writer;
   private final Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<>();
   public Map<String,List<IteratorSetting>> iteratorProfiles = new HashMap<>();
@@ -261,6 +259,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     super();
     this.reader = reader;
     this.terminal = reader.getTerminal();
+    this.writer = terminal.writer();
   }
 
   /**
@@ -271,11 +270,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    *           if problems occur creating the ConsoleReader
    */
   public boolean config(String... args) throws IOException {
-    if (this.reader == null) {
-      this.terminal = TerminalBuilder.builder().build();
-      LineReaderBuilder builder = LineReaderBuilder.builder().terminal(terminal);
-      this.reader = builder.build();
-    }
+    if (this.reader == null)
+      // this.terminal = TerminalBuilder.builder().build();
+      // LineReaderBuilder builder = LineReaderBuilder.builder().terminal(terminal);
+      this.reader = LineReaderBuilder.builder().build();
+    this.terminal = this.reader.getTerminal();
+    this.writer = this.terminal.writer();
+
     ShellOptionsJC options = new ShellOptionsJC();
     JCommander jc = new JCommander();
 
@@ -531,10 +532,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public static void main(String[] args) throws IOException {
-    //Terminal terminal = TerminalBuilder.builder().system(true).nativeSignals(true).signalHandler(Terminal.SignalHandler.SIG_IGN).build();
-    Terminal terminal = TerminalBuilder.builder().build();
-    LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-    new Shell(reader).execute(args);
+    // Terminal terminal = TerminalBuilder.builder().system(true).nativeSignals(true)
+    // .signalHandler(Terminal.SignalHandler.SIG_IGN).build();
+    // // Terminal terminal = TerminalBuilder.builder().build();
+    // LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
+    // // This lets you hit tab with nothing entered on the prompt and get auto-complete
+    // reader.unsetOpt(LineReader.Option.INSERT_TAB);
+    // // Makes auto complete case insensitive
+    // reader.setOpt(LineReader.Option.CASE_INSENSITIVE);
+    // // Makes i-search case insensitive (Ctrl-R and Ctrl-S)
+    // reader.setOpt(LineReader.Option.CASE_INSENSITIVE_SEARCH);
+    new Shell(null).execute(args);
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
@@ -556,18 +564,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       log.warn("Unable to make directory for history at {}", accumuloDir);
     }
     // LOOK INTO THIS
-    //final History history = new DefaultHistory(reader);
     reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
-    reader.getHistory().load();
-    ;
     // Add shutdown hook to save file history, per jline javadocs
-    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      try {
-        reader.getHistory().save();
-      } catch (IOException e) {
-        log.warn("Could not save history to file.");
-      }
-    }));
+    // Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+    // try {
+    // history.save();
+    // } catch (IOException e) {
+    // log.warn("Could not save history to file.");
+    // }
+    // }));
 
     // Turn Ctrl+C into Exception instead of JVM exit
     // LOOK INTO THIS
@@ -598,34 +603,20 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
         // If tab completion is true we need to reset
         if (tabCompletion) {
-          if (userCompletor != null) {
-
-            // LOOK INTO THIS.
-            // reader.
-            // reader.removeCompleter(userCompletor);
-            // reader.setCompleter(userCompletor);
-            ((LineReaderImpl) reader).setCompleter(userCompletor);
-
-//            reader =
-//                LineReaderBuilder.builder().terminal(terminal).completer(userCompletor).build();
-          }
-
+          // LOOK INTO THIS.
           userCompletor = setupCompletion();
           ((LineReaderImpl) reader).setCompleter(userCompletor);
-          // reader.addCompleter(userCompletor);
-          // reader
-          //reader = LineReaderBuilder.builder().terminal(terminal).completer(userCompletor).build();
         }
+
         input = reader.readLine(getDefaultPrompt());
         if (input == null) {
-          terminal.writer().println();
           return exitCode;
         } // User Canceled (Ctrl+D)
 
         execCommand(input, disableAuthTimeout, false);
       } catch (UserInterruptException uie) {
         // User Cancelled (Ctrl+C)
-        terminal.writer().println();
+        writer.println();
 
         String partialLine = uie.getPartialLine();
         if (partialLine == null || "".equals(uie.getPartialLine().trim())) {
@@ -633,16 +624,19 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           return exitCode;
         }
       } finally {
-        terminal.writer().flush();
+        writer.flush();
       }
     }
   }
 
   public void shutdown() {
-    if (terminal != null) {
-      // mayber just terminal.close()
-      terminal.writer().close();
-      reader = null;
+    if (reader != null) {
+      try {
+        terminal.close();
+        reader = null;
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
     if (accumuloClient != null) {
       accumuloClient.close();
@@ -651,12 +645,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void printInfo() throws IOException {
     ClientInfo info = ClientInfo.from(accumuloClient.properties());
-    terminal.writer()
-        .print("\n" + SHELL_DESCRIPTION + "\n" + "- \n" + "- version: " + Constants.VERSION + "\n"
-            + "- instance name: " + info.getInstanceName() + "\n" + "- instance id: "
-            + accumuloClient.instanceOperations().getInstanceID() + "\n" + "- \n"
-            + "- type 'help' for a list of available commands\n" + "- \n");
-    terminal.writer().flush();
+    writer.print("\n" + SHELL_DESCRIPTION + "\n" + "- \n" + "- version: " + Constants.VERSION + "\n"
+        + "- instance name: " + info.getInstanceName() + "\n" + "- instance id: "
+        + accumuloClient.instanceOperations().getInstanceID() + "\n" + "- \n"
+        + "- type 'help' for a list of available commands\n" + "- \n");
+    writer.flush();
   }
 
   public void printVerboseInfo() throws IOException {
@@ -688,7 +681,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       }
     }
     sb.append("-\n");
-    terminal.writer().print(sb.toString());
+    writer.print(sb.toString());
   }
 
   public String getDefaultPrompt() {
@@ -710,8 +703,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       throws IOException {
     audit.info("{}", sanitize(getDefaultPrompt() + input));
     if (echoPrompt) {
-      terminal.writer().print(getDefaultPrompt());
-      terminal.writer().println(input);
+      writer.print(getDefaultPrompt());
+      writer.println(input);
     }
 
     if (input.startsWith(COMMENT_PREFIX)) {
@@ -742,22 +735,22 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         // Obtain the command from the command table
         sc = commandFactory.get(command);
         if (sc == null) {
-          terminal.writer().println(String.format(
+          writer.println(String.format(
               "Unknown command \"%s\".  Enter \"help\" for a list possible commands.", command));
-          terminal.writer().flush();
+          writer.flush();
           return;
         }
 
         long duration = System.nanoTime() - lastUserActivity;
         if (!(sc instanceof ExitCommand) && !ignoreAuthTimeout
             && (duration < 0 || duration > authTimeout)) {
-          terminal.writer().println("Shell has been idle for too long. Please re-authenticate.");
+          writer.println("Shell has been idle for too long. Please re-authenticate.");
           boolean authFailed = true;
           do {
             String pwd = readMaskedLine(
                 "Enter current password for '" + accumuloClient.whoami() + "': ", '*');
             if (pwd == null) {
-              terminal.writer().println();
+              writer.println();
               return;
             } // user canceled
 
@@ -770,7 +763,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
             }
 
             if (authFailed) {
-              terminal.writer().print("Invalid password. ");
+              writer.print("Invalid password. ");
             }
           } while (authFailed);
           lastUserActivity = System.nanoTime();
@@ -799,7 +792,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         } else {
           int tmpCode = sc.execute(input, cl, this);
           exitCode += tmpCode;
-          terminal.writer().flush();
+          writer.flush();
         }
 
       } catch (ConstraintViolationException e) {
@@ -827,7 +820,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         printException(e);
       }
     }
-    terminal.writer().flush();
+    writer.flush();
   }
 
   /**
@@ -1068,7 +1061,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       for (String line : nextLine.split("\\n")) {
         if (out == null) {
           if (peek != null) {
-            terminal.writer().println(peek);
+            writer.println(peek);
             if (paginate) {
               linesPrinted += peek.isEmpty() ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
 
@@ -1081,15 +1074,14 @@ public class Shell extends ShellOptions implements KeywordExecutable {
                 int numdashes = (termWidth - prompt.length()) / 2;
                 String nextPrompt = repeat("-", numdashes) + prompt + repeat("-", numdashes);
                 lastPromptLength = nextPrompt.length();
-                terminal.writer().println(nextPrompt);
-                terminal.writer().flush();
+                writer.println(nextPrompt);
+                writer.flush();
 
-                // Maybe the same thing
-                if (reader.readLine(nextPrompt).equals("Q")) {
-                  terminal.writer().println();
+                if (Character.toUpperCase((char) reader.getTerminal().reader().read()) == 'Q') {
+                  writer.println();
                   return;
                 }
-                terminal.writer().println();
+                writer.println();
                 termWidth = terminal.getWidth();
                 maxLines = terminal.getHeight();
               }
@@ -1102,7 +1094,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       }
     }
     if (out == null && peek != null) {
-      terminal.writer().println(peek);
+      writer.println(peek);
     }
   }
 
@@ -1166,9 +1158,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   private final void printHelp(String usage, String description, Options opts, int width)
       throws IOException {
-    PrintWriter pw = new PrintWriter(terminal.output());
-    new HelpFormatter().printHelp(pw, width, usage, description, opts, 2, 5, null, true);
-    terminal.output().flush();
+    new HelpFormatter().printHelp(writer, width, usage, description, opts, 2, 5, null, true);
+    writer.flush();
   }
 
   public int getExitCode() {
@@ -1201,6 +1192,14 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public LineReader getReader() {
     return reader;
+  }
+
+  public Terminal getTerminal() {
+    return terminal;
+  }
+
+  public PrintWriter getWriter() {
+    return writer;
   }
 
   public void updateUser(String principal, AuthenticationToken token)
@@ -1251,8 +1250,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private void logError(String s) {
     log.error("{}", s);
     if (logErrorsToConsole) {
-      terminal.writer().println("ERROR: " + s);
-      terminal.writer().flush();
+      writer.println("ERROR: " + s);
+      writer.flush();
     }
   }
 
