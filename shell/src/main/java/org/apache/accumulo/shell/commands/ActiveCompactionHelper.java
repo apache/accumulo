@@ -33,8 +33,12 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.util.Duration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ActiveCompactionHelper {
+
+  private static final Logger log = LoggerFactory.getLogger(ActiveCompactionHelper.class);
 
   private static String maxDecimal(double count) {
     if (count < 9.995)
@@ -86,6 +90,7 @@ class ActiveCompactionHelper {
         compactions.add(formatActiveCompactionLine(tserver, ac));
       }
     } catch (Exception e) {
+      log.debug("Failed to list active compactions for server {}", tserver, e);
       compactions.add(tserver + " ERROR " + e.getMessage());
     }
     return compactions;

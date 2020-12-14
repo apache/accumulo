@@ -29,6 +29,7 @@ import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
+import org.apache.commons.codec.digest.Crypt;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -65,6 +66,27 @@ public class SystemCredentialsTest {
           || testInstanceVersion.getParentFile().isDirectory());
       assertTrue(testInstanceVersion.createNewFile());
     }
+  }
+
+  @Test
+  public void testWireVersion() {
+    // sanity check to make sure it's a positive number
+    assertTrue(SystemToken.INTERNAL_WIRE_VERSION > 0);
+    // this is a sanity check that our wire version isn't crazy long, because
+    // it must be less than or equal to 16 chars to be used as the SALT for SHA-512
+    // when using Crypt.crypt()
+    assertTrue(Integer.toString(SystemToken.INTERNAL_WIRE_VERSION).length() <= 16);
+  }
+
+  @Test
+  public void testCryptDefaults() {
+    // this is a sanity check that the default hash algorithm for commons-codec's
+    // Crypt.crypt() method is still SHA-512 and the format hasn't changed
+    // if that changes, we need to consider whether the new default is acceptable, and
+    // whether or not we want to bump the wire version
+    String hash = Crypt.crypt(new byte[0]);
+    assertEquals(3, hash.chars().filter(ch -> ch == '$').count());
+    assertTrue(hash.startsWith(SystemToken.SALT_PREFIX));
   }
 
   /**

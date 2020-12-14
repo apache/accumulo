@@ -91,11 +91,13 @@ public class TabletServerMetricsUtil {
   }
 
   public int getMajorCompactions() {
-    return tserver.getCompactionManager().getCompactionsRunning();
+    var mgr = tserver.getCompactionManager();
+    return mgr == null ? 0 : mgr.getCompactionsRunning();
   }
 
   public int getMajorCompactionsQueued() {
-    return tserver.getCompactionManager().getCompactionsQueued();
+    var mgr = tserver.getCompactionManager();
+    return mgr == null ? 0 : mgr.getCompactionsQueued();
   }
 
   public int getMinorCompactions() {
@@ -117,7 +119,7 @@ public class TabletServerMetricsUtil {
   }
 
   public int getOnlineCount() {
-    return tserver.getOnlineTablets().values().size();
+    return tserver.getOnlineTablets().size();
   }
 
   public int getOpeningCount() {

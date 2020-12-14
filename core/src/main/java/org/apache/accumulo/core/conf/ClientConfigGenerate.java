@@ -32,7 +32,7 @@ import com.google.common.collect.Sets;
  * Generates client-properties.md for documentation on Accumulo website and
  * accumulo-client.properties for Accumulo distribution tarball
  */
-class ClientConfigGenerate {
+public class ClientConfigGenerate {
 
   private abstract class Format {
 
