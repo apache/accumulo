@@ -75,7 +75,7 @@ public class Main {
 
     if (args.length == 0) {
       printUsage();
-      throw new IllegalArgumentException("No arguments passed to Main");
+      System.exit(1);
     }
     if (args[0].equals("-h") || args[0].equals("-help") || args[0].equals("--help")) {
       printUsage();
