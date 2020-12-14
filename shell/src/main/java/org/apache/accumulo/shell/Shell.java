@@ -1071,14 +1071,16 @@ public class Shell extends ShellOptions implements KeywordExecutable {
                 int numdashes = (termWidth - prompt.length()) / 2;
                 String nextPrompt = repeat("-", numdashes) + prompt + repeat("-", numdashes);
                 lastPromptLength = nextPrompt.length();
-                // writer.println(nextPrompt);
-                // writer.flush();
 
-                if (reader.readLine(nextPrompt).equalsIgnoreCase("Q")) {
-                  // writer.println();
+                writer.print(nextPrompt);
+                // terminal.echo(false);
+                writer.flush();
+
+                if (Character.toUpperCase((char) terminal.reader().read()) == 'Q') {
+                  writer.println();
+                  // terminal.echo(true);
                   return;
                 }
-                writer.flush();
                 writer.println();
                 termWidth = terminal.getWidth();
                 maxLines = terminal.getHeight();
