@@ -36,7 +36,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.ThreadPools;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ReadOnlyTStore;
