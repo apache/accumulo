@@ -28,7 +28,7 @@ import java.util.TreeMap;
  * This class generates documentation to inform users of the available configuration properties in a
  * presentable form.
  */
-class ConfigurationDocGen {
+public class ConfigurationDocGen {
   private PrintStream doc;
   private final TreeMap<String,Property> sortedProps = new TreeMap<>();
 
