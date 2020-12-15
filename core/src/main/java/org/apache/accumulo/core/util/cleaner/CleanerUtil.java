@@ -107,10 +107,14 @@ public class CleanerUtil {
     requireNonNull(tpe);
     requireNonNull(log);
     return CLEANER.register(tpe, () -> {
+      ThreadPoolExecutor pool = (ThreadPoolExecutor) tpe;
+      if (pool.isShutdown()) {
+        return;
+      }
       log.warn("{} found unreferenced without calling shutdown() or shutdownNow()",
-          tpe.getClass().getSimpleName());
+          pool.getClass().getSimpleName());
       try {
-        ((ThreadPoolExecutor) tpe).shutdownNow();
+        pool.shutdownNow();
       } catch (Exception e) {
         log.error("internal error; exception closing {}", tpe.getClass().getSimpleName(), e);
       }
