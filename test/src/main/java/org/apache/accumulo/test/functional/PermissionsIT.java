@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
@@ -41,7 +40,6 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -55,7 +53,6 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
-import org.apache.commons.configuration.SystemConfiguration;
 import org.apache.hadoop.io.Text;
 import org.junit.Assume;
 import org.junit.Before;
@@ -274,17 +271,33 @@ public class PermissionsIT extends AccumuloClusterHarness {
         }
         break;
       case SYSTEM:
-        user = "__TEMP_USER_WITHOUT_PERM_TEST__";
-        loginAs(rootUser);
-        root_conn.securityOperations().createLocalUser(user,
-                (passwordBased ? new PasswordToken(password) : null));
-        try{
+        try {
+          // Test setProperty
           loginAs(testUser);
-          test_user_conn.securityOperations().getUserAuthorizations(user);
-          throw new IllegalStateException("Should NOT be able to get User Auths");
+          test_user_conn.instanceOperations()
+              .setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "10000");
+          throw new IllegalStateException("Should NOT be able to set System Property");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || root_conn.instanceOperations().getSystemConfiguration()
+                  .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
+            throw e;
+        }
+        // Test removal of property
+        loginAs(rootUser);
+        root_conn.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
+            "10000");
+        try {
+          loginAs(testUser);
+          test_user_conn.instanceOperations()
+              .removeProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey());
+          throw new IllegalStateException("Should NOT be able to remove Sysem Property");
+        } catch (AccumuloSecurityException e) {
+          loginAs(rootUser);
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || !root_conn.instanceOperations().getSystemConfiguration()
+                  .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
             throw e;
         }
         break;
@@ -473,12 +486,22 @@ public class PermissionsIT extends AccumuloClusterHarness {
           throw new IllegalStateException("Should be able to alter a user");
         break;
       case SYSTEM:
-        user = "__TEMP_USER_WITH_PERM_TEST__";
-        loginAs(rootUser);
-        root_conn.securityOperations().createLocalUser(user,
-                (passwordBased ? new PasswordToken(password) : null));
+        // Test setProperty
         loginAs(testUser);
-        test_user_conn.securityOperations().getUserAuthorizations(user);
+        test_user_conn.instanceOperations()
+            .setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "10000");
+        loginAs(rootUser);
+        if (!root_conn.instanceOperations().getSystemConfiguration()
+            .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
+          throw new IllegalStateException("Should be able to set system property");
+        // Test removal of property
+        loginAs(testUser);
+        test_user_conn.instanceOperations()
+            .removeProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey());
+        loginAs(rootUser);
+        if (root_conn.instanceOperations().getSystemConfiguration()
+            .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
+          throw new IllegalStateException("Should be able remove systemproperty");
         break;
       case CREATE_NAMESPACE:
         namespace = "__CREATE_NAMESPACE_WITH_PERM_TEST__";
@@ -682,11 +705,12 @@ public class PermissionsIT extends AccumuloClusterHarness {
         }
         // Now see if we can flush
         try {
-          test_user_conn.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"), false);
+          test_user_conn.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
+              false);
           throw new IllegalStateException("Should NOT be able to flsuh a table");
-        } catch (AccumuloSecurityException e){
-            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
-              throw e;
+        } catch (AccumuloSecurityException e) {
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+            throw e;
         }
         break;
       case BULK_IMPORT:
@@ -698,6 +722,14 @@ public class PermissionsIT extends AccumuloClusterHarness {
         try {
           test_user_conn.tableOperations().setLocalityGroups(tableName, groups);
           throw new IllegalStateException("User should not be able to set locality groups");
+        } catch (AccumuloSecurityException e) {
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+            throw e;
+        }
+        try {
+          test_user_conn.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
+              false);
+          throw new IllegalStateException("Should NOT be able to flsuh a table");
         } catch (AccumuloSecurityException e) {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
             throw e;
@@ -745,7 +777,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
           iter.next();
         break;
       case WRITE:
-        test_user_conn.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"), false);
+        test_user_conn.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
+            false);
         writer = test_user_conn.createBatchWriter(tableName, new BatchWriterConfig());
         m = new Mutation(new Text("row"));
         m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
@@ -756,6 +789,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
         // test for bulk import permission would go here
         break;
       case ALTER_TABLE:
+        test_user_conn.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
+            false);
         Map<String,Set<Text>> groups = new HashMap<>();
         groups.put("tgroup", new HashSet<>(Arrays.asList(new Text("t1"), new Text("t2"))));
         break;
