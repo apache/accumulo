@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,9 +46,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class MergeIT extends AccumuloClusterHarness {
 
@@ -217,9 +216,6 @@ public class MergeIT extends AccumuloClusterHarness {
 
   }
 
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
-
   private static class TestTabletIterator extends TabletIterator {
 
     private final Connector conn;
@@ -282,9 +278,10 @@ public class MergeIT extends AccumuloClusterHarness {
 
     TestTabletIterator tabIter = new TestTabletIterator(getConnector(), metadataTableName);
 
-    exception.expect(TabletDeletedException.class);
-    while (tabIter.hasNext()) {
-      tabIter.next();
-    }
+    assertThrows(TabletDeletedException.class, () -> {
+      while (tabIter.hasNext()) {
+        tabIter.next();
+      }
+    });
   }
 }

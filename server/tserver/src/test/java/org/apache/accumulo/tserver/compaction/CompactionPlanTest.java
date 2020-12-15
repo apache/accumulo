@@ -17,19 +17,16 @@
 
 package org.apache.accumulo.tserver.compaction;
 
+import static org.junit.Assert.assertThrows;
+
 import java.util.Set;
 
 import org.apache.accumulo.server.fs.FileRef;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableSet;
 
 public class CompactionPlanTest {
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   @Test
   public void testOverlappingInputAndDelete() {
@@ -45,8 +42,7 @@ public class CompactionPlanTest {
 
     Set<FileRef> allFiles = ImmutableSet.of(fr1, fr2);
 
-    exception.expect(IllegalStateException.class);
-    cp1.validate(allFiles);
+    assertThrows(IllegalStateException.class, () -> cp1.validate(allFiles));
   }
 
   @Test
@@ -63,8 +59,7 @@ public class CompactionPlanTest {
 
     Set<FileRef> allFiles = ImmutableSet.of(fr1, fr2);
 
-    exception.expect(IllegalStateException.class);
-    cp1.validate(allFiles);
+    assertThrows(IllegalStateException.class, () -> cp1.validate(allFiles));
   }
 
   @Test
@@ -81,8 +76,7 @@ public class CompactionPlanTest {
 
     Set<FileRef> allFiles = ImmutableSet.of(fr1, fr2);
 
-    exception.expect(IllegalStateException.class);
-    cp1.validate(allFiles);
+    assertThrows(IllegalStateException.class, () -> cp1.validate(allFiles));
   }
 
 }

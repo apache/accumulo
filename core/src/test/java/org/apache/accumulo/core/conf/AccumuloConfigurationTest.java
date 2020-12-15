@@ -19,23 +19,19 @@ package org.apache.accumulo.core.conf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 
 public class AccumuloConfigurationTest {
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testGetMemoryInBytes() throws Exception {
@@ -205,8 +201,7 @@ public class AccumuloConfigurationTest {
     expected1.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a2", "asg34");
     assertEquals(expected1, pm1);
 
-    thrown.expect(UnsupportedOperationException.class);
-    pm1.put("k9", "v3");
+    assertThrows(UnsupportedOperationException.class, () -> pm1.put("k9", "v3"));
   }
 
   @Test

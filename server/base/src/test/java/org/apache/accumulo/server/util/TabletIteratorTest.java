@@ -24,6 +24,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -45,26 +46,21 @@ import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
 import org.easymock.Capture;
 import org.easymock.IAnswer;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Iterators;
 
 public class TabletIteratorTest {
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
   @Test
   public void testSplits() {
-    TreeMap<Key,Value> data1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> data1 = new TreeMap<>();
 
     createTabletData(data1, "4", "j", null);
     createTabletData(data1, "4", "m", "j");
     createTabletData(data1, "4", null, "x");
 
-    TreeMap<Key,Value> data2 = new TreeMap<Key,Value>(data1);
+    TreeMap<Key,Value> data2 = new TreeMap<>(data1);
 
     createTabletData(data2, "4", "s", "m");
     createTabletData(data2, "4", "x", "s");
@@ -74,14 +70,14 @@ public class TabletIteratorTest {
 
   @Test
   public void testTableTransition1() {
-    TreeMap<Key,Value> data1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> data1 = new TreeMap<>();
 
     createTabletData(data1, "3", "c", null);
     createTabletData(data1, "3", "n", "c");
     createTabletData(data1, "4", "f", null);
     createTabletData(data1, "4", null, "f");
 
-    TreeMap<Key,Value> data2 = new TreeMap<Key,Value>(data1);
+    TreeMap<Key,Value> data2 = new TreeMap<>(data1);
 
     createTabletData(data2, "3", null, "n");
 
@@ -90,14 +86,14 @@ public class TabletIteratorTest {
 
   @Test
   public void testTableTransition2() {
-    TreeMap<Key,Value> data1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> data1 = new TreeMap<>();
 
     createTabletData(data1, "3", "c", null);
     createTabletData(data1, "3", "n", "c");
     createTabletData(data1, "3", null, "n");
     createTabletData(data1, "4", null, "f");
 
-    TreeMap<Key,Value> data2 = new TreeMap<Key,Value>(data1);
+    TreeMap<Key,Value> data2 = new TreeMap<>(data1);
 
     createTabletData(data2, "4", "f", null);
 
@@ -106,12 +102,12 @@ public class TabletIteratorTest {
 
   @Test
   public void testMissingFirstTablet() {
-    TreeMap<Key,Value> data1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> data1 = new TreeMap<>();
 
     createTabletData(data1, "3", "n", "c");
     createTabletData(data1, "3", null, "n");
 
-    TreeMap<Key,Value> data2 = new TreeMap<Key,Value>(data1);
+    TreeMap<Key,Value> data2 = new TreeMap<>(data1);
 
     createTabletData(data2, "3", "c", null);
 
@@ -120,34 +116,34 @@ public class TabletIteratorTest {
 
   @Test
   public void testMissingLastTablet() {
-    TreeMap<Key,Value> data1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> data1 = new TreeMap<>();
 
     createTabletData(data1, "3", "c", null);
     createTabletData(data1, "3", "n", "c");
 
-    TreeMap<Key,Value> data2 = new TreeMap<Key,Value>(data1);
+    TreeMap<Key,Value> data2 = new TreeMap<>(data1);
 
     createTabletData(data2, "3", null, "n");
 
-    thrown.expect(IllegalStateException.class);
-    runTest(Arrays.asList(data1, data2), Arrays.asList("3;c", "3;n", "3<"));
+    assertThrows(IllegalStateException.class,
+        () -> runTest(Arrays.asList(data1, data2), Arrays.asList("3;c", "3;n", "3<")));
   }
 
   @Test
   public void testDeletedTable() {
-    TreeMap<Key,Value> data1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> data1 = new TreeMap<>();
 
     createTabletData(data1, "3", "c", null);
     createTabletData(data1, "3", "n", "c");
     createTabletData(data1, "4", null, "f");
     createTabletData(data1, "4", "f", null);
 
-    TreeMap<Key,Value> data2 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> data2 = new TreeMap<>();
     createTabletData(data1, "4", null, "f");
     createTabletData(data1, "4", "f", null);
 
-    thrown.expect(TabletDeletedException.class);
-    runTest(Arrays.asList(data1, data2), Arrays.asList("3;c", "3;n"));
+    assertThrows(TabletDeletedException.class,
+        () -> runTest(Arrays.asList(data1, data2), Arrays.asList("3;c", "3;n")));
   }
 
   private static class ScannerState {
@@ -219,11 +215,12 @@ public class TabletIteratorTest {
   public void runTest(List<TreeMap<Key,Value>> dataSets, List<String> expectedEndRows) {
     final Iterator<TreeMap<Key,Value>> dataSetIter = dataSets.iterator();
 
-    final TreeMap<Key,Value> data = new TreeMap<Key,Value>(dataSetIter.next());
+    final TreeMap<Key,Value> data = new TreeMap<>(dataSetIter.next());
 
     Scanner scanner = createMockScanner(data);
 
     TabletIterator tabIter = new TabletIterator(scanner, TabletsSection.getRange(), true, false) {
+      @Override
       protected void resetScanner() {
         data.clear();
         data.putAll(dataSetIter.next());
