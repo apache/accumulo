@@ -73,13 +73,15 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     queryThreadPool = ThreadPools.getFixedThreadPool(numQueryThreads,
         "batch scanner " + batchReaderInstance + "-", false);
     // Call shutdown on this thread pool in case the caller does not call close().
-    cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, log);
+    cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, closed, log);
   }
 
   @Override
   public void close() {
     if (closed.compareAndSet(false, true)) {
+      // Shutdown the pool
       queryThreadPool.shutdownNow();
+      // deregister the cleaner, will not call shutdownNow() because closed is now true
       cleanable.clean();
     }
   }

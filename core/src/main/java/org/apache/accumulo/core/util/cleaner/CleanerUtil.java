@@ -103,12 +103,12 @@ public class CleanerUtil {
     });
   }
 
-  public static Cleanable shutdownThreadPoolExecutor(Object tpe, Logger log) {
-    requireNonNull(tpe);
+  public static Cleanable shutdownThreadPoolExecutor(ThreadPoolExecutor pool, AtomicBoolean closed,
+      Logger log) {
+    requireNonNull(pool);
     requireNonNull(log);
-    return CLEANER.register(tpe, () -> {
-      ThreadPoolExecutor pool = (ThreadPoolExecutor) tpe;
-      if (pool.isShutdown()) {
+    return CLEANER.register(pool, () -> {
+      if (closed.get()) {
         return;
       }
       log.warn("{} found unreferenced without calling shutdown() or shutdownNow()",
@@ -116,7 +116,7 @@ public class CleanerUtil {
       try {
         pool.shutdownNow();
       } catch (Exception e) {
-        log.error("internal error; exception closing {}", tpe.getClass().getSimpleName(), e);
+        log.error("internal error; exception closing {}", pool.getClass().getSimpleName(), e);
       }
     });
   }
