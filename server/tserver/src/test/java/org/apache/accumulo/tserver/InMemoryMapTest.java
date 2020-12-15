@@ -18,6 +18,7 @@ package org.apache.accumulo.tserver;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -67,7 +68,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableMap;
@@ -96,9 +96,6 @@ public class InMemoryMapTest {
       return sampleConfig;
     }
   }
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -494,8 +491,8 @@ public class InMemoryMapTest {
 
   static long sum(long[] counts) {
     long result = 0;
-    for (int i = 0; i < counts.length; i++)
-      result += counts[i];
+    for (long count : counts)
+      result += count;
     return result;
   }
 
@@ -535,8 +532,8 @@ public class InMemoryMapTest {
           String.format("%.1f mutations per second with %d threads", mutationsPerSecond, threads));
     }
     // verify that more threads doesn't go a lot faster, or a lot slower than one thread
-    for (int i = 0; i < timings.size(); i++) {
-      double ratioFirst = timings.get(0) / timings.get(i);
+    for (Double timing : timings) {
+      double ratioFirst = timings.get(0) / timing;
       assertTrue(ratioFirst < 3);
       assertTrue(ratioFirst > 0.3);
     }
@@ -835,8 +832,9 @@ public class InMemoryMapTest {
     assertEquals(expectedAll, readAll(iter));
 
     iter = imm.skvIterator(sampleConfig1);
-    thrown.expect(SampleNotPresentException.class);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    final MemoryIterator finalIter = iter;
+    assertThrows(SampleNotPresentException.class,
+        () -> finalIter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false));
   }
 
   private TreeMap<Key,Value> readAll(SortedKeyValueIterator<Key,Value> iter) throws IOException {

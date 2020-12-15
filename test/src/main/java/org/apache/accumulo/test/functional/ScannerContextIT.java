@@ -44,7 +44,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.hamcrest.CoreMatchers;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,7 +66,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
 
   @Before
   public void checkCluster() throws Exception {
-    Assume.assumeThat(getClusterType(), CoreMatchers.is(ClusterType.MINI));
+    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     MiniAccumuloClusterImpl.class.cast(getCluster());
     fs = FileSystem.get(CachedConfiguration.getInstance());
   }

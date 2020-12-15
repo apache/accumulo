@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -72,16 +73,12 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransportException;
-import org.hamcrest.Description;
-import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,9 +95,6 @@ public class KerberosProxyIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosProxyIT.class);
   private static final String PROXIED_USER1 = "proxied_user1", PROXIED_USER2 = "proxied_user2",
       PROXIED_USER3 = "proxied_user3";
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   private static TestingKdc kdc;
   private static String krbEnabledForITs = null;
@@ -414,19 +408,6 @@ public class KerberosProxyIT extends AccumuloITBase {
 
     log.info("Logged in as " + ugi);
 
-    // Expect an AccumuloSecurityException
-    thrown.expect(AccumuloSecurityException.class);
-    // Error msg would look like:
-    //
-    // org.apache.accumulo.core.client.AccumuloSecurityException: Error BAD_CREDENTIALS for user
-    // Principal in credentials object should match kerberos
-    // principal.
-    // Expected 'proxy/hw10447.local@EXAMPLE.COM' but was
-    // 'testDisallowedClientForImpersonation@EXAMPLE.COM' - Username or Password is Invalid)
-    thrown.expect(new ThriftExceptionMatchesPattern(".*Error BAD_CREDENTIALS.*"));
-    thrown.expect(new ThriftExceptionMatchesPattern(
-        ".*Expected '" + proxyPrincipal + "' but was '" + kdc.qualifyUser(user) + "'.*"));
-
     TSocket socket = new TSocket(hostname, proxyPort);
     log.info(
         "Connecting to proxy with server primary '" + proxyPrimary + "' running on " + hostname);
@@ -446,7 +427,18 @@ public class KerberosProxyIT extends AccumuloITBase {
 
     // Will fail because the proxy can't impersonate this user (per the site configuration)
     try {
-      client.login(kdc.qualifyUser(user), Collections.<String,String>emptyMap());
+      // Error msg would look like:
+      //
+      // org.apache.accumulo.core.client.AccumuloSecurityException: Error BAD_CREDENTIALS for user
+      // Principal in credentials object should match kerberos
+      // principal.
+      // Expected 'proxy/hw10447.local@EXAMPLE.COM' but was
+      // 'testDisallowedClientForImpersonation@EXAMPLE.COM' - Username or Password is Invalid)
+      AccumuloSecurityException e = assertThrows(AccumuloSecurityException.class,
+          () -> client.login(kdc.qualifyUser(user), Collections.<String,String>emptyMap()));
+      assertTrue(thriftExceptionMatchesPattern(e, ".*Error BAD_CREDENTIALS.*"));
+      assertTrue(thriftExceptionMatchesPattern(e,
+          ".*Expected '" + proxyPrincipal + "' but was '" + kdc.qualifyUser(user) + "'.*"));
     } finally {
       if (null != ugiTransport) {
         ugiTransport.close();
@@ -457,10 +449,6 @@ public class KerberosProxyIT extends AccumuloITBase {
   @Test
   public void testMismatchPrincipals() throws Exception {
     ClusterUser rootUser = kdc.getRootUser();
-    // Should get an AccumuloSecurityException and the given message
-    thrown.expect(AccumuloSecurityException.class);
-    thrown
-        .expect(new ThriftExceptionMatchesPattern(ProxyServer.RPC_ACCUMULO_PRINCIPAL_MISMATCH_MSG));
 
     // Make a new user
     String user = testName.getMethodName();
@@ -495,7 +483,9 @@ public class KerberosProxyIT extends AccumuloITBase {
     // Accumulo should let this through -- we need to rely on the proxy to dump me before talking to
     // accumulo
     try {
-      client.login(rootUser.getPrincipal(), Collections.<String,String>emptyMap());
+      AccumuloSecurityException e = assertThrows(AccumuloSecurityException.class,
+          () -> client.login(rootUser.getPrincipal(), Collections.<String,String>emptyMap()));
+      assertTrue(thriftExceptionMatchesPattern(e, ProxyServer.RPC_ACCUMULO_PRINCIPAL_MISMATCH_MSG));
     } finally {
       if (null != ugiTransport) {
         ugiTransport.close();
@@ -607,28 +597,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     });
   }
 
-  private static class ThriftExceptionMatchesPattern
-      extends TypeSafeMatcher<AccumuloSecurityException> {
-    private String pattern;
-
-    public ThriftExceptionMatchesPattern(String pattern) {
-      this.pattern = pattern;
-    }
-
-    @Override
-    protected boolean matchesSafely(AccumuloSecurityException item) {
-      return item.isSetMsg() && item.msg.matches(pattern);
-    }
-
-    @Override
-    public void describeTo(Description description) {
-      description.appendText("matches pattern ").appendValue(pattern);
-    }
-
-    @Override
-    protected void describeMismatchSafely(AccumuloSecurityException item,
-        Description mismatchDescription) {
-      mismatchDescription.appendText("does not match");
-    }
+  private boolean thriftExceptionMatchesPattern(AccumuloSecurityException e, String pattern) {
+    return e.isSetMsg() && e.msg.matches(pattern);
   }
 }

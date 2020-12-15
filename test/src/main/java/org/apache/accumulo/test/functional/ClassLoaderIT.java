@@ -46,7 +46,6 @@ import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.hamcrest.CoreMatchers;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,7 +65,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
 
   @Before
   public void checkCluster() {
-    Assume.assumeThat(getClusterType(), CoreMatchers.is(ClusterType.MINI));
+    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
     rootPath = mac.getConfig().getDir().getAbsolutePath();
   }

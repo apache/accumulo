@@ -20,6 +20,7 @@ package org.apache.accumulo.core.security.crypto;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -46,9 +47,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.primitives.Bytes;
 
@@ -61,9 +60,6 @@ public class CryptoTest {
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
   public static final String CRYPTO_ON_KEK_OFF_CONF =
       "crypto-on-no-key-encryption-accumulo-site.xml";
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   @Test
   public void testNoCryptoStream() throws IOException {
@@ -143,8 +139,7 @@ public class CryptoTest {
 
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
 
-    exception.expect(RuntimeException.class);
-    cryptoModule.getEncryptingOutputStream(params);
+    assertThrows(RuntimeException.class, () -> cryptoModule.getEncryptingOutputStream(params));
   }
 
   @Test
@@ -157,8 +152,7 @@ public class CryptoTest {
 
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
 
-    exception.expect(RuntimeException.class);
-    cryptoModule.getDecryptingInputStream(params);
+    assertThrows(RuntimeException.class, () -> cryptoModule.getDecryptingInputStream(params));
   }
 
   private String getStringifiedBytes(String s) throws IOException {
@@ -273,10 +267,7 @@ public class CryptoTest {
 
     assertNotNull(params.getPlaintextInputStream());
     DataInputStream dataIn = new DataInputStream(params.getPlaintextInputStream());
-    // We expect the following operation to fail and throw an exception
-    exception.expect(IOException.class);
-    @SuppressWarnings("unused")
-    String markerString = dataIn.readUTF();
+    assertThrows(IOException.class, () -> dataIn.readUTF());
   }
 
   @Test

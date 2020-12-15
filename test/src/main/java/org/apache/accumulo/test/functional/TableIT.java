@@ -40,7 +40,6 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.hamcrest.CoreMatchers;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -57,7 +56,7 @@ public class TableIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    Assume.assumeThat(getClusterType(), CoreMatchers.is(ClusterType.MINI));
+    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
 
     AccumuloCluster cluster = getCluster();
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;

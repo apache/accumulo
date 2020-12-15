@@ -16,13 +16,9 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -323,24 +319,26 @@ public class KeyExtentTest {
     Collection<KeyExtent> results;
 
     results = KeyExtent.getKeyExtentsForRange(null, null, set0);
-    assertThat("infinite range should return full set", results.size(), is(5));
-    assertThat("infinite range should return full set", results, hasItems(b, e, h, m, z));
+    assertEquals("infinite range should return full set", 5, results.size());
+    assertTrue("infinite range should return full set",
+        results.containsAll(Arrays.asList(b, e, h, m, z)));
 
     results = KeyExtent.getKeyExtentsForRange(new Text("a"), new Text("z"), set0);
-    assertThat("full overlap should return full set", results.size(), is(5));
-    assertThat("full overlap should return full set", results, hasItems(b, e, h, m, z));
+    assertEquals("full overlap should return full set", 5, results.size(), 5);
+    assertTrue("full overlap should return full set",
+        results.containsAll(Arrays.asList(b, e, h, m, z)));
 
     results = KeyExtent.getKeyExtentsForRange(null, new Text("f"), set0);
-    assertThat("end row should return head set", results.size(), is(3));
-    assertThat("end row should return head set", results, hasItems(b, e, h));
+    assertEquals("end row should return head set", 3, results.size());
+    assertTrue("end row should return head set", results.containsAll(Arrays.asList(b, e, h)));
 
     results = KeyExtent.getKeyExtentsForRange(new Text("f"), null, set0);
-    assertThat("start row should return tail set", results.size(), is(3));
-    assertThat("start row should return tail set", results, hasItems(h, m, z));
+    assertEquals("start row should return tail set", 3, results.size());
+    assertTrue("start row should return tail set", results.containsAll(Arrays.asList(h, m, z)));
 
     results = KeyExtent.getKeyExtentsForRange(new Text("f"), new Text("g"), set0);
-    assertThat("slice should return correct subset", results.size(), is(1));
-    assertThat("slice should return correct subset", results, hasItem(h));
+    assertEquals("slice should return correct subset", 1, results.size());
+    assertTrue("slice should return correct subset", results.contains(h));
   }
 
   @Test
