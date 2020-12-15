@@ -30,12 +30,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,35 +39,23 @@ import org.slf4j.LoggerFactory;
 /**
  * Tests features of the Ample TabletMetadata class that can't be tested in TabletMetadataTest
  */
-public class TabletMetadataIT extends SharedMiniClusterBase {
+public class TabletMetadataIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(TabletMetadataIT.class);
-  private static final int NUM_TSERVERS = 4;
-
-  @BeforeClass
-  public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
-  }
-
-  @AfterClass
-  public static void teardown() {
-    SharedMiniClusterBase.stopMiniCluster();
-  }
+  private static final int NUM_TSERVERS = 3;
 
   @Override
   protected int defaultTimeoutSeconds() {
     return 120;
   }
 
-  private static class Callback implements MiniClusterConfigurationCallback {
-    @Override
-    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
-      cfg.setNumTservers(NUM_TSERVERS);
-    }
+  @Override
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {
+    cfg.setNumTservers(NUM_TSERVERS);
   }
 
   @Test
   public void getLiveTServersTest() throws Exception {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       while (c.instanceOperations().getTabletServers().size() != NUM_TSERVERS) {
         log.info("Waiting for tservers to start up...");
         sleepUninterruptibly(5, TimeUnit.SECONDS);

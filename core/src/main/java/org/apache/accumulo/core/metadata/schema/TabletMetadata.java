@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
@@ -446,23 +447,30 @@ public class TabletMetadata {
     return te;
   }
 
+  /**
+   * Get the tservers that are live from ZK. Live servers will have a valid ZooLock. This method was
+   * pulled from org.apache.accumulo.server.master.LiveTServerSet
+   */
   public static synchronized Set<TServerInstance> getLiveTServers(ClientContext context) {
-    final Set<TServerInstance> currentServers = new HashSet<>();
+    final Set<TServerInstance> liveServers = new HashSet<>();
 
     final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
 
-    HashSet<String> all = new HashSet<>(context.getZooCache().getChildren(path));
-
-    for (String zPath : all) {
-      checkServer(context, currentServers, path, zPath);
+    for (String child : context.getZooCache().getChildren(path)) {
+      checkServer(context, path, child).ifPresent(liveServers::add);
     }
-    log.trace("Found {} live tservers at ZK path: {}", currentServers.size(), path);
+    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), path);
 
-    return currentServers;
+    return liveServers;
   }
 
-  private static void checkServer(ClientContext context, Set<TServerInstance> currentServers,
-      String path, String zPath) {
+  /**
+   * Check for tserver ZooLock at the ZK location. Return Optional containing TServerInstance if a
+   * valid Zoolock exists.
+   */
+  private static Optional<TServerInstance> checkServer(ClientContext context, String path,
+      String zPath) {
+    Optional<TServerInstance> server = Optional.empty();
     final String lockPath = path + "/" + zPath;
     ZooCache.ZcStat stat = new ZooCache.ZcStat();
     byte[] lockData = ZooLock.getLockData(context.getZooCache(), lockPath, stat);
@@ -471,8 +479,8 @@ public class TabletMetadata {
     if (lockData != null) {
       ServerServices services = new ServerServices(new String(lockData, UTF_8));
       HostAndPort client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
-      TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
-      currentServers.add(instance);
+      server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
     }
+    return server;
   }
 }
