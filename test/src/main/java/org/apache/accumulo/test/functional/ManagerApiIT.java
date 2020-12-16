@@ -16,7 +16,15 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
+
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.Credentials;
@@ -28,207 +36,181 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.runners.MethodSorters;
 
-@Category(MiniClusterOnlyTests.class)
-public class ManagerApiIT extends AccumuloClusterHarness {
-
-  private static final Logger LOG = LoggerFactory.getLogger(ManagerApiIT.class);
-
-  private interface MasterApiMethodTest {
-    public void test() throws Exception;
-  }
-
-  private class Flush implements MasterApiMethodTest {
-    @Override
-    public void test() throws Exception {
-      MasterClient.executeVoid(getContext(), new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          String tableId =
-              getContext().getConnector().tableOperations().tableIdMap().get("ns1.NO_SUCH_TABLE");
-          LOG.info("Initiating Flush");
-          long flushID = client.initiateFlush(null, getContext().rpcCreds(), tableId);
-          client.waitForFlush(Tracer.traceInfo(), getContext().rpcCreds(), tableId,
-              TextUtil.getByteBuffer(new Text("myrow")), TextUtil.getByteBuffer(new Text("myrow~")),
-              flushID, 1);
-        }
-      });
-    }
-  }
-
-  private class ShutDown implements MasterApiMethodTest {
-    public void test() throws Exception {
-      MasterClient.executeVoid(getContext(), new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          LOG.info("Sending ShutDown command via MasterClientService");
-          client.shutdown(null, getContext().rpcCreds(), false);
-        }
-      });
-    }
-  }
-
-  private class ShutDownTServer implements MasterApiMethodTest {
-    public void test() throws Exception {
-      MasterClient.executeVoid(getContext(), new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          LOG.info("Sending shutdown Tserver command to {} via MasterClientService",
-              "NO_SUCH_TSERVER");
-          client.shutdownTabletServer(null, getContext().rpcCreds(), "NO_SUCH_TSERVER", false);
-        }
-      });
-    }
-  }
-
-  private class SetMasterGoalState implements MasterApiMethodTest {
-    public void test() throws Exception {
-      MasterClient.executeVoid(getContext(), new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          LOG.info("Setting MasterGoalState to {} via MasterClientService",
-              MasterGoalState.CLEAN_STOP);
-          client.setMasterGoalState(null, getContext().rpcCreds(), MasterGoalState.CLEAN_STOP);
-        }
-      });
-    }
-  }
-
-  private class SetSystemProperty implements MasterApiMethodTest {
-    public void test() throws Exception {
-      MasterClient.executeVoid(getContext(), new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          String prop = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
-          String value = "10000";
-          LOG.info("Setting system property {} to {} via MasterClientService", prop, value);
-          client.setSystemProperty(null, getContext().rpcCreds(), prop, value);
-        }
-      });
-    }
-  }
-
-  private class RemoveSystemProperty implements MasterApiMethodTest {
-    public void test() throws Exception {
-      MasterClient.executeVoid(getContext(), new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          String prop = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
-          LOG.info("Removing system property {} via MasterClientService", prop);
-          client.removeSystemProperty(null, getContext().rpcCreds(), prop);
-        }
-      });
-    }
-  }
+// the shutdown test should sort last, so other tests don't break
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+public class ManagerApiIT extends SharedMiniClusterBase {
 
   @Override
   public int defaultTimeoutSeconds() {
     return 60;
   }
 
-  private ClientContext getContext() {
-    return new ClientContext(this.getConnector().getInstance(), user,
-        getClusterConfiguration().getClientConf());
+  private static Credentials rootUser;
+  private static Credentials regularUser;
+  private static Credentials privilegedUser;
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+    rootUser = new Credentials(getPrincipal(), getToken());
+    regularUser = new Credentials("regularUser", new PasswordToken("regularUser"));
+    privilegedUser = new Credentials("privilegedUser", new PasswordToken("privilegedUser"));
+    SecurityOperations rootSecOps = getConnector().securityOperations();
+    for (Credentials user : Arrays.asList(regularUser, privilegedUser))
+      rootSecOps.createLocalUser(user.getPrincipal(), (PasswordToken) user.getToken());
+    rootSecOps.grantSystemPermission(privilegedUser.getPrincipal(), SystemPermission.SYSTEM);
   }
 
-  private void runTest(MasterApiMethodTest test, boolean expectException,
-      boolean expectPermissionDenied) throws Exception {
-    try {
-      test.test();
-    } catch (Exception ex) {
-      if (!expectException) {
-        throw ex;
-      }
-      if (ex instanceof AccumuloSecurityException && ((AccumuloSecurityException) ex)
-          .getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-        if (!expectPermissionDenied) {
-          throw ex;
-        }
-      }
-    }
+  @AfterClass
+  public static void teardown() throws Exception {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
-  private volatile Credentials user = null;
+  private Function<TCredentials,ClientExec<MasterClientService.Client>> op;
 
   @Test
-  public void testManagerApi() throws Exception {
-    // Set user to ADMIN user
-    Credentials admin = new Credentials(getAdminPrincipal(), getAdminToken());
-    Credentials user1 = new Credentials("user1", new PasswordToken("user1"));
-    Credentials user2 = new Credentials("user2", new PasswordToken("user2"));
+  public void testPermissions_setMasterGoalState() throws Exception {
+    // To setMasterGoalState, user needs SystemPermission.SYSTEM
+    op = user -> client -> client.setMasterGoalState(null, user, MasterGoalState.NORMAL);
+    expectPermissionDenied(op, regularUser);
+    expectPermissionSuccess(op, rootUser);
+    expectPermissionSuccess(op, privilegedUser);
+  }
 
-    user = admin;
-    getContext().getConnector().securityOperations().createLocalUser(user1.getPrincipal(),
-        (PasswordToken) user1.getToken());
-    getContext().getConnector().securityOperations().createLocalUser(user2.getPrincipal(),
-        (PasswordToken) user2.getToken());
-    getContext().getConnector().securityOperations().grantSystemPermission(user1.getPrincipal(),
-        SystemPermission.CREATE_NAMESPACE);
-    getContext().getConnector().securityOperations().grantSystemPermission(user2.getPrincipal(),
-        SystemPermission.SYSTEM);
-    // for Flush test. Create namespace and table and give user2 write permissions.
-    getContext().getConnector().namespaceOperations().create("ns1");
-    getContext().getConnector().tableOperations().create("ns1.NO_SUCH_TABLE");
-    getContext().getConnector().securityOperations().grantTablePermission(user2.getPrincipal(),
-        "ns1.NO_SUCH_TABLE", TablePermission.WRITE);
+  @Test
+  public void testPermissions_initiateFlush() throws Exception {
+    // To initiateFlush, user needs TablePermission.WRITE or TablePermission.ALTER_TABLE
+    String[] uniqNames = getUniqueNames(3);
+    String tableName = uniqNames[0];
+    Credentials regUserWithWrite = new Credentials(uniqNames[1], new PasswordToken(uniqNames[1]));
+    Credentials regUserWithAlter = new Credentials(uniqNames[2], new PasswordToken(uniqNames[2]));
+    SecurityOperations rootSecOps = getConnector().securityOperations();
+    rootSecOps.createLocalUser(regUserWithWrite.getPrincipal(),
+        (PasswordToken) regUserWithWrite.getToken());
+    rootSecOps.createLocalUser(regUserWithAlter.getPrincipal(),
+        (PasswordToken) regUserWithAlter.getToken());
+    getConnector().tableOperations().create(tableName);
+    rootSecOps.grantTablePermission(regUserWithWrite.getPrincipal(), tableName,
+        TablePermission.WRITE);
+    rootSecOps.grantTablePermission(regUserWithAlter.getPrincipal(), tableName,
+        TablePermission.ALTER_TABLE);
+    String tableId = getConnector().tableOperations().tableIdMap().get(tableName);
+    op = user -> client -> client.initiateFlush(null, user, tableId);
+    expectPermissionDenied(op, regularUser);
+    // privileged users can grant themselves permission, but it's not default
+    expectPermissionDenied(op, privilegedUser);
+    expectPermissionSuccess(op, regUserWithWrite);
+    expectPermissionSuccess(op, regUserWithAlter);
+    // root user can because they created the table
+    expectPermissionSuccess(op, rootUser);
+  }
 
-    // To setMasterGoalState, user needs System.system
-    user = admin; // admin has System.system
-    runTest(new SetMasterGoalState(), false, false);
-    user = user1; // user1 doesn't have System.system
-    runTest(new SetMasterGoalState(), true, true);
-    user = user2; // user2 has System.system
-    runTest(new SetMasterGoalState(), false, false);
+  @Test
+  public void testPermissions_waitForFlush() throws Exception {
+    // To waitForFlush, user needs TablePermission.WRITE or TablePermission.ALTER_TABLE
+    String[] uniqNames = getUniqueNames(3);
+    String tableName = uniqNames[0];
+    Credentials regUserWithWrite = new Credentials(uniqNames[1], new PasswordToken(uniqNames[1]));
+    Credentials regUserWithAlter = new Credentials(uniqNames[2], new PasswordToken(uniqNames[2]));
+    SecurityOperations rootSecOps = getConnector().securityOperations();
+    rootSecOps.createLocalUser(regUserWithWrite.getPrincipal(),
+        (PasswordToken) regUserWithWrite.getToken());
+    rootSecOps.createLocalUser(regUserWithAlter.getPrincipal(),
+        (PasswordToken) regUserWithAlter.getToken());
+    getConnector().tableOperations().create(tableName);
+    rootSecOps.grantTablePermission(regUserWithWrite.getPrincipal(), tableName,
+        TablePermission.WRITE);
+    rootSecOps.grantTablePermission(regUserWithAlter.getPrincipal(), tableName,
+        TablePermission.ALTER_TABLE);
+    String tableId = getConnector().tableOperations().tableIdMap().get(tableName);
+    AtomicLong flushId = new AtomicLong();
+    // initiateFlush as the root user to get the flushId, then test waitForFlush with other users
+    op = user -> client -> flushId.set(client.initiateFlush(null, user, tableId));
+    expectPermissionSuccess(op, rootUser);
+    op = user -> client -> client.waitForFlush(null, user, tableId,
+        TextUtil.getByteBuffer(new Text("myrow")), TextUtil.getByteBuffer(new Text("myrow~")),
+        flushId.get(), 1);
+    expectPermissionDenied(op, regularUser);
+    // privileged users can grant themselves permission, but it's not default
+    expectPermissionDenied(op, privilegedUser);
+    expectPermissionSuccess(op, regUserWithWrite);
+    expectPermissionSuccess(op, regUserWithAlter);
+    // root user can because they created the table
+    expectPermissionSuccess(op, rootUser);
+  }
 
-    // To Flush, user needs WRITE or ALTER TABLE
-    user = admin; // admin created the table
-    runTest(new Flush(), false, false);
-    user = user1; // user1 doesn't have Write permissions
-    runTest(new Flush(), true, true);
-    user = user2; // user2 has write permissions
-    runTest(new Flush(), false, false);
+  @Test
+  public void testPermissions_setSystemProperty() throws Exception {
+    // To setSystemProperty, user needs SystemPermission.SYSTEM
+    String propKey = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
+    op = user -> client -> client.setSystemProperty(null, user, propKey, "10000");
+    expectPermissionDenied(op, regularUser);
+    expectPermissionSuccess(op, rootUser);
+    expectPermissionSuccess(op, privilegedUser);
+    getConnector().instanceOperations().removeProperty(propKey); // clean up property
+  }
 
-    // To set system property, user needs System.system
-    user = admin; // admin has System.system
-    runTest(new SetSystemProperty(), false, false);
-    user = user1; // user1 doesn't have System.system
-    runTest(new SetSystemProperty(), true, true);
-    user = user2; // user2 has System.system
-    runTest(new SetSystemProperty(), false, false);
+  @Test
+  public void testPermissions_removeSystemProperty() throws Exception {
+    // To removeSystemProperty, user needs SystemPermission.SYSTEM
+    String propKey1 = Property.GC_CYCLE_DELAY.getKey();
+    String propKey2 = Property.GC_CYCLE_START.getKey();
+    getConnector().instanceOperations().setProperty(propKey1, "10000"); // ensure it exists
+    getConnector().instanceOperations().setProperty(propKey2, "10000"); // ensure it exists
+    op = user -> client -> client.removeSystemProperty(null, user, propKey1);
+    expectPermissionDenied(op, regularUser);
+    expectPermissionSuccess(op, rootUser);
+    op = user -> client -> client.removeSystemProperty(null, user, propKey2);
+    expectPermissionSuccess(op, privilegedUser);
+  }
 
-    // To remove system property, user needs System.system
-    user = admin; // admin has System.system
-    runTest(new RemoveSystemProperty(), false, false);
-    user = user1; // user1 doesn't have System.system
-    runTest(new RemoveSystemProperty(), true, true);
-    user = user2; // user2 has System.system
-    runTest(new RemoveSystemProperty(), true, false);
+  @Test
+  public void testPermissions_shutdownTabletServer() throws Exception {
+    // To shutdownTabletServer, user needs SystemPermission.SYSTEM
+    // this server won't exist, so shutting it down is a NOOP on success
+    String fakeHostAndPort = getUniqueNames(1)[0] + ":0";
+    op = user -> client -> client.shutdownTabletServer(null, user, fakeHostAndPort, false);
+    expectPermissionDenied(op, regularUser);
+    expectPermissionSuccess(op, rootUser);
+    expectPermissionSuccess(op, privilegedUser);
+  }
 
-    // To shutdown Tserver, user needs System.system
-    user = admin; // admin has System.system
-    runTest(new ShutDownTServer(), true, false);
-    user = user1; // user1 doesn't have System.system
-    runTest(new ShutDownTServer(), true, true);
-    user = user2; // user2 has System.system
-    runTest(new ShutDownTServer(), true, false);
+  // this test should go last, because it shuts things down;
+  // see the junit annotation to control test ordering at the top of this class
+  @Test
+  public void z99_testPermissions_shutdown() throws Exception {
+    // To shutdown, user needs SystemPermission.SYSTEM
+    op = user -> client -> client.shutdown(null, user, false);
+    expectPermissionDenied(op, regularUser);
+    // We should be able to do both of the following RPC calls before it actually shuts down
+    expectPermissionSuccess(op, rootUser);
+    expectPermissionSuccess(op, privilegedUser);
+  }
 
-    // To shutdown, user needs System.system
-    user = admin; // admin has System.system
-    runTest(new ShutDown(), false, false);
-    user = user1; // user1 doesn't have System.system
-    runTest(new ShutDown(), true, true);
-    user = user2; // user2 has System.system
-    runTest(new ShutDown(), false, false);
+  private static void expectPermissionSuccess(
+      Function<TCredentials,ClientExec<MasterClientService.Client>> op, Credentials user)
+      throws Exception {
+    ClientContext context =
+        new ClientContext(getConnector().getInstance(), user, getCluster().getClientConfig());
+    MasterClient.executeVoid(context, op.apply(context.rpcCreds()));
+  }
 
+  private static void expectPermissionDenied(
+      Function<TCredentials,ClientExec<MasterClientService.Client>> op, Credentials user)
+      throws Exception {
+    AccumuloSecurityException e =
+        assertThrows(AccumuloSecurityException.class, () -> expectPermissionSuccess(op, user));
+    assertSame(SecurityErrorCode.PERMISSION_DENIED, e.getSecurityErrorCode());
   }
 
 }
