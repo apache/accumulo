@@ -482,6 +482,10 @@ public class AuditMessageIT extends ConfigurableMacBase {
       auditConnector.tableOperations().deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"),
           new Text("myRow~"));
     } catch (AccumuloSecurityException ex) {}
+    try {
+      auditConnector.tableOperations().flush(OLD_TEST_TABLE_NAME, new Text("myRow"),
+          new Text("myRow~"), false);
+    } catch (AccumuloSecurityException ex) {}
 
     // ... that will do for now.
     // End of testing activities
@@ -519,6 +523,11 @@ public class AuditMessageIT extends ConfigurableMacBase {
             "operation: denied;.*"
                 + String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE,
                     OLD_TEST_TABLE_NAME, "myRow", "myRow~")).size());
+    assertEquals(1,
+        findAuditMessage(auditMessages,
+            "operation: denied;.*" + String
+                .format(AuditedSecurityOperation.CAN_FLUSH_TABLE_AUDIT_TEMPLATE, "1", "\\+default"))
+                    .size());
   }
 
   @Test
