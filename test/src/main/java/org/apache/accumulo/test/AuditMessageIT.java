@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -144,7 +146,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
       System.out.println(s);
     }
     System.out.println("End of captured audit messages for step " + stepName);
-    if (result.size() > 0)
+    if (!result.isEmpty())
       lastAuditTimestamp = (result.get(result.size() - 1)).substring(0, 23);
 
     return result;
@@ -455,7 +457,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
       auditAccumuloClient.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
     } catch (AccumuloSecurityException ex) {}
     try {
-      auditAccumuloClient.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, true,
+      auditAccumuloClient.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, false,
           Collections.emptyMap(), Collections.emptySet());
     } catch (AccumuloSecurityException ex) {}
     try {
@@ -470,6 +472,10 @@ public class AuditMessageIT extends ConfigurableMacBase {
     try {
       auditAccumuloClient.tableOperations().deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"),
           new Text("myRow~"));
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      auditAccumuloClient.tableOperations().flush(OLD_TEST_TABLE_NAME, new Text("myRow"),
+          new Text("myRow~"), false);
     } catch (AccumuloSecurityException ex) {}
 
     // ... that will do for now.
@@ -502,6 +508,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
             "operation: denied;.*"
                 + String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE,
                     OLD_TEST_TABLE_NAME, "myRow", "myRow~")));
+    assertEquals(1, findAuditMessage(auditMessages, "operation: denied;.*" + String
+        .format(AuditedSecurityOperation.CAN_FLUSH_TABLE_AUDIT_TEMPLATE, "1", "\\+default")));
   }
 
   @Test

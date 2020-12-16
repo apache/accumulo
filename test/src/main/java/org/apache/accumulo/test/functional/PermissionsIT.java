@@ -1,30 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -276,7 +278,35 @@ public class PermissionsIT extends AccumuloClusterHarness {
         }
         break;
       case SYSTEM:
-        // test for system permission would go here
+        try {
+          // Test setProperty
+          loginAs(testUser);
+          test_user_client.instanceOperations()
+              .setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "10000");
+          throw new IllegalStateException("Should NOT be able to set System Property");
+        } catch (AccumuloSecurityException e) {
+          loginAs(rootUser);
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || root_client.instanceOperations().getSystemConfiguration()
+                  .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
+            throw e;
+        }
+        // Test removal of property
+        loginAs(rootUser);
+        root_client.instanceOperations()
+            .setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "10000");
+        try {
+          loginAs(testUser);
+          test_user_client.instanceOperations()
+              .removeProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey());
+          throw new IllegalStateException("Should NOT be able to remove Sysem Property");
+        } catch (AccumuloSecurityException e) {
+          loginAs(rootUser);
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || !root_client.instanceOperations().getSystemConfiguration()
+                  .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
+            throw e;
+        }
         break;
       case CREATE_NAMESPACE:
         namespace = "__CREATE_NAMESPACE_WITHOUT_PERM_TEST__";
@@ -462,7 +492,22 @@ public class PermissionsIT extends AccumuloClusterHarness {
           throw new IllegalStateException("Should be able to alter a user");
         break;
       case SYSTEM:
-        // test for system permission would go here
+        // Test setProperty
+        loginAs(testUser);
+        test_user_client.instanceOperations()
+            .setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "10000");
+        loginAs(rootUser);
+        if (!root_client.instanceOperations().getSystemConfiguration()
+            .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
+          throw new IllegalStateException("Should be able to set system property");
+        // Test removal of property
+        loginAs(testUser);
+        test_user_client.instanceOperations()
+            .removeProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey());
+        loginAs(rootUser);
+        if (root_client.instanceOperations().getSystemConfiguration()
+            .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
+          throw new IllegalStateException("Should be able remove systemproperty");
         break;
       case CREATE_NAMESPACE:
         namespace = "__CREATE_NAMESPACE_WITH_PERM_TEST__";
@@ -613,7 +658,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
       // put in some initial data
       try (BatchWriter writer = c.createBatchWriter(tableName)) {
         Mutation m = new Mutation(new Text("row"));
-        m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes()));
+        m.put("cf", "cq", "val");
         writer.addMutation(m);
       }
 
@@ -649,15 +694,24 @@ public class PermissionsIT extends AccumuloClusterHarness {
         try {
           try (BatchWriter bw = test_user_client.createBatchWriter(tableName)) {
             m = new Mutation(new Text("row"));
-            m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
+            m.put("a", "b", "c");
             bw.addMutation(m);
           } catch (MutationsRejectedException e1) {
-            if (e1.getSecurityErrorCodes().size() > 0)
+            if (!e1.getSecurityErrorCodes().isEmpty())
               throw new AccumuloSecurityException(test_user_client.whoami(),
                   org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode.PERMISSION_DENIED,
                   e1);
           }
           throw new IllegalStateException("Should NOT be able to write to a table");
+        } catch (AccumuloSecurityException e) {
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+            throw e;
+        }
+        // Now see if we can flush
+        try {
+          test_user_client.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
+              false);
+          throw new IllegalStateException("Should NOT be able to flsuh a table");
         } catch (AccumuloSecurityException e) {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
             throw e;
@@ -672,6 +726,14 @@ public class PermissionsIT extends AccumuloClusterHarness {
         try {
           test_user_client.tableOperations().setLocalityGroups(tableName, groups);
           throw new IllegalStateException("User should not be able to set locality groups");
+        } catch (AccumuloSecurityException e) {
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+            throw e;
+        }
+        try {
+          test_user_client.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
+              false);
+          throw new IllegalStateException("Should NOT be able to flsuh a table");
         } catch (AccumuloSecurityException e) {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
             throw e;
@@ -720,15 +782,17 @@ public class PermissionsIT extends AccumuloClusterHarness {
     switch (perm) {
       case READ:
         try (Scanner scanner = test_user_client.createScanner(tableName, Authorizations.EMPTY)) {
-          Iterator<Entry<Key,Value>> iter = scanner.iterator();
-          while (iter.hasNext())
-            iter.next();
+          for (Entry<Key,Value> keyValueEntry : scanner) {
+            assertNotNull(keyValueEntry);
+          }
         }
         break;
       case WRITE:
+        test_user_client.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
+            false);
         try (BatchWriter bw = test_user_client.createBatchWriter(tableName)) {
           Mutation m = new Mutation(new Text("row"));
-          m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
+          m.put("a", "b", "c");
           bw.addMutation(m);
         }
         break;
@@ -736,6 +800,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
         // test for bulk import permission would go here
         break;
       case ALTER_TABLE:
+        test_user_client.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
+            false);
         testArbitraryProperty(test_user_client, tableName, true);
         break;
       case DROP_TABLE:
