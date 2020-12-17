@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.metrics;
 
@@ -49,42 +51,31 @@ public class MetricsFileTailerTest {
    * Create a file tailer and then write some lines and validate the tailer returns the last line.
    */
   @Test
-  public void fileUpdates() {
-
-    MetricsFileTailer tailer = new MetricsFileTailer("foo", TEST_OUTFILE_NAME);
-
-    Thread t = new Thread(tailer);
-    t.start();
-
-    long lastUpdate = tailer.getLastUpdate();
-
-    writeToFile();
+  public void fileUpdates() throws InterruptedException {
 
     boolean passed = Boolean.FALSE;
+    try (MetricsFileTailer tailer = new MetricsFileTailer("foo", TEST_OUTFILE_NAME)) {
+      tailer.startDaemonThread();
 
-    int count = 0;
-    while (count++ < 5) {
-      if (lastUpdate != tailer.getLastUpdate()) {
-        lastUpdate = tailer.getLastUpdate();
-        log.trace("{} - {}", tailer.getLastUpdate(), tailer.getLast());
-        if (SUCCESS.compareTo(tailer.getLast()) == 0) {
-          passed = Boolean.TRUE;
-          break;
+      long lastUpdate = tailer.getLastUpdate();
+
+      writeToFile();
+
+      int count = 0;
+      while (count++ < 5) {
+        if (lastUpdate == tailer.getLastUpdate()) {
+          log.trace("no change");
+        } else {
+          lastUpdate = tailer.getLastUpdate();
+          log.trace("{} - {}", tailer.getLastUpdate(), tailer.getLast());
+          if (SUCCESS.compareTo(tailer.getLast()) == 0) {
+            passed = Boolean.TRUE;
+            break;
+          }
         }
-      } else {
-        log.trace("no change");
-      }
-      try {
         Thread.sleep(5_000);
-      } catch (InterruptedException ex) {
-        // empty
       }
-    }
 
-    try {
-      tailer.close();
-    } catch (Exception ex) {
-      log.trace("Failed to close file tailer on " + TEST_OUTFILE_NAME, ex);
     }
     assertTrue(passed);
   }
