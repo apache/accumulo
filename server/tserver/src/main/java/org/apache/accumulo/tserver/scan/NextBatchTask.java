@@ -90,14 +90,9 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
     } catch (TooManyFilesException | SampleNotPresentException e) {
       addResult(e);
     } catch (IOException | RuntimeException e) {
-      log.warn("exception while scanning tablet {}",
-          (scanSession == null ? "(unknown)" : scanSession.extent), e);
+      log.warn("exception while scanning tablet {} for {}",
+          (scanSession == null ? "(unknown)" : scanSession.extent), scanSession.client, e);
       addResult(e);
-    } catch (Error e) {
-      log.warn("Error while scanning tablet {}",
-          (scanSession == null ? "(unknown)" : scanSession.extent), e);
-      addResult(e);
-      throw e;
     } finally {
       runState.set(ScanRunState.FINISHED);
       Thread.currentThread().setName(oldThreadName);
