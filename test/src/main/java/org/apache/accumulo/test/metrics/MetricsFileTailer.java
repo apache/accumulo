@@ -53,7 +53,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * underlying file has data written, the vaule returned by getLastUpdate will change, and the last
  * line can be retrieved with getLast().
  */
-public class MetricsFileTailer implements Runnable, AutoCloseable {
+public class MetricsFileTailer implements AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(MetricsFileTailer.class);
 
@@ -61,8 +61,8 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
   private final String metricsPrefix;
 
-  private Lock lock = new ReentrantLock();
-  private AtomicBoolean running = new AtomicBoolean(Boolean.TRUE);
+  private final Lock lock = new ReentrantLock();
+  private final AtomicBoolean running = new AtomicBoolean(Boolean.FALSE);
 
   private AtomicLong lastUpdate = new AtomicLong(0);
   private long startTime = System.nanoTime();
@@ -157,10 +157,14 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
   }
 
   /**
-   * Creates a marker value that changes each time a new line is detected. Clients can use this to
-   * determine if a call to getLast() will return a new value.
+   * Creates a marker value that increases each time a new line is detected. Clients can use this to
+   * determine if a call to getLast() will return a new value. However, this value is <b>NOT</b> a
+   * timestamp and should not be interpreted as such. Furthermore, it does not indicate that the
+   * metrics being reported have changed, only that a new metrics poll took place and was written to
+   * the file. So, if clients need to observe new metrics from a new event, they need to parse the
+   * line themselves to look for changed metrics values.
    *
-   * @return a marker value set when a line is available.
+   * @return a marker value set when a new line is available.
    */
   public long getLastUpdate() {
     return lastUpdate.get();
@@ -232,8 +236,7 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
    * A loop that polls for changes and when the file changes, put the last line in a buffer that can
    * be retrieved by clients using getLast().
    */
-  @Override
-  public void run() {
+  private void run() {
 
     long filePos = 0;
 
@@ -289,6 +292,14 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
       } catch (Exception ex) {
         log.info("Error processing metrics file {}", metricsFilename, ex);
       }
+    }
+  }
+
+  public void startDaemonThread() {
+    if (running.compareAndSet(false, true)) {
+      Thread t = new Thread(() -> this.run());
+      t.setDaemon(true);
+      t.start();
     }
   }
 
