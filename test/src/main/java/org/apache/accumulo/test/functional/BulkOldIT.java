@@ -52,7 +52,7 @@ public class BulkOldIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
-    cfg.setMemory(ServerType.TABLET_SERVER, 128 * 4, MemoryUnit.MEGABYTE);
+    cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
   }
 
   @Override

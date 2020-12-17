@@ -124,7 +124,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
         MiniClusterHarness miniClusterHarness = new MiniClusterHarness();
         // Intrinsically performs the callback to let tests alter MiniAccumuloConfig and
         // core-site.xml
-        cluster = miniClusterHarness.create(this, getAdminToken(), krb);
+        cluster = miniClusterHarness.create(this, getAdminToken(), krb, this);
         // Login as the "root" user
         if (krb != null) {
           ClusterUser rootUser = krb.getRootUser();
