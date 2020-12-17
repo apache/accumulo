@@ -24,7 +24,7 @@
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
-  <version>1.10.1-SNAPSHOT</version>
+  <version>1.10.1</version>
   <packaging>pom</packaging>
   <name>Apache Accumulo Project</name>
   <description>Apache Accumulo is a sorted, distributed key/value store based
@@ -101,7 +101,7 @@
   <scm>
     <connection>scm:git:https://gitbox.apache.org/repos/asf/accumulo.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/accumulo.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>rel/1.10.1</tag>
     <url>https://gitbox.apache.org/repos/asf?p=accumulo.git</url>
   </scm>
   <issueManagement>
@@ -140,7 +140,7 @@
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>2.0.7</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2020-08-27T15:56:15Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2020-12-17T22:04:38Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
