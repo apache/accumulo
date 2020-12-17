@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver.scan;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
@@ -88,16 +89,15 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       }
     } catch (TooManyFilesException | SampleNotPresentException e) {
       addResult(e);
-    } catch (Exception e) {
-      log.warn("exception while scanning tablet "
-          + (scanSession == null ? "(unknown)" : scanSession.extent), e);
+    } catch (IOException | RuntimeException e) {
+      log.warn("exception while scanning tablet {}",
+          (scanSession == null ? "(unknown)" : scanSession.extent), e);
       addResult(e);
-    } catch (Error t) {
-      log.warn(
-          "Error while scanning tablet " + (scanSession == null ? "(unknown)" : scanSession.extent),
-          t);
-      addResult(t);
-      throw t;
+    } catch (Error e) {
+      log.warn("Error while scanning tablet {}",
+          (scanSession == null ? "(unknown)" : scanSession.extent), e);
+      addResult(e);
+      throw e;
     } finally {
       runState.set(ScanRunState.FINISHED);
       Thread.currentThread().setName(oldThreadName);
