@@ -93,7 +93,7 @@ import com.google.common.base.Joiner;
  *   + Flush holds adding of new mutations so it does not wait indefinitely
  *
  * Considerations
- *   + All background threads must catch and note Throwable
+ *   + All background threads must catch and note Exception
  *   + mutations for a single tablet server are only processed by one thread
  *     concurrently (if new mutations come in for a tablet server while one
  *     thread is processing mutations for it, no other thread should
@@ -156,7 +156,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private final FailedMutations failedMutations = new FailedMutations();
   private int unknownErrors = 0;
   private boolean somethingFailed = false;
-  private Throwable lastUnknownError = null;
+  private Exception lastUnknownError = null;
 
   private static class TimeoutTracker {
 
@@ -218,7 +218,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
                   > TabletServerBatchWriter.this.maxLatency)
                 startProcessing();
             }
-          } catch (Throwable t) {
+          } catch (Exception t) {
             updateUnknownErrors("Max latency task failed " + t.getMessage(), t);
           }
         }
@@ -525,7 +525,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     log.error("Server side error on {}", server, e);
   }
 
-  private synchronized void updateUnknownErrors(String msg, Throwable t) {
+  private synchronized void updateUnknownErrors(String msg, Exception t) {
     somethingFailed = true;
     unknownErrors++;
     this.lastUnknownError = t;
@@ -619,7 +619,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
                 rf.size());
           addFailedMutations(rf);
         }
-      } catch (Throwable t) {
+      } catch (Exception t) {
         updateUnknownErrors("tid=" + Thread.currentThread().getId()
             + "  Failed to requeue failed mutations " + t.getMessage(), t);
         cancel();
@@ -801,7 +801,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           }
 
           return;
-        } catch (Throwable t) {
+        } catch (Exception t) {
           updateUnknownErrors(
               "Failed to send tablet server " + location + " its batch : " + t.getMessage(), t);
         }

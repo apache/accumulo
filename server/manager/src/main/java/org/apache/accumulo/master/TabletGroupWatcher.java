@@ -493,7 +493,7 @@ abstract class TabletGroupWatcher extends Daemon {
       Master.log.error(
           "Metadata table is inconsistent at {} and all assigned/future tservers are still online.",
           row);
-    } catch (Throwable e) {
+    } catch (Exception e) {
       Master.log.error("Error attempting repair of metadata " + row + ": " + e, e);
     }
   }

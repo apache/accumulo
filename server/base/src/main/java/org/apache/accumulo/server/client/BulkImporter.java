@@ -597,7 +597,7 @@ public class BulkImporter {
       }
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (Throwable t) {
+    } catch (Exception t) {
       log.error("Encountered unknown exception in assignMapFiles.", t);
       throw new AccumuloException(t);
     }

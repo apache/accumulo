@@ -154,7 +154,7 @@ public class TabletServerResourceManager {
             tp.setMaximumPoolSize(max);
           }
         }
-      } catch (Throwable t) {
+      } catch (Exception t) {
         log.error("Failed to change thread pool size", t);
       }
     }, 1000, 10_000);
@@ -555,7 +555,7 @@ public class TabletServerResourceManager {
           ArrayList<TabletMemoryReport> tabletStates = new ArrayList<>(tabletReportsCopy.values());
           tabletsToMinorCompact = memoryManager.tabletsToMinorCompact(tabletStates);
 
-        } catch (Throwable t) {
+        } catch (Exception t) {
           log.error("Memory manager failed {}", t.getMessage(), t);
         }
 
@@ -595,7 +595,7 @@ public class TabletServerResourceManager {
 
             // log.debug("mma.tabletsToMinorCompact = "+mma.tabletsToMinorCompact);
           }
-        } catch (Throwable t) {
+        } catch (Exception t) {
           log.error("Minor compactions for memory management failed", t);
         }
 

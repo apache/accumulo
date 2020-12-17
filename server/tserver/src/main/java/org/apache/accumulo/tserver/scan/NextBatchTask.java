@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
-import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.TooManyFilesException;
 import org.apache.accumulo.tserver.session.SingleScanSession;
@@ -89,14 +88,16 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       }
     } catch (TooManyFilesException | SampleNotPresentException e) {
       addResult(e);
-    } catch (OutOfMemoryError ome) {
-      Halt.halt("Ran out of memory scanning " + scanSession.extent + " for " + scanSession.client,
-          1);
-      addResult(ome);
-    } catch (Throwable e) {
+    } catch (Exception e) {
       log.warn("exception while scanning tablet "
           + (scanSession == null ? "(unknown)" : scanSession.extent), e);
       addResult(e);
+    } catch (Error t) {
+      log.warn(
+          "Error while scanning tablet " + (scanSession == null ? "(unknown)" : scanSession.extent),
+          t);
+      addResult(t);
+      throw t;
     } finally {
       runState.set(ScanRunState.FINISHED);
       Thread.currentThread().setName(oldThreadName);

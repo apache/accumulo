@@ -177,9 +177,13 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       }
     } catch (SampleNotPresentException e) {
       addResult(e);
-    } catch (Throwable e) {
+    } catch (Exception e) {
       log.warn("exception while doing multi-scan ", e);
       addResult(e);
+    } catch (Error t) {
+      log.warn("Error while doing multi-scan ", t);
+      addResult(t);
+      throw t;
     } finally {
       Thread.currentThread().setName(oldThreadName);
       runState.set(ScanRunState.FINISHED);

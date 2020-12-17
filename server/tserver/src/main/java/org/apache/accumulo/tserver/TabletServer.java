@@ -445,7 +445,7 @@ public class TabletServer extends AbstractServer {
 
             tablet.checkIfMinorCompactionNeededForLogs(closedCopy);
           }
-        } catch (Throwable t) {
+        } catch (Exception t) {
           log.error("Unexpected exception in {}", Thread.currentThread().getName(), t);
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
@@ -653,7 +653,7 @@ public class TabletServer extends AbstractServer {
         }
 
         @Override
-        public void unableToMonitorLockNode(final Throwable e) {
+        public void unableToMonitorLockNode(final Exception e) {
           Halt.halt(1, () -> log.error("Lost ability to monitor tablet server lock, exiting.", e));
 
         }

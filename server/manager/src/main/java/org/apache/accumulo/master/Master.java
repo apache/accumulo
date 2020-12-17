@@ -783,7 +783,7 @@ public class Master extends AbstractServer
                   break;
               }
           }
-        } catch (Throwable t) {
+        } catch (Exception t) {
           log.error("Error occurred reading / switching master goal state. Will"
               + " continue with attempt to update status", t);
         }
@@ -791,7 +791,7 @@ public class Master extends AbstractServer
         try {
           wait = updateStatus();
           eventListener.waitForEvents(wait);
-        } catch (Throwable t) {
+        } catch (Exception t) {
           log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
               WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
           sleepUninterruptibly(WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
@@ -1352,7 +1352,7 @@ public class Master extends AbstractServer
     }
 
     @Override
-    public void unableToMonitorLockNode(final Throwable e) {
+    public void unableToMonitorLockNode(final Exception e) {
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       Halt.halt(-1, () -> log.error("FATAL: No longer able to monitor master lock node", e));
 

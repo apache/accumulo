@@ -627,7 +627,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       }
 
       @Override
-      public void unableToMonitorLockNode(final Throwable e) {
+      public void unableToMonitorLockNode(final Exception e) {
         // ACCUMULO-3651 Level changed to error and FATAL added to message for slf4j compatibility
         Halt.halt(-1, () -> log.error("FATAL: No longer able to monitor lock node ", e));
 

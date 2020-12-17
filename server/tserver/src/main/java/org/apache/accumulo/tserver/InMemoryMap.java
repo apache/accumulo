@@ -159,7 +159,7 @@ public class InMemoryMap {
     if (useNativeMap && NativeMap.isLoaded()) {
       try {
         return new NativeMapWrapper();
-      } catch (Throwable t) {
+      } catch (Exception t) {
         log.error("Failed to create native map", t);
       }
     }

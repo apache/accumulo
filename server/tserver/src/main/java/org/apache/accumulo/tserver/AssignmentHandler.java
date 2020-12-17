@@ -189,7 +189,7 @@ class AssignmentHandler implements Runnable {
       }
       tablet = null; // release this reference
       successful = true;
-    } catch (Throwable e) {
+    } catch (Exception e) {
       log.warn("exception trying to assign tablet {} {}", extent, locationToOpen, e);
 
       if (e.getMessage() != null) {

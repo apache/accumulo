@@ -364,15 +364,15 @@ public class TabletServerLogger {
           currentLog.close();
         } catch (DfsLogger.LogClosedException ex) {
           // ignore
-        } catch (Throwable ex) {
+        } catch (Exception ex) {
           log.error("Unable to cleanly close log " + currentLog.getFileName() + ": " + ex, ex);
         } finally {
           this.tserver.walogClosed(currentLog);
+          currentLog = null;
+          logSizeEstimate.set(0);
         }
-        currentLog = null;
-        logSizeEstimate.set(0);
       }
-    } catch (Throwable t) {
+    } catch (Exception t) {
       throw new IOException(t);
     }
   }

@@ -108,7 +108,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       @SuppressFBWarnings(value = "DM_EXIT",
           justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
       @Override
-      public void unableToMonitorLockNode(Throwable e) {
+      public void unableToMonitorLockNode(Exception e) {
         System.exit(-1);
       }
     }, "foo".getBytes(UTF_8));
