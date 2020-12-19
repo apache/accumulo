@@ -18,11 +18,17 @@
  */
 package org.apache.accumulo.harness;
 
+import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.lang.StackWalker.StackFrame;
 import java.security.SecureRandom;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
@@ -110,8 +116,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       token = new PasswordToken(rootPassword);
     }
 
-    cluster = harness.create(SharedMiniClusterBase.class.getName(),
-        System.currentTimeMillis() + "_" + new SecureRandom().nextInt(Short.MAX_VALUE), token,
+    cluster = harness.create(getTestClassName(), SharedMiniClusterBase.class.getSimpleName(), token,
         miniClusterCallback, krb);
     cluster.start();
 
@@ -147,6 +152,17 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
             TablePermission.ALTER_TABLE);
       }
     }
+  }
+
+  private static String getTestClassName() {
+    Predicate<Class<?>> findITClass = c -> c.getSimpleName().endsWith("IT");
+    Function<Stream<StackFrame>,Optional<? extends Class<?>>> findCallerITClass =
+        frames -> frames.map(StackFrame::getDeclaringClass).filter(findITClass).findFirst();
+    Optional<String> callerClassName =
+        StackWalker.getInstance(RETAIN_CLASS_REFERENCE).walk(findCallerITClass).map(Class::getName);
+    // use the calling class name, or default to a unique name if IT class can't be found
+    return callerClassName.orElse(String.format("UnknownITClass-{}-{}", System.currentTimeMillis(),
+        new SecureRandom().nextInt(Short.MAX_VALUE)));
   }
 
   /**
