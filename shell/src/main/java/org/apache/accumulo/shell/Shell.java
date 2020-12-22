@@ -532,13 +532,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public static void main(String[] args) throws IOException {
-    // Terminal terminal = TerminalBuilder.builder().system(true).nativeSignals(true)
-    // .signalHandler(Terminal.SignalHandler.SIG_IGN).build();
     LineReader reader = LineReaderBuilder.builder().build();
-    // This lets you hit tab with nothing entered on the prompt and get auto-complete
-    reader.unsetOpt(LineReader.Option.INSERT_TAB);
-    // Makes auto complete case insensitive
-    reader.setOpt(LineReader.Option.CASE_INSENSITIVE);
     new Shell(reader).execute(args);
   }
 
@@ -560,16 +554,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     if (!accumuloDir.exists() && !accumuloDir.mkdirs()) {
       log.warn("Unable to make directory for history at {}", accumuloDir);
     }
-    // LOOK INTO THIS
+
+    // Remove Timestamps for history file. Fixes incompatibility issues
+    reader.unsetOpt(LineReader.Option.HISTORY_TIMESTAMPED);
+    // Set history file
     reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
-    // Add shutdown hook to save file history, per jline javadocs
-    // Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-    // try {
-    // history.save();
-    // } catch (IOException e) {
-    // log.warn("Could not save history to file.");
-    // }
-    // }));
 
     // Turn Ctrl+C into Exception instead of JVM exit
     // LOOK INTO THIS
@@ -600,7 +589,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
         // If tab completion is true we need to reset
         if (tabCompletion) {
-          // LOOK INTO THIS.
           userCompletor = setupCompletion();
           ((LineReaderImpl) reader).setCompleter(userCompletor);
         }
