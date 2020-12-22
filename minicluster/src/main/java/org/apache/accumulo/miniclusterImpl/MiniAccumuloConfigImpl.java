@@ -76,7 +76,7 @@ public class MiniAccumuloConfigImpl {
   private long zooKeeperStartupTime = 20 * 1000;
   private String existingZooKeepers;
 
-  private long defaultMemorySize = 128 * 1024 * 1024;
+  private long defaultMemorySize = 256 * 1024 * 1024;
 
   private boolean initialized = false;
 
@@ -363,8 +363,8 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Sets the amount of memory to use in the master process. Calling this method is optional.
-   * Default memory is 128M
+   * Sets the amount of memory to use in the specified process. Calling this method is optional.
+   * Default memory is 256M
    *
    * @param serverType
    *          the type of server to apply the memory settings
@@ -384,7 +384,7 @@ public class MiniAccumuloConfigImpl {
 
   /**
    * Sets the default memory size to use. This value is also used when a ServerType has not been
-   * configured explicitly. Calling this method is optional. Default memory is 128M
+   * configured explicitly. Calling this method is optional. Default memory is 256M
    *
    * @param memory
    *          amount of memory to set

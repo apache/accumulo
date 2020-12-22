@@ -121,6 +121,8 @@
     <curator.version>4.3.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
+    <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
+    <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
     <failsafe.excludedGroups />
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />

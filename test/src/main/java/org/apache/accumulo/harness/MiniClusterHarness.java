@@ -21,6 +21,8 @@ package org.apache.accumulo.harness;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.hadoop.minikdc.MiniKdc.JAVA_SECURITY_KRB5_CONF;
+import static org.apache.hadoop.minikdc.MiniKdc.SUN_SECURITY_KRB5_DEBUG;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedOutputStream;
@@ -29,7 +31,6 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -57,76 +58,16 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class MiniClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(MiniClusterHarness.class);
 
-  private static final AtomicLong COUNTER = new AtomicLong(0);
-
   private static final String PROP_PREFIX = "org.apache.accumulo.test.functional.";
   public static final String USE_SSL_FOR_IT_OPTION = PROP_PREFIX + "useSslForIT";
   public static final String USE_CRED_PROVIDER_FOR_IT_OPTION = PROP_PREFIX + "useCredProviderForIT";
   public static final String USE_KERBEROS_FOR_IT_OPTION = PROP_PREFIX + "useKrbForIT";
   public static final String TRUE = Boolean.toString(true);
 
-  // TODO These are defined in MiniKdc >= 2.6.0. Can be removed when minimum Hadoop dependency is
-  // increased to that.
-  public static final String JAVA_SECURITY_KRB5_CONF = "java.security.krb5.conf",
-      SUN_SECURITY_KRB5_DEBUG = "sun.security.krb5.debug";
-
-  /**
-   * Create a MiniAccumuloCluster using the given Token as the credentials for the root user.
-   */
-  public MiniAccumuloClusterImpl create(AuthenticationToken token) throws Exception {
-    return create(MiniClusterHarness.class.getName(), Long.toString(COUNTER.incrementAndGet()),
-        token);
-  }
-
-  public MiniAccumuloClusterImpl create(AuthenticationToken token, TestingKdc kdc)
-      throws Exception {
-    return create(MiniClusterHarness.class.getName(), Long.toString(COUNTER.incrementAndGet()),
-        token, kdc);
-  }
-
-  public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token)
-      throws Exception {
-    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token);
-  }
-
-  public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token,
-      TestingKdc kdc) throws Exception {
-    return create(testBase, token, kdc, MiniClusterConfigurationCallback.NO_CALLBACK);
-  }
-
   public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token,
       TestingKdc kdc, MiniClusterConfigurationCallback configCallback) throws Exception {
     return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token,
         configCallback, kdc);
-  }
-
-  public MiniAccumuloClusterImpl create(AccumuloClusterHarness testBase, AuthenticationToken token,
-      TestingKdc kdc) throws Exception {
-    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, testBase,
-        kdc);
-  }
-
-  public MiniAccumuloClusterImpl create(AccumuloClusterHarness testBase, AuthenticationToken token,
-      MiniClusterConfigurationCallback callback) throws Exception {
-    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token,
-        callback);
-  }
-
-  public MiniAccumuloClusterImpl create(String testClassName, String testMethodName,
-      AuthenticationToken token) throws Exception {
-    return create(testClassName, testMethodName, token,
-        MiniClusterConfigurationCallback.NO_CALLBACK);
-  }
-
-  public MiniAccumuloClusterImpl create(String testClassName, String testMethodName,
-      AuthenticationToken token, TestingKdc kdc) throws Exception {
-    return create(testClassName, testMethodName, token,
-        MiniClusterConfigurationCallback.NO_CALLBACK, kdc);
-  }
-
-  public MiniAccumuloClusterImpl create(String testClassName, String testMethodName,
-      AuthenticationToken token, MiniClusterConfigurationCallback configCallback) throws Exception {
-    return create(testClassName, testMethodName, token, configCallback, null);
   }
 
   public MiniAccumuloClusterImpl create(String testClassName, String testMethodName,

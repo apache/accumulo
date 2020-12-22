@@ -796,9 +796,9 @@ public class InMemoryMapTest {
     iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
     assertEquals(expectedAll, readAll(iter));
 
-    final MemoryIterator iter2 = imm.skvIterator(sampleConfig1);
+    final MemoryIterator finalIter = imm.skvIterator(sampleConfig1);
     assertThrows(SampleNotPresentException.class,
-        () -> iter2.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false));
+        () -> finalIter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false));
   }
 
   private TreeMap<Key,Value> readAll(SortedKeyValueIterator<Key,Value> iter) throws IOException {
