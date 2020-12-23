@@ -52,7 +52,7 @@ import org.junit.Test;
 
 public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
-  @Test
+  @Test(timeout = 3 * 60 * 1000)
   public void testConcurrentDeleteTablesOps() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tables = getUniqueNames(2);
@@ -150,7 +150,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
     protected abstract void doTableOp() throws Exception;
   }
 
-  @Test
+  @Test(timeout = 3 * 60 * 1000)
   public void testConcurrentFateOpsWithDelete() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tables = getUniqueNames(2);
