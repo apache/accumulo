@@ -271,8 +271,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    */
   public boolean config(String... args) throws IOException {
     if (this.reader == null)
-      // this.terminal = TerminalBuilder.builder().build();
-      // LineReaderBuilder builder = LineReaderBuilder.builder().terminal(terminal);
       this.reader = LineReaderBuilder.builder().build();
     this.terminal = this.reader.getTerminal();
     this.writer = this.terminal.writer();
@@ -557,14 +555,14 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     // Remove Timestamps for history file. Fixes incompatibility issues
     reader.unsetOpt(LineReader.Option.HISTORY_TIMESTAMPED);
+
     // Set history file
     reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
 
     // Turn Ctrl+C into Exception instead of JVM exit
     // LOOK INTO THIS
-    // Testing it in the terminal builder
-    Thread executeThread = Thread.currentThread();
-    terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
+    // Thread executeThread = Thread.currentThread();
+    // terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
 
     ShellCompletor userCompletor = null;
 
@@ -1061,12 +1059,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
                 lastPromptLength = nextPrompt.length();
 
                 writer.print(nextPrompt);
-                // terminal.echo(false);
                 writer.flush();
 
-                if (Character.toUpperCase((char) terminal.reader().read()) == 'Q') {
+                if (Character.toUpperCase((char) ((LineReaderImpl) reader).readCharacter())
+                    == 'Q') {
                   writer.println();
-                  // terminal.echo(true);
                   return;
                 }
                 writer.println();
