@@ -176,6 +176,7 @@ import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.LineReaderImpl;
+import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -560,9 +561,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
 
     // Turn Ctrl+C into Exception instead of JVM exit
-    // LOOK INTO THIS
-    // Thread executeThread = Thread.currentThread();
-    // terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
+    // Not 100% sure this is necessary anymore
+    //Thread executeThread = Thread.currentThread();
+    //terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
 
     ShellCompletor userCompletor = null;
 
@@ -1032,8 +1033,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     double linesPrinted = 0;
     String prompt = "-- hit any key to continue or 'q' to quit --";
     int lastPromptLength = prompt.length();
-    int termWidth = reader.getTerminal().getWidth();
-    int maxLines = reader.getTerminal().getHeight();
+    int termWidth = terminal.getWidth();
+    int maxLines = terminal.getHeight();
 
     String peek = null;
     while (lines.hasNext()) {
@@ -1057,12 +1058,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
                 int numdashes = (termWidth - prompt.length()) / 2;
                 String nextPrompt = repeat("-", numdashes) + prompt + repeat("-", numdashes);
                 lastPromptLength = nextPrompt.length();
-
                 writer.print(nextPrompt);
                 writer.flush();
 
-                if (Character.toUpperCase((char) ((LineReaderImpl) reader).readCharacter())
-                    == 'Q') {
+                // Enter raw mode so character can be read without hitting 'enter' after
+                Attributes attr = terminal.enterRawMode();
+                int c = terminal.reader().read();
+                // Resets raw mode
+                terminal.setAttributes(attr);
+                if (Character.toUpperCase((char) c) == 'Q') {
                   writer.println();
                   return;
                 }
