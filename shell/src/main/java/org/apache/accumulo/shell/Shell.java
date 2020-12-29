@@ -342,8 +342,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         token = ClientProperty.getAuthenticationToken(clientProperties);
       }
       if (token == null) {
-        // Not sure if this is correct. Need to test
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> terminal.echo(true)));
         // Read password if the user explicitly asked for it, or didn't specify anything at all
         if (PasswordConverter.STDIN.equals(password) || password == null) {
           password = reader.readLine("Password: ", '*');
@@ -562,8 +560,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     // Turn Ctrl+C into Exception instead of JVM exit
     // Not 100% sure this is necessary anymore
-    //Thread executeThread = Thread.currentThread();
-    //terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
+    // Thread executeThread = Thread.currentThread();
+    // terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
 
     ShellCompletor userCompletor = null;
 

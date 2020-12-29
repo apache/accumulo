@@ -196,8 +196,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
       // start the shell
       output = new TestOutputStream();
       input = new StringInputStream();
-      // Not sure if DumbTerminal is correct but was having trouble
-      // with the typical way
       terminal = new DumbTerminal(input, output);
       terminal.setSize(new Size(80, 24));
       reader = LineReaderBuilder.builder().terminal(terminal).build();
