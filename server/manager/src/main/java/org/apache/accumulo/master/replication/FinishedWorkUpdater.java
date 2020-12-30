@@ -65,10 +65,10 @@ public class FinishedWorkUpdater implements Runnable {
 
   @Override
   public void run() {
-    log.debug("Looking for finished replication work");
+    log.trace("Looking for finished replication work");
 
     if (!ReplicationTable.isOnline(client)) {
-      log.debug("Replication table is not yet online, will retry");
+      log.trace("Replication table is not yet online, will retry");
       return;
     }
 

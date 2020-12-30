@@ -86,7 +86,7 @@ public class WorkDriver extends Daemon {
       }
 
       long sleepTime = conf.getTimeInMillis(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP);
-      log.debug("Sleeping {} ms before next work assignment", sleepTime);
+      log.trace("Sleeping {} ms before next work assignment", sleepTime);
       sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
 
       // After each loop, make sure that the WorkAssigner implementation didn't change
