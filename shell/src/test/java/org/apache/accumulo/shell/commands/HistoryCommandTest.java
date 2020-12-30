@@ -35,7 +35,6 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.InfoCmp.Capability;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -83,18 +82,18 @@ public class HistoryCommandTest {
   }
 
   @Test
-  public void testEventExpansion() throws IOException {
+  public void testEventExpansion() {
     // If we use an unsupported terminal, then history expansion doesn't work because JLine can't do
     // magic buffer manipulations.
     // This has been observed to be the case on certain versions of Eclipse. However, mvn is usually
     // fine.
 
-    // Find better way to confirm terminal is supported. Maybe its not necessary anymore. not sure
-    Assume.assumeTrue(reader.getTerminal().getBooleanCapability(Capability.clear_screen));
+    Assume.assumeFalse(Terminal.TYPE_DUMB.equalsIgnoreCase(terminal.getType()));
 
     reader.readLine();
+    System.out.println(baos.toString());
 
-    assertTrue(baos.toString().trim().endsWith("foo"));
+    assertTrue(baos.toString().trim().contains("foo"));
   }
 
 }

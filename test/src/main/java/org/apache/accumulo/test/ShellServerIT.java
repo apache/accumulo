@@ -101,13 +101,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.erasurecode.rawcoder.util.DumpUtil;
 import org.apache.hadoop.tools.DistCp;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.DumbTerminal;
-import org.jline.utils.InfoCmp.Capability;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -859,7 +860,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void clearCls() throws Exception {
     // clear/cls
-    if (ts.shell.getTerminal().getBooleanCapability(Capability.clear_screen)) {
+    if (!Terminal.TYPE_DUMB.equalsIgnoreCase(ts.shell.getTerminal().getType())) {
       ts.exec("cls", true, "[1;1H");
       ts.exec("clear", true, "[2J");
     } else {

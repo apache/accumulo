@@ -23,6 +23,7 @@ import java.io.IOException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
+import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp.Capability;
 
 public class ClearCommand extends Command {
@@ -34,6 +35,9 @@ public class ClearCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException {
+
+    if (Terminal.TYPE_DUMB.equalsIgnoreCase(shellState.getTerminal().getType()))
+      throw new IOException("Terminal does not support ANSI commands");
 
     shellState.getTerminal().puts(Capability.clear_screen);
     shellState.getTerminal().puts(Capability.cursor_address, 0, 1);
