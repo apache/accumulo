@@ -52,6 +52,11 @@ import org.junit.Test;
 
 public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 7 * 60;
+  }
+
   @Test
   public void testConcurrentDeleteTablesOps() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
