@@ -44,8 +44,19 @@ import com.google.common.io.BaseEncoding;
 @Category(MiniClusterOnlyTests.class)
 public class ZooMutatorIT extends AccumuloClusterHarness {
   /**
-   * A simple stress test that looks for race conditions in
+   * This test uses multiple threads to update the data in a single zookeeper node using
    * {@link ZooReaderWriter#mutateOrCreate(String, byte[], org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator)}
+   * and tries to detect errors and race conditions in that code. Each thread uses
+   * {@link #nextValue(String)} to compute a new value for the ZK node based on the current value,
+   * producing a new unique value. The test has sanity checks for the following conditions:
+   *
+   * <UL>
+   * <LI>All updates in the chain of updates were made, none were skipped.
+   * <LI>No update in the chain of updates is made twice. For example if two threads wrote the exact
+   * same value to the node this should be detected by the test.
+   * <LI>The updates in the chain of updates were made in the proper order.
+   * </UL>
+   *
    */
   @Test
   public void concurrentMutatorTest() throws Exception {
