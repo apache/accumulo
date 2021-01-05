@@ -44,7 +44,7 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
   public void concurrentMutatorTest() throws Exception {
     try (var client = Accumulo.newClient().from(getClientProps()).build();
         var context = (ClientContext) client) {
-      var secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
+      String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
       ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut(), secret);
