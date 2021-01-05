@@ -100,9 +100,9 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
   }
 
   private String nextValue(String currString) {
-    var tokens = currString.split(" ");
-    var currHash = tokens[0];
-    var count = Integer.parseInt(tokens[1]);
+    String[] tokens = currString.split(" ");
+    String currHash = tokens[0];
+    int count = Integer.parseInt(tokens[1]);
     return (DigestUtils.sha1Hex(currHash) + " " + (count + 1));
   }
 
