@@ -22,9 +22,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -53,37 +55,39 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
 
       var executor = Executors.newFixedThreadPool(16);
 
-      String initialData = DigestUtils.sha1Hex("Accumulo Zookeeper Mutator test 1/4/21") + " 0";
+      String initialData = DigestUtils.sha1Hex("Accumulo Zookeeper Mutator test data") + " 0";
+
+      List<Future<?>> futures = new ArrayList<>();
 
       // This map is used to ensure multiple threads do not successfully write the same value and no
       // values are skipped. The hash in the value also verifies similar things in a different way.
       ConcurrentHashMap<Integer,Integer> countCounts = new ConcurrentHashMap<>();
 
       for (int i = 0; i < 16; i++) {
-        executor.execute(() -> {
+        futures.add(executor.submit(() -> {
           try {
 
-            int count = 0;
+            int count = -1;
             while (count < 200) {
               byte[] val =
                   zk.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
               int nextCount = getCount(val);
-              assertTrue(nextCount > count);
+              assertTrue("nextCount <= count " + nextCount + " " + count, nextCount > count);
               count = nextCount;
-              countCounts.merge(nextCount, 1, Integer::sum);
+              countCounts.merge(count, 1, Integer::sum);
             }
 
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
-        });
+        }));
       }
 
+      // wait and check for errors in background threads
+      for (Future<?> future : futures) {
+        future.get();
+      }
       executor.shutdown();
-
-      while (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-
-      }
 
       byte[] actual = zk.getData("/test-zm");
       int settledCount = getCount(actual);
@@ -92,12 +96,14 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
 
       String expected = initialData;
 
+      assertEquals(1, (int) countCounts.get(0));
+
       for (int i = 1; i <= settledCount; i++) {
         assertEquals(1, (int) countCounts.get(i));
         expected = nextValue(expected);
       }
 
-      assertEquals(settledCount, countCounts.size());
+      assertEquals(settledCount + 1, countCounts.size());
       assertEquals(expected, new String(actual, UTF_8));
     }
   }
