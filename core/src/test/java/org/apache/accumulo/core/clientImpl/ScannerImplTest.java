@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.easymock.EasyMock;
@@ -38,34 +38,34 @@ public class ScannerImplTest {
 
   @Test
   public void testValidReadaheadValues() {
-    Scanner s = new ScannerImpl(context, TableId.of("foo"), Authorizations.EMPTY);
-    s.setReadaheadThreshold(0);
-    s.setReadaheadThreshold(10);
-    s.setReadaheadThreshold(Long.MAX_VALUE);
+    try (var s = new ScannerImpl(context, TableId.of("foo"), Authorizations.EMPTY)) {
+      s.setReadaheadThreshold(0);
+      s.setReadaheadThreshold(10);
+      s.setReadaheadThreshold(Long.MAX_VALUE);
 
-    assertEquals(Long.MAX_VALUE, s.getReadaheadThreshold());
-    s.close();
+      assertEquals(Long.MAX_VALUE, s.getReadaheadThreshold());
+    }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInValidReadaheadValues() {
-    Scanner s = new ScannerImpl(context, TableId.of("foo"), Authorizations.EMPTY);
-    s.setReadaheadThreshold(-1);
-    s.close();
+    try (var s = new ScannerImpl(context, TableId.of("foo"), Authorizations.EMPTY)) {
+      assertThrows(IllegalArgumentException.class, () -> s.setReadaheadThreshold(-1));
+    }
   }
 
   @Test
   public void testGetAuthorizations() {
     Authorizations expected = new Authorizations("a,b");
-    Scanner s = new ScannerImpl(context, TableId.of("foo"), expected);
-    assertEquals(expected, s.getAuthorizations());
-    s.close();
+    try (var s = new ScannerImpl(context, TableId.of("foo"), expected)) {
+      assertEquals(expected, s.getAuthorizations());
+    }
   }
 
-  @SuppressWarnings("resource")
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNullAuthorizationsFails() {
-    new ScannerImpl(context, TableId.of("foo"), null);
+    assertThrows(IllegalArgumentException.class,
+        () -> new ScannerImpl(context, TableId.of("foo"), null));
   }
 
 }
