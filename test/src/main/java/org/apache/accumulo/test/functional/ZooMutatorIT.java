@@ -22,6 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,9 +36,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+
+import com.google.common.io.BaseEncoding;
 
 @Category(MiniClusterOnlyTests.class)
 public class ZooMutatorIT extends AccumuloClusterHarness {
@@ -55,7 +58,7 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
 
       var executor = Executors.newFixedThreadPool(16);
 
-      String initialData = DigestUtils.sha1Hex("Accumulo Zookeeper Mutator test data") + " 0";
+      String initialData = hash("Accumulo Zookeeper Mutator test data") + " 0";
 
       List<Future<?>> futures = new ArrayList<>();
 
@@ -103,16 +106,29 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
         expected = nextValue(expected);
       }
 
+      System.out.println(initialData);
+      System.out.println(expected);
+
       assertEquals(settledCount + 1, countCounts.size());
       assertEquals(expected, new String(actual, UTF_8));
     }
+  }
+
+  private String hash(String data) {
+    MessageDigest md;
+    try {
+      md = MessageDigest.getInstance("SHA-256");
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException(e);
+    }
+    return BaseEncoding.base16().encode(md.digest(data.getBytes(UTF_8)));
   }
 
   private String nextValue(String currString) {
     String[] tokens = currString.split(" ");
     String currHash = tokens[0];
     int count = Integer.parseInt(tokens[1]);
-    return (DigestUtils.sha1Hex(currHash) + " " + (count + 1));
+    return (hash(currHash) + " " + (count + 1));
   }
 
   private byte[] nextValue(byte[] curr) {
