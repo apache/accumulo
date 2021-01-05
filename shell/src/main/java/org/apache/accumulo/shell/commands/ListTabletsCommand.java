@@ -234,23 +234,25 @@ public class ListTabletsCommand extends Command {
     final ClientContext context = shellState.getContext();
     Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);
 
-    for (var md : TabletsMetadata.builder().forTable(tableInfo.id).build(context)) {
-      TabletRowInfo.Factory factory = new TabletRowInfo.Factory(tableInfo.name, md.getExtent());
-      var fileMap = md.getFilesMap();
-      factory.numFiles(fileMap.size());
-      long entries = 0L;
-      long size = 0L;
-      for (DataFileValue dfv : fileMap.values()) {
-        entries += dfv.getNumEntries();
-        size += dfv.getSize();
+    try (var tabletsMetadata = TabletsMetadata.builder().forTable(tableInfo.id).build(context)) {
+      for (var md : tabletsMetadata) {
+        TabletRowInfo.Factory factory = new TabletRowInfo.Factory(tableInfo.name, md.getExtent());
+        var fileMap = md.getFilesMap();
+        factory.numFiles(fileMap.size());
+        long entries = 0L;
+        long size = 0L;
+        for (DataFileValue dfv : fileMap.values()) {
+          entries += dfv.getNumEntries();
+          size += dfv.getSize();
+        }
+        factory.numEntries(entries);
+        factory.size(size);
+        factory.numWalLogs(md.getLogs().size());
+        factory.dir(md.getDirName());
+        factory.location(md.getLocation());
+        factory.status(md.getTabletState(liveTserverSet).toString());
+        results.add(factory.build());
       }
-      factory.numEntries(entries);
-      factory.size(size);
-      factory.numWalLogs(md.getLogs().size());
-      factory.dir(md.getDirName());
-      factory.location(md.getLocation());
-      factory.status(md.getTabletState(liveTserverSet).toString());
-      results.add(factory.build());
     }
 
     return results;
