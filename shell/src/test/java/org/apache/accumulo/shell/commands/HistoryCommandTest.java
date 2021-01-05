@@ -21,6 +21,7 @@ package org.apache.accumulo.shell.commands;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -29,9 +30,11 @@ import java.io.IOException;
 
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
+import org.jline.reader.Expander;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.impl.DefaultExpander;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -66,8 +69,8 @@ public class HistoryCommandTest {
     baos = new ByteArrayOutputStream();
 
     String input = String.format("!1%n"); // Construct a platform dependent new-line
-    terminal =
-        TerminalBuilder.builder().streams(new ByteArrayInputStream(input.getBytes()), baos).build();
+    terminal = TerminalBuilder.builder().system(false)
+        .streams(new ByteArrayInputStream(input.getBytes()), baos).build();
     reader = LineReaderBuilder.builder().history(history).terminal(terminal).build();
 
     shell = new Shell(reader);
@@ -89,11 +92,9 @@ public class HistoryCommandTest {
     // fine.
 
     Assume.assumeFalse(Terminal.TYPE_DUMB.equalsIgnoreCase(terminal.getType()));
+    reader.unsetOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
+    Expander expander = new DefaultExpander();
 
-    reader.readLine();
-    System.out.println(baos.toString());
-
-    assertTrue(baos.toString().trim().contains("foo"));
+    assertEquals("foo", expander.expandHistory(reader.getHistory(), baos.toString().trim()));
   }
-
 }
