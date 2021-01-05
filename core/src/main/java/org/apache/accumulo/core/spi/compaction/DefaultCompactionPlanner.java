@@ -370,7 +370,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       long currSize = sortedFiles.get(c).getEstimatedSize();
 
       // ensure data is sorted
-      Preconditions.checkArgument(currSize >= sortedFiles.get(c - 1).getEstimatedEntries());
+      Preconditions.checkArgument(currSize >= sortedFiles.get(c - 1).getEstimatedSize());
 
       sum += currSize;
 
