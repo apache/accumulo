@@ -31,8 +31,10 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 @Category(MiniClusterOnlyTests.class)
 public class ZooMutatorIT extends AccumuloClusterHarness {
@@ -58,7 +60,7 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
       ConcurrentHashMap<Integer,Integer> countCounts = new ConcurrentHashMap<>();
 
       for (int i = 0; i < 16; i++) {
-        execServ.execute(() -> {
+        executor.execute(() -> {
           try {
 
             int count = 0;
@@ -77,9 +79,9 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
         });
       }
 
-      execServ.shutdown();
+      executor.shutdown();
 
-      while (!execServ.awaitTermination(1, TimeUnit.SECONDS)) {
+      while (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
 
       }
 
