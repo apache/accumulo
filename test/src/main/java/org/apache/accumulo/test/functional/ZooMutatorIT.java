@@ -34,6 +34,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
 
+@Category(MiniClusterOnlyTests.class)
 public class ZooMutatorIT extends AccumuloClusterHarness {
   /**
    * A simple stress test that looks for race conditions in
