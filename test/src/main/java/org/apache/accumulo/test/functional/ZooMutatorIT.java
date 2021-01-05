@@ -82,7 +82,7 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
 
       }
 
-      var actual = zk.getData("/test-zm");
+      byte[] actual = zk.getData("/test-zm");
       int settledCount = getCount(actual);
 
       assertTrue(settledCount >= 200);
