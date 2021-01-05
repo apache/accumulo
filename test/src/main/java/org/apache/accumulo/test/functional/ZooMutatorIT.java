@@ -48,7 +48,7 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
       ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut(), secret);
 
-      var execServ = Executors.newFixedThreadPool(16);
+      var executor = Executors.newFixedThreadPool(16);
 
       String initialData = DigestUtils.sha1Hex("Accumulo Zookeeper Mutator test 1/4/21") + " 0";
 
