@@ -106,9 +106,6 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
         expected = nextValue(expected);
       }
 
-      System.out.println(initialData);
-      System.out.println(expected);
-
       assertEquals(settledCount + 1, countCounts.size());
       assertEquals(expected, new String(actual, UTF_8));
     }
