@@ -70,7 +70,7 @@ public class HistoryCommandTest {
 
     String input = String.format("!1%n"); // Construct a platform dependent new-line
     terminal = TerminalBuilder.builder().system(false)
-        .streams(new ByteArrayInputStream(input.getBytes()), baos).build();
+        .streams(new ByteArrayInputStream(input.getBytes()), baos).type("xterm").build();
     reader = LineReaderBuilder.builder().history(history).terminal(terminal).build();
 
     shell = new Shell(reader);

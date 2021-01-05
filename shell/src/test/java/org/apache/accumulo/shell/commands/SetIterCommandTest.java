@@ -19,7 +19,6 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.PrintWriter;
-import java.io.Writer;
 import java.util.EnumSet;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -32,7 +31,6 @@ import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.easymock.EasyMock;
 import org.jline.reader.LineReader;
-import org.jline.terminal.Terminal;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -53,9 +51,7 @@ public class SetIterCommandTest {
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     LineReader reader = EasyMock.createMock(LineReader.class);
-    Terminal terminal = EasyMock.createMock(Terminal.class);
     PrintWriter pw = EasyMock.createMock(PrintWriter.class);
-    Writer out = EasyMock.createMock(PrintWriter.class);
     TableOperations tableOperations = EasyMock.createMock(TableOperations.class);
 
     // Command line parsing
@@ -78,14 +74,6 @@ public class SetIterCommandTest {
     // Loading the class
     EasyMock.expect(shellState.getClassLoader(cli, shellState))
         .andReturn(ClassLoaderUtil.getClassLoader(null));
-
-    // Set the output object
-    // Come bnack to this later
-    // Field field = reader.getClass().getSuperclass().getDeclaredField("out");
-    // field.setAccessible(true);
-    // field.set(reader, out);
-    EasyMock.expect(reader.getTerminal()).andReturn(terminal).anyTimes();
-    EasyMock.expect(terminal.writer()).andReturn(pw).anyTimes();
 
     // Parsing iterator options
     pw.flush();
