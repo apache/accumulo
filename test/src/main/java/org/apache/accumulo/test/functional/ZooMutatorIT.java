@@ -22,8 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,7 +37,7 @@ import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import com.google.common.io.BaseEncoding;
+import com.google.common.hash.Hashing;
 
 @Category(MiniClusterOnlyTests.class)
 public class ZooMutatorIT extends AccumuloClusterHarness {
@@ -123,13 +121,7 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
   }
 
   private String hash(String data) {
-    MessageDigest md;
-    try {
-      md = MessageDigest.getInstance("SHA-256");
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException(e);
-    }
-    return BaseEncoding.base16().encode(md.digest(data.getBytes(UTF_8)));
+    return Hashing.sha256().hashString(data, UTF_8).toString();
   }
 
   private String nextValue(String currString) {
@@ -146,5 +138,4 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
   private int getCount(byte[] val) {
     return Integer.parseInt(new String(val, UTF_8).split(" ")[1]);
   }
-
 }
