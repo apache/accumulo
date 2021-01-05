@@ -29,9 +29,9 @@ public class ClasspathCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) {
 
-    final PrintWriter reader = shellState.getWriter();
+    final PrintWriter writer = shellState.getWriter();
     org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.printClassPath(s -> {
-      reader.print(s);
+      writer.print(s);
     }, true);
     return 0;
   }

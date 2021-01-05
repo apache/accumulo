@@ -140,7 +140,7 @@ public class ShellCompletor implements Completer {
           candidates.addAll(current_command_token.getSubcommandNames(current_string_token));
 
         Collections.sort(candidates);
-        return 0;
+        return (prefix.length());
       }
 
       if (current_string_token.trim().equals("-" + Shell.tableOption))

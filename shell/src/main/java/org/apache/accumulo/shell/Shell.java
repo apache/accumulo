@@ -559,9 +559,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
 
     // Turn Ctrl+C into Exception instead of JVM exit
-    // Not 100% sure this is necessary anymore
-    // Thread executeThread = Thread.currentThread();
-    // terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
+    // Not 100% sure this is necessary anymore.
+    Thread executeThread = Thread.currentThread();
+    terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
 
     ShellCompletor userCompletor = null;
 

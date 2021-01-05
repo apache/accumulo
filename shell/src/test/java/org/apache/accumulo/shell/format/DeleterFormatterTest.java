@@ -58,11 +58,11 @@ public class DeleterFormatterTest {
   BatchWriter writer;
   BatchWriter exceptionWriter;
   Shell shellState;
+  LineReader reader;
+  Terminal terminal;
   PrintWriter pw;
 
   ByteArrayOutputStream baos;
-  LineReader reader;
-  Terminal terminal;
 
   SettableInputStream input;
 
