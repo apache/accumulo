@@ -64,7 +64,7 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
             while (count < 200) {
               byte[] val =
                   zk.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
-              var nextCount = getCount(val);
+              int nextCount = getCount(val);
               assertTrue(nextCount > count);
               count = nextCount;
               countCounts.merge(nextCount, 1, Integer::sum);
