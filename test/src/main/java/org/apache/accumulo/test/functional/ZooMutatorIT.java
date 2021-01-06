@@ -65,6 +65,13 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
    * tracking done in the test to not match the what is computed by the single threaded code at the
    * end of the test.
    *
+   * <p>
+   * A hash and a counter are stored in ZK. The hashes form a chain of hashes as each new value is
+   * written because its a hash of the previous value. The chain of hashes is useful for detecting
+   * missing and out of order updates, but not duplicates. The counter and associated map that
+   * tracks which counts were seen is useful for detecting missing and duplicate updates. The
+   * counter is also used to weakly check for out of order updates, but the chain of hashes provides
+   * a much strong check for this.
    */
   @Test
   public void concurrentMutatorTest() throws Exception {
