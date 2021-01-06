@@ -162,7 +162,7 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
 
   @Override
   protected void sendSpans() {
-    if (hosts.isEmpty()) {
+    if (hosts == null || hosts.isEmpty()) {
       if (!sendQueue.isEmpty()) {
         log.error("No hosts to send data to, dropping queued spans");
         synchronized (sendQueue) {
