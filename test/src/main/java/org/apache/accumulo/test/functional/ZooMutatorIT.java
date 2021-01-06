@@ -46,14 +46,24 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
    * {@link ZooReaderWriter#mutateOrCreate(String, byte[], org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator)}
    * and tries to detect errors and race conditions in that code. Each thread uses
    * {@link #nextValue(String)} to compute a new value for the ZK node based on the current value,
-   * producing a new unique value. The test has sanity checks for the following conditions:
+   * producing a new unique value. Its expected that multiple threads calling
+   * {@link #nextValue(String)} as previously described should yield the same final value as a
+   * single thread repeatedly calling {@link #nextValue(String)} the same number of times. There are
+   * many things that can go wrong in the multithreaded case. This test tries to ensure the
+   * following are true for the multithreaded case.
    *
-   * <UL>
-   * <LI>All updates in the chain of updates were made, none were skipped.
-   * <LI>No update in the chain of updates is made twice. For example if two threads wrote the exact
-   * same value to the node this should be detected by the test.
-   * <LI>The updates in the chain of updates were made in the proper order.
-   * </UL>
+   * <ul>
+   * <li>All expected updates are made, none were skipped.
+   * <li>No updates are made twice. For example if two threads wrote the exact same value to the
+   * node this should be detected by the test. Would expect each update to be unique.
+   * <li>The updates are made in the same order as a single thread repeatedly calling
+   * {@link #nextValue(String)}.
+   * </ul>
+   *
+   * <p>
+   * If any of the expectations above are not met it should cause the hash, count, and/or count
+   * tracking done in the test to not match the what is computed by the single threaded code at the
+   * end of the test.
    *
    */
   @Test
