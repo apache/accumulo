@@ -38,7 +38,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.tserver.log.DfsLogger;
-import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.RecoveryLogReader;
 import org.apache.hadoop.conf.Configuration;
@@ -108,27 +107,21 @@ public class LogReader {
         LogFileValue value = new LogFileValue();
 
         if (fs.getFileStatus(path).isFile()) {
-          try (final FSDataInputStream fsinput = fs.open(path)) {
-            // read log entries from a simple hdfs file
-            DFSLoggerInputStreams streams;
-            try {
-              streams = DfsLogger.readHeaderAndReturnStream(fsinput, siteConfig);
-            } catch (LogHeaderIncompleteException e) {
-              log.warn("Could not read header for {} . Ignoring...", path);
-              continue;
-            }
-
-            try (DataInputStream input = streams.getDecryptingInputStream()) {
-              while (true) {
-                try {
-                  key.readFields(input);
-                  value.readFields(input);
-                } catch (EOFException ex) {
-                  break;
-                }
-                printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
+          // read log entries from a simple hdfs file
+          try (final FSDataInputStream fsinput = fs.open(path);
+              DataInputStream input = DfsLogger.getDecryptingStream(fsinput, siteConfig)) {
+            while (true) {
+              try {
+                key.readFields(input);
+                value.readFields(input);
+              } catch (EOFException ex) {
+                break;
               }
+              printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
             }
+          } catch (LogHeaderIncompleteException e) {
+            log.warn("Could not read header for {} . Ignoring...", path);
+            continue;
           }
         } else {
           // read the log entries sorted in a map file
