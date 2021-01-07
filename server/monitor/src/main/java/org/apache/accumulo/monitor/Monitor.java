@@ -154,10 +154,10 @@ public class Monitor {
       Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
   private static final List<Pair<Long,Double>> lookupsOverTime =
       Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Integer>> queryRateOverTime =
-      Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Integer>> scanRateOverTime =
-      Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Long>> queryRateOverTime =
+      Collections.synchronizedList(new MaxList<Long>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Long>> scanRateOverTime =
+      Collections.synchronizedList(new MaxList<Long>(MAX_TIME_PERIOD));
   private static final List<Pair<Long,Double>> queryByteRateOverTime =
       Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
   private static final List<Pair<Long,Double>> indexCacheHitRateOverTime =
@@ -381,10 +381,10 @@ public class Monitor {
 
         lookupsOverTime.add(new Pair<>(currentTime, lookupRateTracker.calculateRate()));
 
-        queryRateOverTime.add(new Pair<>(currentTime, (int) totalQueryRate));
+        queryRateOverTime.add(new Pair<>(currentTime, (long) totalQueryRate));
         queryByteRateOverTime.add(new Pair<>(currentTime, totalQueryByteRate));
 
-        scanRateOverTime.add(new Pair<>(currentTime, (int) totalScanRate));
+        scanRateOverTime.add(new Pair<>(currentTime, (long) totalScanRate));
 
         calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker,
             indexCacheRequestTracker);
@@ -839,13 +839,13 @@ public class Monitor {
     return lookupRateTracker.calculateRate();
   }
 
-  public static List<Pair<Long,Integer>> getQueryRateOverTime() {
+  public static List<Pair<Long,Long>> getQueryRateOverTime() {
     synchronized (queryRateOverTime) {
       return new ArrayList<>(queryRateOverTime);
     }
   }
 
-  public static List<Pair<Long,Integer>> getScanRateOverTime() {
+  public static List<Pair<Long,Long>> getScanRateOverTime() {
     synchronized (scanRateOverTime) {
       return new ArrayList<>(scanRateOverTime);
     }
