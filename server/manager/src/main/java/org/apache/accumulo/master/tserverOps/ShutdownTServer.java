@@ -57,7 +57,8 @@ public class ShutdownTServer extends MasterRepo {
       return 0;
     }
 
-    // Check if one tserver is remaining, if so throw an error and return before attempting to shutdown
+    // Check if one tserver is remaining, if so throw an error and return before attempting to
+    // shutdown
     if (master.onlineTabletServers().size() == 1) {
       log.error(
           "Cannot shutdown tablet server {}. There is only 1 tserver remaining and it contains the Root table",
@@ -68,7 +69,7 @@ public class ShutdownTServer extends MasterRepo {
 
     // Inform the master that we want this server to shutdown
     master.shutdownTServer(server);
-    
+
     if (master.onlineTabletServers().contains(server)) {
       TServerConnection connection = master.getConnection(server);
       if (connection != null) {
