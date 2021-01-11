@@ -123,30 +123,46 @@ var plotOptions = {
   grid: {
     backgroundColor: {colors: ['#fff', '#eee']}
   },
-  lines: {
-    show: true
-  },
-  points: {
-    show: false,
-    radius: 1
+  series: {
+    lines: {
+      show: true,
+      lineWidth: 1.5
+    },
+    points: {
+      show: false,
+      radius: 1.5
+    }
   },
   xaxis: {
     mode: 'time',
     minTickSize: [1, 'minute'],
     timeformat: '%H:%M',
+    timeBase: 'milliseconds',
     ticks: 3
   },
   yaxis: {
+    showMinorTicks: false,
     min: 0
   }
 };
 
+var plotWithLegendOptions = $.extend(true, {}, plotOptions, {
+  legend: {
+    show: true
+  }
+});
+
 var cachePlotOptions = $.extend(true, {}, plotOptions, {
-  lines: { show: false },
-  points: { show: true },
+  series: {
+    lines: { show: false },
+    points: { show: true }
+  },
   yaxis: {
-    max: 1.1,
-    ticks: [0, 0.25, 0.5, 0.75, 1.0]
+    autoScale: "none",
+    min: -0.05,
+    max: 1.05,
+    ticks: [0, 0.25, 0.5, 0.75, 1.0],
+    tickDecimals: 2
   }
 });
 
@@ -176,7 +192,7 @@ function makePlots() {
   $.each(data[1].second, function(key, val) {
     scanEntries[1].data.push([val.first - n, val.second]);
   });
-  $.plot('#scan_entries', scanEntries, plotOptions);
+  $.plot('#scan_entries', scanEntries, plotWithLegendOptions);
 
   // Create Ingest MB plot
   var ingestMB = [{data:[]}];

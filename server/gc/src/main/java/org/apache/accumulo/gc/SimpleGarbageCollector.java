@@ -36,7 +36,9 @@ import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -234,20 +236,19 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     @Override
-    public Iterator<String> getBlipIterator() throws TableNotFoundException {
+    public Stream<String> getBlipPaths() throws TableNotFoundException {
 
       if (level == DataLevel.ROOT) {
-        return Collections.<String>emptySet().iterator();
+        return Stream.empty();
       }
 
-      @SuppressWarnings("resource")
-      IsolatedScanner scanner =
+      int blipPrefixLen = BlipSection.getRowPrefix().length();
+      var scanner =
           new IsolatedScanner(getContext().createScanner(level.metaTable(), Authorizations.EMPTY));
-
       scanner.setRange(BlipSection.getRange());
-
-      return Iterators.transform(scanner.iterator(), entry -> entry.getKey().getRow().toString()
-          .substring(BlipSection.getRowPrefix().length()));
+      return StreamSupport.stream(scanner.spliterator(), false)
+          .map(entry -> entry.getKey().getRow().toString().substring(blipPrefixLen))
+          .onClose(scanner::close);
     }
 
     @Override
@@ -654,7 +655,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    int[] port = getConfiguration().getPort(Property.GC_PORT);
+    IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {

@@ -146,8 +146,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final List<Pair<Long,Integer>> minorCompactionsOverTime = newMaxList();
   private final List<Pair<Long,Integer>> majorCompactionsOverTime = newMaxList();
   private final List<Pair<Long,Double>> lookupsOverTime = newMaxList();
-  private final List<Pair<Long,Integer>> queryRateOverTime = newMaxList();
-  private final List<Pair<Long,Integer>> scanRateOverTime = newMaxList();
+  private final List<Pair<Long,Long>> queryRateOverTime = newMaxList();
+  private final List<Pair<Long,Long>> scanRateOverTime = newMaxList();
   private final List<Pair<Long,Double>> queryByteRateOverTime = newMaxList();
   private final List<Pair<Long,Double>> indexCacheHitRateOverTime = newMaxList();
   private final List<Pair<Long,Double>> dataCacheHitRateOverTime = newMaxList();
@@ -345,10 +345,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
         lookupsOverTime.add(new Pair<>(currentTime, lookupRateTracker.calculateRate()));
 
-        queryRateOverTime.add(new Pair<>(currentTime, (int) totalQueryRate));
+        queryRateOverTime.add(new Pair<>(currentTime, (long) totalQueryRate));
         queryByteRateOverTime.add(new Pair<>(currentTime, totalQueryByteRate));
 
-        scanRateOverTime.add(new Pair<>(currentTime, (int) totalScanRate));
+        scanRateOverTime.add(new Pair<>(currentTime, (long) totalScanRate));
 
         calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker,
             indexCacheRequestTracker);
@@ -786,11 +786,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return lookupRateTracker.calculateRate();
   }
 
-  public List<Pair<Long,Integer>> getQueryRateOverTime() {
+  public List<Pair<Long,Long>> getQueryRateOverTime() {
     return new ArrayList<>(queryRateOverTime);
   }
 
-  public List<Pair<Long,Integer>> getScanRateOverTime() {
+  public List<Pair<Long,Long>> getScanRateOverTime() {
     return new ArrayList<>(scanRateOverTime);
   }
 

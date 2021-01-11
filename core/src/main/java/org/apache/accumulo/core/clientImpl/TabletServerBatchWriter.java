@@ -40,6 +40,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -911,8 +912,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
               allFailures.addAll(entry.getKey().tableId(), entry.getValue());
               getLocator(entry.getKey().tableId()).invalidateCache(entry.getKey());
             } catch (ConstraintViolationException e) {
-              updatedConstraintViolations(
-                  Translator.translate(e.violationSummaries, Translators.TCVST));
+              updatedConstraintViolations(e.violationSummaries.stream()
+                  .map(ConstraintViolationSummary::new).collect(Collectors.toList()));
             }
             timeoutTracker.madeProgress();
           } else {
@@ -939,13 +940,20 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
             UpdateErrors updateErrors = client.closeUpdate(tinfo, usid);
 
-            Map<KeyExtent,Long> failures =
-                Translator.translate(updateErrors.failedExtents, Translators.TKET);
-            updatedConstraintViolations(
-                Translator.translate(updateErrors.violationSummaries, Translators.TCVST));
-            updateAuthorizationFailures(
-                Translator.translate(updateErrors.authorizationFailures, Translators.TKET));
-
+            // @formatter:off
+            Map<KeyExtent,Long> failures = updateErrors.failedExtents.entrySet().stream().collect(Collectors.toMap(
+                            entry -> KeyExtent.fromThrift(entry.getKey()),
+                            Entry::getValue
+            ));
+            // @formatter:on
+            updatedConstraintViolations(updateErrors.violationSummaries.stream()
+                .map(ConstraintViolationSummary::new).collect(Collectors.toList()));
+            // @formatter:off
+            updateAuthorizationFailures(updateErrors.authorizationFailures.entrySet().stream().collect(Collectors.toMap(
+                            entry -> KeyExtent.fromThrift(entry.getKey()),
+                            Entry::getValue
+            )));
+            // @formatter:on
             long totalCommitted = 0;
 
             for (Entry<KeyExtent,Long> entry : failures.entrySet()) {

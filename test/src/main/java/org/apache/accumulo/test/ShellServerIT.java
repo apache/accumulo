@@ -122,6 +122,11 @@ import jline.console.ConsoleReader;
 
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 public class ShellServerIT extends SharedMiniClusterBase {
+
+  @SuppressWarnings("removal")
+  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
+      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
+
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
 
@@ -392,7 +397,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
       // Implement a poor-man's DistCp
       try (BufferedReader reader =
-          new BufferedReader(new FileReader(new File(exportDir, "distcp.txt")))) {
+          new BufferedReader(new FileReader(new File(exportDir, "distcp.txt"), UTF_8))) {
         for (String line; (line = reader.readLine()) != null;) {
           Path exportedFile = new Path(line);
           // There isn't a cp on FileSystem??
@@ -837,7 +842,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void classpath() throws Exception {
     // classpath
     ts.exec("classpath", true,
-        "Level 2: Java Classloader (loads everything defined by java classpath)", true);
+        "Level: 2, Name: app, class: jdk.internal.loader.ClassLoaders$AppClassLoader: configuration not inspectable",
+        true);
   }
 
   @Test
@@ -1257,10 +1263,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert row2 cf1 cq 2468ace", true);
 
     ArrayList<String> expectedDefault = new ArrayList<>(4);
-    expectedDefault.add("row cf:cq []    1234abcd");
-    expectedDefault.add("row cf1:cq1 []    9876fedc");
-    expectedDefault.add("row2 cf:cq []    13579bdf");
-    expectedDefault.add("row2 cf1:cq []    2468ace");
+    expectedDefault.add("row cf:cq []\t1234abcd");
+    expectedDefault.add("row cf1:cq1 []\t9876fedc");
+    expectedDefault.add("row2 cf:cq []\t13579bdf");
+    expectedDefault.add("row2 cf1:cq []\t2468ace");
     ArrayList<String> actualDefault = new ArrayList<>(4);
     boolean isFirst = true;
     for (String s : ts.exec("scan -np", true).split("[\n\r]+")) {
@@ -1272,10 +1278,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
 
     ArrayList<String> expectedFormatted = new ArrayList<>(4);
-    expectedFormatted.add("row cf:cq []    0x31 0x32 0x33 0x34 0x61 0x62 0x63 0x64");
-    expectedFormatted.add("row cf1:cq1 []    0x39 0x38 0x37 0x36 0x66 0x65 0x64 0x63");
-    expectedFormatted.add("row2 cf:cq []    0x31 0x33 0x35 0x37 0x39 0x62 0x64 0x66");
-    expectedFormatted.add("row2 cf1:cq []    0x32 0x34 0x36 0x38 0x61 0x63 0x65");
+    expectedFormatted.add("row cf:cq []\t0x31 0x32 0x33 0x34 0x61 0x62 0x63 0x64");
+    expectedFormatted.add("row cf1:cq1 []\t0x39 0x38 0x37 0x36 0x66 0x65 0x64 0x63");
+    expectedFormatted.add("row2 cf:cq []\t0x31 0x33 0x35 0x37 0x39 0x62 0x64 0x66");
+    expectedFormatted.add("row2 cf1:cq []\t0x32 0x34 0x36 0x38 0x61 0x63 0x65");
     ts.exec("formatter -t formatter_test -f " + HexFormatter.class.getName(), true);
     ArrayList<String> actualFormatted = new ArrayList<>(4);
     isFirst = true;
@@ -1666,11 +1672,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
         fooConstraintJar);
     fooConstraintJar.deleteOnExit();
 
-    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1="
-        + fooFilterJar.toURI() + "," + fooConstraintJar.toURI(), true);
+    ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI()
+        + "," + fooConstraintJar.toURI(), true);
 
     ts.exec("createtable " + table, true);
-    ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);
+    ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=cx1",
+        true);
 
     sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
 
@@ -1696,7 +1703,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert ok foo q v", true);
 
     ts.exec("deletetable -f " + table, true);
-    ts.exec("config -d " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
+    ts.exec("config -d " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
 
   }
 
@@ -1841,15 +1848,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     make10();
     setupFakeContextPath();
     // Add the context to the table so that setiter works.
-    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "="
+    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "="
         + FAKE_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY
-        + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
+    assertEquals("root@miniInstance t> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT
+        + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
 
-    result = ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
-    assertEquals(
-        "root@miniInstance t> config -t t -s table.classpath.context=" + FAKE_CONTEXT + "\n",
-        result);
+    result = ts
+        .exec("config -t t -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=" + FAKE_CONTEXT);
+    assertEquals("root@miniInstance t> config -t t -s "
+        + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=" + FAKE_CONTEXT + "\n", result);
 
     result = ts.exec("setshelliter -pn baz -n reverse -p 21 -class " + VALUE_REVERSING_ITERATOR);
     assertTrue(result.contains("The iterator class does not implement OptionDescriber"));
@@ -1876,10 +1883,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     setupRealContextPath();
     // Define a new classloader context, but don't set it on the table
-    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "="
+    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "="
         + REAL_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY
-        + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
+    assertEquals("root@miniInstance t> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT
+        + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
     // Override the table classloader context with the REAL implementation of
     // ValueReversingIterator, which does reverse the value.
     result = ts.exec("scan -pn baz -np -b row1 -e row1 -cc " + REAL_CONTEXT);
@@ -1922,7 +1929,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // add some data
     ts.exec("insert foo a b c", true);
-    ts.exec("scan", true, "foo a:b []    c");
+    ts.exec("scan", true, "foo a:b []\tc");
 
     // create a normal iterator while in current table context
     ts.input.set("\n1000\n\n");
@@ -1940,7 +1947,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // add some data
     ts.exec("insert foo a b c", true);
     ts.exec("notable");
-    ts.exec("scan -t " + table, true, "foo a:b []    c");
+    ts.exec("scan -t " + table, true, "foo a:b []\tc");
 
     // create a normal iterator which in current table context
     ts.input.set("\n1000\n\n");
@@ -2292,7 +2299,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // create table making use of the iterator profile
     ts.exec("createtable " + table + " -i profile1:scan,minc", true);
     ts.exec("insert foo a b c", true);
-    ts.exec("scan", true, "foo a:b []    c");
+    ts.exec("scan", true, "foo a:b []\tc");
     ts.exec("sleep 6", true);
     ts.exec("scan", true, "", true);
     ts.exec("deletetable -f " + table);
@@ -2330,7 +2337,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // create table making use of the iterator profiles
     ts.exec("createtable " + table + " -i profile1:scan,minc profile2:all ", true);
     ts.exec("insert foo a b c", true);
-    ts.exec("scan", true, "foo a:b []    c");
+    ts.exec("scan", true, "foo a:b []\tc");
     ts.exec("sleep 6", true);
     ts.exec("scan", true, "", true);
     output = ts.exec("listiter -t " + table + " -all");

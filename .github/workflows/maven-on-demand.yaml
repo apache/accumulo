@@ -52,7 +52,7 @@ on:
       addOpts:
         description: Additional options
         required: true
-        default: -Dspotbugs.skip -Dcheckstyle.skip
+        default: -Dspotbugs.skip -Dcheckstyle.skip -DskipFormat -DverifyFormat
 
 jobs:
   mvn:

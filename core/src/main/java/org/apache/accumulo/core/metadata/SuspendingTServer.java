@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.master.state;
+package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
 
@@ -41,8 +41,8 @@ public class SuspendingTServer {
     return new SuspendingTServer(HostAndPort.fromString(parts[0]), Long.parseLong(parts[1]));
   }
 
-  public static Value toValue(HostAndPort tServer, long suspensionTime) {
-    return new Value(tServer + "|" + suspensionTime);
+  public static Value toValue(TServerInstance tServer, long suspensionTime) {
+    return new Value(tServer.getHostPort() + "|" + suspensionTime);
   }
 
   @Override

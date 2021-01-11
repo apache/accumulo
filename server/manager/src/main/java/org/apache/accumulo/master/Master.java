@@ -71,6 +71,9 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
@@ -108,11 +111,8 @@ import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
-import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.master.state.TabletServerState;
-import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
@@ -131,8 +131,6 @@ import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.thrift.TException;
@@ -377,15 +375,6 @@ public class Master extends AbstractServer
     this.tabletBalancer = Property.createInstanceFromPropertyName(aconf,
         Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
     this.tabletBalancer.init(context);
-
-    AccumuloVFSClassLoader.getContextManager()
-        .setContextConfig(new ContextManager.DefaultContextsConfig() {
-          @Override
-          public Map<String,String> getVfsContextClasspathProperties() {
-            return getConfiguration()
-                .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-          }
-        });
 
     this.security = AuditedSecurityOperation.getInstance(context);
 
@@ -1178,6 +1167,9 @@ public class Master extends AbstractServer
       log.info("All metrics modules registered");
     }
 
+    // checking stored user hashes if any of them uses an outdated algorithm
+    security.validateStoredUserCreditentials();
+
     // The master is fully initialized. Clients are allowed to connect now.
     masterInitialized.set(true);
 
@@ -1442,12 +1434,11 @@ public class Master extends AbstractServer
       Set<TServerInstance> added) {
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {
-      DeadServerList obit =
-          new DeadServerList(getContext(), getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+      DeadServerList obit = new DeadServerList(getContext());
       if (!added.isEmpty()) {
         log.info("New servers: {}", added);
         for (TServerInstance up : added) {
-          obit.delete(up.hostPort());
+          obit.delete(up.getHostPort());
         }
       }
       for (TServerInstance dead : deleted) {
@@ -1456,7 +1447,7 @@ public class Master extends AbstractServer
           cause = "clean shutdown"; // maybe an incorrect assumption
         }
         if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
-          obit.post(dead.hostPort(), cause);
+          obit.post(dead.getHostPort(), cause);
         }
       }
 
@@ -1502,13 +1493,13 @@ public class Master extends AbstractServer
     while (badIter.hasNext()) {
       TServerInstance bad = badIter.next();
       for (TServerInstance add : added) {
-        if (bad.hostPort().equals(add.hostPort())) {
+        if (bad.getHostPort().equals(add.getHostPort())) {
           badIter.remove();
           break;
         }
       }
       for (TServerInstance del : deleted) {
-        if (bad.hostPort().equals(del.hostPort())) {
+        if (bad.getHostPort().equals(del.getHostPort())) {
           badIter.remove();
           break;
         }
@@ -1630,7 +1621,7 @@ public class Master extends AbstractServer
     result.badTServers = new HashMap<>();
     synchronized (badServers) {
       for (TServerInstance bad : badServers.keySet()) {
-        result.badTServers.put(bad.hostPort(), TabletServerState.UNRESPONSIVE.getId());
+        result.badTServers.put(bad.getHostPort(), TabletServerState.UNRESPONSIVE.getId());
       }
     }
     result.state = getMasterState();
@@ -1639,11 +1630,10 @@ public class Master extends AbstractServer
     result.serversShuttingDown = new HashSet<>();
     synchronized (serversToShutdown) {
       for (TServerInstance server : serversToShutdown) {
-        result.serversShuttingDown.add(server.hostPort());
+        result.serversShuttingDown.add(server.getHostPort());
       }
     }
-    DeadServerList obit =
-        new DeadServerList(getContext(), getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+    DeadServerList obit = new DeadServerList(getContext());
     result.deadTabletServers = obit.getList();
     result.bulkImports = bulkImportStatus.getBulkLoadStatus();
     return result;

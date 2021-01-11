@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -35,8 +38,6 @@ import org.apache.commons.configuration2.AbstractConfiguration;
 import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,8 +141,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
       return this;
     }
 
-    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
-        justification = "location of props is specified by an admin")
     @Override
     public SiteConfiguration build() {
       // load properties from configuration file
@@ -203,17 +202,18 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   // load properties from config file
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+      justification = "url is specified by an admin, not unchecked user input")
   private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
+    var config = new PropertiesConfiguration();
     if (accumuloPropsLocation != null) {
-      var propsBuilder = new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-          .configure(new Parameters().properties().setURL(accumuloPropsLocation));
-      try {
-        return propsBuilder.getConfiguration();
-      } catch (ConfigurationException e) {
+      try (var reader = new InputStreamReader(accumuloPropsLocation.openStream(), UTF_8)) {
+        config.read(reader);
+      } catch (ConfigurationException | IOException e) {
         throw new IllegalArgumentException(e);
       }
     }
-    return new PropertiesConfiguration();
+    return config;
   }
 
   // load sensitive properties from Hadoop credential provider

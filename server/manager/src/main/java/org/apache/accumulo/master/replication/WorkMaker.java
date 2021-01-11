@@ -70,7 +70,7 @@ public class WorkMaker {
 
   public void run() {
     if (!ReplicationTable.isOnline(client)) {
-      log.debug("Replication table is not yet online");
+      log.trace("Replication table is not yet online");
       return;
     }
 

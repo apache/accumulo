@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -142,23 +144,40 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   /**
    * Test the environment methods return what is expected.
    */
-  @SuppressWarnings("deprecation")
   private static void testEnv(IteratorScope scope, Map<String,String> opts,
       IteratorEnvironment env) {
     TableId expectedTableId = TableId.of(opts.get("expected.table.id"));
-    if (!"value1".equals(env.getConfig().get("table.custom.iterator.env.test")) && !"value1".equals(
-        env.getServiceEnv().getConfiguration(env.getTableId()).getTableCustom("iterator.env.test")))
-      throw new RuntimeException("Test failed - Expected table property not found.");
-    if (!"value1".equals(env.getConfig().get("table.custom.iterator.env.test")) && !"value1".equals(
-        env.getPluginEnv().getConfiguration(env.getTableId()).getTableCustom("iterator.env.test")))
-      throw new RuntimeException("Test failed - Expected table property not found.");
+
+    // verify getServiceEnv() and getPluginEnv() are the same objects,
+    // so further checks only need to use getPluginEnv()
+    @SuppressWarnings("deprecation")
+    ServiceEnvironment serviceEnv = env.getServiceEnv();
+    PluginEnvironment pluginEnv = env.getPluginEnv();
+    if (serviceEnv != pluginEnv)
+      throw new RuntimeException("Test failed - assertSame(getServiceEnv(),getPluginEnv())");
+
+    // verify property exists on the table config (deprecated and new),
+    // with and without custom prefix, but not in the system config
+    @SuppressWarnings("deprecation")
+    String accTableConf = env.getConfig().get("table.custom.iterator.env.test");
+    if (!"value1".equals(accTableConf))
+      throw new RuntimeException("Test failed - Expected table property not found in getConfig().");
+    var tableConf = pluginEnv.getConfiguration(env.getTableId());
+    if (!"value1".equals(tableConf.get("table.custom.iterator.env.test")))
+      throw new RuntimeException("Test failed - Expected table property not found in table conf.");
+    if (!"value1".equals(tableConf.getTableCustom("iterator.env.test")))
+      throw new RuntimeException("Test failed - Expected table property not found in table conf.");
+    var systemConf = pluginEnv.getConfiguration();
+    if (systemConf.get("table.custom.iterator.env.test") != null)
+      throw new RuntimeException("Test failed - Unexpected table property found in system conf.");
+
+    // check other environment settings
     if (!scope.equals(env.getIteratorScope()))
       throw new RuntimeException("Test failed - Error getting iterator scope");
     if (env.isSamplingEnabled())
       throw new RuntimeException("Test failed - isSamplingEnabled returned true, expected false");
     if (!expectedTableId.equals(env.getTableId()))
       throw new RuntimeException("Test failed - Error getting Table ID");
-
   }
 
   @Before

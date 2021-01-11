@@ -18,7 +18,11 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.net.URL;
 import java.util.Collections;
@@ -32,13 +36,12 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class allows testing of the publishing to the hadoop metrics system by processing a file for
@@ -50,7 +53,7 @@ import org.slf4j.LoggerFactory;
  * underlying file has data written, the vaule returned by getLastUpdate will change, and the last
  * line can be retrieved with getLast().
  */
-public class MetricsFileTailer implements Runnable, AutoCloseable {
+public class MetricsFileTailer implements AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(MetricsFileTailer.class);
 
@@ -58,8 +61,8 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
 
   private final String metricsPrefix;
 
-  private Lock lock = new ReentrantLock();
-  private AtomicBoolean running = new AtomicBoolean(Boolean.TRUE);
+  private final Lock lock = new ReentrantLock();
+  private final AtomicBoolean running = new AtomicBoolean(Boolean.FALSE);
 
   private AtomicLong lastUpdate = new AtomicLong(0);
   private long startTime = System.nanoTime();
@@ -118,54 +121,50 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
    *
    * @return a configuration with http sink properties.
    */
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+      justification = "url specified by test code, not unchecked user input")
   private Configuration loadMetricsConfig() {
-    try {
+    final URL propUrl =
+        getClass().getClassLoader().getResource(MetricsTestSinkProperties.METRICS_PROP_FILENAME);
 
-      final URL propUrl =
-          getClass().getClassLoader().getResource(MetricsTestSinkProperties.METRICS_PROP_FILENAME);
+    if (propUrl == null) {
+      throw new IllegalStateException(
+          "Could not find " + MetricsTestSinkProperties.METRICS_PROP_FILENAME + " on classpath");
+    }
 
-      if (propUrl == null) {
-        throw new IllegalStateException(
-            "Could not find " + MetricsTestSinkProperties.METRICS_PROP_FILENAME + " on classpath");
-      }
-
-      String filename = propUrl.getFile();
-
-      Parameters params = new Parameters();
-      // Read data from this file
-      File propertiesFile = new File(filename);
-
-      FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
-          new FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration.class)
-              .configure(params.fileBased().setFile(propertiesFile));
-
-      Configuration config = builder.getConfiguration();
-
-      final Configuration sub = config.subset(metricsPrefix);
-
-      if (log.isTraceEnabled()) {
-        log.trace("Config {}", config);
-        Iterator<String> iterator = sub.getKeys();
-        while (iterator.hasNext()) {
-          String key = iterator.next();
-          log.trace("'{}'='{}'", key, sub.getProperty(key));
-        }
-      }
-
-      return sub;
-
-    } catch (ConfigurationException ex) {
+    // Read data from this file
+    var config = new PropertiesConfiguration();
+    try (var reader = new InputStreamReader(propUrl.openStream(), UTF_8)) {
+      config.read(reader);
+    } catch (ConfigurationException | IOException e) {
       throw new IllegalStateException(
           String.format("Could not find configuration file \'%s\' on classpath",
               MetricsTestSinkProperties.METRICS_PROP_FILENAME));
     }
+
+    final Configuration sub = config.subset(metricsPrefix);
+
+    if (log.isTraceEnabled()) {
+      log.trace("Config {}", config);
+      Iterator<String> iterator = sub.getKeys();
+      while (iterator.hasNext()) {
+        String key = iterator.next();
+        log.trace("'{}'='{}'", key, sub.getProperty(key));
+      }
+    }
+
+    return sub;
   }
 
   /**
-   * Creates a marker value that changes each time a new line is detected. Clients can use this to
-   * determine if a call to getLast() will return a new value.
+   * Creates a marker value that increases each time a new line is detected. Clients can use this to
+   * determine if a call to getLast() will return a new value. However, this value is <b>NOT</b> a
+   * timestamp and should not be interpreted as such. Furthermore, it does not indicate that the
+   * metrics being reported have changed, only that a new metrics poll took place and was written to
+   * the file. So, if clients need to observe new metrics from a new event, they need to parse the
+   * line themselves to look for changed metrics values.
    *
-   * @return a marker value set when a line is available.
+   * @return a marker value set when a new line is available.
    */
   public long getLastUpdate() {
     return lastUpdate.get();
@@ -237,8 +236,7 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
    * A loop that polls for changes and when the file changes, put the last line in a buffer that can
    * be retrieved by clients using getLast().
    */
-  @Override
-  public void run() {
+  private void run() {
 
     long filePos = 0;
 
@@ -294,6 +292,14 @@ public class MetricsFileTailer implements Runnable, AutoCloseable {
       } catch (Exception ex) {
         log.info("Error processing metrics file {}", metricsFilename, ex);
       }
+    }
+  }
+
+  public void startDaemonThread() {
+    if (running.compareAndSet(false, true)) {
+      Thread t = new Thread(() -> this.run());
+      t.setDaemon(true);
+      t.start();
     }
   }
 

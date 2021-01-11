@@ -19,6 +19,7 @@
 package org.apache.accumulo.cluster.standalone;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.BufferedReader;
@@ -373,7 +374,7 @@ public class StandaloneClusterControl implements ClusterControl {
    * Read the provided file and return all lines which don't start with a '#' character
    */
   protected List<String> getHosts(File f) throws IOException {
-    try (BufferedReader reader = new BufferedReader(new FileReader(f))) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(f, UTF_8))) {
       List<String> hosts = new ArrayList<>();
       String line;
       while ((line = reader.readLine()) != null) {

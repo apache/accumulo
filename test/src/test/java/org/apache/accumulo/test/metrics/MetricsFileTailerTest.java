@@ -51,42 +51,31 @@ public class MetricsFileTailerTest {
    * Create a file tailer and then write some lines and validate the tailer returns the last line.
    */
   @Test
-  public void fileUpdates() {
-
-    MetricsFileTailer tailer = new MetricsFileTailer("foo", TEST_OUTFILE_NAME);
-
-    Thread t = new Thread(tailer);
-    t.start();
-
-    long lastUpdate = tailer.getLastUpdate();
-
-    writeToFile();
+  public void fileUpdates() throws InterruptedException {
 
     boolean passed = Boolean.FALSE;
+    try (MetricsFileTailer tailer = new MetricsFileTailer("foo", TEST_OUTFILE_NAME)) {
+      tailer.startDaemonThread();
 
-    int count = 0;
-    while (count++ < 5) {
-      if (lastUpdate == tailer.getLastUpdate()) {
-        log.trace("no change");
-      } else {
-        lastUpdate = tailer.getLastUpdate();
-        log.trace("{} - {}", tailer.getLastUpdate(), tailer.getLast());
-        if (SUCCESS.compareTo(tailer.getLast()) == 0) {
-          passed = Boolean.TRUE;
-          break;
+      long lastUpdate = tailer.getLastUpdate();
+
+      writeToFile();
+
+      int count = 0;
+      while (count++ < 5) {
+        if (lastUpdate == tailer.getLastUpdate()) {
+          log.trace("no change");
+        } else {
+          lastUpdate = tailer.getLastUpdate();
+          log.trace("{} - {}", tailer.getLastUpdate(), tailer.getLast());
+          if (SUCCESS.compareTo(tailer.getLast()) == 0) {
+            passed = Boolean.TRUE;
+            break;
+          }
         }
-      }
-      try {
         Thread.sleep(5_000);
-      } catch (InterruptedException ex) {
-        // empty
       }
-    }
 
-    try {
-      tailer.close();
-    } catch (Exception ex) {
-      log.trace("Failed to close file tailer on " + TEST_OUTFILE_NAME, ex);
     }
     assertTrue(passed);
   }

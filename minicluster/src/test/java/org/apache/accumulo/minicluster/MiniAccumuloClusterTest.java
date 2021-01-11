@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.minicluster;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -25,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileReader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
@@ -48,8 +50,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.junit.AfterClass;
@@ -62,6 +62,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterTest {
+
+  @SuppressWarnings("removal")
+  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
+      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
 
   public static File testDir;
 
@@ -180,9 +184,10 @@ public class MiniAccumuloClusterTest {
     File jarFile = folder.newFile("iterator.jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), jarFile);
 
-    conn.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1",
+    conn.instanceOperations().setProperty(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1",
         jarFile.toURI().toString());
-    conn.tableOperations().setProperty("table2", Property.TABLE_CLASSPATH.getKey(), "cx1");
+    conn.tableOperations().setProperty("table2", Property.TABLE_CLASSLOADER_CONTEXT.getKey(),
+        "cx1");
     conn.tableOperations().attachIterator("table2",
         new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
 
@@ -212,8 +217,7 @@ public class MiniAccumuloClusterTest {
 
     assertEquals(2, count);
 
-    conn.instanceOperations()
-        .removeProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
+    conn.instanceOperations().removeProperty(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
     conn.tableOperations().delete("table2");
   }
 
@@ -240,13 +244,13 @@ public class MiniAccumuloClusterTest {
   public void testRandomPorts() throws Exception {
     File confDir = new File(testDir, "conf");
     File accumuloProps = new File(confDir, "accumulo.properties");
-    FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-        new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-            .configure(new Parameters().properties().setFile(accumuloProps));
-    PropertiesConfiguration conf = propsBuilder.getConfiguration();
+    var config = new PropertiesConfiguration();
+    try (var reader = new FileReader(accumuloProps, UTF_8)) {
+      config.read(reader);
+    }
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,
         Property.MASTER_CLIENTPORT, Property.TRACE_PORT, Property.GC_PORT}) {
-      String value = conf.getString(randomPortProp.getKey());
+      String value = config.getString(randomPortProp.getKey());
       assertNotNull("Found no value for " + randomPortProp, value);
       assertEquals("0", value);
     }

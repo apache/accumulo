@@ -220,22 +220,89 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("delete r f q", false, "java.lang.IllegalStateException: Not in a table context");
     exec("createtable test", true);
     exec("insert r f q v", true);
-    exec("scan", true, "r f:q []    v");
+    exec("scan", true, "r f:q []\tv");
     exec("delete r f q", true);
-    exec("scan", true, "r f:q []    v", false);
+    exec("scan", true, "r f:q []\tv", false);
     exec("insert \\x90 \\xa0 \\xb0 \\xc0\\xd0\\xe0\\xf0", true);
-    exec("scan", true, "\\x90 \\xA0:\\xB0 []    \\xC0\\xD0");
-    exec("scan -f 2", true, "\\x90 \\xA0:\\xB0 []    \\xC0\\xD0");
-    exec("scan -f 2", true, "\\x90 \\xA0:\\xB0 []    \\xC0\\xD0\\xE0", false);
-    exec("scan -b \\x90 -e \\x90 -c \\xA0", true, "\\x90 \\xA0:\\xB0 []    \\xC0");
-    exec("scan -b \\x90 -e \\x90 -c \\xA0:\\xB0", true, "\\x90 \\xA0:\\xB0 []    \\xC0");
-    exec("scan -b \\x90 -be", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
-    exec("scan -e \\x90 -ee", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
-    exec("scan -b \\x90\\x00", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
-    exec("scan -e \\x8f", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
+    exec("scan", true, "\\x90 \\xA0:\\xB0 []\t\\xC0\\xD0");
+    exec("scan -f 2", true, "\\x90 \\xA0:\\xB0 []\t\\xC0\\xD0");
+    exec("scan -f 2", true, "\\x90 \\xA0:\\xB0 []\t\\xC0\\xD0\\xE0", false);
+    exec("scan -b \\x90 -e \\x90 -c \\xA0", true, "\\x90 \\xA0:\\xB0 []\t\\xC0");
+    exec("scan -b \\x90 -e \\x90 -c \\xA0:\\xB0", true, "\\x90 \\xA0:\\xB0 []\t\\xC0");
+    exec("scan -b \\x90 -be", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
+    exec("scan -e \\x90 -ee", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
+    exec("scan -b \\x90\\x00", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
+    exec("scan -e \\x8f", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
     exec("delete \\x90 \\xa0 \\xb0", true);
-    exec("scan", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
+    exec("scan", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
+    // Add tests to verify use of --table parameter
+    exec("createtable test2", true);
+    exec("notable", true);
+    exec("insert r f q v", false, "java.lang.IllegalStateException: Not in a table context");
+    exec("insert r1 f1 q1 v1 -t test2", true);
+    exec("insert r2 f2 q2 v2 --table test2", true);
+    exec("delete r1 f1 q1 -t", false,
+        "org.apache.commons.cli.MissingArgumentException: Missing argument for option:");
+    exec("delete r1 f1 q1 -t  test3", false,
+        "org.apache.accumulo.core.client.TableNotFoundException:");
+    exec("scan -t test2", true, "r1 f1:q1 []\tv1\nr2 f2:q2 []\tv2");
+    exec("delete r1 f1 q1 -t test2", true);
+    exec("scan -t test2", true, "r1 f1:q1 []\tv1", false);
+    exec("scan -t test2", true, "r2 f2:q2 []\tv2", true);
+    exec("delete r2 f2 q2 --table test2", true);
+    exec("scan -t test2", true, "r1 f1:q1 []\tv1", false);
+    exec("scan -t test2", true, "r2 f2:q2 []\tv2", false);
+    exec("deletetable test2 -f", true, "Table: [test2] has been deleted");
+  }
+
+  @Test
+  public void insertIntoSpecifiedTableTest() throws IOException {
+    Shell.log.debug("Starting insertIntoSpecifiedTableTest -----------------");
+    // create two tables for insertion tests
+    exec("createtable tab1", true);
+    exec("createtable tab2", true);
+    // insert data into tab2 while in tab2 context
+    exec("insert row1 f q tab2", true);
+    // insert another with the table and t argument to verify also works
+    exec("insert row2 f q tab2 --table tab2", true);
+    exec("insert row3 f q tab2 -t tab2", true);
+    // leave all table contexts
+    exec("notable", true);
+    // without option cannot insert when not in a table context, also cannot add to a table
+    // using 'accumulo shell -e "insert ...." fron command line due to no table context being set.
+    exec("insert row1 f q tab1", false, "java.lang.IllegalStateException: Not in a table context");
+    // but using option can insert to a table with tablename option without being in a table context
+    exec("insert row1 f q tab1 --table tab1", true);
+    exec("insert row4 f q tab2 -t tab2", true);
+    exec("table tab2", true);
+    // can also insert into another table even if a different table context
+    exec("insert row2 f q tab1 -t tab1", true);
+    exec("notable", true);
+    // must supply a tablename if option is used
+    exec("insert row5 f q tab5 --table", false,
+        "org.apache.commons.cli.MissingArgumentException: Missing argument for option:");
+    exec("insert row5 f q tab5 --t", false,
+        "org.apache.commons.cli.AmbiguousOptionException: Ambiguous option: '--t'");
+    // verify expected data is in both tables
+    exec("scan -t tab1", true, "row1 f:q []\ttab1\nrow2 f:q []\ttab1");
+    exec("scan -t tab2", true,
+        "row1 f:q []\ttab2\nrow2 f:q []\ttab2\nrow3 f:q []\ttab2\nrow4 f:q []\ttab2");
+    // check that if in table context, inserting into a non-existent table does not change context
+    exec("createtable tab3", true);
+    exec("table tab3", true);
+    exec("insert row1 f1 q1 tab3", true);
+    exec("insert row2 f2 q2 tab3 --table idontexist", false,
+        "org.apache.accumulo.core.client.TableNotFoundException:");
+    exec("insert row2 f2 q2 tab3 -t idontexist", false,
+        "org.apache.accumulo.core.client.TableNotFoundException:");
+    exec("insert row3 f3 q3 tab3", true); // should be able to insert w/o changing tables
+    // verify expected data is in tab3
+    exec("scan", true, "row1 f1:q1 []\ttab3\nrow3 f3:q3 []\ttab3");
+    // cleanup
+    exec("deletetable tab1 -f", true, "Table: [tab1] has been deleted");
+    exec("deletetable tab2 -f", true, "Table: [tab2] has been deleted");
+    exec("deletetable tab3 -f", true, "Table: [tab3] has been deleted");
   }
 
   @Test
@@ -322,8 +389,8 @@ public class ShellIT extends SharedMiniClusterBase {
     Shell.log.debug("Starting scanTimestamp test ------------------------");
     exec("createtable test", true);
     exec("insert r f q v -ts 0", true);
-    exec("scan -st", true, "r f:q [] 0    v");
-    exec("scan -st -f 0", true, " : [] 0   ");
+    exec("scan -st", true, "r f:q [] 0\tv");
+    exec("scan -st -f 0", true, " : [] 0\t");
     exec("deletemany -f", true);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
   }
@@ -335,8 +402,8 @@ public class ShellIT extends SharedMiniClusterBase {
     // historically, showing few did not pertain to ColVis or Timestamp
     exec("insert 1 123 123456 -l '12345678' -ts 123456789 1234567890", true);
     exec("setauths -s 12345678", true);
-    String expected = "1 123:123456 [12345678] 123456789    1234567890";
-    String expectedFew = "1 123:12345 [12345678] 123456789    12345";
+    String expected = "1 123:123456 [12345678] 123456789\t1234567890";
+    String expectedFew = "1 123:12345 [12345678] 123456789\t12345";
     exec("scan -st", true, expected);
     exec("scan -st -f 5", true, expectedFew);
     // also prove that BinaryFormatter behaves same as the default
@@ -355,9 +422,9 @@ public class ShellIT extends SharedMiniClusterBase {
     @SuppressWarnings("deprecation")
     DateFormat dateFormat =
         new SimpleDateFormat(org.apache.accumulo.core.util.format.DateStringFormatter.DATE_FORMAT);
-    String expected = String.format("r f:q [] %s    v", dateFormat.format(new Date(0)));
+    String expected = String.format("r f:q [] %s\tv", dateFormat.format(new Date(0)));
     // historically, showing few did not pertain to ColVis or Timestamp
-    String expectedNoTimestamp = "r f:q []    v";
+    String expectedNoTimestamp = "r f:q []\tv";
     exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st", true, expected);
     exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st -f 1000", true,
         expected);
@@ -376,8 +443,8 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("setauths -s vis", true);
     exec("insert r f q v -ts 0 -l vis", true);
 
-    String expected = "r f:q [vis]    v";
-    String expectedTimestamp = "r f:q [vis] 0    v";
+    String expected = "r f:q [vis]\tv";
+    String expectedTimestamp = "r f:q [vis] 0\tv";
     exec("grep", false, "No terms specified");
     exec("grep non_matching_string", true, "");
     // historically, showing few did not pertain to ColVis or Timestamp

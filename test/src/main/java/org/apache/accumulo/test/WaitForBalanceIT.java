@@ -46,6 +46,8 @@ import com.google.common.collect.Iterators;
 
 public class WaitForBalanceIT extends ConfigurableMacBase {
 
+  private static final int NUM_SPLITS = 50;
+
   @Override
   public int defaultTimeoutSeconds() {
     return 120;
@@ -62,7 +64,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
       c.tableOperations().create(tableName);
       c.instanceOperations().waitForBalance();
       final SortedSet<Text> partitionKeys = new TreeSet<>();
-      for (int i = 0; i < 1000; i++) {
+      for (int i = 0; i < NUM_SPLITS; i++) {
         partitionKeys.add(new Text("" + i));
       }
       c.tableOperations().addSplits(tableName, partitionKeys);

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -76,7 +78,7 @@ public class FileSystemMonitor {
       justification = "procFile path not from user input")
   static List<Mount> parse(String procFile) throws IOException {
 
-    FileReader fr = new FileReader(procFile);
+    FileReader fr = new FileReader(procFile, UTF_8);
 
     try (BufferedReader br = new BufferedReader(fr)) {
       return getMountsFromFile(br);

@@ -27,11 +27,11 @@ assignees: ''
   - [ ] In [several mirrors](https://www.apache.org/dyn/closer.lua/accumulo)
 - Update the [staging website](http://accumulo.staged.apache.org/)
   - [ ] Release notes
-  - [ ] Add `LTS: true` to the release notes front-matter for LTS releases
+  - [ ] Add `LTM: true` to the release notes front-matter for LTM releases
   - [ ] Navigation
   - [ ] Downloads page
   - [ ] DOAP file
-  - [ ] Add manual/examples/javadoc
+  - [ ] Add manual/examples/javadoc (build javadoc from tag with `mvn clean package -DskipTests javadoc:aggregate -Paggregate-javadocs`)
   - [ ] If javadoc is built with Java 11, [patch it](https://github.com/apache/accumulo/blob/main/contrib/javadoc11.patch)
   - [ ] Jekyll config
   - [ ] Grep for, and update any links to previous version to now point to the new version

@@ -27,11 +27,11 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
 
@@ -185,16 +185,6 @@ public interface Ample {
   }
 
   /**
-   * Temporary interface, place holder for some server side types like TServerInstance. Need to
-   * simplify and possibly combine these type.
-   */
-  interface TServer {
-    HostAndPort getLocation();
-
-    String getSession();
-  }
-
-  /**
    * Interface for changing a tablets persistent data.
    */
   interface TabletMutator {
@@ -212,9 +202,9 @@ public interface Ample {
 
     TabletMutator putFlushId(long flushId);
 
-    TabletMutator putLocation(TServer tserver, LocationType type);
+    TabletMutator putLocation(TServerInstance tserver, LocationType type);
 
-    TabletMutator deleteLocation(TServer tserver, LocationType type);
+    TabletMutator deleteLocation(TServerInstance tserver, LocationType type);
 
     TabletMutator putZooLock(ZooLock zooLock);
 
@@ -234,7 +224,7 @@ public interface Ample {
 
     TabletMutator putChopped();
 
-    TabletMutator putSuspension(TServer tserver, long suspensionTime);
+    TabletMutator putSuspension(TServerInstance tserver, long suspensionTime);
 
     TabletMutator deleteSuspension();
 

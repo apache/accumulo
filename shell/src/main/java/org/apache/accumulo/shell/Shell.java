@@ -44,8 +44,11 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -60,6 +63,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -125,6 +129,7 @@ import org.apache.accumulo.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.shell.commands.ListIterCommand;
 import org.apache.accumulo.shell.commands.ListScansCommand;
 import org.apache.accumulo.shell.commands.ListShellIterCommand;
+import org.apache.accumulo.shell.commands.ListTabletsCommand;
 import org.apache.accumulo.shell.commands.MaxRowCommand;
 import org.apache.accumulo.shell.commands.MergeCommand;
 import org.apache.accumulo.shell.commands.NamespacePermissionsCommand;
@@ -159,8 +164,6 @@ import org.apache.accumulo.shell.commands.UserCommand;
 import org.apache.accumulo.shell.commands.UserPermissionsCommand;
 import org.apache.accumulo.shell.commands.UsersCommand;
 import org.apache.accumulo.shell.commands.WhoAmICommand;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -191,6 +194,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   public static final Logger log = LoggerFactory.getLogger(Shell.class);
   private static final Logger audit = LoggerFactory.getLogger(Shell.class.getName() + ".audit");
 
+  private static final Predicate<String> IS_HELP_OPT =
+      s -> s != null && (s.equals("-" + helpOption) || s.equals("--" + helpLongOption));
   public static final Charset CHARSET = ISO_8859_1;
   public static final int NO_FIXED_ARG_LENGTH_CHECK = -1;
   public static final String COMMENT_PREFIX = "#";
@@ -374,9 +379,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         new EGrepCommand(), new FormatterCommand(), new InterpreterCommand(), new GrepCommand(),
         new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     @SuppressWarnings("deprecation")
-    Command[] debuggingCommands = {new ClasspathCommand(),
-        new org.apache.accumulo.shell.commands.DebugCommand(), new ListScansCommand(),
-        new ListCompactionsCommand(), new TraceCommand(), new PingCommand(), new ListBulkCommand()};
+    Command[] debuggingCommands =
+        {new ClasspathCommand(), new org.apache.accumulo.shell.commands.DebugCommand(),
+            new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
+            new PingCommand(), new ListBulkCommand(), new ListTabletsCommand()};
     Command[] execCommands =
         {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(), new ScriptCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
@@ -432,14 +438,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException, IOException,
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
       FileSystemException {
 
     boolean tables =
         cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
-    String classpath = null;
     Iterable<Entry<String,String>> tableProps;
 
     if (namespaces) {
@@ -455,43 +460,37 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     } else {
       throw new IllegalArgumentException("No table or namespace specified");
     }
-    for (Entry<String,String> entry : tableProps) {
-      if (entry.getKey().equals(Property.TABLE_CLASSPATH.getKey())) {
-        classpath = entry.getValue();
+    String tableContext = getTableContextFromProps(tableProps);
+
+    if (tableContext != null && !tableContext.isEmpty()) {
+      ClassLoaderUtil.initContextFactory(new ConfigurationCopy(
+          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration()));
+    }
+    return ClassLoaderUtil.getClassLoader(tableContext);
+  }
+
+  private static String getTableContextFromProps(Iterable<Entry<String,String>> props) {
+    String tableContext = null;
+    for (Entry<String,String> entry : props) {
+      // look for either the old property or the new one, but
+      // if the new one is set, stop looking and let it take precedence
+      if (entry.getKey().equals(Property.TABLE_CLASSLOADER_CONTEXT.getKey())
+          && entry.getValue() != null && !entry.getKey().isEmpty()) {
+        return entry.getValue();
+      }
+      @SuppressWarnings("removal")
+      Property TABLE_CLASSPATH = Property.TABLE_CLASSPATH;
+      if (entry.getKey().equals(TABLE_CLASSPATH.getKey())) {
+        // don't return even if this is set; instead,
+        // keep looking, in case we find the newer property set
+        tableContext = entry.getValue();
+        if (tableContext != null && !tableContext.isEmpty()) {
+          log.warn("Deprecated table context property detected. '{}' should be replaced by '{}'",
+              TABLE_CLASSPATH.getKey(), Property.TABLE_CLASSLOADER_CONTEXT.getKey());
+        }
       }
     }
-
-    ClassLoader classloader;
-
-    if (classpath != null && !classpath.equals("")) {
-      shellState.getAccumuloClient().instanceOperations().getSystemConfiguration()
-          .get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
-
-      try {
-
-        final Map<String,String> systemConfig =
-            shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
-
-        AccumuloVFSClassLoader.getContextManager()
-            .setContextConfig(new ContextManager.DefaultContextsConfig() {
-              @Override
-              public Map<String,String> getVfsContextClasspathProperties() {
-                Map<String,String> filteredMap = new HashMap<>();
-                for (Entry<String,String> entry : systemConfig.entrySet()) {
-                  if (entry.getKey().startsWith(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())) {
-                    filteredMap.put(entry.getKey(), entry.getValue());
-                  }
-                }
-                return filteredMap;
-              }
-            });
-      } catch (IllegalStateException ise) {}
-
-      classloader = AccumuloVFSClassLoader.getContextManager().getClassLoader(classpath);
-    } else {
-      classloader = AccumuloVFSClassLoader.getClassLoader();
-    }
-    return classloader;
+    return tableContext;
   }
 
   @Override
@@ -620,7 +619,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void shutdown() {
     if (reader != null) {
-      reader.shutdown();
+      reader.close();
     }
     if (accumuloClient != null) {
       accumuloClient.close();
@@ -789,11 +788,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         }
         printException(e);
       } catch (ParseException e) {
-        // not really an error if the exception is a missing required
-        // option when the user is asking for help
-        if (!(e instanceof MissingOptionException
-            && (Arrays.asList(fields).contains("-" + helpOption)
-                || Arrays.asList(fields).contains("--" + helpLongOption)))) {
+        if (e instanceof MissingOptionException && Stream.of(fields).anyMatch(IS_HELP_OPT)) {
+          // not really an error if the exception shows a required option is missing
+          // and the user is asking for help
+        } else {
           ++exitCode;
           printException(e);
         }

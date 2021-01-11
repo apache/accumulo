@@ -87,7 +87,10 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     // Check LD_LIBRARY_PATH (DYLD_LIBRARY_PATH on Mac)
     if (!isLoaded()) {
-      log.error("Tried and failed to load Accumulo native library from {}", accumuloNativeLibDirs);
+      if (accumuloNativeLibDirs != null) {
+        log.error("Tried and failed to load Accumulo native library from {}",
+            accumuloNativeLibDirs);
+      }
       String ldLibraryPath = System.getProperty("java.library.path");
       try {
         System.loadLibrary("accumulo");
