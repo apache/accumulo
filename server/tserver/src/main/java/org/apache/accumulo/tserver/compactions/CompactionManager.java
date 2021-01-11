@@ -92,18 +92,11 @@ public class CompactionManager {
 
         String defaultServicePrefix =
             Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + DEFAULT_SERVICE.canonical() + ".";
-        boolean defaultServicePropsSet = false;
 
         // check if any properties for the default compaction service are set
-        for (String key : configs.keySet()) {
-          if (key.startsWith(defaultServicePrefix)) {
-            Property prop = Property.getPropertyByKey(key);
-            if (prop == null || aconf.isPropertySet(prop, true)) {
-              defaultServicePropsSet = true;
-              break;
-            }
-          }
-        }
+        boolean defaultServicePropsSet = configs.keySet().stream()
+            .filter(key -> key.startsWith(defaultServicePrefix)).map(Property::getPropertyByKey)
+            .anyMatch(prop -> prop == null || aconf.isPropertySet(prop, true));
 
         if (defaultServicePropsSet) {
 
@@ -134,7 +127,7 @@ public class CompactionManager {
           configsCopy.putAll(defaultServiceConfigs);
 
           String warning = String.format(
-              "The deprecated property %s was set.  Properties with the prefix %s "
+              "The deprecated property %s was set. Properties with the prefix %s "
                   + "were not set, these should replace the deprecated properties. The old "
                   + "properties were automatically mapped to the new properties in process "
                   + "creating : %s.",
