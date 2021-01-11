@@ -110,7 +110,7 @@ public class ReplicationDriver implements Runnable {
 
       // Sleep for a bit
       long sleepMillis = conf.getTimeInMillis(Property.MASTER_REPLICATION_SCAN_INTERVAL);
-      log.debug("Sleeping for {}ms before re-running", sleepMillis);
+      log.trace("Sleeping for {}ms before re-running", sleepMillis);
       try {
         Thread.sleep(sleepMillis);
       } catch (InterruptedException e) {

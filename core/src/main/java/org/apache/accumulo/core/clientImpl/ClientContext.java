@@ -796,7 +796,10 @@ public class ClientContext implements AccumuloClient {
 
     @Override
     public FromOptions<T> from(Properties properties) {
-      this.properties = properties;
+      // make a copy, so that this builder's subsequent methods don't mutate the
+      // properties object provided by the caller
+      this.properties = new Properties();
+      this.properties.putAll(properties);
       return this;
     }
 

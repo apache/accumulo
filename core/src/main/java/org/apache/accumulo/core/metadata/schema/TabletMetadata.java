@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
@@ -29,18 +30,22 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.function.Function;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -65,7 +70,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.ServerServices;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -75,6 +85,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
 
 public class TabletMetadata {
+  private static final Logger log = LoggerFactory.getLogger(TabletMetadata.class);
 
   private TableId tableId;
   private Text prevEndRow;
@@ -434,5 +445,42 @@ public class TabletMetadata {
     te.endRow = endRow == null ? null : new Text(endRow);
     te.fetchedCols = EnumSet.of(ColumnType.PREV_ROW);
     return te;
+  }
+
+  /**
+   * Get the tservers that are live from ZK. Live servers will have a valid ZooLock. This method was
+   * pulled from org.apache.accumulo.server.master.LiveTServerSet
+   */
+  public static synchronized Set<TServerInstance> getLiveTServers(ClientContext context) {
+    final Set<TServerInstance> liveServers = new HashSet<>();
+
+    final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+
+    for (String child : context.getZooCache().getChildren(path)) {
+      checkServer(context, path, child).ifPresent(liveServers::add);
+    }
+    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), path);
+
+    return liveServers;
+  }
+
+  /**
+   * Check for tserver ZooLock at the ZK location. Return Optional containing TServerInstance if a
+   * valid Zoolock exists.
+   */
+  private static Optional<TServerInstance> checkServer(ClientContext context, String path,
+      String zPath) {
+    Optional<TServerInstance> server = Optional.empty();
+    final String lockPath = path + "/" + zPath;
+    ZooCache.ZcStat stat = new ZooCache.ZcStat();
+    byte[] lockData = ZooLock.getLockData(context.getZooCache(), lockPath, stat);
+
+    log.trace("Checking server at ZK path = " + lockPath);
+    if (lockData != null) {
+      ServerServices services = new ServerServices(new String(lockData, UTF_8));
+      HostAndPort client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
+      server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
+    }
+    return server;
   }
 }

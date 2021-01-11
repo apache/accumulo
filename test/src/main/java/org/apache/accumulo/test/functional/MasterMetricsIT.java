@@ -77,23 +77,18 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
   private static final Set<String> OPTIONAL_METRIC_KEYS =
       new HashSet<>(Collections.singletonList("FateTxOpType_CompactRange"));
 
-  private MetricsFileTailer metricsTail;
+  private final MetricsFileTailer metricsTail = new MetricsFileTailer("accumulo.sink.file-master");
 
   @Before
   public void setup() {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
     maxWait = defaultTimeoutSeconds() <= 0 ? 60_000 : ((defaultTimeoutSeconds() * 1000) / 2);
-
-    metricsTail = new MetricsFileTailer("accumulo.sink.file-master");
-    Thread t1 = new Thread(metricsTail);
-    t1.start();
-
+    metricsTail.startDaemonThread();
   }
 
   @After
   public void cleanup() {
-    if (metricsTail != null)
-      metricsTail.close();
+    metricsTail.close();
   }
 
   @Override

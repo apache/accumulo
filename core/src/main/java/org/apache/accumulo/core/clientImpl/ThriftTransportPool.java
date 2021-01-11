@@ -424,8 +424,8 @@ public class ThriftTransportPool {
 
   static class CachedTTransport extends TTransport {
 
-    private ThriftTransportKey cacheKey;
-    private TTransport wrappedTransport;
+    private final ThriftTransportKey cacheKey;
+    private final TTransport wrappedTransport;
     private boolean sawError = false;
 
     private volatile String ioThreadName = null;
@@ -582,7 +582,9 @@ public class ThriftTransportPool {
     public void close() {
       try {
         ioCount++;
-        wrappedTransport.close();
+        if (wrappedTransport.isOpen()) {
+          wrappedTransport.close();
+        }
       } finally {
         ioCount++;
       }

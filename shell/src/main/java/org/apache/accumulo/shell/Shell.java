@@ -129,6 +129,7 @@ import org.apache.accumulo.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.shell.commands.ListIterCommand;
 import org.apache.accumulo.shell.commands.ListScansCommand;
 import org.apache.accumulo.shell.commands.ListShellIterCommand;
+import org.apache.accumulo.shell.commands.ListTabletsCommand;
 import org.apache.accumulo.shell.commands.MaxRowCommand;
 import org.apache.accumulo.shell.commands.MergeCommand;
 import org.apache.accumulo.shell.commands.NamespacePermissionsCommand;
@@ -378,9 +379,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         new EGrepCommand(), new FormatterCommand(), new InterpreterCommand(), new GrepCommand(),
         new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     @SuppressWarnings("deprecation")
-    Command[] debuggingCommands = {new ClasspathCommand(),
-        new org.apache.accumulo.shell.commands.DebugCommand(), new ListScansCommand(),
-        new ListCompactionsCommand(), new TraceCommand(), new PingCommand(), new ListBulkCommand()};
+    Command[] debuggingCommands =
+        {new ClasspathCommand(), new org.apache.accumulo.shell.commands.DebugCommand(),
+            new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
+            new PingCommand(), new ListBulkCommand(), new ListTabletsCommand()};
     Command[] execCommands =
         {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(), new ScriptCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
