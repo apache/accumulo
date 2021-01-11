@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -135,33 +136,34 @@ public class GarbageCollectionAlgorithm {
           relativePaths.next().toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
 
     if (checkForBulkProcessingFiles) {
-      Iterator<String> blipiter = gce.getBlipIterator();
+      try (Stream<String> blipStream = gce.getBlipPaths()) {
+        Iterator<String> blipiter = blipStream.iterator();
 
-      // WARNING: This block is IMPORTANT
-      // You MUST REMOVE candidates that are in the same folder as a bulk
-      // processing flag!
+        // WARNING: This block is IMPORTANT
+        // You MUST REMOVE candidates that are in the same folder as a bulk
+        // processing flag!
 
-      while (blipiter.hasNext()) {
-        String blipPath = blipiter.next();
-        blipPath = makeRelative(blipPath, 2);
+        while (blipiter.hasNext()) {
+          String blipPath = blipiter.next();
+          blipPath = makeRelative(blipPath, 2);
 
-        Iterator<String> tailIter = candidateMap.tailMap(blipPath).keySet().iterator();
+          Iterator<String> tailIter = candidateMap.tailMap(blipPath).keySet().iterator();
 
-        int count = 0;
+          int count = 0;
 
-        while (tailIter.hasNext()) {
-          if (tailIter.next().startsWith(blipPath)) {
-            count++;
-            tailIter.remove();
-          } else {
-            break;
+          while (tailIter.hasNext()) {
+            if (tailIter.next().startsWith(blipPath)) {
+              count++;
+              tailIter.remove();
+            } else {
+              break;
+            }
           }
+
+          if (count > 0)
+            log.debug("Folder has bulk processing flag: {}", blipPath);
         }
-
-        if (count > 0)
-          log.debug("Folder has bulk processing flag: {}", blipPath);
       }
-
     }
 
     Iterator<Reference> iter = gce.getReferences().iterator();

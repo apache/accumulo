@@ -112,31 +112,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
    * log. This exception is thrown when the header cannot be read from a WAL which should only
    * happen when the tserver dies as described.
    */
-  public static class LogHeaderIncompleteException extends IOException {
+  public static class LogHeaderIncompleteException extends Exception {
     private static final long serialVersionUID = 1L;
 
-    public LogHeaderIncompleteException(Throwable cause) {
+    public LogHeaderIncompleteException(EOFException cause) {
       super(cause);
-    }
-  }
-
-  public static class DFSLoggerInputStreams {
-
-    private FSDataInputStream originalInput;
-    private DataInputStream decryptingInputStream;
-
-    public DFSLoggerInputStreams(FSDataInputStream originalInput,
-        DataInputStream decryptingInputStream) {
-      this.originalInput = originalInput;
-      this.decryptingInputStream = decryptingInputStream;
-    }
-
-    public FSDataInputStream getOriginalInput() {
-      return originalInput;
-    }
-
-    public DataInputStream getDecryptingInputStream() {
-      return decryptingInputStream;
     }
   }
 
@@ -358,8 +338,15 @@ public class DfsLogger implements Comparable<DfsLogger> {
     metaReference = meta;
   }
 
-  public static DFSLoggerInputStreams readHeaderAndReturnStream(FSDataInputStream input,
-      AccumuloConfiguration conf) throws IOException {
+  /**
+   * Reads the WAL file header, and returns a decrypting stream which wraps the original stream. If
+   * the file is not encrypted, the original stream is returned.
+   *
+   * @throws LogHeaderIncompleteException
+   *           if the header cannot be fully read (can happen if the tserver died before finishing)
+   */
+  public static DataInputStream getDecryptingStream(FSDataInputStream input,
+      AccumuloConfiguration conf) throws LogHeaderIncompleteException, IOException {
     DataInputStream decryptingInput;
 
     byte[] magic4 = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
@@ -398,12 +385,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
     } catch (EOFException e) {
       // Explicitly catch any exceptions that should be converted to LogHeaderIncompleteException
-
       // A TabletServer might have died before the (complete) header was written
       throw new LogHeaderIncompleteException(e);
     }
 
-    return new DFSLoggerInputStreams(input, decryptingInput);
+    return decryptingInput;
   }
 
   /**
