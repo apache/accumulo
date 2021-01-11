@@ -250,7 +250,7 @@ public class LiveTServerSet implements Watcher {
 
   public synchronized void startListeningForTabletServerChanges() {
     scanServers();
-    ThreadPools.getGeneralScheduledExecutorService(context.getConfiguration())
+    ThreadPools.createGeneralScheduledExecutorService(context.getConfiguration())
         .scheduleWithFixedDelay(this::scanServers, 0, 5000, TimeUnit.MILLISECONDS);
   }
 

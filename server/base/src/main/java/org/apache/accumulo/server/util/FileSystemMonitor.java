@@ -121,7 +121,7 @@ public class FileSystemMonitor {
 
     // Create a task to check each mount periodically to see if its state has changed.
     for (Mount mount : mounts) {
-      ThreadPools.getGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
+      ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
           Threads.createNamedRunnable(mount.mountPoint + "filesystem monitor", () -> {
             try {
               checkMount(mount);

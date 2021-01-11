@@ -197,7 +197,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
-    this.executor = ThreadPools.getGeneralScheduledExecutorService(this.context.getConfiguration());
+    this.executor =
+        ThreadPools.createGeneralScheduledExecutorService(this.context.getConfiguration());
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE
@@ -210,7 +211,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     this.writer = new MutationWriter(config.getMaxWriteThreads());
 
     if (this.maxLatency != Long.MAX_VALUE) {
-      executor.scheduleWithFixedDelay(Threads.createNamedRunnable("latency timer", () -> {
+      executor.scheduleWithFixedDelay(Threads.createNamedRunnable("BatchWriterLatencyTimer", () -> {
         try {
           synchronized (TabletServerBatchWriter.this) {
             if ((System.currentTimeMillis() - lastProcessingStartTime)
@@ -576,7 +577,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     private final Runnable task;
 
     FailedMutations() {
-      task = Threads.createNamedRunnable("failed mutations handler", () -> {
+      task = Threads.createNamedRunnable("failed mutationBatchWriterLatencyTimers handler", () -> {
         run();
       });
       executor.scheduleWithFixedDelay(task, 0, 500, TimeUnit.MILLISECONDS);
@@ -645,10 +646,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
       sendThreadPool =
-          ThreadPools.getFixedThreadPool(numSendThreads, this.getClass().getName(), false);
+          ThreadPools.createFixedThreadPool(numSendThreads, this.getClass().getName(), false);
       locators = new HashMap<>();
       binningThreadPool =
-          ThreadPools.getFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(), false);
+          ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(), false);
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 

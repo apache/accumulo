@@ -106,7 +106,7 @@ public class CompactionWatcher implements Runnable {
 
   public static synchronized void startWatching(AccumuloConfiguration config) {
     if (!watching) {
-      ThreadPools.getGeneralScheduledExecutorService(config).scheduleWithFixedDelay(
+      ThreadPools.createGeneralScheduledExecutorService(config).scheduleWithFixedDelay(
           new CompactionWatcher(config), 10000, 10000, TimeUnit.MILLISECONDS);
       watching = true;
     }

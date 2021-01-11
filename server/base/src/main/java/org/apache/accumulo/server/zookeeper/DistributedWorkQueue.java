@@ -220,19 +220,20 @@ public class DistributedWorkQueue {
     lookForWork(processor, children);
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
-    ThreadPools.getGeneralScheduledExecutorService(config).scheduleWithFixedDelay(new Runnable() {
-      @Override
-      public void run() {
-        log.debug("Looking for work in {}", path);
-        try {
-          lookForWork(processor, zoo.getChildren(path));
-        } catch (KeeperException e) {
-          log.error("Failed to look for work", e);
-        } catch (InterruptedException e) {
-          log.info("Interrupted looking for work", e);
-        }
-      }
-    }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS);
+    ThreadPools.createGeneralScheduledExecutorService(config)
+        .scheduleWithFixedDelay(new Runnable() {
+          @Override
+          public void run() {
+            log.debug("Looking for work in {}", path);
+            try {
+              lookForWork(processor, zoo.getChildren(path));
+            } catch (KeeperException e) {
+              log.error("Failed to look for work", e);
+            } catch (InterruptedException e) {
+              log.info("Interrupted looking for work", e);
+            }
+          }
+        }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS);
   }
 
   /**

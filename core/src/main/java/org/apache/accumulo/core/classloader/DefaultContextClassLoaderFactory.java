@@ -66,7 +66,7 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
       cc.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE,
           Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
     }
-    ThreadPools.getGeneralScheduledExecutorService(cc)
+    ThreadPools.createGeneralScheduledExecutorService(cc)
         .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
           LOG.trace("{}-cleanup thread, properties: {}", className, cc);
           Set<String> contextsInUse = cc

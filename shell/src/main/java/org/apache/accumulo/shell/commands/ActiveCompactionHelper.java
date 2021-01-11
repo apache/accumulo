@@ -104,7 +104,7 @@ class ActiveCompactionHelper {
     // use at least 4 threads (if needed), but no more than 256
     int numThreads = Math.max(4, Math.min(tservers.size() / 10, 256));
     var executorService =
-        ThreadPools.getFixedThreadPool(numThreads, "shell-listcompactions", false);
+        ThreadPools.createFixedThreadPool(numThreads, "shell-listcompactions", false);
     try {
       Stream<String> activeCompactionLines = tservers.stream()
           // submit each tserver to executor

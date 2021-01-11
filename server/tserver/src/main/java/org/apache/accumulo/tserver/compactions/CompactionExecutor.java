@@ -145,7 +145,7 @@ public class CompactionExecutor {
 
     queue = new PriorityBlockingQueue<Runnable>(100, comparator);
 
-    threadPool = ThreadPools.getThreadPool(threads, threads, 60, TimeUnit.SECONDS,
+    threadPool = ThreadPools.createThreadPool(threads, threads, 60, TimeUnit.SECONDS,
         "compaction." + ceid, queue, OptionalInt.empty(), true);
 
     metricCloser =

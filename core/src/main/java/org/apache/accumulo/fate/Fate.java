@@ -227,7 +227,7 @@ public class Fate<T> {
    */
   public void startTransactionRunners(AccumuloConfiguration conf) {
     int numThreads = conf.getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
-    executor = ThreadPools.getExecutorService(conf, Property.MASTER_FATE_THREADPOOL_SIZE);
+    executor = ThreadPools.createExecutorService(conf, Property.MASTER_FATE_THREADPOOL_SIZE);
     for (int i = 0; i < numThreads; i++) {
       executor.execute(new TransactionRunner());
     }

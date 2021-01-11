@@ -67,7 +67,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
    * processed because the whole system is in a really bad state (like HDFS is down) and everything
    * is reporting lots of problems, but problem reports can not be processed
    */
-  private ExecutorService reportExecutor = ThreadPools.getThreadPool(0, 1, 60, TimeUnit.SECONDS,
+  private ExecutorService reportExecutor = ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS,
       "acu-problem-reporter", new LinkedBlockingQueue<>(500), OptionalInt.empty(), false);
 
   private final ServerContext context;

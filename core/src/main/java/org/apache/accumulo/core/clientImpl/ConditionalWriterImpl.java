@@ -91,7 +91,7 @@ import org.apache.thrift.transport.TTransportException;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.getFixedThreadPool(1, 3,
+  private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
       TimeUnit.SECONDS, "Conditional Writer Cleanup Thread", false);
 
   static {
@@ -368,7 +368,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = ThreadPools.getScheduledExecutorService(config.getMaxWriteThreads(),
+    this.threadPool = ThreadPools.createScheduledExecutorService(config.getMaxWriteThreads(),
         this.getClass().getSimpleName(), false);
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();

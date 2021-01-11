@@ -76,8 +76,8 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      loadThreadPool =
-          ThreadPools.getThreadPool(0, maxLoadThreads, 60, TimeUnit.SECONDS, "bloom-loader", false);
+      loadThreadPool = ThreadPools.createThreadPool(0, maxLoadThreads, 60, TimeUnit.SECONDS,
+          "bloom-loader", false);
     }
 
     return loadThreadPool;

@@ -65,9 +65,9 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   private ScannerImpl.Reporter reporter;
 
-  private static ThreadPoolExecutor readaheadPool = ThreadPools.getThreadPool(0, Integer.MAX_VALUE,
-      3L, TimeUnit.SECONDS, "Accumulo scanner read ahead thread", new SynchronousQueue<>(),
-      OptionalInt.empty(), false);
+  private static ThreadPoolExecutor readaheadPool = ThreadPools.createThreadPool(0,
+      Integer.MAX_VALUE, 3L, TimeUnit.SECONDS, "Accumulo scanner read ahead thread",
+      new SynchronousQueue<>(), OptionalInt.empty(), false);
 
   private boolean closed = false;
 

@@ -64,7 +64,7 @@ public class MasterTime {
       throw new IOException("Error updating master time", ex);
     }
 
-    ThreadPools.getGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
+    ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
         Threads.createNamedRunnable("Master time keeper", () -> run()), 0,
         MILLISECONDS.convert(10, SECONDS), MILLISECONDS);
   }

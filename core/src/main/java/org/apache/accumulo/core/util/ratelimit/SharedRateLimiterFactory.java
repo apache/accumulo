@@ -47,7 +47,7 @@ public class SharedRateLimiterFactory {
     if (instance == null) {
       instance = new SharedRateLimiterFactory();
 
-      ScheduledThreadPoolExecutor svc = ThreadPools.getGeneralScheduledExecutorService(conf);
+      ScheduledThreadPoolExecutor svc = ThreadPools.createGeneralScheduledExecutorService(conf);
       svc.scheduleWithFixedDelay(
           Threads.createNamedRunnable("SharedRateLimiterFactory update polling", () -> {
             instance.update();

@@ -90,7 +90,7 @@ class LoadFiles extends MasterRepo {
 
   private static synchronized ExecutorService getThreadPool(Master master) {
     if (threadPool == null) {
-      threadPool = ThreadPools.getExecutorService(master.getConfiguration(),
+      threadPool = ThreadPools.createExecutorService(master.getConfiguration(),
           Property.MASTER_BULK_THREADPOOL_SIZE);
     }
     return threadPool;

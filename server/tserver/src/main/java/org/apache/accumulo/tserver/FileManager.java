@@ -164,7 +164,7 @@ public class FileManager {
     this.reservedReaders = new HashMap<>();
 
     this.maxIdleTime = context.getConfiguration().getTimeInMillis(Property.TSERV_MAX_IDLE);
-    ThreadPools.getGeneralScheduledExecutorService(context.getConfiguration())
+    ThreadPools.createGeneralScheduledExecutorService(context.getConfiguration())
         .scheduleWithFixedDelay(new IdleFileCloser(), maxIdleTime, maxIdleTime / 2,
             TimeUnit.MILLISECONDS);
 

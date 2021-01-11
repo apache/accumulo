@@ -303,7 +303,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       minimizeDeletes(confirmedDeletes, processedDeletes, fs);
 
       ExecutorService deleteThreadPool =
-          ThreadPools.getExecutorService(getConfiguration(), Property.GC_DELETE_THREADS);
+          ThreadPools.createExecutorService(getConfiguration(), Property.GC_DELETE_THREADS);
 
       final List<Pair<Path,Path>> replacements =
           ServerConstants.getVolumeReplacements(getConfiguration(), getContext().getHadoopConf());

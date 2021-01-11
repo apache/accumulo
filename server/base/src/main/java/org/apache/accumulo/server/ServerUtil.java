@@ -168,7 +168,7 @@ public class ServerUtil {
   }
 
   public static void monitorSwappiness(AccumuloConfiguration config) {
-    ThreadPools.getGeneralScheduledExecutorService(config).scheduleWithFixedDelay(() -> {
+    ThreadPools.createGeneralScheduledExecutorService(config).scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";
         File swappiness = new File(procFile);

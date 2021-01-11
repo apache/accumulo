@@ -216,7 +216,7 @@ class AssignmentHandler implements Runnable {
       server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       long reschedule = Math.min((1L << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000L);
       log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
-      ThreadPools.getGeneralScheduledExecutorService(server.getConfiguration())
+      ThreadPools.createGeneralScheduledExecutorService(server.getConfiguration())
           .schedule(new Runnable() {
             @Override
             public void run() {

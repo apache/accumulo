@@ -302,7 +302,7 @@ public class TraceServer implements Watcher, AutoCloseable {
   }
 
   public void run() {
-    ThreadPools.getGeneralScheduledExecutorService(context.getConfiguration())
+    ThreadPools.createGeneralScheduledExecutorService(context.getConfiguration())
         .scheduleWithFixedDelay(this::flush, SCHEDULE_DELAY, SCHEDULE_PERIOD,
             TimeUnit.MILLISECONDS);
     server.serve();

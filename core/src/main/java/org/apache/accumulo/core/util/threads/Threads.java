@@ -38,20 +38,18 @@ public class Threads {
   }
 
   public static Thread createThread(String name, OptionalInt priority, Runnable r) {
-    Thread thread = null;
+    Thread thread = new Thread(r, name);
+    boolean prioritySet = false;
     if (r instanceof NamedRunnable) {
       NamedRunnable nr = (NamedRunnable) r;
-      thread = new Thread(r, name);
       if (nr.getPriority().isPresent()) {
         thread.setPriority(nr.getPriority().getAsInt());
-      } else if (priority.isPresent()) {
-        thread.setPriority(priority.getAsInt());
+        prioritySet = true;
       }
-    } else {
-      thread = new Thread(r, name);
-      if (priority.isPresent()) {
-        thread.setPriority(priority.getAsInt());
-      }
+    }
+    // Don't override priority set in NamedRunnable, if set
+    if (priority.isPresent() && !prioritySet) {
+      thread.setPriority(priority.getAsInt());
     }
     thread.setDaemon(true);
     thread.setUncaughtExceptionHandler(UEH);

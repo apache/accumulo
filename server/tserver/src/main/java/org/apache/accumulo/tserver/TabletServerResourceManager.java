@@ -133,7 +133,7 @@ public class TabletServerResourceManager {
    */
   private void modifyThreadPoolSizesAtRuntime(IntSupplier maxThreads, String name,
       final ThreadPoolExecutor tp) {
-    ThreadPools.getGeneralScheduledExecutorService(context.getConfiguration())
+    ThreadPools.createGeneralScheduledExecutorService(context.getConfiguration())
         .scheduleWithFixedDelay(() -> {
           try {
             int max = maxThreads.getAsInt();
@@ -201,7 +201,7 @@ public class TabletServerResourceManager {
     scanExecQueues.put(sec.name, queue);
 
     ExecutorService es =
-        ThreadPools.getThreadPool(sec.getCurrentMaxThreads(), sec.getCurrentMaxThreads(), 0L,
+        ThreadPools.createThreadPool(sec.getCurrentMaxThreads(), sec.getCurrentMaxThreads(), 0L,
             TimeUnit.MILLISECONDS, "scan-" + sec.name, queue, sec.priority, true);
     modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads, "scan-" + sec.name,
         (ThreadPoolExecutor) es);
@@ -338,20 +338,21 @@ public class TabletServerResourceManager {
     }
 
     minorCompactionThreadPool =
-        ThreadPools.getExecutorService(acuConf, Property.TSERV_MINC_MAXCONCURRENT);
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_MINC_MAXCONCURRENT);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
         "minor compactor", (ThreadPoolExecutor) minorCompactionThreadPool);
 
-    splitThreadPool = ThreadPools.getThreadPool(0, 1, 1, TimeUnit.SECONDS, "splitter", true);
+    splitThreadPool = ThreadPools.createThreadPool(0, 1, 1, TimeUnit.SECONDS, "splitter", true);
 
     defaultSplitThreadPool =
-        ThreadPools.getThreadPool(0, 1, 60, TimeUnit.SECONDS, "md splitter", true);
+        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "md splitter", true);
 
     defaultMigrationPool =
-        ThreadPools.getThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet migration", true);
+        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet migration", true);
 
-    migrationPool = ThreadPools.getExecutorService(acuConf, Property.TSERV_MIGRATE_MAXCONCURRENT);
+    migrationPool =
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_MIGRATE_MAXCONCURRENT);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MIGRATE_MAXCONCURRENT),
         "tablet migration", (ThreadPoolExecutor) migrationPool);
@@ -362,30 +363,30 @@ public class TabletServerResourceManager {
     // individual tablet server run
     // concurrent assignments would put more load on the metadata table at startup
     assignmentPool =
-        ThreadPools.getExecutorService(acuConf, Property.TSERV_ASSIGNMENT_MAXCONCURRENT);
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_ASSIGNMENT_MAXCONCURRENT);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
         "tablet assignment", (ThreadPoolExecutor) assignmentPool);
 
-    assignMetaDataPool =
-        ThreadPools.getThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet assignment", true);
+    assignMetaDataPool = ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS,
+        "metadata tablet assignment", true);
 
     activeAssignments = new ConcurrentHashMap<>();
 
     summaryRetrievalPool =
-        ThreadPools.getExecutorService(acuConf, Property.TSERV_SUMMARY_RETRIEVAL_THREADS);
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_SUMMARY_RETRIEVAL_THREADS);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_RETRIEVAL_THREADS),
         "summary file retriever", (ThreadPoolExecutor) summaryRetrievalPool);
 
     summaryRemotePool =
-        ThreadPools.getExecutorService(acuConf, Property.TSERV_SUMMARY_REMOTE_THREADS);
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_SUMMARY_REMOTE_THREADS);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_REMOTE_THREADS),
         "summary remote", (ThreadPoolExecutor) summaryRemotePool);
 
     summaryParitionPool =
-        ThreadPools.getExecutorService(acuConf, Property.TSERV_SUMMARY_PARTITION_THREADS);
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_SUMMARY_PARTITION_THREADS);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_PARTITION_THREADS),
         "summary partition", (ThreadPoolExecutor) summaryParitionPool);
@@ -409,7 +410,7 @@ public class TabletServerResourceManager {
 
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
-    ThreadPools.getGeneralScheduledExecutorService(context.getConfiguration())
+    ThreadPools.createGeneralScheduledExecutorService(context.getConfiguration())
         .schedule(new AssignmentWatcher(acuConf, activeAssignments), 5000, TimeUnit.MILLISECONDS);
   }
 
@@ -459,7 +460,7 @@ public class TabletServerResourceManager {
         if (log.isTraceEnabled()) {
           log.trace("Rescheduling assignment watcher to run in {}ms", delay);
         }
-        ThreadPools.getGeneralScheduledExecutorService(conf).schedule(this, delay,
+        ThreadPools.createGeneralScheduledExecutorService(conf).schedule(this, delay,
             TimeUnit.MILLISECONDS);
       }
     }

@@ -87,7 +87,7 @@ public class SessionManager {
       }
     };
 
-    ThreadPools.getGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(r, 0,
+    ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(r, 0,
         Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS);
   }
 
@@ -293,7 +293,7 @@ public class SessionManager {
         }
       };
 
-      ThreadPools.getGeneralScheduledExecutorService(aconf).schedule(r, delay,
+      ThreadPools.createGeneralScheduledExecutorService(aconf).schedule(r, delay,
           TimeUnit.MILLISECONDS);
     }
   }

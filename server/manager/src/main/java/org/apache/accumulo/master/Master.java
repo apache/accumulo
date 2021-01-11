@@ -240,7 +240,7 @@ public class Master extends AbstractServer
     if (newState == MasterState.STOP) {
       // Give the server a little time before shutdown so the client
       // thread requesting the stop can return
-      ThreadPools.getGeneralScheduledExecutorService(getConfiguration())
+      ThreadPools.createGeneralScheduledExecutorService(getConfiguration())
           .scheduleWithFixedDelay(() -> {
             // This frees the main thread and will cause the master to exit
             clientService.stop();
@@ -882,8 +882,8 @@ public class Master extends AbstractServer
       gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE);
-    ExecutorService tp =
-        ThreadPools.getExecutorService(getConfiguration(), Property.MASTER_STATUS_THREAD_POOL_SIZE);
+    ExecutorService tp = ThreadPools.createExecutorService(getConfiguration(),
+        Property.MASTER_STATUS_THREAD_POOL_SIZE);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
@@ -1094,7 +1094,7 @@ public class Master extends AbstractServer
       fate = new Fate<>(this, store, TraceRepo::toLogString);
       fate.startTransactionRunners(getConfiguration());
 
-      ThreadPools.getGeneralScheduledExecutorService(getConfiguration())
+      ThreadPools.createGeneralScheduledExecutorService(getConfiguration())
           .scheduleWithFixedDelay(store::ageOff, 63000, 63000, TimeUnit.MILLISECONDS);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
@@ -1146,7 +1146,7 @@ public class Master extends AbstractServer
 
     // if the replication name is ever set, then start replication services
     final AtomicReference<TServer> replServer = new AtomicReference<>();
-    ThreadPools.getGeneralScheduledExecutorService(getConfiguration())
+    ThreadPools.createGeneralScheduledExecutorService(getConfiguration())
         .scheduleWithFixedDelay(() -> {
           try {
             if (replServer.get() == null) {

@@ -36,7 +36,7 @@ public class ThreadPools {
   public static final long DEFAULT_TIMEOUT_MILLISECS = 180000L;
 
   /**
-   * Get a thread pool based on a thread pool related property
+   * Create a thread pool based on a thread pool related property
    *
    * @param conf
    *          accumulo configuration
@@ -46,82 +46,82 @@ public class ThreadPools {
    * @throws RuntimeException
    *           if property is not handled
    */
-  public static ExecutorService getExecutorService(AccumuloConfiguration conf, Property p) {
+  public static ExecutorService createExecutorService(AccumuloConfiguration conf, Property p) {
 
     switch (p) {
       case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
-        return getScheduledExecutorService(conf.getCount(p), "SimpleTimer", false);
+        return createScheduledExecutorService(conf.getCount(p), "SimpleTimer", false);
       case MASTER_BULK_THREADPOOL_SIZE:
-        return getFixedThreadPool(conf.getCount(p),
+        return createFixedThreadPool(conf.getCount(p),
             conf.getTimeInMillis(Property.MASTER_BULK_THREADPOOL_TIMEOUT), TimeUnit.MILLISECONDS,
             "bulk import", true);
       case MASTER_RENAME_THREADS:
-        return getFixedThreadPool(conf.getCount(p), "bulk move", false);
+        return createFixedThreadPool(conf.getCount(p), "bulk move", false);
       case MASTER_FATE_THREADPOOL_SIZE:
-        return getFixedThreadPool(conf.getCount(p), "Repo Runner", false);
+        return createFixedThreadPool(conf.getCount(p), "Repo Runner", false);
       case MASTER_STATUS_THREAD_POOL_SIZE:
         int threads = conf.getCount(p);
         if (threads == 0) {
-          return getThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
+          return createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
               "GatherTableInformation", new SynchronousQueue<Runnable>(), OptionalInt.empty(),
               false);
         } else {
-          return getFixedThreadPool(threads, "GatherTableInformation", false);
+          return createFixedThreadPool(threads, "GatherTableInformation", false);
         }
       case TSERV_WORKQ_THREADS:
-        return getFixedThreadPool(conf.getCount(p), "distributed work queue", false);
+        return createFixedThreadPool(conf.getCount(p), "distributed work queue", false);
       case TSERV_MINC_MAXCONCURRENT:
-        return getFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS, "minor compactor",
+        return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS, "minor compactor",
             true);
       case TSERV_MIGRATE_MAXCONCURRENT:
-        return getFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS, "tablet migration",
-            true);
+        return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS,
+            "tablet migration", true);
       case TSERV_ASSIGNMENT_MAXCONCURRENT:
-        return getFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS, "tablet assignment",
-            true);
+        return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS,
+            "tablet assignment", true);
       case TSERV_SUMMARY_RETRIEVAL_THREADS:
-        return getThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
+        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
             "summary file retriever", true);
       case TSERV_SUMMARY_REMOTE_THREADS:
-        return getThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
+        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
             "summary remote", true);
       case TSERV_SUMMARY_PARTITION_THREADS:
-        return getThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
+        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
             "summary partition", true);
       case GC_DELETE_THREADS:
-        return getFixedThreadPool(conf.getCount(p), "deleting", false);
+        return createFixedThreadPool(conf.getCount(p), "deleting", false);
       case REPLICATION_WORKER_THREADS:
-        return getFixedThreadPool(conf.getCount(p), "replication task", false);
+        return createFixedThreadPool(conf.getCount(p), "replication task", false);
       default:
         throw new RuntimeException("Unhandled thread pool property: " + p);
     }
   }
 
-  public static ThreadPoolExecutor getFixedThreadPool(int numThreads, final String name,
+  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
       boolean enableTracing) {
-    return getFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, TimeUnit.MILLISECONDS, name,
+    return createFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, TimeUnit.MILLISECONDS, name,
         enableTracing);
   }
 
-  public static ThreadPoolExecutor getFixedThreadPool(int numThreads, final String name,
+  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
       BlockingQueue<Runnable> queue, boolean enableTracing) {
-    return getThreadPool(numThreads, numThreads, DEFAULT_TIMEOUT_MILLISECS, TimeUnit.MILLISECONDS,
-        name, queue, OptionalInt.empty(), enableTracing);
+    return createThreadPool(numThreads, numThreads, DEFAULT_TIMEOUT_MILLISECS,
+        TimeUnit.MILLISECONDS, name, queue, OptionalInt.empty(), enableTracing);
   }
 
-  public static ThreadPoolExecutor getFixedThreadPool(int numThreads, long timeOut, TimeUnit units,
-      final String name, boolean enableTracing) {
-    return getThreadPool(numThreads, numThreads, timeOut, units, name,
-        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty(), enableTracing);
-  }
-
-  public static ThreadPoolExecutor getThreadPool(int coreThreads, int maxThreads, long timeOut,
+  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, long timeOut,
       TimeUnit units, final String name, boolean enableTracing) {
-    return getThreadPool(coreThreads, maxThreads, timeOut, units, name,
+    return createThreadPool(numThreads, numThreads, timeOut, units, name,
         new LinkedBlockingQueue<Runnable>(), OptionalInt.empty(), enableTracing);
   }
 
-  public static ThreadPoolExecutor getThreadPool(int coreThreads, int maxThreads, long timeOut,
+  public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
+      TimeUnit units, final String name, boolean enableTracing) {
+    return createThreadPool(coreThreads, maxThreads, timeOut, units, name,
+        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty(), enableTracing);
+  }
+
+  public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
       TimeUnit units, final String name, BlockingQueue<Runnable> queue, OptionalInt priority,
       boolean enableTracing) {
     ThreadPoolExecutor result = null;
@@ -139,17 +139,17 @@ public class ThreadPools {
   }
 
   public static ScheduledThreadPoolExecutor
-      getGeneralScheduledExecutorService(AccumuloConfiguration conf) {
-    return (ScheduledThreadPoolExecutor) getExecutorService(conf,
+      createGeneralScheduledExecutorService(AccumuloConfiguration conf) {
+    return (ScheduledThreadPoolExecutor) createExecutorService(conf,
         Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
   }
 
-  public static ScheduledThreadPoolExecutor getScheduledExecutorService(int numThreads,
+  public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
       final String name, boolean enableTracing) {
-    return getScheduledExecutorService(numThreads, name, OptionalInt.empty(), enableTracing);
+    return createScheduledExecutorService(numThreads, name, OptionalInt.empty(), enableTracing);
   }
 
-  public static ScheduledThreadPoolExecutor getScheduledExecutorService(int numThreads,
+  public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
       final String name, OptionalInt priority, boolean enableTracing) {
     if (enableTracing) {
       return new TracingScheduledThreadPoolExecutor(numThreads,
