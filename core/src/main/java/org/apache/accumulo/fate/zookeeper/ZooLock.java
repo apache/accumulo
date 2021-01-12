@@ -22,7 +22,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
@@ -40,7 +42,9 @@ import org.slf4j.LoggerFactory;
 public class ZooLock implements Watcher {
   private static final Logger log = LoggerFactory.getLogger(ZooLock.class);
 
-  public static final String LOCK_PREFIX = "zlock-";
+  private static final String ZLOCK_PREFIX = "zlock#";
+  private static final String ZLOCK_UUID = UUID.randomUUID().toString();
+  private static final String THIS_ZLOCK = ZLOCK_PREFIX + ZLOCK_UUID + "#";
 
   public enum LockLossReason {
     LOCK_DELETED, SESSION_EXPIRED
@@ -79,6 +83,7 @@ public class ZooLock implements Watcher {
   }
 
   protected ZooLock(ZooCache zc, ZooReaderWriter zrw, String path) {
+    log.trace("THIS_ZLOCK is {}", THIS_ZLOCK);
     getLockDataZooCache = zc;
     this.path = path;
     zooKeeper = zrw;
@@ -139,6 +144,47 @@ public class ZooLock implements Watcher {
     return false;
   }
 
+  private static void sortChildrenByLockPrefix(List<String> children) {
+    Collections.sort(children, new Comparator<String>() {
+      @Override
+      public int compare(String o1, String o2) {
+
+        // Lock should be of the form:
+        // zlock#UUID#sequenceNumber
+        // Example:
+        // zlock#44755fbe-1c9e-40b3-8458-03abaf950d7e#0000000000
+
+        boolean lValid = true;
+        if (o1.length() <= 43) {
+          lValid = false;
+        }
+        boolean rValid = true;
+        if (o2.length() <= 43) {
+          rValid = false;
+        }
+        // Make any invalid's sort last (higher)
+        if (lValid && rValid) {
+          int leftIdx = o1.lastIndexOf('#');
+          int rightIdx = o2.lastIndexOf('#');
+          return Integer.compare(Integer.parseInt(o1.substring(leftIdx)),
+              Integer.parseInt(o2.substring(rightIdx)));
+        } else if (!lValid && rValid) {
+          return 1;
+        } else if (lValid && !rValid) {
+          return -1;
+        } else {
+          return 0;
+        }
+      }
+    });
+    if (log.isTraceEnabled()) {
+      log.trace("Children nodes");
+      for (String child : children) {
+        log.trace("- {}", child);
+      }
+    }
+  }
+
   private synchronized void lockAsync(final String myLock, final AsyncLockWatcher lw)
       throws KeeperException, InterruptedException {
 
@@ -146,19 +192,18 @@ public class ZooLock implements Watcher {
       throw new IllegalStateException("Called lockAsync() when asyncLock == null");
     }
 
-    List<String> children = zooKeeper.getChildren(path);
+    List<String> children = new ArrayList<>();
+    zooKeeper.getChildren(path).forEach(s -> {
+      if (s.startsWith(ZLOCK_PREFIX)) {
+        children.add(s);
+      }
+    });
 
     if (!children.contains(myLock)) {
       throw new RuntimeException("Lock attempt ephemeral node no longer exist " + myLock);
     }
 
-    Collections.sort(children);
-    if (log.isTraceEnabled()) {
-      log.trace("Candidate lock nodes");
-      for (String child : children) {
-        log.trace("- {}", child);
-      }
-    }
+    sortChildrenByLockPrefix(children);
 
     if (children.get(0).equals(myLock)) {
       log.trace("First candidate is my lock, acquiring");
@@ -259,7 +304,7 @@ public class ZooLock implements Watcher {
     lockWasAcquired = false;
 
     try {
-      final String asyncLockPath = zooKeeper.putEphemeralSequential(path + "/" + LOCK_PREFIX, data);
+      final String asyncLockPath = zooKeeper.putEphemeralSequential(path + "/" + THIS_ZLOCK, data);
       log.trace("Ephemeral node {} created", asyncLockPath);
       Stat stat = zooKeeper.getStatus(asyncLockPath, new Watcher() {
 
@@ -419,7 +464,8 @@ public class ZooLock implements Watcher {
     }
 
     children = new ArrayList<>(children);
-    Collections.sort(children);
+
+    sortChildrenByLockPrefix(children);
 
     String lockNode = children.get(0);
     if (!lid.node.equals(lockNode))
@@ -437,7 +483,7 @@ public class ZooLock implements Watcher {
       return null;
     }
 
-    Collections.sort(children);
+    sortChildrenByLockPrefix(children);
 
     String lockNode = children.get(0);
 
@@ -454,11 +500,11 @@ public class ZooLock implements Watcher {
     }
 
     children = new ArrayList<>(children);
-    Collections.sort(children);
+    sortChildrenByLockPrefix(children);
 
     String lockNode = children.get(0);
 
-    if (!lockNode.startsWith(LOCK_PREFIX)) {
+    if (!lockNode.startsWith(ZLOCK_PREFIX)) {
       throw new RuntimeException("Node " + lockNode + " at " + path + " is not a lock node");
     }
 
@@ -473,7 +519,7 @@ public class ZooLock implements Watcher {
     }
 
     children = new ArrayList<>(children);
-    Collections.sort(children);
+    sortChildrenByLockPrefix(children);
 
     String lockNode = children.get(0);
 
@@ -499,11 +545,11 @@ public class ZooLock implements Watcher {
       throw new IllegalStateException("No lock is held at " + path);
     }
 
-    Collections.sort(children);
+    sortChildrenByLockPrefix(children);
 
     String lockNode = children.get(0);
 
-    if (!lockNode.startsWith(LOCK_PREFIX)) {
+    if (!lockNode.startsWith(ZLOCK_PREFIX)) {
       throw new RuntimeException("Node " + lockNode + " at " + path + " is not a lock node");
     }
 
@@ -521,11 +567,11 @@ public class ZooLock implements Watcher {
       throw new IllegalStateException("No lock is held at " + path);
     }
 
-    Collections.sort(children);
+    sortChildrenByLockPrefix(children);
 
     String lockNode = children.get(0);
 
-    if (!lockNode.startsWith(LOCK_PREFIX)) {
+    if (!lockNode.startsWith(ZLOCK_PREFIX)) {
       throw new RuntimeException("Node " + lockNode + " at " + path + " is not a lock node");
     }
 
