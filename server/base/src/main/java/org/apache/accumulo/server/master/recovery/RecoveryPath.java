@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.master.recovery;
 
+
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
@@ -30,6 +31,7 @@ public class RecoveryPath {
 
   // given a wal path, transform it to a recovery path
   public static Path getRecoveryPath(Path walPath, ServerContext context) {
+
 
     if (walPath.depth() >= 3 && walPath.toUri().getScheme() != null) {
       // its a fully qualified path
@@ -48,9 +50,7 @@ public class RecoveryPath {
       // drop wal
       walPath = walPath.getParent();
 
-      walPath = new Path(walPath,
-          FileType.RECOVERY.getDirectory() + '-' + context.getUniqueNameAllocator().getNextName());
-      log.debug("Unique Name Allocated:  " + walPath);
+      walPath = new Path(walPath, FileType.RECOVERY.getDirectory() + ' ' + context.whoami());
       walPath = new Path(walPath, uuid);
 
       return walPath;
@@ -58,4 +58,5 @@ public class RecoveryPath {
 
     throw new IllegalArgumentException("Bad path " + walPath);
   }
+
 }

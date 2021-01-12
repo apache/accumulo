@@ -172,6 +172,8 @@ public class RecoveryManager {
         String dest =
             RecoveryPath.getRecoveryPath(new Path(filename), master.getContext()).toString();
 
+        log.debug("This is walPath in RecoveryManager: " + filename);
+
         boolean sortQueued;
         synchronized (this) {
           sortQueued = sortsQueued.contains(sortId);
