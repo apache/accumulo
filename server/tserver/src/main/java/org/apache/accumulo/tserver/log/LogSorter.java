@@ -93,7 +93,6 @@ public class LogSorter {
       }
 
       try {
-        log.info("Copying " + src + " to " + dest);
         sort(sortId, new Path(src), dest);
       } finally {
         currentWork.remove(sortId);
@@ -110,7 +109,13 @@ public class LogSorter {
       String formerThreadName = Thread.currentThread().getName();
       int part = 0;
       try {
+        // check for finished first since another thread may have already done the sort
+        if (fs.exists(SortedLogState.getFinishedMarkerPath(destPath))) {
+          log.debug("Sorting already finished at {}", destPath);
+          return;
+        }
 
+        log.info("Copying " + srcPath + " to " + destPath);
         // the following call does not throw an exception if the file/dir does not exist
         fs.deleteRecursively(new Path(destPath));
 
