@@ -386,10 +386,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           throw new RuntimeException(e);
         }
       default:
-        break;
+        throw new IllegalArgumentException("Unknown consistency level "+readConsistency);
     }
-
-    return null;
   }
 
   public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {
