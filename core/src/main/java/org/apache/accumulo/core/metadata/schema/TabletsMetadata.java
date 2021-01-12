@@ -386,7 +386,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           throw new RuntimeException(e);
         }
       default:
-        throw new IllegalArgumentException("Unknown consistency level "+readConsistency);
+        throw new IllegalArgumentException("Unknown consistency level " + readConsistency);
     }
   }
 
