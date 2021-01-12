@@ -75,6 +75,7 @@ public class LogSorter {
 
     @Override
     public void process(String child, byte[] data) {
+
       String work = new String(data);
       String[] parts = work.split("\\|");
       String src = parts[0];
@@ -89,8 +90,12 @@ public class LogSorter {
       }
 
       try {
-        log.info("Copying {} to {}", src, dest);
+        log.debug(
+            "Copying {} to {}---------------------------------------------------------------------------------------------------------------------  Wow this is it",
+            src, dest);
         sort(sortId, new Path(src), dest);
+        log.debug("This is the SortId: " + sortId
+            + "....................................................................... SortID");
       } finally {
         currentWork.remove(sortId);
       }
@@ -98,6 +103,12 @@ public class LogSorter {
     }
 
     public void sort(String name, Path srcPath, String destPath) {
+
+      log.debug("Just started Sort --- This is destPath: " + destPath
+          + "....................................................");
+
+      log.debug("Just started Sort --- This is srcPath: " + srcPath
+          + "....................................................");
 
       synchronized (this) {
         sortStart = System.currentTimeMillis();
@@ -110,6 +121,10 @@ public class LogSorter {
       try {
 
         // the following call does not throw an exception if the file/dir does not exist
+
+        log.debug(
+            "This destPath: " + destPath + "....................................................");
+
         fs.deleteRecursively(new Path(destPath));
 
         try (final FSDataInputStream fsinput = fs.open(srcPath)) {
@@ -164,7 +179,9 @@ public class LogSorter {
         log.error("Caught throwable", t);
       } finally {
         Thread.currentThread().setName(formerThreadName);
+
         try {
+          Thread.sleep(3000);
           close();
         } catch (Exception e) {
           log.error("Error during cleanup sort/copy " + name, e);
@@ -202,6 +219,9 @@ public class LogSorter {
     }
 
     public synchronized long getSortTime() {
+      log.debug(
+          "I am in getSortTime...........................................................................................................");
+
       if (sortStart > 0) {
         if (sortStop > 0)
           return sortStop - sortStart;
