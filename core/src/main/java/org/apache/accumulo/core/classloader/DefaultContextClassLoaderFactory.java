@@ -60,16 +60,19 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
   }
 
   private static void startCleanupThread(final Supplier<Map<String,String>> contextConfigSupplier) {
-    final ConfigurationCopy cc = new ConfigurationCopy(contextConfigSupplier.get());
-    String size = cc.get(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
+    final ConfigurationCopy threadPoolProperties =
+        new ConfigurationCopy(contextConfigSupplier.get());
+    String size = threadPoolProperties.get(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
     if (null == size || size.isEmpty()) {
-      cc.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE,
+      threadPoolProperties.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE,
           Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
     }
-    ThreadPools.createGeneralScheduledExecutorService(cc)
+    ThreadPools.createGeneralScheduledExecutorService(threadPoolProperties)
         .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
-          LOG.trace("{}-cleanup thread, properties: {}", className, cc);
-          Set<String> contextsInUse = cc
+          ConfigurationCopy contextCleanerProperties =
+              new ConfigurationCopy(contextConfigSupplier.get());
+          LOG.trace("{}-cleanup thread, properties: {}", className, threadPoolProperties);
+          Set<String> contextsInUse = contextCleanerProperties
               .getAllPropertiesWithPrefixStripped(Property.VFS_CONTEXT_CLASSPATH_PROPERTY).keySet();
           LOG.trace("{}-cleanup thread, contexts in use: {}", className, contextsInUse);
           AccumuloVFSClassLoader.removeUnusedContexts(contextsInUse);
