@@ -577,9 +577,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
     private final Runnable task;
 
     FailedMutations() {
-      task = Threads.createNamedRunnable("failed mutationBatchWriterLatencyTimers handler", () -> {
-        run();
-      });
+      task =
+          Threads.createNamedRunnable("failed mutationBatchWriterLatencyTimers handler", this::run);
       executor.scheduleWithFixedDelay(task, 0, 500, TimeUnit.MILLISECONDS);
     }
 

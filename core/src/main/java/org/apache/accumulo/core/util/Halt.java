@@ -22,6 +22,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.hadoop.util.Daemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,10 +51,9 @@ public class Halt {
   public static void halt(final int status, Runnable runnable) {
     try {
       // give ourselves a little time to try and do something
-      new Thread() {
+      new Daemon() {
         @Override
         public void run() {
-          setDaemon(true);
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
           Runtime.getRuntime().halt(status);
         }
