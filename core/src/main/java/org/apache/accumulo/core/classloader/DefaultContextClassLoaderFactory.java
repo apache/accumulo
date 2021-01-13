@@ -65,7 +65,6 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
         .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
           LOG.trace("{}-cleanup thread, properties: {}", className, conf);
           Set<String> contextsInUse = contextConfigSupplier.get().keySet().stream()
-              .filter(k -> k.startsWith(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.name()))
               .map(p -> p.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey().length()))
               .collect(Collectors.toSet());
           LOG.trace("{}-cleanup thread, contexts in use: {}", className, contextsInUse);

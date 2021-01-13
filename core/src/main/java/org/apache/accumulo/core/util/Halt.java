@@ -52,12 +52,9 @@ public class Halt {
 
     try {
       // give ourselves a little time to try and do something
-      Threads.createThread("Halt Thread", new Runnable() {
-        @Override
-        public void run() {
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-          Runtime.getRuntime().halt(status);
-        }
+      Threads.createThread("Halt Thread", () -> {
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        Runtime.getRuntime().halt(status);
       }).start();
 
       if (runnable != null)
