@@ -28,6 +28,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -62,7 +63,7 @@ class ZooTabletStateStore implements TabletStateStore {
         finished = true;
         try {
 
-          TabletMetadata rootMeta = ample.readTablet(RootTable.EXTENT);
+          TabletMetadata rootMeta = ample.readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL);
 
           TServerInstance currentSession = null;
           TServerInstance futureSession = null;
