@@ -62,6 +62,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -1181,11 +1182,14 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void updateUser(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
+
     if (accumuloClient != null) {
+      if (!accumuloClient.securityOperations().authenticateUser(principal, token)) {
+        throw new AccumuloSecurityException(principal, SecurityErrorCode.BAD_CREDENTIALS);
+      }
       accumuloClient.close();
     }
     accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
-    accumuloClient.securityOperations().authenticateUser(principal, token);
     context = (ClientContext) accumuloClient;
   }
 
