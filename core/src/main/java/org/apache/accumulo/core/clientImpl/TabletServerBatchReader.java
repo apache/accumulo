@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -34,8 +35,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   private final int batchReaderInstance = nextBatchReaderInstance.getAndIncrement();
   private final TableId tableId;
   private final int numThreads;
-  private final SimpleThreadPool queryThreadPool;
+  private final ThreadPoolExecutor queryThreadPool;
   private final ClientContext context;
   private final Authorizations authorizations;
   private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -69,18 +70,19 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.tableId = tableId;
     this.numThreads = numQueryThreads;
 
-    queryThreadPool =
-        new SimpleThreadPool(numQueryThreads, "batch scanner " + batchReaderInstance + "-");
-    cleanable = CleanerUtil.unclosed(this, scopeClass, closed, log, queryThreadPool.asCloseable());
+    queryThreadPool = ThreadPools.createFixedThreadPool(numQueryThreads,
+        "batch scanner " + batchReaderInstance + "-", false);
+    // Call shutdown on this thread pool in case the caller does not call close().
+    cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, closed, log);
   }
 
   @Override
   public void close() {
     if (closed.compareAndSet(false, true)) {
-      // deregister cleanable, but it won't run because it checks
-      // the value of closed first, which is now true
-      cleanable.clean();
+      // Shutdown the pool
       queryThreadPool.shutdownNow();
+      // deregister the cleaner, will not call shutdownNow() because closed is now true
+      cleanable.clean();
     }
   }
 

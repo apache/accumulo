@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,6 +38,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Client;
@@ -54,7 +54,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -129,7 +128,7 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
   protected void setInitialTraceHosts() {
     // Make a single thread pool with a daemon thread
     final ScheduledExecutorService svc =
-        Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setDaemon(true).build());
+        ThreadPools.createScheduledExecutorService(1, "SetTraceHosts", false);
     final Runnable task = new Runnable() {
       @Override
       public void run() {

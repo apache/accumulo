@@ -16,20 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.util.threads;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
+/**
+ * UncaughtExceptionHandler that logs all Exceptions and Errors thrown from a Thread. If an Error is
+ * thrown, halt the JVM.
+ *
+ */
+class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
 
-  private static final Logger log = LoggerFactory.getLogger(AccumuloUncaughtExceptionHandler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AccumuloUncaughtExceptionHandler.class);
 
   @Override
   public void uncaughtException(Thread t, Throwable e) {
-    log.error(String.format("Caught an exception in %s.  Shutting down.", t), e);
+    if (e instanceof Exception) {
+      LOG.error("Caught an Exception in {}. Thread is dead.", t, e);
+    } else if (e instanceof Error) {
+      try {
+        e.printStackTrace();
+        System.err.println("Error thrown in thread: " + t + ", halting VM.");
+      } catch (Throwable e1) {
+        // If e == OutOfMemoryError, then it's probably that another Error might be
+        // thrown when trying to print to System.err.
+      } finally {
+        Runtime.getRuntime().halt(-1);
+      }
+    }
   }
-
 }

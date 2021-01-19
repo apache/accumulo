@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.replication.WorkAssigner;
 import org.slf4j.Logger;
@@ -34,7 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Driver for a {@link WorkAssigner}
  */
-public class WorkDriver extends Daemon {
+public class WorkDriver implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(WorkDriver.class);
 
   private Master master;
@@ -69,8 +68,11 @@ public class WorkDriver extends Daemon {
 
       this.assigner.configure(conf, client);
       this.assignerImplName = assigner.getClass().getName();
-      this.setName(assigner.getName());
     }
+  }
+
+  public String getName() {
+    return assigner.getName();
   }
 
   @Override

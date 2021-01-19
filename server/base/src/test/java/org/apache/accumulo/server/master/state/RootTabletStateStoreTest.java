@@ -51,7 +51,8 @@ public class RootTabletStateStoreTest {
         RootTabletMetadata.getInitialJson("dir", "hdfs://nn/acc/tables/some/dir/0000.rf"), UTF_8);
 
     @Override
-    public TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {
+    public TabletMetadata readTablet(KeyExtent extent, ReadConsistency rc,
+        ColumnType... colsToFetch) {
       Preconditions.checkArgument(extent.equals(RootTable.EXTENT));
       return RootTabletMetadata.fromJson(json).convertToTabletMetadata();
     }

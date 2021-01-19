@@ -33,7 +33,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -49,7 +48,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -58,7 +57,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.htrace.wrappers.TraceExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,11 +90,8 @@ class LoadFiles extends MasterRepo {
 
   private static synchronized ExecutorService getThreadPool(Master master) {
     if (threadPool == null) {
-      int threadPoolSize = master.getConfiguration().getCount(Property.MASTER_BULK_THREADPOOL_SIZE);
-      long threadTimeOut =
-          master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_THREADPOOL_TIMEOUT);
-      ThreadPoolExecutor pool = new SimpleThreadPool(threadPoolSize, threadTimeOut, "bulk import");
-      threadPool = new TraceExecutorService(pool);
+      threadPool = ThreadPools.createExecutorService(master.getConfiguration(),
+          Property.MASTER_BULK_THREADPOOL_SIZE);
     }
     return threadPool;
   }

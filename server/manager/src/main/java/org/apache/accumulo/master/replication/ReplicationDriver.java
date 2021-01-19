@@ -22,7 +22,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.master.Master;
 import org.apache.htrace.Trace;
@@ -34,7 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Daemon wrapper around the {@link WorkMaker} that separates it from the Master
  */
-public class ReplicationDriver extends Daemon {
+public class ReplicationDriver implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationDriver.class);
 
   private final Master master;
@@ -47,8 +46,6 @@ public class ReplicationDriver extends Daemon {
   private AccumuloClient client;
 
   public ReplicationDriver(Master master) {
-    super("Replication Driver");
-
     this.master = master;
     this.conf = master.getConfiguration();
   }

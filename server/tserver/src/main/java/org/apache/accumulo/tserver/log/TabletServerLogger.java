@@ -40,14 +40,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
-import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
@@ -264,8 +263,8 @@ public class TabletServerLogger {
     if (nextLogMaker != null) {
       return;
     }
-    nextLogMaker = new SimpleThreadPool(1, "WALog creator");
-    nextLogMaker.submit(new LoggingRunnable(log, new Runnable() {
+    nextLogMaker = ThreadPools.createFixedThreadPool(1, "WALog creator", false);
+    nextLogMaker.submit(new Runnable() {
       @Override
       public void run() {
         final ServerResources conf = tserver.getServerConfig();
@@ -351,7 +350,7 @@ public class TabletServerLogger {
           }
         }
       }
-    }));
+    });
   }
 
   private synchronized void close() throws IOException {

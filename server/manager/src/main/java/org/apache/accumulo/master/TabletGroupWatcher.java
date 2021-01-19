@@ -74,7 +74,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.master.Master.TabletGoalState;
 import org.apache.accumulo.master.state.MergeStats;
 import org.apache.accumulo.master.state.TableCounts;
@@ -100,7 +99,7 @@ import org.apache.thrift.TException;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 
-abstract class TabletGroupWatcher extends Daemon {
+abstract class TabletGroupWatcher extends Thread {
   // Constants used to make sure assignment logging isn't excessive in quantity or size
 
   private final Master master;
@@ -113,6 +112,8 @@ abstract class TabletGroupWatcher extends Daemon {
     this.master = master;
     this.store = store;
     this.dependentWatcher = dependentWatcher;
+    setName("Watching " + store.name());
+    setDaemon(true);
   }
 
   /** Should this {@code TabletGroupWatcher} suspend tablets? */
@@ -167,7 +168,6 @@ abstract class TabletGroupWatcher extends Daemon {
 
   @Override
   public void run() {
-    Thread.currentThread().setName("Watching " + store.name());
     int[] oldCounts = new int[TabletState.values().length];
     EventCoordinator.Listener eventListener = this.master.nextEvent.getListener();
 

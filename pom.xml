@@ -1640,6 +1640,7 @@
       </properties>
     </profile>
     <profile>
+      <!-- mvn clean package javadoc:aggregate -DskipTests -Paggregate-javadocs -->
       <id>aggregate-javadocs</id>
       <build>
         <pluginManagement>
@@ -1650,11 +1651,12 @@
               <configuration>
                 <sourceFileIncludes>
                   <sourceFileInclude>**/org/apache/accumulo/core/client/**/*.java</sourceFileInclude>
-                  <sourceFileInclude>**/org/apache/accumulo/core/iterators/**/*.java</sourceFileInclude>
                   <sourceFileInclude>**/org/apache/accumulo/core/data/**/*.java</sourceFileInclude>
+                  <sourceFileInclude>**/org/apache/accumulo/core/iterators/**/*.java</sourceFileInclude>
                   <sourceFileInclude>**/org/apache/accumulo/core/security/**/*.java</sourceFileInclude>
-                  <sourceFileInclude>**/org/apache/accumulo/minicluster/**/*.java</sourceFileInclude>
                   <sourceFileInclude>**/org/apache/accumulo/core/spi/**/*.java</sourceFileInclude>
+                  <sourceFileInclude>**/org/apache/accumulo/hadoop/**/*.java</sourceFileInclude>
+                  <sourceFileInclude>**/org/apache/accumulo/minicluster/**/*.java</sourceFileInclude>
                 </sourceFileIncludes>
               </configuration>
             </plugin>

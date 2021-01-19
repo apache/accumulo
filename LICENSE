@@ -285,11 +285,11 @@ This product includes JQuery:
 
 **********
 
-This product includes Flot:
+This product includes Flot (https://github.com/flot/flot):
 
-    Copyright (c) 2007-2009 IOLA and Ole Laursen
+    Copyright (c) 2007-2014 IOLA and Ole Laursen
 
-    Available under the MIT License (see above)
+    Available under the MIT License (see above and https://github.com/flot/flot/blob/master/LICENSE.txt)
 
     Flot bundles additional works:
 

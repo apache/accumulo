@@ -35,7 +35,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
@@ -88,7 +88,6 @@ public class LogSorter {
       }
 
       try {
-        log.info("Copying {} to {}", src, dest);
         sort(sortId, new Path(src), dest);
       } finally {
         currentWork.remove(sortId);
@@ -107,7 +106,13 @@ public class LogSorter {
       String formerThreadName = Thread.currentThread().getName();
       int part = 0;
       try {
+        // check for finished first since another thread may have already done the sort
+        if (fs.exists(SortedLogState.getFinishedMarkerPath(destPath))) {
+          log.debug("Sorting already finished at {}", destPath);
+          return;
+        }
 
+        log.info("Copying {} to {}", srcPath, destPath);
         // the following call does not throw an exception if the file/dir does not exist
         fs.deleteRecursively(new Path(destPath));
 
@@ -217,7 +222,8 @@ public class LogSorter {
     this.context = context;
     this.conf = conf;
     int threadPoolSize = conf.getCount(Property.TSERV_RECOVERY_MAX_CONCURRENT);
-    this.threadPool = new SimpleThreadPool(threadPoolSize, this.getClass().getName());
+    this.threadPool =
+        ThreadPools.createFixedThreadPool(threadPoolSize, this.getClass().getName(), false);
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);
   }
 
