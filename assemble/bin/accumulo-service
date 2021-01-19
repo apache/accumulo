@@ -25,7 +25,8 @@ Usage: accumulo-service <service> <command>
 Services:
   gc          Accumulo garbage collector
   monitor     Accumulo monitor
-  master      Accumulo master
+  manager     Accumulo manager
+  master      Accumulo master (Deprecated)
   tserver     Accumulo tserver
   tracer      Accumulo tracter
 
@@ -67,7 +68,7 @@ function start_service() {
   fi
   echo "Starting $service on $host"
 
-  if [[ $service == "master" ]]; then
+  if [[ $service == "manager" ]]; then
     "${bin}/accumulo" org.apache.accumulo.master.state.SetGoalState NORMAL
   fi
 
@@ -137,9 +138,15 @@ function main() {
     host=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
   fi 
   service="$1"
+
+  if [[ $service == "master" ]]; then
+    echo "WARN : Use of master service name is deprecated, use manager instead."
+    service="manager"
+  fi
+
   pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${ACCUMULO_SERVICE_INSTANCE}.pid"
   case "$service" in
-    gc|master|monitor|tserver|tracer)
+    gc|manager|monitor|tserver|tracer)
       if [[ -z $2 ]]; then
         invalid_args "<command> cannot be empty"
       fi

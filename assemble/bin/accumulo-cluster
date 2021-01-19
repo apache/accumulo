@@ -57,37 +57,37 @@ function verify_config {
     exit 1
   fi
 
-  unset master1
-  if [[ -f "${conf}/masters" ]]; then
-    master1=$(egrep -v '(^#|^\s*$)' "${conf}/masters" | head -1)
+  unset manager1
+  if [[ -f "${conf}/$manager_file" ]]; then
+    manager1=$(egrep -v '(^#|^\s*$)' "${conf}/$manager_file" | head -1)
   fi
 
   if [[ -z "${monitor}" ]] ; then
-    monitor=$master1
+    monitor=$manager1
     if [[ -f "${conf}/monitor" ]]; then
       monitor=$(egrep -v '(^#|^\s*$)' "${conf}/monitor" | head -1)
     fi
     if [[ -z "${monitor}" ]] ; then
       echo "Could not infer a Monitor role. You need to either define \"${conf}/monitor\"," 
-      echo "or make sure \"${conf}/masters\" is non-empty."
+      echo "or make sure \"${conf}/$manager_file\" is non-empty."
       exit 1
     fi
   fi
   if [[ ! -f "${conf}/tracers" ]]; then
-    if [[ -z "${master1}" ]] ; then
+    if [[ -z "${manager1}" ]] ; then
       echo "Could not find a master node to use as a default for the tracer role."
-      echo "Either set up \"${conf}/tracers\" or make sure \"${conf}/masters\" is non-empty."
+      echo "Either set up \"${conf}/tracers\" or make sure \"${conf}/$manager_file\" is non-empty."
       exit 1
     else
-      echo "$master1" > "${conf}/tracers"
+      echo "$manager1" > "${conf}/tracers"
     fi
   fi
   if [[ ! -f "${conf}/gc" ]]; then
-    if [[ -z "${master1}" ]] ; then
-      echo "Could not infer a GC role. You need to either set up \"${conf}/gc\" or make sure \"${conf}/masters\" is non-empty."
+    if [[ -z "${manager1}" ]] ; then
+      echo "Could not infer a GC role. You need to either set up \"${conf}/gc\" or make sure \"${conf}/$manager_file\" is non-empty."
       exit 1
     else
-      echo "$master1" > "${conf}/gc"
+      echo "$manager1" > "${conf}/gc"
     fi
   fi
 }
@@ -147,8 +147,8 @@ function start_all() {
     start_tservers
   fi
 
-  for host in $(egrep -v '(^#|^\s*$)' "${conf}/masters"); do
-    start_service "$host" master
+  for host in $(egrep -v '(^#|^\s*$)' "${conf}/$manager_file"); do
+    start_service "$host" manager
   done
 
   for host in $(egrep -v '(^#|^\s*$)' "${conf}/gc"); do
@@ -173,8 +173,8 @@ function start_here() {
   done
 
   for host in $local_hosts; do
-    if grep -q "^${host}\$" "${conf}/masters"; then
-      start_service "$host" master
+    if grep -q "^${host}\$" "${conf}/$manager_file"; then
+      start_service "$host" manager
       break
     fi
   done
@@ -235,7 +235,7 @@ function stop_tservers() {
 function kill_all() {
   echo "Killing Accumulo cluster..."
 
-  for master in $(grep -v '^#' "${conf}/masters"); do
+  for master in $(grep -v '^#' "${conf}/$manager_file"); do
     kill_service "$master" master
   done
 
@@ -275,8 +275,8 @@ function stop_all() {
 
   # Look for processes not killed by 'admin stopAll'
   for end_cmd in "stop" "kill" ; do
-    for master in $(grep -v '^#' "${conf}/masters"); do
-      end_service "$master" master $end_cmd
+    for manager in $(grep -v '^#' "${conf}/$manager_file"); do
+      end_service "$manager" manager $end_cmd
     done
 
     for gc in $(grep -v '^#' "${conf}/gc"); do
@@ -340,10 +340,16 @@ function main() {
   accumulo_cmd="${bin}/accumulo"
   SSH='ssh -qnf -o ConnectTimeout=2'
 
+  manager_file="managers"
+  if [ ! -f "$conf/$manager_file" -a -f "$conf/masters" ]; then
+    echo "WARN : Use of masters files is deprecated.  Use managers files instead"
+    manager_file="masters"
+  fi 
+
   case "$1" in
     create-config)
       echo "localhost" > "$conf/gc"
-      echo "localhost" > "$conf/masters"
+      echo "localhost" > "$conf/managers"
       echo "localhost" > "$conf/monitor"
       echo "localhost" > "$conf/tracers"
       echo "localhost" > "$conf/tservers"
