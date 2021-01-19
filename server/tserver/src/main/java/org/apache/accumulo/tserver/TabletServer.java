@@ -1134,7 +1134,6 @@ public class TabletServer extends AbstractServer {
     for (LogEntry entry : sorted) {
       Path recovery = null;
       Path finished = RecoveryPath.getRecoveryPath(new Path(entry.filename), getContext());
-      log.debug("This is walPath in TabletServer: " + entry.filename);
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {
