@@ -27,13 +27,14 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.WatchedEvent;
@@ -151,7 +152,7 @@ public class DistributedWorkQueue {
         threadPool.execute(task);
 
       }
-    } catch (Throwable t) {
+    } catch (Exception t) {
       log.error("Unexpected error", t);
     }
   }
@@ -219,19 +220,20 @@ public class DistributedWorkQueue {
     lookForWork(processor, children);
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
-    SimpleTimer.getInstance(config).schedule(new Runnable() {
-      @Override
-      public void run() {
-        log.debug("Looking for work in {}", path);
-        try {
-          lookForWork(processor, zoo.getChildren(path));
-        } catch (KeeperException e) {
-          log.error("Failed to look for work", e);
-        } catch (InterruptedException e) {
-          log.info("Interrupted looking for work", e);
-        }
-      }
-    }, timerInitialDelay, timerPeriod);
+    ThreadPools.createGeneralScheduledExecutorService(config)
+        .scheduleWithFixedDelay(new Runnable() {
+          @Override
+          public void run() {
+            log.debug("Looking for work in {}", path);
+            try {
+              lookForWork(processor, zoo.getChildren(path));
+            } catch (KeeperException e) {
+              log.error("Failed to look for work", e);
+            } catch (InterruptedException e) {
+              log.info("Interrupted looking for work", e);
+            }
+          }
+        }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS);
   }
 
   /**

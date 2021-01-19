@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.core.util;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,15 +49,13 @@ public class Halt {
   }
 
   public static void halt(final int status, Runnable runnable) {
+
     try {
       // give ourselves a little time to try and do something
-      new Daemon() {
-        @Override
-        public void run() {
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-          Runtime.getRuntime().halt(status);
-        }
-      }.start();
+      Threads.createThread("Halt Thread", () -> {
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        Runtime.getRuntime().halt(status);
+      }).start();
 
       if (runnable != null)
         runnable.run();

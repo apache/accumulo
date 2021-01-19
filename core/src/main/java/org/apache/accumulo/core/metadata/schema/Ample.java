@@ -110,14 +110,48 @@ public interface Ample {
   }
 
   /**
-   * Read a single tablets metadata. No checking is done for prev row, so it could differ.
+   * Controls how Accumulo metadata is read. Currently this only impacts reading the root tablet
+   * stored in Zookeeper. Reading data stored in the Accumulo metadata table is always immediate
+   * consistency.
+   */
+  public enum ReadConsistency {
+    /**
+     * Read data in a a way that is slower, but should always yield the latest data. In addition to
+     * being slower, it possible this read consistency can place higher load on shared resource
+     * which can negatively impact an entire cluster.
+     */
+    IMMEDIATE,
+    /**
+     * Read data in a way that may be faster but may yield out of date data.
+     */
+    EVENTUAL
+  }
+
+  /**
+   * Read a single tablets metadata. No checking is done for prev row, so it could differ. The
+   * method will read the data using {@link ReadConsistency#IMMEDIATE}.
    *
    * @param extent
    *          Reads tablet metadata using the table id and end row from this extent.
    * @param colsToFetch
    *          What tablets columns to fetch. If empty, then everything is fetched.
    */
-  TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch);
+  default TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {
+    return readTablet(extent, ReadConsistency.IMMEDIATE, colsToFetch);
+  }
+
+  /**
+   * Read a single tablets metadata. No checking is done for prev row, so it could differ.
+   *
+   * @param extent
+   *          Reads tablet metadata using the table id and end row from this extent.
+   * @param readConsistency
+   *          Controls how the data is read.
+   * @param colsToFetch
+   *          What tablets columns to fetch. If empty, then everything is fetched.
+   */
+  TabletMetadata readTablet(KeyExtent extent, ReadConsistency readConsistency,
+      ColumnType... colsToFetch);
 
   /**
    * Initiates mutating a single tablets persistent metadata. No data is persisted until the

@@ -61,8 +61,8 @@ public class GarbageCollectionTest {
     }
 
     @Override
-    public Iterator<String> getBlipIterator() {
-      return blips.iterator();
+    public Stream<String> getBlipPaths() {
+      return blips.stream();
     }
 
     @Override

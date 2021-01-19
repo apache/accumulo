@@ -36,12 +36,12 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -168,7 +168,7 @@ public class ServerUtil {
   }
 
   public static void monitorSwappiness(AccumuloConfiguration config) {
-    SimpleTimer.getInstance(config).schedule(() -> {
+    ThreadPools.createGeneralScheduledExecutorService(config).scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";
         File swappiness = new File(procFile);
@@ -186,10 +186,10 @@ public class ServerUtil {
             }
           }
         }
-      } catch (Throwable t) {
+      } catch (Exception t) {
         log.error("", t);
       }
-    }, 1000, 10 * 60 * 1000);
+    }, 1000, 10 * 60 * 1000, TimeUnit.MILLISECONDS);
   }
 
   public static void waitForZookeeperAndHdfs(ServerContext context) {

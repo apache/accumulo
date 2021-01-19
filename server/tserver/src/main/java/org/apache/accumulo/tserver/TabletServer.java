@@ -80,14 +80,14 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
-import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -122,10 +122,8 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
 import org.apache.accumulo.server.util.FileSystemMonitor;
-import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
-import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
@@ -209,8 +207,6 @@ public class TabletServer extends AbstractServer {
 
   private final BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<>();
 
-  private Thread majorCompactorThread;
-
   HostAndPort clientAddress;
 
   private volatile boolean serverStopRequested = false;
@@ -261,42 +257,47 @@ public class TabletServer extends AbstractServer {
     // This thread will calculate and log out the busiest tablets based on ingest count and
     // query count every #{logBusiestTabletsDelay}
     if (numBusyTabletsToLog > 0) {
-      SimpleTimer.getInstance(aconf).schedule(new Runnable() {
-        private BusiestTracker ingestTracker =
-            BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
-        private BusiestTracker queryTracker =
-            BusiestTracker.newBusiestQueryTracker(numBusyTabletsToLog);
+      ThreadPools.createGeneralScheduledExecutorService(aconf)
+          .scheduleWithFixedDelay(Threads.createNamedRunnable("BusyTabletLogger", new Runnable() {
+            private BusiestTracker ingestTracker =
+                BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
+            private BusiestTracker queryTracker =
+                BusiestTracker.newBusiestQueryTracker(numBusyTabletsToLog);
 
-        @Override
-        public void run() {
-          Collection<Tablet> tablets = onlineTablets.snapshot().values();
-          logBusyTablets(ingestTracker.computeBusiest(tablets), "ingest count");
-          logBusyTablets(queryTracker.computeBusiest(tablets), "query count");
-        }
+            @Override
+            public void run() {
+              Collection<Tablet> tablets = onlineTablets.snapshot().values();
+              logBusyTablets(ingestTracker.computeBusiest(tablets), "ingest count");
+              logBusyTablets(queryTracker.computeBusiest(tablets), "query count");
+            }
 
-        private void logBusyTablets(List<ComparablePair<Long,KeyExtent>> busyTablets,
-            String label) {
+            private void logBusyTablets(List<ComparablePair<Long,KeyExtent>> busyTablets,
+                String label) {
 
-          int i = 1;
-          for (Pair<Long,KeyExtent> pair : busyTablets) {
-            log.debug("{} busiest tablet by {}: {} -- extent: {} ", i, label.toLowerCase(),
-                pair.getFirst(), pair.getSecond());
-            i++;
-          }
-        }
-      }, logBusyTabletsDelay, logBusyTabletsDelay);
+              int i = 1;
+              for (Pair<Long,KeyExtent> pair : busyTablets) {
+                log.debug("{} busiest tablet by {}: {} -- extent: {} ", i, label.toLowerCase(),
+                    pair.getFirst(), pair.getSecond());
+                i++;
+              }
+            }
+          }), logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
     }
 
-    SimpleTimer.getInstance(aconf).schedule(() -> {
-      long now = System.currentTimeMillis();
-      for (Tablet tablet : getOnlineTablets().values()) {
-        try {
-          tablet.updateRates(now);
-        } catch (Exception ex) {
-          log.error("Error updating rates for {}", tablet.getExtent(), ex);
-        }
-      }
-    }, 5000, 5000);
+    ThreadPools.createGeneralScheduledExecutorService(aconf)
+        .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", new Runnable() {
+          @Override
+          public void run() {
+            long now = System.currentTimeMillis();
+            for (Tablet tablet : getOnlineTablets().values()) {
+              try {
+                tablet.updateRates(now);
+              } catch (Exception ex) {
+                log.error("Error updating rates for {}", tablet.getExtent(), ex);
+              }
+            }
+          }
+        }), 5000, 5000, TimeUnit.MILLISECONDS);
 
     final long walogMaxSize = aconf.getAsBytes(Property.TSERV_WALOG_MAX_SIZE);
     final long walogMaxAge = aconf.getTimeInMillis(Property.TSERV_WALOG_MAX_AGE);
@@ -338,7 +339,8 @@ public class TabletServer extends AbstractServer {
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
-    SimpleTimer.getInstance(aconf).schedule(TabletLocator::clearLocators, jitter(), jitter());
+    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(
+        TabletLocator::clearLocators, jitter(), jitter(), TimeUnit.MILLISECONDS);
     walMarker = new WalStateManager(context);
 
     // Create the secret manager
@@ -408,8 +410,7 @@ public class TabletServer extends AbstractServer {
   }
 
   public void executeSplit(Tablet tablet) {
-    resourceManager.executeSplit(tablet.getExtent(),
-        new LoggingRunnable(log, new SplitRunner(tablet)));
+    resourceManager.executeSplit(tablet.getExtent(), new SplitRunner(tablet));
   }
 
   private class MajorCompactor implements Runnable {
@@ -445,7 +446,7 @@ public class TabletServer extends AbstractServer {
 
             tablet.checkIfMinorCompactionNeededForLogs(closedCopy);
           }
-        } catch (Throwable t) {
+        } catch (Exception t) {
           log.error("Unexpected exception in {}", Thread.currentThread().getName(), t);
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
@@ -653,7 +654,7 @@ public class TabletServer extends AbstractServer {
         }
 
         @Override
-        public void unableToMonitorLockNode(final Throwable e) {
+        public void unableToMonitorLockNode(final Exception e) {
           Halt.halt(1, () -> log.error("Lost ability to monitor tablet server lock, exiting.", e));
 
         }
@@ -744,8 +745,8 @@ public class TabletServer extends AbstractServer {
       throw new RuntimeException(e);
     }
 
-    ThreadPoolExecutor distWorkQThreadPool = new SimpleThreadPool(
-        getConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
+    ThreadPoolExecutor distWorkQThreadPool = (ThreadPoolExecutor) ThreadPools
+        .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS);
 
     bulkFailedCopyQ = new DistributedWorkQueue(
         getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ, getConfiguration());
@@ -764,18 +765,19 @@ public class TabletServer extends AbstractServer {
     }
     final AccumuloConfiguration aconf = getConfiguration();
     // if the replication name is ever set, then start replication services
-    SimpleTimer.getInstance(aconf).schedule(() -> {
+    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
       if (this.replServer == null) {
         if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
           log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
           setupReplication(aconf);
         }
       }
-    }, 0, 5000);
+    }, 0, 5000, TimeUnit.MILLISECONDS);
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
-    SimpleTimer.getInstance(aconf).schedule(new BulkImportCacheCleaner(this),
-        CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS);
+    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(
+        new BulkImportCacheCleaner(this), CLEANUP_BULK_LOADED_CACHE_MILLIS,
+        CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS);
 
     HostAndPort masterHost;
     while (!serverStopRequested) {
@@ -887,8 +889,8 @@ public class TabletServer extends AbstractServer {
     }
 
     // Start the pool to handle outgoing replications
-    final ThreadPoolExecutor replicationThreadPool = new SimpleThreadPool(
-        getConfiguration().getCount(Property.REPLICATION_WORKER_THREADS), "replication task");
+    final ThreadPoolExecutor replicationThreadPool = (ThreadPoolExecutor) ThreadPools
+        .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS);
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
 
@@ -901,7 +903,8 @@ public class TabletServer extends AbstractServer {
         replicationThreadPool.setMaximumPoolSize(maxPoolSize);
       }
     };
-    SimpleTimer.getInstance(aconf).schedule(replicationWorkThreadPoolResizer, 10000, 30000);
+    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(
+        replicationWorkThreadPoolResizer, 10000, 30000, TimeUnit.MILLISECONDS);
   }
 
   static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
@@ -988,10 +991,7 @@ public class TabletServer extends AbstractServer {
 
   private void config() {
     log.info("Tablet server starting on {}", getHostname());
-    majorCompactorThread =
-        new Daemon(new LoggingRunnable(log, new MajorCompactor(getConfiguration())));
-    majorCompactorThread.setName("Split/MajC initiator");
-    majorCompactorThread.start();
+    Threads.createThread("Split/MajC initiator", new MajorCompactor(getConfiguration())).start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
 
@@ -1001,7 +1001,8 @@ public class TabletServer extends AbstractServer {
 
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 
-    SimpleTimer.getInstance(aconf).schedule(gcDebugTask, 0, TIME_BETWEEN_GC_CHECKS);
+    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(gcDebugTask, 0,
+        TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
   }
 
   public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {

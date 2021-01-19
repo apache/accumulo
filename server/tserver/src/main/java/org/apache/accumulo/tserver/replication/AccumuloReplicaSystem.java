@@ -68,7 +68,6 @@ import org.apache.accumulo.server.replication.ReplicaSystemHelper;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.tserver.log.DfsLogger;
-import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -618,13 +617,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return desiredTids;
   }
 
-  public DataInputStream getWalStream(Path p, FSDataInputStream input) throws IOException {
+  public DataInputStream getWalStream(Path p, FSDataInputStream input)
+      throws LogHeaderIncompleteException, IOException {
     try (TraceScope span = Trace.startSpan("Read WAL header")) {
       if (span.getSpan() != null) {
         span.getSpan().addKVAnnotation("file", p.toString());
       }
-      DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(input, conf);
-      return streams.getDecryptingInputStream();
+      return DfsLogger.getDecryptingStream(input, conf);
     }
   }
 

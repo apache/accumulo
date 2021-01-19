@@ -96,9 +96,8 @@ public class RetryTest {
       retry.useRetry();
     }
     assertFalse(retry.canRetry());
-
-    // Calling useRetry when canRetry returns false throws an exception
-    assertThrows(IllegalStateException.class, () -> retry.useRetry());
+    assertThrows("Calling useRetry when canRetry returns false throws an exception",
+        IllegalStateException.class, () -> retry.useRetry());
   }
 
   @Test

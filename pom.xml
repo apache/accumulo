@@ -121,6 +121,8 @@
     <curator.version>4.3.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
+    <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
+    <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
     <failsafe.excludedGroups />
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
@@ -142,7 +144,7 @@
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>2.0.7</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2020-08-27T15:56:15Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2020-12-17T22:06:50Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
@@ -988,10 +990,9 @@
           <version>3.0.0</version>
         </plugin>
         <plugin>
-          <!-- version 1.6.0 is broken; see https://github.com/mojohaus/exec-maven-plugin/issues/75 -->
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>1.5.0</version>
+          <version>3.0.0</version>
         </plugin>
         <plugin>
           <groupId>net.revelc.code</groupId>
@@ -1639,6 +1640,7 @@
       </properties>
     </profile>
     <profile>
+      <!-- mvn clean package javadoc:aggregate -DskipTests -Paggregate-javadocs -->
       <id>aggregate-javadocs</id>
       <build>
         <pluginManagement>
@@ -1649,11 +1651,12 @@
               <configuration>
                 <sourceFileIncludes>
                   <sourceFileInclude>**/org/apache/accumulo/core/client/**/*.java</sourceFileInclude>
-                  <sourceFileInclude>**/org/apache/accumulo/core/iterators/**/*.java</sourceFileInclude>
                   <sourceFileInclude>**/org/apache/accumulo/core/data/**/*.java</sourceFileInclude>
+                  <sourceFileInclude>**/org/apache/accumulo/core/iterators/**/*.java</sourceFileInclude>
                   <sourceFileInclude>**/org/apache/accumulo/core/security/**/*.java</sourceFileInclude>
-                  <sourceFileInclude>**/org/apache/accumulo/minicluster/**/*.java</sourceFileInclude>
                   <sourceFileInclude>**/org/apache/accumulo/core/spi/**/*.java</sourceFileInclude>
+                  <sourceFileInclude>**/org/apache/accumulo/hadoop/**/*.java</sourceFileInclude>
+                  <sourceFileInclude>**/org/apache/accumulo/minicluster/**/*.java</sourceFileInclude>
                 </sourceFileIncludes>
               </configuration>
             </plugin>
