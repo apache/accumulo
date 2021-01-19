@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -78,6 +79,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
+import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -113,6 +115,7 @@ public class Upgrader9to10 implements Upgrader {
   public void upgradeZookeeper(ServerContext ctx) {
     setMetaTableProps(ctx);
     upgradeRootTabletMetadata(ctx);
+    renameMasterProps(ctx);
   }
 
   @Override
@@ -199,6 +202,39 @@ public class Upgrader9to10 implements Upgrader {
     delete(ctx, ZROOT_TABLET_LOCATION);
     delete(ctx, ZROOT_TABLET_WALOGS);
     delete(ctx, ZROOT_TABLET_PATH);
+  }
+
+  @SuppressWarnings("removal")
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  private void renameMasterProps(ServerContext ctx) {
+    try {
+      // Figure out which props with the "master." prefix are set only in Zookeeper. If
+      // a property exists in the config and is either not set in the site config, or has
+      // a different value from the site config, then the property is set in zookeeper
+      // and we want to upgrade.
+      HashMap<String,String> configProps = new HashMap<>();
+      HashMap<String,String> siteProps = new HashMap<>();
+      ctx.getConfiguration().getProperties(configProps,
+          p -> p.startsWith(DeprecatedPropertyUtil.MasterPropertyRenamer.MASTER_PREFIX));
+      ctx.getSiteConfiguration().getProperties(siteProps,
+          p -> p.startsWith(DeprecatedPropertyUtil.MasterPropertyRenamer.MASTER_PREFIX));
+      configProps.entrySet().removeIf(
+          e -> siteProps.containsKey(e.getKey()) && e.getValue().equals(siteProps.get(e.getKey())));
+
+      for (Entry<String,String> entry : configProps.entrySet()) {
+        // Set the property under the new name
+        SystemPropUtil.setSystemProperty(ctx,
+            DeprecatedPropertyUtil.renameDeprecatedProperty(entry.getKey(), false),
+            entry.getValue());
+        // Delete the old property. We can't use SystemPropUtil.removeSystemProperty
+        // since it will just rename the old property name to the new one and
+        // then we'd delete the new property value we just set.
+        String zPath = ctx.getZooKeeperRoot() + Constants.ZCONFIG + "/" + entry.getKey();
+        ctx.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Unable to upgrade system properties", e);
+    }
   }
 
   private static class UpgradeMutator extends TabletMutatorBase {

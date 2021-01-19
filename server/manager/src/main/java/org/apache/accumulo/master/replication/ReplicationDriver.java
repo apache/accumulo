@@ -109,7 +109,7 @@ public class ReplicationDriver implements Runnable {
       }
 
       // Sleep for a bit
-      long sleepMillis = conf.getTimeInMillis(Property.MASTER_REPLICATION_SCAN_INTERVAL);
+      long sleepMillis = conf.getTimeInMillis(Property.MANAGER_REPLICATION_SCAN_INTERVAL);
       log.trace("Sleeping for {}ms before re-running", sleepMillis);
       try {
         Thread.sleep(sleepMillis);

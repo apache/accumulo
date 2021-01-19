@@ -21,6 +21,7 @@ package org.apache.accumulo.server.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -36,6 +37,10 @@ public class SystemPropUtil {
 
   public static void setSystemProperty(ServerContext context, String property, String value)
       throws KeeperException, InterruptedException {
+    // Retrieve the replacement name for this property, if there is one.
+    // Do this before we check if the name is a valid zookeeper name.
+    property = DeprecatedPropertyUtil.renameDeprecatedProperty(property);
+
     if (!Property.isValidZooPropertyKey(property)) {
       IllegalArgumentException iae =
           new IllegalArgumentException("Zookeeper property is not mutable: " + property);
@@ -70,6 +75,7 @@ public class SystemPropUtil {
 
   public static void removeSystemProperty(ServerContext context, String property)
       throws InterruptedException, KeeperException {
+    property = DeprecatedPropertyUtil.renameDeprecatedProperty(property);
     String zPath = context.getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
     context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
   }

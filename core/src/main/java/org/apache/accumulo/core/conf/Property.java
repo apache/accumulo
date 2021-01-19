@@ -245,80 +245,81 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC"),
 
-  // properties that are specific to master server behavior
-  MASTER_PREFIX("master.", null, PropertyType.PREFIX,
-      "Properties in this category affect the behavior of the master server"),
-  MASTER_CLIENTPORT("master.port.client", "9999", PropertyType.PORT,
-      "The port used for handling client connections on the master"),
-  MASTER_TABLET_BALANCER("master.tablet.balancer",
+  // properties that are specific to manager server behavior
+  MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
+      "Properties in this category affect the behavior of the manager server. **Note:** Since 2.1.0, all 'manager.*' properties replace the deprecated 'master.*' properties."),
+  MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
+      "The port used for handling client connections on the manager"),
+  MANAGER_TABLET_BALANCER("manager.tablet.balancer",
       "org.apache.accumulo.server.master.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions."),
-  MASTER_BULK_RETRIES("master.bulk.retries", "3", PropertyType.COUNT,
+  MANAGER_BULK_RETRIES("manager.bulk.retries", "3", PropertyType.COUNT,
       "The number of attempts to bulk import a RFile before giving up."),
-  MASTER_BULK_THREADPOOL_SIZE("master.bulk.threadpool.size", "5", PropertyType.COUNT,
+  MANAGER_BULK_THREADPOOL_SIZE("manager.bulk.threadpool.size", "5", PropertyType.COUNT,
       "The number of threads to use when coordinating a bulk import."),
-  MASTER_BULK_THREADPOOL_TIMEOUT("master.bulk.threadpool.timeout", "0s", PropertyType.TIMEDURATION,
+  MANAGER_BULK_THREADPOOL_TIMEOUT("manager.bulk.threadpool.timeout", "0s",
+      PropertyType.TIMEDURATION,
       "The time after which bulk import threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely."),
-  MASTER_BULK_TIMEOUT("master.bulk.timeout", "5m", PropertyType.TIMEDURATION,
+  MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request"),
-  MASTER_RENAME_THREADS("master.rename.threadpool.size", "20", PropertyType.COUNT,
+  MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
       "The number of threads to use when renaming user files during table import or bulk ingest."),
   @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = MASTER_RENAME_THREADS)
-  MASTER_BULK_RENAME_THREADS("master.bulk.rename.threadpool.size", "20", PropertyType.COUNT,
+  @ReplacedBy(property = MANAGER_RENAME_THREADS)
+  MANAGER_BULK_RENAME_THREADS("manager.bulk.rename.threadpool.size", "20", PropertyType.COUNT,
       "This property is deprecated since 2.1.0. The number of threads to use when moving user files to bulk ingest "
           + "directories under accumulo control"),
-  MASTER_BULK_TSERVER_REGEX("master.bulk.tserver.regex", "", PropertyType.STRING,
+  MANAGER_BULK_TSERVER_REGEX("manager.bulk.tserver.regex", "", PropertyType.STRING,
       "Regular expression that defines the set of Tablet Servers that will perform bulk imports"),
-  MASTER_MINTHREADS("master.server.threads.minimum", "20", PropertyType.COUNT,
+  MANAGER_MINTHREADS("manager.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests."),
-  MASTER_MINTHREADS_TIMEOUT("master.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
+  MANAGER_MINTHREADS_TIMEOUT("manager.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
       "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely."),
-  MASTER_THREADCHECK("master.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
+  MANAGER_THREADCHECK("manager.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the server thread pool."),
-  MASTER_RECOVERY_DELAY("master.recovery.delay", "10s", PropertyType.TIMEDURATION,
+  MANAGER_RECOVERY_DELAY("manager.recovery.delay", "10s", PropertyType.TIMEDURATION,
       "When a tablet server's lock is deleted, it takes time for it to "
           + "completely quit. This delay gives it time before log recoveries begin."),
-  MASTER_LEASE_RECOVERY_WAITING_PERIOD("master.lease.recovery.interval", "5s",
+  MANAGER_LEASE_RECOVERY_WAITING_PERIOD("manager.lease.recovery.interval", "5s",
       PropertyType.TIMEDURATION,
       "The amount of time to wait after requesting a write-ahead log to be recovered"),
-  MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation",
+  MANAGER_WALOG_CLOSER_IMPLEMETATION("manager.walog.closer.implementation",
       "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log"),
-  MASTER_FATE_METRICS_ENABLED("master.fate.metrics.enabled", "true", PropertyType.BOOLEAN,
+  MANAGER_FATE_METRICS_ENABLED("manager.fate.metrics.enabled", "true", PropertyType.BOOLEAN,
       "Enable reporting of FATE metrics in JMX (and logging with Hadoop Metrics2"),
-  MASTER_FATE_METRICS_MIN_UPDATE_INTERVAL("master.fate.metrics.min.update.interval", "60s",
+  MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval"),
-  MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
+  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run fault-tolerant executions (FATE)."
           + " These are primarily table operations like merge."),
-  MASTER_REPLICATION_SCAN_INTERVAL("master.replication.status.scan.interval", "30s",
+  MANAGER_REPLICATION_SCAN_INTERVAL("manager.replication.status.scan.interval", "30s",
       PropertyType.TIMEDURATION,
       "Amount of time to sleep before scanning the status section of the "
           + "replication table for new data"),
-  MASTER_REPLICATION_COORDINATOR_PORT("master.replication.coordinator.port", "10001",
+  MANAGER_REPLICATION_COORDINATOR_PORT("manager.replication.coordinator.port", "10001",
       PropertyType.PORT, "Port for the replication coordinator service"),
-  MASTER_REPLICATION_COORDINATOR_MINTHREADS("master.replication.coordinator.minthreads", "4",
+  MANAGER_REPLICATION_COORDINATOR_MINTHREADS("manager.replication.coordinator.minthreads", "4",
       PropertyType.COUNT, "Minimum number of threads dedicated to answering coordinator requests"),
-  MASTER_REPLICATION_COORDINATOR_THREADCHECK("master.replication.coordinator.threadcheck.time",
+  MANAGER_REPLICATION_COORDINATOR_THREADCHECK("manager.replication.coordinator.threadcheck.time",
       "5s", PropertyType.TIMEDURATION,
       "The time between adjustments of the coordinator thread pool"),
-  MASTER_STATUS_THREAD_POOL_SIZE("master.status.threadpool.size", "0", PropertyType.COUNT,
+  MANAGER_STATUS_THREAD_POOL_SIZE("manager.status.threadpool.size", "0", PropertyType.COUNT,
       "The number of threads to use when fetching the tablet server status for balancing.  Zero "
           + "indicates an unlimited number of threads will be used."),
-  MASTER_METADATA_SUSPENDABLE("master.metadata.suspendable", "false", PropertyType.BOOLEAN,
+  MANAGER_METADATA_SUSPENDABLE("manager.metadata.suspendable", "false", PropertyType.BOOLEAN,
       "Allow tablets for the " + MetadataTable.NAME
           + " table to be suspended via table.suspend.duration."),
-  MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT("master.startup.tserver.avail.min.count", "0",
+  MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT("manager.startup.tserver.avail.min.count", "0",
       PropertyType.COUNT,
-      "Minimum number of tservers that need to be registered before master will "
-          + "start tablet assignment - checked at master initialization, when master gets lock. "
+      "Minimum number of tservers that need to be registered before manager will "
+          + "start tablet assignment - checked at manager initialization, when manager gets lock. "
           + " When set to 0 or less, no blocking occurs. Default is 0 (disabled) to keep original "
           + " behaviour. Added with version 1.10"),
-  MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT("master.startup.tserver.avail.max.wait", "0",
+  MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT("manager.startup.tserver.avail.max.wait", "0",
       PropertyType.TIMEDURATION,
-      "Maximum time master will wait for tserver available threshold "
+      "Maximum time manager will wait for tserver available threshold "
           + "to be reached before continuing. When set to 0 or less, will block "
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
           + "threshold is set greater than 0. Added with version 1.10"),
@@ -507,11 +508,11 @@ public enum Property {
           + " minor compacted file because it may have been modified by iterators. The"
           + " file dumped to the local dir is an exact copy of what was in memory."),
   TSERV_BULK_PROCESS_THREADS("tserver.bulk.process.threads", "1", PropertyType.COUNT,
-      "The master will task a tablet server with pre-processing a bulk import"
+      "The manager will task a tablet server with pre-processing a bulk import"
           + " RFile prior to assigning it to the appropriate tablet servers. This"
           + " configuration value controls the number of threads used to process the" + " files."),
   TSERV_BULK_ASSIGNMENT_THREADS("tserver.bulk.assign.threads", "1", PropertyType.COUNT,
-      "The master delegates bulk import RFile processing and assignment to"
+      "The manager delegates bulk import RFile processing and assignment to"
           + " tablet servers. After file has been processed, the tablet server will"
           + " assign the file to the appropriate tablets on all servers. This property"
           + " controls the number of threads used to communicate to the other" + " servers."),
@@ -1001,7 +1002,7 @@ public enum Property {
       "org.apache.accumulo.master.replication.UnorderedWorkAssigner", PropertyType.CLASSNAME,
       "Replication WorkAssigner implementation to use"),
   REPLICATION_DRIVER_DELAY("replication.driver.delay", "0s", PropertyType.TIMEDURATION,
-      "Amount of time to wait before the replication work loop begins in the master."),
+      "Amount of time to wait before the replication work loop begins in the manager."),
   REPLICATION_WORK_PROCESSOR_DELAY("replication.work.processor.delay", "0s",
       PropertyType.TIMEDURATION,
       "Amount of time to wait before first checking for replication work, not"
@@ -1310,7 +1311,7 @@ public enum Property {
 
   private static final EnumSet<Property> fixedProperties =
       EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
-          Property.TSERV_SCAN_MAX_OPENFILES, Property.MASTER_CLIENTPORT, Property.GC_PORT);
+          Property.TSERV_SCAN_MAX_OPENFILES, Property.MANAGER_CLIENTPORT, Property.GC_PORT);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
@@ -1332,10 +1333,11 @@ public enum Property {
    * @return true if key's property may be changed via Zookeeper
    */
   public static boolean isValidZooPropertyKey(String key) {
+    key = DeprecatedPropertyUtil.renameDeprecatedProperty(key);
     // white list prefixes
     return key.startsWith(Property.TABLE_PREFIX.getKey())
         || key.startsWith(Property.TSERV_PREFIX.getKey())
-        || key.startsWith(Property.MASTER_PREFIX.getKey())
+        || key.startsWith(Property.MANAGER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
         || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())

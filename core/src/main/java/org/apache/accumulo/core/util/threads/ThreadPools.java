@@ -51,15 +51,15 @@ public class ThreadPools {
     switch (p) {
       case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p), "SimpleTimer", false);
-      case MASTER_BULK_THREADPOOL_SIZE:
+      case MANAGER_BULK_THREADPOOL_SIZE:
         return createFixedThreadPool(conf.getCount(p),
-            conf.getTimeInMillis(Property.MASTER_BULK_THREADPOOL_TIMEOUT), TimeUnit.MILLISECONDS,
+            conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), TimeUnit.MILLISECONDS,
             "bulk import", true);
-      case MASTER_RENAME_THREADS:
+      case MANAGER_RENAME_THREADS:
         return createFixedThreadPool(conf.getCount(p), "bulk move", false);
-      case MASTER_FATE_THREADPOOL_SIZE:
+      case MANAGER_FATE_THREADPOOL_SIZE:
         return createFixedThreadPool(conf.getCount(p), "Repo Runner", false);
-      case MASTER_STATUS_THREAD_POOL_SIZE:
+      case MANAGER_STATUS_THREAD_POOL_SIZE:
         int threads = conf.getCount(p);
         if (threads == 0) {
           return createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,

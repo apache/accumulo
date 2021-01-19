@@ -449,10 +449,10 @@ public class MasterClientServiceHandler extends FateServiceHandler
   }
 
   private void updatePlugins(String property) {
-    if (property.equals(Property.MASTER_TABLET_BALANCER.getKey())) {
+    if (property.equals(Property.MANAGER_TABLET_BALANCER.getKey())) {
       AccumuloConfiguration conf = master.getConfiguration();
       TabletBalancer balancer = Property.createInstanceFromPropertyName(conf,
-          Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
+          Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
       balancer.init(master.getContext());
       master.tabletBalancer = balancer;
       log.info("tablet balancer changed to {}", master.tabletBalancer.getClass().getName());

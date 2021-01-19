@@ -37,16 +37,16 @@ public class DefaultConfigurationTest {
 
   @Test
   public void testGet() {
-    assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(), c.get(Property.MASTER_CLIENTPORT));
+    assertEquals(Property.MANAGER_CLIENTPORT.getDefaultValue(), c.get(Property.MANAGER_CLIENTPORT));
   }
 
   @Test
   public void testGetProperties() {
     Map<String,String> p = new java.util.HashMap<>();
     c.getProperties(p, x -> true);
-    assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(),
-        p.get(Property.MASTER_CLIENTPORT.getKey()));
-    assertFalse(p.containsKey(Property.MASTER_PREFIX.getKey()));
+    assertEquals(Property.MANAGER_CLIENTPORT.getDefaultValue(),
+        p.get(Property.MANAGER_CLIENTPORT.getKey()));
+    assertFalse(p.containsKey(Property.MANAGER_PREFIX.getKey()));
     assertTrue(p.containsKey(Property.TSERV_DEFAULT_BLOCKSIZE.getKey()));
   }
 

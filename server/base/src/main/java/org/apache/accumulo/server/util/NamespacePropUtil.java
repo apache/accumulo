@@ -21,6 +21,7 @@ package org.apache.accumulo.server.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -32,6 +33,10 @@ import org.apache.zookeeper.KeeperException;
 public class NamespacePropUtil {
   public static boolean setNamespaceProperty(ServerContext context, NamespaceId namespaceId,
       String property, String value) throws KeeperException, InterruptedException {
+    // Retrieve the replacement name for this property, if there is one.
+    // Do this before we check if the name is a valid zookeeper name.
+    property = DeprecatedPropertyUtil.renameDeprecatedProperty(property);
+
     if (!isPropertyValid(property, value))
       return false;
 
@@ -57,6 +62,7 @@ public class NamespacePropUtil {
 
   public static void removeNamespaceProperty(ServerContext context, NamespaceId namespaceId,
       String property) throws InterruptedException, KeeperException {
+    property = DeprecatedPropertyUtil.renameDeprecatedProperty(property);
     String zPath = getPath(context, namespaceId) + "/" + property;
     context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }

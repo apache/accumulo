@@ -34,10 +34,10 @@ public class ConfigSanityCheckTest {
 
   @Test
   public void testPass() {
-    m.put(Property.MASTER_CLIENTPORT.getKey(), "9999");
-    m.put(Property.MASTER_TABLET_BALANCER.getKey(),
+    m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
+    m.put(Property.MANAGER_TABLET_BALANCER.getKey(),
         "org.apache.accumulo.server.master.balancer.TableLoadBalancer");
-    m.put(Property.MASTER_BULK_RETRIES.getKey(), "3");
+    m.put(Property.MANAGER_BULK_RETRIES.getKey(), "3");
     ConfigSanityCheck.validate(m.entrySet());
   }
 
@@ -48,22 +48,22 @@ public class ConfigSanityCheckTest {
 
   @Test
   public void testPass_UnrecognizedValidProperty() {
-    m.put(Property.MASTER_CLIENTPORT.getKey(), "9999");
-    m.put(Property.MASTER_PREFIX.getKey() + "something", "abcdefg");
+    m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
+    m.put(Property.MANAGER_PREFIX.getKey() + "something", "abcdefg");
     ConfigSanityCheck.validate(m.entrySet());
   }
 
   @Test
   public void testPass_UnrecognizedProperty() {
-    m.put(Property.MASTER_CLIENTPORT.getKey(), "9999");
+    m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
     m.put("invalid.prefix.value", "abcdefg");
     ConfigSanityCheck.validate(m.entrySet());
   }
 
   @Test(expected = SanityCheckException.class)
   public void testFail_Prefix() {
-    m.put(Property.MASTER_CLIENTPORT.getKey(), "9999");
-    m.put(Property.MASTER_PREFIX.getKey(), "oops");
+    m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
+    m.put(Property.MANAGER_PREFIX.getKey(), "oops");
     ConfigSanityCheck.validate(m.entrySet());
   }
 
