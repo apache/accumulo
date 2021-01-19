@@ -1343,7 +1343,7 @@ public class Master extends AbstractServer
     return masterLock;
   }
 
-  private static class MasterLockWatcher implements ZooLock.AsyncLockWatcher {
+  private static class MasterLockWatcher implements ZooLock.AccumuloLockWatcher {
 
     boolean acquiredLock = false;
     boolean failedToAcquireLock = false;
@@ -1411,7 +1411,7 @@ public class Master extends AbstractServer
 
       MasterLockWatcher masterLockWatcher = new MasterLockWatcher();
       masterLock = new ZooLock(context.getZooReaderWriter(), zMasterLoc);
-      masterLock.lockAsync(masterLockWatcher, masterClientAddress.getBytes());
+      masterLock.lock(masterLockWatcher, masterClientAddress.getBytes());
 
       masterLockWatcher.waitForChange();
 

@@ -630,7 +630,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
       monitorLock = new ZooLock(zoo, monitorLockPath);
-      monitorLock.lockAsync(monitorLockWatcher, new byte[0]);
+      monitorLock.lock(monitorLockWatcher, new byte[0]);
 
       monitorLockWatcher.waitForChange();
 
@@ -655,7 +655,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   /**
    * Async Watcher for monitor lock
    */
-  private static class MoniterLockWatcher implements ZooLock.AsyncLockWatcher {
+  private static class MoniterLockWatcher implements ZooLock.AccumuloLockWatcher {
 
     boolean acquiredLock = false;
     boolean failedToAcquireLock = false;

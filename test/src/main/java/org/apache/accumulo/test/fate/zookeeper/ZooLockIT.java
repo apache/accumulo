@@ -30,11 +30,11 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.AsyncLockWatcher;
+import org.apache.accumulo.fate.zookeeper.ZooLock.AccumuloLockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.zookeeper.CreateMode;
@@ -84,6 +84,38 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
   }
 
+  static class RetryLockWatcher implements AccumuloLockWatcher {
+
+    private boolean lockHeld = false;
+
+    @Override
+    public void lostLock(LockLossReason reason) {
+      this.lockHeld = false;
+      System.out.println("lostLock: " + reason.toString());
+    }
+
+    @Override
+    public void unableToMonitorLockNode(final Exception e) {
+      System.out.println("UnableToMonitorLockNode: " + e.getMessage());
+    }
+
+    @Override
+    public void acquiredLock() {
+      this.lockHeld = true;
+      System.out.println("acquiredLock");
+    }
+
+    @Override
+    public void failedToAcquireLock(Exception e) {
+      this.lockHeld = false;
+      System.out.println("failedToAcquireLock");
+    }
+
+    public boolean isLockHeld() {
+      return this.lockHeld;
+    }
+  };
+
   static class ConnectedWatcher implements Watcher {
     volatile boolean connected = false;
 
@@ -97,7 +129,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     }
   }
 
-  static class TestALW implements AsyncLockWatcher {
+  static class TestALW implements AccumuloLockWatcher {
 
     LockLossReason reason = null;
     boolean locked = false;
@@ -159,7 +191,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
     TestALW lw = new TestALW();
 
-    zl.lockAsync(lw, "test1".getBytes(UTF_8));
+    zl.lock(lw, "test1".getBytes(UTF_8));
 
     lw.waitForChanges(1);
 
@@ -181,7 +213,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
     TestALW lw = new TestALW();
 
-    zl.lockAsync(lw, "test1".getBytes(UTF_8));
+    zl.lock(lw, "test1".getBytes(UTF_8));
 
     lw.waitForChanges(1);
 
@@ -204,7 +236,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
     TestALW lw = new TestALW();
 
-    zl.lockAsync(lw, "test1".getBytes(UTF_8));
+    zl.lock(lw, "test1".getBytes(UTF_8));
 
     lw.waitForChanges(1);
 
@@ -235,7 +267,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
     TestALW lw = new TestALW();
 
-    zl.lockAsync(lw, "test1".getBytes(UTF_8));
+    zl.lock(lw, "test1".getBytes(UTF_8));
 
     lw.waitForChanges(1);
 
@@ -248,7 +280,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
     TestALW lw2 = new TestALW();
 
-    zl2.lockAsync(lw2, "test2".getBytes(UTF_8));
+    zl2.lock(lw2, "test2".getBytes(UTF_8));
 
     assertFalse(lw2.locked);
     assertFalse(zl2.isLocked());
@@ -257,7 +289,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
     TestALW lw3 = new TestALW();
 
-    zl3.lockAsync(lw3, "test3".getBytes(UTF_8));
+    zl3.lock(lw3, "test3".getBytes(UTF_8));
 
     List<String> children = zk.getChildren(parent);
     Collections.sort(children);
@@ -311,7 +343,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
       TestALW lw = new TestALW();
 
-      zl.lockAsync(lw, "test1".getBytes(UTF_8));
+      zl.lock(lw, "test1".getBytes(UTF_8));
 
       lw.waitForChanges(1);
 
@@ -337,64 +369,61 @@ public class ZooLockIT extends SharedMiniClusterBase {
   public void testLockRetryStrategy() throws Exception {
     String parent = "/zlretry";
 
-    LockWatcher lockWatcher = new LockWatcher() {
-      @Override
-      public void lostLock(LockLossReason reason) {
-        System.out.println("lostLock: " + reason.toString());
-      }
-
-      @Override
-      public void unableToMonitorLockNode(final Exception e) {
-        System.out.println("UnableToMonitorLockNode: " + e.getMessage());
-      }
-    };
-
     ConnectedWatcher watcher = new ConnectedWatcher();
-    try (ZooKeeperWrapper zk = new ZooKeeperWrapper(getCluster().getZooKeepers(), 30000, watcher)) {
-      zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+    try (ZooKeeperWrapper zk1 = new ZooKeeperWrapper(getCluster().getZooKeepers(), 30000, watcher);
+        ZooKeeperWrapper zk2 = new ZooKeeperWrapper(getCluster().getZooKeepers(), 30000, watcher)) {
+
+      zk1.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+      zk2.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
 
       while (!watcher.isConnected()) {
         Thread.sleep(200);
       }
 
       // Create the parent node
-      zk.createOnce(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+      zk1.createOnce(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-      ZooReaderWriter zrw = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
+      ZooReaderWriter zrw1 = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
         @Override
         public ZooKeeper getZooKeeper() {
-          return zk;
+          return zk1;
         }
       };
 
+      final RetryLockWatcher zlw1 = new RetryLockWatcher();
       final String zlPrefix1 = "zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#";
-      ZooLock zl1 = new ZooLock(zrw, parent) {
+      ZooLock zl1 = new ZooLock(zrw1, parent) {
         @Override
         protected String getZLockPrefix() {
           return zlPrefix1;
         }
       };
-      boolean ret = zl1.tryLock(lockWatcher, "test1".getBytes(UTF_8));
-      assertTrue(ret);
+      zl1.lock(zlw1, "test1".getBytes(UTF_8));
 
+      ZooReaderWriter zrw2 = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
+        @Override
+        public ZooKeeper getZooKeeper() {
+          return zk2;
+        }
+      };
+
+      final RetryLockWatcher zlw2 = new RetryLockWatcher();
       final String zlPrefix2 = "zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#";
-      ZooLock zl2 = new ZooLock(zrw, parent) {
+      ZooLock zl2 = new ZooLock(zrw2, parent) {
         @Override
         protected String getZLockPrefix() {
           return zlPrefix2;
         }
       };
-      boolean ret2 = zl2.tryLock(lockWatcher, "test1".getBytes(UTF_8));
-      assertFalse(ret2);
+      zl2.lock(zlw2, "test1".getBytes(UTF_8));
 
-      assertTrue(zl1.wasLockAcquired());
-      assertFalse(zl2.wasLockAcquired());
+      assertTrue(zlw1.isLockHeld());
+      assertFalse(zlw2.isLockHeld());
 
-      List<String> children = zk.getChildren(parent, false);
-      System.out.println(children);
+      List<String> children = zk1.getChildren(parent, false);
       assertTrue(children.contains("zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000000"));
       assertTrue(children.contains("zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000001"));
-      // assertTrue(children.contains("zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000002"));
+      assertTrue(children.contains("zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000002"));
       assertTrue(children.contains("zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000003"));
 
       assertNull(zl1.getWatching());
@@ -402,10 +431,17 @@ public class ZooLockIT extends SharedMiniClusterBase {
           zl2.getWatching());
 
       zl1.unlock();
+      assertFalse(zlw1.isLockHeld());
+      zk1.close();
 
-      assertTrue(zl2.wasLockAcquired());
+      while (!zlw2.isLockHeld()) {
+        LockSupport.parkNanos(50);
+      }
 
+      assertTrue(zlw2.isLockHeld());
       zl2.unlock();
+      zk2.close();
+
     }
 
   }
@@ -465,7 +501,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
       TestALW lw = new TestALW();
 
-      zl.lockAsync(lw, "test1".getBytes(UTF_8));
+      zl.lock(lw, "test1".getBytes(UTF_8));
       assertEquals("test1", new String(zk.getData(zl.getLockPath(), null, null)));
 
       zl.replaceLockData("test2".getBytes(UTF_8));
