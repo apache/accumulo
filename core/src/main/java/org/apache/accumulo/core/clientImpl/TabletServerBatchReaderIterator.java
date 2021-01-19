@@ -389,12 +389,15 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           fatalException = new TableDeletedException(tableId.canonical());
       } catch (SampleNotPresentException e) {
         fatalException = e;
-      } catch (Throwable t) {
+      } catch (Exception t) {
         if (queryThreadPool.isShutdown())
           log.debug("Caught exception, but queryThreadPool is shutdown", t);
         else
           log.warn("Caught exception, but queryThreadPool is not shutdown", t);
         fatalException = t;
+      } catch (Throwable t) {
+        fatalException = t;
+        throw t; // let uncaught exception handler deal with the Error
       } finally {
         semaphore.release();
         Thread.currentThread().setName(threadName);
@@ -411,7 +414,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               e.setTableInfo(getTableInfo());
               log.debug("{}", e.getMessage(), e);
               fatalException = e;
-            } catch (Throwable t) {
+            } catch (Exception t) {
               log.debug("{}", t.getMessage(), t);
               fatalException = t;
             }

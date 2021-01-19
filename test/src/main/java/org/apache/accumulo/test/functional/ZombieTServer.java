@@ -138,7 +138,7 @@ public class ZombieTServer {
       @SuppressFBWarnings(value = "DM_EXIT",
           justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
       @Override
-      public void unableToMonitorLockNode(Throwable e) {
+      public void unableToMonitorLockNode(Exception e) {
         try {
           tch.halt(TraceUtil.traceInfo(), null, null);
         } catch (Exception ex) {

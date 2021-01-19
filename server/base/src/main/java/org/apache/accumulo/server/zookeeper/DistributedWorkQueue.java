@@ -152,7 +152,7 @@ public class DistributedWorkQueue {
         threadPool.execute(task);
 
       }
-    } catch (Throwable t) {
+    } catch (Exception t) {
       log.error("Unexpected error", t);
     }
   }

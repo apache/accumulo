@@ -152,7 +152,7 @@ public class LogSorter {
         fs.create(new Path(destPath, "finished")).close();
         log.info("Finished log sort {} {} bytes {} parts in {}ms", name, getBytesCopied(), part,
             getSortTime());
-      } catch (Throwable t) {
+      } catch (Exception t) {
         try {
           // parent dir may not exist
           fs.mkdirs(new Path(destPath));
@@ -160,7 +160,7 @@ public class LogSorter {
         } catch (IOException e) {
           log.error("Error creating failed flag file " + name, e);
         }
-        log.error("Caught throwable", t);
+        log.error("Caught exception", t);
       } finally {
         Thread.currentThread().setName(formerThreadName);
         try {

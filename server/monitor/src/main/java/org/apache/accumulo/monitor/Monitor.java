@@ -423,7 +423,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         server.addServlet(getViewServlet(), "/*");
         server.start();
         break;
-      } catch (Throwable ex) {
+      } catch (Exception ex) {
         log.error("Unable to start embedded web server", ex);
       }
     }
@@ -666,7 +666,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     @Override
-    public void unableToMonitorLockNode(final Throwable e) {
+    public void unableToMonitorLockNode(final Exception e) {
       Halt.halt(-1, () -> log.error("No longer able to monitor Monitor lock node", e));
 
     }

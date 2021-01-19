@@ -67,7 +67,7 @@ public class RecoveryLogReader implements CloseableIterator<Entry<LogFileKey,Log
     private static Object create(java.lang.Class<?> klass) {
       try {
         return klass.getConstructor().newInstance();
-      } catch (Throwable t) {
+      } catch (Exception t) {
         throw new RuntimeException("Unable to construct objects to use for comparison");
       }
     }

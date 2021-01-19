@@ -417,10 +417,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     private TableId tableId;
     private ExecutorService executor;
     private CountDownLatch latch;
-    private AtomicReference<Throwable> exception;
+    private AtomicReference<Exception> exception;
 
     SplitEnv(String tableName, TableId tableId, ExecutorService executor, CountDownLatch latch,
-        AtomicReference<Throwable> exception) {
+        AtomicReference<Exception> exception) {
       this.tableName = tableName;
       this.tableId = tableId;
       this.executor = executor;
@@ -462,7 +462,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         env.executor.execute(new SplitTask(env, splits.subList(0, mid)));
         env.executor.execute(new SplitTask(env, splits.subList(mid + 1, splits.size())));
 
-      } catch (Throwable t) {
+      } catch (Exception t) {
         env.exception.compareAndSet(null, t);
       }
     }
@@ -480,7 +480,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Collections.sort(splits);
 
     CountDownLatch latch = new CountDownLatch(splits.size());
-    AtomicReference<Throwable> exception = new AtomicReference<>(null);
+    AtomicReference<Exception> exception = new AtomicReference<>(null);
 
     ExecutorService executor = ThreadPools.createFixedThreadPool(16, "addSplits", false);
     try {

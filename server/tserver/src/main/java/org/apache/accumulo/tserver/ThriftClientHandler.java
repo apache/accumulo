@@ -401,7 +401,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       long timeout = server.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
       server.sessionManager.removeIfNotAccessed(scanID, timeout);
       return new ScanResult(param, true);
-    } catch (Throwable t) {
+    } catch (Exception t) {
       server.sessionManager.removeSession(scanID);
       log.warn("Failed to get next batch", t);
       throw new RuntimeException(t);
@@ -569,7 +569,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       Map<TKeyExtent,List<TRange>> failures = Collections.emptyMap();
       List<TKeyExtent> fullScans = Collections.emptyList();
       return new MultiScanResult(results, failures, fullScans, null, null, false, true);
-    } catch (Throwable t) {
+    } catch (Exception t) {
       server.sessionManager.removeSession(scanID);
       log.warn("Failed to get multiscan result", t);
       throw new RuntimeException(t);
@@ -769,7 +769,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
               mutationCount += mutations.size();
 
             }
-          } catch (Throwable t) {
+          } catch (Exception t) {
             error = t;
             log.error("Unexpected error preparing for commit", error);
             break;
@@ -800,7 +800,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
             break;
           } catch (IOException | FSError ex) {
             log.warn("logging mutations failed, retrying");
-          } catch (Throwable t) {
+          } catch (Exception t) {
             log.error("Unknown exception logging mutations, counts"
                 + " for mutations in flight not decremented!", t);
             throw new RuntimeException(t);
@@ -1100,7 +1100,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           break;
         } catch (IOException | FSError ex) {
           log.warn("logging mutations failed, retrying");
-        } catch (Throwable t) {
+        } catch (Exception t) {
           log.error("Unknown exception logging mutations, counts for"
               + " mutations in flight not decremented!", t);
           throw new RuntimeException(t);

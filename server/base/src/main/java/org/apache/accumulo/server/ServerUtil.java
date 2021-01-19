@@ -186,7 +186,7 @@ public class ServerUtil {
             }
           }
         }
-      } catch (Throwable t) {
+      } catch (Exception t) {
         log.error("", t);
       }
     }, 1000, 10 * 60 * 1000, TimeUnit.MILLISECONDS);
