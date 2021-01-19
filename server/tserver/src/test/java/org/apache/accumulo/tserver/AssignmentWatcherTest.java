@@ -25,7 +25,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.TabletServerResourceManager.AssignmentWatcher;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -34,16 +33,14 @@ import org.junit.Test;
 public class AssignmentWatcherTest {
 
   private Map<KeyExtent,RunnableStartedAt> assignments;
-  private SimpleTimer timer;
   private AccumuloConfiguration conf;
   private AssignmentWatcher watcher;
 
   @Before
   public void setup() {
     assignments = new HashMap<>();
-    timer = EasyMock.createMock(SimpleTimer.class);
     conf = EasyMock.createMock(AccumuloConfiguration.class);
-    watcher = new AssignmentWatcher(conf, assignments, timer);
+    watcher = new AssignmentWatcher(conf, assignments);
   }
 
   @Test
@@ -51,17 +48,13 @@ public class AssignmentWatcherTest {
     ActiveAssignmentRunnable task = EasyMock.createMock(ActiveAssignmentRunnable.class);
     RunnableStartedAt run = new RunnableStartedAt(task, System.currentTimeMillis());
     EasyMock.expect(conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING)).andReturn(0L);
-
+    EasyMock.expect(conf.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE)).andReturn(1);
     assignments.put(new KeyExtent(TableId.of("1"), null, null), run);
 
     EasyMock.expect(task.getException()).andReturn(new Exception("Assignment warning happened"));
-    EasyMock.expect(timer.schedule(watcher, 5000L)).andReturn(null);
-
-    EasyMock.replay(timer, conf, task);
-
+    EasyMock.replay(conf, task);
     watcher.run();
-
-    EasyMock.verify(timer, conf, task);
+    EasyMock.verify(conf, task);
   }
 
 }

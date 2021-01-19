@@ -37,7 +37,7 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
@@ -111,8 +111,8 @@ public class ZombieTServer {
     ServerAddress serverPort =
         TServerUtils.startTServer(Metrics.initSystem(ZombieTServer.class.getSimpleName()),
             context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "ZombieTServer",
-            "walking dead", 2, SimpleThreadPool.DEFAULT_TIMEOUT_MILLISECS, 1, 1000,
-            10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
+            "walking dead", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null,
+            null, -1, HostAndPort.fromParts("0.0.0.0", port));
 
     String addressString = serverPort.address.toString();
     String zPath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + addressString;

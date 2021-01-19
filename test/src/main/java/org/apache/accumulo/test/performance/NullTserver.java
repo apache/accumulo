@@ -70,7 +70,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processo
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.state.Assignment;
@@ -304,8 +304,8 @@ public class NullTserver {
     Processor<Iface> processor = new Processor<>(tch);
     TServerUtils.startTServer(Metrics.initSystem(NullTserver.class.getSimpleName()),
         context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer",
-        "null tserver", 2, SimpleThreadPool.DEFAULT_TIMEOUT_MILLISECS, 1, 1000, 10 * 1024 * 1024,
-        null, null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
+        "null tserver", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null,
+        null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 

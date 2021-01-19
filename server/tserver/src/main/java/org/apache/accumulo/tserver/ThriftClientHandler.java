@@ -110,9 +110,9 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -120,7 +120,6 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.RowLocks.RowLock;
@@ -1440,18 +1439,14 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     // Root tablet assignment must take place immediately
 
     if (extent.isRootTablet()) {
-      new Daemon("Root Tablet Assignment") {
-        @Override
-        public void run() {
-          ah.run();
-          if (server.getOnlineTablets().containsKey(extent)) {
-            log.info("Root tablet loaded: {}", extent);
-          } else {
-            log.info("Root tablet failed to load");
-          }
-
+      Threads.createThread("Root Tablet Assignment", () -> {
+        ah.run();
+        if (server.getOnlineTablets().containsKey(extent)) {
+          log.info("Root tablet loaded: {}", extent);
+        } else {
+          log.info("Root tablet failed to load");
         }
-      }.start();
+      }).start();
     } else {
       if (extent.isMeta()) {
         server.resourceManager.addMetaDataAssignment(extent, log, ah);
@@ -1474,7 +1469,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     KeyExtent extent = KeyExtent.fromThrift(textent);
 
     server.resourceManager.addMigration(extent,
-        new LoggingRunnable(log, new UnloadTabletHandler(server, extent, goal, requestTime)));
+        new UnloadTabletHandler(server, extent, goal, requestTime));
   }
 
   @Override
