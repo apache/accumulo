@@ -127,6 +127,9 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
     // returned
     resultQueue = null;
 
+    if (r instanceof Error)
+      throw (Error) r; // don't wrap an Error
+
     if (r instanceof Throwable)
       throw new ExecutionException((Throwable) r);
 

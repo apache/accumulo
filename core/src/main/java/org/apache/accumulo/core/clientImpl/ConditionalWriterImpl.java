@@ -76,8 +76,8 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.commons.collections4.map.LRUMap;
@@ -88,23 +88,15 @@ import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool =
-      new ThreadPoolExecutor(1, 1, 3, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), r -> {
-        Thread t = new Thread(r, "Conditional Writer Cleanup Thread");
-        t.setDaemon(true);
-        return t;
-      });
+  private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
+      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread", false);
 
   static {
     cleanupThreadPool.allowCoreThreadTimeOut(true);
   }
-
-  private static final Logger log = LoggerFactory.getLogger(ConditionalWriterImpl.class);
 
   private static final int MAX_SLEEP = 30000;
 
@@ -323,7 +315,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       serverQueue.queue.add(mutations);
       // never execute more than one task per server
       if (!serverQueue.taskQueued) {
-        threadPool.execute(new LoggingRunnable(log, Trace.wrap(new SendTask(location))));
+        threadPool.execute(Trace.wrap(new SendTask(location)));
         serverQueue.taskQueued = true;
       }
     }
@@ -343,7 +335,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (serverQueue.queue.isEmpty())
         serverQueue.taskQueued = false;
       else
-        threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
+        threadPool.execute(Trace.wrap(task));
     }
 
   }
@@ -376,8 +368,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads(),
-        new NamingThreadFactory(this.getClass().getSimpleName()));
+    this.threadPool = ThreadPools.createScheduledExecutorService(config.getMaxWriteThreads(),
+        this.getClass().getSimpleName(), false);
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
@@ -391,8 +383,6 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (!mutations.isEmpty())
         queue(mutations);
     };
-
-    failureHandler = new LoggingRunnable(log, failureHandler);
 
     threadPool.scheduleAtFixedRate(failureHandler, 250, 250, TimeUnit.MILLISECONDS);
   }
@@ -812,7 +802,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
   @Override
   public void close() {
     threadPool.shutdownNow();
-    cleanupThreadPool.execute(new CleanupTask(getActiveSessions()));
+    cleanupThreadPool.execute(Threads.createNamedRunnable("ConditionalWriterCleanupTask",
+        new CleanupTask(getActiveSessions())));
   }
 
 }

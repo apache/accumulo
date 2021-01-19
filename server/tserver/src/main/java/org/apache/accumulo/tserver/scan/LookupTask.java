@@ -177,7 +177,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       }
     } catch (SampleNotPresentException e) {
       addResult(e);
-    } catch (Throwable e) {
+    } catch (Exception e) {
       log.warn("exception while doing multi-scan ", e);
       addResult(e);
     } finally {

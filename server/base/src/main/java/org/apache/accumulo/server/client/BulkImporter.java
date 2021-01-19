@@ -33,7 +33,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -58,16 +57,14 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.StopWatch;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.wrappers.TraceRunnable;
 import org.apache.thrift.TServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,7 +130,7 @@ public class BulkImporter {
 
       timer.start(Timers.EXAMINE_MAP_FILES);
       ExecutorService threadPool =
-          Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("findOverlapping"));
+          ThreadPools.createFixedThreadPool(numThreads, "findOverlapping", true);
 
       for (Path path : paths) {
         final Path mapFile = path;
@@ -155,7 +152,7 @@ public class BulkImporter {
               assignments.put(mapFile, tabletsToAssignMapFileTo);
           }
         };
-        threadPool.submit(new TraceRunnable(new LoggingRunnable(log, getAssignments)));
+        threadPool.submit(getAssignments);
       }
       threadPool.shutdown();
       while (!threadPool.isTerminated()) {
@@ -354,7 +351,7 @@ public class BulkImporter {
     final Map<Path,List<AssignmentInfo>> ais = Collections.synchronizedMap(new TreeMap<>());
 
     ExecutorService threadPool =
-        Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("estimateSizes"));
+        ThreadPools.createFixedThreadPool(numThreads, "estimateSizes", true);
 
     for (final Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
       if (entry.getValue().size() == 1) {
@@ -398,7 +395,7 @@ public class BulkImporter {
         }
       };
 
-      threadPool.submit(new TraceRunnable(new LoggingRunnable(log, estimationTask)));
+      threadPool.submit(estimationTask);
     }
 
     threadPool.shutdown();
@@ -538,8 +535,7 @@ public class BulkImporter {
       }
     });
 
-    ExecutorService threadPool =
-        Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("submit"));
+    ExecutorService threadPool = ThreadPools.createFixedThreadPool(numThreads, "submit", false);
 
     for (Entry<String,Map<KeyExtent,List<PathSize>>> entry : assignmentsPerTabletServer
         .entrySet()) {
@@ -597,7 +593,7 @@ public class BulkImporter {
       }
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (Throwable t) {
+    } catch (Exception t) {
       log.error("Encountered unknown exception in assignMapFiles.", t);
       throw new AccumuloException(t);
     }

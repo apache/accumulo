@@ -309,7 +309,7 @@ public class Compactor implements Callable<CompactionStats> {
 
         iters.add(iter);
 
-      } catch (Throwable e) {
+      } catch (Exception e) {
 
         ProblemReports.getInstance(context).report(
             new ProblemReport(extent.tableId(), ProblemType.FILE_READ, mapFile.getPathStr(), e));
@@ -319,7 +319,7 @@ public class Compactor implements Callable<CompactionStats> {
         for (FileSKVIterator reader : readers) {
           try {
             reader.close();
-          } catch (Throwable e2) {
+          } catch (Exception e2) {
             log.warn("Failed to close map file", e2);
           }
         }
@@ -413,7 +413,7 @@ public class Compactor implements Callable<CompactionStats> {
       for (FileSKVIterator reader : readers) {
         try {
           reader.close();
-        } catch (Throwable e) {
+        } catch (Exception e) {
           log.warn("Failed to close map file", e);
         }
       }

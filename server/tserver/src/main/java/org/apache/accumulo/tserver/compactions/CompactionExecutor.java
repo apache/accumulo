@@ -21,8 +21,8 @@ package org.apache.accumulo.tserver.compactions;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.OptionalInt;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -33,11 +33,10 @@ import java.util.function.Consumer;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
-import org.apache.htrace.wrappers.TraceExecutorService;
 import org.apache.htrace.wrappers.TraceRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,10 +48,9 @@ public class CompactionExecutor {
   private static final Logger log = LoggerFactory.getLogger(CompactionExecutor.class);
 
   private PriorityBlockingQueue<Runnable> queue;
-  private ExecutorService executor;
   private final CompactionExecutorId ceid;
   private AtomicLong cancelCount = new AtomicLong();
-  private ThreadPoolExecutor rawExecutor;
+  private ThreadPoolExecutor threadPool;
 
   // This exist to provide an accurate count of queued compactions for metrics. The PriorityQueue is
   // not used because its size may be off due to it containing cancelled compactions. The collection
@@ -147,14 +145,11 @@ public class CompactionExecutor {
 
     queue = new PriorityBlockingQueue<Runnable>(100, comparator);
 
-    ThreadPoolExecutor tp = new ThreadPoolExecutor(threads, threads, 60, TimeUnit.SECONDS, queue,
-        new NamingThreadFactory("compaction." + ceid));
-    tp.allowCoreThreadTimeOut(true);
+    threadPool = ThreadPools.createThreadPool(threads, threads, 60, TimeUnit.SECONDS,
+        "compaction." + ceid, queue, OptionalInt.empty(), true);
 
-    rawExecutor = tp;
-    executor = new TraceExecutorService(tp);
-
-    metricCloser = ceMetrics.addExecutor(ceid, () -> tp.getActiveCount(), () -> queuedTask.size());
+    metricCloser =
+        ceMetrics.addExecutor(ceid, () -> threadPool.getActiveCount(), () -> queuedTask.size());
 
     this.readLimiter = readLimiter;
     this.writeLimiter = writeLimiter;
@@ -166,22 +161,20 @@ public class CompactionExecutor {
       Consumer<Compactable> completionCallback) {
     Preconditions.checkArgument(job.getExecutor().equals(ceid));
     var ctask = new CompactionTask(job, compactable, csid, completionCallback);
-    executor.execute(ctask);
+    threadPool.execute(ctask);
     return ctask;
   }
 
   public void setThreads(int numThreads) {
 
-    var tp = rawExecutor;
-
-    int coreSize = tp.getCorePoolSize();
+    int coreSize = threadPool.getCorePoolSize();
 
     if (numThreads < coreSize) {
-      tp.setCorePoolSize(numThreads);
-      tp.setMaximumPoolSize(numThreads);
+      threadPool.setCorePoolSize(numThreads);
+      threadPool.setMaximumPoolSize(numThreads);
     } else if (numThreads > coreSize) {
-      tp.setMaximumPoolSize(numThreads);
-      tp.setCorePoolSize(numThreads);
+      threadPool.setMaximumPoolSize(numThreads);
+      threadPool.setCorePoolSize(numThreads);
     }
 
     if (numThreads != coreSize) {
@@ -191,7 +184,7 @@ public class CompactionExecutor {
   }
 
   public int getCompactionsRunning() {
-    return rawExecutor.getActiveCount();
+    return threadPool.getActiveCount();
   }
 
   public int getCompactionsQueued() {
@@ -199,7 +192,7 @@ public class CompactionExecutor {
   }
 
   public void stop() {
-    executor.shutdownNow();
+    threadPool.shutdownNow();
     log.debug("Stopped compaction executor {}", ceid);
     try {
       metricCloser.close();

@@ -16,27 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.util.threads;
 
-public class Daemon extends Thread {
+import java.util.OptionalInt;
 
-  public Daemon() {
-    setDaemon(true);
+/**
+ * Runnable implementation that has a name and priority. Used by the NamedThreadFactory when
+ * creating new Threads
+ */
+class NamedRunnable implements Runnable {
+
+  private final String name;
+  private final OptionalInt priority;
+  private final Runnable r;
+
+  NamedRunnable(String name, Runnable r) {
+    this(name, OptionalInt.empty(), r);
   }
 
-  public Daemon(Runnable target) {
-    super(target);
-    setDaemon(true);
+  NamedRunnable(String name, OptionalInt priority, Runnable r) {
+    this.name = name;
+    this.priority = priority;
+    this.r = r;
   }
 
-  public Daemon(String name) {
-    super(name);
-    setDaemon(true);
+  public String getName() {
+    return name;
   }
 
-  public Daemon(Runnable target, String name) {
-    super(target, name);
-    setDaemon(true);
+  public OptionalInt getPriority() {
+    return priority;
+  }
+
+  public void run() {
+    r.run();
   }
 
 }

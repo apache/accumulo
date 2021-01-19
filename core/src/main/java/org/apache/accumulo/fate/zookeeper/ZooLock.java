@@ -56,7 +56,7 @@ public class ZooLock implements Watcher {
     /**
      * lost the ability to monitor the lock node, and its status is unknown
      */
-    void unableToMonitorLockNode(Throwable e);
+    void unableToMonitorLockNode(Exception e);
   }
 
   public interface AsyncLockWatcher extends LockWatcher {
@@ -119,7 +119,7 @@ public class ZooLock implements Watcher {
     }
 
     @Override
-    public void unableToMonitorLockNode(Throwable e) {
+    public void unableToMonitorLockNode(Exception e) {
       lw.unableToMonitorLockNode(e);
     }
 
@@ -333,7 +333,7 @@ public class ZooLock implements Watcher {
                   else if (asyncLock != null)
                     failedToAcquireLock();
                 }
-              } catch (Throwable e) {
+              } catch (Exception e) {
                 lockWatcher.unableToMonitorLockNode(e);
                 log.error("Failed to stat lock node " + asyncLockPath, e);
               }

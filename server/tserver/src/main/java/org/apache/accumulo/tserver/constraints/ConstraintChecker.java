@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.tserver.constraints;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -62,7 +61,7 @@ public class ConstraintChecker {
         }
       }
 
-    } catch (Throwable e) {
+    } catch (Exception e) {
       constrains.clear();
       constrains.add(new UnsatisfiableConstraint((short) -1,
           "Failed to load constraints, not accepting mutations."));
@@ -108,25 +107,22 @@ public class ConstraintChecker {
                 constraint.getViolationDescription(vcode), 1));
           }
         }
-      } catch (Throwable throwable) {
-        log.warn("CONSTRAINT FAILED : {}", throwable.getMessage(), throwable);
+      } catch (Exception e) {
+        log.warn("CONSTRAINT FAILED : {}", e.getMessage(), e);
 
         // constraint failed in some way, do not allow mutation to pass
         short vcode;
         String msg;
 
-        if (throwable instanceof NullPointerException) {
+        if (e instanceof NullPointerException) {
           vcode = -1;
           msg = "threw NullPointerException";
-        } else if (throwable instanceof ArrayIndexOutOfBoundsException) {
+        } else if (e instanceof ArrayIndexOutOfBoundsException) {
           vcode = -2;
           msg = "threw ArrayIndexOutOfBoundsException";
-        } else if (throwable instanceof NumberFormatException) {
+        } else if (e instanceof NumberFormatException) {
           vcode = -3;
           msg = "threw NumberFormatException";
-        } else if (throwable instanceof IOException) {
-          vcode = -4;
-          msg = "threw IOException (or subclass of)";
         } else {
           vcode = -100;
           msg = "threw some Exception";

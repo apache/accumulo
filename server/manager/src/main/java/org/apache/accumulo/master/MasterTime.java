@@ -24,11 +24,12 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.slf4j.Logger;
@@ -37,13 +38,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Keep a persistent roughly monotone view of how long a master has been overseeing this cluster.
  */
-public class MasterTime extends TimerTask {
+public class MasterTime {
   private static final Logger log = LoggerFactory.getLogger(MasterTime.class);
 
   private final String zPath;
   private final ZooReaderWriter zk;
   private final Master master;
-  private final Timer timer;
 
   /**
    * Difference between time stored in ZooKeeper and System.nanoTime() when we last read from
@@ -51,7 +51,7 @@ public class MasterTime extends TimerTask {
    */
   private final AtomicLong skewAmount;
 
-  public MasterTime(Master master) throws IOException {
+  public MasterTime(Master master, AccumuloConfiguration conf) throws IOException {
     this.zPath = master.getZooKeeperRoot() + Constants.ZMASTER_TICK;
     this.zk = master.getContext().getZooReaderWriter();
     this.master = master;
@@ -64,8 +64,9 @@ public class MasterTime extends TimerTask {
       throw new IOException("Error updating master time", ex);
     }
 
-    this.timer = new Timer();
-    timer.schedule(this, 0, MILLISECONDS.convert(10, SECONDS));
+    ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
+        Threads.createNamedRunnable("Master time keeper", () -> run()), 0,
+        MILLISECONDS.convert(10, SECONDS), MILLISECONDS);
   }
 
   /**
@@ -77,12 +78,6 @@ public class MasterTime extends TimerTask {
     return MILLISECONDS.convert(System.nanoTime() + skewAmount.get(), NANOSECONDS);
   }
 
-  /** Shut down the time keeping. */
-  public void shutdown() {
-    timer.cancel();
-  }
-
-  @Override
   public void run() {
     switch (master.getMasterState()) {
       // If we don't have the lock, periodically re-read the value in ZooKeeper, in case there's

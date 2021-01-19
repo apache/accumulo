@@ -58,9 +58,8 @@ import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
@@ -303,7 +302,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
   private String logPath;
-  private Daemon syncThread;
+  private Thread syncThread;
 
   /* Track what's actually in +r/!0 for this logger ref */
   private String metaReference;
@@ -467,8 +466,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       throw new IOException(ex);
     }
 
-    syncThread = new Daemon(new LoggingRunnable(log, new LogSyncingTask()));
-    syncThread.setName("Accumulo WALog thread " + this);
+    syncThread = Threads.createThread("Accumulo WALog thread " + this, new LogSyncingTask());
     syncThread.start();
     op.await();
     log.debug("Got new write-ahead log: {}", this);
