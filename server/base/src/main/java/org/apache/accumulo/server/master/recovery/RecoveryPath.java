@@ -49,7 +49,7 @@ public class RecoveryPath {
       walPath = walPath.getParent();
       walPath = new Path(walPath, FileType.RECOVERY.getDirectory() + '-' + context.getInstanceID());
 
-      log.debug("Directory selected for WAL recovery:  " + walPath);
+      log.debug("This is walPath in RecoveryManager: {}",  walPath);
       walPath = new Path(walPath, uuid);
 
       return walPath;
