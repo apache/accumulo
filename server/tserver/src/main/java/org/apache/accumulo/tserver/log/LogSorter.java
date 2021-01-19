@@ -90,8 +90,7 @@ public class LogSorter {
 
       try {
 
-        log.debug(
-            src, dest);
+        log.debug(src, dest);
 
         sort(sortId, new Path(src), dest);
 
