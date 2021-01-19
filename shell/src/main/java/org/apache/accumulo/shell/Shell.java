@@ -1183,7 +1183,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   public void updateUser(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
     var newClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
-    if (!newClient.securityOperations().authenticateUser(principal, token)) {
+    try {
+      newClient.securityOperations().authenticateUser(principal, token);
+    } catch (AccumuloSecurityException e) {
       newClient.close();
       throw new AccumuloSecurityException(principal, SecurityErrorCode.BAD_CREDENTIALS);
     }
