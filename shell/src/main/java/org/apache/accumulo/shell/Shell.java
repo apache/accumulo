@@ -1186,8 +1186,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     try {
       newClient.securityOperations().authenticateUser(principal, token);
     } catch (AccumuloSecurityException e) {
+      // new client can't authenticate; close and discard
       newClient.close();
-      throw new AccumuloSecurityException(principal, SecurityErrorCode.BAD_CREDENTIALS);
+      throw e;
     }
     var oldClient = accumuloClient;
     accumuloClient = newClient; // swap out old client if the new client has authenticated
