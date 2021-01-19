@@ -44,7 +44,7 @@ public class ZooLock implements Watcher {
 
   private static final String ZLOCK_PREFIX = "zlock#";
   private static final String ZLOCK_UUID = UUID.randomUUID().toString();
-  private static final String THIS_ZLOCK = ZLOCK_PREFIX + ZLOCK_UUID + "#";
+  private static final String THIS_ZLOCK_PREFIX = ZLOCK_PREFIX + ZLOCK_UUID + "#";
 
   private static ZooCache LOCK_DATA_ZOO_CACHE;
 
@@ -74,6 +74,7 @@ public class ZooLock implements Watcher {
   private LockWatcher lockWatcher;
   private volatile boolean watchingParent = false;
   private String asyncLock;
+  private String watching;
 
   public ZooLock(ZooReaderWriter zoo, String path) {
     this(new ZooCache(zoo), zoo, path);
@@ -85,7 +86,7 @@ public class ZooLock implements Watcher {
   }
 
   protected ZooLock(ZooCache zc, ZooReaderWriter zrw, String path) {
-    log.trace("THIS_ZLOCK is {}", THIS_ZLOCK);
+    log.trace("THIS_ZLOCK is {}", this.getZLockPrefix());
     LOCK_DATA_ZOO_CACHE = zc;
     this.path = path;
     zooKeeper = zrw;
@@ -219,7 +220,8 @@ public class ZooLock implements Watcher {
     } else {
       int idx = children.indexOf(myLock);
       String prev = children.get(idx - 1);
-      final String lockToWatch = path + "/" + prev;
+      watching = path + "/" + prev;
+      final String lockToWatch = watching;
       log.trace("Establishing watch on {}", lockToWatch);
       Stat stat = zooKeeper.getStatus(lockToWatch, new Watcher() {
 
@@ -291,6 +293,13 @@ public class ZooLock implements Watcher {
     localLw.lostLock(reason);
   }
 
+  /*
+   * Exists to be overriden in tests
+   */
+  protected String getZLockPrefix() {
+    return THIS_ZLOCK_PREFIX;
+  }
+
   public synchronized void lockAsync(final AsyncLockWatcher lw, byte[] data) {
 
     if (lockWatcher != null || lock != null || asyncLock != null) {
@@ -300,7 +309,7 @@ public class ZooLock implements Watcher {
     lockWasAcquired = false;
 
     try {
-      final String lockPath = path + "/" + THIS_ZLOCK;
+      final String lockPath = path + "/" + getZLockPrefix();
       // Implement recipe at https://zookeeper.apache.org/doc/current/recipes.html#sc_recipes_Locks
       // except that instead of the ephemeral lock node being of the form guid-lock- use lock-guid-
       final String createdLockPath = zooKeeper.putEphemeralSequential(lockPath, data);
@@ -318,7 +327,7 @@ public class ZooLock implements Watcher {
       String lowestSequentialLockPath = null;
       sortChildrenByLockPrefix(children);
       for (String child : children) {
-        if (child.startsWith(THIS_ZLOCK)) {
+        if (child.startsWith(getZLockPrefix())) {
           if (null == lowestSequentialLockPath) {
             if (createdLockPath.equals(path + "/" + child)) {
               // the path returned from create is the lowest sequential one
@@ -422,6 +431,13 @@ public class ZooLock implements Watcher {
     zooKeeper.recursiveDelete(path + "/" + localLock, NodeMissingPolicy.SKIP);
 
     localLw.lostLock(LockLossReason.LOCK_DELETED);
+  }
+
+  /**
+   * @return path of node that this lock is watching
+   */
+  public synchronized String getWatching() {
+    return watching;
   }
 
   public synchronized String getLockPath() {

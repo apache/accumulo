@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
@@ -33,14 +34,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.AsyncLockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -55,6 +59,29 @@ public class ZooLockIT extends SharedMiniClusterBase {
   @AfterClass
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  static class ZooKeeperWrapper extends ZooKeeper {
+
+    public ZooKeeperWrapper(String connectString, int sessionTimeout, Watcher watcher)
+        throws IOException {
+      super(connectString, sessionTimeout, watcher);
+    }
+
+    public String createOnce(String path, byte[] data, List<ACL> acl, CreateMode createMode)
+        throws KeeperException, InterruptedException {
+      return super.create(path, data, acl, createMode);
+    }
+
+    @Override
+    public String create(String path, byte[] data, List<ACL> acl, CreateMode createMode)
+        throws KeeperException, InterruptedException {
+      // Let's simulate that the first call succeeded but the client didn't get the message,
+      // so the ZooKeeper client retries.
+      super.create(path, data, acl, createMode);
+      return super.create(path, data, acl, createMode);
+    }
+
   }
 
   static class ConnectedWatcher implements Watcher {
@@ -302,6 +329,83 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
       assertEquals(LockLossReason.LOCK_DELETED, lw.reason);
       assertNull(lw.exception);
+    }
+
+  }
+
+  @Test(timeout = 60000)
+  public void testLockRetryStrategy() throws Exception {
+    String parent = "/zlretry";
+
+    LockWatcher lockWatcher = new LockWatcher() {
+      @Override
+      public void lostLock(LockLossReason reason) {
+        System.out.println("lostLock: " + reason.toString());
+      }
+
+      @Override
+      public void unableToMonitorLockNode(final Exception e) {
+        System.out.println("UnableToMonitorLockNode: " + e.getMessage());
+      }
+    };
+
+    ConnectedWatcher watcher = new ConnectedWatcher();
+    try (ZooKeeperWrapper zk = new ZooKeeperWrapper(getCluster().getZooKeepers(), 30000, watcher)) {
+      zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+
+      while (!watcher.isConnected()) {
+        Thread.sleep(200);
+      }
+
+      // Create the parent node
+      zk.createOnce(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
+      ZooReaderWriter zrw = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
+        @Override
+        public ZooKeeper getZooKeeper() {
+          return zk;
+        }
+      };
+
+      final String zlPrefix1 = "zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#";
+      ZooLock zl1 = new ZooLock(zrw, parent) {
+        @Override
+        protected String getZLockPrefix() {
+          return zlPrefix1;
+        }
+      };
+      boolean ret = zl1.tryLock(lockWatcher, "test1".getBytes(UTF_8));
+      assertTrue(ret);
+
+      final String zlPrefix2 = "zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#";
+      ZooLock zl2 = new ZooLock(zrw, parent) {
+        @Override
+        protected String getZLockPrefix() {
+          return zlPrefix2;
+        }
+      };
+      boolean ret2 = zl2.tryLock(lockWatcher, "test1".getBytes(UTF_8));
+      assertFalse(ret2);
+
+      assertTrue(zl1.wasLockAcquired());
+      assertFalse(zl2.wasLockAcquired());
+
+      List<String> children = zk.getChildren(parent, false);
+      System.out.println(children);
+      assertTrue(children.contains("zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000000"));
+      assertTrue(children.contains("zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000001"));
+      // assertTrue(children.contains("zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000002"));
+      assertTrue(children.contains("zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000003"));
+
+      assertNull(zl1.getWatching());
+      assertEquals("/zlretry/zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000001",
+          zl2.getWatching());
+
+      zl1.unlock();
+
+      assertTrue(zl2.wasLockAcquired());
+
+      zl2.unlock();
     }
 
   }
