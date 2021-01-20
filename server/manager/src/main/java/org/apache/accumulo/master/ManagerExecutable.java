@@ -23,11 +23,11 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class MasterExecutable implements KeywordExecutable {
+public class ManagerExecutable implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "master";
+    return "manager";
   }
 
   @Override
@@ -37,7 +37,7 @@ public class MasterExecutable implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Starts Accumulo master (Deprecated)";
+    return "Starts Accumulo Manager";
   }
 
   @Override

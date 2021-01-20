@@ -20,7 +20,7 @@
 
 ## Before accumulo-env.sh is loaded, these environment variables are set and can be used in this file:
 
-# cmd - Command that is being called such as tserver, master, etc.
+# cmd - Command that is being called such as tserver, manager, etc.
 # basedir - Root of Accumulo installation
 # bin - Directory containing Accumulo scripts
 # conf - Directory containing Accumulo configuration
@@ -79,7 +79,7 @@ JAVA_OPTS=("${ACCUMULO_JAVA_OPTS[@]}"
 
 ## JVM options set for individual applications
 case "$cmd" in
-  master)  JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
+  manager|master)  JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
   monitor) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
   gc)      JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
   tserver) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx768m' '-Xms768m') ;;
@@ -95,7 +95,7 @@ JAVA_OPTS=("${JAVA_OPTS[@]}"
 )
 
 case "$cmd" in
-  monitor|gc|master|tserver|tracer)
+  monitor|gc|manager|master|tserver|tracer)
     JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configurationFile=log4j2-service.properties")
     ;;
   *)
