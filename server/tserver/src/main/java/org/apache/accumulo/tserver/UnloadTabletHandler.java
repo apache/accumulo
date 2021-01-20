@@ -89,7 +89,7 @@ class UnloadTabletHandler implements Runnable {
 
     try {
       t.close(!goalState.equals(TUnloadTabletGoal.DELETED));
-    } catch (Throwable e) {
+    } catch (Exception e) {
 
       if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
         log.debug("Failed to unload tablet {}... it was already closing or closed : {}", extent,

@@ -23,12 +23,11 @@ import java.io.IOException;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 
 public class SamplerFactory {
   public static Sampler newSampler(SamplerConfigurationImpl config, AccumuloConfiguration acuconf,
       boolean useAccumuloStart) throws IOException {
-    String context = acuconf.get(Property.TABLE_CLASSPATH);
+    String context = ClassLoaderUtil.tableContext(acuconf);
 
     Class<? extends Sampler> clazz;
     try {

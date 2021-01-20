@@ -20,10 +20,10 @@ package org.apache.accumulo.server;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.ConfigurationImpl;
@@ -62,7 +62,7 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
   @Override
   public <T> T instantiate(TableId tableId, String className, Class<T> base)
       throws ReflectiveOperationException, IOException {
-    String ctx = srvCtx.getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
+    String ctx = ClassLoaderUtil.tableContext(srvCtx.getTableConfiguration(tableId));
     return ConfigurationTypeHelper.getClassInstance(ctx, className, base);
   }
 }

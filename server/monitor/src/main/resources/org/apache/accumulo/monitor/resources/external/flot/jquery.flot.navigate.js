@@ -1,221 +1,465 @@
 /* Flot plugin for adding the ability to pan and zoom the plot.
 
 Copyright (c) 2007-2014 IOLA and Ole Laursen.
+Copyright (c) 2016 Ciprian Ceteras.
+Copyright (c) 2017 Raluca Portase.
 Licensed under the MIT license.
 
-The default behaviour is double click and scrollwheel up/down to zoom in, drag
+*/
+
+/**
+## jquery.flot.navigate.js
+
+This flot plugin is used for adding the ability to pan and zoom the plot.
+A higher level overview is available at [interactions](interactions.md) documentation.
+
+The default behaviour is scrollwheel up/down to zoom in, drag
 to pan. The plugin defines plot.zoom({ center }), plot.zoomOut() and
 plot.pan( offset ) so you easily can add custom controls. It also fires
 "plotpan" and "plotzoom" events, useful for synchronizing plots.
 
 The plugin supports these options:
+```js
+    zoom: {
+        interactive: false,
+        active: false,
+        amount: 1.5         // 2 = 200% (zoom in), 0.5 = 50% (zoom out)
+    }
 
-	zoom: {
-		interactive: false
-		trigger: "dblclick" // or "click" for single click
-		amount: 1.5         // 2 = 200% (zoom in), 0.5 = 50% (zoom out)
-	}
+    pan: {
+        interactive: false,
+        active: false,
+        cursor: "move",     // CSS mouse cursor value used when dragging, e.g. "pointer"
+        frameRate: 60,
+        mode: "smart"       // enable smart pan mode
+    }
 
-	pan: {
-		interactive: false
-		cursor: "move"      // CSS mouse cursor value used when dragging, e.g. "pointer"
-		frameRate: 20
-	}
+    xaxis: {
+        axisZoom: true, //zoom axis when mouse over it is allowed
+        plotZoom: true, //zoom axis is allowed for plot zoom
+        axisPan: true, //pan axis when mouse over it is allowed
+        plotPan: true, //pan axis is allowed for plot pan
+        panRange: [undefined, undefined], // no limit on pan range, or [min, max] in axis units
+        zoomRange: [undefined, undefined], // no limit on zoom range, or [closest zoom, furthest zoom] in axis units
+    }
 
-	xaxis, yaxis, x2axis, y2axis: {
-		zoomRange: null  // or [ number, number ] (min range, max range) or false
-		panRange: null   // or [ number, number ] (min, max) or false
-	}
-
-"interactive" enables the built-in drag/click behaviour. If you enable
+    yaxis: {
+        axisZoom: true, //zoom axis when mouse over it is allowed
+        plotZoom: true, //zoom axis is allowed for plot zoom
+        axisPan: true, //pan axis when mouse over it is allowed
+        plotPan: true //pan axis is allowed for plot pan
+        panRange: [undefined, undefined], // no limit on pan range, or [min, max] in axis units
+        zoomRange: [undefined, undefined], // no limit on zoom range, or [closest zoom, furthest zoom] in axis units
+    }
+```
+**interactive** enables the built-in drag/click behaviour. If you enable
 interactive for pan, then you'll have a basic plot that supports moving
 around; the same for zoom.
 
-"amount" specifies the default amount to zoom in (so 1.5 = 150%) relative to
+**active** is true after a touch tap on plot. This enables plot navigation.
+Once activated, zoom and pan cannot be deactivated. When the plot becomes active,
+"plotactivated" event is triggered.
+
+**amount** specifies the default amount to zoom in (so 1.5 = 150%) relative to
 the current viewport.
 
-"cursor" is a standard CSS mouse cursor string used for visual feedback to the
+**cursor** is a standard CSS mouse cursor string used for visual feedback to the
 user when dragging.
 
-"frameRate" specifies the maximum number of times per second the plot will
+**frameRate** specifies the maximum number of times per second the plot will
 update itself while the user is panning around on it (set to null to disable
 intermediate pans, the plot will then not update until the mouse button is
 released).
 
-"zoomRange" is the interval in which zooming can happen, e.g. with zoomRange:
-[1, 100] the zoom will never scale the axis so that the difference between min
-and max is smaller than 1 or larger than 100. You can set either end to null
-to ignore, e.g. [1, null]. If you set zoomRange to false, zooming on that axis
-will be disabled.
-
-"panRange" confines the panning to stay within a range, e.g. with panRange:
-[-10, 20] panning stops at -10 in one end and at 20 in the other. Either can
-be null, e.g. [-10, null]. If you set panRange to false, panning on that axis
-will be disabled.
+**mode** a string specifies the pan mode for mouse interaction. Accepted values:
+'manual': no pan hint or direction snapping;
+'smart': The graph shows pan hint bar and the pan movement will snap
+to one direction when the drag direction is close to it;
+'smartLock'. The graph shows pan hint bar and the pan movement will always
+snap to a direction that the drag diorection started with.
 
 Example API usage:
+```js
+    plot = $.plot(...);
 
-	plot = $.plot(...);
+    // zoom default amount in on the pixel ( 10, 20 )
+    plot.zoom({ center: { left: 10, top: 20 } });
 
-	// zoom default amount in on the pixel ( 10, 20 )
-	plot.zoom({ center: { left: 10, top: 20 } });
+    // zoom out again
+    plot.zoomOut({ center: { left: 10, top: 20 } });
 
-	// zoom out again
-	plot.zoomOut({ center: { left: 10, top: 20 } });
+    // zoom 200% in on the pixel (10, 20)
+    plot.zoom({ amount: 2, center: { left: 10, top: 20 } });
 
-	// zoom 200% in on the pixel (10, 20)
-	plot.zoom({ amount: 2, center: { left: 10, top: 20 } });
-
-	// pan 100 pixels to the left and 20 down
-	plot.pan({ left: -100, top: 20 })
+    // pan 100 pixels to the left (changing x-range in a positive way) and 20 down
+    plot.pan({ left: -100, top: 20 })
+```
 
 Here, "center" specifies where the center of the zooming should happen. Note
 that this is defined in pixel space, not the space of the data points (you can
 use the p2c helpers on the axes in Flot to help you convert between these).
 
-"amount" is the amount to zoom the viewport relative to the current range, so
+**amount** is the amount to zoom the viewport relative to the current range, so
 1 is 100% (i.e. no change), 1.5 is 150% (zoom in), 0.7 is 70% (zoom out). You
 can set the default in the options.
-
 */
 
-// First two dependencies, jquery.event.drag.js and
-// jquery.mousewheel.js, we put them inline here to save people the
-// effort of downloading them.
+/* eslint-enable */
+(function($) {
+    'use strict';
 
-/*
-jquery.event.drag.js ~ v1.5 ~ Copyright (c) 2008, Three Dub Media (http://threedubmedia.com)
-Licensed under the MIT License ~ http://threedubmedia.googlecode.com/files/MIT-LICENSE.txt
-*/
-(function(a){function e(h){var k,j=this,l=h.data||{};if(l.elem)j=h.dragTarget=l.elem,h.dragProxy=d.proxy||j,h.cursorOffsetX=l.pageX-l.left,h.cursorOffsetY=l.pageY-l.top,h.offsetX=h.pageX-h.cursorOffsetX,h.offsetY=h.pageY-h.cursorOffsetY;else if(d.dragging||l.which>0&&h.which!=l.which||a(h.target).is(l.not))return;switch(h.type){case"mousedown":return a.extend(l,a(j).offset(),{elem:j,target:h.target,pageX:h.pageX,pageY:h.pageY}),b.add(document,"mousemove mouseup",e,l),i(j,!1),d.dragging=null,!1;case!d.dragging&&"mousemove":if(g(h.pageX-l.pageX)+g(h.pageY-l.pageY)<l.distance)break;h.target=l.target,k=f(h,"dragstart",j),k!==!1&&(d.dragging=j,d.proxy=h.dragProxy=a(k||j)[0]);case"mousemove":if(d.dragging){if(k=f(h,"drag",j),c.drop&&(c.drop.allowed=k!==!1,c.drop.handler(h)),k!==!1)break;h.type="mouseup"}case"mouseup":b.remove(document,"mousemove mouseup",e),d.dragging&&(c.drop&&c.drop.handler(h),f(h,"dragend",j)),i(j,!0),d.dragging=d.proxy=l.elem=!1}return!0}function f(b,c,d){b.type=c;var e=a.event.dispatch.call(d,b);return e===!1?!1:e||b.result}function g(a){return Math.pow(a,2)}function h(){return d.dragging===!1}function i(a,b){a&&(a.unselectable=b?"off":"on",a.onselectstart=function(){return b},a.style&&(a.style.MozUserSelect=b?"":"none"))}a.fn.drag=function(a,b,c){return b&&this.bind("dragstart",a),c&&this.bind("dragend",c),a?this.bind("drag",b?b:a):this.trigger("drag")};var b=a.event,c=b.special,d=c.drag={not:":input",distance:0,which:1,dragging:!1,setup:function(c){c=a.extend({distance:d.distance,which:d.which,not:d.not},c||{}),c.distance=g(c.distance),b.add(this,"mousedown",e,c),this.attachEvent&&this.attachEvent("ondragstart",h)},teardown:function(){b.remove(this,"mousedown",e),this===d.dragging&&(d.dragging=d.proxy=!1),i(this,!0),this.detachEvent&&this.detachEvent("ondragstart",h)}};c.dragstart=c.dragend={setup:function(){},teardown:function(){}}})(jQuery);
-
-/* jquery.mousewheel.min.js
- * Copyright (c) 2011 Brandon Aaron (http://brandonaaron.net)
- * Licensed under the MIT License (LICENSE.txt).
- * Thanks to: http://adomas.org/javascript-mouse-wheel/ for some pointers.
- * Thanks to: Mathias Bank(http://www.mathias-bank.de) for a scope bug fix.
- * Thanks to: Seamus Leahy for adding deltaX and deltaY
- *
- * Version: 3.0.6
- *
- * Requires: 1.2.2+
- */
-(function(d){function e(a){var b=a||window.event,c=[].slice.call(arguments,1),f=0,e=0,g=0,a=d.event.fix(b);a.type="mousewheel";b.wheelDelta&&(f=b.wheelDelta/120);b.detail&&(f=-b.detail/3);g=f;void 0!==b.axis&&b.axis===b.HORIZONTAL_AXIS&&(g=0,e=-1*f);void 0!==b.wheelDeltaY&&(g=b.wheelDeltaY/120);void 0!==b.wheelDeltaX&&(e=-1*b.wheelDeltaX/120);c.unshift(a,f,e,g);return(d.event.dispatch||d.event.handle).apply(this,c)}var c=["DOMMouseScroll","mousewheel"];if(d.event.fixHooks)for(var h=c.length;h;)d.event.fixHooks[c[--h]]=d.event.mouseHooks;d.event.special.mousewheel={setup:function(){if(this.addEventListener)for(var a=c.length;a;)this.addEventListener(c[--a],e,!1);else this.onmousewheel=e},teardown:function(){if(this.removeEventListener)for(var a=c.length;a;)this.removeEventListener(c[--a],e,!1);else this.onmousewheel=null}};d.fn.extend({mousewheel:function(a){return a?this.bind("mousewheel",a):this.trigger("mousewheel")},unmousewheel:function(a){return this.unbind("mousewheel",a)}})})(jQuery);
-
-
-
-
-(function ($) {
     var options = {
-        xaxis: {
-            zoomRange: null, // or [number, number] (min range, max range)
-            panRange: null // or [number, number] (min, max)
-        },
         zoom: {
             interactive: false,
-            trigger: "dblclick", // or "click" for single click
+            active: false,
             amount: 1.5 // how much to zoom relative to current position, 2 = 200% (zoom in), 0.5 = 50% (zoom out)
         },
         pan: {
             interactive: false,
+            active: false,
             cursor: "move",
-            frameRate: 20
+            frameRate: 60,
+            mode: 'smart'
+        },
+        recenter: {
+            interactive: true
+        },
+        xaxis: {
+            axisZoom: true, //zoom axis when mouse over it is allowed
+            plotZoom: true, //zoom axis is allowed for plot zoom
+            axisPan: true, //pan axis when mouse over it is allowed
+            plotPan: true, //pan axis is allowed for plot pan
+            panRange: [undefined, undefined], // no limit on pan range, or [min, max] in axis units
+            zoomRange: [undefined, undefined] // no limit on zoom range, or [closest zoom, furthest zoom] in axis units
+        },
+        yaxis: {
+            axisZoom: true,
+            plotZoom: true,
+            axisPan: true,
+            plotPan: true,
+            panRange: [undefined, undefined], // no limit on pan range, or [min, max] in axis units
+            zoomRange: [undefined, undefined] // no limit on zoom range, or [closest zoom, furthest zoom] in axis units
         }
     };
 
+    var saturated = $.plot.saturated;
+    var browser = $.plot.browser;
+    var SNAPPING_CONSTANT = $.plot.uiConstants.SNAPPING_CONSTANT;
+    var PANHINT_LENGTH_CONSTANT = $.plot.uiConstants.PANHINT_LENGTH_CONSTANT;
+
     function init(plot) {
-        function onZoomClick(e, zoomOut) {
+        plot.hooks.processOptions.push(initNevigation);
+    }
+
+    function initNevigation(plot, options) {
+        var panAxes = null;
+        var canDrag = false;
+        var useManualPan = options.pan.mode === 'manual',
+            smartPanLock = options.pan.mode === 'smartLock',
+            useSmartPan = smartPanLock || options.pan.mode === 'smart';
+
+        function onZoomClick(e, zoomOut, amount) {
+            var page = browser.getPageXY(e);
+
             var c = plot.offset();
-            c.left = e.pageX - c.left;
-            c.top = e.pageY - c.top;
-            if (zoomOut)
-                plot.zoomOut({ center: c });
-            else
-                plot.zoom({ center: c });
+            c.left = page.X - c.left;
+            c.top = page.Y - c.top;
+
+            var ec = plot.getPlaceholder().offset();
+            ec.left = page.X - ec.left;
+            ec.top = page.Y - ec.top;
+
+            var axes = plot.getXAxes().concat(plot.getYAxes()).filter(function (axis) {
+                var box = axis.box;
+                if (box !== undefined) {
+                    return (ec.left > box.left) && (ec.left < box.left + box.width) &&
+                        (ec.top > box.top) && (ec.top < box.top + box.height);
+                }
+            });
+
+            if (axes.length === 0) {
+                axes = undefined;
+            }
+
+            if (zoomOut) {
+                plot.zoomOut({
+                    center: c,
+                    axes: axes,
+                    amount: amount
+                });
+            } else {
+                plot.zoom({
+                    center: c,
+                    axes: axes,
+                    amount: amount
+                });
+            }
         }
+
+        var prevCursor = 'default',
+            panHint = null,
+            panTimeout = null,
+            plotState,
+            prevDragPosition = { x: 0, y: 0 },
+            isPanAction = false;
 
         function onMouseWheel(e, delta) {
-            e.preventDefault();
-            onZoomClick(e, delta < 0);
-            return false;
+            var maxAbsoluteDeltaOnMac = 1,
+                isMacScroll = Math.abs(e.originalEvent.deltaY) <= maxAbsoluteDeltaOnMac,
+                defaultNonMacScrollAmount = null,
+                macMagicRatio = 50,
+                amount = isMacScroll ? 1 + Math.abs(e.originalEvent.deltaY) / macMagicRatio : defaultNonMacScrollAmount;
+
+            if (isPanAction) {
+                onDragEnd(e);
+            }
+
+            if (plot.getOptions().zoom.active) {
+                e.preventDefault();
+                onZoomClick(e, delta < 0, amount);
+                return false;
+            }
         }
-        
-        var prevCursor = 'default', prevPageX = 0, prevPageY = 0,
-            panTimeout = null;
+
+        plot.navigationState = function(startPageX, startPageY) {
+            var axes = this.getAxes();
+            var result = {};
+            Object.keys(axes).forEach(function(axisName) {
+                var axis = axes[axisName];
+                result[axisName] = {
+                    navigationOffset: { below: axis.options.offset.below || 0,
+                        above: axis.options.offset.above || 0},
+                    axisMin: axis.min,
+                    axisMax: axis.max,
+                    diagMode: false
+                }
+            });
+
+            result.startPageX = startPageX || 0;
+            result.startPageY = startPageY || 0;
+            return result;
+        }
+
+        function onMouseDown(e) {
+            canDrag = true;
+        }
+
+        function onMouseUp(e) {
+            canDrag = false;
+        }
+
+        function isLeftMouseButtonPressed(e) {
+            return e.button === 0;
+        }
 
         function onDragStart(e) {
-            if (e.which != 1)  // only accept left-click
+            if (!canDrag || !isLeftMouseButtonPressed(e)) {
                 return false;
-            var c = plot.getPlaceholder().css('cursor');
-            if (c)
-                prevCursor = c;
-            plot.getPlaceholder().css('cursor', plot.getOptions().pan.cursor);
-            prevPageX = e.pageX;
-            prevPageY = e.pageY;
-        }
-        
-        function onDrag(e) {
-            var frameRate = plot.getOptions().pan.frameRate;
-            if (panTimeout || !frameRate)
-                return;
+            }
 
-            panTimeout = setTimeout(function () {
-                plot.pan({ left: prevPageX - e.pageX,
-                           top: prevPageY - e.pageY });
-                prevPageX = e.pageX;
-                prevPageY = e.pageY;
-                                                    
+            isPanAction = true;
+            var page = browser.getPageXY(e);
+
+            var ec = plot.getPlaceholder().offset();
+            ec.left = page.X - ec.left;
+            ec.top = page.Y - ec.top;
+
+            panAxes = plot.getXAxes().concat(plot.getYAxes()).filter(function (axis) {
+                var box = axis.box;
+                if (box !== undefined) {
+                    return (ec.left > box.left) && (ec.left < box.left + box.width) &&
+                        (ec.top > box.top) && (ec.top < box.top + box.height);
+                }
+            });
+
+            if (panAxes.length === 0) {
+                panAxes = undefined;
+            }
+
+            var c = plot.getPlaceholder().css('cursor');
+            if (c) {
+                prevCursor = c;
+            }
+
+            plot.getPlaceholder().css('cursor', plot.getOptions().pan.cursor);
+
+            if (useSmartPan) {
+                plotState = plot.navigationState(page.X, page.Y);
+            } else if (useManualPan) {
+                prevDragPosition.x = page.X;
+                prevDragPosition.y = page.Y;
+            }
+        }
+
+        function onDrag(e) {
+            if (!isPanAction) {
+                return;
+            }
+
+            var page = browser.getPageXY(e);
+            var frameRate = plot.getOptions().pan.frameRate;
+
+            if (frameRate === -1) {
+                if (useSmartPan) {
+                    plot.smartPan({
+                        x: plotState.startPageX - page.X,
+                        y: plotState.startPageY - page.Y
+                    }, plotState, panAxes, false, smartPanLock);
+                } else if (useManualPan) {
+                    plot.pan({
+                        left: prevDragPosition.x - page.X,
+                        top: prevDragPosition.y - page.Y,
+                        axes: panAxes
+                    });
+                    prevDragPosition.x = page.X;
+                    prevDragPosition.y = page.Y;
+                }
+                return;
+            }
+
+            if (panTimeout || !frameRate) return;
+
+            panTimeout = setTimeout(function() {
+                if (useSmartPan) {
+                    plot.smartPan({
+                        x: plotState.startPageX - page.X,
+                        y: plotState.startPageY - page.Y
+                    }, plotState, panAxes, false, smartPanLock);
+                } else if (useManualPan) {
+                    plot.pan({
+                        left: prevDragPosition.x - page.X,
+                        top: prevDragPosition.y - page.Y,
+                        axes: panAxes
+                    });
+                    prevDragPosition.x = page.X;
+                    prevDragPosition.y = page.Y;
+                }
+
                 panTimeout = null;
             }, 1 / frameRate * 1000);
         }
 
         function onDragEnd(e) {
+            if (!isPanAction) {
+                return;
+            }
+
             if (panTimeout) {
                 clearTimeout(panTimeout);
                 panTimeout = null;
             }
-                    
+
+            isPanAction = false;
+            var page = browser.getPageXY(e);
+
             plot.getPlaceholder().css('cursor', prevCursor);
-            plot.pan({ left: prevPageX - e.pageX,
-                       top: prevPageY - e.pageY });
+
+            if (useSmartPan) {
+                plot.smartPan({
+                    x: plotState.startPageX - page.X,
+                    y: plotState.startPageY - page.Y
+                }, plotState, panAxes, false, smartPanLock);
+                plot.smartPan.end();
+            } else if (useManualPan) {
+                plot.pan({
+                    left: prevDragPosition.x - page.X,
+                    top: prevDragPosition.y - page.Y,
+                    axes: panAxes
+                });
+                prevDragPosition.x = 0;
+                prevDragPosition.y = 0;
+            }
         }
-        
+
+        function onDblClick(e) {
+            plot.activate();
+            var o = plot.getOptions()
+
+            if (!o.recenter.interactive) { return; }
+
+            var axes = plot.getTouchedAxis(e.clientX, e.clientY),
+                event;
+
+            plot.recenter({ axes: axes[0] ? axes : null });
+
+            if (axes[0]) {
+                event = new $.Event('re-center', { detail: {
+                    axisTouched: axes[0]
+                }});
+            } else {
+                event = new $.Event('re-center', { detail: e });
+            }
+            plot.getPlaceholder().trigger(event);
+        }
+
+        function onClick(e) {
+            plot.activate();
+
+            if (isPanAction) {
+                onDragEnd(e);
+            }
+
+            return false;
+        }
+
+        plot.activate = function() {
+            var o = plot.getOptions();
+            if (!o.pan.active || !o.zoom.active) {
+                o.pan.active = true;
+                o.zoom.active = true;
+                plot.getPlaceholder().trigger("plotactivated", [plot]);
+            }
+        }
+
         function bindEvents(plot, eventHolder) {
             var o = plot.getOptions();
             if (o.zoom.interactive) {
-                eventHolder[o.zoom.trigger](onZoomClick);
                 eventHolder.mousewheel(onMouseWheel);
             }
 
             if (o.pan.interactive) {
-                eventHolder.bind("dragstart", { distance: 10 }, onDragStart);
-                eventHolder.bind("drag", onDrag);
-                eventHolder.bind("dragend", onDragEnd);
+                plot.addEventHandler("dragstart", onDragStart, eventHolder, 0);
+                plot.addEventHandler("drag", onDrag, eventHolder, 0);
+                plot.addEventHandler("dragend", onDragEnd, eventHolder, 0);
+                eventHolder.bind("mousedown", onMouseDown);
+                eventHolder.bind("mouseup", onMouseUp);
             }
+
+            eventHolder.dblclick(onDblClick);
+            eventHolder.click(onClick);
         }
 
-        plot.zoomOut = function (args) {
-            if (!args)
+        plot.zoomOut = function(args) {
+            if (!args) {
                 args = {};
-            
-            if (!args.amount)
+            }
+
+            if (!args.amount) {
                 args.amount = plot.getOptions().zoom.amount;
+            }
 
             args.amount = 1 / args.amount;
             plot.zoom(args);
         };
-        
-        plot.zoom = function (args) {
-            if (!args)
+
+        plot.zoom = function(args) {
+            if (!args) {
                 args = {};
-            
+            }
+
             var c = args.center,
                 amount = args.amount || plot.getOptions().zoom.amount,
-                w = plot.width(), h = plot.height();
+                w = plot.width(),
+                h = plot.height(),
+                axes = args.axes || plot.getAxes();
 
-            if (!c)
-                c = { left: w / 2, top: h / 2 };
-                
+            if (!c) {
+                c = {
+                    left: w / 2,
+                    top: h / 2
+                };
+            }
+
             var xf = c.left / w,
                 yf = c.top / h,
                 minmax = {
@@ -229,18 +473,24 @@ Licensed under the MIT License ~ http://threedubmedia.googlecode.com/files/MIT-L
                     }
                 };
 
-            $.each(plot.getAxes(), function(_, axis) {
-                var opts = axis.options,
+            for (var key in axes) {
+                if (!axes.hasOwnProperty(key)) {
+                    continue;
+                }
+
+                var axis = axes[key],
+                    opts = axis.options,
                     min = minmax[axis.direction].min,
                     max = minmax[axis.direction].max,
-                    zr = opts.zoomRange,
-                    pr = opts.panRange;
+                    navigationOffset = axis.options.offset;
 
-                if (zr === false) // no zooming on this axis
-                    return;
-                    
-                min = axis.c2p(min);
-                max = axis.c2p(max);
+                //skip axis without axisZoom when zooming only on certain axis or axis without plotZoom for zoom on entire plot
+                if ((!opts.axisZoom && args.axes) || (!args.axes && !opts.plotZoom)) {
+                    continue;
+                }
+
+                min = $.plot.saturated.saturate(axis.c2p(min));
+                max = $.plot.saturated.saturate(axis.c2p(max));
                 if (min > max) {
                     // make sure min < max
                     var tmp = min;
@@ -248,95 +498,333 @@ Licensed under the MIT License ~ http://threedubmedia.googlecode.com/files/MIT-L
                     max = tmp;
                 }
 
-                //Check that we are in panRange
-                if (pr) {
-                    if (pr[0] != null && min < pr[0]) {
-                        min = pr[0];
+                // test for zoom limits zoomRange: [min,max]
+                if (opts.zoomRange) {
+                    // zoomed in too far
+                    if (max - min < opts.zoomRange[0]) {
+                        continue;
                     }
-                    if (pr[1] != null && max > pr[1]) {
-                        max = pr[1];
+                    // zoomed out to far
+                    if (max - min > opts.zoomRange[1]) {
+                        continue;
                     }
                 }
 
-                var range = max - min;
-                if (zr &&
-                    ((zr[0] != null && range < zr[0] && amount >1) ||
-                     (zr[1] != null && range > zr[1] && amount <1)))
-                    return;
-            
-                opts.min = min;
-                opts.max = max;
-            });
-            
-            plot.setupGrid();
+                var offsetBelow = $.plot.saturated.saturate(navigationOffset.below - (axis.min - min));
+                var offsetAbove = $.plot.saturated.saturate(navigationOffset.above - (axis.max - max));
+                opts.offset = { below: offsetBelow, above: offsetAbove };
+            };
+
+            plot.setupGrid(true);
             plot.draw();
-            
-            if (!args.preventEvent)
-                plot.getPlaceholder().trigger("plotzoom", [ plot, args ]);
+
+            if (!args.preventEvent) {
+                plot.getPlaceholder().trigger("plotzoom", [plot, args]);
+            }
         };
 
-        plot.pan = function (args) {
+        plot.pan = function(args) {
             var delta = {
                 x: +args.left,
                 y: +args.top
             };
 
-            if (isNaN(delta.x))
-                delta.x = 0;
-            if (isNaN(delta.y))
-                delta.y = 0;
+            if (isNaN(delta.x)) delta.x = 0;
+            if (isNaN(delta.y)) delta.y = 0;
 
-            $.each(plot.getAxes(), function (_, axis) {
+            $.each(args.axes || plot.getAxes(), function(_, axis) {
                 var opts = axis.options,
-                    min, max, d = delta[axis.direction];
+                    d = delta[axis.direction];
 
-                min = axis.c2p(axis.p2c(axis.min) + d),
-                max = axis.c2p(axis.p2c(axis.max) + d);
-
-                var pr = opts.panRange;
-                if (pr === false) // no panning on this axis
+                //skip axis without axisPan when panning only on certain axis or axis without plotPan for pan the entire plot
+                if ((!opts.axisPan && args.axes) || (!opts.plotPan && !args.axes)) {
                     return;
-                
-                if (pr) {
-                    // check whether we hit the wall
-                    if (pr[0] != null && pr[0] > min) {
-                        d = pr[0] - min;
-                        min += d;
-                        max += d;
-                    }
-                    
-                    if (pr[1] != null && pr[1] < max) {
-                        d = pr[1] - max;
-                        min += d;
-                        max += d;
-                    }
                 }
-                
-                opts.min = min;
-                opts.max = max;
+
+                // calc min delta (revealing left edge of plot)
+                var minD = axis.p2c(opts.panRange[0]) - axis.p2c(axis.min);
+                // calc max delta (revealing right edge of plot)
+                var maxD = axis.p2c(opts.panRange[1]) - axis.p2c(axis.max);
+                // limit delta to min or max if enabled
+                if (opts.panRange[0] !== undefined && d >= maxD) d = maxD;
+                if (opts.panRange[1] !== undefined && d <= minD) d = minD;
+
+                if (d !== 0) {
+                    var navigationOffsetBelow = saturated.saturate(axis.c2p(axis.p2c(axis.min) + d) - axis.c2p(axis.p2c(axis.min))),
+                        navigationOffsetAbove = saturated.saturate(axis.c2p(axis.p2c(axis.max) + d) - axis.c2p(axis.p2c(axis.max)));
+
+                    if (!isFinite(navigationOffsetBelow)) {
+                        navigationOffsetBelow = 0;
+                    }
+
+                    if (!isFinite(navigationOffsetAbove)) {
+                        navigationOffsetAbove = 0;
+                    }
+
+                    opts.offset = {
+                        below: saturated.saturate(navigationOffsetBelow + (opts.offset.below || 0)),
+                        above: saturated.saturate(navigationOffsetAbove + (opts.offset.above || 0))
+                    };
+                }
             });
-            
-            plot.setupGrid();
+
+            plot.setupGrid(true);
             plot.draw();
-            
-            if (!args.preventEvent)
-                plot.getPlaceholder().trigger("plotpan", [ plot, args ]);
+            if (!args.preventEvent) {
+                plot.getPlaceholder().trigger("plotpan", [plot, args]);
+            }
         };
 
+        plot.recenter = function(args) {
+            $.each(args.axes || plot.getAxes(), function(_, axis) {
+                if (args.axes) {
+                    if (this.direction === 'x') {
+                        axis.options.offset = { below: 0 };
+                    } else if (this.direction === 'y') {
+                        axis.options.offset = { above: 0 };
+                    }
+                } else {
+                    axis.options.offset = { below: 0, above: 0 };
+                }
+            });
+            plot.setupGrid(true);
+            plot.draw();
+        };
+
+        var shouldSnap = function(delta) {
+            return (Math.abs(delta.y) < SNAPPING_CONSTANT && Math.abs(delta.x) >= SNAPPING_CONSTANT) ||
+                (Math.abs(delta.x) < SNAPPING_CONSTANT && Math.abs(delta.y) >= SNAPPING_CONSTANT);
+        }
+
+        // adjust delta so the pan action is constrained on the vertical or horizontal direction
+        // it the movements in the other direction are small
+        var adjustDeltaToSnap = function(delta) {
+            if (Math.abs(delta.x) < SNAPPING_CONSTANT && Math.abs(delta.y) >= SNAPPING_CONSTANT) {
+                return {x: 0, y: delta.y};
+            }
+
+            if (Math.abs(delta.y) < SNAPPING_CONSTANT && Math.abs(delta.x) >= SNAPPING_CONSTANT) {
+                return {x: delta.x, y: 0};
+            }
+
+            return delta;
+        }
+
+        var lockedDirection = null;
+        var lockDeltaDirection = function(delta) {
+            if (!lockedDirection && Math.max(Math.abs(delta.x), Math.abs(delta.y)) >= SNAPPING_CONSTANT) {
+                lockedDirection = Math.abs(delta.x) < Math.abs(delta.y) ? 'y' : 'x';
+            }
+
+            switch (lockedDirection) {
+                case 'x':
+                    return { x: delta.x, y: 0 };
+                case 'y':
+                    return { x: 0, y: delta.y };
+                default:
+                    return { x: 0, y: 0 };
+            }
+        }
+
+        var isDiagonalMode = function(delta) {
+            if (Math.abs(delta.x) > 0 && Math.abs(delta.y) > 0) {
+                return true;
+            }
+            return false;
+        }
+
+        var restoreAxisOffset = function(axes, initialState, delta) {
+            var axis;
+            Object.keys(axes).forEach(function(axisName) {
+                axis = axes[axisName];
+                if (delta[axis.direction] === 0) {
+                    axis.options.offset.below = initialState[axisName].navigationOffset.below;
+                    axis.options.offset.above = initialState[axisName].navigationOffset.above;
+                }
+            });
+        }
+
+        var prevDelta = { x: 0, y: 0 };
+        plot.smartPan = function(delta, initialState, panAxes, preventEvent, smartLock) {
+            var snap = smartLock ? true : shouldSnap(delta),
+                axes = plot.getAxes(),
+                opts;
+            delta = smartLock ? lockDeltaDirection(delta) : adjustDeltaToSnap(delta);
+
+            if (isDiagonalMode(delta)) {
+                initialState.diagMode = true;
+            }
+
+            if (snap && initialState.diagMode === true) {
+                initialState.diagMode = false;
+                restoreAxisOffset(axes, initialState, delta);
+            }
+
+            if (snap) {
+                panHint = {
+                    start: {
+                        x: initialState.startPageX - plot.offset().left + plot.getPlotOffset().left,
+                        y: initialState.startPageY - plot.offset().top + plot.getPlotOffset().top
+                    },
+                    end: {
+                        x: initialState.startPageX - delta.x - plot.offset().left + plot.getPlotOffset().left,
+                        y: initialState.startPageY - delta.y - plot.offset().top + plot.getPlotOffset().top
+                    }
+                }
+            } else {
+                panHint = {
+                    start: {
+                        x: initialState.startPageX - plot.offset().left + plot.getPlotOffset().left,
+                        y: initialState.startPageY - plot.offset().top + plot.getPlotOffset().top
+                    },
+                    end: false
+                }
+            }
+
+            if (isNaN(delta.x)) delta.x = 0;
+            if (isNaN(delta.y)) delta.y = 0;
+
+            if (panAxes) {
+                axes = panAxes;
+            }
+
+            var axis, axisMin, axisMax, p, d;
+            Object.keys(axes).forEach(function(axisName) {
+                axis = axes[axisName];
+                axisMin = axis.min;
+                axisMax = axis.max;
+                opts = axis.options;
+
+                d = delta[axis.direction];
+                p = prevDelta[axis.direction];
+
+                //skip axis without axisPan when panning only on certain axis or axis without plotPan for pan the entire plot
+                if ((!opts.axisPan && panAxes) || (!panAxes && !opts.plotPan)) {
+                    return;
+                }
+
+                // calc min delta (revealing left edge of plot)
+                var minD = p + axis.p2c(opts.panRange[0]) - axis.p2c(axisMin);
+                // calc max delta (revealing right edge of plot)
+                var maxD = p + axis.p2c(opts.panRange[1]) - axis.p2c(axisMax);
+                // limit delta to min or max if enabled
+                if (opts.panRange[0] !== undefined && d >= maxD) d = maxD;
+                if (opts.panRange[1] !== undefined && d <= minD) d = minD;
+
+                if (d !== 0) {
+                    var navigationOffsetBelow = saturated.saturate(axis.c2p(axis.p2c(axisMin) - (p - d)) - axis.c2p(axis.p2c(axisMin))),
+                        navigationOffsetAbove = saturated.saturate(axis.c2p(axis.p2c(axisMax) - (p - d)) - axis.c2p(axis.p2c(axisMax)));
+
+                    if (!isFinite(navigationOffsetBelow)) {
+                        navigationOffsetBelow = 0;
+                    }
+
+                    if (!isFinite(navigationOffsetAbove)) {
+                        navigationOffsetAbove = 0;
+                    }
+
+                    axis.options.offset.below = saturated.saturate(navigationOffsetBelow + (axis.options.offset.below || 0));
+                    axis.options.offset.above = saturated.saturate(navigationOffsetAbove + (axis.options.offset.above || 0));
+                }
+            });
+
+            prevDelta = delta;
+            plot.setupGrid(true);
+            plot.draw();
+
+            if (!preventEvent) {
+                plot.getPlaceholder().trigger("plotpan", [plot, delta, panAxes, initialState]);
+            }
+        };
+
+        plot.smartPan.end = function() {
+            panHint = null;
+            lockedDirection = null;
+            prevDelta = { x: 0, y: 0 };
+            plot.triggerRedrawOverlay();
+        }
+
         function shutdown(plot, eventHolder) {
-            eventHolder.unbind(plot.getOptions().zoom.trigger, onZoomClick);
             eventHolder.unbind("mousewheel", onMouseWheel);
+            eventHolder.unbind("mousedown", onMouseDown);
+            eventHolder.unbind("mouseup", onMouseUp);
             eventHolder.unbind("dragstart", onDragStart);
             eventHolder.unbind("drag", onDrag);
             eventHolder.unbind("dragend", onDragEnd);
-            if (panTimeout)
-                clearTimeout(panTimeout);
+            eventHolder.unbind("dblclick", onDblClick);
+            eventHolder.unbind("click", onClick);
+
+            if (panTimeout) clearTimeout(panTimeout);
         }
-        
+
+        function drawOverlay(plot, ctx) {
+            if (panHint) {
+                ctx.strokeStyle = 'rgba(96, 160, 208, 0.7)';
+                ctx.lineWidth = 2;
+                ctx.lineJoin = "round";
+                var startx = Math.round(panHint.start.x),
+                    starty = Math.round(panHint.start.y),
+                    endx, endy;
+
+                if (panAxes) {
+                    if (panAxes[0].direction === 'x') {
+                        endy = Math.round(panHint.start.y);
+                        endx = Math.round(panHint.end.x);
+                    } else if (panAxes[0].direction === 'y') {
+                        endx = Math.round(panHint.start.x);
+                        endy = Math.round(panHint.end.y);
+                    }
+                } else {
+                    endx = Math.round(panHint.end.x);
+                    endy = Math.round(panHint.end.y);
+                }
+
+                ctx.beginPath();
+
+                if (panHint.end === false) {
+                    ctx.moveTo(startx, starty - PANHINT_LENGTH_CONSTANT);
+                    ctx.lineTo(startx, starty + PANHINT_LENGTH_CONSTANT);
+
+                    ctx.moveTo(startx + PANHINT_LENGTH_CONSTANT, starty);
+                    ctx.lineTo(startx - PANHINT_LENGTH_CONSTANT, starty);
+                } else {
+                    var dirX = starty === endy;
+
+                    ctx.moveTo(startx - (dirX ? 0 : PANHINT_LENGTH_CONSTANT), starty - (dirX ? PANHINT_LENGTH_CONSTANT : 0));
+                    ctx.lineTo(startx + (dirX ? 0 : PANHINT_LENGTH_CONSTANT), starty + (dirX ? PANHINT_LENGTH_CONSTANT : 0));
+
+                    ctx.moveTo(startx, starty);
+                    ctx.lineTo(endx, endy);
+
+                    ctx.moveTo(endx - (dirX ? 0 : PANHINT_LENGTH_CONSTANT), endy - (dirX ? PANHINT_LENGTH_CONSTANT : 0));
+                    ctx.lineTo(endx + (dirX ? 0 : PANHINT_LENGTH_CONSTANT), endy + (dirX ? PANHINT_LENGTH_CONSTANT : 0));
+                }
+
+                ctx.stroke();
+            }
+        }
+
+        plot.getTouchedAxis = function(touchPointX, touchPointY) {
+            var ec = plot.getPlaceholder().offset();
+            ec.left = touchPointX - ec.left;
+            ec.top = touchPointY - ec.top;
+
+            var axis = plot.getXAxes().concat(plot.getYAxes()).filter(function (axis) {
+                var box = axis.box;
+                if (box !== undefined) {
+                    return (ec.left > box.left) && (ec.left < box.left + box.width) &&
+                            (ec.top > box.top) && (ec.top < box.top + box.height);
+                }
+            });
+
+            return axis;
+        }
+
+        plot.hooks.drawOverlay.push(drawOverlay);
         plot.hooks.bindEvents.push(bindEvents);
         plot.hooks.shutdown.push(shutdown);
     }
-    
+
     $.plot.plugins.push({
         init: init,
         options: options,

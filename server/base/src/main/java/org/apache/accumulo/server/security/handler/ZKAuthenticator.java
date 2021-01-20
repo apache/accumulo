@@ -21,6 +21,8 @@ package org.apache.accumulo.server.security.handler;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -52,6 +54,33 @@ public final class ZKAuthenticator implements Authenticator {
     this.context = context;
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
+  }
+
+  /**
+   * Checks stored users and logs a warning containing the ones with outdated hashes.
+   */
+  public boolean hasOutdatedHashes() {
+    List<String> outdatedUsers = new LinkedList<>();
+    try {
+      listUsers().forEach(user -> {
+        String zpath = ZKUserPath + "/" + user;
+        byte[] zkData = zooCache.get(zpath);
+        if (ZKSecurityTool.isOutdatedPass(zkData)) {
+          outdatedUsers.add(user);
+        }
+      });
+    } catch (NullPointerException e) {
+      log.debug(
+          "initializeSecurity was not called yet, there could be no outdated passwords stored");
+    }
+    if (!outdatedUsers.isEmpty()) {
+      log.warn(
+          "Found {} user(s) with outdated password hash. These will be re-hashed"
+              + " on successful authentication. The user(s) : {}",
+          outdatedUsers.size(), String.join(", ", outdatedUsers));
+      return true;
+    }
+    return false;
   }
 
   @Override
@@ -180,16 +209,44 @@ public final class ZKAuthenticator implements Authenticator {
     if (!(token instanceof PasswordToken))
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     PasswordToken pt = (PasswordToken) token;
-    byte[] pass;
+    byte[] zkData;
     String zpath = ZKUserPath + "/" + principal;
-    pass = zooCache.get(zpath);
-    boolean result = ZKSecurityTool.checkPass(pt.getPassword(), pass);
+    zkData = zooCache.get(zpath);
+    boolean result = authenticateUser(principal, pt, zkData);
     if (!result) {
       zooCache.clear(zpath);
-      pass = zooCache.get(zpath);
-      result = ZKSecurityTool.checkPass(pt.getPassword(), pass);
+      zkData = zooCache.get(zpath);
+      result = authenticateUser(principal, pt, zkData);
     }
     return result;
+  }
+
+  private boolean authenticateUser(String principal, PasswordToken pt, byte[] zkData) {
+    if (zkData == null) {
+      return false;
+    }
+
+    // if the hash does not match the outdated format use Crypt to verify it
+    if (!ZKSecurityTool.isOutdatedPass(zkData)) {
+      return ZKSecurityTool.checkCryptPass(pt.getPassword(), zkData);
+    }
+
+    @SuppressWarnings("deprecation")
+    boolean oldFormatValidates = ZKSecurityTool.checkPass(pt.getPassword(), zkData);
+    if (!oldFormatValidates) {
+      // if password does not match we are done
+      return false;
+    }
+
+    // if the password is correct we have to update the stored hash with new algorithm
+    try {
+      log.debug("Upgrading hashed password for {} to new format", principal);
+      changePassword(principal, pt);
+      return true;
+    } catch (AccumuloSecurityException e) {
+      log.error("Failed to upgrade hashed password for {} to new format", principal, e);
+    }
+    return false;
   }
 
   @Override

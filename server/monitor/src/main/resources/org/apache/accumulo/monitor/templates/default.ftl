@@ -34,7 +34,14 @@
       <script src="/resources/external/bootstrap/js/bootstrap.js"></script>
       <script src="/resources/external/datatables/js/jquery.dataTables.js"></script>
       <script src="/resources/external/datatables/js/dataTables.bootstrap.js"></script>
+      <script src="/resources/external/flot/jquery.canvaswrapper.js"></script>
+      <script src="/resources/external/flot/jquery.colorhelpers.js"></script>
       <script src="/resources/external/flot/jquery.flot.js"></script>
+      <script src="/resources/external/flot/jquery.flot.saturated.js"></script>
+      <script src="/resources/external/flot/jquery.flot.browser.js"></script>
+      <script src="/resources/external/flot/jquery.flot.drawSeries.js"></script>
+      <script src="/resources/external/flot/jquery.flot.uiConstants.js"></script>
+      <script src="/resources/external/flot/jquery.flot.legend.js"></script>
       <script src="/resources/external/flot/jquery.flot.time.js"></script>
       <script src="/resources/external/flot/jquery.flot.resize.js"></script>
       <script src="/resources/external/ellipsis.js"></script>

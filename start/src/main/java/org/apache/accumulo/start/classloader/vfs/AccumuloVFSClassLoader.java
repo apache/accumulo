@@ -20,6 +20,7 @@ package org.apache.accumulo.start.classloader.vfs;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
 import java.net.URL;
@@ -27,6 +28,9 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.io.FileUtils;
@@ -68,7 +72,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Used to load jar dynamically.
  * </pre>
  */
-@Deprecated(since = "2.1.0", forRemoval = true)
+@Deprecated
 public class AccumuloVFSClassLoader {
 
   public static class AccumuloVFSClassLoaderShutdownThread implements Runnable {
@@ -108,19 +112,6 @@ public class AccumuloVFSClassLoader {
   static {
     // Register the shutdown hook
     Runtime.getRuntime().addShutdownHook(new Thread(new AccumuloVFSClassLoaderShutdownThread()));
-  }
-
-  public static synchronized <U> Class<? extends U> loadClass(String classname, Class<U> extension)
-      throws ClassNotFoundException {
-    try {
-      return getClassLoader().loadClass(classname).asSubclass(extension);
-    } catch (IOException e) {
-      throw new ClassNotFoundException("IO Error loading class " + classname, e);
-    }
-  }
-
-  public static Class<?> loadClass(String classname) throws ClassNotFoundException {
-    return loadClass(classname, Object.class).asSubclass(Object.class);
   }
 
   static FileObject[] resolve(FileSystemManager vfs, String uris) throws FileSystemException {
@@ -202,7 +193,15 @@ public class AccumuloVFSClassLoader {
     return new AccumuloReloadingVFSClassLoader(dynamicCPath, generateVfs(), wrapper, 1000, true);
   }
 
-  public static ClassLoader getClassLoader() throws IOException {
+  public static ClassLoader getClassLoader() {
+    try {
+      return getClassLoader_Internal();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  private static ClassLoader getClassLoader_Internal() throws IOException {
     ReloadingClassLoader localLoader = loader;
     while (localLoader == null) {
       synchronized (lock) {
@@ -392,20 +391,42 @@ public class AccumuloVFSClassLoader {
         }
       }
       out.print("\n");
-    } catch (Throwable t) {
+    } catch (Exception t) {
       throw new RuntimeException(t);
     }
   }
 
-  public static synchronized ContextManager getContextManager() throws IOException {
+  public static void setContextConfig(Supplier<Map<String,String>> contextConfigSupplier) {
+    var config = new ContextManager.DefaultContextsConfig(contextConfigSupplier);
+    try {
+      getContextManager().setContextConfig(config);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  public static void removeUnusedContexts(Set<String> contextsInUse) {
+    try {
+      getContextManager().removeUnusedContexts(contextsInUse);
+    } catch (IOException e) {
+      log.warn("{}", e.getMessage(), e);
+    }
+  }
+
+  public static ClassLoader getContextClassLoader(String context) {
+    try {
+      return getContextManager().getClassLoader(context);
+    } catch (IOException e) {
+      throw new UncheckedIOException("Error getting context class loader for context: " + context,
+          e);
+    }
+  }
+
+  private static synchronized ContextManager getContextManager() throws IOException {
     if (contextManager == null) {
       getClassLoader();
       contextManager = new ContextManager(generateVfs(), () -> {
-        try {
-          return getClassLoader();
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+        return getClassLoader();
       });
     }
 

@@ -148,7 +148,11 @@ public class TableLoadBalancerTest {
   public void test() {
     final ServerContext context = createMockContext();
     TableConfiguration conf = createMock(TableConfiguration.class);
-    expect(conf.get(Property.TABLE_CLASSPATH)).andReturn("").anyTimes();
+    @SuppressWarnings("removal")
+    Property TABLE_CLASSPATH = Property.TABLE_CLASSPATH;
+    expect(conf.resolve(Property.TABLE_CLASSLOADER_CONTEXT, TABLE_CLASSPATH))
+        .andReturn(Property.TABLE_CLASSLOADER_CONTEXT).anyTimes();
+    expect(conf.get(Property.TABLE_CLASSLOADER_CONTEXT)).andReturn("").anyTimes();
     expect(context.getTableConfiguration(EasyMock.anyObject())).andReturn(conf).anyTimes();
     replay(context, conf);
 

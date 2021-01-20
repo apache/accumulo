@@ -24,6 +24,7 @@ import java.io.File;
 import java.net.URLClassLoader;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -63,18 +64,17 @@ public class ContextClassLoaderFactoryTest {
   public void differentContexts() throws Exception {
 
     ConfigurationCopy cc = new ConfigurationCopy();
-    cc.set("general.context.class.loader.factory", URLClassLoaderFactory.class.getName());
-    ContextClassLoaders.resetForTests();
-    ContextClassLoaders.initialize(cc);
+    cc.set(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.getKey(),
+        URLClassLoaderFactory.class.getName());
+    ClassLoaderUtil.resetContextFactoryForTests();
+    ClassLoaderUtil.initContextFactory(cc);
 
-    URLClassLoader cl1 =
-        (URLClassLoader) ContextClassLoaders.getContextClassLoaderFactory().getClassLoader(uri1);
+    URLClassLoader cl1 = (URLClassLoader) ClassLoaderUtil.getContextFactory().getClassLoader(uri1);
     var urls1 = cl1.getURLs();
     assertEquals(1, urls1.length);
     assertEquals(uri1, urls1[0].toString());
 
-    URLClassLoader cl2 =
-        (URLClassLoader) ContextClassLoaders.getContextClassLoaderFactory().getClassLoader(uri2);
+    URLClassLoader cl2 = (URLClassLoader) ClassLoaderUtil.getContextFactory().getClassLoader(uri2);
     var urls2 = cl2.getURLs();
     assertEquals(1, urls2.length);
     assertEquals(uri2, urls2[0].toString());

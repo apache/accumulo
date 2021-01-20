@@ -29,10 +29,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -53,8 +50,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -80,9 +76,8 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      BlockingQueue<Runnable> q = new LinkedBlockingQueue<>();
-      loadThreadPool = new ThreadPoolExecutor(0, maxLoadThreads, 60, TimeUnit.SECONDS, q,
-          new NamingThreadFactory("bloom-loader"));
+      loadThreadPool = ThreadPools.createThreadPool(0, maxLoadThreads, 60, TimeUnit.SECONDS,
+          "bloom-loader", false);
     }
 
     return loadThreadPool;
@@ -122,7 +117,7 @@ public class BloomFilterLayer {
        * load KeyFunctor
        */
       try {
-        String context = acuconf.get(Property.TABLE_CLASSPATH);
+        String context = ClassLoaderUtil.tableContext(acuconf);
         String classname = acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR);
         Class<? extends KeyFunctor> clazz;
         if (!useAccumuloStart)
@@ -213,7 +208,7 @@ public class BloomFilterLayer {
 
       loadThreshold = acuconf.getCount(Property.TABLE_BLOOM_LOAD_THRESHOLD);
 
-      final String context = acuconf.get(Property.TABLE_CLASSPATH);
+      final String context = ClassLoaderUtil.tableContext(acuconf);
 
       loadTask = () -> {
         // no need to load the bloom filter if the map file is closed
@@ -300,7 +295,7 @@ public class BloomFilterLayer {
             loadTask.run();
           } else {
             // load the bloom filter in the background
-            ltp.execute(new LoggingRunnable(LOG, loadTask));
+            ltp.execute(loadTask);
           }
         } finally {
           // set load task to null so no one else can initiate the load

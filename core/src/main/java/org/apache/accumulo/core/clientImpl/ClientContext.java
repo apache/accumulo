@@ -60,6 +60,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -337,7 +338,8 @@ public class ClientContext implements AccumuloClient {
       timer = new OpTimer().start();
     }
 
-    Location loc = getAmple().readTablet(RootTable.EXTENT, LOCATION).getLocation();
+    Location loc =
+        getAmple().readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL, LOCATION).getLocation();
 
     if (timer != null) {
       timer.stop();
@@ -796,7 +798,10 @@ public class ClientContext implements AccumuloClient {
 
     @Override
     public FromOptions<T> from(Properties properties) {
-      this.properties = properties;
+      // make a copy, so that this builder's subsequent methods don't mutate the
+      // properties object provided by the caller
+      this.properties = new Properties();
+      this.properties.putAll(properties);
       return this;
     }
 

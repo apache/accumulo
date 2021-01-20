@@ -55,12 +55,12 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -73,7 +73,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.zookeeper.KeeperException;
 import org.eclipse.jetty.servlet.DefaultServlet;
@@ -146,8 +145,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final List<Pair<Long,Integer>> minorCompactionsOverTime = newMaxList();
   private final List<Pair<Long,Integer>> majorCompactionsOverTime = newMaxList();
   private final List<Pair<Long,Double>> lookupsOverTime = newMaxList();
-  private final List<Pair<Long,Integer>> queryRateOverTime = newMaxList();
-  private final List<Pair<Long,Integer>> scanRateOverTime = newMaxList();
+  private final List<Pair<Long,Long>> queryRateOverTime = newMaxList();
+  private final List<Pair<Long,Long>> scanRateOverTime = newMaxList();
   private final List<Pair<Long,Double>> queryByteRateOverTime = newMaxList();
   private final List<Pair<Long,Double>> indexCacheHitRateOverTime = newMaxList();
   private final List<Pair<Long,Double>> dataCacheHitRateOverTime = newMaxList();
@@ -345,10 +344,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
         lookupsOverTime.add(new Pair<>(currentTime, lookupRateTracker.calculateRate()));
 
-        queryRateOverTime.add(new Pair<>(currentTime, (int) totalQueryRate));
+        queryRateOverTime.add(new Pair<>(currentTime, (long) totalQueryRate));
         queryByteRateOverTime.add(new Pair<>(currentTime, totalQueryByteRate));
 
-        scanRateOverTime.add(new Pair<>(currentTime, (int) totalScanRate));
+        scanRateOverTime.add(new Pair<>(currentTime, (long) totalScanRate));
 
         calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker,
             indexCacheRequestTracker);
@@ -424,7 +423,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         server.addServlet(getViewServlet(), "/*");
         server.start();
         break;
-      } catch (Throwable ex) {
+      } catch (Exception ex) {
         log.error("Unable to start embedded web server", ex);
       }
     }
@@ -462,23 +461,21 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
     }
 
-    new Daemon(new LoggingRunnable(log, new ZooKeeperStatus(context)), "ZooKeeperStatus").start();
+    Threads.createThread("ZooKeeperStatus", new ZooKeeperStatus(context)).start();
 
     // need to regularly fetch data so plot data is updated
-    new Daemon(new LoggingRunnable(log, () -> {
+    Threads.createThread("Data fetcher", () -> {
       while (true) {
         try {
           fetchData();
         } catch (Exception e) {
           log.warn("{}", e.getMessage(), e);
         }
-
         sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
       }
+    }).start();
 
-    }), "Data fetcher").start();
-
-    new Daemon(new LoggingRunnable(log, () -> {
+    Threads.createThread("Scan scanner", () -> {
       while (true) {
         try {
           fetchScans();
@@ -487,7 +484,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         }
         sleepUninterruptibly(5, TimeUnit.SECONDS);
       }
-    }), "Scan scanner").start();
+    }).start();
 
     monitorInitialized.set(true);
   }
@@ -669,7 +666,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     @Override
-    public void unableToMonitorLockNode(final Throwable e) {
+    public void unableToMonitorLockNode(final Exception e) {
       Halt.halt(-1, () -> log.error("No longer able to monitor Monitor lock node", e));
 
     }
@@ -786,11 +783,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return lookupRateTracker.calculateRate();
   }
 
-  public List<Pair<Long,Integer>> getQueryRateOverTime() {
+  public List<Pair<Long,Long>> getQueryRateOverTime() {
     return new ArrayList<>(queryRateOverTime);
   }
 
-  public List<Pair<Long,Integer>> getScanRateOverTime() {
+  public List<Pair<Long,Long>> getScanRateOverTime() {
     return new ArrayList<>(scanRateOverTime);
   }
 

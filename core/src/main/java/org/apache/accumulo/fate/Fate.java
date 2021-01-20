@@ -21,16 +21,16 @@ package org.apache.accumulo.fate;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.util.ShutdownUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -211,8 +211,8 @@ public class Fate<T> {
   /**
    * Creates a Fault-tolerant executor.
    * <p>
-   * Note: Users of this class should call {@link #startTransactionRunners(int)} to launch the
-   * worker threads after creating a Fate object.
+   * Note: Users of this class should call {@link #startTransactionRunners(AccumuloConfiguration)}
+   * to launch the worker threads after creating a Fate object.
    *
    * @param toLogStrFunc
    *          A function that converts Repo to Strings that are suitable for logging
@@ -225,14 +225,9 @@ public class Fate<T> {
   /**
    * Launches the specified number of worker threads.
    */
-  public void startTransactionRunners(int numThreads) {
-    final AtomicInteger runnerCount = new AtomicInteger(0);
-    executor = Executors.newFixedThreadPool(numThreads, r -> {
-      Thread t =
-          new Thread(new LoggingRunnable(log, r), "Repo runner " + runnerCount.getAndIncrement());
-      t.setDaemon(true);
-      return t;
-    });
+  public void startTransactionRunners(AccumuloConfiguration conf) {
+    int numThreads = conf.getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
+    executor = ThreadPools.createExecutorService(conf, Property.MASTER_FATE_THREADPOOL_SIZE);
     for (int i = 0; i < numThreads; i++) {
       executor.execute(new TransactionRunner());
     }

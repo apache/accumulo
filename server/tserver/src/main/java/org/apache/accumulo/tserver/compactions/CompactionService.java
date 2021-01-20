@@ -32,8 +32,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -54,6 +54,7 @@ import org.apache.accumulo.core.spi.compaction.ExecutorManager;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.tserver.compactions.SubmittedJob.Status;
@@ -143,9 +144,9 @@ public class CompactionService {
 
     this.rateLimit.set(maxRate);
 
-    this.readLimiter = SharedRateLimiterFactory.getInstance().create("CS_" + serviceName + "_read",
-        () -> rateLimit.get());
-    this.writeLimiter = SharedRateLimiterFactory.getInstance()
+    this.readLimiter = SharedRateLimiterFactory.getInstance(this.serverCtx.getConfiguration())
+        .create("CS_" + serviceName + "_read", () -> rateLimit.get());
+    this.writeLimiter = SharedRateLimiterFactory.getInstance(this.serverCtx.getConfiguration())
         .create("CS_" + serviceName + "_write", () -> rateLimit.get());
 
     initParams.requestedExecutors.forEach((ceid, numThreads) -> {
@@ -155,7 +156,8 @@ public class CompactionService {
 
     this.executors = Map.copyOf(tmpExecutors);
 
-    this.planningExecutor = Executors.newSingleThreadExecutor();
+    this.planningExecutor =
+        ThreadPools.createThreadPool(1, 1, 0L, TimeUnit.MILLISECONDS, "CompactionPlanner", false);
 
     this.queuedForPlanning = new EnumMap<>(CompactionKind.class);
     for (CompactionKind kind : CompactionKind.values()) {

@@ -18,39 +18,44 @@
  */
 package org.apache.accumulo.core.spi.common;
 
-import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
-
 /**
- * The ClassLoaderFactory is defined by the property general.context.factory. The factory
- * implementation is configured externally to Accumulo and will return a ClassLoader for a given
- * contextName.
+ * The ContextClassLoaderFactory provides a mechanism for various Accumulo components to use a
+ * custom ClassLoader for specific contexts, such as loading table iterators. This factory is
+ * initialized at startup and supplies ClassLoaders when provided a context.
+ *
+ * <p>
+ * This factory can be configured using the <code>general.context.class.loader.factory</code>
+ * property. All implementations of this factory must have a default (no-argument) public
+ * constructor.
+ *
+ * <p>
+ * A default implementation is provided for Accumulo 2.x to retain existing context class loader
+ * behavior based on per-table configuration. However, after Accumulo 2.x, the default is expected
+ * to change to a simpler implementation, and users will need to provide their own implementation to
+ * support advanced context class loading features. Some implementations may be maintained by the
+ * Accumulo developers in a separate package. Check the Accumulo website or contact the developers
+ * for more details on the status of these implementations.
+ *
+ * <p>
+ * Because this factory is expected to be instantiated early in the application startup process,
+ * configuration is expected to be provided within the environment (such as in Java system
+ * properties or process environment variables), and is implementation-specific.
  *
  * @since 2.1.0
- *
  */
 public interface ContextClassLoaderFactory {
 
   /**
-   * Initialize the ClassLoaderFactory. Implementations may need a reference to the configuration so
-   * that it can clean up contexts that are no longer being used.
+   * Get the class loader for the given context. Callers should not cache the ClassLoader result as
+   * it may change if/when the ClassLoader reloads. Implementations should throw a RuntimeException
+   * of some type (such as IllegalArgumentException) if the provided context is not supported or
+   * fails to be constructed.
    *
-   * @param contextProperties
-   *          Accumulo configuration properties
-   * @throws Exception
-   *           if error initializing ClassLoaderFactory
+   * @param context
+   *          the context that represents a class loader that is managed by this factory (can be
+   *          null)
+   * @return the class loader for the given context
    */
-  void initialize(Configuration contextProperties) throws Exception;
-
-  /**
-   * Get the classloader for the context name. Callers should not cache the ClassLoader result as it
-   * may change if/when the ClassLoader reloads
-   *
-   * @param contextName
-   *          name of classloader context
-   * @return classloader configured for the context
-   * @throws IllegalArgumentException
-   *           if contextName is not supported
-   */
-  ClassLoader getClassLoader(String contextName) throws IllegalArgumentException;
+  ClassLoader getClassLoader(String context);
 
 }

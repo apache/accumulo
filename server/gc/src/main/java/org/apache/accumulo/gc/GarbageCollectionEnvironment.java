@@ -60,7 +60,7 @@ public interface GarbageCollectionEnvironment {
    *
    * @return The list of files for each bulk load currently in progress.
    */
-  Iterator<String> getBlipIterator() throws TableNotFoundException;
+  Stream<String> getBlipPaths() throws TableNotFoundException;
 
   static class Reference {
     public final TableId id;

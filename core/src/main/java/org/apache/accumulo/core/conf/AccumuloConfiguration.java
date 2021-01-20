@@ -35,10 +35,10 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
-import org.apache.accumulo.core.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,12 +95,10 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Given a property and a deprecated property determine which one to use base on which one is set.
    */
   public Property resolve(Property property, Property deprecatedProperty) {
-    if (isPropertySet(property, true)) {
+    if (isPropertySet(property, true) || !isPropertySet(deprecatedProperty, true)) {
       return property;
-    } else if (isPropertySet(deprecatedProperty, true)) {
-      return deprecatedProperty;
     } else {
-      return property;
+      return deprecatedProperty;
     }
   }
 
@@ -277,7 +275,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
   /**
    * Gets a property of type {@link PropertyType#PORT}, interpreting the value properly (as an
-   * integer within the range of non-privileged ports).
+   * integer within the range of non-privileged ports). Consider using
+   * {@link #getPortStream(Property)}, if an array is not needed.
    *
    * @param property
    *          property to get
@@ -286,38 +285,32 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    *           if the property is of the wrong type
    */
   public int[] getPort(Property property) {
+    return getPortStream(property).toArray();
+  }
+
+  /**
+   * Same as {@link #getPort(Property)}, but as an {@link IntStream}.
+   */
+  public IntStream getPortStream(Property property) {
     checkType(property, PropertyType.PORT);
 
     String portString = get(property);
-    int[] ports = null;
     try {
-      Pair<Integer,Integer> portRange = PortRange.parse(portString);
-      int low = portRange.getFirst();
-      int high = portRange.getSecond();
-      ports = new int[high - low + 1];
-      for (int i = 0, j = low; j <= high; i++, j++) {
-        ports[i] = j;
-      }
+      return PortRange.parse(portString);
     } catch (IllegalArgumentException e) {
-      ports = new int[1];
       try {
         int port = Integer.parseInt(portString);
-        if (port == 0) {
-          ports[0] = port;
+        if (port == 0 || PortRange.VALID_RANGE.contains(port)) {
+          return IntStream.of(port);
         } else {
-          if (port < 1024 || port > 65535) {
-            log.error("Invalid port number {}; Using default {}", port, property.getDefaultValue());
-            ports[0] = Integer.parseInt(property.getDefaultValue());
-          } else {
-            ports[0] = port;
-          }
+          log.error("Invalid port number {}; Using default {}", port, property.getDefaultValue());
+          return IntStream.of(Integer.parseInt(property.getDefaultValue()));
         }
       } catch (NumberFormatException e1) {
         throw new IllegalArgumentException("Invalid port syntax. Must be a single positive "
             + "integers or a range (M-N) of positive integers");
       }
     }
-    return ports;
   }
 
   /**

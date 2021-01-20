@@ -55,7 +55,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_MAXMEM, "50K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "0");
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "50ms");
   }
 
   private String majcDelay, maxMem;
@@ -71,7 +71,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
       majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
       maxMem = conf.get(Property.TSERV_MAXMEM.getKey());
 
-      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "0");
+      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
       iops.setProperty(Property.TSERV_MAXMEM.getKey(), "50K");
 
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.tabletserver;
+package org.apache.accumulo.tserver.memory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -147,7 +147,7 @@ public class LargestFirstMemoryManager {
     return context.getTableConfiguration(tableId) != null;
   }
 
-  public MemoryManagementActions getMemoryManagementActions(List<TabletState> tablets) {
+  public List<KeyExtent> tabletsToMinorCompact(List<TabletMemoryReport> tablets) {
     if (maxMemory < 0)
       throw new IllegalStateException(
           "need to initialize " + LargestFirstMemoryManager.class.getName());
@@ -155,8 +155,7 @@ public class LargestFirstMemoryManager {
     final int maxMinCs = maxConcurrentMincs * numWaitingMultiplier;
 
     mincIdleThresholds.clear();
-    final MemoryManagementActions result = new MemoryManagementActions();
-    result.tabletsToMinorCompact = new ArrayList<>();
+    final List<KeyExtent> tabletsToMinorCompact = new ArrayList<>();
 
     LargestMap largestMemTablets = new LargestMap(maxMinCs);
     final LargestMap largestIdleMemTablets = new LargestMap(maxConcurrentMincs);
@@ -167,7 +166,7 @@ public class LargestFirstMemoryManager {
     int numWaitingMincs = 0;
 
     // find the largest and most idle tablets
-    for (TabletState ts : tablets) {
+    for (TabletMemoryReport ts : tablets) {
       // Make sure that the table still exists
       if (!tableExists(ts.getExtent().tableId())) {
         log.trace("Ignoring extent for deleted table: {}", ts.getExtent());
@@ -239,7 +238,7 @@ public class LargestFirstMemoryManager {
         Entry<Long,List<TabletInfo>> lastEntry = largestMemTablets.lastEntry();
         for (TabletInfo largest : lastEntry.getValue()) {
           toBeCompacted += largest.memTableSize;
-          result.tabletsToMinorCompact.add(largest.extent);
+          tabletsToMinorCompact.add(largest.extent);
           log.debug(String.format("COMPACTING %s  total = %,d ingestMemory = %,d",
               largest.extent.toString(), (ingestMemory + compactionMemory), ingestMemory));
           log.debug(String.format("chosenMem = %,d chosenIT = %.2f load %,d", largest.memTableSize,
@@ -277,7 +276,7 @@ public class LargestFirstMemoryManager {
       log.debug(String.format("AFTER compactionThreshold = %.3f", compactionThreshold));
     }
 
-    return result;
+    return tabletsToMinorCompact;
   }
 
   protected long currentTimeMillis() {

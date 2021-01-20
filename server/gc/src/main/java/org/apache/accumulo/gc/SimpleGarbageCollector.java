@@ -34,9 +34,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -67,12 +68,12 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
@@ -93,7 +94,6 @@ import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.util.Halt;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.htrace.Trace;
@@ -234,20 +234,19 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     @Override
-    public Iterator<String> getBlipIterator() throws TableNotFoundException {
+    public Stream<String> getBlipPaths() throws TableNotFoundException {
 
       if (level == DataLevel.ROOT) {
-        return Collections.<String>emptySet().iterator();
+        return Stream.empty();
       }
 
-      @SuppressWarnings("resource")
-      IsolatedScanner scanner =
+      int blipPrefixLen = BlipSection.getRowPrefix().length();
+      var scanner =
           new IsolatedScanner(getContext().createScanner(level.metaTable(), Authorizations.EMPTY));
-
       scanner.setRange(BlipSection.getRange());
-
-      return Iterators.transform(scanner.iterator(), entry -> entry.getKey().getRow().toString()
-          .substring(BlipSection.getRowPrefix().length()));
+      return StreamSupport.stream(scanner.spliterator(), false)
+          .map(entry -> entry.getKey().getRow().toString().substring(blipPrefixLen))
+          .onClose(scanner::close);
     }
 
     @Override
@@ -304,7 +303,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       minimizeDeletes(confirmedDeletes, processedDeletes, fs);
 
       ExecutorService deleteThreadPool =
-          Executors.newFixedThreadPool(getNumDeleteThreads(), new NamingThreadFactory("deleting"));
+          ThreadPools.createExecutorService(getConfiguration(), Property.GC_DELETE_THREADS);
 
       final List<Pair<Path,Path>> replacements =
           ServerConstants.getVolumeReplacements(getConfiguration(), getContext().getHadoopConf());
@@ -626,7 +625,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       }
 
       @Override
-      public void unableToMonitorLockNode(final Throwable e) {
+      public void unableToMonitorLockNode(final Exception e) {
         // ACCUMULO-3651 Level changed to error and FATAL added to message for slf4j compatibility
         Halt.halt(-1, () -> log.error("FATAL: No longer able to monitor lock node ", e));
 
@@ -654,16 +653,14 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    int[] port = getConfiguration().getPort(Property.GC_PORT);
+    IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
       ServerAddress server = TServerUtils.startTServer(getMetricsSystem(), getConfiguration(),
           getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
-          "GC Monitor Service", 2, SimpleThreadPool.DEFAULT_TIMEOUT_MILLISECS,
-          getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
-          maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
-          addresses);
+          "GC Monitor Service", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
+          getContext().getServerSslParams(), getContext().getSaslParams(), 0, addresses);
       log.debug("Starting garbage collector listening on " + server.address);
       return server.address;
     } catch (Exception ex) {

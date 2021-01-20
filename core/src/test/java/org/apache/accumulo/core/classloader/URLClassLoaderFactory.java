@@ -21,31 +21,27 @@ package org.apache.accumulo.core.classloader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.ArrayList;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 
+// test implementation
 public class URLClassLoaderFactory implements ContextClassLoaderFactory {
 
   private static final String COMMA = ",";
 
   @Override
-  public void initialize(Configuration contextProperties) throws Exception {}
-
-  @Override
-  public ClassLoader getClassLoader(String contextName) throws IllegalArgumentException {
+  public ClassLoader getClassLoader(String contextName) {
     // The context name is the classpath.
-    var parts = contextName.split(COMMA);
-    var urls = new ArrayList<URL>();
-    for (String p : parts) {
+    URL[] urls = Stream.of(contextName.split(COMMA)).map(p -> {
       try {
-        urls.add(new URL(p));
+        return new URL(p);
       } catch (MalformedURLException e) {
         throw new IllegalArgumentException("Error creating URL from classpath segment: " + p, e);
       }
-    }
-    return URLClassLoader.newInstance(urls.toArray(new URL[urls.size()]));
+    }).collect(Collectors.toList()).toArray(new URL[0]);
+    return URLClassLoader.newInstance(urls);
   }
 
 }

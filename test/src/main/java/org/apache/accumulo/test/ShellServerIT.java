@@ -122,6 +122,11 @@ import jline.console.ConsoleReader;
 
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 public class ShellServerIT extends SharedMiniClusterBase {
+
+  @SuppressWarnings("removal")
+  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
+      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
+
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
 
@@ -1667,11 +1672,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
         fooConstraintJar);
     fooConstraintJar.deleteOnExit();
 
-    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1="
-        + fooFilterJar.toURI() + "," + fooConstraintJar.toURI(), true);
+    ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI()
+        + "," + fooConstraintJar.toURI(), true);
 
     ts.exec("createtable " + table, true);
-    ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);
+    ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=cx1",
+        true);
 
     sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
 
@@ -1697,7 +1703,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert ok foo q v", true);
 
     ts.exec("deletetable -f " + table, true);
-    ts.exec("config -d " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
+    ts.exec("config -d " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
 
   }
 
@@ -1842,15 +1848,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     make10();
     setupFakeContextPath();
     // Add the context to the table so that setiter works.
-    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "="
+    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "="
         + FAKE_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY
-        + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
+    assertEquals("root@miniInstance t> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT
+        + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
 
-    result = ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
-    assertEquals(
-        "root@miniInstance t> config -t t -s table.classpath.context=" + FAKE_CONTEXT + "\n",
-        result);
+    result = ts
+        .exec("config -t t -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=" + FAKE_CONTEXT);
+    assertEquals("root@miniInstance t> config -t t -s "
+        + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=" + FAKE_CONTEXT + "\n", result);
 
     result = ts.exec("setshelliter -pn baz -n reverse -p 21 -class " + VALUE_REVERSING_ITERATOR);
     assertTrue(result.contains("The iterator class does not implement OptionDescriber"));
@@ -1877,10 +1883,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     setupRealContextPath();
     // Define a new classloader context, but don't set it on the table
-    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "="
+    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "="
         + REAL_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY
-        + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
+    assertEquals("root@miniInstance t> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT
+        + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
     // Override the table classloader context with the REAL implementation of
     // ValueReversingIterator, which does reverse the value.
     result = ts.exec("scan -pn baz -np -b row1 -e row1 -cc " + REAL_CONTEXT);

@@ -38,11 +38,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
-import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class GroupBalancerTest {
@@ -59,7 +57,6 @@ public class GroupBalancerTest {
   public static class TabletServers {
     private final Set<TServerInstance> tservers = new HashSet<>();
     private final Map<KeyExtent,TServerInstance> tabletLocs = new HashMap<>();
-    private final TabletsMetadata mockMetadata = EasyMock.createMock(TabletsMetadata.class);
 
     public void addTservers(String... locs) {
       for (String loc : locs) {

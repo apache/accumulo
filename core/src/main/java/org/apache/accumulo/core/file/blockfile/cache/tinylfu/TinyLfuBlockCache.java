@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheEntry.Weighable;
 import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +41,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * A block cache that is memory bounded using the W-TinyLFU eviction algorithm. This implementation
@@ -56,9 +55,10 @@ public final class TinyLfuBlockCache implements BlockCache {
   private static final Logger log = LoggerFactory.getLogger(TinyLfuBlockCache.class);
   private static final int STATS_PERIOD_SEC = 60;
 
-  private Cache<String,Block> cache;
-  private Policy.Eviction<String,Block> policy;
-  private ScheduledExecutorService statsExecutor;
+  private final Cache<String,Block> cache;
+  private final Policy.Eviction<String,Block> policy;
+  private final ScheduledExecutorService statsExecutor =
+      ThreadPools.createScheduledExecutorService(1, "TinyLfuBlockCacheStatsExecutor", false);
 
   public TinyLfuBlockCache(Configuration conf, CacheType type) {
     cache = Caffeine.newBuilder()
@@ -68,8 +68,6 @@ public final class TinyLfuBlockCache implements BlockCache {
           return keyWeight + block.weight();
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
     policy = cache.policy().eviction().get();
-    statsExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-        .setNameFormat("TinyLfuBlockCacheStatsExecutor").setDaemon(true).build());
     statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC,
         TimeUnit.SECONDS);
   }

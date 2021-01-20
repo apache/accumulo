@@ -16,12 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.tabletserver;
+package org.apache.accumulo.master;
 
-import java.util.List;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import com.google.auto.service.AutoService;
 
-public class MemoryManagementActions {
-  public List<KeyExtent> tabletsToMinorCompact;
+@AutoService(KeywordExecutable.class)
+public class ManagerExecutable implements KeywordExecutable {
+
+  @Override
+  public String keyword() {
+    return "manager";
+  }
+
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.PROCESS;
+  }
+
+  @Override
+  public String description() {
+    return "Starts Accumulo Manager";
+  }
+
+  @Override
+  public void execute(final String[] args) throws Exception {
+    Master.main(args);
+  }
+
 }

@@ -271,7 +271,7 @@ public class CryptoTest {
         "org.apache.accumulo.core.cryptoImpl.AESCryptoService");
     String configuredClass = aconf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
     Class<? extends CryptoService> clazz =
-        ClassLoaderUtil.loadClass(null, configuredClass, CryptoService.class);
+        ClassLoaderUtil.loadClass(configuredClass, CryptoService.class);
     CryptoService cs = clazz.getDeclaredConstructor().newInstance();
 
     assertEquals(AESCryptoService.class, cs.getClass());

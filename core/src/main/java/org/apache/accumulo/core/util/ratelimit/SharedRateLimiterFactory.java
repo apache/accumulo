@@ -19,10 +19,13 @@
 package org.apache.accumulo.core.util.ratelimit;
 
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.WeakHashMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,27 +43,21 @@ public class SharedRateLimiterFactory {
   private SharedRateLimiterFactory() {}
 
   /** Get the singleton instance of the SharedRateLimiterFactory. */
-  public static synchronized SharedRateLimiterFactory getInstance() {
+  public static synchronized SharedRateLimiterFactory getInstance(AccumuloConfiguration conf) {
     if (instance == null) {
       instance = new SharedRateLimiterFactory();
 
-      Timer timer = new Timer("SharedRateLimiterFactory update/report polling");
+      ScheduledThreadPoolExecutor svc = ThreadPools.createGeneralScheduledExecutorService(conf);
+      svc.scheduleWithFixedDelay(
+          Threads.createNamedRunnable("SharedRateLimiterFactory update polling", () -> {
+            instance.update();
+          }), UPDATE_RATE, UPDATE_RATE, TimeUnit.MILLISECONDS);
 
-      // Update periodically
-      timer.schedule(new TimerTask() {
-        @Override
-        public void run() {
-          instance.update();
-        }
-      }, UPDATE_RATE, UPDATE_RATE);
+      svc.scheduleWithFixedDelay(
+          Threads.createNamedRunnable("SharedRateLimiterFactory report polling", () -> {
+            instance.report();
+          }), REPORT_RATE, REPORT_RATE, TimeUnit.MILLISECONDS);
 
-      // Report periodically
-      timer.schedule(new TimerTask() {
-        @Override
-        public void run() {
-          instance.report();
-        }
-      }, REPORT_RATE, REPORT_RATE);
     }
     return instance;
   }

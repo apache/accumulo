@@ -128,8 +128,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   protected void setEncoder(String encoderClass) {
     try {
       @SuppressWarnings("unchecked")
-      Class<? extends Encoder<V>> clazz = (Class<? extends Encoder<V>>) ClassLoaderUtil
-          .loadClass(null, encoderClass, Encoder.class);
+      Class<? extends Encoder<V>> clazz =
+          (Class<? extends Encoder<V>>) ClassLoaderUtil.loadClass(encoderClass, Encoder.class);
       encoder = clazz.getDeclaredConstructor().newInstance();
     } catch (ReflectiveOperationException e) {
       throw new IllegalArgumentException(e);

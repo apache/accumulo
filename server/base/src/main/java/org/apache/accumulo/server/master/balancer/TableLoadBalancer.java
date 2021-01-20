@@ -48,7 +48,7 @@ public class TableLoadBalancer extends TabletBalancer {
   private TabletBalancer constructNewBalancerForTable(String clazzName, TableId tableId)
       throws Exception {
     String context = null;
-    context = this.context.getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
+    context = ClassLoaderUtil.tableContext(this.context.getTableConfiguration(tableId));
     Class<? extends TabletBalancer> clazz =
         ClassLoaderUtil.loadClass(context, clazzName, TabletBalancer.class);
     Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(TableId.class);
