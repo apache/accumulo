@@ -140,7 +140,7 @@ function main() {
   service="$1"
 
   if [[ $service == "master" ]]; then
-    echo "WARN : Use of master service name is deprecated, use manager instead."
+    echo "WARN : Use of 'master' service name is deprecated; use 'manager' instead."
     service="manager"
   fi
 
