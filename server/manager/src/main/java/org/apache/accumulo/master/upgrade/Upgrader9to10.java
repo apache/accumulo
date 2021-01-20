@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -75,6 +76,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.ZooConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
@@ -208,24 +210,23 @@ public class Upgrader9to10 implements Upgrader {
   @Deprecated(since = "2.1.0", forRemoval = true)
   private void renameMasterProps(ServerContext ctx) {
     try {
-      // Figure out which props with the "master." prefix are set only in Zookeeper. If
-      // a property exists in the config and is either not set in the site config, or has
-      // a different value from the site config, then the property is set in zookeeper
-      // and we want to upgrade.
-      HashMap<String,String> configProps = new HashMap<>();
-      HashMap<String,String> siteProps = new HashMap<>();
-      ctx.getConfiguration().getProperties(configProps,
-          p -> p.startsWith(DeprecatedPropertyUtil.MasterPropertyRenamer.MASTER_PREFIX));
-      ctx.getSiteConfiguration().getProperties(siteProps,
-          p -> p.startsWith(DeprecatedPropertyUtil.MasterPropertyRenamer.MASTER_PREFIX));
-      configProps.entrySet().removeIf(
-          e -> siteProps.containsKey(e.getKey()) && e.getValue().equals(siteProps.get(e.getKey())));
+      // List all of the properties only set in Zookeeper that start with "master."
+      // These are the properties that need to be renamed.
+      HashMap<String,String> masterProps = new HashMap<>();
+      ZooConfiguration zooConfiguration =
+          new ZooConfiguration(ctx, ctx.getZooCache(), new ConfigurationCopy());
+      for (Entry<String,String> entry : zooConfiguration) {
+        if (entry.getKey().startsWith(DeprecatedPropertyUtil.MasterPropertyRenamer.MASTER_PREFIX))
+          masterProps.put(entry.getKey(), entry.getValue());
+      }
 
-      for (Entry<String,String> entry : configProps.entrySet()) {
+      for (Entry<String,String> entry : masterProps.entrySet()) {
         // Set the property under the new name
-        SystemPropUtil.setSystemProperty(ctx,
-            DeprecatedPropertyUtil.renameDeprecatedProperty(entry.getKey(), false),
-            entry.getValue());
+        String propertyName =
+            DeprecatedPropertyUtil.renameDeprecatedProperty(entry.getKey(), false);
+        SystemPropUtil.setSystemProperty(ctx, propertyName, entry.getValue());
+        log.info("During upgrade, renamed deprecated property {} to {}.", entry.getKey(),
+            propertyName);
         // Delete the old property. We can't use SystemPropUtil.removeSystemProperty
         // since it will just rename the old property name to the new one and
         // then we'd delete the new property value we just set.

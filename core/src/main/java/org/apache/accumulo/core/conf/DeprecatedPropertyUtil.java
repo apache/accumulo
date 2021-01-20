@@ -113,7 +113,7 @@ public class DeprecatedPropertyUtil {
         log.error("Cannot set both {} and deprecated {} in the configuration.", renamedProp,
             currentProp);
         throw new IllegalStateException(renamedProp + " and deprecated " + currentProp
-            + " cannot both be site in the configuration.");
+            + " cannot both be set in the configuration.");
       }
     });
   }

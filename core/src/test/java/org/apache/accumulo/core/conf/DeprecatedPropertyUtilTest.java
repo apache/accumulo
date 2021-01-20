@@ -22,6 +22,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 
+import java.util.Arrays;
+
 import org.apache.commons.configuration2.CompositeConfiguration;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -65,6 +67,17 @@ public class DeprecatedPropertyUtilTest {
   }
 
   @Test
+  @Deprecated(since = "2.1.0", forRemoval = true)
+  public void testMasterPropertyRename() {
+    Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
+        .filter(p -> p.getKey().startsWith(Property.MANAGER_PREFIX.getKey())).forEach(p -> {
+          String oldProp =
+              "master." + p.getKey().substring(Property.MANAGER_PREFIX.getKey().length());
+          assertEquals(p.getKey(), DeprecatedPropertyUtil.renameDeprecatedProperty(oldProp, false));
+        });
+  }
+
+  @Test
   public void testSanityCheckWithOldProp() {
     CompositeConfiguration config = new CompositeConfiguration();
     config.setProperty("old.prop", "3");
@@ -79,13 +92,21 @@ public class DeprecatedPropertyUtilTest {
   }
 
   @Test
+  public void testSanityCheckWithMultipleProps() {
+    CompositeConfiguration config = new CompositeConfiguration();
+    config.setProperty("old.prop1", "value1");
+    config.setProperty("new.prop2", "value2");
+    DeprecatedPropertyUtil.sanityCheck(config);
+  }
+
+  @Test
   public void testSanityCheckFailure() {
     CompositeConfiguration config = new CompositeConfiguration();
     config.setProperty("old.prop", "3");
     config.setProperty("new.prop", "4");
     IllegalStateException e =
         assertThrows(IllegalStateException.class, () -> DeprecatedPropertyUtil.sanityCheck(config));
-    assertEquals("new.prop and deprecated old.prop cannot both be site in the configuration.",
+    assertEquals("new.prop and deprecated old.prop cannot both be set in the configuration.",
         e.getMessage());
   }
 }

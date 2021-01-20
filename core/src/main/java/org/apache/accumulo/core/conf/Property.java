@@ -247,7 +247,8 @@ public enum Property {
 
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
-      "Properties in this category affect the behavior of the manager server. **Note:** Since 2.1.0, all 'manager.*' properties replace the deprecated 'master.*' properties."),
+      "Properties in this category affect the behavior of the manager server. **Note:** Since 2.1.0, "
+          + "all `manager.*` properties replace the deprecated `master.*` properties."),
   MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
       "The port used for handling client connections on the manager"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
