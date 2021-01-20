@@ -342,7 +342,7 @@ function main() {
 
   manager_file="managers"
   if [[ ! -f "$conf/$manager_file" -a -f "$conf/masters" ]]; then
-    echo "WARN : Use of masters files is deprecated.  Use managers files instead"
+    echo "WARN : Use of 'masters' file is deprecated; use 'managers' file instead."
     manager_file="masters"
   fi 
 
