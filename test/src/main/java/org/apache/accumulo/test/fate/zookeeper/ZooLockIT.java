@@ -114,7 +114,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     public boolean isLockHeld() {
       return this.lockHeld;
     }
-  };
+  }
 
   static class ConnectedWatcher implements Watcher {
     volatile boolean connected = false;
@@ -399,6 +399,18 @@ public class ZooLockIT extends SharedMiniClusterBase {
         }
       };
       zl1.lock(zlw1, "test1".getBytes(UTF_8));
+      // The call above creates two nodes in ZK because of the overridden create method in
+      // ZooKeeperWrapper.
+      // The nodes created are:
+      // zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000000
+      // zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000001
+      //
+      // ZooLock should realize this and remove the latter one and place a watcher on the first one
+      // in case
+      // the ZooKeeper ephemeral node is deleted by some external process.
+      // Lastly, because zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000000 is the first child,
+      // zl1 assumes
+      // that it has the lock.
 
       ZooReaderWriter zrw2 = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
         @Override
@@ -416,18 +428,34 @@ public class ZooLockIT extends SharedMiniClusterBase {
         }
       };
       zl2.lock(zlw2, "test1".getBytes(UTF_8));
+      // The call above creates two nodes in ZK because of the overridden create method in
+      // ZooKeeperWrapper.
+      // The nodes created are:
+      // zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000002
+      // zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000003
+      //
+      // ZooLock should realize this and remove the latter one and place a watcher on the first one
+      // in case
+      // the ZooKeeper ephemeral node is deleted by some external process.
+      // Because zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000002 is not the first child in the
+      // list, it
+      // places a watcher on zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000000 so that it may
+      // try to acquire
+      // the lock when zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000000 is removed.
 
       assertTrue(zlw1.isLockHeld());
       assertFalse(zlw2.isLockHeld());
 
       List<String> children = zk1.getChildren(parent, false);
       assertTrue(children.contains("zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000000"));
-      assertTrue(children.contains("zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000001"));
+      assertFalse("this node should have been deleted",
+          children.contains("zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000001"));
       assertTrue(children.contains("zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000002"));
-      assertTrue(children.contains("zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000003"));
+      assertFalse("this node should have been deleted",
+          children.contains("zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000003"));
 
       assertNull(zl1.getWatching());
-      assertEquals("/zlretry/zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000001",
+      assertEquals("/zlretry/zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000000",
           zl2.getWatching());
 
       zl1.unlock();
