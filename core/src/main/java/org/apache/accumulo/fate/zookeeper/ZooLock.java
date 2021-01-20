@@ -141,10 +141,6 @@ public class ZooLock implements Watcher {
     }
 
     // If we didn't acquire the lock, then delete the path we just created
-    // NOTE: It's possible that we silently created more than one ephemeral
-    // node at `path` if the server response was missed by the ZK client and
-    // it retried. The other ephemeral nodes will be cleaned up when the process
-    // exits.
     if (createdNodeName != null) {
       String pathToDelete = path + "/" + createdNodeName;
       LOG.trace("[{}] Deleting all at path: {}", this.getZLockPrefix(), pathToDelete);
@@ -155,7 +151,7 @@ public class ZooLock implements Watcher {
     return false;
   }
 
-  private static void sortChildrenByLockPrefix(List<String> children) {
+  public static void sortChildrenByLockPrefix(List<String> children) {
     Collections.sort(children, new Comparator<String>() {
       @Override
       public int compare(String o1, String o2) {

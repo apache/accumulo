@@ -27,8 +27,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
@@ -366,7 +368,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
   }
 
   @Test(timeout = 60000)
-  public void testLockRetryStrategy() throws Exception {
+  public void testLockSerial() throws Exception {
     String parent = "/zlretry";
 
     ConnectedWatcher watcher = new ConnectedWatcher();
@@ -471,7 +473,135 @@ public class ZooLockIT extends SharedMiniClusterBase {
       zk2.close();
 
     }
+    
+  }
+  
+  static class LockWorker implements Runnable {
+    
+    private final String parent;
+    private final String prefix;
+    private final CountDownLatch lockLatch;
+    private final CountDownLatch unlockLatch = new CountDownLatch(1);
+    private final RetryLockWatcher lockWatcher = new RetryLockWatcher();
+    
+    public LockWorker(final String parent, final String prefix, final CountDownLatch lockLatch) {
+      this.parent = parent;
+      this.prefix = prefix;
+      this.lockLatch = lockLatch;
+    }
 
+    public void unlock() {
+      unlockLatch.countDown();
+    }
+    
+    public boolean holdsLock() {
+      return lockWatcher.isLockHeld();
+    }
+    
+    @Override
+    public void run() {
+      ConnectedWatcher watcher = new ConnectedWatcher();
+      try {
+        try (ZooKeeperWrapper zk = new ZooKeeperWrapper(getCluster().getZooKeepers(), 30000, watcher)) {
+          zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+          while (!watcher.isConnected()) {
+            Thread.sleep(50);
+          }
+          ZooReaderWriter zrw = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
+            @Override
+            public ZooKeeper getZooKeeper() {
+              return zk;
+            }
+          };
+          ZooLock zl = new ZooLock(zrw, parent) {
+            @Override
+            protected String getZLockPrefix() {
+              return prefix;
+            }
+          };
+          lockLatch.countDown(); // signal we are done
+          lockLatch.await(); // wait for others to finish
+          zl.lock(lockWatcher, "test1".getBytes(UTF_8)); // race to the lock
+          unlockLatch.await();
+          zl.unlock();
+        }
+      } catch (IOException | InterruptedException | KeeperException e) {
+        
+      }
+    }
+    
+  }
+  
+  private int parseLockWorkerName(String child) {
+    if (child.startsWith("zlock#00000000-0000-0000-0000-111111111111#")) {
+      return 1;
+    } else if (child.startsWith("zlock#00000000-0000-0000-0000-222222222222#")) {
+      return 2;
+    } else if (child.startsWith("zlock#00000000-0000-0000-0000-333333333333#")) {
+      return 3;
+    } else if (child.startsWith("zlock#00000000-0000-0000-0000-444444444444#")) {
+      return 4;
+    } else {
+      return 0;
+    }
+  }
+  
+  @Test(timeout = 60000)
+  public void testLockParallel() throws Exception {
+    String parent = "/zlParallel";
+
+    ConnectedWatcher watcher = new ConnectedWatcher();
+    try (ZooKeeperWrapper zk = new ZooKeeperWrapper(getCluster().getZooKeepers(), 30000, watcher)) {
+      zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+
+      while (!watcher.isConnected()) {
+        Thread.sleep(50);
+      }
+      // Create the parent node
+      zk.createOnce(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
+      int numWorkers = 4;
+      CountDownLatch lockLatch = new CountDownLatch(numWorkers);
+      List<LockWorker> workers = new ArrayList<>(numWorkers);
+      List<Thread> threads = new ArrayList<>(numWorkers);
+      for (int i = 0; i < numWorkers; i++) {
+        String prefix = "zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#".replaceAll("A",Integer.toString(i));
+        LockWorker w = new LockWorker(parent, prefix, lockLatch);
+        Thread t = new Thread(w);
+        workers.add(w);
+        threads.add(t);
+        t.start();
+      }
+
+      lockLatch.await();
+      
+      for (int i = 4; i > 0; i--) {
+        List<String> children = zk.getChildren(parent, false);
+        ZooLock.sortChildrenByLockPrefix(children);
+        assertEquals(i, children.size());
+        String first = children.get(0);
+        int workerWithLock = parseLockWorkerName(first) - 1;
+        LockWorker worker = workers.get(workerWithLock);
+        assertTrue(worker.holdsLock());
+        workers.forEach(w -> {
+          if (w != worker) {
+            assertFalse(w.holdsLock());
+          }
+        });
+        worker.unlock();
+      }
+      
+      workers.forEach(w -> assertFalse(w.holdsLock()));
+      
+      threads.forEach(t -> {
+        try {
+          t.join();
+        } catch (InterruptedException e) {
+          // ignore
+        }
+      });
+    }
+    
   }
 
   @Test(timeout = 10000)
