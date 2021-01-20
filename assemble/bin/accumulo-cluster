@@ -341,7 +341,7 @@ function main() {
   SSH='ssh -qnf -o ConnectTimeout=2'
 
   manager_file="managers"
-  if [[ ! -f "$conf/$manager_file" -a -f "$conf/masters" ]]; then
+  if [[ ! -f "$conf/$manager_file" && -f "$conf/masters" ]]; then
     echo "WARN : Use of 'masters' file is deprecated; use 'managers' file instead."
     manager_file="masters"
   fi 
