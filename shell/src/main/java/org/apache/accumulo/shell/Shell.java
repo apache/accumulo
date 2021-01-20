@@ -1181,12 +1181,21 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void updateUser(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    if (accumuloClient != null) {
-      accumuloClient.close();
+    var newClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
+    try {
+      newClient.securityOperations().authenticateUser(principal, token);
+    } catch (AccumuloSecurityException e) {
+      // new client can't authenticate; close and discard
+      newClient.close();
+      throw e;
     }
-    accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
-    accumuloClient.securityOperations().authenticateUser(principal, token);
-    context = (ClientContext) accumuloClient;
+    var oldClient = accumuloClient;
+    accumuloClient = newClient; // swap out old client if the new client has authenticated
+    context = (ClientContext) accumuloClient; // update the context with the new client
+    if (oldClient != null) {
+      // clean up the old client
+      oldClient.close();
+    }
   }
 
   public ClientContext getContext() {
