@@ -33,7 +33,7 @@ public class DeprecatedPropertyUtil {
   private static final Logger log = LoggerFactory.getLogger(DeprecatedPropertyUtil.class);
   private static final HashSet<String> propertyDeprecationWarnings = new HashSet<>();
   @VisibleForTesting
-  protected static List<PropertyRenamer> renamers =
+  protected static final List<PropertyRenamer> renamers =
       new ArrayList<>(List.of(new MasterPropertyRenamer()));
 
   public interface PropertyRenamer {

@@ -96,12 +96,14 @@ public class DeprecatedPropertyUtilIT extends ConfigurableMacBase {
   }
 
   @Before
-  public void setup() {
+  public void setUp() throws Exception {
+    super.setUp();
     TestPropertyUtil.registerTestRenamer();
   }
 
   @After
-  public void teardown() {
+  public void tearDown() {
+    super.tearDown();
     TestPropertyUtil.removeTestRenamer();
   }
 
