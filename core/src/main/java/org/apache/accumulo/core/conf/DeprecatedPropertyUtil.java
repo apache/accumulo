@@ -18,85 +18,75 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import org.apache.commons.configuration2.CompositeConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-
-@SuppressWarnings("DeprecatedIsStillUsed")
 public class DeprecatedPropertyUtil {
+
+  public static class PropertyRenamer {
+    public final Predicate<String> keyFilter;
+    final UnaryOperator<String> keyMapper;
+
+    public PropertyRenamer(Predicate<String> keyFilter, UnaryOperator<String> keyMapper) {
+      this.keyFilter = requireNonNull(keyFilter);
+      this.keyMapper = requireNonNull(keyMapper);
+    }
+  }
+
   private static final Logger log = LoggerFactory.getLogger(DeprecatedPropertyUtil.class);
   private static final HashSet<String> propertyDeprecationWarnings = new HashSet<>();
-  @VisibleForTesting
+
+  public static final PropertyRenamer MASTER_MANAGER_RENAMER = new PropertyRenamer(
+      s -> s.startsWith("master."), s -> Property.MANAGER_PREFIX + s.substring(7));
   protected static final List<PropertyRenamer> renamers =
-      new ArrayList<>(List.of(new MasterPropertyRenamer()));
-
-  public interface PropertyRenamer {
-    boolean matches(String property);
-
-    String rename(String property);
-  }
+      new ArrayList<>(List.of(MASTER_MANAGER_RENAMER));
 
   /**
-   * Renames any properties starting with "master." to the corresponding property name starting with
-   * "manager.".
-   *
-   * @deprecated since 2.1.0, "manager.*" properties should be used instead
-   */
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  public static class MasterPropertyRenamer implements PropertyRenamer {
-    public static final String MASTER_PREFIX = "master.";
-
-    @Override
-    public boolean matches(String property) {
-      return property.startsWith(MASTER_PREFIX);
-    }
-
-    @Override
-    public String rename(String property) {
-      return Property.MANAGER_PREFIX + property.substring(MASTER_PREFIX.length());
-    }
-  }
-
-  /**
-   * @see #renameDeprecatedProperty(String, boolean)
-   */
-  public static String renameDeprecatedProperty(String propertyName) {
-    return renameDeprecatedProperty(propertyName, true);
-  }
-
-  /**
-   * Checks if {@code propertyName} is a deprecated property name that has a replacement name. The
-   * replacement name, if any, is returned. Otherwise, {@code propertyName} is returned. If a
-   * deprecated property is used and {@code warnIfRenamed} is {@code true}, then a warning log
-   * message is emitted once per property per classloader when the property is renamed.
+   * Checks if {@code propertyName} is a deprecated property name and return its replacement name,
+   * if one is available, or the original name if no replacement is available. This method will log
+   * a warning about any deprecated properties found with a replacement, logging at most once per
+   * property name (per classloader).
    *
    * @param propertyName
    *          the name of the potentially deprecated property to check for a replacement name
-   * @param warnIfRenamed
-   *          indicates whether or not the warning log message should be emitted when a deprecated
-   *          property is renamed
    * @return either the replacement for {@code propertyName}, or {@code propertyName} if the
    *         property is not deprecated
+   * @see #renameDeprecatedProperty(String) if no warning is desired
    */
-  public static String renameDeprecatedProperty(String propertyName, boolean warnIfRenamed) {
-    String renamed = renamers.stream().filter(r -> r.matches(propertyName)).findFirst()
-        .map(r -> r.rename(propertyName)).orElse(propertyName);
-
+  public static String renameDeprecatedPropertyAndWarn(String propertyName) {
+    String renamed = renameDeprecatedProperty(propertyName);
     // Warn about the deprecation if we renamed the property.
-    if (warnIfRenamed && !renamed.equals(propertyName)
-        && !propertyDeprecationWarnings.contains(propertyName)) {
+    if (!renamed.equals(propertyName) && !propertyDeprecationWarnings.contains(propertyName)) {
       log.warn("{} has been deprecated and will be removed in a future release. Use {} instead.",
           propertyName, renamed);
       propertyDeprecationWarnings.add(propertyName);
     }
-
     return renamed;
+  }
+
+  /**
+   * Checks if {@code propertyName} is a deprecated property name and return its replacement name,
+   * if one is available, or the original name if no replacement is available.
+   *
+   * @param propertyName
+   *          the name of the potentially deprecated property to check for a replacement name
+   * @return either the replacement for {@code propertyName}, or {@code propertyName} if the
+   *         property is not deprecated
+   * @see #renameDeprecatedPropertyAndWarn(String) if a warning is desired
+   */
+  public static String renameDeprecatedProperty(String propertyName) {
+    // Find first renamer that is able to rename this property, if available, and use it to rename
+    return renamers.stream().filter(r -> r.keyFilter.test(propertyName)).findFirst()
+        .map(r -> r.keyMapper.apply(propertyName)).orElse(propertyName);
   }
 
   /**
@@ -108,7 +98,7 @@ public class DeprecatedPropertyUtil {
    */
   static void sanityCheck(CompositeConfiguration config) {
     config.getKeys().forEachRemaining(currentProp -> {
-      String renamedProp = renameDeprecatedProperty(currentProp, false);
+      String renamedProp = renameDeprecatedProperty(currentProp);
       if (!renamedProp.equals(currentProp) && config.containsKey(renamedProp)) {
         log.error("Cannot set both {} and deprecated {} in the configuration.", renamedProp,
             currentProp);

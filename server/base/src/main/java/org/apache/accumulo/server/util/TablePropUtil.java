@@ -42,7 +42,7 @@ public class TablePropUtil {
       String property, String value) throws KeeperException, InterruptedException {
     // Retrieve the replacement name for this property, if there is one.
     // Do this before we check if the name is a valid zookeeper name.
-    property = DeprecatedPropertyUtil.renameDeprecatedProperty(property);
+    property = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(property);
 
     if (!isPropertyValid(property, value))
       return false;
@@ -66,7 +66,7 @@ public class TablePropUtil {
 
   public static void removeTableProperty(ServerContext context, TableId tableId, String property)
       throws InterruptedException, KeeperException {
-    property = DeprecatedPropertyUtil.renameDeprecatedProperty(property);
+    property = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(property);
     String zPath = getTablePath(context.getZooKeeperRoot(), tableId) + "/" + property;
     context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }

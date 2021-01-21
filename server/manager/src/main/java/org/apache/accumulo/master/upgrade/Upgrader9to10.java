@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
@@ -117,7 +118,7 @@ public class Upgrader9to10 implements Upgrader {
   public void upgradeZookeeper(ServerContext ctx) {
     setMetaTableProps(ctx);
     upgradeRootTabletMetadata(ctx);
-    renameMasterProps(ctx);
+    renameOldMasterPropsinZK(ctx);
   }
 
   @Override
@@ -206,24 +207,22 @@ public class Upgrader9to10 implements Upgrader {
     delete(ctx, ZROOT_TABLET_PATH);
   }
 
-  @SuppressWarnings("removal")
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  private void renameMasterProps(ServerContext ctx) {
+  private void renameOldMasterPropsinZK(ServerContext ctx) {
     try {
       // List all of the properties only set in Zookeeper that start with "master."
       // These are the properties that need to be renamed.
       HashMap<String,String> masterProps = new HashMap<>();
       ZooConfiguration zooConfiguration =
           new ZooConfiguration(ctx, ctx.getZooCache(), new ConfigurationCopy());
+      Predicate<String> masterPropMatcher = DeprecatedPropertyUtil.MASTER_MANAGER_RENAMER.keyFilter;
       for (Entry<String,String> entry : zooConfiguration) {
-        if (entry.getKey().startsWith(DeprecatedPropertyUtil.MasterPropertyRenamer.MASTER_PREFIX))
+        if (masterPropMatcher.test(entry.getKey()))
           masterProps.put(entry.getKey(), entry.getValue());
       }
 
       for (Entry<String,String> entry : masterProps.entrySet()) {
         // Set the property under the new name
-        String propertyName =
-            DeprecatedPropertyUtil.renameDeprecatedProperty(entry.getKey(), false);
+        String propertyName = DeprecatedPropertyUtil.renameDeprecatedProperty(entry.getKey());
         SystemPropUtil.setSystemProperty(ctx, propertyName, entry.getValue());
         log.info("During upgrade, renamed deprecated property {} to {}.", entry.getKey(),
             propertyName);

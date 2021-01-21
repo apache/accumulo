@@ -171,8 +171,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
       DeprecatedPropertyUtil.sanityCheck(config);
 
       var result = new HashMap<String,String>();
-      config.getKeys().forEachRemaining(
-          k -> result.put(DeprecatedPropertyUtil.renameDeprecatedProperty(k), config.getString(k)));
+      config.getKeys().forEachRemaining(k -> result
+          .put(DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(k), config.getString(k)));
       return new SiteConfiguration(Collections.unmodifiableMap(result));
     }
   }

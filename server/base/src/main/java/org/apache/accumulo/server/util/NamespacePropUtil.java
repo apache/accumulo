@@ -35,7 +35,7 @@ public class NamespacePropUtil {
       String property, String value) throws KeeperException, InterruptedException {
     // Retrieve the replacement name for this property, if there is one.
     // Do this before we check if the name is a valid zookeeper name.
-    property = DeprecatedPropertyUtil.renameDeprecatedProperty(property);
+    property = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(property);
 
     if (!isPropertyValid(property, value))
       return false;
@@ -62,7 +62,7 @@ public class NamespacePropUtil {
 
   public static void removeNamespaceProperty(ServerContext context, NamespaceId namespaceId,
       String property) throws InterruptedException, KeeperException {
-    property = DeprecatedPropertyUtil.renameDeprecatedProperty(property);
+    property = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(property);
     String zPath = getPath(context, namespaceId) + "/" + property;
     context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }

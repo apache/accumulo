@@ -1075,7 +1075,7 @@ public enum Property {
   private Property replacedBy = null;
   private PropertyType type;
 
-  private Property(String name, String defaultValue, PropertyType type, String description) {
+  Property(String name, String defaultValue, PropertyType type, String description) {
     this.key = name;
     this.defaultValue = defaultValue;
     this.description = description;
@@ -1334,7 +1334,7 @@ public enum Property {
    * @return true if key's property may be changed via Zookeeper
    */
   public static boolean isValidZooPropertyKey(String key) {
-    key = DeprecatedPropertyUtil.renameDeprecatedProperty(key);
+    key = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(key);
     // white list prefixes
     return key.startsWith(Property.TABLE_PREFIX.getKey())
         || key.startsWith(Property.TSERV_PREFIX.getKey())

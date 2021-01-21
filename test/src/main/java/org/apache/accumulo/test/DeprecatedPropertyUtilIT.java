@@ -45,42 +45,17 @@ public class DeprecatedPropertyUtilIT extends ConfigurableMacBase {
   private static final String OLD_TABLE_PREFIX = "old.table.custom.";
   private static final String OLD_NS_PREFIX = "old.ns.custom.";
 
-  private static final PropertyRenamer TEST_SYS_RENAMER = new PropertyRenamer() {
-    @Override
-    public boolean matches(String property) {
-      return property.startsWith(OLD_SYSTEM_PREFIX);
-    }
+  private static final PropertyRenamer TEST_SYS_RENAMER = new PropertyRenamer(
+      s -> s.startsWith(OLD_SYSTEM_PREFIX), s -> Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey()
+          + s.substring(OLD_SYSTEM_PREFIX.length()));
 
-    @Override
-    public String rename(String property) {
-      return Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey()
-          + property.substring(OLD_SYSTEM_PREFIX.length());
-    }
-  };
-  private static final PropertyRenamer TEST_TABLE_RENAMER = new PropertyRenamer() {
-    @Override
-    public boolean matches(String property) {
-      return property.startsWith(OLD_TABLE_PREFIX);
-    }
+  private static final PropertyRenamer TEST_TABLE_RENAMER = new PropertyRenamer(
+      s -> s.startsWith(OLD_TABLE_PREFIX),
+      s -> Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + s.substring(OLD_TABLE_PREFIX.length()));
 
-    @Override
-    public String rename(String property) {
-      return Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
-          + property.substring(OLD_TABLE_PREFIX.length());
-    }
-  };
-  private static final PropertyRenamer TEST_NAMESPACE_RENAMER = new PropertyRenamer() {
-    @Override
-    public boolean matches(String property) {
-      return property.startsWith(OLD_NS_PREFIX);
-    }
-
-    @Override
-    public String rename(String property) {
-      return Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
-          + property.substring(OLD_NS_PREFIX.length());
-    }
-  };
+  private static final PropertyRenamer TEST_NAMESPACE_RENAMER =
+      new PropertyRenamer(s -> s.startsWith(OLD_NS_PREFIX),
+          s -> Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + s.substring(OLD_NS_PREFIX.length()));
 
   private static class TestPropertyUtil extends DeprecatedPropertyUtil {
     public static void registerTestRenamer() {
@@ -95,12 +70,14 @@ public class DeprecatedPropertyUtilIT extends ConfigurableMacBase {
     }
   }
 
+  @Override
   @Before
   public void setUp() throws Exception {
     super.setUp();
     TestPropertyUtil.registerTestRenamer();
   }
 
+  @Override
   @After
   public void tearDown() {
     super.tearDown();

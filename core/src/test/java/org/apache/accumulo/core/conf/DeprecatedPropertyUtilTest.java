@@ -30,20 +30,11 @@ import org.junit.Test;
 
 public class DeprecatedPropertyUtilTest {
   private static class TestPropertyUtil extends DeprecatedPropertyUtil {
+    private static final String OLD_PREFIX = "old.";
+
     public static void registerTestRenamer() {
-      renamers.add(new PropertyRenamer() {
-        private static final String OLD_PREFIX = "old.";
-
-        @Override
-        public boolean matches(String property) {
-          return property.startsWith(OLD_PREFIX);
-        }
-
-        @Override
-        public String rename(String property) {
-          return "new." + property.substring(OLD_PREFIX.length());
-        }
-      });
+      renamers.add(new PropertyRenamer(s -> s.startsWith(OLD_PREFIX),
+          s -> "new." + s.substring(OLD_PREFIX.length())));
     }
   }
 
@@ -62,18 +53,17 @@ public class DeprecatedPropertyUtilTest {
 
   @Test
   public void testDeprecatedPropertyRename() {
-    String newProp = DeprecatedPropertyUtil.renameDeprecatedProperty("old.test", false);
+    String newProp = DeprecatedPropertyUtil.renameDeprecatedProperty("old.test");
     assertEquals("new.test", newProp);
   }
 
   @Test
-  @Deprecated(since = "2.1.0", forRemoval = true)
   public void testMasterPropertyRename() {
     Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
         .filter(p -> p.getKey().startsWith(Property.MANAGER_PREFIX.getKey())).forEach(p -> {
           String oldProp =
               "master." + p.getKey().substring(Property.MANAGER_PREFIX.getKey().length());
-          assertEquals(p.getKey(), DeprecatedPropertyUtil.renameDeprecatedProperty(oldProp, false));
+          assertEquals(p.getKey(), DeprecatedPropertyUtil.renameDeprecatedProperty(oldProp));
         });
   }
 

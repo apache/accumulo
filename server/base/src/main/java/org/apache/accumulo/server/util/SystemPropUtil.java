@@ -39,7 +39,7 @@ public class SystemPropUtil {
       throws KeeperException, InterruptedException {
     // Retrieve the replacement name for this property, if there is one.
     // Do this before we check if the name is a valid zookeeper name.
-    property = DeprecatedPropertyUtil.renameDeprecatedProperty(property);
+    property = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(property);
 
     if (!Property.isValidZooPropertyKey(property)) {
       IllegalArgumentException iae =
@@ -75,7 +75,7 @@ public class SystemPropUtil {
 
   public static void removeSystemProperty(ServerContext context, String property)
       throws InterruptedException, KeeperException {
-    property = DeprecatedPropertyUtil.renameDeprecatedProperty(property);
+    property = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(property);
     String zPath = context.getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
     context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
   }
