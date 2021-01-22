@@ -20,6 +20,8 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
@@ -39,7 +41,11 @@ public class SystemPropUtil {
       throws KeeperException, InterruptedException {
     // Retrieve the replacement name for this property, if there is one.
     // Do this before we check if the name is a valid zookeeper name.
-    property = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(property);
+    final var original = property;
+    property = DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
+      log.warn("{} was deprecated and will be removed in a future release;"
+          + " setting its replacement {} instead", original, replacement);
+    });
 
     if (!Property.isValidZooPropertyKey(property)) {
       IllegalArgumentException iae =
@@ -75,7 +81,20 @@ public class SystemPropUtil {
 
   public static void removeSystemProperty(ServerContext context, String property)
       throws InterruptedException, KeeperException {
-    property = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(property);
+    AtomicBoolean shouldRemove = new AtomicBoolean(true);
+    DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
+      log.warn("{} was deprecated and will be removed in a future release;"
+          + " no action was taken because it is not set here;"
+          + " did you mean to remove its replacment {} instead?", property, replacement);
+      shouldRemove.set(false);
+    });
+    if (shouldRemove.get()) {
+      removePropWithoutDeprecationWarning(context, property);
+    }
+  }
+
+  public static void removePropWithoutDeprecationWarning(ServerContext context, String property)
+      throws InterruptedException, KeeperException {
     String zPath = context.getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
     context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
   }

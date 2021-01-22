@@ -23,20 +23,27 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 
 import java.util.Arrays;
+import java.util.function.BiConsumer;
 
-import org.apache.commons.configuration2.CompositeConfiguration;
+import org.apache.commons.configuration2.BaseConfiguration;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
 
 public class DeprecatedPropertyUtilTest {
+
   private static class TestPropertyUtil extends DeprecatedPropertyUtil {
     private static final String OLD_PREFIX = "old.";
+    private static final String MIDDLE_PREFIX = "middle.";
+    private static final String NEW_PREFIX = "new.";
 
     public static void registerTestRenamer() {
-      renamers.add(new PropertyRenamer(s -> s.startsWith(OLD_PREFIX),
-          s -> "new." + s.substring(OLD_PREFIX.length())));
+      renamers.add(PropertyRenamer.renamePrefix(OLD_PREFIX, MIDDLE_PREFIX));
+      renamers.add(PropertyRenamer.renamePrefix(MIDDLE_PREFIX, NEW_PREFIX));
     }
   }
+
+  private static final BiConsumer<Logger,String> NOOP = (log, replacement) -> {};
 
   @BeforeClass
   public static void setup() {
@@ -46,57 +53,48 @@ public class DeprecatedPropertyUtilTest {
   @Test
   public void testNonDeprecatedPropertyRename() {
     String oldProp = "some_property_name";
-    String newProp = DeprecatedPropertyUtil.renameDeprecatedProperty(oldProp);
-    assertEquals(oldProp, newProp);
+    String newProp = DeprecatedPropertyUtil.getReplacementName(oldProp, NOOP);
     assertSame(oldProp, newProp);
   }
 
   @Test
   public void testDeprecatedPropertyRename() {
-    String newProp = DeprecatedPropertyUtil.renameDeprecatedProperty("old.test");
+    // 'middle.test' -> 'new.test'
+    String newProp = DeprecatedPropertyUtil.getReplacementName("middle.test", NOOP);
     assertEquals("new.test", newProp);
+    // 'old.test' -> 'middle.test' -> 'new.test'
+    String newProp2 = DeprecatedPropertyUtil.getReplacementName("old.test", NOOP);
+    assertEquals("new.test", newProp2);
   }
 
   @Test
-  public void testMasterPropertyRename() {
+  public void testMasterManagerPropertyRename() {
     Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
         .filter(p -> p.getKey().startsWith(Property.MANAGER_PREFIX.getKey())).forEach(p -> {
           String oldProp =
               "master." + p.getKey().substring(Property.MANAGER_PREFIX.getKey().length());
-          assertEquals(p.getKey(), DeprecatedPropertyUtil.renameDeprecatedProperty(oldProp));
+          assertEquals(p.getKey(), DeprecatedPropertyUtil.getReplacementName(oldProp, NOOP));
         });
   }
 
   @Test
-  public void testSanityCheckWithOldProp() {
-    CompositeConfiguration config = new CompositeConfiguration();
-    config.setProperty("old.prop", "3");
-    DeprecatedPropertyUtil.sanityCheck(config);
+  public void testSanityCheckManagerProperties() {
+    var config = new BaseConfiguration();
+    config.setProperty("regular.prop1", "value");
+    config.setProperty("regular.prop2", "value");
+    assertEquals(2, config.size());
+    DeprecatedPropertyUtil.sanityCheckManagerProperties(config); // should succeed
+    config.setProperty("master.deprecatedProp", "value");
+    assertEquals(3, config.size());
+    DeprecatedPropertyUtil.sanityCheckManagerProperties(config); // should succeed
+    config.setProperty("manager.replacementProp", "value");
+    assertEquals(4, config.size());
+    assertThrows("Sanity check should fail when 'master.*' and 'manager.*' appear in same config",
+        IllegalStateException.class,
+        () -> DeprecatedPropertyUtil.sanityCheckManagerProperties(config));
+    config.clearProperty("master.deprecatedProp");
+    assertEquals(3, config.size());
+    DeprecatedPropertyUtil.sanityCheckManagerProperties(config); // should succeed
   }
 
-  @Test
-  public void testSanityCheckWithNewProp() {
-    CompositeConfiguration config = new CompositeConfiguration();
-    config.setProperty("new.prop", "4");
-    DeprecatedPropertyUtil.sanityCheck(config);
-  }
-
-  @Test
-  public void testSanityCheckWithMultipleProps() {
-    CompositeConfiguration config = new CompositeConfiguration();
-    config.setProperty("old.prop1", "value1");
-    config.setProperty("new.prop2", "value2");
-    DeprecatedPropertyUtil.sanityCheck(config);
-  }
-
-  @Test
-  public void testSanityCheckFailure() {
-    CompositeConfiguration config = new CompositeConfiguration();
-    config.setProperty("old.prop", "3");
-    config.setProperty("new.prop", "4");
-    IllegalStateException e =
-        assertThrows(IllegalStateException.class, () -> DeprecatedPropertyUtil.sanityCheck(config));
-    assertEquals("new.prop and deprecated old.prop cannot both be set in the configuration.",
-        e.getMessage());
-  }
 }

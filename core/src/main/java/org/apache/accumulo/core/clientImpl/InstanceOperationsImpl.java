@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -67,6 +68,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
+    DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
+      // force a warning on the client side, but send the name the user used to the server-side
+      // to trigger a warning in the server logs, and to handle it there
+      log.warn("{} was deprecated and will be removed in a future release;"
+          + " setting its replacement {} instead", property, replacement);
+    });
     MasterClient.executeVoid(context, client -> client.setSystemProperty(TraceUtil.traceInfo(),
         context.rpcCreds(), property, value));
     checkLocalityGroups(property);
@@ -76,12 +83,20 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void removeProperty(final String property)
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(property != null, "property is null");
+    DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
+      // force a warning on the client side, but send the name the user used to the server-side
+      // to trigger a warning in the server logs, and to handle it there
+      log.warn("{} was deprecated and will be removed in a future release;"
+          + " no action was taken because it is not set here;"
+          + " did you mean to remove its replacment {} instead?", property, replacement);
+    });
     MasterClient.executeVoid(context,
         client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property));
     checkLocalityGroups(property);
   }
 
-  void checkLocalityGroups(String propChanged) throws AccumuloSecurityException, AccumuloException {
+  private void checkLocalityGroups(String propChanged)
+      throws AccumuloSecurityException, AccumuloException {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
       try {
         LocalityGroupUtil.checkLocalityGroups(getSystemConfiguration().entrySet());

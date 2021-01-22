@@ -252,7 +252,7 @@ public enum Property {
   @ReplacedBy(property = Property.MANAGER_PREFIX)
   MASTER_PREFIX("master.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager (formerly named master) server. "
-          + "Since the 2.1.0 release, all properties in this category are deprecated and replaced with corresponding "
+          + "Since 2.1.0, all properties in this category are deprecated and replaced with corresponding "
           + "`manager.*` properties. The old `master.*` names can still be used until at release 3.0, but a warning "
           + "will be emitted. Configuration files should be updated to use the new property names."),
   MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
@@ -1340,11 +1340,11 @@ public enum Property {
    * @return true if key's property may be changed via Zookeeper
    */
   public static boolean isValidZooPropertyKey(String key) {
-    key = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(key);
     // white list prefixes
     return key.startsWith(Property.TABLE_PREFIX.getKey())
         || key.startsWith(Property.TSERV_PREFIX.getKey())
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
+        || key.startsWith(Property.MASTER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
         || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())

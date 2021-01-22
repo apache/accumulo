@@ -35,7 +35,7 @@ import org.apache.accumulo.master.upgrade.Upgrader9to10;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.junit.Test;
 
-public class DeprecatedPropertyUpgradeIT extends ConfigurableMacBase {
+public class DeprecatedPropertyUpgrade9to10IT extends ConfigurableMacBase {
   private static final Upgrader9to10 upgrader = new Upgrader9to10();
 
   @Test

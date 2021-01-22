@@ -21,7 +21,6 @@ package org.apache.accumulo.server.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -40,10 +39,6 @@ public class TablePropUtil {
 
   public static boolean setTableProperty(ZooReaderWriter zoo, String zkRoot, TableId tableId,
       String property, String value) throws KeeperException, InterruptedException {
-    // Retrieve the replacement name for this property, if there is one.
-    // Do this before we check if the name is a valid zookeeper name.
-    property = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(property);
-
     if (!isPropertyValid(property, value))
       return false;
 
@@ -66,7 +61,6 @@ public class TablePropUtil {
 
   public static void removeTableProperty(ServerContext context, TableId tableId, String property)
       throws InterruptedException, KeeperException {
-    property = DeprecatedPropertyUtil.renameDeprecatedPropertyAndWarn(property);
     String zPath = getTablePath(context.getZooKeeperRoot(), tableId) + "/" + property;
     context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }

@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
@@ -207,34 +206,25 @@ public class Upgrader9to10 implements Upgrader {
     delete(ctx, ZROOT_TABLET_PATH);
   }
 
+  @SuppressWarnings("deprecation")
   private void renameOldMasterPropsinZK(ServerContext ctx) {
-    try {
-      // List all of the properties only set in Zookeeper that start with "master."
-      // These are the properties that need to be renamed.
-      HashMap<String,String> masterProps = new HashMap<>();
-      ZooConfiguration zooConfiguration =
-          new ZooConfiguration(ctx, ctx.getZooCache(), new ConfigurationCopy());
-      Predicate<String> masterPropMatcher = DeprecatedPropertyUtil.MASTER_MANAGER_RENAMER.keyFilter;
-      for (Entry<String,String> entry : zooConfiguration) {
-        if (masterPropMatcher.test(entry.getKey()))
-          masterProps.put(entry.getKey(), entry.getValue());
-      }
-
-      for (Entry<String,String> entry : masterProps.entrySet()) {
-        // Set the property under the new name
-        String propertyName = DeprecatedPropertyUtil.renameDeprecatedProperty(entry.getKey());
-        SystemPropUtil.setSystemProperty(ctx, propertyName, entry.getValue());
-        log.info("During upgrade, renamed deprecated property {} to {}.", entry.getKey(),
-            propertyName);
-        // Delete the old property. We can't use SystemPropUtil.removeSystemProperty
-        // since it will just rename the old property name to the new one and
-        // then we'd delete the new property value we just set.
-        String zPath = ctx.getZooKeeperRoot() + Constants.ZCONFIG + "/" + entry.getKey();
-        ctx.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
-      }
-    } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Unable to upgrade system properties", e);
-    }
+    // Rename all of the properties only set in ZooKeeper that start with "master." to rename and
+    // store them starting with "manager." instead.
+    var zooConfiguration = new ZooConfiguration(ctx, ctx.getZooCache(), new ConfigurationCopy());
+    zooConfiguration.getAllPropertiesWithPrefix(Property.MASTER_PREFIX)
+        .forEach((original, value) -> {
+          DeprecatedPropertyUtil.getReplacementName(original, (log, replacement) -> {
+            log.info("Automatically renaming deprecated property '{}' with its replacement '{}'"
+                + " in ZooKeeper on upgrade.", original, replacement);
+            try {
+              // Set the property under the new name
+              SystemPropUtil.setSystemProperty(ctx, replacement, value);
+              SystemPropUtil.removePropWithoutDeprecationWarning(ctx, original);
+            } catch (KeeperException | InterruptedException e) {
+              throw new RuntimeException("Unable to upgrade system properties", e);
+            }
+          });
+        });
   }
 
   private static class UpgradeMutator extends TabletMutatorBase {
