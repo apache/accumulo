@@ -473,36 +473,40 @@ public class ZooLockIT extends SharedMiniClusterBase {
       zk2.close();
 
     }
-    
+
   }
-  
+
   static class LockWorker implements Runnable {
-    
+
     private final String parent;
-    private final String prefix;
-    private final CountDownLatch lockLatch;
+    private final String name;
+    private final CountDownLatch getLockLatch;
+    private final CountDownLatch lockCompletedLatch;
     private final CountDownLatch unlockLatch = new CountDownLatch(1);
     private final RetryLockWatcher lockWatcher = new RetryLockWatcher();
-    
-    public LockWorker(final String parent, final String prefix, final CountDownLatch lockLatch) {
+
+    public LockWorker(final String parent, final String name, final CountDownLatch lockLatch,
+        final CountDownLatch lockCompletedLatch) {
       this.parent = parent;
-      this.prefix = prefix;
-      this.lockLatch = lockLatch;
+      this.name = name;
+      this.getLockLatch = lockLatch;
+      this.lockCompletedLatch = lockCompletedLatch;
     }
 
     public void unlock() {
       unlockLatch.countDown();
     }
-    
+
     public boolean holdsLock() {
       return lockWatcher.isLockHeld();
     }
-    
+
     @Override
     public void run() {
       ConnectedWatcher watcher = new ConnectedWatcher();
       try {
-        try (ZooKeeperWrapper zk = new ZooKeeperWrapper(getCluster().getZooKeepers(), 30000, watcher)) {
+        try (ZooKeeperWrapper zk =
+            new ZooKeeperWrapper(getCluster().getZooKeepers(), 30000, watcher)) {
           zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
           while (!watcher.isConnected()) {
             Thread.sleep(50);
@@ -516,36 +520,42 @@ public class ZooLockIT extends SharedMiniClusterBase {
           ZooLock zl = new ZooLock(zrw, parent) {
             @Override
             protected String getZLockPrefix() {
-              return prefix;
+              return name;
             }
           };
-          lockLatch.countDown(); // signal we are done
-          lockLatch.await(); // wait for others to finish
+          getLockLatch.countDown(); // signal we are done
+          getLockLatch.await(); // wait for others to finish
           zl.lock(lockWatcher, "test1".getBytes(UTF_8)); // race to the lock
+          lockCompletedLatch.countDown();
           unlockLatch.await();
           zl.unlock();
         }
       } catch (IOException | InterruptedException | KeeperException e) {
-        
+        throw new RuntimeException(e);
       }
     }
-    
+
+    @Override
+    public String toString() {
+      return "LockWorker [name=" + name + ", holdsLock()=" + holdsLock() + "]";
+    }
+
   }
-  
+
   private int parseLockWorkerName(String child) {
-    if (child.startsWith("zlock#00000000-0000-0000-0000-111111111111#")) {
+    if (child.startsWith("zlock#00000000-0000-0000-0000-000000000000#")) {
+      return 0;
+    } else if (child.startsWith("zlock#00000000-0000-0000-0000-111111111111#")) {
       return 1;
     } else if (child.startsWith("zlock#00000000-0000-0000-0000-222222222222#")) {
       return 2;
     } else if (child.startsWith("zlock#00000000-0000-0000-0000-333333333333#")) {
       return 3;
-    } else if (child.startsWith("zlock#00000000-0000-0000-0000-444444444444#")) {
-      return 4;
     } else {
-      return 0;
+      return -1;
     }
   }
-  
+
   @Test(timeout = 60000)
   public void testLockParallel() throws Exception {
     String parent = "/zlParallel";
@@ -561,26 +571,29 @@ public class ZooLockIT extends SharedMiniClusterBase {
       zk.createOnce(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
       int numWorkers = 4;
-      CountDownLatch lockLatch = new CountDownLatch(numWorkers);
-      List<LockWorker> workers = new ArrayList<>(numWorkers);
-      List<Thread> threads = new ArrayList<>(numWorkers);
+      final CountDownLatch getLockLatch = new CountDownLatch(numWorkers);
+      final CountDownLatch lockFinishedLatch = new CountDownLatch(numWorkers);
+      final List<LockWorker> workers = new ArrayList<>(numWorkers);
+      final List<Thread> threads = new ArrayList<>(numWorkers);
       for (int i = 0; i < numWorkers; i++) {
-        String prefix = "zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#".replaceAll("A",Integer.toString(i));
-        LockWorker w = new LockWorker(parent, prefix, lockLatch);
+        String name =
+            "zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#".replaceAll("A", Integer.toString(i));
+        LockWorker w = new LockWorker(parent, name, getLockLatch, lockFinishedLatch);
         Thread t = new Thread(w);
         workers.add(w);
         threads.add(t);
         t.start();
       }
 
-      lockLatch.await();
-      
+      getLockLatch.await(); // Threads compete for lock
+      lockFinishedLatch.await(); // Threads lock logic complete
+
       for (int i = 4; i > 0; i--) {
         List<String> children = zk.getChildren(parent, false);
         ZooLock.sortChildrenByLockPrefix(children);
         assertEquals(i, children.size());
         String first = children.get(0);
-        int workerWithLock = parseLockWorkerName(first) - 1;
+        int workerWithLock = parseLockWorkerName(first);
         LockWorker worker = workers.get(workerWithLock);
         assertTrue(worker.holdsLock());
         workers.forEach(w -> {
@@ -589,10 +602,11 @@ public class ZooLockIT extends SharedMiniClusterBase {
           }
         });
         worker.unlock();
+        Thread.sleep(500); // wait for node to be deleted and lock to be reacquired.
       }
-      
+
       workers.forEach(w -> assertFalse(w.holdsLock()));
-      
+
       threads.forEach(t -> {
         try {
           t.join();
@@ -601,7 +615,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
         }
       });
     }
-    
+
   }
 
   @Test(timeout = 10000)

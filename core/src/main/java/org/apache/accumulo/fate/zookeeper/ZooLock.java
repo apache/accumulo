@@ -179,8 +179,8 @@ public class ZooLock implements Watcher {
         // Make any invalid's sort last (higher)
         if (lValid && rValid) {
           int leftIdx = 43, rightIdx = 43;
-          return Integer.valueOf(o1.substring(leftIdx)).compareTo(
-              Integer.valueOf(o2.substring(rightIdx)));
+          return Integer.valueOf(o1.substring(leftIdx))
+              .compareTo(Integer.valueOf(o2.substring(rightIdx)));
         } else if (!lValid && rValid) {
           return 1;
         } else if (lValid && !rValid) {
@@ -205,7 +205,8 @@ public class ZooLock implements Watcher {
    *
    * @param children
    *          list of sequential ephemera nodes, already sorted
-   * @param ephemeralNode starting node for the search
+   * @param ephemeralNode
+   *          starting node for the search
    * @return next lowest prefix with the lowest sequence number
    */
   public static String findLowestPrevPrefix(final List<String> children,
