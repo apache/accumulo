@@ -109,7 +109,7 @@ public class FateMetrics extends MasterMetrics {
    * @param minimumRefreshDelay
    *          set new min refresh value, in seconds.
    */
-  void overrideRefresh(final long minimumRefreshDelay) {
+  public void overrideRefresh(final long minimumRefreshDelay) {
     long delay = Math.max(0, minimumRefreshDelay);
     this.minimumRefreshDelay = TimeUnit.SECONDS.toMillis(delay);
   }
