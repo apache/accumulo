@@ -141,10 +141,6 @@ public class ZooLock implements Watcher {
     }
 
     // If we didn't acquire the lock, then delete the path we just created
-    // NOTE: It's possible that we silently created more than one ephemeral
-    // node at `path` if the server response was missed by the ZK client and
-    // it retried. The other ephemeral nodes will be cleaned up when the process
-    // exits.
     if (createdNodeName != null) {
       String pathToDelete = path + "/" + createdNodeName;
       LOG.trace("[{}] Deleting all at path: {}", this.getZLockPrefix(), pathToDelete);
@@ -155,7 +151,14 @@ public class ZooLock implements Watcher {
     return false;
   }
 
-  private static void sortChildrenByLockPrefix(List<String> children) {
+  /**
+   * Sort list of ephemeral nodes by their sequence number. Any ephemeral nodes that are not of the
+   * correct form will sort last.
+   *
+   * @param children
+   *          list of ephemeral nodes
+   */
+  public static void sortChildrenByLockPrefix(List<String> children) {
     Collections.sort(children, new Comparator<String>() {
       @Override
       public int compare(String o1, String o2) {
@@ -166,18 +169,18 @@ public class ZooLock implements Watcher {
         // zlock#44755fbe-1c9e-40b3-8458-03abaf950d7e#0000000000
 
         boolean lValid = true;
-        if (o1.length() <= 43) {
+        if (o1.length() != 53 && o1.lastIndexOf('#') != 42) {
           lValid = false;
         }
         boolean rValid = true;
-        if (o2.length() <= 43) {
+        if (o2.length() != 53 && o2.lastIndexOf('#') != 42) {
           rValid = false;
         }
         // Make any invalid's sort last (higher)
         if (lValid && rValid) {
-          int leftIdx = o1.lastIndexOf('#');
-          int rightIdx = o2.lastIndexOf('#');
-          return o1.substring(leftIdx).compareTo(o2.substring(rightIdx));
+          int leftIdx = 43, rightIdx = 43;
+          return Integer.compare(Integer.valueOf(o1.substring(leftIdx)),
+              Integer.valueOf(o2.substring(rightIdx)));
         } else if (!lValid && rValid) {
           return 1;
         } else if (lValid && !rValid) {
@@ -193,6 +196,39 @@ public class ZooLock implements Watcher {
         LOG.trace("- {}", child);
       }
     }
+  }
+
+  /**
+   * Given a pre-sorted set of children ephemeral nodes where the node name is of the form
+   * "zlock#UUID#sequenceNumber", find the ephemeral node that sorts before {@link ephemeralNode}
+   * with the lowest sequence number
+   *
+   * @param children
+   *          list of sequential ephemera nodes, already sorted
+   * @param ephemeralNode
+   * @return next lowest prefix with the lowest sequence number
+   */
+  public static String findLowestPrevPrefix(final List<String> children,
+      final String ephemeralNode) {
+    int idx = children.indexOf(ephemeralNode);
+    // Get the prefix from the prior ephemeral node
+    String prev = children.get(idx - 1);
+    int prefixIdx = prev.lastIndexOf('#');
+    String prevPrefix = prev.substring(0, prefixIdx);
+
+    // Find the lowest sequential ephemeral node with prevPrefix
+    int i = 2;
+    String lowestPrevNode = prev;
+    while ((idx - i) >= 0) {
+      prev = children.get(idx - i);
+      i++;
+      if (prev.startsWith(prevPrefix)) {
+        lowestPrevNode = prev;
+      } else {
+        break;
+      }
+    }
+    return lowestPrevNode;
   }
 
   private synchronized void determineLockOwnership(final String myLock,
@@ -227,24 +263,8 @@ public class ZooLock implements Watcher {
       lockWasAcquired = true;
       lw.acquiredLock();
     } else {
-      int idx = children.indexOf(myLock);
-      // Get the prefix from the prior ephemeral node
-      String prev = children.get(idx - 1);
-      int prefixIdx = prev.lastIndexOf('#');
-      String prevPrefix = prev.substring(0, prefixIdx);
 
-      // Find the lowest sequential ephemeral node with prevPrefix
-      int i = 2;
-      String lowestPrevNode = prev;
-      while ((idx - i) >= 0) {
-        prev = children.get(idx - i);
-        i++;
-        if (prev.startsWith(prevPrefix)) {
-          lowestPrevNode = prev;
-        } else {
-          break;
-        }
-      }
+      String lowestPrevNode = findLowestPrevPrefix(children, myLock);
 
       watchingNodeName = path + "/" + lowestPrevNode;
       final String nodeToWatch = watchingNodeName;
@@ -348,8 +368,7 @@ public class ZooLock implements Watcher {
       // Implement recipe at https://zookeeper.apache.org/doc/current/recipes.html#sc_recipes_Locks
       // except that instead of the ephemeral lock node being of the form guid-lock- use lock-guid-.
       // Another deviation from the recipe is that we cleanup any extraneous ephermal nodes that
-      // were
-      // created.
+      // were created.
       final String createPath = zooKeeper.putEphemeralSequential(lockPathPrefix, data);
       LOG.trace("[{}] Ephemeral node {} created", this.getZLockPrefix(), createPath);
 
