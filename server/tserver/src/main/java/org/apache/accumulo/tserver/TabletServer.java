@@ -2220,6 +2220,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       synchronized (openingTablets) {
         while (openingTablets.contains(extent)) {
           try {
+            log.info("Waiting for tablet {} to finish opening before unloading.", extent);
             openingTablets.wait();
           } catch (InterruptedException e) {}
         }
