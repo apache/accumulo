@@ -143,7 +143,10 @@ public class ZooLock implements Watcher {
     // If we didn't acquire the lock, then delete the path we just created
     if (createdNodeName != null) {
       String pathToDelete = path + "/" + createdNodeName;
-      LOG.trace("[{}] Deleting all at path: {}", this.getZLockPrefix(), pathToDelete);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("[{}] Failed to acquire lock in tryLock(), deleting all at path: {}",
+            this.getZLockPrefix(), pathToDelete);
+      }
       zooKeeper.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
       createdNodeName = null;
     }
@@ -190,10 +193,10 @@ public class ZooLock implements Watcher {
         }
       }
     });
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("Children nodes");
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Children nodes: {}", children.size());
       for (String child : children) {
-        LOG.trace("- {}", child);
+        LOG.debug("- {}", child);
       }
     }
   }
@@ -232,7 +235,7 @@ public class ZooLock implements Watcher {
     return lowestPrevNode;
   }
 
-  private synchronized void determineLockOwnership(final String myLock,
+  private synchronized void determineLockOwnership(final String createdEphemeralNode,
       final AccumuloLockWatcher lw) throws KeeperException, InterruptedException {
 
     if (createdNodeName == null) {
@@ -247,29 +250,38 @@ public class ZooLock implements Watcher {
       }
     });
 
-    if (!children.contains(myLock)) {
-      throw new RuntimeException("Lock attempt ephemeral node no longer exist " + myLock);
+    if (!children.contains(createdEphemeralNode)) {
+      throw new RuntimeException(
+          "Lock attempt ephemeral node no longer exist " + createdEphemeralNode);
     }
     sortChildrenByLockPrefix(children);
 
-    if (children.get(0).equals(myLock)) {
-      LOG.trace("[{}] First candidate is my lock, acquiring", this.getZLockPrefix());
+    if (children.get(0).equals(createdEphemeralNode)) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("[{}] First candidate is my lock, acquiring", this.getZLockPrefix());
+      }
       if (!watchingParent) {
         throw new IllegalStateException(
             "Can not acquire lock, no longer watching parent : " + path);
       }
       this.lockWatcher = lw;
-      this.lockNodeName = myLock;
+      this.lockNodeName = createdEphemeralNode;
       createdNodeName = null;
       lockWasAcquired = true;
       lw.acquiredLock();
     } else {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("[{}] Lock held by another process with ephemeral node: {}",
+            this.getZLockPrefix(), children.get(0));
+      }
 
-      String lowestPrevNode = findLowestPrevPrefix(children, myLock);
+      String lowestPrevNode = findLowestPrevPrefix(children, createdEphemeralNode);
 
       watchingNodeName = path + "/" + lowestPrevNode;
       final String nodeToWatch = watchingNodeName;
-      LOG.trace("[{}] Establishing watch on prior node {}", this.getZLockPrefix(), nodeToWatch);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("[{}] Establishing watch on prior node {}", this.getZLockPrefix(), nodeToWatch);
+      }
       Watcher priorNodeWatcher = new Watcher() {
         @Override
         public void process(WatchedEvent event) {
@@ -281,15 +293,17 @@ public class ZooLock implements Watcher {
           }
           boolean renew = true;
           if (event.getType() == EventType.NodeDeleted && event.getPath().equals(nodeToWatch)) {
-            LOG.trace("[{}] Detected deletion of prior node {}, attempting to acquire lock",
-                getZLockPrefix(), nodeToWatch);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("[{}] Detected deletion of prior node {}, attempting to acquire lock",
+                  getZLockPrefix(), nodeToWatch);
+            }
             synchronized (ZooLock.this) {
               try {
                 if (createdNodeName != null) {
-                  determineLockOwnership(myLock, lw);
-                } else if (LOG.isTraceEnabled()) {
-                  LOG.trace("[{}] While waiting for another lock {}, {} was deleted",
-                      getZLockPrefix(), nodeToWatch, myLock);
+                  determineLockOwnership(createdEphemeralNode, lw);
+                } else if (LOG.isDebugEnabled()) {
+                  LOG.debug("[{}] While waiting for another lock {}, {} was deleted",
+                      getZLockPrefix(), nodeToWatch, createdEphemeralNode);
                 }
               } catch (Exception e) {
                 if (lockNodeName == null) {
@@ -305,13 +319,16 @@ public class ZooLock implements Watcher {
               || event.getState() == KeeperState.Disconnected) {
             synchronized (ZooLock.this) {
               if (lockNodeName == null) {
+                LOG.info("Zookeeper Session expired / disconnected");
                 lw.failedToAcquireLock(new Exception("Zookeeper Session expired / disconnected"));
               }
             }
             renew = false;
           }
           if (renew) {
-            LOG.trace("[{}] Renewing watch on prior node  {}", getZLockPrefix(), nodeToWatch);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("[{}] Renewing watch on prior node  {}", getZLockPrefix(), nodeToWatch);
+            }
             try {
               Stat restat = zooKeeper.getStatus(nodeToWatch, this);
               if (restat == null) {
@@ -319,7 +336,7 @@ public class ZooLock implements Watcher {
                 // created a Watcher on a node that does not exist. Delete the watcher we just
                 // created.
                 zooKeeper.getZooKeeper().removeWatches(nodeToWatch, this, WatcherType.Any, true);
-                determineLockOwnership(myLock, lw);
+                determineLockOwnership(createdEphemeralNode, lw);
               }
             } catch (KeeperException | InterruptedException e) {
               lw.failedToAcquireLock(new Exception("Failed to renew watch on other master node"));
@@ -335,7 +352,7 @@ public class ZooLock implements Watcher {
         // created a Watcher on a node that does not exist. Delete the watcher we just created.
         zooKeeper.getZooKeeper().removeWatches(nodeToWatch, priorNodeWatcher, WatcherType.Any,
             true);
-        determineLockOwnership(myLock, lw);
+        determineLockOwnership(createdEphemeralNode, lw);
       }
     }
 
@@ -368,10 +385,12 @@ public class ZooLock implements Watcher {
       final String lockPathPrefix = path + "/" + getZLockPrefix();
       // Implement recipe at https://zookeeper.apache.org/doc/current/recipes.html#sc_recipes_Locks
       // except that instead of the ephemeral lock node being of the form guid-lock- use lock-guid-.
-      // Another deviation from the recipe is that we cleanup any extraneous ephermal nodes that
+      // Another deviation from the recipe is that we cleanup any extraneous ephemeral nodes that
       // were created.
       final String createPath = zooKeeper.putEphemeralSequential(lockPathPrefix, data);
-      LOG.trace("[{}] Ephemeral node {} created", this.getZLockPrefix(), createPath);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("[{}] Ephemeral node {} created", this.getZLockPrefix(), createPath);
+      }
 
       // It's possible that the call above was retried several times and multiple ephemeral nodes
       // were created but the client missed the response for some reason. Find the ephemeral nodes
@@ -384,6 +403,7 @@ public class ZooLock implements Watcher {
       });
       String lowestSequentialPath = null;
       sortChildrenByLockPrefix(children);
+      boolean msgLoggedOnce = false;
       for (String child : children) {
         if (child.startsWith(getZLockPrefix())) {
           if (null == lowestSequentialPath) {
@@ -393,14 +413,21 @@ public class ZooLock implements Watcher {
               break;
             }
             lowestSequentialPath = path + "/" + child;
-            LOG.trace("[{}] lowest sequential node found: {}", this.getZLockPrefix(),
-                lowestSequentialPath);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("[{}] lowest sequential node found: {}", this.getZLockPrefix(),
+                  lowestSequentialPath);
+            }
           } else {
-            LOG.info(
-                "[{}] Zookeeper client missed server response, multiple ephemeral child nodes created at {}",
-                this.getZLockPrefix(), lockPathPrefix);
-            LOG.trace("[{}] higher sequential node found: {}, deleting it", this.getZLockPrefix(),
-                child);
+            if (!msgLoggedOnce) {
+              LOG.info(
+                  "[{}] Zookeeper client missed server response, multiple ephemeral child nodes created at {}",
+                  this.getZLockPrefix(), lockPathPrefix);
+              msgLoggedOnce = true;
+            }
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("[{}] higher sequential node found: {}, deleting it", this.getZLockPrefix(),
+                  child);
+            }
             zooKeeper.delete(path + "/" + child);
           }
         }
@@ -409,12 +436,16 @@ public class ZooLock implements Watcher {
 
       // Set a watcher on the lowest sequential node that we created, this handles the case
       // where the node we created is deleted or if this client becomes disconnected.
-      LOG.trace("[{}] Setting watcher on {}", this.getZLockPrefix(), pathForWatcher);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("[{}] Setting watcher on {}", this.getZLockPrefix(), pathForWatcher);
+      }
       Watcher watcherForNodeWeCreated = new Watcher() {
 
         private void failedToAcquireLock() {
-          LOG.trace("[{}] Lock deleted before acquired, setting createdNodeName {} to null",
-              getZLockPrefix(), createdNodeName);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("[{}] Lock deleted before acquired, setting createdNodeName {} to null",
+                getZLockPrefix(), createdNodeName);
+          }
           lw.failedToAcquireLock(new Exception("Lock deleted before acquired"));
           createdNodeName = null;
         }
@@ -424,16 +455,22 @@ public class ZooLock implements Watcher {
           synchronized (ZooLock.this) {
             if (lockNodeName != null && event.getType() == EventType.NodeDeleted
                 && event.getPath().equals(path + "/" + lockNodeName)) {
-              LOG.trace("[{}] {} was deleted", getZLockPrefix(), lockNodeName);
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("[{}] {} was deleted", getZLockPrefix(), lockNodeName);
+              }
               lostLock(LockLossReason.LOCK_DELETED);
             } else if (createdNodeName != null && event.getType() == EventType.NodeDeleted
                 && event.getPath().equals(path + "/" + createdNodeName)) {
-              LOG.trace("[{}] {} was deleted", getZLockPrefix(), createdNodeName);
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("[{}] {} was deleted", getZLockPrefix(), createdNodeName);
+              }
               failedToAcquireLock();
             } else if (event.getState() != KeeperState.Disconnected
                 && event.getState() != KeeperState.Expired
                 && (lockNodeName != null || createdNodeName != null)) {
-              LOG.debug("Unexpected event watching lock node {} {}", event, pathForWatcher);
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Unexpected event watching lock node {} {}", event, pathForWatcher);
+              }
               try {
                 Stat stat2 = zooKeeper.getStatus(pathForWatcher, this);
                 if (stat2 == null) {
@@ -484,8 +521,10 @@ public class ZooLock implements Watcher {
 
     if (createdNodeName != null) {
       String pathToDelete = path + "/" + createdNodeName;
-      LOG.trace("[{}] Deleting all at path {} due to lock cancellation", this.getZLockPrefix(),
-          pathToDelete);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("[{}] Deleting all at path {} due to lock cancellation", this.getZLockPrefix(),
+            pathToDelete);
+      }
       zooKeeper.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
       del = true;
     }
@@ -510,7 +549,9 @@ public class ZooLock implements Watcher {
     lockWatcher = null;
 
     final String pathToDelete = path + "/" + localLock;
-    LOG.trace("[{}] Deleting all at path {} due to unlock", this.getZLockPrefix(), pathToDelete);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("[{}] Deleting all at path {} due to unlock", this.getZLockPrefix(), pathToDelete);
+    }
     zooKeeper.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
 
     localLw.lostLock(LockLossReason.LOCK_DELETED);
@@ -562,7 +603,9 @@ public class ZooLock implements Watcher {
 
   @Override
   public synchronized void process(WatchedEvent event) {
-    LOG.debug("event {} {} {}", event.getPath(), event.getType(), event.getState());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("event {} {} {}", event.getPath(), event.getType(), event.getState());
+    }
 
     watchingParent = false;
 
@@ -685,7 +728,9 @@ public class ZooLock implements Watcher {
     }
 
     String pathToDelete = path + "/" + lockNode;
-    LOG.trace("Deleting all at path {} due to lock deletion", pathToDelete);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Deleting all at path {} due to lock deletion", pathToDelete);
+    }
     zk.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
 
   }
@@ -712,7 +757,9 @@ public class ZooLock implements Watcher {
 
     if (lockData.equals(new String(data, UTF_8))) {
       String pathToDelete = path + "/" + lockNode;
-      LOG.trace("Deleting all at path {} due to lock deletion", pathToDelete);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Deleting all at path {} due to lock deletion", pathToDelete);
+      }
       zk.recursiveDelete(pathToDelete, NodeMissingPolicy.FAIL);
       return true;
     }
