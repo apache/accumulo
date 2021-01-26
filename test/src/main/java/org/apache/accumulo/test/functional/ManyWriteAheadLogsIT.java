@@ -62,7 +62,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_CYCLE_START, "1");
-    cfg.setProperty(Property.MASTER_RECOVERY_DELAY, "1s");
+    cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "1s");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     // idle compactions may addess the problem this test is creating, however they will not prevent

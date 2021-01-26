@@ -91,7 +91,7 @@ class LoadFiles extends MasterRepo {
   private static synchronized ExecutorService getThreadPool(Master master) {
     if (threadPool == null) {
       threadPool = ThreadPools.createExecutorService(master.getConfiguration(),
-          Property.MASTER_BULK_THREADPOOL_SIZE);
+          Property.MANAGER_BULK_THREADPOOL_SIZE);
     }
     return threadPool;
   }
@@ -121,7 +121,7 @@ class LoadFiles extends MasterRepo {
     for (FileStatus f : files)
       filesToLoad.add(f.getPath().toString());
 
-    final int RETRIES = Math.max(1, conf.getCount(Property.MASTER_BULK_RETRIES));
+    final int RETRIES = Math.max(1, conf.getCount(Property.MANAGER_BULK_RETRIES));
     for (int attempt = 0; attempt < RETRIES && !filesToLoad.isEmpty(); attempt++) {
       List<Future<Void>> results = new ArrayList<>();
 
@@ -137,7 +137,7 @@ class LoadFiles extends MasterRepo {
       final List<String> loaded = Collections.synchronizedList(new ArrayList<>());
       final Random random = new SecureRandom();
       final TServerInstance[] servers;
-      String prop = conf.get(Property.MASTER_BULK_TSERVER_REGEX);
+      String prop = conf.get(Property.MANAGER_BULK_TSERVER_REGEX);
       if (prop == null || "".equals(prop)) {
         servers = master.onlineTabletServers().toArray(new TServerInstance[0]);
       } else {
@@ -150,7 +150,7 @@ class LoadFiles extends MasterRepo {
         });
         if (subset.isEmpty()) {
           log.warn("There are no tablet servers online that match supplied regex: {}",
-              conf.get(Property.MASTER_BULK_TSERVER_REGEX));
+              conf.get(Property.MANAGER_BULK_TSERVER_REGEX));
         }
         servers = subset.toArray(new TServerInstance[0]);
       }
@@ -164,7 +164,7 @@ class LoadFiles extends MasterRepo {
               // because this is running on the master and there are lots of connections to tablet
               // servers serving the metadata tablets
               long timeInMillis =
-                  master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
+                  master.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
               server = servers[random.nextInt(servers.length)].getHostAndPort();
               client = ThriftUtil.getTServerClient(server, master.getContext(), timeInMillis);
               List<String> attempt1 = Collections.singletonList(file);

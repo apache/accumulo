@@ -58,7 +58,7 @@ class MoveExportedFiles extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     String fmtTid = FateTxId.formatTid(tid);
 
-    int workerCount = master.getConfiguration().getCount(Property.MASTER_RENAME_THREADS);
+    int workerCount = master.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
     VolumeManager fs = master.getVolumeManager();
     Map<Path,Path> oldToNewPaths = new HashMap<>();
 

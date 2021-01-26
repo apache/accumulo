@@ -373,7 +373,7 @@ public class Master extends AbstractServer
         .setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(context, this);
     this.tabletBalancer = Property.createInstanceFromPropertyName(aconf,
-        Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
+        Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
     this.tabletBalancer.init(context);
 
     this.security = AuditedSecurityOperation.getInstance(context);
@@ -881,9 +881,9 @@ public class Master extends AbstractServer
   private SortedMap<TServerInstance,TabletServerStatus>
       gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
-    int threads = getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE);
+    int threads = getConfiguration().getCount(Property.MANAGER_STATUS_THREAD_POOL_SIZE);
     ExecutorService tp = ThreadPools.createExecutorService(getConfiguration(),
-        Property.MASTER_STATUS_THREAD_POOL_SIZE);
+        Property.MANAGER_STATUS_THREAD_POOL_SIZE);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
@@ -992,9 +992,9 @@ public class Master extends AbstractServer
     ServerAddress sa;
     try {
       sa = TServerUtils.startServer(getMetricsSystem(), context, getHostname(),
-          Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
-          Property.MASTER_MINTHREADS, Property.MASTER_MINTHREADS_TIMEOUT,
-          Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+          Property.MANAGER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
+          Property.MANAGER_MINTHREADS, Property.MANAGER_MINTHREADS_TIMEOUT,
+          Property.MANAGER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
@@ -1061,7 +1061,7 @@ public class Master extends AbstractServer
         // we'll want metadata tablets to
         // be immediately reassigned, even if there's a global table.suspension.duration
         // setting.
-        return getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE);
+        return getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE);
       }
     });
 
@@ -1240,20 +1240,20 @@ public class Master extends AbstractServer
     long waitStart = System.currentTimeMillis();
 
     long minTserverCount =
-        getConfiguration().getCount(Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT);
+        getConfiguration().getCount(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT);
 
     if (minTserverCount <= 0) {
       log.info("tserver availability check disabled, continuing with-{} servers. To enable, set {}",
-          tserverSet.size(), Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
+          tserverSet.size(), Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
       return;
     }
 
     long maxWait =
-        getConfiguration().getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT);
+        getConfiguration().getTimeInMillis(Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT);
 
     if (maxWait <= 0) {
       log.info("tserver availability check set to block indefinitely, To change, set {} > 0.",
-          Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT.getKey());
+          Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT.getKey());
       maxWait = Long.MAX_VALUE;
     }
 
@@ -1313,10 +1313,10 @@ public class Master extends AbstractServer
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
         new ReplicationCoordinator.Processor<>(TraceUtil.wrapService(haReplicationProxy));
     ServerAddress replAddress = TServerUtils.startServer(getMetricsSystem(), context, getHostname(),
-        Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
+        Property.MANAGER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
         "Master Replication Coordinator", "Replication Coordinator", null,
-        Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS, null,
-        Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+        Property.MANAGER_REPLICATION_COORDINATOR_MINTHREADS, null,
+        Property.MANAGER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
 
     log.info("Started replication coordinator service at " + replAddress.address);
     // Start the daemon to scan the replication table and make units of work
@@ -1405,7 +1405,7 @@ public class Master extends AbstractServer
     log.info("trying to get master lock");
 
     final String masterClientAddress =
-        getHostname() + ":" + getConfiguration().getPort(Property.MASTER_CLIENTPORT)[0];
+        getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
 
     while (true) {
 
