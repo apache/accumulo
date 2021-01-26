@@ -476,7 +476,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     private final CountDownLatch lockCompletedLatch;
     private final CountDownLatch unlockLatch = new CountDownLatch(1);
     private final RetryLockWatcher lockWatcher = new RetryLockWatcher();
-    private Exception ex = null;
+    private volatile Exception ex = null;
 
     public LockWorker(final String parent, final String name, final CountDownLatch lockLatch,
         final CountDownLatch lockCompletedLatch) {
@@ -496,8 +496,8 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
     @Override
     public void run() {
-      ConnectedWatcher watcher = new ConnectedWatcher();
       try {
+        ConnectedWatcher watcher = new ConnectedWatcher();
         try (ZooKeeperWrapper zk =
             new ZooKeeperWrapper(getCluster().getZooKeepers(), 30000, watcher)) {
           zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
@@ -519,7 +519,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
           unlockLatch.await();
           zl.unlock();
         }
-      } catch (IOException | InterruptedException | KeeperException e) {
+      } catch (Exception e) {
         LOG.error("Error in LockWorker.run() for {}", name, e);
         ex = e;
       }
