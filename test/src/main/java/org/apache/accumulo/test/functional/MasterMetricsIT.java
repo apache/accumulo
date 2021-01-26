@@ -104,7 +104,7 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
   public void metricsPublished() throws AccumuloException, AccumuloSecurityException {
 
     assumeTrue(accumuloClient.instanceOperations().getSystemConfiguration()
-        .get(Property.MASTER_FATE_METRICS_ENABLED.getKey()).compareTo("true") == 0);
+        .get(Property.MANAGER_FATE_METRICS_ENABLED.getKey()).compareTo("true") == 0);
 
     log.trace("Client started, properties:{}", accumuloClient.properties());
 
@@ -142,7 +142,7 @@ public class MasterMetricsIT extends AccumuloClusterHarness {
   public void compactionMetrics() throws AccumuloSecurityException, AccumuloException {
 
     assumeTrue(accumuloClient.instanceOperations().getSystemConfiguration()
-        .get(Property.MASTER_FATE_METRICS_ENABLED.getKey()).compareTo("true") == 0);
+        .get(Property.MANAGER_FATE_METRICS_ENABLED.getKey()).compareTo("true") == 0);
 
     MetricsFileTailer.LineUpdate firstUpdate =
         metricsTail.waitForUpdate(-1, NUM_TAIL_ATTEMPTS, TAIL_DELAY);

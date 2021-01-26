@@ -167,8 +167,17 @@ public class SiteConfiguration extends AccumuloConfiguration {
       config.addConfiguration(overrideConfig);
       config.addConfiguration(propsFileConfig);
 
+      // Make sure any deprecated property names aren't using both the old and new name.
+      DeprecatedPropertyUtil.sanityCheckManagerProperties(config);
+
       var result = new HashMap<String,String>();
-      config.getKeys().forEachRemaining(k -> result.put(k, config.getString(k)));
+      config.getKeys().forEachRemaining(orig -> {
+        String resolved = DeprecatedPropertyUtil.getReplacementName(orig, (log, replacement) -> {
+          log.warn("{} has been deprecated and will be removed in a future release;"
+              + " loading its replacement {} instead.", orig, replacement);
+        });
+        result.put(resolved, config.getString(orig));
+      });
       return new SiteConfiguration(Collections.unmodifiableMap(result));
     }
   }

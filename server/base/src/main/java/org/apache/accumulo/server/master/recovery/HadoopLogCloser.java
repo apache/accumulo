@@ -57,7 +57,7 @@ public class HadoopLogCloser implements LogCloser {
       try {
         if (!dfs.recoverLease(source)) {
           log.info("Waiting for file to be closed {}", source);
-          return conf.getTimeInMillis(Property.MASTER_LEASE_RECOVERY_WAITING_PERIOD);
+          return conf.getTimeInMillis(Property.MANAGER_LEASE_RECOVERY_WAITING_PERIOD);
         }
         log.info("Recovered lease on {}", source);
       } catch (FileNotFoundException ex) {

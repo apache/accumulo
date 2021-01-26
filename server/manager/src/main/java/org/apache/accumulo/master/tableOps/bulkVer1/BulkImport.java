@@ -203,8 +203,8 @@ public class BulkImport extends MasterRepo {
 
     AccumuloConfiguration serverConfig = master.getConfiguration();
     @SuppressWarnings("deprecation")
-    ExecutorService workers = ThreadPools.createExecutorService(serverConfig,
-        serverConfig.resolve(Property.MASTER_RENAME_THREADS, Property.MASTER_BULK_RENAME_THREADS));
+    ExecutorService workers = ThreadPools.createExecutorService(serverConfig, serverConfig
+        .resolve(Property.MANAGER_RENAME_THREADS, Property.MANAGER_BULK_RENAME_THREADS));
     List<Future<Exception>> results = new ArrayList<>();
 
     for (FileStatus file : mapFiles) {

@@ -107,7 +107,7 @@ class BulkImportMove extends MasterRepo {
     AccumuloConfiguration aConf = master.getConfiguration();
     @SuppressWarnings("deprecation")
     int workerCount = aConf.getCount(
-        aConf.resolve(Property.MASTER_RENAME_THREADS, Property.MASTER_BULK_RENAME_THREADS));
+        aConf.resolve(Property.MANAGER_RENAME_THREADS, Property.MANAGER_BULK_RENAME_THREADS));
     Map<Path,Path> oldToNewMap = new HashMap<>();
     String fmtTid = FateTxId.formatTid(tid);
 

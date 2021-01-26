@@ -231,13 +231,13 @@ public class TServerUtilsTest {
 
     ports = findTwoFreeSequentialPorts(gcPort + 1);
     int masterPort = ports[0];
-    conf.set(Property.MASTER_CLIENTPORT, Integer.toString(masterPort));
+    conf.set(Property.MANAGER_CLIENTPORT, Integer.toString(masterPort));
     int monitorPort = ports[1];
     conf.set(Property.MONITOR_PORT, Integer.toString(monitorPort));
 
     ports = findTwoFreeSequentialPorts(monitorPort + 1);
     int masterReplCoordPort = ports[0];
-    conf.set(Property.MASTER_REPLICATION_COORDINATOR_PORT, Integer.toString(masterReplCoordPort));
+    conf.set(Property.MANAGER_REPLICATION_COORDINATOR_PORT, Integer.toString(masterReplCoordPort));
     int tserverFinalPort = ports[1];
 
     conf.set(Property.TSERV_PORTSEARCH, "true");
