@@ -224,7 +224,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     }
 
     private void fail(ArrayList<DfsLogger.LogWork> work, Exception ex, String why) {
-      log.warn("Exception " + why + " " + ex);
+      log.warn("Exception {} {}", why, ex, ex);
       for (DfsLogger.LogWork logWork : work) {
         logWork.exception = ex;
       }
