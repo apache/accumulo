@@ -2247,7 +2247,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       } catch (Throwable e) {
 
         if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
-          log.debug("Failed to unload tablet {} ... it was alread closing or closed : {}", extent,
+          log.debug("Failed to unload tablet {} ... it was already closing or closed : {}", extent,
               e.getMessage());
         } else {
           log.error("Failed to close tablet {}... Aborting migration", extent, e);
