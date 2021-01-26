@@ -49,6 +49,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -395,8 +396,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
       String value, TableOperation op)
       throws ThriftSecurityException, ThriftTableOperationException {
 
-    NamespaceId namespaceId = null;
-    namespaceId = ClientServiceHandler.checkNamespaceId(master.getContext(), namespace, op);
+    NamespaceId namespaceId =
+        ClientServiceHandler.checkNamespaceId(master.getContext(), namespace, op);
 
     if (!master.security.canAlterNamespace(c, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -449,7 +450,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
   }
 
   private void updatePlugins(String property) {
-    if (property.equals(Property.MANAGER_TABLET_BALANCER.getKey())) {
+    // resolve without warning; any warnings should have already occurred
+    String resolved = DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {});
+    if (resolved.equals(Property.MANAGER_TABLET_BALANCER.getKey())) {
       AccumuloConfiguration conf = master.getConfiguration();
       TabletBalancer balancer = Property.createInstanceFromPropertyName(conf,
           Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());

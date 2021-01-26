@@ -20,8 +20,6 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
@@ -81,16 +79,11 @@ public class SystemPropUtil {
 
   public static void removeSystemProperty(ServerContext context, String property)
       throws InterruptedException, KeeperException {
-    AtomicBoolean shouldRemove = new AtomicBoolean(true);
-    DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
-      log.warn("{} was deprecated and will be removed in a future release;"
-          + " no action was taken because it is not set here;"
-          + " did you mean to remove its replacment {} instead?", property, replacement);
-      shouldRemove.set(false);
+    String resolved = DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
+      log.warn("{} was deprecated and will be removed in a future release; assuming user meant"
+          + " its replacement {} and will remove that instead", property, replacement);
     });
-    if (shouldRemove.get()) {
-      removePropWithoutDeprecationWarning(context, property);
-    }
+    removePropWithoutDeprecationWarning(context, resolved);
   }
 
   public static void removePropWithoutDeprecationWarning(ServerContext context, String property)

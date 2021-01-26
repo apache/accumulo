@@ -171,12 +171,12 @@ public class SiteConfiguration extends AccumuloConfiguration {
       DeprecatedPropertyUtil.sanityCheckManagerProperties(config);
 
       var result = new HashMap<String,String>();
-      config.getKeys().forEachRemaining(original -> {
-        String actual = DeprecatedPropertyUtil.getReplacementName(original, (log, replacement) -> {
+      config.getKeys().forEachRemaining(orig -> {
+        String resolved = DeprecatedPropertyUtil.getReplacementName(orig, (log, replacement) -> {
           log.warn("{} has been deprecated and will be removed in a future release;"
-              + " loading its replacement {} instead.", original, replacement);
+              + " loading its replacement {} instead.", orig, replacement);
         });
-        result.put(actual, config.getString(original));
+        result.put(resolved, config.getString(orig));
       });
       return new SiteConfiguration(Collections.unmodifiableMap(result));
     }

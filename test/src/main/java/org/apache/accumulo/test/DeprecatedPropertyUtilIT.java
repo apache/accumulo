@@ -73,22 +73,28 @@ public class DeprecatedPropertyUtilIT extends ConfigurableMacBase {
       assertFalse(oldProp + " was in the config!", config.containsKey(newProp));
       assertFalse(newProp + " was in the config!", config.containsKey(newProp));
 
+      // create using old prop and verify new prop was created
       SystemPropUtil.setSystemProperty(getServerContext(), oldProp, propValue);
-
       config = client.instanceOperations().getSystemConfiguration();
       assertFalse(oldProp + " was in the config after set call!", config.containsKey(oldProp));
       assertTrue(newProp + " was not in the config after set call!", config.containsKey(newProp));
       assertEquals(propValue, config.get(newProp));
 
-      SystemPropUtil.removeSystemProperty(getServerContext(), oldProp);
-
+      // remove using new prop and verify both are gone
+      SystemPropUtil.removeSystemProperty(getServerContext(), newProp);
       config = client.instanceOperations().getSystemConfiguration();
       assertFalse(oldProp + " was in the config after remove call!", config.containsKey(oldProp));
-      assertTrue(newProp + " was not in the config after remove call!",
-          config.containsKey(newProp));
+      assertFalse(newProp + " was in the config after remove call!", config.containsKey(newProp));
 
-      SystemPropUtil.removeSystemProperty(getServerContext(), newProp);
+      // re-create using new prop and verify new prop was created
+      SystemPropUtil.setSystemProperty(getServerContext(), newProp, propValue);
+      config = client.instanceOperations().getSystemConfiguration();
+      assertFalse(oldProp + " was in the config after set call!", config.containsKey(oldProp));
+      assertTrue(newProp + " was not in the config after set call!", config.containsKey(newProp));
+      assertEquals(propValue, config.get(newProp));
 
+      // remove using old prop and verify both are gone
+      SystemPropUtil.removeSystemProperty(getServerContext(), oldProp);
       config = client.instanceOperations().getSystemConfiguration();
       assertFalse(oldProp + " was in the config after remove call!", config.containsKey(oldProp));
       assertFalse(newProp + " was in the config after remove call!", config.containsKey(newProp));

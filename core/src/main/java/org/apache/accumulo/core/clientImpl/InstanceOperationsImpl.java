@@ -86,9 +86,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
       // force a warning on the client side, but send the name the user used to the server-side
       // to trigger a warning in the server logs, and to handle it there
-      log.warn("{} was deprecated and will be removed in a future release;"
-          + " no action was taken because it is not set here;"
-          + " did you mean to remove its replacment {} instead?", property, replacement);
+      log.warn("{} was deprecated and will be removed in a future release; assuming user meant"
+          + " its replacement {} and will remove that instead", property, replacement);
     });
     MasterClient.executeVoid(context,
         client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property));
