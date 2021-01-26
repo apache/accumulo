@@ -93,24 +93,20 @@ public class ZooLockIT extends SharedMiniClusterBase {
     @Override
     public void lostLock(LockLossReason reason) {
       this.lockHeld = false;
-      System.out.println("lostLock: " + reason.toString());
     }
 
     @Override
     public void unableToMonitorLockNode(final Exception e) {
-      System.out.println("UnableToMonitorLockNode: " + e.getMessage());
     }
 
     @Override
     public void acquiredLock() {
       this.lockHeld = true;
-      System.out.println("acquiredLock");
     }
 
     @Override
     public void failedToAcquireLock(Exception e) {
       this.lockHeld = false;
-      System.out.println("failedToAcquireLock");
     }
 
     public boolean isLockHeld() {
