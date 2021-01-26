@@ -847,7 +847,7 @@ public class Master extends AbstractServer
         } catch (TException e) {
           log.error("{}", e.getMessage(), e);
         }
-        tserverSet.remove(instance);
+        badServers.putIfAbsent(instance, new AtomicInteger(1));
       }
     }
 
