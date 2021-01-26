@@ -77,6 +77,8 @@ import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -988,6 +990,8 @@ public class Initialize implements KeywordExecutable {
     } catch (Exception e) {
       log.error("Fatal exception", e);
       throw new RuntimeException(e);
+    } finally {
+      SingletonManager.setMode(Mode.CLOSED);
     }
   }
 
