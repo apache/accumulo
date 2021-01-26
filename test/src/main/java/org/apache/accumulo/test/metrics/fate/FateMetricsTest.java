@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.master.metrics.fate;
+package org.apache.accumulo.test.metrics.fate;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -31,8 +31,10 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.master.metrics.fate.FateMetrics;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.EasyMock;
@@ -51,17 +53,14 @@ import org.slf4j.LoggerFactory;
  */
 public class FateMetricsTest {
 
-  private static final Logger log = LoggerFactory.getLogger(FateMetricsTest.class);
   public static final String INSTANCE_ID = "1234";
   public static final String MOCK_ZK_ROOT = "/accumulo/" + INSTANCE_ID;
   public static final String A_FAKE_SECRET = "aPasswd";
-
+  private static final Logger log = LoggerFactory.getLogger(FateMetricsTest.class);
   private static ZooKeeperTestingServer szk = null;
-
+  private static ZooReaderWriter zooReaderWriter;
   private ZooStore<Master> zooStore = null;
   private ZooKeeper zookeeper = null;
-
-  private static ZooReaderWriter zooReaderWriter;
   private ServerContext context = null;
   private Master master;
 
@@ -257,24 +256,6 @@ public class FateMetricsTest {
 
   }
 
-  private static class FakeOp extends MasterRepo {
-    private static final long serialVersionUID = -1L;
-
-    @Override
-    public Repo<Master> call(long tid, Master environment) {
-      return null;
-    }
-  }
-
-  private static class FakeOpStep1 extends MasterRepo {
-    private static final long serialVersionUID = -1L;
-
-    @Override
-    public Repo<Master> call(long tid, Master environment) {
-      return null;
-    }
-  }
-
   String prettyStat(final Stat stat) {
 
     if (stat == null) {
@@ -306,6 +287,24 @@ public class FateMetricsTest {
 
     for (String cp : children) {
       clear(path + "/" + cp);
+    }
+  }
+
+  private static class FakeOp extends MasterRepo {
+    private static final long serialVersionUID = -1L;
+
+    @Override
+    public Repo<Master> call(long tid, Master environment) {
+      return null;
+    }
+  }
+
+  private static class FakeOpStep1 extends MasterRepo {
+    private static final long serialVersionUID = -1L;
+
+    @Override
+    public Repo<Master> call(long tid, Master environment) {
+      return null;
     }
   }
 }

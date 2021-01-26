@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.master.metrics.fate;
+package org.apache.accumulo.test.metrics.fate;
 
 import java.util.HashMap;
 import java.util.Map;
