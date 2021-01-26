@@ -51,6 +51,8 @@ import org.apache.zookeeper.data.ACL;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZooLockIT extends SharedMiniClusterBase {
 
@@ -466,12 +468,15 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
   static class LockWorker implements Runnable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(LockWorker.class);
+
     private final String parent;
     private final String name;
     private final CountDownLatch getLockLatch;
     private final CountDownLatch lockCompletedLatch;
     private final CountDownLatch unlockLatch = new CountDownLatch(1);
     private final RetryLockWatcher lockWatcher = new RetryLockWatcher();
+    private Exception ex = null;
 
     public LockWorker(final String parent, final String name, final CountDownLatch lockLatch,
         final CountDownLatch lockCompletedLatch) {
@@ -515,8 +520,13 @@ public class ZooLockIT extends SharedMiniClusterBase {
           zl.unlock();
         }
       } catch (IOException | InterruptedException | KeeperException e) {
-        throw new RuntimeException(e);
+        LOG.error("Error in LockWorker.run() for {}", name, e);
+        ex = e;
       }
+    }
+
+    public Throwable getException() {
+      return ex;
     }
 
     @Override
@@ -569,11 +579,18 @@ public class ZooLockIT extends SharedMiniClusterBase {
         t.start();
       }
 
+      workers.forEach(w -> assertNull(w.getException()));
       getLockLatch.await(); // Threads compete for lock
+      workers.forEach(w -> assertNull(w.getException()));
       lockFinishedLatch.await(); // Threads lock logic complete
+      workers.forEach(w -> assertNull(w.getException()));
 
       for (int i = 4; i > 0; i--) {
         List<String> children = zk.getChildren(parent, false);
+        while (children.size() != i) {
+          Thread.sleep(100);
+          children = zk.getChildren(parent, false);
+        }
         ZooLock.sortChildrenByLockPrefix(children);
         assertEquals(i, children.size());
         String first = children.get(0);
@@ -586,10 +603,12 @@ public class ZooLockIT extends SharedMiniClusterBase {
           }
         });
         worker.unlock();
-        Thread.sleep(500); // wait for node to be deleted and lock to be reacquired.
+        Thread.sleep(100); // need to wait here so that the watchers fire.
       }
 
       workers.forEach(w -> assertFalse(w.holdsLock()));
+      workers.forEach(w -> assertNull(w.getException()));
+      assertEquals(0, zk.getChildren(parent, false).size());
 
       threads.forEach(t -> {
         try {

@@ -110,7 +110,7 @@ public class ZooLock implements Watcher {
       watchingParent = true;
       this.setVMLockPrefix(new Prefix(VM_ZLOCK_PREFIX));
     } catch (Exception ex) {
-      LOG.warn("Error getting setting initial watch on ZooLock", ex);
+      LOG.error("Error setting initial watch", ex);
       throw new RuntimeException(ex);
     }
   }
@@ -250,6 +250,18 @@ public class ZooLock implements Watcher {
     return lowestPrevNode;
   }
 
+  private List<String> getChildrenWithZLockPrefix() throws KeeperException, InterruptedException {
+    List<String> children = new ArrayList<>();
+    zooKeeper.getChildren(path).forEach(s -> {
+      if (s.startsWith(ZLOCK_PREFIX)) {
+        children.add(s);
+      } else {
+        LOG.warn("Child found with invalid format: {}", s);
+      }
+    });
+    return children;
+  }
+
   private synchronized void determineLockOwnership(final String createdEphemeralNode,
       final AccumuloLockWatcher lw) throws KeeperException, InterruptedException {
 
@@ -258,12 +270,7 @@ public class ZooLock implements Watcher {
           "Called determineLockOwnership() when ephemeralNodeName == null");
     }
 
-    List<String> children = new ArrayList<>();
-    zooKeeper.getChildren(path).forEach(s -> {
-      if (s.startsWith(ZLOCK_PREFIX)) {
-        children.add(s);
-      }
-    });
+    List<String> children = getChildrenWithZLockPrefix();
 
     if (!children.contains(createdEphemeralNode)) {
       throw new RuntimeException(
@@ -272,7 +279,7 @@ public class ZooLock implements Watcher {
     sortChildrenByLockPrefix(children);
 
     if (children.get(0).equals(createdEphemeralNode)) {
-      LOG.debug("[{}] First candidate is my lock, acquiring", vmLockPrefix);
+      LOG.debug("[{}] First candidate is my lock, acquiring...", vmLockPrefix);
       if (!watchingParent) {
         throw new IllegalStateException(
             "Can not acquire lock, no longer watching parent : " + path);
@@ -391,12 +398,8 @@ public class ZooLock implements Watcher {
       // It's possible that the call above was retried several times and multiple ephemeral nodes
       // were created but the client missed the response for some reason. Find the ephemeral nodes
       // with this ZLOCK_UUID and lowest sequential number.
-      List<String> children = new ArrayList<>();
-      zooKeeper.getChildren(path).forEach(s -> {
-        if (s.startsWith(ZLOCK_PREFIX)) {
-          children.add(s);
-        }
-      });
+      List<String> children = getChildrenWithZLockPrefix();
+
       String lowestSequentialPath = null;
       sortChildrenByLockPrefix(children);
       boolean msgLoggedOnce = false;
@@ -467,7 +470,7 @@ public class ZooLock implements Watcher {
                 }
               } catch (Exception e) {
                 lockWatcher.unableToMonitorLockNode(e);
-                LOG.error("Failed to stat lock node " + pathForWatcher, e);
+                LOG.error("Failed to stat lock node: {} ", pathForWatcher, e);
               }
             }
 
@@ -594,7 +597,7 @@ public class ZooLock implements Watcher {
         watchingParent = true;
       } catch (KeeperException.ConnectionLossException ex) {
         // we can't look at the lock because we aren't connected, but our session is still good
-        LOG.warn("lost connection to zookeeper");
+        LOG.warn("lost connection to zookeeper", ex);
       } catch (Exception ex) {
         if (lockNodeName != null || createdNodeName != null) {
           lockWatcher.unableToMonitorLockNode(ex);

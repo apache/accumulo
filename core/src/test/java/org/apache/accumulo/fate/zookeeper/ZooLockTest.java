@@ -19,6 +19,7 @@
 package org.apache.accumulo.fate.zookeeper;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,13 +36,15 @@ public class ZooLockTest {
     children.add("zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000006");
     children.add("zlock#00000000-0000-0000-0000-GGGGGGGGGGGG#0000000008");
     children.add("zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000004");
+    children.add("zlock-123456789");
     children.add("zlock#00000000-0000-0000-0000-CCCCCCCCCCCC#0000000003");
     children.add("zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000002");
+    children.add("zlock-987654321");
     children.add("zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000001");
 
     ZooLock.sortChildrenByLockPrefix(children);
 
-    assertEquals(8, children.size());
+    assertEquals(10, children.size());
     assertEquals("zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000001", children.get(0));
     assertEquals("zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000002", children.get(1));
     assertEquals("zlock#00000000-0000-0000-0000-CCCCCCCCCCCC#0000000003", children.get(2));
@@ -50,6 +53,8 @@ public class ZooLockTest {
     assertEquals("zlock#00000000-0000-0000-0000-FFFFFFFFFFFF#0000000007", children.get(5));
     assertEquals("zlock#00000000-0000-0000-0000-GGGGGGGGGGGG#0000000008", children.get(6));
     assertEquals("zlock#00000000-0000-0000-0000-EEEEEEEEEEEE#00000000010", children.get(7));
+    assertEquals("zlock-123456789", children.get(8));
+    assertEquals("zlock-987654321", children.get(9));
 
     assertEquals("zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#0000000004", ZooLock
         .findLowestPrevPrefix(children, "zlock#00000000-0000-0000-0000-FFFFFFFFFFFF#0000000007"));
@@ -60,6 +65,15 @@ public class ZooLockTest {
     assertEquals("zlock#00000000-0000-0000-0000-GGGGGGGGGGGG#0000000008", ZooLock
         .findLowestPrevPrefix(children, "zlock#00000000-0000-0000-0000-EEEEEEEEEEEE#00000000010"));
 
+    assertThrows(IndexOutOfBoundsException.class, () -> {
+      ZooLock.findLowestPrevPrefix(children,
+          "zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#0000000001");
+    });
+
+    assertThrows(IndexOutOfBoundsException.class, () -> {
+      ZooLock.findLowestPrevPrefix(children,
+          "zlock#00000000-0000-0000-0000-XXXXXXXXXXXX#0000000099");
+    });
   }
 
 }
