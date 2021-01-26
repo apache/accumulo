@@ -96,8 +96,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     }
 
     @Override
-    public void unableToMonitorLockNode(final Exception e) {
-    }
+    public void unableToMonitorLockNode(final Exception e) {}
 
     @Override
     public void acquiredLock() {
