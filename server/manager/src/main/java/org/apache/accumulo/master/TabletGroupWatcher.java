@@ -875,11 +875,12 @@ abstract class TabletGroupWatcher extends Thread {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private void getAssignmentsFromBalancer(TabletLists tLists,
       Map<KeyExtent,TServerInstance> unassigned) {
     if (!tLists.currentTServers.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
-      master.tabletBalancer.getAssignments(tLists.currentTServers, unassigned, assignedOut);
+      master.getAssignments(tLists.currentTServers, unassigned, assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
           if (assignment.getValue() != null) {

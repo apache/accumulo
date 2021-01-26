@@ -55,6 +55,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 
+@Deprecated(since = "2.1.0")
 public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
 
   protected static class TestTable {

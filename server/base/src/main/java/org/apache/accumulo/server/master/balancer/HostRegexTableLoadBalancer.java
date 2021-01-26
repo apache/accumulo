@@ -86,7 +86,10 @@ import com.google.common.collect.Multimap;
  * in which this balancer will continue balancing, set the following property (default 0):<br>
  * <b>table.custom.balancer.host.regex.max.outstanding.migrations</b>
  *
+ * @deprecated since 2.1.0. Use
+ *             {@link org.apache.accumulo.core.spi.balancer.HostRegexTableLoadBalancer} instead
  */
+@Deprecated(since = "2.1.0")
 public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();

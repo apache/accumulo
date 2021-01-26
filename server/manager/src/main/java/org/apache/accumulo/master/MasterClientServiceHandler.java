@@ -48,7 +48,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -85,8 +84,6 @@ import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
-import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
-import org.apache.accumulo.server.master.balancer.TabletBalancer;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
@@ -364,7 +361,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
   @Override
   public void setSystemProperty(TInfo info, TCredentials c, String property, String value)
-      throws ThriftSecurityException, TException {
+      throws TException {
     if (!master.security.canPerformSystemActions(c))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
@@ -453,12 +450,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
     // resolve without warning; any warnings should have already occurred
     String resolved = DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {});
     if (resolved.equals(Property.MANAGER_TABLET_BALANCER.getKey())) {
-      AccumuloConfiguration conf = master.getConfiguration();
-      TabletBalancer balancer = Property.createInstanceFromPropertyName(conf,
-          Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
-      balancer.init(master.getContext());
-      master.tabletBalancer = balancer;
-      log.info("tablet balancer changed to {}", master.tabletBalancer.getClass().getName());
+      master.initializeBalancer();
+      log.info("tablet balancer changed to {}", master.getBalancerClass().getName());
     }
   }
 

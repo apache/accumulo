@@ -56,7 +56,11 @@ import com.google.common.collect.Iterables;
  * Implementations may wish to store configuration in Accumulo's system configuration using the
  * {@link Property#GENERAL_ARBITRARY_PROP_PREFIX}. They may also benefit from using per-table
  * configuration using {@link Property#TABLE_ARBITRARY_PROP_PREFIX}.
+ *
+ * @deprecated since 2.1.0. Use {@link org.apache.accumulo.core.spi.balancer.TabletBalancer}
+ *             instead.
  */
+@Deprecated(since = "2.1.0")
 public abstract class TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TabletBalancer.class);

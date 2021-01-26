@@ -551,7 +551,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
         if (!e.getSecurityErrorCodes().isEmpty()) {
           var tables = new HashMap<String,Set<SecurityErrorCode>>();
           e.getSecurityErrorCodes().forEach((tabletId, secSet) -> {
-            var tableId = tabletId.getTableId().toString();
+            var tableId = tabletId.getTable().canonical();
             tables.computeIfAbsent(tableId, p -> new HashSet<>()).addAll(secSet);
           });
           log.error("Not authorized to write to tables : " + tables);
