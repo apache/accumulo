@@ -37,6 +37,7 @@ import java.util.concurrent.locks.LockSupport;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.AccumuloLockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ZooLock.Prefix;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.zookeeper.CreateMode;
@@ -382,12 +383,8 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
       final RetryLockWatcher zlw1 = new RetryLockWatcher();
       final String zlPrefix1 = "zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#";
-      ZooLock zl1 = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent) {
-        @Override
-        protected String getZLockPrefix() {
-          return zlPrefix1;
-        }
-      };
+      ZooLock zl1 = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent);
+      zl1.setVMLockPrefix(new Prefix(zlPrefix1));
       zl1.lock(zlw1, "test1".getBytes(UTF_8));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
@@ -404,12 +401,8 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
       final RetryLockWatcher zlw2 = new RetryLockWatcher();
       final String zlPrefix2 = "zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#";
-      ZooLock zl2 = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent) {
-        @Override
-        protected String getZLockPrefix() {
-          return zlPrefix2;
-        }
-      };
+      ZooLock zl2 = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent);
+      zl2.setVMLockPrefix(new Prefix(zlPrefix2));
       zl2.lock(zlw2, "test1".getBytes(UTF_8));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
@@ -492,12 +485,8 @@ public class ZooLockIT extends SharedMiniClusterBase {
           while (!watcher.isConnected()) {
             Thread.sleep(50);
           }
-          ZooLock zl = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent) {
-            @Override
-            protected String getZLockPrefix() {
-              return name;
-            }
-          };
+          ZooLock zl = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent);
+          zl.setVMLockPrefix(new Prefix(name));
           getLockLatch.countDown(); // signal we are done
           getLockLatch.await(); // wait for others to finish
           zl.lock(lockWatcher, "test1".getBytes(UTF_8)); // race to the lock
