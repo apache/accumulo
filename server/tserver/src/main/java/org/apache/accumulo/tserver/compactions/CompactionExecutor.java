@@ -117,7 +117,19 @@ public class CompactionExecutor {
         // Occasionally clean the queue of canceled tasks that have hung around because of their low
         // priority. This runs periodically, instead of every time something is canceled, to avoid
         // hurting performance.
-        queue.removeIf(runnable -> ((CompactionTask) runnable).getStatus() == Status.CANCELED);
+        queue.removeIf(runnable -> {
+          CompactionTask compactionTask;
+          if (runnable instanceof TraceRunnable) {
+            runnable = ((TraceRunnable) runnable).getRunnable();
+          }
+          if (runnable instanceof CompactionTask) {
+            compactionTask = (CompactionTask) runnable;
+          } else {
+            throw new IllegalArgumentException(
+                "Unknown runnable type " + runnable.getClass().getName());
+          }
+          return compactionTask.getStatus() == Status.CANCELED;
+        });
       }
 
       return canceled;
