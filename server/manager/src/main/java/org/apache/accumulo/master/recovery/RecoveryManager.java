@@ -197,10 +197,11 @@ public class RecoveryManager {
           if (!closeTasksQueued.contains(sortId) && !sortsQueued.contains(sortId)) {
             AccumuloConfiguration aconf = master.getConfiguration();
             LogCloser closer = Property.createInstanceFromPropertyName(aconf,
-                Property.MASTER_WALOG_CLOSER_IMPLEMETATION, LogCloser.class, new HadoopLogCloser());
+                Property.MANAGER_WALOG_CLOSER_IMPLEMETATION, LogCloser.class,
+                new HadoopLogCloser());
             Long delay = recoveryDelay.get(sortId);
             if (delay == null) {
-              delay = aconf.getTimeInMillis(Property.MASTER_RECOVERY_DELAY);
+              delay = aconf.getTimeInMillis(Property.MANAGER_RECOVERY_DELAY);
             } else {
               delay = Math.min(2 * delay, 1000 * 60 * 5L);
             }

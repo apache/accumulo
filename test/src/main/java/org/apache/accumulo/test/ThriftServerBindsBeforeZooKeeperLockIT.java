@@ -258,7 +258,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
         service = Monitor.class;
         break;
       case MANAGER:
-        property = Property.MASTER_CLIENTPORT;
+        property = Property.MANAGER_CLIENTPORT;
         service = Master.class;
         break;
       case GARBAGE_COLLECTOR:

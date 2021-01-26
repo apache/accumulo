@@ -45,6 +45,8 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -74,10 +76,12 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.ZooConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
+import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -113,6 +117,7 @@ public class Upgrader9to10 implements Upgrader {
   public void upgradeZookeeper(ServerContext ctx) {
     setMetaTableProps(ctx);
     upgradeRootTabletMetadata(ctx);
+    renameOldMasterPropsinZK(ctx);
   }
 
   @Override
@@ -199,6 +204,27 @@ public class Upgrader9to10 implements Upgrader {
     delete(ctx, ZROOT_TABLET_LOCATION);
     delete(ctx, ZROOT_TABLET_WALOGS);
     delete(ctx, ZROOT_TABLET_PATH);
+  }
+
+  @SuppressWarnings("deprecation")
+  private void renameOldMasterPropsinZK(ServerContext ctx) {
+    // Rename all of the properties only set in ZooKeeper that start with "master." to rename and
+    // store them starting with "manager." instead.
+    var zooConfiguration = new ZooConfiguration(ctx, ctx.getZooCache(), new ConfigurationCopy());
+    zooConfiguration.getAllPropertiesWithPrefix(Property.MASTER_PREFIX)
+        .forEach((original, value) -> {
+          DeprecatedPropertyUtil.getReplacementName(original, (log, replacement) -> {
+            log.info("Automatically renaming deprecated property '{}' with its replacement '{}'"
+                + " in ZooKeeper on upgrade.", original, replacement);
+            try {
+              // Set the property under the new name
+              SystemPropUtil.setSystemProperty(ctx, replacement, value);
+              SystemPropUtil.removePropWithoutDeprecationWarning(ctx, original);
+            } catch (KeeperException | InterruptedException e) {
+              throw new RuntimeException("Unable to upgrade system properties", e);
+            }
+          });
+        });
   }
 
   private static class UpgradeMutator extends TabletMutatorBase {

@@ -148,7 +148,7 @@ class LoadFiles extends MasterRepo {
     void start(Path bulkDir, Master master, long tid, boolean setTime) throws Exception {
       super.start(bulkDir, master, tid, setTime);
 
-      timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
+      timeInMillis = master.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
       fmtTid = FateTxId.formatTid(tid);
 
       loadMsgs = new MapCounter<>();

@@ -226,8 +226,8 @@ public class Fate<T> {
    * Launches the specified number of worker threads.
    */
   public void startTransactionRunners(AccumuloConfiguration conf) {
-    int numThreads = conf.getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
-    executor = ThreadPools.createExecutorService(conf, Property.MASTER_FATE_THREADPOOL_SIZE);
+    int numThreads = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE);
+    executor = ThreadPools.createExecutorService(conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
     for (int i = 0; i < numThreads; i++) {
       executor.execute(new TransactionRunner());
     }
