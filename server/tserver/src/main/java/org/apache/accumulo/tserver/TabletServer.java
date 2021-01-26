@@ -639,7 +639,7 @@ public class TabletServer extends AbstractServer {
         throw e;
       }
 
-      tabletServerLock = new ZooLock(zoo, zPath);
+      tabletServerLock = new ZooLock(getContext().getSiteConfiguration(), zPath);
 
       LockWatcher lw = new LockWatcher() {
 

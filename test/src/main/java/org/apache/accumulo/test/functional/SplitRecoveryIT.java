@@ -94,7 +94,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     String zPath = c.getZooKeeperRoot() + "/testLock";
     ZooReaderWriter zoo = c.getZooReaderWriter();
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
-    ZooLock zl = new ZooLock(zoo, zPath);
+    ZooLock zl = new ZooLock(c.getSiteConfiguration(), zPath);
     boolean gotLock = zl.tryLock(new LockWatcher() {
 
       @SuppressFBWarnings(value = "DM_EXIT",

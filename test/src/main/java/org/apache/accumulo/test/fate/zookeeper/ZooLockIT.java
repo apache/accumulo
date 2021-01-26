@@ -96,8 +96,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     }
 
     @Override
-    public void unableToMonitorLockNode(final Exception e) {
-    }
+    public void unableToMonitorLockNode(final Exception e) {}
 
     @Override
     public void acquiredLock() {
@@ -381,16 +380,9 @@ public class ZooLockIT extends SharedMiniClusterBase {
       // Create the parent node
       zk1.createOnce(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-      ZooReaderWriter zrw1 = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
-        @Override
-        public ZooKeeper getZooKeeper() {
-          return zk1;
-        }
-      };
-
       final RetryLockWatcher zlw1 = new RetryLockWatcher();
       final String zlPrefix1 = "zlock#00000000-0000-0000-0000-AAAAAAAAAAAA#";
-      ZooLock zl1 = new ZooLock(zrw1, parent) {
+      ZooLock zl1 = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent) {
         @Override
         protected String getZLockPrefix() {
           return zlPrefix1;
@@ -410,16 +402,9 @@ public class ZooLockIT extends SharedMiniClusterBase {
       // zl1 assumes
       // that it has the lock.
 
-      ZooReaderWriter zrw2 = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
-        @Override
-        public ZooKeeper getZooKeeper() {
-          return zk2;
-        }
-      };
-
       final RetryLockWatcher zlw2 = new RetryLockWatcher();
       final String zlPrefix2 = "zlock#00000000-0000-0000-0000-BBBBBBBBBBBB#";
-      ZooLock zl2 = new ZooLock(zrw2, parent) {
+      ZooLock zl2 = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent) {
         @Override
         protected String getZLockPrefix() {
           return zlPrefix2;
@@ -507,13 +492,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
           while (!watcher.isConnected()) {
             Thread.sleep(50);
           }
-          ZooReaderWriter zrw = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
-            @Override
-            public ZooKeeper getZooKeeper() {
-              return zk;
-            }
-          };
-          ZooLock zl = new ZooLock(zrw, parent) {
+          ZooLock zl = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent) {
             @Override
             protected String getZLockPrefix() {
               return name;

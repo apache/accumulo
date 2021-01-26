@@ -26,10 +26,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
@@ -45,8 +49,6 @@ public class ZooLock implements Watcher {
   private static final String ZLOCK_PREFIX = "zlock#";
   private static final String ZLOCK_UUID = UUID.randomUUID().toString();
   private static final String THIS_ZLOCK_PREFIX = ZLOCK_PREFIX + ZLOCK_UUID + "#";
-
-  private static ZooCache LOCK_DATA_ZOO_CACHE;
 
   public enum LockLossReason {
     LOCK_DELETED, SESSION_EXPIRED
@@ -68,7 +70,7 @@ public class ZooLock implements Watcher {
   }
 
   private final String path;
-  protected final ZooReaderWriter zooKeeper;
+  protected final ZooKeeper zooKeeper;
 
   private LockWatcher lockWatcher;
   private String lockNodeName;
@@ -78,21 +80,18 @@ public class ZooLock implements Watcher {
   private String createdNodeName;
   private String watchingNodeName;
 
-  public ZooLock(ZooReaderWriter zoo, String path) {
-    this(new ZooCache(zoo), zoo, path);
+  public ZooLock(AccumuloConfiguration conf, String path) {
+    this(conf.get(Property.INSTANCE_ZK_HOST),
+        (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
+        conf.get(Property.INSTANCE_SECRET), path);
   }
 
   public ZooLock(String zookeepers, int timeInMillis, String secret, String path) {
-    this(new ZooCacheFactory().getZooCache(zookeepers, timeInMillis),
-        new ZooReaderWriter(zookeepers, timeInMillis, secret), path);
-  }
-
-  protected ZooLock(ZooCache zc, ZooReaderWriter zrw, String path) {
-    LOCK_DATA_ZOO_CACHE = zc;
+    this.zooKeeper = ZooSession.getAuthenticatedSession(zookeepers, timeInMillis, "digest",
+        ("accumulo" + ":" + secret).getBytes(UTF_8));
     this.path = path;
-    zooKeeper = zrw;
     try {
-      zooKeeper.getStatus(path, this);
+      zooKeeper.exists(path, this);
       watchingParent = true;
     } catch (Exception ex) {
       LOG.warn("Error getting setting initial watch on ZooLock", ex);
@@ -147,11 +146,39 @@ public class ZooLock implements Watcher {
         LOG.debug("[{}] Failed to acquire lock in tryLock(), deleting all at path: {}",
             this.getZLockPrefix(), pathToDelete);
       }
-      zooKeeper.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
+      recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
       createdNodeName = null;
     }
 
     return false;
+  }
+
+  /**
+   * This method will delete a node and all its children.
+   */
+  private void recursiveDelete(String zPath, NodeMissingPolicy policy)
+      throws KeeperException, InterruptedException {
+    if (policy == NodeMissingPolicy.CREATE) {
+      throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
+    }
+    try {
+      // delete children
+      for (String child : zooKeeper.getChildren(zPath, null)) {
+        recursiveDelete(zPath + "/" + child, NodeMissingPolicy.SKIP);
+      }
+
+      // delete self
+      zooKeeper.delete(zPath, -1);
+    } catch (KeeperException e) {
+      // new child appeared; try again
+      if (e.code() == Code.NOTEMPTY) {
+        recursiveDelete(zPath, policy);
+      }
+      if (policy == NodeMissingPolicy.SKIP && e.code() == Code.NONODE) {
+        return;
+      }
+      throw e;
+    }
   }
 
   /**
@@ -244,7 +271,7 @@ public class ZooLock implements Watcher {
     }
 
     List<String> children = new ArrayList<>();
-    zooKeeper.getChildren(path).forEach(s -> {
+    zooKeeper.getChildren(path, null).forEach(s -> {
       if (s.startsWith(ZLOCK_PREFIX)) {
         children.add(s);
       }
@@ -330,12 +357,12 @@ public class ZooLock implements Watcher {
               LOG.debug("[{}] Renewing watch on prior node  {}", getZLockPrefix(), nodeToWatch);
             }
             try {
-              Stat restat = zooKeeper.getStatus(nodeToWatch, this);
+              Stat restat = zooKeeper.exists(nodeToWatch, this);
               if (restat == null) {
                 // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
                 // created a Watcher on a node that does not exist. Delete the watcher we just
                 // created.
-                zooKeeper.getZooKeeper().removeWatches(nodeToWatch, this, WatcherType.Any, true);
+                zooKeeper.removeWatches(nodeToWatch, this, WatcherType.Any, true);
                 determineLockOwnership(createdEphemeralNode, lw);
               }
             } catch (KeeperException | InterruptedException e) {
@@ -346,12 +373,11 @@ public class ZooLock implements Watcher {
 
       };
 
-      Stat stat = zooKeeper.getStatus(nodeToWatch, priorNodeWatcher);
+      Stat stat = zooKeeper.exists(nodeToWatch, priorNodeWatcher);
       if (stat == null) {
         // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
         // created a Watcher on a node that does not exist. Delete the watcher we just created.
-        zooKeeper.getZooKeeper().removeWatches(nodeToWatch, priorNodeWatcher, WatcherType.Any,
-            true);
+        zooKeeper.removeWatches(nodeToWatch, priorNodeWatcher, WatcherType.Any, true);
         determineLockOwnership(createdEphemeralNode, lw);
       }
     }
@@ -387,7 +413,8 @@ public class ZooLock implements Watcher {
       // except that instead of the ephemeral lock node being of the form guid-lock- use lock-guid-.
       // Another deviation from the recipe is that we cleanup any extraneous ephemeral nodes that
       // were created.
-      final String createPath = zooKeeper.putEphemeralSequential(lockPathPrefix, data);
+      final String createPath =
+          zooKeeper.create(lockPathPrefix, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
       if (LOG.isDebugEnabled()) {
         LOG.debug("[{}] Ephemeral node {} created", this.getZLockPrefix(), createPath);
       }
@@ -396,7 +423,7 @@ public class ZooLock implements Watcher {
       // were created but the client missed the response for some reason. Find the ephemeral nodes
       // with this ZLOCK_UUID and lowest sequential number.
       List<String> children = new ArrayList<>();
-      zooKeeper.getChildren(path).forEach(s -> {
+      zooKeeper.getChildren(path, null).forEach(s -> {
         if (s.startsWith(ZLOCK_PREFIX)) {
           children.add(s);
         }
@@ -428,7 +455,14 @@ public class ZooLock implements Watcher {
               LOG.debug("[{}] higher sequential node found: {}, deleting it", this.getZLockPrefix(),
                   child);
             }
-            zooKeeper.delete(path + "/" + child);
+            try {
+              zooKeeper.delete(path + "/" + child, -1);
+            } catch (KeeperException e) {
+              // ignore the case where the node doesn't exist
+              if (e.code() != Code.NONODE) {
+                throw e;
+              }
+            }
           }
         }
       }
@@ -472,13 +506,12 @@ public class ZooLock implements Watcher {
                 LOG.debug("Unexpected event watching lock node {} {}", event, pathForWatcher);
               }
               try {
-                Stat stat2 = zooKeeper.getStatus(pathForWatcher, this);
+                Stat stat2 = zooKeeper.exists(pathForWatcher, this);
                 if (stat2 == null) {
                   // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
                   // created a Watcher on a node that does not exist. Delete the watcher we just
                   // created.
-                  zooKeeper.getZooKeeper().removeWatches(pathForWatcher, this, WatcherType.Any,
-                      true);
+                  zooKeeper.removeWatches(pathForWatcher, this, WatcherType.Any, true);
 
                   if (lockNodeName != null)
                     lostLock(LockLossReason.LOCK_DELETED);
@@ -495,12 +528,11 @@ public class ZooLock implements Watcher {
         }
       };
 
-      Stat stat = zooKeeper.getStatus(pathForWatcher, watcherForNodeWeCreated);
+      Stat stat = zooKeeper.exists(pathForWatcher, watcherForNodeWeCreated);
       if (stat == null) {
         // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
         // created a Watcher on a node that does not exist. Delete the watcher we just created.
-        zooKeeper.getZooKeeper().removeWatches(pathForWatcher, watcherForNodeWeCreated,
-            WatcherType.Any, true);
+        zooKeeper.removeWatches(pathForWatcher, watcherForNodeWeCreated, WatcherType.Any, true);
         lw.failedToAcquireLock(new Exception("Lock does not exist after create"));
         return;
       }
@@ -525,7 +557,7 @@ public class ZooLock implements Watcher {
         LOG.debug("[{}] Deleting all at path {} due to lock cancellation", this.getZLockPrefix(),
             pathToDelete);
       }
-      zooKeeper.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
+      recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
       del = true;
     }
 
@@ -552,7 +584,7 @@ public class ZooLock implements Watcher {
     if (LOG.isDebugEnabled()) {
       LOG.debug("[{}] Deleting all at path {} due to unlock", this.getZLockPrefix(), pathToDelete);
     }
-    zooKeeper.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
+    recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
 
     localLw.lostLock(LockLossReason.LOCK_DELETED);
   }
@@ -579,7 +611,7 @@ public class ZooLock implements Watcher {
     if (lockNodeName == null) {
       throw new IllegalStateException("Lock not held");
     }
-    return new LockID(path, lockNodeName, zooKeeper.getZooKeeper().getSessionId());
+    return new LockID(path, lockNodeName, zooKeeper.getSessionId());
   }
 
   /**
@@ -598,7 +630,7 @@ public class ZooLock implements Watcher {
 
   public synchronized void replaceLockData(byte[] b) throws KeeperException, InterruptedException {
     if (getLockPath() != null)
-      zooKeeper.getZooKeeper().setData(getLockPath(), b, -1);
+      zooKeeper.setData(getLockPath(), b, -1);
   }
 
   @Override
@@ -614,7 +646,7 @@ public class ZooLock implements Watcher {
     } else {
 
       try { // set the watch on the parent node again
-        zooKeeper.getStatus(path, this);
+        zooKeeper.exists(path, this);
         watchingParent = true;
       } catch (KeeperException.ConnectionLossException ex) {
         // we can't look at the lock because we aren't connected, but our session is still good
@@ -706,7 +738,23 @@ public class ZooLock implements Watcher {
   }
 
   public long getSessionId() throws KeeperException, InterruptedException {
-    return getSessionId(LOCK_DATA_ZOO_CACHE, path);
+    List<String> children = zooKeeper.getChildren(path, null);
+
+    if (children == null || children.isEmpty()) {
+      return 0;
+    }
+
+    children = new ArrayList<>(children);
+    sortChildrenByLockPrefix(children);
+
+    String lockNode = children.get(0);
+
+    Stat stat = zooKeeper.exists(path + "/" + lockNode, null);
+    if (null != stat) {
+      return stat.getEphemeralOwner();
+    } else {
+      return 0;
+    }
   }
 
   public static void deleteLock(ZooReaderWriter zk, String path)
