@@ -24,6 +24,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -119,7 +120,7 @@ public class ZombieTServer {
     ZooReaderWriter zoo = context.getZooReaderWriter();
     zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
 
-    ZooLock zlock = new ZooLock(context.getSiteConfiguration(), zPath);
+    ZooLock zlock = new ZooLock(context.getSiteConfiguration(), zPath, UUID.randomUUID());
 
     LockWatcher lw = new LockWatcher() {
 

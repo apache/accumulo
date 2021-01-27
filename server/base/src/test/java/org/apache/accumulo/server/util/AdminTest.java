@@ -56,9 +56,11 @@ public class AdminTest {
     final long session = 123456789L;
 
     String serverPath = root + "/" + server;
-    EasyMock.expect(zc.getChildren(serverPath)).andReturn(Collections.singletonList("child"));
-    EasyMock.expect(zc.get(EasyMock.eq(serverPath + "/child"), EasyMock.anyObject(ZcStat.class)))
-        .andAnswer(() -> {
+    String validZLockEphemeralNode = "zlock#" + UUID.randomUUID().toString() + "#0000000000";
+    EasyMock.expect(zc.getChildren(serverPath))
+        .andReturn(Collections.singletonList(validZLockEphemeralNode));
+    EasyMock.expect(zc.get(EasyMock.eq(serverPath + "/" + validZLockEphemeralNode),
+        EasyMock.anyObject(ZcStat.class))).andAnswer(() -> {
           ZcStat stat = (ZcStat) EasyMock.getCurrentArguments()[1];
           stat.setEphemeralOwner(session);
           return new byte[0];

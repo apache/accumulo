@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
@@ -94,7 +95,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     String zPath = c.getZooKeeperRoot() + "/testLock";
     ZooReaderWriter zoo = c.getZooReaderWriter();
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
-    ZooLock zl = new ZooLock(c.getSiteConfiguration(), zPath);
+    ZooLock zl = new ZooLock(c.getSiteConfiguration(), zPath, UUID.randomUUID());
     boolean gotLock = zl.tryLock(new LockWatcher() {
 
       @SuppressFBWarnings(value = "DM_EXIT",
