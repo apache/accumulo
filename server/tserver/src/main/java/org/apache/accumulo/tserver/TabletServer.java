@@ -2220,6 +2220,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       synchronized (openingTablets) {
         while (openingTablets.contains(extent)) {
           try {
+            log.info("Waiting for tablet {} to finish opening before unloading.", extent);
             openingTablets.wait();
           } catch (InterruptedException e) {}
         }
@@ -2246,7 +2247,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       } catch (Throwable e) {
 
         if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
-          log.debug("Failed to unload tablet {} ... it was alread closing or closed : {}", extent,
+          log.debug("Failed to unload tablet {} ... it was already closing or closed : {}", extent,
               e.getMessage());
         } else {
           log.error("Failed to close tablet {}... Aborting migration", extent, e);
