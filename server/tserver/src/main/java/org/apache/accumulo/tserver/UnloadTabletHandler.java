@@ -66,6 +66,7 @@ class UnloadTabletHandler implements Runnable {
     synchronized (server.openingTablets) {
       while (server.openingTablets.contains(extent)) {
         try {
+          log.info("Waiting for tablet {} to finish opening before unloading.", extent);
           server.openingTablets.wait();
         } catch (InterruptedException e) {}
       }
