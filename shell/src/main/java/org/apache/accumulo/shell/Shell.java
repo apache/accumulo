@@ -992,7 +992,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     @Override
     public void print(String s) {
       try {
-        reader.getTerminal().writer().print(s);
+        reader.getTerminal().writer().println(s);
       } catch (Exception ex) {
         throw new RuntimeException(ex);
       }

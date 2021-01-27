@@ -883,7 +883,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", true, "value", true);
     ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
     ts.exec("config -t " + clone + " -np", true, "123M", true);
-    ts.exec("getsplits -t " + clone, true, "abc");
+    ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
     ts.exec("deletetable -f " + table);
     ts.exec("deletetable -f " + clone);
   }
@@ -904,7 +904,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", false, "TableOfflineException", true);
     ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
     ts.exec("config -t " + clone + " -np", true, "123M", true);
-    ts.exec("getsplits -t " + clone, true, "abc");
+    ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
     ts.exec("deletetable -f " + table);
     ts.exec("deletetable -f " + clone);
   }
