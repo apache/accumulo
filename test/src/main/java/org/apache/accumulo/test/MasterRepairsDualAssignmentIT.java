@@ -64,7 +64,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-    cfg.setProperty(Property.MASTER_RECOVERY_DELAY, "5s");
+    cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "5s");
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }

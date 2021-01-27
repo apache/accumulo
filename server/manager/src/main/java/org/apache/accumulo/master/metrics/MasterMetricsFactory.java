@@ -42,8 +42,8 @@ public class MasterMetricsFactory {
 
   public MasterMetricsFactory(AccumuloConfiguration conf) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
-    enableFateMetrics = conf.getBoolean(Property.MASTER_FATE_METRICS_ENABLED);
-    fateMinUpdateInterval = conf.getTimeInMillis(Property.MASTER_FATE_METRICS_MIN_UPDATE_INTERVAL);
+    enableFateMetrics = conf.getBoolean(Property.MANAGER_FATE_METRICS_ENABLED);
+    fateMinUpdateInterval = conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL);
   }
 
   public int register(Master master) {

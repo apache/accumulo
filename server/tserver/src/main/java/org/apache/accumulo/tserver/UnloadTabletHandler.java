@@ -89,7 +89,7 @@ class UnloadTabletHandler implements Runnable {
 
     try {
       t.close(!goalState.equals(TUnloadTabletGoal.DELETED));
-    } catch (Throwable e) {
+    } catch (Exception e) {
 
       if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
         log.debug("Failed to unload tablet {}... it was already closing or closed : {}", extent,
@@ -117,7 +117,7 @@ class UnloadTabletHandler implements Runnable {
       }
       if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()
           || (extent.isMeta()
-              && !server.getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE))) {
+              && !server.getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE))) {
         TabletStateStore.unassign(server.getContext(), tls, null);
       } else {
         TabletStateStore.suspend(server.getContext(), tls, null,

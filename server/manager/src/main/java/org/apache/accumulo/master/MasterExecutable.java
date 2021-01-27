@@ -37,7 +37,7 @@ public class MasterExecutable implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Starts Accumulo master";
+    return "Starts Accumulo master (Deprecated)";
   }
 
   @Override

@@ -72,7 +72,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {
     cfg.setNumTservers(1);
-    cfg.setProperty(Property.MASTER_RECOVERY_DELAY, "1s");
+    cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "1s");
     // Make sure the GC doesn't delete the file before the metadata reference is added
     cfg.setProperty(Property.GC_CYCLE_START, "999999s");
     conf.set("fs.file.impl", RawLocalFileSystem.class.getName());

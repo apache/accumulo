@@ -16,45 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.util.threads;
 
-import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.OptionalInt;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+/**
+ * ThreadFactory that sets the name and optionally the priority on a newly created Thread.
+ */
+class NamedThreadFactory implements ThreadFactory {
 
-public class NamingThreadFactory implements ThreadFactory {
-  private static final Logger log = LoggerFactory.getLogger(NamingThreadFactory.class);
-
-  private static final UncaughtExceptionHandler UEH = new AccumuloUncaughtExceptionHandler();
+  private static final String FORMAT = "%s-%s-%d";
 
   private AtomicInteger threadNum = new AtomicInteger(1);
   private String name;
   private OptionalInt priority;
 
-  public NamingThreadFactory(String name) {
-    this.name = name;
-    this.priority = OptionalInt.empty();
+  NamedThreadFactory(String name) {
+    this(name, OptionalInt.empty());
   }
 
-  public NamingThreadFactory(String name, OptionalInt priority) {
+  NamedThreadFactory(String name, OptionalInt priority) {
     this.name = name;
     this.priority = priority;
   }
 
   @Override
   public Thread newThread(Runnable r) {
-    Thread thread =
-        new Daemon(new LoggingRunnable(log, r), name + " " + threadNum.getAndIncrement());
-    thread.setUncaughtExceptionHandler(UEH);
-    if (priority.isPresent()) {
-      thread.setPriority(priority.getAsInt());
+    String threadName = null;
+    if (r instanceof NamedRunnable) {
+      NamedRunnable nr = (NamedRunnable) r;
+      threadName = String.format(FORMAT, name, nr.getName(), threadNum.getAndIncrement());
+    } else {
+      threadName =
+          String.format(FORMAT, name, r.getClass().getSimpleName(), threadNum.getAndIncrement());
     }
-    return thread;
+    return Threads.createThread(threadName, priority, r);
   }
-
 }

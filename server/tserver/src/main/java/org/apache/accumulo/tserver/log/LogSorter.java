@@ -35,13 +35,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
-import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -89,7 +88,6 @@ public class LogSorter {
       }
 
       try {
-        log.info("Copying {} to {}", src, dest);
         sort(sortId, new Path(src), dest);
       } finally {
         currentWork.remove(sortId);
@@ -108,52 +106,53 @@ public class LogSorter {
       String formerThreadName = Thread.currentThread().getName();
       int part = 0;
       try {
+        // check for finished first since another thread may have already done the sort
+        if (fs.exists(SortedLogState.getFinishedMarkerPath(destPath))) {
+          log.debug("Sorting already finished at {}", destPath);
+          return;
+        }
 
+        log.info("Copying {} to {}", srcPath, destPath);
         // the following call does not throw an exception if the file/dir does not exist
         fs.deleteRecursively(new Path(destPath));
 
-        try (final FSDataInputStream fsinput = fs.open(srcPath)) {
-          DFSLoggerInputStreams inputStreams;
-          try {
-            inputStreams = DfsLogger.readHeaderAndReturnStream(fsinput, conf);
-          } catch (LogHeaderIncompleteException e) {
-            log.warn("Could not read header from write-ahead log {}. Not sorting.", srcPath);
-            // Creating a 'finished' marker will cause recovery to proceed normally and the
-            // empty file will be correctly ignored downstream.
-            fs.mkdirs(new Path(destPath));
-            writeBuffer(destPath, Collections.emptyList(), part++);
-            fs.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
-            return;
-          }
-
-          this.input = inputStreams.getOriginalInput();
-          this.decryptingInput = inputStreams.getDecryptingInputStream();
-
-          final long bufferSize = conf.getAsBytes(Property.TSERV_SORT_BUFFER_SIZE);
-          Thread.currentThread().setName("Sorting " + name + " for recovery");
-          while (true) {
-            final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
-            try {
-              long start = input.getPos();
-              while (input.getPos() - start < bufferSize) {
-                LogFileKey key = new LogFileKey();
-                LogFileValue value = new LogFileValue();
-                key.readFields(decryptingInput);
-                value.readFields(decryptingInput);
-                buffer.add(new Pair<>(key, value));
-              }
-              writeBuffer(destPath, buffer, part++);
-              buffer.clear();
-            } catch (EOFException ex) {
-              writeBuffer(destPath, buffer, part++);
-              break;
-            }
-          }
-          fs.create(new Path(destPath, "finished")).close();
-          log.info("Finished log sort {} {} bytes {} parts in {}ms", name, getBytesCopied(), part,
-              getSortTime());
+        input = fs.open(srcPath);
+        try {
+          decryptingInput = DfsLogger.getDecryptingStream(input, conf);
+        } catch (LogHeaderIncompleteException e) {
+          log.warn("Could not read header from write-ahead log {}. Not sorting.", srcPath);
+          // Creating a 'finished' marker will cause recovery to proceed normally and the
+          // empty file will be correctly ignored downstream.
+          fs.mkdirs(new Path(destPath));
+          writeBuffer(destPath, Collections.emptyList(), part++);
+          fs.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
+          return;
         }
-      } catch (Throwable t) {
+
+        final long bufferSize = conf.getAsBytes(Property.TSERV_SORT_BUFFER_SIZE);
+        Thread.currentThread().setName("Sorting " + name + " for recovery");
+        while (true) {
+          final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
+          try {
+            long start = input.getPos();
+            while (input.getPos() - start < bufferSize) {
+              LogFileKey key = new LogFileKey();
+              LogFileValue value = new LogFileValue();
+              key.readFields(decryptingInput);
+              value.readFields(decryptingInput);
+              buffer.add(new Pair<>(key, value));
+            }
+            writeBuffer(destPath, buffer, part++);
+            buffer.clear();
+          } catch (EOFException ex) {
+            writeBuffer(destPath, buffer, part++);
+            break;
+          }
+        }
+        fs.create(new Path(destPath, "finished")).close();
+        log.info("Finished log sort {} {} bytes {} parts in {}ms", name, getBytesCopied(), part,
+            getSortTime());
+      } catch (Exception t) {
         try {
           // parent dir may not exist
           fs.mkdirs(new Path(destPath));
@@ -161,7 +160,7 @@ public class LogSorter {
         } catch (IOException e) {
           log.error("Error creating failed flag file " + name, e);
         }
-        log.error("Caught throwable", t);
+        log.error("Caught exception", t);
       } finally {
         Thread.currentThread().setName(formerThreadName);
         try {
@@ -223,7 +222,8 @@ public class LogSorter {
     this.context = context;
     this.conf = conf;
     int threadPoolSize = conf.getCount(Property.TSERV_RECOVERY_MAX_CONCURRENT);
-    this.threadPool = new SimpleThreadPool(threadPoolSize, this.getClass().getName());
+    this.threadPool =
+        ThreadPools.createFixedThreadPool(threadPoolSize, this.getClass().getName(), false);
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);
   }
 
