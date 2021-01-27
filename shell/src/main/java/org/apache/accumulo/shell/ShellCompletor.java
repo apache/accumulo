@@ -47,7 +47,6 @@ public class ShellCompletor implements Completer {
   }
 
   @Override
-  @SuppressWarnings({"unchecked", "rawtypes"})
   public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
     try {
       List<String> strings = new ArrayList<>();
