@@ -276,22 +276,19 @@ public class Initialize implements KeywordExecutable {
     }
     if (sconf.get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
       LineReader c = getLineReader();
+      var w = c.getTerminal().writer();
       c.getTerminal().puts(InfoCmp.Capability.bell);
-      c.getTerminal().writer().println();
-      c.getTerminal().writer().println();
-
-      c.getTerminal().writer()
-          .println("Warning!!! Your instance secret is still set to the default,"
-              + " this is not secure. We highly recommend you change it.");
-      c.getTerminal().writer().println();
-      c.getTerminal().writer().println();
-      c.getTerminal().writer().println("You can change the instance secret in accumulo by using:");
-      c.getTerminal().writer().println(
-          "   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
-      c.getTerminal().writer()
-          .println("You will also need to edit your secret in your configuration"
-              + " file by adding the property instance.secret to your"
-              + " accumulo.properties. Without this accumulo will not operate" + " correctly");
+      w.println();
+      w.println();
+      w.println("Warning!!! Your instance secret is still set to the default,"
+          + " this is not secure. We highly recommend you change it.");
+      w.println();
+      w.println();
+      w.println("You can change the instance secret in accumulo by using:");
+      w.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
+      w.println("You will also need to edit your secret in your configuration"
+          + " file by adding the property instance.secret to your"
+          + " accumulo.properties. Without this accumulo will not operate" + " correctly");
     }
     try {
       if (isInitialized(fs, sconf)) {
