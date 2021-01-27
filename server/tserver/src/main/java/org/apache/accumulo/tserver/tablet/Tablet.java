@@ -68,6 +68,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -875,8 +876,12 @@ public class Tablet {
 
   }
 
-  public boolean initiateMinorCompaction(MinorCompactionReason mincReason) {
+  public boolean initiateMinorCompaction(MinorCompactionReason mincReason, TableState tableState) {
     if (isClosed()) {
+      return false;
+    }
+    if (tableState.equals(TableState.DELETING)) {
+      log.debug("Table {} is being deleted so don't flush {}", extent.tableId(), extent);
       return false;
     }
 
@@ -1259,6 +1264,8 @@ public class Tablet {
     // wait for reads and writes to complete
     while (writesInProgress > 0 || !activeScans.isEmpty()) {
       try {
+        log.debug("Waiting to completeClose for {}. {} writes {} scans", extent, writesInProgress,
+            activeScans.size());
         this.wait(50);
       } catch (InterruptedException e) {
         log.error(e.toString());
@@ -1899,7 +1906,8 @@ public class Tablet {
 
     if (reason != null) {
       // initiate and log outside of tablet lock
-      initiateMinorCompaction(MinorCompactionReason.SYSTEM);
+      TableState tableState = context.getTableManager().getTableState(extent.tableId());
+      initiateMinorCompaction(MinorCompactionReason.SYSTEM, tableState);
       log.debug("Initiating minor compaction for {} because {}", getExtent(), reason);
     }
   }

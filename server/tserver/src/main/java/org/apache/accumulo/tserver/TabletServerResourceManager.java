@@ -52,6 +52,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
@@ -556,14 +557,15 @@ public class TabletServerResourceManager {
                 continue;
               }
               Tablet tablet = tabletReport.getTablet();
-              if (!tablet.initiateMinorCompaction(MinorCompactionReason.SYSTEM)) {
-                if (tablet.isClosed()) {
+              var state = context.getTableManager().getTableState(tablet.getExtent().tableId());
+              if (!tablet.initiateMinorCompaction(MinorCompactionReason.SYSTEM, state)) {
+                if (tablet.isClosed() || state.equals(TableState.DELETING)) {
                   // attempt to remove it from the current reports if still there
                   synchronized (tabletReports) {
                     TabletMemoryReport latestReport = tabletReports.remove(keyExtent);
                     if (latestReport != null) {
                       if (latestReport.getTablet() == tablet) {
-                        log.debug("Cleaned up report for closed tablet {}", keyExtent);
+                        log.debug("Cleaned up report for closed/deleted tablet {}", keyExtent);
                       } else {
                         // different tablet instance => put it back
                         tabletReports.put(keyExtent, latestReport);
