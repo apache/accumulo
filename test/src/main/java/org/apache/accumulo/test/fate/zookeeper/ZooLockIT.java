@@ -296,8 +296,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
     zl3.lock(lw3, "test3".getBytes(UTF_8));
 
-    List<String> children = zk.getChildren(parent);
-    ZooLock.sortChildrenByLockPrefix(children);
+    List<String> children = ZooLock.validateAndSortChildrenByLockPrefix(zk.getChildren(parent));
 
     zk.delete(parent + "/" + children.get(1));
 
@@ -586,12 +585,12 @@ public class ZooLockIT extends SharedMiniClusterBase {
       workers.forEach(w -> assertNull(w.getException()));
 
       for (int i = 4; i > 0; i--) {
-        List<String> children = zk.getChildren(parent, false);
+        List<String> children =
+            ZooLock.validateAndSortChildrenByLockPrefix(zk.getChildren(parent, false));
         while (children.size() != i) {
           Thread.sleep(100);
           children = zk.getChildren(parent, false);
         }
-        ZooLock.sortChildrenByLockPrefix(children);
         assertEquals(i, children.size());
         String first = children.get(0);
         int workerWithLock = parseLockWorkerName(first);
