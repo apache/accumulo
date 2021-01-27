@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
@@ -632,8 +633,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       }
     };
 
+    UUID zooLockUUID = UUID.randomUUID();
     while (true) {
-      lock = new ZooLock(getContext().getZooReaderWriter(), path);
+      lock = new ZooLock(getContext().getZooReaderWriter(), path, zooLockUUID);
       if (lock.tryLock(lockWatcher,
           new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
         log.debug("Got GC ZooKeeper lock");

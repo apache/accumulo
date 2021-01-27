@@ -42,10 +42,8 @@ public class ZooLock implements Watcher {
   private static final Logger LOG = LoggerFactory.getLogger(ZooLock.class);
 
   private static final String ZLOCK_PREFIX = "zlock#";
-  private static final String ZLOCK_UUID = UUID.randomUUID().toString();
-  private static final String VM_ZLOCK_PREFIX = ZLOCK_PREFIX + ZLOCK_UUID + "#";
 
-  public static class Prefix {
+  private static class Prefix {
     private final String prefix;
 
     public Prefix(String prefix) {
@@ -81,6 +79,7 @@ public class ZooLock implements Watcher {
   }
 
   private final String path;
+  private final Prefix vmLockPrefix;
   protected final ZooReaderWriter zooKeeper;
 
   private LockWatcher lockWatcher;
@@ -90,33 +89,28 @@ public class ZooLock implements Watcher {
 
   private String createdNodeName;
   private String watchingNodeName;
-  private Prefix vmLockPrefix;
 
-  public ZooLock(ZooReaderWriter zoo, String path) {
-    this(new ZooCache(zoo), zoo, path);
+  public ZooLock(ZooReaderWriter zoo, String path, UUID uuid) {
+    this(new ZooCache(zoo), zoo, path, uuid);
   }
 
-  public ZooLock(String zookeepers, int timeInMillis, String secret, String path) {
+  public ZooLock(String zookeepers, int timeInMillis, String secret, String path, UUID uuid) {
     this(new ZooCacheFactory().getZooCache(zookeepers, timeInMillis),
-        new ZooReaderWriter(zookeepers, timeInMillis, secret), path);
+        new ZooReaderWriter(zookeepers, timeInMillis, secret), path, uuid);
   }
 
-  protected ZooLock(ZooCache zc, ZooReaderWriter zrw, String path) {
+  protected ZooLock(ZooCache zc, ZooReaderWriter zrw, String path, UUID uuid) {
     LOCK_DATA_ZOO_CACHE = zc;
     this.path = path;
     zooKeeper = zrw;
     try {
       zooKeeper.getStatus(path, this);
       watchingParent = true;
-      this.setVMLockPrefix(new Prefix(VM_ZLOCK_PREFIX));
+      this.vmLockPrefix = new Prefix(ZLOCK_PREFIX + uuid.toString() + "#");
     } catch (Exception ex) {
       LOG.error("Error setting initial watch", ex);
       throw new RuntimeException(ex);
     }
-  }
-
-  public void setVMLockPrefix(Prefix p) {
-    this.vmLockPrefix = p;
   }
 
   private static class LockWatcherWrapper implements AccumuloLockWatcher {
