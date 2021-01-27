@@ -269,7 +269,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    *
    * @return true if the shell was successfully configured, false otherwise.
    * @throws IOException
-   *           if problems occur creating the ConsoleReader
+   *           if problems occur creating the LineReader
    */
   public boolean config(String... args) throws IOException {
     if (this.reader == null)
@@ -560,8 +560,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     // Set history file
     reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
 
-    // Turn Ctrl+C into Exception instead of JVM exit
-    // Not 100% sure this is necessary anymore.
+    // Turn Ctrl+C into Exception when trying to cancel a command instead of JVM exit
     Thread executeThread = Thread.currentThread();
     terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
 
@@ -619,7 +618,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         terminal.close();
         reader = null;
       } catch (IOException e) {
-        e.printStackTrace();
+        printException(e);
       }
     }
     if (accumuloClient != null) {
