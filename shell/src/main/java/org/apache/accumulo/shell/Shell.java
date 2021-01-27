@@ -173,6 +173,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.vfs2.FileSystemException;
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
@@ -593,6 +594,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
         input = reader.readLine(getDefaultPrompt());
         if (input == null) {
+          writer.println();
           return exitCode;
         } // User Canceled (Ctrl+D)
 
@@ -606,6 +608,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           // No content, actually exit
           return exitCode;
         }
+      } catch (EndOfFileException efe) {
+        writer.println();
       } finally {
         writer.flush();
       }
