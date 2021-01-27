@@ -29,7 +29,10 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 
-import org.jline.reader.impl.LineReaderImpl;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.junit.After;
 import org.junit.Before;
@@ -68,9 +71,10 @@ public class ShellConfigTest {
     output = new TestOutputStream();
     System.setOut(new PrintStream(output));
     config = Files.createTempFile(null, null).toFile();
-
-    shell = new Shell(
-        new LineReaderImpl(new DumbTerminal(new FileInputStream(FileDescriptor.in), output)));
+    Terminal terminal = new DumbTerminal(new FileInputStream(FileDescriptor.in), output);
+    terminal.setSize(new Size(80, 24));
+    LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
+    shell = new Shell(reader);
     shell.setLogErrorsToConsole();
   }
 
