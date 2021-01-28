@@ -47,6 +47,7 @@ import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.shell.Shell;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.junit.Before;
@@ -96,6 +97,7 @@ public class DeleterFormatterTest {
     shellState = createNiceMock(Shell.class);
 
     terminal = new DumbTerminal(input, baos);
+    terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
     pw = terminal.writer();
 
@@ -141,7 +143,6 @@ public class DeleterFormatterTest {
     assertTrue(formatter.hasNext());
   }
 
-  // Need to properly fix this test.
   @Test
   public void testNoConfirmation() throws IOException {
     input.set("");

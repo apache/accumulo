@@ -79,18 +79,18 @@ public class DeleterFormatter extends DefaultFormatter {
     Mutation m = new Mutation(key.getRow());
     String entryStr = formatEntry(next, isDoTimestamps());
     boolean delete = force;
+    String line;
     if (!force) {
       try {
         shellState.getWriter().flush();
-        // this will cause end of file Exception for one of the formatter tests
-        String line = shellState.getReader().readLine("Delete { " + entryStr + " } ? ");
-        more = line != null;
-        delete = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+        String prompt = "Delete { " + entryStr + " } ? ";
+        line = shellState.getReader().readLine(prompt);
       } catch (EndOfFileException ignored) {
-        more = false;
-        shellState.getWriter().print(String.format("[%s] %s%n", "SKIPPED", entryStr));
-        return null;
+        // Reached the end of file. Line is null to keep old functionality.
+        line = null;
       }
+      more = line != null;
+      delete = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
     }
     if (delete) {
       m.putDelete(key.getColumnFamily(), key.getColumnQualifier(),
