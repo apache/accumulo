@@ -30,6 +30,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
@@ -83,12 +84,17 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
     // make a table with many splits
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      c.tableOperations().create(tableName);
+
+      // create splits
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 0; i < 200; i++) {
         splits.add(new Text(randomHex(8)));
       }
-      c.tableOperations().addSplits(tableName, splits);
+
+      // create table with config
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      c.tableOperations().create(tableName, ntc);
+
       // load data to give the recovery something to do
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 50000; i++) {
