@@ -192,7 +192,7 @@ public class ZooLock implements Watcher {
                 Integer.parseInt(sequenceNum);
                 validChildren.add(c);
               } catch (NumberFormatException e) {
-                LOG.warn("Child found with invalid sequence format: {} (no a number)", c);
+                LOG.warn("Child found with invalid sequence format: {} (not a number)", c);
               }
             } else {
               LOG.warn("Child found with invalid sequence format: {} (not 10 characters)", c);
