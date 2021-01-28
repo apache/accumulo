@@ -180,6 +180,7 @@ import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -273,9 +274,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    *           if problems occur creating the LineReader
    */
   public boolean config(String... args) throws IOException {
+    if (this.terminal == null)
+      this.terminal = TerminalBuilder.builder().jansi(false).build();
     if (this.reader == null)
-      this.reader = LineReaderBuilder.builder().build();
-    this.terminal = this.reader.getTerminal();
+      this.reader = LineReaderBuilder.builder().terminal(this.terminal).build();
     this.writer = this.terminal.writer();
 
     ShellOptionsJC options = new ShellOptionsJC();
