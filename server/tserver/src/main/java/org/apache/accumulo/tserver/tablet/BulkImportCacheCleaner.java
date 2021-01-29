@@ -60,7 +60,7 @@ public class BulkImportCacheCleaner implements Runnable {
     } catch (InterruptedException e) {
       // propagate the interrupt status.
       Thread.currentThread().interrupt();
-      log.debug("Interrupted while reading bulk import live transactions {}", tids, e);
+      log.warn("Interrupted while reading bulk import live transactions {}", tids, e);
     }
   }
 
