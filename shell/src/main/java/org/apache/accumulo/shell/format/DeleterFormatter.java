@@ -90,7 +90,7 @@ public class DeleterFormatter extends DefaultFormatter {
         line = null;
       }
       more = line != null;
-      delete = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+      delete = more && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
     }
     if (delete) {
       m.putDelete(key.getColumnFamily(), key.getColumnQualifier(),
