@@ -54,9 +54,13 @@ public class BulkImportCacheCleaner implements Runnable {
       for (Tablet tablet : server.getOnlineTablets().values()) {
         tablet.cleanupBulkLoadedFiles(tids);
       }
-    } catch (KeeperException | InterruptedException e) {
+    } catch (KeeperException e) {
       // we'll just clean it up again later
-      log.debug("Error reading bulk import live transactions {}", e);
+      log.debug("Error reading bulk import live transactions {}", tids, e);
+    } catch (InterruptedException e) {
+      // propagate the interrupt status.
+      Thread.currentThread().interrupt();
+      log.debug("Interrupted while reading bulk import live transactions {}", tids, e);
     }
   }
 
