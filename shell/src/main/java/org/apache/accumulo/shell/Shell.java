@@ -595,10 +595,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         }
 
         input = reader.readLine(getDefaultPrompt());
-        if (input == null) {
-          writer.println();
-          return exitCode;
-        } // User Canceled (Ctrl+D)
 
         execCommand(input, disableAuthTimeout, false);
       } catch (UserInterruptException uie) {
@@ -611,7 +607,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           return exitCode;
         }
       } catch (EndOfFileException efe) {
+        // User Canceled (Ctrl+D)
         writer.println();
+        return exitCode;
       } finally {
         writer.flush();
       }
