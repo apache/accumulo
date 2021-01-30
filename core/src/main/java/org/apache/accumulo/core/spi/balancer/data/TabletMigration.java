@@ -34,13 +34,9 @@ public class TabletMigration {
 
   public TabletMigration(TabletId tabletId, TabletServerId oldTabletServer,
       TabletServerId newTabletServer) {
-    requireNonNull(tabletId);
-    requireNonNull(oldTabletServer);
-    requireNonNull(newTabletServer);
-
-    this.tabletId = tabletId;
-    this.oldTabletServer = oldTabletServer;
-    this.newTabletServer = newTabletServer;
+    this.tabletId = requireNonNull(tabletId);
+    this.oldTabletServer = requireNonNull(oldTabletServer);
+    this.newTabletServer = requireNonNull(newTabletServer);
   }
 
   public TabletId getTablet() {

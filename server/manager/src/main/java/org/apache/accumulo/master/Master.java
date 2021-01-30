@@ -204,8 +204,6 @@ public class Master extends AbstractServer
 
   ZooLock masterLock = null;
   private TServer clientService = null;
-  @SuppressWarnings("deprecation")
-  private org.apache.accumulo.server.master.balancer.TabletBalancer deprecatedTabletBalancer;
   private TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
 
@@ -869,37 +867,6 @@ public class Master extends AbstractServer
     }
 
     private long balanceTablets() {
-      return deprecatedTabletBalancer != null ? balanceTabletsDeprecated() : balanceTabletsNew();
-    }
-
-    @SuppressWarnings("deprecation")
-    private long balanceTabletsDeprecated() {
-      List<org.apache.accumulo.server.master.state.TabletMigration> migrationsOut =
-          new ArrayList<>();
-      long wait = deprecatedTabletBalancer.balance(Collections.unmodifiableSortedMap(tserverStatus),
-          migrationsSnapshot(), migrationsOut);
-
-      for (org.apache.accumulo.server.master.state.TabletMigration m : org.apache.accumulo.server.master.balancer.TabletBalancer
-          .checkMigrationSanity(tserverStatus.keySet(), migrationsOut)) {
-        if (migrations.containsKey(m.tablet)) {
-          log.warn("balancer requested migration more than once, skipping {}", m);
-          continue;
-        }
-        migrations.put(m.tablet, m.newServer);
-        log.debug("migration {}", m);
-      }
-      if (migrationsOut.isEmpty()) {
-        synchronized (balancedNotifier) {
-          balancedNotifier.notifyAll();
-        }
-      } else {
-        nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(),
-            migrations.size());
-      }
-      return wait;
-    }
-
-    private long balanceTabletsNew() {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       Set<TabletId> currentMigrations = migrationsSnapshot().stream().map(TabletIdImpl::new)
           .collect(Collectors.toUnmodifiableSet());
@@ -907,15 +874,14 @@ public class Master extends AbstractServer
           new BalanceParamsImpl(tserverStatusForBalancer, currentMigrations, migrationsOut);
       long wait = tabletBalancer.balance(params);
 
-      for (TabletMigration m : balancerEnvironment
-          .checkMigrationSanity(tserverStatusForBalancer.keySet(), migrationsOut)) {
+      for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
+          migrationsOut)) {
         KeyExtent ke = ((TabletIdImpl) m.getTablet()).toKeyExtent();
         if (migrations.containsKey(ke)) {
           log.warn("balancer requested migration more than once, skipping {}", m);
           continue;
         }
-        TServerInstance tserverInstance =
-            ((TabletServerIdImpl) m.getNewTabletServer()).toTServerInstance();
+        TServerInstance tserverInstance = ((TabletServerIdImpl) m.getNewTabletServer()).toThrift();
         migrations.put(ke, tserverInstance);
         log.debug("migration {}", m);
       }
@@ -929,6 +895,28 @@ public class Master extends AbstractServer
       }
       return wait;
     }
+
+    private List<TabletMigration> checkMigrationSanity(Set<TabletServerId> current,
+        List<TabletMigration> migrations) {
+      return migrations.stream().filter(m -> {
+        boolean includeMigration = false;
+        if (m.getTablet() == null) {
+          log.warn("Balancer gave back a null tablet {}", m);
+        } else if (m.getNewTabletServer() == null) {
+          log.warn("Balancer did not set the destination {}", m);
+        } else if (m.getOldTabletServer() == null) {
+          log.warn("Balancer did not set the source {}", m);
+        } else if (!current.contains(m.getOldTabletServer())) {
+          log.warn("Balancer wants to move a tablet from a server that is not current: {}", m);
+        } else if (!current.contains(m.getNewTabletServer())) {
+          log.warn("Balancer wants to move a tablet to a server that is not current: {}", m);
+        } else {
+          includeMigration = true;
+        }
+        return includeMigration;
+      }).collect(Collectors.toList());
+    }
+
   }
 
   private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
@@ -1744,53 +1732,30 @@ public class Master extends AbstractServer
   @SuppressWarnings("deprecation")
   void initializeBalancer() {
 
-    // Try to initialize the defined balancer as the updated TabletBalancer class first. If that
-    // fails with a ClassCastException, it means the property is specified as the deprecated
-    // balancer type, so initialize it instead. If we still end up with no balancer, then use
-    // DefaultLoadBalancer.
-    try {
-      tabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
-          Property.TABLE_LOAD_BALANCER, TabletBalancer.class, null);
-    } catch (ClassCastException e) {
-      // ignore -- this means that the deprecated balancer type was used
-      deprecatedTabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
-          Property.MANAGER_TABLET_BALANCER,
-          org.apache.accumulo.server.master.balancer.TabletBalancer.class, null);
-    }
-
-    if (deprecatedTabletBalancer != null) {
-      deprecatedTabletBalancer.init(getContext());
-    } else {
-      if (tabletBalancer == null)
-        tabletBalancer = new DefaultLoadBalancer();
-      tabletBalancer.init(balancerEnvironment);
-    }
+    tabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
+        Property.TABLE_LOAD_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
+    tabletBalancer.init(balancerEnvironment);
   }
 
   Class<?> getBalancerClass() {
-    return deprecatedTabletBalancer != null ? deprecatedTabletBalancer.getClass()
-        : tabletBalancer.getClass();
+    return tabletBalancer.getClass();
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
-    if (deprecatedTabletBalancer != null) {
-      deprecatedTabletBalancer.getAssignments(currentStatus, unassigned, assignedOut);
-    } else {
-      SortedMap<TabletServerId,TServerStatus> current = new TreeMap<>();
-      currentStatus.forEach((tsi, status) -> current.put(new TabletServerIdImpl(tsi),
-          TServerStatusImpl.fromThrift(status)));
-      Map<TabletId,TabletServerId> unassignedTablets = new HashMap<>();
-      unassigned.forEach((ke, tsi) -> unassignedTablets.put(new TabletIdImpl(ke),
-          TabletServerIdImpl.fromThrift(tsi)));
-      AssignmentParamsImpl params = new AssignmentParamsImpl(current,
-          Collections.unmodifiableMap(unassignedTablets), new HashMap<>());
+    SortedMap<TabletServerId,TServerStatus> current = new TreeMap<>();
+    currentStatus.forEach((tsi, status) -> current.put(new TabletServerIdImpl(tsi),
+        TServerStatusImpl.fromThrift(status)));
+    Map<TabletId,TabletServerId> unassignedTablets = new HashMap<>();
+    unassigned.forEach((ke, tsi) -> unassignedTablets.put(new TabletIdImpl(ke),
+        TabletServerIdImpl.fromThrift(tsi)));
+    HashMap<TabletId,TabletServerId> assignmentsOut = new HashMap<>();
+    AssignmentParamsImpl params = new AssignmentParamsImpl(current,
+        Collections.unmodifiableMap(unassignedTablets), assignmentsOut);
 
-      tabletBalancer.getAssignments(params);
+    tabletBalancer.getAssignments(params);
 
-      params.assignmentsOut()
-          .forEach((tablet, tserver) -> assignedOut.put(((TabletIdImpl) tablet).toKeyExtent(),
-              ((TabletServerIdImpl) tserver).toTServerInstance()));
-    }
+    assignmentsOut.forEach((tablet, tserver) -> assignedOut
+        .put(((TabletIdImpl) tablet).toKeyExtent(), ((TabletServerIdImpl) tserver).toThrift()));
   }
 }

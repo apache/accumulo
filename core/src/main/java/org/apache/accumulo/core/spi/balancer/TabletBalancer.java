@@ -64,9 +64,9 @@ public interface TabletBalancer {
     Map<TabletId,TabletServerId> unassignedTablets();
 
     /**
-     * @return a write-only map for storing new assignments
+     * Assigns {@code tabletId} to {@code tabletServerId}.
      */
-    Map<TabletId,TabletServerId> assignmentsOut();
+    void addAssignment(TabletId tabletId, TabletServerId tabletServerId);
   }
 
   /**

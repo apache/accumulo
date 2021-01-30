@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.manager.balancer;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -35,13 +35,12 @@ public class TabletServerIdImpl implements TabletServerId {
   }
 
   public TabletServerIdImpl(String host, int port, String session) {
-    Objects.requireNonNull(host);
+    requireNonNull(host);
     this.tServerInstance = new TServerInstance(HostAndPort.fromParts(host, port), session);
   }
 
   public TabletServerIdImpl(TServerInstance tServerInstance) {
-    Objects.requireNonNull(tServerInstance);
-    this.tServerInstance = tServerInstance;
+    this.tServerInstance = requireNonNull(tServerInstance);
   }
 
   public String getHost() {
@@ -81,7 +80,7 @@ public class TabletServerIdImpl implements TabletServerId {
     return getHost() + ':' + getPort() + '[' + getSession() + ']';
   }
 
-  public TServerInstance toTServerInstance() {
+  public TServerInstance toThrift() {
     return tServerInstance;
   }
 }

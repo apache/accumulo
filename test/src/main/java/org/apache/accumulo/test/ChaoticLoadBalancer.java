@@ -65,7 +65,7 @@ public class ChaoticLoadBalancer implements TabletBalancer {
 
   @Override
   public void getAssignments(AssignmentParameters params) {
-    long total = params.assignmentsOut().size() + params.unassignedTablets().size();
+    long total = params.unassignedTablets().size();
     long avg = (long) Math.ceil(((double) total) / params.currentStatus().size());
     Map<TabletServerId,Long> toAssign = new HashMap<>();
     List<TabletServerId> tServerArray = new ArrayList<>();
@@ -88,7 +88,7 @@ public class ChaoticLoadBalancer implements TabletBalancer {
     for (TabletId tabletId : params.unassignedTablets().keySet()) {
       int index = r.nextInt(tServerArray.size());
       TabletServerId dest = tServerArray.get(index);
-      params.assignmentsOut().put(tabletId, dest);
+      params.addAssignment(tabletId, dest);
       long remaining = toAssign.get(dest) - 1;
       if (remaining == 0) {
         tServerArray.remove(index);

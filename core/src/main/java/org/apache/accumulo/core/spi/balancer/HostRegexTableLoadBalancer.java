@@ -369,7 +369,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
           e.getValue().size(), tableName, currentView.keySet());
       getBalancerForTable(e.getKey())
           .getAssignments(new AssignmentParamsImpl(currentView, e.getValue(), newAssignments));
-      params.assignmentsOut().putAll(newAssignments);
+      newAssignments.forEach(params::addAssignment);
     }
   }
 

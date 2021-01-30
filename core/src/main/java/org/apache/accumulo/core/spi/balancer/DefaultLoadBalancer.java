@@ -340,8 +340,8 @@ public class DefaultLoadBalancer implements TabletBalancer {
 
   @Override
   public void getAssignments(AssignmentParameters params) {
-    params.unassignedTablets().forEach((tabletId, tserverId) -> params.assignmentsOut()
-        .put(tabletId, getAssignment(params.currentStatus(), tserverId)));
+    params.unassignedTablets().forEach((tabletId, tserverId) -> params.addAssignment(tabletId,
+        getAssignment(params.currentStatus(), tserverId)));
   }
 
   private final ThrottledBalancerProblemReporter problemReporter =

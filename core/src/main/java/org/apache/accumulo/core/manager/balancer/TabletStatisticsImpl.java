@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.manager.balancer;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -31,9 +31,7 @@ public class TabletStatisticsImpl implements TabletStatistics {
   private final TabletId tabletId;
 
   public TabletStatisticsImpl(TabletStats thriftStats) {
-    Objects.requireNonNull(thriftStats);
-
-    this.thriftStats = thriftStats;
+    this.thriftStats = requireNonNull(thriftStats);
     tabletId = new TabletIdImpl(KeyExtent.fromThrift(thriftStats.getExtent()));
   }
 

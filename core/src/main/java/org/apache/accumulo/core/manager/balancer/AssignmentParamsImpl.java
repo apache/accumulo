@@ -49,6 +49,10 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
   }
 
   @Override
+  public void addAssignment(TabletId tabletId, TabletServerId tabletServerId) {
+    assignmentsOut.put(tabletId, tabletServerId);
+  }
+
   public Map<TabletId,TabletServerId> assignmentsOut() {
     return assignmentsOut;
   }

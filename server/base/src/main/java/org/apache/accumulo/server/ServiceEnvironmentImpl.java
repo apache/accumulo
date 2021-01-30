@@ -60,26 +60,13 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
   }
 
   @Override
-  public <T> Class<? extends T> loadClass(String className, Class<T> base)
-      throws ClassNotFoundException {
-    return ClassLoaderUtil.loadClass(className, base);
-  }
-
-  @Override
   public <T> T instantiate(TableId tableId, String className, Class<T> base)
       throws ReflectiveOperationException, IOException {
     String ctx = ClassLoaderUtil.tableContext(srvCtx.getTableConfiguration(tableId));
     return ConfigurationTypeHelper.getClassInstance(ctx, className, base);
   }
 
-  @Override
-  public <T> Class<? extends T> loadClass(TableId tableId, String className, Class<T> base)
-      throws ClassNotFoundException {
-    String ctx = ClassLoaderUtil.tableContext(srvCtx.getTableConfiguration(tableId));
-    return ClassLoaderUtil.loadClass(ctx, className, base);
-  }
-
-  protected ServerContext getContext() {
+  public ServerContext getContext() {
     return srvCtx;
   }
 }

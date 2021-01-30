@@ -35,6 +35,9 @@ import org.apache.accumulo.core.data.TableId;
  */
 public interface PluginEnvironment {
 
+  /**
+   * @since 2.1.0
+   */
   interface Configuration extends Iterable<Entry<String,String>> {
 
     /**
@@ -127,8 +130,6 @@ public interface PluginEnvironment {
      * and attempts to avoid re-computation of the response. The intended use for a derived value is
      * to ensure that configuration changes that may be made in Zookeeper, for example, are always
      * reflected in the returned value.
-     *
-     * @since 2.1.0
      */
     <T> Supplier<T> getDerived(Function<Configuration,T> computeDerivedValue);
   }
@@ -168,18 +169,6 @@ public interface PluginEnvironment {
   <T> T instantiate(String className, Class<T> base) throws Exception;
 
   /**
-   * Loads a class using Accumulo's system classloader.
-   *
-   * @param className
-   *          Fully qualified name of the class.
-   * @param base
-   *          The expected super type of the class.
-   *
-   * @since 2.1.0
-   */
-  <T> Class<? extends T> loadClass(String className, Class<T> base) throws ClassNotFoundException;
-
-  /**
    * Instantiate a class using Accumulo's per table classloader. The class must have a no argument
    * constructor.
    *
@@ -189,19 +178,4 @@ public interface PluginEnvironment {
    *          The expected super type of the class.
    */
   <T> T instantiate(TableId tableId, String className, Class<T> base) throws Exception;
-
-  /**
-   * Loads a class using Accumulo's per table classloader.
-   *
-   * @param tableId
-   *          The indentifier indicating which per-table classloader to use.
-   * @param className
-   *          Fully qualified name of the class to load.
-   * @param base
-   *          The expected super type of the class.
-   *
-   * @since 2.1.0
-   */
-  <T> Class<? extends T> loadClass(TableId tableId, String className, Class<T> base)
-      throws ClassNotFoundException;
 }

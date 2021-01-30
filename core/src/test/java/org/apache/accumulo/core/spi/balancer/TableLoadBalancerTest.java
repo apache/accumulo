@@ -20,9 +20,7 @@ package org.apache.accumulo.core.spi.balancer;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 
@@ -100,7 +98,7 @@ public class TableLoadBalancerTest {
     return result;
   }
 
-  private static class TestDefaultLoadBalancer extends DefaultLoadBalancer {
+  public static class TestDefaultLoadBalancer extends DefaultLoadBalancer {
 
     public TestDefaultLoadBalancer(TableId table) {
       super(table);
@@ -117,7 +115,7 @@ public class TableLoadBalancerTest {
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() {
     BalancerEnvironment environment = createMock(BalancerEnvironment.class);
     ConfigurationCopy cc = new ConfigurationCopy(
         Map.of(Property.TABLE_LOAD_BALANCER.getKey(), TestDefaultLoadBalancer.class.getName()));
@@ -129,12 +127,7 @@ public class TableLoadBalancerTest {
     expect(environment.isTableOnline(anyObject(TableId.class))).andReturn(true).anyTimes();
     expect(environment.getConfiguration(anyObject(TableId.class))).andReturn(tableConfig)
         .anyTimes();
-    environment.loadClass(anyObject(TableId.class), eq(TestDefaultLoadBalancer.class.getName()),
-        eq(TabletBalancer.class));
-    expectLastCall().andReturn(TestDefaultLoadBalancer.class).anyTimes();
-    environment.loadClass(anyObject(TableId.class), eq(DefaultLoadBalancer.class.getName()),
-        eq(TabletBalancer.class));
-    expectLastCall().andReturn(DefaultLoadBalancer.class).anyTimes();
+    expect(environment.tableContext(anyObject(TableId.class))).andReturn(null).anyTimes();
 
     replay(environment);
 

@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.core.manager.balancer;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
@@ -35,9 +36,7 @@ public class TServerStatusImpl implements TServerStatus {
   }
 
   public TServerStatusImpl(TabletServerStatus thriftStatus) {
-    Objects.requireNonNull(thriftStatus);
-
-    this.thriftStatus = thriftStatus;
+    this.thriftStatus = requireNonNull(thriftStatus);
     if (thriftStatus.getTableMap() == null) {
       tableInfoMap = null;
     } else {
@@ -144,5 +143,9 @@ public class TServerStatusImpl implements TServerStatus {
   @Override
   public String toString() {
     return thriftStatus.toString();
+  }
+
+  public TabletServerStatus toThrift() {
+    return thriftStatus;
   }
 }

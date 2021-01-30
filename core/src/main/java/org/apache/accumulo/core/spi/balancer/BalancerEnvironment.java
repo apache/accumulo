@@ -20,13 +20,11 @@ package org.apache.accumulo.core.spi.balancer;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -82,15 +80,5 @@ public interface BalancerEnvironment extends ServiceEnvironment {
   List<TabletStatistics> listOnlineTabletsForTable(TabletServerId tabletServerId, TableId tableId)
       throws AccumuloException, AccumuloSecurityException;
 
-  /**
-   * Utility to ensure that the migrations from balance() are consistent:
-   * <ul>
-   * <li>Tablet objects are not null
-   * <li>Source and destination tablet servers are not null and current
-   * </ul>
-   *
-   * @return A list of TabletMigration object that passed sanity checks.
-   */
-  List<TabletMigration> checkMigrationSanity(Set<TabletServerId> current,
-      List<TabletMigration> migrations);
+  String tableContext(TableId tableId);
 }

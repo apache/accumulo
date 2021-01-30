@@ -136,7 +136,7 @@ public abstract class GroupBalancer implements TabletBalancer {
         if (find.hasNext()) {
           TabletServerId tserver = find.next();
           if (tserver.getHost().equals(last.getHost())) {
-            params.assignmentsOut().put(entry.getKey(), tserver);
+            params.addAssignment(entry.getKey(), tserver);
             continue;
           }
         }
@@ -150,7 +150,7 @@ public abstract class GroupBalancer implements TabletBalancer {
     Iterator<TabletServerId> tserverIter = Iterators.cycle(params.currentStatus().keySet());
     for (ComparablePair<String,TabletId> pair : tabletsByGroup) {
       TabletId tabletId = pair.getSecond();
-      params.assignmentsOut().put(tabletId, tserverIter.next());
+      params.addAssignment(tabletId, tserverIter.next());
     }
 
   }

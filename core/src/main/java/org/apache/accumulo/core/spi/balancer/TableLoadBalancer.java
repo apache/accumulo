@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -51,8 +52,9 @@ public class TableLoadBalancer implements TabletBalancer {
 
   private TabletBalancer constructNewBalancerForTable(String clazzName, TableId tableId)
       throws Exception {
+    String context = environment.tableContext(tableId);
     Class<? extends TabletBalancer> clazz =
-        environment.loadClass(tableId, clazzName, TabletBalancer.class);
+        ClassLoaderUtil.loadClass(context, clazzName, TabletBalancer.class);
     Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(TableId.class);
     return constructor.newInstance(tableId);
   }
@@ -114,7 +116,7 @@ public class TableLoadBalancer implements TabletBalancer {
       Map<TabletId,TabletServerId> newAssignments = new HashMap<>();
       getBalancerForTable(e.getKey()).getAssignments(
           new AssignmentParamsImpl(params.currentStatus(), e.getValue(), newAssignments));
-      params.assignmentsOut().putAll(newAssignments);
+      newAssignments.forEach(params::addAssignment);
     }
   }
 

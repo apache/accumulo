@@ -20,24 +20,36 @@ package org.apache.accumulo.server.master.balancer;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
+import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
+import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
+import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
+import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -45,6 +57,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class is responsible for managing the distribution of tablets throughout an Accumulo
@@ -61,11 +75,61 @@ import com.google.common.collect.Iterables;
  *             instead.
  */
 @Deprecated(since = "2.1.0")
-public abstract class TabletBalancer {
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE",
+    justification = "Class is deprecated and will be removed.")
+public abstract class TabletBalancer
+    implements org.apache.accumulo.core.spi.balancer.TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TabletBalancer.class);
 
   protected ServerContext context;
+
+  @Override
+  public void init(BalancerEnvironment balancerEnvironment) {
+    var bei = (BalancerEnvironmentImpl) balancerEnvironment;
+    init(bei.getContext());
+  }
+
+  @Override
+  public void getAssignments(AssignmentParameters params) {
+    AssignmentParamsImpl api = (AssignmentParamsImpl) params;
+    Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
+    getAssignments(oldCurrentStatus(params.currentStatus()),
+        oldUnassigned(params.unassignedTablets()), assignments);
+    assignments.forEach((ke, tsi) -> api.assignmentsOut().put(new TabletIdImpl(ke),
+        TabletServerIdImpl.fromThrift(tsi)));
+  }
+
+  @Override
+  public long balance(BalanceParameters params) {
+    List<TabletMigration> migrationsOut = new ArrayList<>();
+    long result = balance(oldCurrentStatus(params.currentStatus()),
+        oldMigrations(params.currentMigrations()), migrationsOut);
+    migrationsOut.forEach(mo -> params.migrationsOut()
+        .add(new org.apache.accumulo.core.spi.balancer.data.TabletMigration(
+            new TabletIdImpl(mo.tablet), TabletServerIdImpl.fromThrift(mo.oldServer),
+            TabletServerIdImpl.fromThrift(mo.newServer))));
+    return result;
+  }
+
+  private SortedMap<TServerInstance,TabletServerStatus>
+      oldCurrentStatus(SortedMap<TabletServerId,TServerStatus> currentStatus) {
+    TreeMap<TServerInstance,TabletServerStatus> oldStatus = new TreeMap<>();
+    currentStatus.forEach((tsid, status) -> oldStatus.put(((TabletServerIdImpl) tsid).toThrift(),
+        ((TServerStatusImpl) status).toThrift()));
+    return Collections.unmodifiableSortedMap(oldStatus);
+  }
+
+  private Map<KeyExtent,TServerInstance> oldUnassigned(Map<TabletId,TabletServerId> unassigned) {
+    return unassigned.entrySet().stream()
+        .collect(Collectors.toUnmodifiableMap(e -> ((TabletIdImpl) e.getKey()).toKeyExtent(),
+            e -> ((TabletServerIdImpl) e.getValue()).toThrift()));
+  }
+
+  private Set<KeyExtent> oldMigrations(Set<TabletId> currentMigrations) {
+    return currentMigrations.stream().map(i -> ((TabletIdImpl) i).toKeyExtent())
+        .collect(Collectors.toUnmodifiableSet());
+  }
 
   /**
    * Initialize the TabletBalancer. This gives the balancer the opportunity to read the

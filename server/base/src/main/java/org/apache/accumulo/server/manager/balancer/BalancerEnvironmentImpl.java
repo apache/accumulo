@@ -24,9 +24,9 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -41,7 +41,6 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
-import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -109,24 +108,7 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
   }
 
   @Override
-  public List<TabletMigration> checkMigrationSanity(Set<TabletServerId> current,
-      List<TabletMigration> migrations) {
-    return migrations.stream().filter(m -> {
-      boolean includeMigration = false;
-      if (m.getTablet() == null) {
-        log.warn("Balancer gave back a null tablet {}", m);
-      } else if (m.getNewTabletServer() == null) {
-        log.warn("Balancer did not set the destination {}", m);
-      } else if (m.getOldTabletServer() == null) {
-        log.warn("Balancer did not set the source {}", m);
-      } else if (!current.contains(m.getOldTabletServer())) {
-        log.warn("Balancer wants to move a tablet from a server that is not current: {}", m);
-      } else if (!current.contains(m.getNewTabletServer())) {
-        log.warn("Balancer wants to move a tablet to a server that is not current: {}", m);
-      } else {
-        includeMigration = true;
-      }
-      return includeMigration;
-    }).collect(Collectors.toList());
+  public String tableContext(TableId tableId) {
+    return ClassLoaderUtil.tableContext(getContext().getTableConfiguration(tableId));
   }
 }
