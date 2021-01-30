@@ -80,5 +80,9 @@ public interface BalancerEnvironment extends ServiceEnvironment {
   List<TabletStatistics> listOnlineTabletsForTable(TabletServerId tabletServerId, TableId tableId)
       throws AccumuloException, AccumuloSecurityException;
 
+  /**
+   * Retrieve the classloader context that is configured for {@code tableId}, or {@code null} if
+   * none is configured.
+   */
   String tableContext(TableId tableId);
 }
