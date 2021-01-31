@@ -18,7 +18,10 @@
  */
 package org.apache.accumulo.server.master.recovery;
 
-import org.apache.accumulo.server.ServerContext;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -29,7 +32,8 @@ public class RecoveryPath {
   private static final Logger log = LoggerFactory.getLogger(RecoveryPath.class);
 
   // given a wal path, transform it to a recovery path
-  public static Path getRecoveryPath(Path walPath, ServerContext context) {
+  public static Path getRecoveryPath(Path walPath, String portHost) {
+    String testSH1 = "";
 
     if (walPath.depth() >= 3 && walPath.toUri().getScheme() != null) {
       // its a fully qualified path
@@ -47,7 +51,7 @@ public class RecoveryPath {
 
       // drop wal
       walPath = walPath.getParent();
-      walPath = new Path(walPath, FileType.RECOVERY.getDirectory() + '-' + context.getInstanceID());
+      walPath = new Path(walPath, FileType.RECOVERY.getDirectory() + "-" + convertToSha1(portHost));
 
       log.debug("This is walPath in RecoveryManager: {}", walPath);
       walPath = new Path(walPath, uuid);
@@ -57,4 +61,36 @@ public class RecoveryPath {
 
     throw new IllegalArgumentException("Bad path " + walPath);
   }
+
+  public static String convertToSha1(String portHost) {
+    try {
+      // getInstance() method is called with algorithm SHA-1
+      MessageDigest md = MessageDigest.getInstance("SHA-1");
+
+      // digest() method is called
+      // to calculate message digest of the input string
+      // returned as array of byte
+      byte[] messageDigest = md.digest(portHost.getBytes());
+
+      // Convert byte array into signum representation
+      BigInteger no = new BigInteger(1, messageDigest);
+
+      // Convert message digest into hex value
+      String hashtext = no.toString(16);
+
+      // Add preceding 0s to make it 32 bit
+      while (hashtext.length() < 32) {
+        hashtext = "0" + hashtext;
+      }
+
+      // return the HashText
+      return hashtext;
+    }
+
+    // For specifying wrong message digest algorithms
+    catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
 }

@@ -22,12 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +31,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.master.Master;
@@ -148,6 +144,19 @@ public class RecoveryManager {
     }
   }
 
+  public String getHostPort() {
+
+    String hostPort = "";
+    Set<TServerInstance> tserverInstances = master.onlineTabletServers();
+
+      if (tserverInstances.isEmpty() && tserverInstances.size() < 0)
+      {
+        return hostPort =  null;
+
+     } else
+         return hostPort = tserverInstances.stream().findFirst().get().toString();
+  }
+
   public boolean recoverLogs(KeyExtent extent, Collection<Collection<String>> walogs)
       throws IOException {
     boolean recoveryNeeded = false;
@@ -168,8 +177,9 @@ public class RecoveryManager {
         String[] parts = walog.split("/");
         String sortId = parts[parts.length - 1];
         String filename = new Path(walog).toString();
-        String dest =
-            RecoveryPath.getRecoveryPath(new Path(filename), master.getContext()).toString();
+        String hostPort = getHostPort();
+        String[] splitHostPort = hostPort.split("\\[");
+        String dest = RecoveryPath.getRecoveryPath(new Path(filename), splitHostPort[0]).toString();
 
         boolean sortQueued;
         synchronized (this) {
