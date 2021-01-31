@@ -93,6 +93,7 @@ import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.AgeOffStore;
@@ -876,12 +877,12 @@ public class Master extends AbstractServer
 
       for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
           migrationsOut)) {
-        KeyExtent ke = ((TabletIdImpl) m.getTablet()).toKeyExtent();
+        KeyExtent ke = toKeyExtent(m.getTablet());
         if (migrations.containsKey(ke)) {
           log.warn("balancer requested migration more than once, skipping {}", m);
           continue;
         }
-        TServerInstance tserverInstance = ((TabletServerIdImpl) m.getNewTabletServer()).toThrift();
+        TServerInstance tserverInstance = toTServerInstance(m.getNewTabletServer());
         migrations.put(ke, tserverInstance);
         log.debug("migration {}", m);
       }
@@ -1755,7 +1756,25 @@ public class Master extends AbstractServer
 
     tabletBalancer.getAssignments(params);
 
-    assignmentsOut.forEach((tablet, tserver) -> assignedOut
-        .put(((TabletIdImpl) tablet).toKeyExtent(), ((TabletServerIdImpl) tserver).toThrift()));
+    assignmentsOut.forEach(
+        (tablet, tserver) -> assignedOut.put(toKeyExtent(tablet), toTServerInstance(tserver)));
+  }
+
+  private KeyExtent toKeyExtent(TabletId tabletId) {
+    if (tabletId instanceof TabletIdImpl) {
+      return ((TabletIdImpl) tabletId).toKeyExtent();
+    } else {
+      return new KeyExtent(tabletId.getTable(), tabletId.getEndRow(), tabletId.getPrevEndRow());
+    }
+  }
+
+  private TServerInstance toTServerInstance(TabletServerId tabletServerId) {
+    if (tabletServerId instanceof TabletServerIdImpl) {
+      return ((TabletServerIdImpl) tabletServerId).toThrift();
+    } else {
+      return new TServerInstance(
+          HostAndPort.fromParts(tabletServerId.getHost(), tabletServerId.getPort()),
+          tabletServerId.getSession());
+    }
   }
 }
