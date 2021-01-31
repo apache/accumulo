@@ -58,7 +58,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -93,7 +92,6 @@ import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.AgeOffStore;
@@ -868,30 +866,27 @@ public class Master extends AbstractServer
     }
 
     private long balanceTablets() {
-      List<TabletMigration> migrationsOut = new ArrayList<>();
-      Set<TabletId> currentMigrations = migrationsSnapshot().stream().map(TabletIdImpl::new)
-          .collect(Collectors.toUnmodifiableSet());
-      BalanceParamsImpl params =
-          new BalanceParamsImpl(tserverStatusForBalancer, currentMigrations, migrationsOut);
+      BalanceParamsImpl params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer,
+          tserverStatus, migrationsSnapshot());
       long wait = tabletBalancer.balance(params);
 
       for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
-          migrationsOut)) {
-        KeyExtent ke = toKeyExtent(m.getTablet());
+          params.migrationsOut())) {
+        KeyExtent ke = TabletIdImpl.toKeyExtent(m.getTablet());
         if (migrations.containsKey(ke)) {
           log.warn("balancer requested migration more than once, skipping {}", m);
           continue;
         }
-        TServerInstance tserverInstance = toTServerInstance(m.getNewTabletServer());
+        TServerInstance tserverInstance = TabletServerIdImpl.toThrift(m.getNewTabletServer());
         migrations.put(ke, tserverInstance);
         log.debug("migration {}", m);
       }
-      if (migrationsOut.isEmpty()) {
+      if (params.migrationsOut().isEmpty()) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
         }
       } else {
-        nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(),
+        nextEvent.event("Migrating %d more tablets, %d total", params.migrationsOut().size(),
             migrations.size());
       }
       return wait;
@@ -1730,9 +1725,7 @@ public class Master extends AbstractServer
     return masterInitialized.get();
   }
 
-  @SuppressWarnings("deprecation")
   void initializeBalancer() {
-
     tabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
         Property.TABLE_LOAD_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
     tabletBalancer.init(balancerEnvironment);
@@ -1744,37 +1737,8 @@ public class Master extends AbstractServer
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
-    SortedMap<TabletServerId,TServerStatus> current = new TreeMap<>();
-    currentStatus.forEach((tsi, status) -> current.put(new TabletServerIdImpl(tsi),
-        TServerStatusImpl.fromThrift(status)));
-    Map<TabletId,TabletServerId> unassignedTablets = new HashMap<>();
-    unassigned.forEach((ke, tsi) -> unassignedTablets.put(new TabletIdImpl(ke),
-        TabletServerIdImpl.fromThrift(tsi)));
-    HashMap<TabletId,TabletServerId> assignmentsOut = new HashMap<>();
-    AssignmentParamsImpl params = new AssignmentParamsImpl(current,
-        Collections.unmodifiableMap(unassignedTablets), assignmentsOut);
-
+    AssignmentParamsImpl params =
+        AssignmentParamsImpl.fromThrift(currentStatus, unassigned, assignedOut);
     tabletBalancer.getAssignments(params);
-
-    assignmentsOut.forEach(
-        (tablet, tserver) -> assignedOut.put(toKeyExtent(tablet), toTServerInstance(tserver)));
-  }
-
-  private KeyExtent toKeyExtent(TabletId tabletId) {
-    if (tabletId instanceof TabletIdImpl) {
-      return ((TabletIdImpl) tabletId).toKeyExtent();
-    } else {
-      return new KeyExtent(tabletId.getTable(), tabletId.getEndRow(), tabletId.getPrevEndRow());
-    }
-  }
-
-  private TServerInstance toTServerInstance(TabletServerId tabletServerId) {
-    if (tabletServerId instanceof TabletServerIdImpl) {
-      return ((TabletServerIdImpl) tabletServerId).toThrift();
-    } else {
-      return new TServerInstance(
-          HostAndPort.fromParts(tabletServerId.getHost(), tabletServerId.getPort()),
-          tabletServerId.getSession());
-    }
   }
 }

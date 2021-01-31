@@ -20,29 +20,21 @@ package org.apache.accumulo.server.master.balancer;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
-import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
-import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
+import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
-import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
-import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -93,42 +85,16 @@ public abstract class TabletBalancer
   @Override
   public void getAssignments(AssignmentParameters params) {
     AssignmentParamsImpl api = (AssignmentParamsImpl) params;
-    Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
-    getAssignments(oldCurrentStatus(params.currentStatus()),
-        oldUnassigned(params.unassignedTablets()), assignments);
-    assignments.forEach((ke, tsi) -> api.assignmentsOut().put(new TabletIdImpl(ke),
-        TabletServerIdImpl.fromThrift(tsi)));
+    getAssignments(api.thriftCurrentStatus(), api.thriftUnassigned(), api.thriftAssignmentsOut());
   }
 
   @Override
   public long balance(BalanceParameters params) {
+    BalanceParamsImpl bpi = (BalanceParamsImpl) params;
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    long result = balance(oldCurrentStatus(params.currentStatus()),
-        oldMigrations(params.currentMigrations()), migrationsOut);
-    migrationsOut.forEach(mo -> params.migrationsOut()
-        .add(new org.apache.accumulo.core.spi.balancer.data.TabletMigration(
-            new TabletIdImpl(mo.tablet), TabletServerIdImpl.fromThrift(mo.oldServer),
-            TabletServerIdImpl.fromThrift(mo.newServer))));
+    long result = balance(bpi.thriftCurrentStatus(), bpi.thriftCurrentMigrations(), migrationsOut);
+    migrationsOut.forEach(mo -> bpi.addMigration(mo.tablet, mo.oldServer, mo.newServer));
     return result;
-  }
-
-  private SortedMap<TServerInstance,TabletServerStatus>
-      oldCurrentStatus(SortedMap<TabletServerId,TServerStatus> currentStatus) {
-    TreeMap<TServerInstance,TabletServerStatus> oldStatus = new TreeMap<>();
-    currentStatus.forEach((tsid, status) -> oldStatus.put(((TabletServerIdImpl) tsid).toThrift(),
-        ((TServerStatusImpl) status).toThrift()));
-    return Collections.unmodifiableSortedMap(oldStatus);
-  }
-
-  private Map<KeyExtent,TServerInstance> oldUnassigned(Map<TabletId,TabletServerId> unassigned) {
-    return unassigned.entrySet().stream()
-        .collect(Collectors.toUnmodifiableMap(e -> ((TabletIdImpl) e.getKey()).toKeyExtent(),
-            e -> ((TabletServerIdImpl) e.getValue()).toThrift()));
-  }
-
-  private Set<KeyExtent> oldMigrations(Set<TabletId> currentMigrations) {
-    return currentMigrations.stream().map(i -> ((TabletIdImpl) i).toKeyExtent())
-        .collect(Collectors.toUnmodifiableSet());
   }
 
   /**

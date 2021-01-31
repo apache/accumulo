@@ -18,10 +18,17 @@
  */
 package org.apache.accumulo.core.manager.balancer;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -30,12 +37,46 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
   private final SortedMap<TabletServerId,TServerStatus> currentStatus;
   private final Map<TabletId,TabletServerId> unassigned;
   private final Map<TabletId,TabletServerId> assignmentsOut;
+  private final SortedMap<TServerInstance,TabletServerStatus> thriftCurrentStatus;
+  private final Map<KeyExtent,TServerInstance> thriftUnassigned;
+  private final Map<KeyExtent,TServerInstance> thriftAssignmentsOut;
+
+  public static AssignmentParamsImpl fromThrift(
+      SortedMap<TServerInstance,TabletServerStatus> currentStatus,
+      Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignmentsOut) {
+
+    SortedMap<TabletServerId,TServerStatus> currentStatusNew = new TreeMap<>();
+    currentStatus.forEach((tsi, status) -> currentStatusNew.put(new TabletServerIdImpl(tsi),
+        TServerStatusImpl.fromThrift(status)));
+    Map<TabletId,TabletServerId> unassignedNew = new HashMap<>();
+    unassigned.forEach(
+        (ke, tsi) -> unassignedNew.put(new TabletIdImpl(ke), TabletServerIdImpl.fromThrift(tsi)));
+
+    return new AssignmentParamsImpl(Collections.unmodifiableSortedMap(currentStatusNew),
+        Collections.unmodifiableMap(unassignedNew), currentStatus, unassigned, assignmentsOut);
+  }
 
   public AssignmentParamsImpl(SortedMap<TabletServerId,TServerStatus> currentStatus,
       Map<TabletId,TabletServerId> unassigned, Map<TabletId,TabletServerId> assignmentsOut) {
     this.currentStatus = currentStatus;
     this.unassigned = unassigned;
     this.assignmentsOut = assignmentsOut;
+    this.thriftCurrentStatus = null;
+    this.thriftUnassigned = null;
+    this.thriftAssignmentsOut = null;
+  }
+
+  private AssignmentParamsImpl(SortedMap<TabletServerId,TServerStatus> currentStatus,
+      Map<TabletId,TabletServerId> unassigned,
+      SortedMap<TServerInstance,TabletServerStatus> thriftCurrentStatus,
+      Map<KeyExtent,TServerInstance> thriftUnassigned,
+      Map<KeyExtent,TServerInstance> thriftAssignmentsOut) {
+    this.currentStatus = currentStatus;
+    this.unassigned = unassigned;
+    this.assignmentsOut = null;
+    this.thriftCurrentStatus = thriftCurrentStatus;
+    this.thriftUnassigned = thriftUnassigned;
+    this.thriftAssignmentsOut = thriftAssignmentsOut;
   }
 
   @Override
@@ -50,10 +91,24 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
 
   @Override
   public void addAssignment(TabletId tabletId, TabletServerId tabletServerId) {
-    assignmentsOut.put(tabletId, tabletServerId);
+    if (assignmentsOut != null) {
+      assignmentsOut.put(tabletId, tabletServerId);
+    }
+    if (thriftAssignmentsOut != null) {
+      thriftAssignmentsOut.put(TabletIdImpl.toKeyExtent(tabletId),
+          TabletServerIdImpl.toThrift(tabletServerId));
+    }
   }
 
-  public Map<TabletId,TabletServerId> assignmentsOut() {
-    return assignmentsOut;
+  public SortedMap<TServerInstance,TabletServerStatus> thriftCurrentStatus() {
+    return thriftCurrentStatus;
+  }
+
+  public Map<KeyExtent,TServerInstance> thriftUnassigned() {
+    return thriftUnassigned;
+  }
+
+  public Map<KeyExtent,TServerInstance> thriftAssignmentsOut() {
+    return thriftAssignmentsOut;
   }
 }

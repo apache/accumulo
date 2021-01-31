@@ -83,4 +83,14 @@ public class TabletServerIdImpl implements TabletServerId {
   public TServerInstance toThrift() {
     return tServerInstance;
   }
+
+  public static TServerInstance toThrift(TabletServerId tabletServerId) {
+    if (tabletServerId instanceof TabletServerIdImpl) {
+      return ((TabletServerIdImpl) tabletServerId).toThrift();
+    } else {
+      return new TServerInstance(
+          HostAndPort.fromParts(tabletServerId.getHost(), tabletServerId.getPort()),
+          tabletServerId.getSession());
+    }
+  }
 }
