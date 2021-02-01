@@ -95,7 +95,7 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
       assignmentsOut.put(tabletId, tabletServerId);
     }
     if (thriftAssignmentsOut != null) {
-      thriftAssignmentsOut.put(TabletIdImpl.toKeyExtent(tabletId),
+      thriftAssignmentsOut.put(KeyExtent.fromTabletId(tabletId),
           TabletServerIdImpl.toThrift(tabletServerId));
     }
   }

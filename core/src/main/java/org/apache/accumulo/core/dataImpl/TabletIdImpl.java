@@ -85,11 +85,4 @@ public class TabletIdImpl implements TabletId {
     return ke;
   }
 
-  public static KeyExtent toKeyExtent(TabletId tabletId) {
-    if (tabletId instanceof TabletIdImpl) {
-      return ((TabletIdImpl) tabletId).toKeyExtent();
-    } else {
-      return new KeyExtent(tabletId.getTable(), tabletId.getEndRow(), tabletId.getPrevEndRow());
-    }
-  }
 }

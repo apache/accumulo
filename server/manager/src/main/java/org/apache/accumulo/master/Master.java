@@ -60,7 +60,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
@@ -872,7 +871,7 @@ public class Master extends AbstractServer
 
       for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
           params.migrationsOut())) {
-        KeyExtent ke = TabletIdImpl.toKeyExtent(m.getTablet());
+        KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
         if (migrations.containsKey(ke)) {
           log.warn("balancer requested migration more than once, skipping {}", m);
           continue;
@@ -897,11 +896,11 @@ public class Master extends AbstractServer
       return migrations.stream().filter(m -> {
         boolean includeMigration = false;
         if (m.getTablet() == null) {
-          log.warn("Balancer gave back a null tablet {}", m);
+          log.error("Balancer gave back a null tablet {}", m);
         } else if (m.getNewTabletServer() == null) {
-          log.warn("Balancer did not set the destination {}", m);
+          log.error("Balancer did not set the destination {}", m);
         } else if (m.getOldTabletServer() == null) {
-          log.warn("Balancer did not set the source {}", m);
+          log.error("Balancer did not set the source {}", m);
         } else if (!current.contains(m.getOldTabletServer())) {
           log.warn("Balancer wants to move a tablet from a server that is not current: {}", m);
         } else if (!current.contains(m.getNewTabletServer())) {
