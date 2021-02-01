@@ -65,7 +65,7 @@ public class ConstraintCommand extends Command {
             }
             i = shellState.getAccumuloClient().namespaceOperations().addConstraint(namespace,
                 constraint);
-            shellState.getReader().println("Added constraint " + constraint + " to namespace "
+            shellState.getWriter().println("Added constraint " + constraint + " to namespace "
                 + namespace + " with number " + i);
           } else if (tableName != null && !tableName.isEmpty()) {
             if (!shellState.getAccumuloClient().tableOperations().testClassLoad(tableName,
@@ -76,7 +76,7 @@ public class ConstraintCommand extends Command {
             }
             i = shellState.getAccumuloClient().tableOperations().addConstraint(tableName,
                 constraint);
-            shellState.getReader().println(
+            shellState.getWriter().println(
                 "Added constraint " + constraint + " to table " + tableName + " with number " + i);
           } else {
             throw new IllegalArgumentException("Please specify either a table or a namespace");
@@ -88,11 +88,11 @@ public class ConstraintCommand extends Command {
           i = Integer.parseInt(constraint);
           if (namespace != null) {
             shellState.getAccumuloClient().namespaceOperations().removeConstraint(namespace, i);
-            shellState.getReader()
+            shellState.getWriter()
                 .println("Removed constraint " + i + " from namespace " + namespace);
           } else if (tableName != null) {
             shellState.getAccumuloClient().tableOperations().removeConstraint(tableName, i);
-            shellState.getReader().println("Removed constraint " + i + " from table " + tableName);
+            shellState.getWriter().println("Removed constraint " + i + " from table " + tableName);
           } else {
             throw new IllegalArgumentException("Please specify either a table or a namespace");
           }
@@ -102,12 +102,12 @@ public class ConstraintCommand extends Command {
         if (namespace != null) {
           for (Entry<String,Integer> property : shellState.getAccumuloClient().namespaceOperations()
               .listConstraints(namespace).entrySet()) {
-            shellState.getReader().println(property.toString());
+            shellState.getWriter().println(property.toString());
           }
         } else if (tableName != null) {
           for (Entry<String,Integer> property : shellState.getAccumuloClient().tableOperations()
               .listConstraints(tableName).entrySet()) {
-            shellState.getReader().println(property.toString());
+            shellState.getWriter().println(property.toString());
           }
         } else {
           throw new IllegalArgumentException("Please specify either a table or a namespace");

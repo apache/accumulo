@@ -35,7 +35,7 @@ public class DeleteRowsCommand extends Command {
     final Text startRow = OptUtil.getStartRow(cl);
     final Text endRow = OptUtil.getEndRow(cl);
     if (!cl.hasOption(forceOpt.getOpt()) && (startRow == null || endRow == null)) {
-      shellState.getReader()
+      shellState.getWriter()
           .println("Not deleting unbounded range. Specify both ends, or use --force");
       return 1;
     }

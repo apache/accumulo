@@ -29,6 +29,7 @@ import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellCommandException;
 import org.apache.accumulo.shell.ShellCommandException.ErrorCode;
 import org.apache.commons.cli.CommandLine;
+import org.jline.utils.InfoCmp;
 
 public class HiddenCommand extends Command {
   private static Random rand = new SecureRandom();
@@ -42,9 +43,9 @@ public class HiddenCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
     if (rand.nextInt(10) == 0) {
-      shellState.getReader().beep();
-      shellState.getReader().println();
-      shellState.getReader()
+      shellState.getTerminal().puts(InfoCmp.Capability.bell);
+      shellState.getWriter().println();
+      shellState.getWriter()
           .println(new String(Base64.getDecoder()
               .decode("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8g"
                   + "IF88LgogICAgLyB8ICd8ICcgXAogICAvICB8Xy58Xy4gIFwKICAvIC98ICAgIC"

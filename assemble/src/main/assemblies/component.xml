@@ -59,7 +59,7 @@
         <include>javax.validation:validation-api</include>
         <include>javax.ws.rs:javax.ws.rs-api</include>
         <include>javax.xml.bind:jaxb-api</include>
-        <include>jline:jline</include>
+        <include>org.jline:jline</include>
         <include>org.apache.commons:commons-collections4</include>
         <include>org.apache.commons:commons-configuration2</include>
         <include>org.apache.commons:commons-lang3</include>

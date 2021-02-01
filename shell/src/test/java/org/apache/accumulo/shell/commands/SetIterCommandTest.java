@@ -19,8 +19,6 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.PrintWriter;
-import java.io.Writer;
-import java.lang.reflect.Field;
 import java.util.EnumSet;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -32,10 +30,9 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.easymock.EasyMock;
+import org.jline.reader.LineReader;
 import org.junit.Before;
 import org.junit.Test;
-
-import jline.console.ConsoleReader;
 
 public class SetIterCommandTest {
   private SetIterCommand cmd;
@@ -53,8 +50,8 @@ public class SetIterCommandTest {
     AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
-    ConsoleReader reader = EasyMock.createMock(ConsoleReader.class);
-    Writer out = EasyMock.createMock(PrintWriter.class);
+    LineReader reader = EasyMock.createMock(LineReader.class);
+    PrintWriter pw = EasyMock.createMock(PrintWriter.class);
     TableOperations tableOperations = EasyMock.createMock(TableOperations.class);
 
     // Command line parsing
@@ -78,19 +75,15 @@ public class SetIterCommandTest {
     EasyMock.expect(shellState.getClassLoader(cli, shellState))
         .andReturn(ClassLoaderUtil.getClassLoader(null));
 
-    // Set the output object
-    Field field = reader.getClass().getSuperclass().getDeclaredField("out");
-    field.setAccessible(true);
-    field.set(reader, out);
-
     // Parsing iterator options
-    reader.flush();
+    pw.flush();
     EasyMock.expectLastCall().times(3);
 
-    reader.println(EasyMock.anyObject(String.class));
+    pw.println(EasyMock.anyObject(String.class));
     EasyMock.expectLastCall().times(2);
 
     EasyMock.expect(shellState.getReader()).andReturn(reader);
+    EasyMock.expect(shellState.getWriter()).andReturn(pw);
 
     // Shell asking for negate option, we pass in an empty string to pickup the default value of
     // 'false'
@@ -124,13 +117,13 @@ public class SetIterCommandTest {
 
     EasyMock.expect(shellState.getTableName()).andReturn("foo").anyTimes();
 
-    EasyMock.replay(client, cli, shellState, reader, tableOperations);
+    EasyMock.replay(client, cli, shellState, reader, tableOperations, pw);
 
     cmd.execute(
         "setiter -all -p 21 -t foo"
             + " -class org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter",
         cli, shellState);
 
-    EasyMock.verify(client, cli, shellState, reader, tableOperations);
+    EasyMock.verify(client, cli, shellState, reader, tableOperations, pw);
   }
 }

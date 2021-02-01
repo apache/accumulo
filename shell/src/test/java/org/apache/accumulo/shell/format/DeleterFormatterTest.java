@@ -33,6 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
@@ -44,11 +45,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.shell.Shell;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.Before;
 import org.junit.Test;
-
-import jline.UnsupportedTerminal;
-import jline.console.ConsoleReader;
 
 public class DeleterFormatterTest {
   DeleterFormatter formatter;
@@ -56,9 +59,11 @@ public class DeleterFormatterTest {
   BatchWriter writer;
   BatchWriter exceptionWriter;
   Shell shellState;
+  LineReader reader;
+  Terminal terminal;
+  PrintWriter pw;
 
   ByteArrayOutputStream baos;
-  ConsoleReader reader;
 
   SettableInputStream input;
 
@@ -91,8 +96,13 @@ public class DeleterFormatterTest {
 
     shellState = createNiceMock(Shell.class);
 
-    reader = new ConsoleReader(input, baos, new UnsupportedTerminal());
+    terminal = new DumbTerminal(input, baos);
+    terminal.setSize(new Size(80, 24));
+    reader = LineReaderBuilder.builder().terminal(terminal).build();
+    pw = terminal.writer();
+
     expect(shellState.getReader()).andReturn(reader).anyTimes();
+    expect(shellState.getWriter()).andReturn(pw).anyTimes();
 
     replay(writer, exceptionWriter, shellState);
 
@@ -175,7 +185,7 @@ public class DeleterFormatterTest {
   }
 
   private void verify(String... chunks) throws IOException {
-    reader.flush();
+    reader.getTerminal().writer().flush();
 
     String output = baos.toString();
     for (String chunk : chunks) {
