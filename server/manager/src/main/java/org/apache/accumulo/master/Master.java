@@ -203,7 +203,7 @@ public class Master extends AbstractServer
 
   ZooLock masterLock = null;
   private TServer clientService = null;
-  private TabletBalancer tabletBalancer;
+  private volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
 
   private MasterState state = MasterState.INITIAL;
