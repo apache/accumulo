@@ -149,20 +149,8 @@ public class RecoveryManager {
     }
   }
 
-  public String getHostPort() {
-
-    String hostPort = "";
-    Set<TServerInstance> tserverInstances = master.onlineTabletServers();
-
-    if (tserverInstances.isEmpty() && tserverInstances.size() < 0) {
-      return hostPort = null;
-
-    } else
-      return hostPort = tserverInstances.stream().findFirst().get().toString();
-  }
-
-  public boolean recoverLogs(KeyExtent extent, Collection<Collection<String>> walogs)
-      throws IOException {
+  public boolean recoverLogs(KeyExtent extent, Collection<Collection<String>> walogs,
+      TServerInstance instance) throws IOException {
     boolean recoveryNeeded = false;
 
     for (Collection<String> logs : walogs) {
@@ -181,7 +169,7 @@ public class RecoveryManager {
         String[] parts = walog.split("/");
         String sortId = parts[parts.length - 1];
         String filename = new Path(walog).toString();
-        String hostPort = getHostPort();
+        String hostPort = instance.getHostPort();
         String[] splitHostPort = hostPort.split("\\[");
         String dest = RecoveryPath.getRecoveryPath(new Path(filename), splitHostPort[0]).toString();
 

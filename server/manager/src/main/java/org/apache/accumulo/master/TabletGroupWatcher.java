@@ -264,7 +264,7 @@ abstract class TabletGroupWatcher extends Thread {
 
           if (goal == TabletGoalState.HOSTED) {
             if (state != TabletState.HOSTED && !tls.walogs.isEmpty()) {
-              if (master.recoveryManager.recoverLogs(tls.extent, tls.walogs))
+              if (master.recoveryManager.recoverLogs(tls.extent, tls.walogs, tls.last))
                 continue;
             }
             switch (state) {
