@@ -157,7 +157,7 @@ public class ZooLock implements Watcher {
       String pathToDelete = path + "/" + createdNodeName;
       LOG.debug("[{}] Failed to acquire lock in tryLock(), deleting all at path: {}", vmLockPrefix,
           pathToDelete);
-      recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
+      recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
       createdNodeName = null;
     }
 
@@ -167,7 +167,7 @@ public class ZooLock implements Watcher {
   /**
    * This method will delete a node and all its children.
    */
-  private void recursiveDelete(String zPath, NodeMissingPolicy policy)
+  public static void recursiveDelete(ZooKeeper zooKeeper, String zPath, NodeMissingPolicy policy)
       throws KeeperException, InterruptedException {
     if (policy == NodeMissingPolicy.CREATE) {
       throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
@@ -175,7 +175,7 @@ public class ZooLock implements Watcher {
     try {
       // delete children
       for (String child : zooKeeper.getChildren(zPath, null)) {
-        recursiveDelete(zPath + "/" + child, NodeMissingPolicy.SKIP);
+        recursiveDelete(zooKeeper, zPath + "/" + child, NodeMissingPolicy.SKIP);
       }
 
       // delete self
@@ -183,7 +183,7 @@ public class ZooLock implements Watcher {
     } catch (KeeperException e) {
       // new child appeared; try again
       if (e.code() == Code.NOTEMPTY) {
-        recursiveDelete(zPath, policy);
+        recursiveDelete(zooKeeper, zPath, policy);
       }
       if (policy == NodeMissingPolicy.SKIP && e.code() == Code.NONODE) {
         return;
@@ -552,7 +552,7 @@ public class ZooLock implements Watcher {
       String pathToDelete = path + "/" + createdNodeName;
       LOG.debug("[{}] Deleting all at path {} due to lock cancellation", vmLockPrefix,
           pathToDelete);
-      recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
+      recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
       del = true;
     }
 
@@ -577,7 +577,7 @@ public class ZooLock implements Watcher {
 
     final String pathToDelete = path + "/" + localLock;
     LOG.debug("[{}] Deleting all at path {} due to unlock", vmLockPrefix, pathToDelete);
-    recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
+    recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
 
     localLw.lostLock(LockLossReason.LOCK_DELETED);
   }
