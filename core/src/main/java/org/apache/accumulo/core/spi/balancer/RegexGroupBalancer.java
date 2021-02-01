@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.spi.balancer;
 
-import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,6 +26,7 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -65,9 +65,9 @@ public class RegexGroupBalancer extends GroupBalancer {
 
   @Override
   protected long getWaitTime() {
-    Map<String,String> customProps = environment.getConfiguration(tableId).getTableCustom();
-    if (customProps.containsKey(WAIT_TIME_PROPERTY)) {
-      return ConfigurationTypeHelper.getTimeInMillis(customProps.get(WAIT_TIME_PROPERTY));
+    ServiceEnvironment.Configuration conf = environment.getConfiguration(tableId);
+    if (conf.isSet(WAIT_TIME_PROPERTY)) {
+      return ConfigurationTypeHelper.getTimeInMillis(conf.get(WAIT_TIME_PROPERTY));
     }
     return super.getWaitTime();
   }
@@ -75,9 +75,9 @@ public class RegexGroupBalancer extends GroupBalancer {
   @Override
   protected Function<TabletId,String> getPartitioner() {
 
-    Map<String,String> customProps = environment.getConfiguration(tableId).getTableCustom();
-    String regex = customProps.get(REGEX_PROPERTY);
-    final String defaultGroup = customProps.get(DEFAUT_GROUP_PROPERTY);
+    ServiceEnvironment.Configuration conf = environment.getConfiguration(tableId);
+    String regex = conf.get(REGEX_PROPERTY);
+    final String defaultGroup = conf.get(DEFAUT_GROUP_PROPERTY);
 
     final Pattern pattern = Pattern.compile(regex);
 

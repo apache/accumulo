@@ -1727,7 +1727,7 @@ public class Master extends AbstractServer
 
   void initializeBalancer() {
     tabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
-        Property.TABLE_LOAD_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
+        Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
     tabletBalancer.init(balancerEnvironment);
   }
 
