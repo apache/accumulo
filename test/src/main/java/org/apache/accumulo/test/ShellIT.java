@@ -352,11 +352,13 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void userTest() throws IOException {
+  public void userExistsTest() throws IOException {
     Shell.log.debug("Starting user test --------------------------");
+    String user = testName.getMethodName();
     exec("createuser root", false, "user exists");
-    exec("createuser test", true);
-    exec("createuser test", false, "user exists");
+    exec("createuser " + user, true);
+    exec("createuser " + user, false, "user exists");
+    exec("deleteuser " + user + " -f", true);
   }
 
   @Test
