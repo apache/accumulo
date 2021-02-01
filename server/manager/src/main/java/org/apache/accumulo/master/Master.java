@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -1343,7 +1344,7 @@ public class Master extends AbstractServer
     return masterLock;
   }
 
-  private static class MasterLockWatcher implements ZooLock.AsyncLockWatcher {
+  private static class MasterLockWatcher implements ZooLock.AccumuloLockWatcher {
 
     boolean acquiredLock = false;
     boolean failedToAcquireLock = false;
@@ -1407,11 +1408,12 @@ public class Master extends AbstractServer
     final String masterClientAddress =
         getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
 
+    UUID zooLockUUID = UUID.randomUUID();
     while (true) {
 
       MasterLockWatcher masterLockWatcher = new MasterLockWatcher();
-      masterLock = new ZooLock(context.getZooReaderWriter(), zMasterLoc);
-      masterLock.lockAsync(masterLockWatcher, masterClientAddress.getBytes());
+      masterLock = new ZooLock(context.getZooReaderWriter(), zMasterLoc, zooLockUUID);
+      masterLock.lock(masterLockWatcher, masterClientAddress.getBytes());
 
       masterLockWatcher.waitForChange();
 

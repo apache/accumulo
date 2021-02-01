@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -627,10 +628,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     // Get a ZooLock for the monitor
+    UUID zooLockUUID = UUID.randomUUID();
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
-      monitorLock = new ZooLock(zoo, monitorLockPath);
-      monitorLock.lockAsync(monitorLockWatcher, new byte[0]);
+      monitorLock = new ZooLock(zoo, monitorLockPath, zooLockUUID);
+      monitorLock.lock(monitorLockWatcher, new byte[0]);
 
       monitorLockWatcher.waitForChange();
 
@@ -655,7 +657,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   /**
    * Async Watcher for monitor lock
    */
-  private static class MoniterLockWatcher implements ZooLock.AsyncLockWatcher {
+  private static class MoniterLockWatcher implements ZooLock.AccumuloLockWatcher {
 
     boolean acquiredLock = false;
     boolean failedToAcquireLock = false;
