@@ -149,12 +149,11 @@ public class RecoveryManager {
     String hostPort = "";
     Set<TServerInstance> tserverInstances = master.onlineTabletServers();
 
-      if (tserverInstances.isEmpty() && tserverInstances.size() < 0)
-      {
-        return hostPort =  null;
+    if (tserverInstances.isEmpty() && tserverInstances.size() < 0) {
+      return hostPort = null;
 
-     } else
-         return hostPort = tserverInstances.stream().findFirst().get().toString();
+    } else
+      return hostPort = tserverInstances.stream().findFirst().get().toString();
   }
 
   public boolean recoverLogs(KeyExtent extent, Collection<Collection<String>> walogs)

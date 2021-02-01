@@ -33,7 +33,6 @@ public class RecoveryPath {
 
   // given a wal path, transform it to a recovery path
   public static Path getRecoveryPath(Path walPath, String portHost) {
-    String testSH1 = "";
 
     if (walPath.depth() >= 3 && walPath.toUri().getScheme() != null) {
       // its a fully qualified path
