@@ -37,7 +37,6 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -75,9 +74,8 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
     Map<TabletId,TabletServerId> tablets = new LinkedHashMap<>();
     for (var tm : TabletsMetadata.builder().forTable(tableId).fetch(LOCATION, PREV_ROW)
         .build(getContext())) {
-      TServerInstance inst = tm.getLocation();
-      tablets.put(new TabletIdImpl(tm.getExtent()), new TabletServerIdImpl(inst.getHost(),
-          inst.getHostAndPort().getPort(), inst.getSession()));
+      tablets.put(new TabletIdImpl(tm.getExtent()),
+          TabletServerIdImpl.fromThrift(tm.getLocation()));
     }
     return tablets;
   }

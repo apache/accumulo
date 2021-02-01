@@ -54,12 +54,14 @@ public interface BalancerEnvironment extends ServiceEnvironment {
   boolean isTableOnline(TableId tableId);
 
   /**
-   * Fetch the locations for each of {@code tableId}'s tablets from the metadata table.
+   * Fetch the locations for each of {@code tableId}'s tablets from the metadata table. If there is
+   * no location available for a given tablet, then the returned mapping will have a {@code null}
+   * value stored for the tablet id.
    *
    * @param tableId
    *          The id of the table for which to retrieve tablets.
-   * @return a mapping of {@link TabletId} to {@link TabletServerId} for each tablet belonging to
-   *         {@code tableId}
+   * @return a mapping of {@link TabletId} to {@link TabletServerId} (or @null if no location is
+   *         available) for each tablet belonging to {@code tableId}
    */
   Map<TabletId,TabletServerId> listTabletLocations(TableId tableId);
 
