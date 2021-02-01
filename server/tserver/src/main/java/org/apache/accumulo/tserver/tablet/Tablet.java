@@ -68,6 +68,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -877,6 +878,11 @@ public class Tablet {
 
   public boolean initiateMinorCompaction(MinorCompactionReason mincReason) {
     if (isClosed()) {
+      return false;
+    }
+    TableState tableState = context.getTableManager().getTableState(extent.tableId());
+    if (tableState.equals(TableState.DELETING)) {
+      log.debug("Table {} is being deleted so don't flush {}", extent.tableId(), extent);
       return false;
     }
 
