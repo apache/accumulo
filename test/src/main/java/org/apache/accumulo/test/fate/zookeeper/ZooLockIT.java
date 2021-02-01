@@ -389,16 +389,9 @@ public class ZooLockIT extends SharedMiniClusterBase {
       // Create the parent node
       zk1.createOnce(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-      ZooReaderWriter zrw1 = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
-        @Override
-        public ZooKeeper getZooKeeper() {
-          return zk1;
-        }
-      };
-
       final RetryLockWatcher zlw1 = new RetryLockWatcher();
-      ZooLock zl1 =
-          new ZooLock(zrw1, parent, UUID.fromString("00000000-0000-0000-0000-aaaaaaaaaaaa"));
+      ZooLock zl1 = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent,
+          UUID.fromString("00000000-0000-0000-0000-aaaaaaaaaaaa"));
       zl1.lock(zlw1, "test1".getBytes(UTF_8));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
@@ -411,16 +404,9 @@ public class ZooLockIT extends SharedMiniClusterBase {
       // Lastly, because zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000000 is the first child,
       // zl1 assumes that it has the lock.
 
-      ZooReaderWriter zrw2 = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
-        @Override
-        public ZooKeeper getZooKeeper() {
-          return zk2;
-        }
-      };
-
       final RetryLockWatcher zlw2 = new RetryLockWatcher();
-      ZooLock zl2 =
-          new ZooLock(zrw2, parent, UUID.fromString("00000000-0000-0000-0000-bbbbbbbbbbbb"));
+      ZooLock zl2 = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent,
+          UUID.fromString("00000000-0000-0000-0000-bbbbbbbbbbbb"));
       zl2.lock(zlw2, "test1".getBytes(UTF_8));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
@@ -505,13 +491,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
           while (!watcher.isConnected()) {
             Thread.sleep(50);
           }
-          ZooReaderWriter zrw = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
-            @Override
-            public ZooKeeper getZooKeeper() {
-              return zk;
-            }
-          };
-          ZooLock zl = new ZooLock(zrw, parent, uuid);
+          ZooLock zl = new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent, uuid);
           getLockLatch.countDown(); // signal we are done
           getLockLatch.await(); // wait for others to finish
           zl.lock(lockWatcher, "test1".getBytes(UTF_8)); // race to the lock

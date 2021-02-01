@@ -640,7 +640,7 @@ public class TabletServer extends AbstractServer {
         throw e;
       }
 
-      tabletServerLock = new ZooLock(zoo, zPath, UUID.randomUUID());
+      tabletServerLock = new ZooLock(getContext().getSiteConfiguration(), zPath, UUID.randomUUID());
 
       LockWatcher lw = new LockWatcher() {
 

@@ -1412,7 +1412,7 @@ public class Master extends AbstractServer
     while (true) {
 
       MasterLockWatcher masterLockWatcher = new MasterLockWatcher();
-      masterLock = new ZooLock(context.getZooReaderWriter(), zMasterLoc, zooLockUUID);
+      masterLock = new ZooLock(context.getSiteConfiguration(), zMasterLoc, zooLockUUID);
       masterLock.lock(masterLockWatcher, masterClientAddress.getBytes());
 
       masterLockWatcher.waitForChange();
