@@ -360,10 +360,13 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void userTest() {
+  public void userExistsTest() throws IOException {
     Shell.log.debug("Starting user test --------------------------");
-    // Test cannot be done via junit because createuser only prompts for password
-    // exec("createuser root", false, "user exists");
+    String user = testName.getMethodName();
+    exec("createuser root", false, "user exists");
+    exec("createuser " + user, true);
+    exec("createuser " + user, false, "user exists");
+    exec("deleteuser " + user + " -f", true);
   }
 
   @Test
