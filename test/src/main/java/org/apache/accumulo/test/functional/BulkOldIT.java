@@ -27,6 +27,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
@@ -66,11 +67,11 @@ public class BulkOldIT extends AccumuloClusterHarness {
   public void testBulkFile() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
       SortedSet<Text> splits = new TreeSet<>();
       for (String split : "0333 0666 0999 1333 1666".split(" "))
         splits.add(new Text(split));
-      c.tableOperations().addSplits(tableName, splits);
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      c.tableOperations().create(tableName, ntc);
       Configuration conf = new Configuration();
       AccumuloConfiguration aconf = getCluster().getServerContext().getConfiguration();
       FileSystem fs = getCluster().getFileSystem();

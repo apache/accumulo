@@ -403,13 +403,13 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     String tableName = "tiwr";
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().create(tableName);
+
       SortedSet<Text> splits = new TreeSet<>();
-      splits.add(new Text("f"));
-      splits.add(new Text("m"));
-      splits.add(new Text("r"));
-      splits.add(new Text("t"));
-      client.tableOperations().addSplits(tableName, splits);
+      for (String s : List.of("f", "m", "r", "t"))
+        splits.add(new Text(s));
+
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      client.tableOperations().create(tableName, ntc);
 
       Map<String,String> expected = new TreeMap<>();
 

@@ -590,13 +590,12 @@ public class SummaryIT extends AccumuloClusterHarness {
   public void testBuggySummarizer() throws Exception {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      NewTableConfiguration ntc = new NewTableConfiguration();
       SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BuggySummarizer.class).build();
-      ntc.enableSummarization(sc1);
+      // create table with a single split so that summary stats merge is forced
+      SortedSet<Text> split = new TreeSet<>(Collections.singleton(new Text("g")));
+      NewTableConfiguration ntc =
+          new NewTableConfiguration().enableSummarization(sc1).withSplits(split);
       c.tableOperations().create(table, ntc);
-
-      // add a single split so that summary stats merge is forced
-      c.tableOperations().addSplits(table, new TreeSet<>(Collections.singleton(new Text("g"))));
 
       try (BatchWriter bw = c.createBatchWriter(table)) {
         write(bw, "bar1", "f1", "q1", "v1");
@@ -886,9 +885,6 @@ public class SummaryIT extends AccumuloClusterHarness {
   public void testManyFiles() throws Exception {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      ntc.enableSummarization(SummarizerConfiguration.builder(FamilySummarizer.class).build());
-      c.tableOperations().create(table, ntc);
 
       Random rand = new SecureRandom();
       int q = 0;
@@ -897,7 +893,10 @@ public class SummaryIT extends AccumuloClusterHarness {
       for (int split = 100_000; split < 1_000_000; split += 100_000) {
         partitionKeys.add(new Text(String.format("%06d", split)));
       }
-      c.tableOperations().addSplits(table, partitionKeys);
+      NewTableConfiguration ntc = new NewTableConfiguration()
+          .enableSummarization(SummarizerConfiguration.builder(FamilySummarizer.class).build())
+          .withSplits(partitionKeys);
+      c.tableOperations().create(table, ntc);
       Map<String,Long> famCounts = new HashMap<>();
 
       for (int t = 0; t < 20; t++) {

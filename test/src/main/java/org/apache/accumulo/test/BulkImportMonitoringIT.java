@@ -79,8 +79,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
       HashMap<String,String> props = new HashMap<>();
       props.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
       // creating table with configuration
-      NewTableConfiguration ntc =
-          new NewTableConfiguration().setProperties(props).withSplits(splits);
+      var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
       c.tableOperations().create(tableName, ntc);
 
       MasterMonitorInfo stats = getCluster().getMasterMonitorInfo();

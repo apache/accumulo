@@ -28,6 +28,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -79,12 +80,12 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
       c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);
-      c.tableOperations().create(table);
       SortedSet<Text> partitions = new TreeSet<>();
       for (String part : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
         partitions.add(new Text(part));
       }
-      c.tableOperations().addSplits(table, partitions);
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions);
+      c.tableOperations().create(table, ntc);
       // scan the metadata table and get the two table location states
       Set<TServerInstance> states = new HashSet<>();
       Set<TabletLocationState> oldLocations = new HashSet<>();
