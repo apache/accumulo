@@ -1906,9 +1906,9 @@ public class Tablet {
 
     if (reason != null) {
       // initiate and log outside of tablet lock
+      log.debug("Initiating minor compaction for {} because {}", getExtent(), reason);
       TableState tableState = context.getTableManager().getTableState(extent.tableId());
       initiateMinorCompaction(MinorCompactionReason.SYSTEM, tableState);
-      log.debug("Initiating minor compaction for {} because {}", getExtent(), reason);
     }
   }
 
