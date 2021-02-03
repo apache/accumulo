@@ -170,7 +170,7 @@ public class TestIngest {
     if (params.createTable) {
       TreeSet<Text> splits =
           getSplitPoints(params.startRow, params.startRow + params.rows, params.numsplits);
-      // if the table does not exit, create it (with splits)
+      // if the table does not exist, create it (with splits)
       if (!client.tableOperations().exists(params.tableName)) {
         NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
         client.tableOperations().create(params.tableName, ntc);
