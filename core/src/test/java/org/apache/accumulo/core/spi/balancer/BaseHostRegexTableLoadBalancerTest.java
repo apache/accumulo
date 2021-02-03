@@ -74,14 +74,14 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     DEFAULT_TABLE_PROPERTIES
         .put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r02.*");
     DEFAULT_TABLE_PROPERTIES.put(Property.TABLE_LOAD_BALANCER.getKey(),
-        TestDefaultBalancer.class.getName());
+        TestSimpleBalancer.class.getName());
   }
 
   protected static final TestTable FOO = new TestTable("foo", TableId.of("1"));
   protected static final TestTable BAR = new TestTable("bar", TableId.of("2"));
   protected static final TestTable BAZ = new TestTable("baz", TableId.of("3"));
 
-  protected class TestDefaultBalancer extends DefaultLoadBalancer {
+  protected class TestSimpleBalancer extends SimpleLoadBalancer {
     @Override
     public List<TabletStatistics> getOnlineTabletsForTable(TabletServerId tserver,
         TableId tableId) {
@@ -231,7 +231,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   @Override
   protected TabletBalancer getBalancerForTable(TableId table) {
-    return new TestDefaultBalancer();
+    return new TestSimpleBalancer();
   }
 
   @Override

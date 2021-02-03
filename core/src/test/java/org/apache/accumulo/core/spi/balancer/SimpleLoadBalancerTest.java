@@ -51,7 +51,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
-public class DefaultLoadBalancerTest {
+public class SimpleLoadBalancerTest {
 
   static class FakeTServer {
     List<TabletId> tablets = new ArrayList<>();
@@ -76,7 +76,7 @@ public class DefaultLoadBalancerTest {
   Map<TabletServerId,FakeTServer> servers = new HashMap<>();
   Map<TabletId,TabletServerId> last = new HashMap<>();
 
-  class TestDefaultLoadBalancer extends DefaultLoadBalancer {
+  class TestSimpleLoadBalancer extends SimpleLoadBalancer {
 
     @Override
     protected List<TabletStatistics> getOnlineTabletsForTable(TabletServerId tserver,
@@ -120,7 +120,7 @@ public class DefaultLoadBalancerTest {
     metadataTable.add(makeTablet(table, null, "e"));
     Collections.sort(metadataTable);
 
-    TestDefaultLoadBalancer balancer = new TestDefaultLoadBalancer();
+    TestSimpleLoadBalancer balancer = new TestSimpleLoadBalancer();
 
     SortedMap<TabletServerId,TServerStatus> current = new TreeMap<>();
     for (Entry<TabletServerId,FakeTServer> entry : servers.entrySet()) {
@@ -156,7 +156,7 @@ public class DefaultLoadBalancerTest {
   }
 
   private void assignTablets(List<TabletId> metadataTable, Map<TabletServerId,FakeTServer> servers,
-      SortedMap<TabletServerId,TServerStatus> status, TestDefaultLoadBalancer balancer) {
+      SortedMap<TabletServerId,TServerStatus> status, TestSimpleLoadBalancer balancer) {
     // Assign tablets
     for (TabletId tabletId : metadataTable) {
       TabletServerId assignment = balancer.getAssignment(status, last.get(tabletId));
@@ -195,7 +195,7 @@ public class DefaultLoadBalancerTest {
     first.getValue().tablets.add(makeTablet("newTable", "g", "f"));
     first.getValue().tablets.add(makeTablet("newTable", "h", "g"));
     first.getValue().tablets.add(makeTablet("newTable", "i", null));
-    TestDefaultLoadBalancer balancer = new TestDefaultLoadBalancer();
+    TestSimpleLoadBalancer balancer = new TestSimpleLoadBalancer();
     Set<TabletId> migrations = Collections.emptySet();
     int moved = 0;
     // balance until we can't balance no more!
@@ -235,7 +235,7 @@ public class DefaultLoadBalancerTest {
       shortServer.getValue().tablets.add(makeTablet("s" + i, null, null));
     }
 
-    TestDefaultLoadBalancer balancer = new TestDefaultLoadBalancer();
+    TestSimpleLoadBalancer balancer = new TestSimpleLoadBalancer();
     Set<TabletId> migrations = Collections.emptySet();
     int moved = 0;
     // balance until we can't balance no more!

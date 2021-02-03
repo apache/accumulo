@@ -47,11 +47,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * A simple tablet balancer that attempts to spread tablets out evenly across all available tablet
+ * servers. The goal is to achieve the same number of tablets on each tablet server.
+ *
+ * <p>
+ * Initial assignments attempt to maintain locality by assigning tablets to their previous location
+ * if possible, but otherwise assignments are made in a random fashion across all available tablet
+ * servers.
+ *
  * @since 2.1.0
  */
-public class DefaultLoadBalancer implements TabletBalancer {
+public class SimpleLoadBalancer implements TabletBalancer {
 
-  private static final Logger log = LoggerFactory.getLogger(DefaultLoadBalancer.class);
+  private static final Logger log = LoggerFactory.getLogger(SimpleLoadBalancer.class);
 
   protected BalancerEnvironment environment;
 
@@ -59,9 +67,9 @@ public class DefaultLoadBalancer implements TabletBalancer {
   // if tableToBalance is set, then only balance the given table
   TableId tableToBalance = null;
 
-  public DefaultLoadBalancer() {}
+  public SimpleLoadBalancer() {}
 
-  public DefaultLoadBalancer(TableId table) {
+  public SimpleLoadBalancer(TableId table) {
     tableToBalance = table;
   }
 

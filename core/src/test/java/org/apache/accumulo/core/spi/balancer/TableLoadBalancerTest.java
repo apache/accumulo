@@ -98,9 +98,9 @@ public class TableLoadBalancerTest {
     return result;
   }
 
-  public static class TestDefaultLoadBalancer extends DefaultLoadBalancer {
+  public static class TestSimpleLoadBalancer extends SimpleLoadBalancer {
 
-    public TestDefaultLoadBalancer(TableId table) {
+    public TestSimpleLoadBalancer(TableId table) {
       super(table);
     }
 
@@ -118,7 +118,7 @@ public class TableLoadBalancerTest {
   public void test() {
     BalancerEnvironment environment = createMock(BalancerEnvironment.class);
     ConfigurationCopy cc = new ConfigurationCopy(
-        Map.of(Property.TABLE_LOAD_BALANCER.getKey(), TestDefaultLoadBalancer.class.getName()));
+        Map.of(Property.TABLE_LOAD_BALANCER.getKey(), TestSimpleLoadBalancer.class.getName()));
     ConfigurationImpl tableConfig = new ConfigurationImpl(cc);
 
     Map<String,TableId> tableIdMap = TABLE_ID_MAP.entrySet().stream()

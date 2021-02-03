@@ -765,7 +765,7 @@ public enum Property {
           + "Once this limit is reached, the buffered data is sent to the client."),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.STRING,
       "Change the type of file a table writes"),
-  TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.core.spi.balancer.DefaultLoadBalancer",
+  TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer",
       PropertyType.STRING,
       "This property can be set to allow the LoadBalanceByTable load balancer"
           + " to change the called Load Balancer for this table"),
