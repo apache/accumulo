@@ -250,6 +250,6 @@ public class ZooReaderWriter extends ZooReader {
    */
   public void recursiveDelete(String zPath, NodeMissingPolicy policy)
       throws KeeperException, InterruptedException {
-    ZooLock.recursiveDelete(getZooKeeper(), zPath, policy);
+    ZooUtil.recursiveDelete(getZooKeeper(), zPath, policy);
   }
 }

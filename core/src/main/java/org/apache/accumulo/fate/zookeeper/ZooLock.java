@@ -93,14 +93,9 @@ public class ZooLock implements Watcher {
   private String watchingNodeName;
 
   public ZooLock(AccumuloConfiguration conf, String path, UUID uuid) {
-    this(conf.get(Property.INSTANCE_ZK_HOST),
-        (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
-        conf.get(Property.INSTANCE_SECRET), path, uuid);
-  }
-
-  public ZooLock(String zookeepers, int timeInMillis, String secret, String path, UUID uuid) {
-    this.zooKeeper = ZooSession.getAuthenticatedSession(zookeepers, timeInMillis, "digest",
-        ("accumulo" + ":" + secret).getBytes(UTF_8));
+    this.zooKeeper = ZooSession.getAuthenticatedSession(conf.get(Property.INSTANCE_ZK_HOST),
+        (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), "digest",
+        ("accumulo" + ":" + conf.get(Property.INSTANCE_SECRET)).getBytes(UTF_8));
     this.path = path;
     try {
       zooKeeper.exists(path, this);
@@ -157,39 +152,11 @@ public class ZooLock implements Watcher {
       String pathToDelete = path + "/" + createdNodeName;
       LOG.debug("[{}] Failed to acquire lock in tryLock(), deleting all at path: {}", vmLockPrefix,
           pathToDelete);
-      recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
+      ZooUtil.recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
       createdNodeName = null;
     }
 
     return false;
-  }
-
-  /**
-   * This method will delete a node and all its children.
-   */
-  public static void recursiveDelete(ZooKeeper zooKeeper, String zPath, NodeMissingPolicy policy)
-      throws KeeperException, InterruptedException {
-    if (policy == NodeMissingPolicy.CREATE) {
-      throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
-    }
-    try {
-      // delete children
-      for (String child : zooKeeper.getChildren(zPath, null)) {
-        recursiveDelete(zooKeeper, zPath + "/" + child, NodeMissingPolicy.SKIP);
-      }
-
-      // delete self
-      zooKeeper.delete(zPath, -1);
-    } catch (KeeperException e) {
-      // new child appeared; try again
-      if (e.code() == Code.NOTEMPTY) {
-        recursiveDelete(zooKeeper, zPath, policy);
-      }
-      if (policy == NodeMissingPolicy.SKIP && e.code() == Code.NONODE) {
-        return;
-      }
-      throw e;
-    }
   }
 
   /**
@@ -552,7 +519,7 @@ public class ZooLock implements Watcher {
       String pathToDelete = path + "/" + createdNodeName;
       LOG.debug("[{}] Deleting all at path {} due to lock cancellation", vmLockPrefix,
           pathToDelete);
-      recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
+      ZooUtil.recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
       del = true;
     }
 
@@ -577,7 +544,7 @@ public class ZooLock implements Watcher {
 
     final String pathToDelete = path + "/" + localLock;
     LOG.debug("[{}] Deleting all at path {} due to unlock", vmLockPrefix, pathToDelete);
-    recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
+    ZooUtil.recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
 
     localLw.lostLock(LockLossReason.LOCK_DELETED);
   }
