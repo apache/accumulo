@@ -703,8 +703,6 @@ public class InMemoryMap {
 
     int mc = kvCount.get();
     MemoryDataSource mds = new MemoryDataSource(iteratorSamplerConfig);
-    // TODO seems like a bug that two MemoryDataSources are created... may need to fix in older
-    // branches
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(mds);
     MemoryIterator mi = new MemoryIterator(new PartialMutationSkippingIterator(ssi, mc));
     mi.setSSI(ssi);
