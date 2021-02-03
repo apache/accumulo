@@ -181,7 +181,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
 
-    MasterClient.executeNamespace(context,
+    ManagerClient.executeNamespace(context,
         client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
             property, value));
     checkLocalityGroups(namespace, property);
@@ -193,7 +193,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(property != null, "property is null");
 
-    MasterClient.executeNamespace(context, client -> client
+    ManagerClient.executeNamespace(context, client -> client
         .removeNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace, property));
     checkLocalityGroups(namespace, property);
   }

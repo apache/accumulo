@@ -42,7 +42,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -82,7 +82,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
       var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
       c.tableOperations().create(tableName, ntc);
 
-      MasterMonitorInfo stats = getCluster().getMasterMonitorInfo();
+      ManagerMonitorInfo stats = getCluster().getMasterMonitorInfo();
       assertEquals(1, stats.tServerInfo.size());
       assertEquals(0, stats.bulkImports.size());
       assertEquals(0, stats.tServerInfo.get(0).bulkImports.size());

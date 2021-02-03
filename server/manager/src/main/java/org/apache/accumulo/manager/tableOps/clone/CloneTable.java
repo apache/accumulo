@@ -25,11 +25,11 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-public class CloneTable extends MasterRepo {
+public class CloneTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
@@ -47,7 +47,7 @@ public class CloneTable extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
+  public long isReady(long tid, Manager environment) throws Exception {
     long val = Utils.reserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false, true,
         TableOperation.CLONE);
     val += Utils.reserveTable(environment, cloneInfo.srcTableId, tid, false, true,
@@ -56,7 +56,7 @@ public class CloneTable extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Manager> call(long tid, Manager environment) throws Exception {
 
     Utils.getIdLock().lock();
     try {
@@ -70,7 +70,7 @@ public class CloneTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) {
+  public void undo(long tid, Manager environment) {
     Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false);
     Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, false);
   }

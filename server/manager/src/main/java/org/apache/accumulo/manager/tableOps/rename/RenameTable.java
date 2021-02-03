@@ -32,12 +32,12 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.LoggerFactory;
 
-public class RenameTable extends MasterRepo {
+public class RenameTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
   private TableId tableId;
@@ -46,7 +46,7 @@ public class RenameTable extends MasterRepo {
   private String newTableName;
 
   @Override
-  public long isReady(long tid, Master env) throws Exception {
+  public long isReady(long tid, Manager env) throws Exception {
     return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.RENAME)
         + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.RENAME);
   }
@@ -60,7 +60,7 @@ public class RenameTable extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager master) throws Exception {
     Pair<String,String> qualifiedOldTableName = Tables.qualify(oldTableName);
     Pair<String,String> qualifiedNewTableName = Tables.qualify(newTableName);
 
@@ -109,7 +109,7 @@ public class RenameTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) {
+  public void undo(long tid, Manager env) {
     Utils.unreserveTable(env, tableId, tid, true);
     Utils.unreserveNamespace(env, namespaceId, tid, false);
   }

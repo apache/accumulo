@@ -40,7 +40,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -51,7 +51,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.monitor.rest.manager.MasterResource;
+import org.apache.accumulo.monitor.rest.manager.ManagerResource;
 import org.apache.accumulo.server.manager.state.DeadServerList;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
 
@@ -78,7 +78,7 @@ public class TabletServerResource {
    */
   @GET
   public TabletServers getTserverSummary() {
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return new TabletServers();
     }
@@ -88,7 +88,7 @@ public class TabletServerResource {
       tserverInfo.addTablet(new TabletServer(monitor, status));
     }
 
-    tserverInfo.addBadTabletServer(MasterResource.getTables(monitor));
+    tserverInfo.addBadTabletServer(ManagerResource.getTables(monitor));
 
     return tserverInfo;
   }
@@ -117,7 +117,7 @@ public class TabletServerResource {
   public TabletServersRecovery getTserverRecovery() {
     TabletServersRecovery recoveryList = new TabletServersRecovery();
 
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return new TabletServersRecovery();
     }
@@ -150,7 +150,7 @@ public class TabletServerResource {
   public TabletServerSummary getTserverDetails(
       @PathParam("address") @NotNull @Pattern(regexp = HOSTNAME_PORT_REGEX) String tserverAddress)
       throws Exception {
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null)
       return new TabletServerSummary();
 

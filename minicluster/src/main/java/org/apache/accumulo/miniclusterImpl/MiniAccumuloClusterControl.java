@@ -32,7 +32,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.monitor.Monitor;
@@ -144,7 +144,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case MASTER:
       case MANAGER:
         if (masterProcess == null) {
-          masterProcess = cluster._exec(Master.class, server, configOverrides).getProcess();
+          masterProcess = cluster._exec(Manager.class, server, configOverrides).getProcess();
         }
         break;
       case ZOOKEEPER:

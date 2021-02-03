@@ -38,7 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -64,10 +64,10 @@ public class RecoveryManager {
   private Set<String> sortsQueued = new HashSet<>();
   private Cache<Path,Boolean> existenceCache;
   private ScheduledExecutorService executor;
-  private Master master;
+  private Manager master;
   private ZooCache zooCache;
 
-  public RecoveryManager(Master master, long timeToCacheExistsInMillis) {
+  public RecoveryManager(Manager master, long timeToCacheExistsInMillis) {
     this.master = master;
     existenceCache =
         CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)

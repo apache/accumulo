@@ -70,7 +70,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.state.Assignment;
-import org.apache.accumulo.server.util.MasterMetadataUtil;
+import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.fs.Path;
@@ -216,15 +216,15 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     if (steps >= 1) {
       Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, extent);
 
-      MasterMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes, bulkFiles,
-          new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
+      ManagerMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes,
+          bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
     }
     if (steps >= 2) {
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context, zl);
     }
 
     TabletMetadata meta = context.getAmple().readTablet(high);
-    KeyExtent fixedExtent = MasterMetadataUtil.fixSplit(context, meta, zl);
+    KeyExtent fixedExtent = ManagerMetadataUtil.fixSplit(context, meta, zl);
 
     if (steps < 2)
       assertEquals(splitRatio, meta.getSplitRatio(), 0.0);

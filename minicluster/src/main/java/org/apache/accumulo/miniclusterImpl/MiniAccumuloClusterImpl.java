@@ -58,7 +58,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -67,9 +67,9 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.master.thrift.ManagerGoalState;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -568,7 +568,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     int ret = 0;
     for (int i = 0; i < 5; i++) {
-      ret = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString())
+      ret = exec(Main.class, SetGoalState.class.getName(), ManagerGoalState.NORMAL.toString())
           .getProcess().waitFor();
       if (ret == 0) {
         break;
@@ -756,13 +756,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    *
    * @since 1.6.1
    */
-  public MasterMonitorInfo getMasterMonitorInfo()
+  public ManagerMonitorInfo getMasterMonitorInfo()
       throws AccumuloException, AccumuloSecurityException {
-    MasterClientService.Iface client = null;
+    ManagerClientService.Iface client = null;
     while (true) {
       try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-        client = MasterClient.getConnectionWithRetry((ClientContext) c);
-        return client.getMasterStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds());
+        client = ManagerClient.getConnectionWithRetry((ClientContext) c);
+        return client.getManagerStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds());
       } catch (ThriftSecurityException exception) {
         throw new AccumuloSecurityException(exception);
       } catch (ThriftNotActiveServiceException e) {
@@ -773,7 +773,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         throw new AccumuloException(exception);
       } finally {
         if (client != null) {
-          MasterClient.close(client);
+          ManagerClient.close(client);
         }
       }
     }

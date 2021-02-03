@@ -55,7 +55,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
+public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {

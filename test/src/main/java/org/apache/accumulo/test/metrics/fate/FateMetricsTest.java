@@ -30,9 +30,9 @@ import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.ZooKeeper;
@@ -59,10 +59,10 @@ public class FateMetricsTest {
   private static final Logger log = LoggerFactory.getLogger(FateMetricsTest.class);
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zooReaderWriter;
-  private ZooStore<Master> zooStore = null;
+  private ZooStore<Manager> zooStore = null;
   private ZooKeeper zookeeper = null;
   private ServerContext context = null;
-  private Master master;
+  private Manager master;
 
   @BeforeClass
   public static void setupZk() {
@@ -94,7 +94,7 @@ public class FateMetricsTest {
 
     zooStore = new ZooStore<>(MOCK_ZK_ROOT + Constants.ZFATE, zooReaderWriter);
 
-    master = EasyMock.createMock(Master.class);
+    master = EasyMock.createMock(Manager.class);
     context = EasyMock.createMock(ServerContext.class);
 
     EasyMock.expect(context.getZooReaderWriter()).andReturn(zooReaderWriter).anyTimes();
@@ -215,10 +215,10 @@ public class FateMetricsTest {
 
     zooStore.setStatus(txId, ReadOnlyTStore.TStatus.IN_PROGRESS);
 
-    Repo<Master> repo = new FakeOp();
+    Repo<Manager> repo = new FakeOp();
     zooStore.push(txId, repo);
 
-    Repo<Master> step = new FakeOpStep1();
+    Repo<Manager> step = new FakeOpStep1();
     zooStore.push(txId, step);
 
     zooStore.setProperty(txId, "debug", repo.getDescription());
@@ -290,20 +290,20 @@ public class FateMetricsTest {
     }
   }
 
-  private static class FakeOp extends MasterRepo {
+  private static class FakeOp extends ManagerRepo {
     private static final long serialVersionUID = -1L;
 
     @Override
-    public Repo<Master> call(long tid, Master environment) {
+    public Repo<Manager> call(long tid, Manager environment) {
       return null;
     }
   }
 
-  private static class FakeOpStep1 extends MasterRepo {
+  private static class FakeOpStep1 extends ManagerRepo {
     private static final long serialVersionUID = -1L;
 
     @Override
-    public Repo<Master> call(long tid, Master environment) {
+    public Repo<Manager> call(long tid, Manager environment) {
       return null;
     }
   }

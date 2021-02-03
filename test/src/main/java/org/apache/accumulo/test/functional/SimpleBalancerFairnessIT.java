@@ -32,11 +32,11 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -82,14 +82,14 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       sleepUninterruptibly(45, TimeUnit.SECONDS);
       Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
 
-      MasterMonitorInfo stats = null;
+      ManagerMonitorInfo stats = null;
       int unassignedTablets = 1;
       for (int i = 0; unassignedTablets > 0 && i < 20; i++) {
-        MasterClientService.Iface client = null;
+        ManagerClientService.Iface client = null;
         while (true) {
           try {
-            client = MasterClient.getConnectionWithRetry((ClientContext) c);
-            stats = client.getMasterStats(TraceUtil.traceInfo(),
+            client = ManagerClient.getConnectionWithRetry((ClientContext) c);
+            stats = client.getManagerStats(TraceUtil.traceInfo(),
                 creds.toThrift(c.instanceOperations().getInstanceID()));
             break;
           } catch (ThriftNotActiveServiceException e) {
@@ -97,7 +97,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
             sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
           } finally {
             if (client != null)
-              MasterClient.close(client);
+              ManagerClient.close(client);
           }
         }
         unassignedTablets = stats.getUnassignedTablets();

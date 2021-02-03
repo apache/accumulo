@@ -29,11 +29,11 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerClientService.Client;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -82,20 +82,20 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       }
 
       while (true) {
-        MasterMonitorInfo stats;
+        ManagerMonitorInfo stats;
         Client client = null;
         try {
           ClientContext context = (ClientContext) c;
-          client = MasterClient.getConnectionWithRetry(context);
+          client = ManagerClient.getConnectionWithRetry(context);
           log.info("Fetching stats");
-          stats = client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
+          stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
         } catch (ThriftNotActiveServiceException e) {
           // Let it loop, fetching a new location
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
           continue;
         } finally {
           if (client != null)
-            MasterClient.close(client);
+            ManagerClient.close(client);
         }
         int tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {

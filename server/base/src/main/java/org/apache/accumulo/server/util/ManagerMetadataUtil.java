@@ -59,9 +59,9 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MasterMetadataUtil {
+public class ManagerMetadataUtil {
 
-  private static final Logger log = LoggerFactory.getLogger(MasterMetadataUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(ManagerMetadataUtil.class);
 
   public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
       TServerInstance location, Map<StoredTabletFile,DataFileValue> datafileSizes,

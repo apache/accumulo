@@ -96,7 +96,7 @@ public class TabletServerInformationTest {
     assertEquals(5.67, tsi.queryMB, 0.001);
     assertEquals(301, tsi.scans.intValue());
     assertEquals(0.0, tsi.scansessions, 0.001); // can't test here; this comes from
-                                                // MasterMonitorInfo
+                                                // ManagerMonitorInfo
     assertEquals(tsi.scansessions, tsi.scanssessions, 0.001);
     assertEquals(44, tsi.holdtime);
     assertEquals("tServerTestName:1234", tsi.ip);

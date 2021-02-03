@@ -33,8 +33,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-class MoveExportedFiles extends MasterRepo {
+class MoveExportedFiles extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(MoveExportedFiles.class);
 
   private static final long serialVersionUID = 1L;
@@ -55,7 +55,7 @@ class MoveExportedFiles extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager master) throws Exception {
     String fmtTid = FateTxId.formatTid(tid);
 
     int workerCount = master.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);

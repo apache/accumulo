@@ -67,11 +67,11 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Iface;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Processor;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
-import org.apache.accumulo.core.master.thrift.MasterState;
+import org.apache.accumulo.core.master.thrift.ManagerClientService.Iface;
+import org.apache.accumulo.core.master.thrift.ManagerClientService.Processor;
+import org.apache.accumulo.core.master.thrift.ManagerGoalState;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerState;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -103,9 +103,9 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.manager.metrics.MasterMetricsFactory;
+import org.apache.accumulo.manager.metrics.ManagerMetricsFactory;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
-import org.apache.accumulo.manager.replication.MasterReplicationCoordinator;
+import org.apache.accumulo.manager.replication.ManagerReplicationCoordinator;
 import org.apache.accumulo.manager.replication.ReplicationDriver;
 import org.apache.accumulo.manager.replication.WorkDriver;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -162,10 +162,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <p>
  * The master will also coordinate log recoveries and reports general status.
  */
-public class Master extends AbstractServer
+public class Manager extends AbstractServer
     implements LiveTServerSet.Listener, TableObserver, CurrentState, HighlyAvailableService {
 
-  static final Logger log = LoggerFactory.getLogger(Master.class);
+  static final Logger log = LoggerFactory.getLogger(Manager.class);
 
   static final int ONE_SECOND = 1000;
   static final long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
@@ -194,7 +194,7 @@ public class Master extends AbstractServer
   private Thread replicationWorkThread;
   private Thread replicationAssignerThread;
   RecoveryManager recoveryManager = null;
-  private final MasterTime timeKeeper;
+  private final ManagerTime timeKeeper;
 
   // Delegation Token classes
   private final boolean delegationTokensAvailable;
@@ -206,9 +206,9 @@ public class Master extends AbstractServer
   private volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
 
-  private MasterState state = MasterState.INITIAL;
+  private ManagerState state = ManagerState.INITIAL;
 
-  Fate<Master> fate;
+  Fate<Manager> fate;
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus =
       Collections.unmodifiableSortedMap(new TreeMap<>());
@@ -219,12 +219,12 @@ public class Master extends AbstractServer
   private final AtomicBoolean masterInitialized = new AtomicBoolean(false);
 
   @Override
-  public synchronized MasterState getMasterState() {
+  public synchronized ManagerState getMasterState() {
     return state;
   }
 
   public boolean stillMaster() {
-    return getMasterState() != MasterState.STOP;
+    return getMasterState() != ManagerState.STOP;
   }
 
   static final boolean X = true;
@@ -240,32 +240,32 @@ public class Master extends AbstractServer
       /* UNLOAD_ROOT_TABLET */      {O, O, O, X, X, X, X},
       /* STOP */                    {O, O, O, O, O, X, X}};
   //@formatter:on
-  synchronized void setMasterState(MasterState newState) {
+  synchronized void setMasterState(ManagerState newState) {
     if (state.equals(newState)) {
       return;
     }
     if (!transitionOK[state.ordinal()][newState.ordinal()]) {
       log.error("Programmer error: master should not transition from {} to {}", state, newState);
     }
-    MasterState oldState = state;
+    ManagerState oldState = state;
     state = newState;
     nextEvent.event("State changed from %s to %s", oldState, newState);
-    if (newState == MasterState.STOP) {
+    if (newState == ManagerState.STOP) {
       // Give the server a little time before shutdown so the client
       // thread requesting the stop can return
       ThreadPools.createGeneralScheduledExecutorService(getConfiguration())
           .scheduleWithFixedDelay(() -> {
             // This frees the main thread and will cause the master to exit
             clientService.stop();
-            Master.this.nextEvent.event("stopped event loop");
+            Manager.this.nextEvent.event("stopped event loop");
           }, 100L, 1000L, TimeUnit.MILLISECONDS);
     }
 
-    if (oldState != newState && (newState == MasterState.HAVE_LOCK)) {
+    if (oldState != newState && (newState == ManagerState.HAVE_LOCK)) {
       upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
     }
 
-    if (oldState != newState && (newState == MasterState.NORMAL)) {
+    if (oldState != newState && (newState == ManagerState.NORMAL)) {
       if (fate != null) {
         throw new IllegalStateException("Access to Fate should not have been"
             + " initialized prior to the Master finishing upgrades. Please save"
@@ -279,7 +279,7 @@ public class Master extends AbstractServer
 
   private Future<Void> upgradeMetadataFuture;
 
-  private MasterClientServiceHandler clientHandler;
+  private ManagerClientServiceHandler clientHandler;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -368,12 +368,12 @@ public class Master extends AbstractServer
   }
 
   public static void main(String[] args) throws Exception {
-    try (Master master = new Master(new ServerOpts(), args)) {
+    try (Manager master = new Manager(new ServerOpts(), args)) {
       master.runServer();
     }
   }
 
-  Master(ServerOpts opts, String[] args) throws IOException {
+  Manager(ServerOpts opts, String[] args) throws IOException {
     super("master", opts, args);
     ServerContext context = super.getContext();
     balancerEnvironment = new BalancerEnvironmentImpl(context);
@@ -382,7 +382,7 @@ public class Master extends AbstractServer
 
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", getInstanceID());
-    timeKeeper = new MasterTime(this, aconf);
+    timeKeeper = new ManagerTime(this, aconf);
     ThriftTransportPool.getInstance()
         .setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(context, this);
@@ -483,7 +483,7 @@ public class Master extends AbstractServer
     nextEvent.event("Merge state of %s cleared", tableId);
   }
 
-  void setMasterGoalState(MasterGoalState state) {
+  void setMasterGoalState(ManagerGoalState state) {
     try {
       getContext().getZooReaderWriter().putPersistentData(
           getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(),
@@ -493,12 +493,12 @@ public class Master extends AbstractServer
     }
   }
 
-  MasterGoalState getMasterGoalState() {
+  ManagerGoalState getMasterGoalState() {
     while (true) {
       try {
         byte[] data = getContext().getZooReaderWriter()
             .getData(getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE);
-        return MasterGoalState.valueOf(new String(data));
+        return ManagerGoalState.valueOf(new String(data));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
         sleepUninterruptibly(1, TimeUnit.SECONDS);
@@ -728,27 +728,27 @@ public class Master extends AbstractServer
         try {
           switch (getMasterGoalState()) {
             case NORMAL:
-              setMasterState(MasterState.NORMAL);
+              setMasterState(ManagerState.NORMAL);
               break;
             case SAFE_MODE:
-              if (getMasterState() == MasterState.NORMAL) {
-                setMasterState(MasterState.SAFE_MODE);
+              if (getMasterState() == ManagerState.NORMAL) {
+                setMasterState(ManagerState.SAFE_MODE);
               }
-              if (getMasterState() == MasterState.HAVE_LOCK) {
-                setMasterState(MasterState.SAFE_MODE);
+              if (getMasterState() == ManagerState.HAVE_LOCK) {
+                setMasterState(ManagerState.SAFE_MODE);
               }
               break;
             case CLEAN_STOP:
               switch (getMasterState()) {
                 case NORMAL:
-                  setMasterState(MasterState.SAFE_MODE);
+                  setMasterState(ManagerState.SAFE_MODE);
                   break;
                 case SAFE_MODE: {
                   int count = nonMetaDataTabletsAssignedOrHosted();
                   log.debug(
                       String.format("There are %d non-metadata tablets assigned or hosted", count));
                   if (count == 0 && goodStats()) {
-                    setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
+                    setMasterState(ManagerState.UNLOAD_METADATA_TABLETS);
                   }
                 }
                   break;
@@ -757,7 +757,7 @@ public class Master extends AbstractServer
                   log.debug(
                       String.format("There are %d metadata tablets assigned or hosted", count));
                   if (count == 0 && goodStats()) {
-                    setMasterState(MasterState.UNLOAD_ROOT_TABLET);
+                    setMasterState(ManagerState.UNLOAD_ROOT_TABLET);
                   }
                 }
                   break;
@@ -765,7 +765,7 @@ public class Master extends AbstractServer
                   int count = assignedOrHosted(MetadataTable.ID);
                   if (count > 0 && goodStats()) {
                     log.debug(String.format("%d metadata tablets online", count));
-                    setMasterState(MasterState.UNLOAD_ROOT_TABLET);
+                    setMasterState(ManagerState.UNLOAD_ROOT_TABLET);
                   }
                   int root_count = assignedOrHosted(RootTable.ID);
                   if (root_count > 0 && goodStats()) {
@@ -785,7 +785,7 @@ public class Master extends AbstractServer
                       }
                     }
                     if (currentServers.isEmpty()) {
-                      setMasterState(MasterState.STOP);
+                      setMasterState(ManagerState.STOP);
                     }
                   }
                   break;
@@ -821,7 +821,7 @@ public class Master extends AbstractServer
             badServers.keySet());
       } else if (notHosted() > 0) {
         log.debug("not balancing because there are unhosted tablets: {}", notHosted());
-      } else if (getMasterGoalState() == MasterGoalState.CLEAN_STOP) {
+      } else if (getMasterGoalState() == ManagerGoalState.CLEAN_STOP) {
         log.debug("not balancing because the master is attempting to stop cleanly");
       } else if (!serversToShutdown.isEmpty()) {
         log.debug("not balancing while shutting down servers {}", serversToShutdown);
@@ -1016,7 +1016,7 @@ public class Master extends AbstractServer
     // when a hot-standby
     //
     // Start the Master's Client service
-    clientHandler = new MasterClientServiceHandler(this);
+    clientHandler = new ManagerClientServiceHandler(this);
     // Ensure that calls before the master gets the lock fail
     Iface haProxy = HighlyAvailableServiceWrapper.service(clientHandler, this);
     Iface rpcProxy = TraceUtil.wrapService(haProxy);
@@ -1127,7 +1127,7 @@ public class Master extends AbstractServer
     }
 
     try {
-      final AgeOffStore<Master> store = new AgeOffStore<>(new org.apache.accumulo.fate.ZooStore<>(
+      final AgeOffStore<Manager> store = new AgeOffStore<>(new org.apache.accumulo.fate.ZooStore<>(
           getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()), 1000 * 60 * 60 * 8);
 
       fate = new Fate<>(this, store, TraceRepo::toLogString);
@@ -1200,7 +1200,7 @@ public class Master extends AbstractServer
         }, 0, 5000, TimeUnit.MILLISECONDS);
 
     // Register metrics modules
-    int failureCount = new MasterMetricsFactory(getConfiguration()).register(this);
+    int failureCount = new ManagerMetricsFactory(getConfiguration()).register(this);
 
     if (failureCount > 0) {
       log.info("Failed to register {} metrics modules", failureCount);
@@ -1346,7 +1346,7 @@ public class Master extends AbstractServer
       throws UnknownHostException, KeeperException, InterruptedException {
     ServerContext context = getContext();
     // Start the replication coordinator which assigns tservers to service replication requests
-    MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
+    ManagerReplicationCoordinator impl = new ManagerReplicationCoordinator(this);
     ReplicationCoordinator.Iface haReplicationProxy =
         HighlyAvailableServiceWrapper.service(impl, this);
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
@@ -1382,7 +1382,7 @@ public class Master extends AbstractServer
     return masterLock;
   }
 
-  private static class MasterLockWatcher implements ZooLock.AccumuloLockWatcher {
+  private static class ManagerLockWatcher implements ZooLock.AccumuloLockWatcher {
 
     boolean acquiredLock = false;
     boolean failedToAcquireLock = false;
@@ -1449,17 +1449,17 @@ public class Master extends AbstractServer
     UUID zooLockUUID = UUID.randomUUID();
     while (true) {
 
-      MasterLockWatcher masterLockWatcher = new MasterLockWatcher();
+      ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
       masterLock = new ZooLock(context.getSiteConfiguration(), zMasterLoc, zooLockUUID);
-      masterLock.lock(masterLockWatcher, masterClientAddress.getBytes());
+      masterLock.lock(managerLockWatcher, masterClientAddress.getBytes());
 
-      masterLockWatcher.waitForChange();
+      managerLockWatcher.waitForChange();
 
-      if (masterLockWatcher.acquiredLock) {
+      if (managerLockWatcher.acquiredLock) {
         break;
       }
 
-      if (!masterLockWatcher.failedToAcquireLock) {
+      if (!managerLockWatcher.failedToAcquireLock) {
         throw new IllegalStateException("master lock in unknown state");
       }
 
@@ -1468,7 +1468,7 @@ public class Master extends AbstractServer
       sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, TimeUnit.MILLISECONDS);
     }
 
-    setMasterState(MasterState.HAVE_LOCK);
+    setMasterState(ManagerState.HAVE_LOCK);
   }
 
   @Override
@@ -1488,7 +1488,7 @@ public class Master extends AbstractServer
         if (serversToShutdown.contains(dead)) {
           cause = "clean shutdown"; // maybe an incorrect assumption
         }
-        if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
+        if (!getMasterGoalState().equals(ManagerGoalState.CLEAN_STOP)) {
           obit.post(dead.getHostPort(), cause);
         }
       }
@@ -1496,7 +1496,7 @@ public class Master extends AbstractServer
       Set<TServerInstance> unexpected = new HashSet<>(deleted);
       unexpected.removeAll(this.serversToShutdown);
       if (!unexpected.isEmpty()) {
-        if (stillMaster() && !getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
+        if (stillMaster() && !getMasterGoalState().equals(ManagerGoalState.CLEAN_STOP)) {
           log.warn("Lost servers {}", unexpected);
         }
       }
@@ -1566,11 +1566,11 @@ public class Master extends AbstractServer
   @Override
   public Set<TableId> onlineTables() {
     Set<TableId> result = new HashSet<>();
-    if (getMasterState() != MasterState.NORMAL) {
-      if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS) {
+    if (getMasterState() != ManagerState.NORMAL) {
+      if (getMasterState() != ManagerState.UNLOAD_METADATA_TABLETS) {
         result.add(MetadataTable.ID);
       }
-      if (getMasterState() != MasterState.UNLOAD_ROOT_TABLET) {
+      if (getMasterState() != ManagerState.UNLOAD_ROOT_TABLET) {
         result.add(RootTable.ID);
       }
       return result;
@@ -1619,14 +1619,14 @@ public class Master extends AbstractServer
 
   public void assignedTablet(KeyExtent extent) {
     if (extent.isMeta()) {
-      if (getMasterState().equals(MasterState.UNLOAD_ROOT_TABLET)) {
-        setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
+      if (getMasterState().equals(ManagerState.UNLOAD_ROOT_TABLET)) {
+        setMasterState(ManagerState.UNLOAD_METADATA_TABLETS);
       }
     }
     if (extent.isRootTablet()) {
       // probably too late, but try anyhow
-      if (getMasterState().equals(MasterState.STOP)) {
-        setMasterState(MasterState.UNLOAD_ROOT_TABLET);
+      if (getMasterState().equals(ManagerState.STOP)) {
+        setMasterState(ManagerState.UNLOAD_ROOT_TABLET);
       }
     }
   }
@@ -1647,8 +1647,8 @@ public class Master extends AbstractServer
     }
   }
 
-  public MasterMonitorInfo getMasterMonitorInfo() {
-    final MasterMonitorInfo result = new MasterMonitorInfo();
+  public ManagerMonitorInfo getMasterMonitorInfo() {
+    final ManagerMonitorInfo result = new ManagerMonitorInfo();
 
     result.tServerInfo = new ArrayList<>();
     result.tableMap = new HashMap<>();

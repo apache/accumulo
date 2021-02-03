@@ -34,10 +34,10 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientExec;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.master.thrift.ManagerGoalState;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -87,12 +87,12 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  private Function<TCredentials,ClientExec<MasterClientService.Client>> op;
+  private Function<TCredentials,ClientExec<ManagerClientService.Client>> op;
 
   @Test
   public void testPermissions_setMasterGoalState() throws Exception {
     // To setMasterGoalState, user needs SystemPermission.SYSTEM
-    op = user -> client -> client.setMasterGoalState(null, user, MasterGoalState.NORMAL);
+    op = user -> client -> client.setManagerGoalState(null, user, ManagerGoalState.NORMAL);
     expectPermissionDenied(op, regularUser);
     expectPermissionSuccess(op, rootUser);
     expectPermissionSuccess(op, privilegedUser);
@@ -219,17 +219,17 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   }
 
   private static void expectPermissionSuccess(
-      Function<TCredentials,ClientExec<MasterClientService.Client>> op, Credentials user)
+      Function<TCredentials,ClientExec<ManagerClientService.Client>> op, Credentials user)
       throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps())
         .as(user.getPrincipal(), user.getToken()).build()) {
       ClientContext context = (ClientContext) client;
-      MasterClient.executeVoid(context, op.apply(context.rpcCreds()));
+      ManagerClient.executeVoid(context, op.apply(context.rpcCreds()));
     }
   }
 
   private static void expectPermissionDenied(
-      Function<TCredentials,ClientExec<MasterClientService.Client>> op, Credentials user)
+      Function<TCredentials,ClientExec<ManagerClientService.Client>> op, Credentials user)
       throws Exception {
     AccumuloSecurityException e =
         assertThrows(AccumuloSecurityException.class, () -> expectPermissionSuccess(op, user));

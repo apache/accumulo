@@ -16,34 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.tableOps;
+package org.apache.accumulo.tserver.mastermessage;
 
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.thrift.TException;
 
-public abstract class MasterRepo implements Repo<Master> {
+public interface ManagerMessage {
 
-  private static final long serialVersionUID = 1L;
-
-  @Override
-  public long isReady(long tid, Master environment) throws Exception {
-    return 0;
-  }
-
-  @Override
-  public void undo(long tid, Master environment) throws Exception {}
-
-  @Override
-  public String getDescription() {
-    return this.getClass().getSimpleName();
-  }
-
-  @Override
-  public String getReturn() {
-    return null;
-  }
-
-  @Override
-  public abstract Repo<Master> call(long tid, Master environment) throws Exception;
+  void send(TCredentials info, String serverName, ManagerClientService.Iface client)
+      throws TException, ThriftSecurityException;
 
 }

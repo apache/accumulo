@@ -114,7 +114,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.FateOperation;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -252,9 +252,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private long beginFateOperation() throws ThriftSecurityException, TException {
     while (true) {
-      MasterClientService.Iface client = null;
+      ManagerClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(context);
+        client = ManagerClient.getConnectionWithRetry(context);
         return client.beginFateOperation(TraceUtil.traceInfo(), context.rpcCreds());
       } catch (TTransportException tte) {
         log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
@@ -264,7 +264,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Master which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
-        MasterClient.close(client);
+        ManagerClient.close(client);
       }
     }
   }
@@ -275,9 +275,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<String,String> opts, boolean autoCleanUp)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
-      MasterClientService.Iface client = null;
+      ManagerClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(context);
+        client = ManagerClient.getConnectionWithRetry(context);
         client.executeFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid, op, args, opts,
             autoCleanUp);
         return;
@@ -289,7 +289,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Master which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
-        MasterClient.close(client);
+        ManagerClient.close(client);
       }
     }
   }
@@ -297,9 +297,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private String waitForFateOperation(long opid)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
-      MasterClientService.Iface client = null;
+      ManagerClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(context);
+        client = ManagerClient.getConnectionWithRetry(context);
         return client.waitForFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid);
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForFateOperation(), retrying ... ", tte);
@@ -309,16 +309,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Master which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
-        MasterClient.close(client);
+        ManagerClient.close(client);
       }
     }
   }
 
   private void finishFateOperation(long opid) throws ThriftSecurityException, TException {
     while (true) {
-      MasterClientService.Iface client = null;
+      ManagerClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(context);
+        client = ManagerClient.getConnectionWithRetry(context);
         client.finishFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid);
         break;
       } catch (TTransportException tte) {
@@ -329,7 +329,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Master which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
-        MasterClient.close(client);
+        ManagerClient.close(client);
       }
     }
   }
@@ -931,9 +931,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // so pass the tableid to both calls
 
       while (true) {
-        MasterClientService.Iface client = null;
+        ManagerClientService.Iface client = null;
         try {
-          client = MasterClient.getConnectionWithRetry(context);
+          client = ManagerClient.getConnectionWithRetry(context);
           flushID =
               client.initiateFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
           break;
@@ -945,14 +945,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
           log.debug("Contacted a Master which is no longer active, retrying");
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
-          MasterClient.close(client);
+          ManagerClient.close(client);
         }
       }
 
       while (true) {
-        MasterClientService.Iface client = null;
+        ManagerClientService.Iface client = null;
         try {
-          client = MasterClient.getConnectionWithRetry(context);
+          client = ManagerClient.getConnectionWithRetry(context);
           client.waitForFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical(),
               TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID,
               wait ? Long.MAX_VALUE : 1);
@@ -965,7 +965,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           log.debug("Contacted a Master which is no longer active, retrying");
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
-          MasterClient.close(client);
+          ManagerClient.close(client);
         }
       }
     } catch (ThriftSecurityException e) {
@@ -1006,7 +1006,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void setPropertyNoChecks(final String tableName, final String property,
       final String value)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    MasterClient.executeTable(context, client -> client.setTableProperty(TraceUtil.traceInfo(),
+    ManagerClient.executeTable(context, client -> client.setTableProperty(TraceUtil.traceInfo(),
         context.rpcCreds(), tableName, property, value));
   }
 
@@ -1026,7 +1026,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private void removePropertyNoChecks(final String tableName, final String property)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    MasterClient.executeTable(context, client -> client.removeTableProperty(TraceUtil.traceInfo(),
+    ManagerClient.executeTable(context, client -> client.removeTableProperty(TraceUtil.traceInfo(),
         context.rpcCreds(), tableName, property));
   }
 

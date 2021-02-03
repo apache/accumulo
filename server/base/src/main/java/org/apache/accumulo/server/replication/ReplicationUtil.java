@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
@@ -64,7 +64,7 @@ public class ReplicationUtil {
     this.factory = factory;
   }
 
-  public int getMaxReplicationThreads(MasterMonitorInfo mmi) {
+  public int getMaxReplicationThreads(ManagerMonitorInfo mmi) {
     int activeTservers = mmi.getTServerInfoSize();
 
     // The number of threads each tserver will use at most to replicate data

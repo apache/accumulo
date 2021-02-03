@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.cluster.standalone;
 
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.master.thrift.ManagerGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.easymock.EasyMock;
 import org.junit.Test;
@@ -36,7 +36,7 @@ public class StandaloneAccumuloClusterTest {
 
     // `SetGoalState NORMAL` should be called specifically on this method, not via
     // ClusterControl.exec(..)
-    control.setGoalState(MasterGoalState.NORMAL.toString());
+    control.setGoalState(ManagerGoalState.NORMAL.toString());
     EasyMock.expectLastCall().once();
 
     // Start the procs

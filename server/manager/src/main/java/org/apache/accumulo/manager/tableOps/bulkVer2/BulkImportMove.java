@@ -32,8 +32,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
  * about the request. To prevent problems like this, an Arbitrator is used. Before starting any new
  * request, the tablet server checks the Arbitrator to see if the request is still valid.
  */
-class BulkImportMove extends MasterRepo {
+class BulkImportMove extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -69,7 +69,7 @@ class BulkImportMove extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager master) throws Exception {
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     final Path sourceDir = new Path(bulkInfo.sourceDir);
 
@@ -99,7 +99,7 @@ class BulkImportMove extends MasterRepo {
   /**
    * For every entry in renames, move the file from the key path to the value path
    */
-  private void moveFiles(long tid, Path sourceDir, Path bulkDir, Master master,
+  private void moveFiles(long tid, Path sourceDir, Path bulkDir, Manager master,
       final VolumeManager fs, Map<String,String> renames) throws Exception {
     MetadataTableUtil.addBulkLoadInProgressFlag(master.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);

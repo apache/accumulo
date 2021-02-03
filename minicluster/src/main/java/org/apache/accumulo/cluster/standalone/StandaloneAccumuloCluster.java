@@ -38,7 +38,7 @@ import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.master.thrift.ManagerGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.conf.Configuration;
@@ -167,7 +167,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     // TODO We can check the hosts files, but that requires us to be on a host with the
     // installation. Limitation at the moment.
 
-    control.setGoalState(MasterGoalState.NORMAL.toString());
+    control.setGoalState(ManagerGoalState.NORMAL.toString());
 
     for (ServerType type : ALL_SERVER_TYPES) {
       control.startAllServers(type);

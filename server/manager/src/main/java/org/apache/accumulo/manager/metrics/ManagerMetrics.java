@@ -16,16 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.mastermessage;
+package org.apache.accumulo.manager.metrics;
 
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.thrift.TException;
+import org.apache.accumulo.server.metrics.Metrics;
 
-public interface MasterMessage {
+public abstract class ManagerMetrics extends Metrics {
 
-  void send(TCredentials info, String serverName, MasterClientService.Iface client)
-      throws TException, ThriftSecurityException;
+  protected ManagerMetrics(String subName, String description, String record) {
+    super("Master,sub=" + subName, description, "master", record);
+  }
 
 }

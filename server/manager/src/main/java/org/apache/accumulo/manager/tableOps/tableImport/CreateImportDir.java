@@ -23,15 +23,15 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class CreateImportDir extends MasterRepo {
+class CreateImportDir extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(CreateImportDir.class);
   private static final long serialVersionUID = 1L;
 
@@ -42,7 +42,7 @@ class CreateImportDir extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager master) throws Exception {
 
     Set<String> tableDirs = ServerConstants.getTablesDirs(master.getContext());
 
@@ -63,7 +63,7 @@ class CreateImportDir extends MasterRepo {
    * @throws IOException
    *           if any import directory does not reside on a volume configured for accumulo.
    */
-  void create(Set<String> tableDirs, Master master) throws IOException {
+  void create(Set<String> tableDirs, Manager master) throws IOException {
     UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {

@@ -115,7 +115,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,
       final String tableName, final Set<String> wals)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return MasterClient.execute(context,
+    return ManagerClient.execute(context,
         client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
   }
 

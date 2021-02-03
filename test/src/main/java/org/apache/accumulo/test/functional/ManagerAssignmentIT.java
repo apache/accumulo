@@ -37,7 +37,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.junit.Test;
 
-public class MasterAssignmentIT extends AccumuloClusterHarness {
+public class ManagerAssignmentIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

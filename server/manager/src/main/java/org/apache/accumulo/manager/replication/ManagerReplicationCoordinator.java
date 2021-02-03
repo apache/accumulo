@@ -34,7 +34,7 @@ import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorErrorCo
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorException;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.thrift.TException;
@@ -45,20 +45,20 @@ import org.slf4j.LoggerFactory;
 /**
  * Choose a tserver to service a replication task
  */
-public class MasterReplicationCoordinator implements ReplicationCoordinator.Iface {
-  private static final Logger log = LoggerFactory.getLogger(MasterReplicationCoordinator.class);
+public class ManagerReplicationCoordinator implements ReplicationCoordinator.Iface {
+  private static final Logger log = LoggerFactory.getLogger(ManagerReplicationCoordinator.class);
 
-  private final Master master;
+  private final Manager master;
   private final Random rand;
   private final ZooReader reader;
   private final SecurityOperation security;
 
-  public MasterReplicationCoordinator(Master master) {
+  public ManagerReplicationCoordinator(Manager master) {
     this(master, new ZooReader(master.getContext().getZooKeepers(),
         master.getContext().getZooKeepersSessionTimeOut()));
   }
 
-  protected MasterReplicationCoordinator(Master master, ZooReader reader) {
+  protected ManagerReplicationCoordinator(Manager master, ZooReader reader) {
     this.master = master;
     this.rand = new SecureRandom();
     this.rand.setSeed(358923462L);

@@ -28,12 +28,12 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.LoggerFactory;
 
-public class RenameNamespace extends MasterRepo {
+public class RenameNamespace extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
   private NamespaceId namespaceId;
@@ -41,7 +41,7 @@ public class RenameNamespace extends MasterRepo {
   private String newName;
 
   @Override
-  public long isReady(long id, Master environment) throws Exception {
+  public long isReady(long id, Manager environment) throws Exception {
     return Utils.reserveNamespace(environment, namespaceId, id, true, true, TableOperation.RENAME);
   }
 
@@ -52,7 +52,7 @@ public class RenameNamespace extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long id, Master master) throws Exception {
+  public Repo<Manager> call(long id, Manager master) throws Exception {
 
     ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
 
@@ -87,7 +87,7 @@ public class RenameNamespace extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) {
+  public void undo(long tid, Manager env) {
     Utils.unreserveNamespace(env, namespaceId, tid, true);
   }
 

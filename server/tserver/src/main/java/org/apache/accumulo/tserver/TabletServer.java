@@ -64,7 +64,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.Compacting;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -134,7 +134,7 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.log.TabletServerLogger;
-import org.apache.accumulo.tserver.mastermessage.MasterMessage;
+import org.apache.accumulo.tserver.mastermessage.ManagerMessage;
 import org.apache.accumulo.tserver.mastermessage.SplitReportMessage;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
@@ -206,7 +206,7 @@ public class TabletServer extends AbstractServer {
   final TabletServerResourceManager resourceManager;
   private final SecurityOperation security;
 
-  private final BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<>();
+  private final BlockingDeque<ManagerMessage> managerMessages = new LinkedBlockingDeque<>();
 
   HostAndPort clientAddress;
 
@@ -512,8 +512,8 @@ public class TabletServer extends AbstractServer {
   }
 
   // add a message for the main thread to send back to the master
-  public void enqueueMasterMessage(MasterMessage m) {
-    masterMessages.addLast(m);
+  public void enqueueMasterMessage(ManagerMessage m) {
+    managerMessages.addLast(m);
   }
 
   void acquireRecoveryMemory(KeyExtent extent) {
@@ -555,20 +555,20 @@ public class TabletServer extends AbstractServer {
   }
 
   // Connect to the master for posting asynchronous results
-  private MasterClientService.Client masterConnection(HostAndPort address) {
+  private ManagerClientService.Client masterConnection(HostAndPort address) {
     try {
       if (address == null) {
         return null;
       }
       // log.info("Listener API to master has been opened");
-      return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, getContext());
+      return ThriftUtil.getClient(new ManagerClientService.Client.Factory(), address, getContext());
     } catch (Exception e) {
       log.warn("Issue with masterConnection (" + address + ") " + e, e);
     }
     return null;
   }
 
-  private void returnMasterConnection(MasterClientService.Client client) {
+  private void returnMasterConnection(ManagerClientService.Client client) {
     ThriftUtil.returnClient(client);
   }
 
@@ -784,14 +784,14 @@ public class TabletServer extends AbstractServer {
     while (!serverStopRequested) {
       // send all of the pending messages
       try {
-        MasterMessage mm = null;
-        MasterClientService.Client iface = null;
+        ManagerMessage mm = null;
+        ManagerClientService.Client iface = null;
 
         try {
           // wait until a message is ready to send, or a sever stop
           // was requested
           while (mm == null && !serverStopRequested) {
-            mm = masterMessages.poll(1000, TimeUnit.MILLISECONDS);
+            mm = managerMessages.poll(1000, TimeUnit.MILLISECONDS);
           }
 
           // have a message to send to the master, so grab a
@@ -811,20 +811,20 @@ public class TabletServer extends AbstractServer {
               mm = null;
             } catch (TException ex) {
               log.warn("Error sending message: queuing message again");
-              masterMessages.putFirst(mm);
+              managerMessages.putFirst(mm);
               mm = null;
               throw ex;
             }
 
             // if any messages are immediately available grab em and
             // send them
-            mm = masterMessages.poll();
+            mm = managerMessages.poll();
           }
 
         } finally {
 
           if (mm != null) {
-            masterMessages.putFirst(mm);
+            managerMessages.putFirst(mm);
           }
           returnMasterConnection(iface);
 

@@ -27,13 +27,13 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CancelCompactions extends MasterRepo {
+public class CancelCompactions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
   private TableId tableId;
@@ -47,13 +47,13 @@ public class CancelCompactions extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master env) throws Exception {
+  public long isReady(long tid, Manager env) throws Exception {
     return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.COMPACT_CANCEL)
         + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.COMPACT_CANCEL);
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Manager> call(long tid, Manager environment) throws Exception {
     String zCompactID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
         + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
     String zCancelID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES + "/"
@@ -85,7 +85,7 @@ public class CancelCompactions extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) {
+  public void undo(long tid, Manager env) {
     Utils.unreserveTable(env, tableId, tid, false);
     Utils.unreserveNamespace(env, namespaceId, tid, false);
   }

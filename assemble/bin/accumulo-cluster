@@ -235,8 +235,8 @@ function stop_tservers() {
 function kill_all() {
   echo "Killing Accumulo cluster..."
 
-  for master in $(grep -v '^#' "${conf}/$manager_file"); do
-    kill_service "$master" master
+  for manager in $(grep -v '^#' "${conf}/$manager_file"); do
+    kill_service "$manager" manager
   done
 
   for gc in $(grep -v '^#' "${conf}/gc"); do
@@ -313,7 +313,7 @@ function stop_here() {
 
   for host in "${hosts_to_check[@]}"; do
     for end_cmd in "stop" "kill"; do
-      for svc in tserver gc master monitor tracer; do
+      for svc in tserver gc manager monitor tracer; do
         end_service "$host" $svc $end_cmd
       done
     done

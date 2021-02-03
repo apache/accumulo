@@ -36,15 +36,15 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CompactRange extends MasterRepo {
+public class CompactRange extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(CompactRange.class);
 
   private static final long serialVersionUID = 1L;
@@ -88,13 +88,13 @@ public class CompactRange extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master env) throws Exception {
+  public long isReady(long tid, Manager env) throws Exception {
     return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.COMPACT)
         + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.COMPACT);
   }
 
   @Override
-  public Repo<Master> call(final long tid, Master env) throws Exception {
+  public Repo<Manager> call(final long tid, Manager env) throws Exception {
     String zTablePath = Constants.ZROOT + "/" + env.getInstanceID() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_COMPACT_ID;
 
@@ -142,7 +142,7 @@ public class CompactRange extends MasterRepo {
 
   }
 
-  static void removeIterators(Master environment, final long txid, TableId tableId)
+  static void removeIterators(Manager environment, final long txid, TableId tableId)
       throws Exception {
     String zTablePath = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
         + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
@@ -170,7 +170,7 @@ public class CompactRange extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) throws Exception {
+  public void undo(long tid, Manager env) throws Exception {
     try {
       removeIterators(env, tid, tableId);
     } finally {
