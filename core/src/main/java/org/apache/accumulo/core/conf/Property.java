@@ -1006,7 +1006,7 @@ public enum Property {
   REPLICATION_MAX_UNIT_SIZE("replication.max.unit.size", "64M", PropertyType.BYTES,
       "Maximum size of data to send in a replication message"),
   REPLICATION_WORK_ASSIGNER("replication.work.assigner",
-      "org.apache.accumulo.master.replication.UnorderedWorkAssigner", PropertyType.CLASSNAME,
+      "org.apache.accumulo.manager.replication.UnorderedWorkAssigner", PropertyType.CLASSNAME,
       "Replication WorkAssigner implementation to use"),
   REPLICATION_DRIVER_DELAY("replication.driver.delay", "0s", PropertyType.TIMEDURATION,
       "Amount of time to wait before the replication work loop begins in the manager."),
