@@ -28,12 +28,16 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.AccumuloLockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
@@ -171,12 +175,20 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
   private static final AtomicInteger pdCount = new AtomicInteger(0);
 
+  private static ZooLock getZooLock(String parent, UUID uuid) {
+    Map<String,String> props = new HashMap<>();
+    props.put(Property.INSTANCE_ZK_HOST.toString(), getCluster().getZooKeepers());
+    props.put(Property.INSTANCE_ZK_TIMEOUT.toString(), "30000");
+    props.put(Property.INSTANCE_SECRET.toString(), "secret");
+    return new ZooLock(new ConfigurationCopy(props), parent, uuid);
+
+  }
+
   @Test(timeout = 10000)
   public void testDeleteParent() throws Exception {
     String parent = "/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
 
-    ZooLock zl =
-        new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent, UUID.randomUUID());
+    ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
 
@@ -207,8 +219,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
   public void testNoParent() throws Exception {
     String parent = "/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
 
-    ZooLock zl =
-        new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent, UUID.randomUUID());
+    ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
 
@@ -231,8 +242,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     ZooReaderWriter zk = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret");
     zk.mkdirs(parent);
 
-    ZooLock zl =
-        new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent, UUID.randomUUID());
+    ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
 
@@ -263,8 +273,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     ZooReaderWriter zk = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret");
     zk.mkdirs(parent);
 
-    ZooLock zl =
-        new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent, UUID.randomUUID());
+    ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
 
@@ -279,8 +288,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     assertNull(lw.exception);
     assertNull(lw.reason);
 
-    ZooLock zl2 =
-        new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent, UUID.randomUUID());
+    ZooLock zl2 = getZooLock(parent, UUID.randomUUID());
 
     TestALW lw2 = new TestALW();
 
@@ -289,8 +297,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
     assertFalse(lw2.locked);
     assertFalse(zl2.isLocked());
 
-    ZooLock zl3 =
-        new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent, UUID.randomUUID());
+    ZooLock zl3 = getZooLock(parent, UUID.randomUUID());
 
     TestALW lw3 = new TestALW();
 
@@ -339,8 +346,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
       zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-      ZooLock zl =
-          new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent, UUID.randomUUID());
+      ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
       assertFalse(zl.isLocked());
 
@@ -389,16 +395,8 @@ public class ZooLockIT extends SharedMiniClusterBase {
       // Create the parent node
       zk1.createOnce(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-      ZooReaderWriter zrw1 = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
-        @Override
-        public ZooKeeper getZooKeeper() {
-          return zk1;
-        }
-      };
-
       final RetryLockWatcher zlw1 = new RetryLockWatcher();
-      ZooLock zl1 =
-          new ZooLock(zrw1, parent, UUID.fromString("00000000-0000-0000-0000-aaaaaaaaaaaa"));
+      ZooLock zl1 = getZooLock(parent, UUID.fromString("00000000-0000-0000-0000-aaaaaaaaaaaa"));
       zl1.lock(zlw1, "test1".getBytes(UTF_8));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
@@ -411,16 +409,8 @@ public class ZooLockIT extends SharedMiniClusterBase {
       // Lastly, because zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000000 is the first child,
       // zl1 assumes that it has the lock.
 
-      ZooReaderWriter zrw2 = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
-        @Override
-        public ZooKeeper getZooKeeper() {
-          return zk2;
-        }
-      };
-
       final RetryLockWatcher zlw2 = new RetryLockWatcher();
-      ZooLock zl2 =
-          new ZooLock(zrw2, parent, UUID.fromString("00000000-0000-0000-0000-bbbbbbbbbbbb"));
+      ZooLock zl2 = getZooLock(parent, UUID.fromString("00000000-0000-0000-0000-bbbbbbbbbbbb"));
       zl2.lock(zlw2, "test1".getBytes(UTF_8));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
@@ -505,13 +495,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
           while (!watcher.isConnected()) {
             Thread.sleep(50);
           }
-          ZooReaderWriter zrw = new ZooReaderWriter(getCluster().getZooKeepers(), 30000, "secret") {
-            @Override
-            public ZooKeeper getZooKeeper() {
-              return zk;
-            }
-          };
-          ZooLock zl = new ZooLock(zrw, parent, uuid);
+          ZooLock zl = getZooLock(parent, uuid);
           getLockLatch.countDown(); // signal we are done
           getLockLatch.await(); // wait for others to finish
           zl.lock(lockWatcher, "test1".getBytes(UTF_8)); // race to the lock
@@ -625,8 +609,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
   public void testTryLock() throws Exception {
     String parent = "/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
 
-    ZooLock zl =
-        new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent, UUID.randomUUID());
+    ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(getCluster().getZooKeepers(), 30000, watcher)) {
@@ -673,8 +656,7 @@ public class ZooLockIT extends SharedMiniClusterBase {
 
       zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-      ZooLock zl =
-          new ZooLock(getCluster().getZooKeepers(), 30000, "secret", parent, UUID.randomUUID());
+      ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
       TestALW lw = new TestALW();
 
