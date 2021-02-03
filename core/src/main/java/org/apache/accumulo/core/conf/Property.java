@@ -292,7 +292,7 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The amount of time to wait after requesting a write-ahead log to be recovered"),
   MANAGER_WALOG_CLOSER_IMPLEMETATION("manager.walog.closer.implementation",
-      "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
+      "org.apache.accumulo.server.manager.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log"),
   MANAGER_FATE_METRICS_ENABLED("manager.fate.metrics.enabled", "true", PropertyType.BOOLEAN,
       "Enable reporting of FATE metrics in JMX (and logging with Hadoop Metrics2"),
