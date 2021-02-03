@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.fs;
+package org.apache.accumulo.core.spi.fs;
 
 import static org.junit.Assert.assertEquals;
 
@@ -25,9 +25,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FsStatus;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
@@ -40,10 +38,9 @@ public class SpaceAwareVolumeChooserTest {
   VolumeChooserEnvironment chooserEnv = null;
   ServiceEnvironment serviceEnv = null;
   Configuration sysConfig = null;
-  FileSystem fs1 = null;
-  FileSystem fs2 = null;
-  FsStatus status1 = null;
-  FsStatus status2 = null;
+
+  double free1;
+  double free2;
 
   int iterations = 1000;
 
@@ -60,10 +57,6 @@ public class SpaceAwareVolumeChooserTest {
   public void beforeTest() {
     serviceEnv = EasyMock.createMock(ServiceEnvironment.class);
     sysConfig = EasyMock.createMock(Configuration.class);
-    fs1 = EasyMock.createMock(FileSystem.class);
-    fs2 = EasyMock.createMock(FileSystem.class);
-    status1 = EasyMock.createMock(FsStatus.class);
-    status2 = EasyMock.createMock(FsStatus.class);
     chooserEnv = EasyMock.createMock(VolumeChooserEnvironment.class);
   }
 
@@ -77,45 +70,29 @@ public class SpaceAwareVolumeChooserTest {
       updatePropertyMax = max + 1;
     }
 
-    // Volume 1 is percentage1 full
-    EasyMock.expect(status1.getRemaining()).andReturn(percentage1).times(min, max);
-    EasyMock.expect(status1.getCapacity()).andReturn(100L).times(min, max);
-
-    // Volume 2 is percentage2 full
-    EasyMock.expect(status2.getRemaining()).andReturn(percentage2).times(min, max);
-    EasyMock.expect(status2.getCapacity()).andReturn(100L).times(min, max);
+    free1 = percentage1 / (double) 100;
+    free2 = percentage2 / (double) 100;
 
     EasyMock.expect(sysConfig.getCustom(SpaceAwareVolumeChooser.RECOMPUTE_INTERVAL))
         .andReturn(cacheDuration).times(1);
 
-    EasyMock
-        .expect(
-            sysConfig.getCustom("volume.preferred." + ChooserScope.DEFAULT.name().toLowerCase()))
+    EasyMock.expect(sysConfig.getCustom("volume.preferred." + Scope.DEFAULT.name().toLowerCase()))
         .andReturn(String.join(",", tableDirs)).times(timesToCallPreferredVolumeChooser);
 
     EasyMock.expect(serviceEnv.getConfiguration()).andReturn(sysConfig).times(1, updatePropertyMax);
 
-    EasyMock.expect(fs1.getStatus()).andReturn(status1).times(min, max);
-    EasyMock.expect(fs2.getStatus()).andReturn(status2).times(min, max);
-
-    EasyMock.expect(chooserEnv.getFileSystem(volumeOne)).andReturn(fs1).times(min, max);
-    EasyMock.expect(chooserEnv.getFileSystem(volumeTwo)).andReturn(fs2).times(min, max);
-    EasyMock.expect(chooserEnv.getScope()).andReturn(ChooserScope.DEFAULT).times(min, max * 2);
+    EasyMock.expect(chooserEnv.getChooserScope()).andReturn(Scope.DEFAULT).times(min, max * 2);
     EasyMock.expect(chooserEnv.getServiceEnv()).andReturn(serviceEnv).times(min, max);
 
-    EasyMock.replay(serviceEnv, fs1, fs2, status1, status2, sysConfig, chooserEnv);
+    EasyMock.replay(serviceEnv, sysConfig, chooserEnv);
   }
 
   @After
   public void afterTest() {
 
-    EasyMock.verify(serviceEnv, fs1, fs2, status1, status2, sysConfig, chooserEnv);
+    EasyMock.verify(serviceEnv, sysConfig, chooserEnv);
 
     serviceEnv = null;
-    fs1 = null;
-    fs2 = null;
-    status1 = null;
-    status2 = null;
     vol1Count = 0;
     vol2Count = 0;
   }
@@ -189,7 +166,16 @@ public class SpaceAwareVolumeChooserTest {
   }
 
   private void makeChoices() {
-    SpaceAwareVolumeChooser chooser = new SpaceAwareVolumeChooser();
+    SpaceAwareVolumeChooser chooser = new SpaceAwareVolumeChooser() {
+      @Override
+      protected double getFreeSpace(String uri) throws IOException {
+        if (uri.equals(volumeOne))
+          return free1;
+        if (uri.equals(volumeTwo))
+          return free2;
+        throw new IllegalArgumentException();
+      }
+    };
     for (int i = 0; i < iterations; i++) {
       String choice = chooser.choose(chooserEnv, tableDirs);
       if (choice.equals(volumeOne)) {

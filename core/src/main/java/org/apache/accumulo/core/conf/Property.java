@@ -35,6 +35,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
@@ -226,8 +227,8 @@ public enum Property {
   // If you update the default type, be sure to update the default used for initialization failures
   // in VolumeManagerImpl
   @Experimental
-  GENERAL_VOLUME_CHOOSER("general.volume.chooser",
-      "org.apache.accumulo.server.fs.RandomVolumeChooser", PropertyType.CLASSNAME,
+  GENERAL_VOLUME_CHOOSER("general.volume.chooser", RandomVolumeChooser.class.getName(),
+      PropertyType.CLASSNAME,
       "The class that will be used to select which volume will be used to create new files."),
   GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS("general.security.credential.provider.paths", "",
       PropertyType.STRING, "Comma-separated list of paths to CredentialProviders"),

@@ -23,7 +23,9 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
-public interface VolumeChooserEnvironment {
+@Deprecated(since = "2.1.0")
+public interface VolumeChooserEnvironment
+    extends org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment {
 
   /**
    * A scope the volume chooser environment; a TABLE scope should be accompanied by a tableId.
@@ -40,20 +42,39 @@ public interface VolumeChooserEnvironment {
    *
    * @since 2.0.0
    */
+  @Override
   public Text getEndRow();
 
+  @Override
   public boolean hasTableId();
 
+  @Override
   public TableId getTableId();
 
   /**
    * @since 2.0.0
    */
-  public ChooserScope getScope();
+  public default ChooserScope getScope() {
+
+    var scope = getChooserScope();
+    switch (scope) {
+      case DEFAULT:
+        return ChooserScope.DEFAULT;
+      case INIT:
+        return ChooserScope.INIT;
+      case LOGGER:
+        return ChooserScope.LOGGER;
+      case TABLE:
+        return ChooserScope.TABLE;
+      default:
+        throw new IllegalArgumentException("Unknown chooser scope : " + scope);
+    }
+  }
 
   /**
    * @since 2.0.0
    */
+  @Override
   public ServiceEnvironment getServiceEnv();
 
   /**

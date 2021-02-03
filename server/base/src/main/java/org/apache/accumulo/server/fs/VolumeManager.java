@@ -170,10 +170,11 @@ public interface VolumeManager extends AutoCloseable {
   FileStatus[] globStatus(Path path) throws IOException;
 
   // decide on which of the given locations to create a new file
-  String choose(VolumeChooserEnvironment env, Set<String> options);
+  String choose(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env, Set<String> options);
 
   // return all valid locations to create a new file
-  Set<String> choosable(VolumeChooserEnvironment env, Set<String> options);
+  Set<String> choosable(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
+      Set<String> options);
 
   // are sync and flush supported for the given path
   boolean canSyncAndFlush(Path path);

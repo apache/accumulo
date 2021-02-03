@@ -23,9 +23,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;

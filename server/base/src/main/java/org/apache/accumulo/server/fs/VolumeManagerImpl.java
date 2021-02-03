@@ -42,11 +42,12 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.fs.VolumeChooser;
+import org.apache.accumulo.core.spi.fs.VolumeChooser.VolumeChooserException;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.volume.VolumeImpl;
-import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -400,7 +401,8 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public String choose(VolumeChooserEnvironment env, Set<String> options) {
+  public String choose(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
+      Set<String> options) {
     final String choice;
     choice = chooser.choose(env, options);
     if (!options.contains(choice)) {
@@ -412,7 +414,8 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
+  public Set<String> choosable(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
+      Set<String> options) {
     final Set<String> choices = chooser.choosable(env, options);
     for (String choice : choices) {
       if (!options.contains(choice)) {
