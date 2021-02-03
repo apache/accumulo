@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.master.upgrade.Upgrader9to10;
+import org.apache.accumulo.manager.upgrade.Upgrader9to10;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.junit.Test;
 

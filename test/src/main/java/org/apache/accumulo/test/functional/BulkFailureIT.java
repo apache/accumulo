@@ -63,7 +63,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.master.tableOps.bulkVer1.BulkImport;
+import org.apache.accumulo.manager.tableOps.bulkVer1.BulkImport;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;

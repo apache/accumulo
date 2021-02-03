@@ -21,7 +21,7 @@ package org.apache.accumulo.monitor.rest.tservers;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.monitor.rest.master.MasterInformation;
+import org.apache.accumulo.monitor.rest.manager.MasterInformation;
 
 /**
  * Generates a list of servers, bad servers, and dead servers
