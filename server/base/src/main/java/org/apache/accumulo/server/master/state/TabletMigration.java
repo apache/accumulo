@@ -21,6 +21,10 @@ package org.apache.accumulo.server.master.state;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 
+/**
+ * @deprecated since 2.1.0. Use balancers in org.apache.accumulo.core.spi.balancer instead.
+ */
+@Deprecated(since = "2.1.0")
 public class TabletMigration {
   public KeyExtent tablet;
   public TServerInstance oldServer;
