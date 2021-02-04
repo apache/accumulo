@@ -20,10 +20,14 @@ package org.apache.accumulo.server.fs;
 
 import java.util.Set;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * @deprecated since 2.1.0; implement {@link org.apache.accumulo.core.spi.fs.VolumeChooser} instead.
  */
 @Deprecated(since = "2.1.0")
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+    justification = "Same name used for compatibility during deprecation cycle")
 public interface VolumeChooser extends org.apache.accumulo.core.spi.fs.VolumeChooser {
 
   /**
@@ -68,6 +72,9 @@ public interface VolumeChooser extends org.apache.accumulo.core.spi.fs.VolumeCho
     return options;
   }
 
+  @Deprecated(since = "2.1.0")
+  @SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+      justification = "Same name used for compatibility during deprecation cycle")
   class VolumeChooserException
       extends org.apache.accumulo.core.spi.fs.VolumeChooser.VolumeChooserException {
 

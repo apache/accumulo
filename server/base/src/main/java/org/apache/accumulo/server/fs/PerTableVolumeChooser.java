@@ -20,7 +20,11 @@ package org.apache.accumulo.server.fs;
 
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @Deprecated(since = "2.1.0")
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+    justification = "Same name used for compatibility during deprecation cycle")
 public class PerTableVolumeChooser extends org.apache.accumulo.core.spi.fs.PerTableVolumeChooser
     implements VolumeChooser {
   public PerTableVolumeChooser() {
