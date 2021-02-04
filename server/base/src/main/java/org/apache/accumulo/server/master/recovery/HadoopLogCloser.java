@@ -18,62 +18,25 @@
  */
 package org.apache.accumulo.server.master.recovery;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.apache.hadoop.fs.viewfs.ViewFileSystem;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HadoopLogCloser implements LogCloser {
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+/**
+ * @deprecated since 2.1.0. Use {@link org.apache.accumulo.server.manager.recovery.HadoopLogCloser}
+ *             instead
+ */
+@Deprecated(since = "2.1.0")
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+    justification = "Compatibility class to be removed in next major release.")
+public class HadoopLogCloser extends org.apache.accumulo.server.manager.recovery.HadoopLogCloser {
   private static final Logger log = LoggerFactory.getLogger(HadoopLogCloser.class);
 
-  @Override
-  public long close(AccumuloConfiguration conf, Configuration hadoopConf, VolumeManager fs,
-      Path source) throws IOException {
-    FileSystem ns = fs.getFileSystemByPath(source);
-
-    // if path points to a viewfs path, then resolve to underlying filesystem
-    if (ns instanceof ViewFileSystem) {
-      Path newSource = ns.resolvePath(source);
-      if (!newSource.equals(source) && newSource.toUri().getScheme() != null) {
-        ns = newSource.getFileSystem(hadoopConf);
-        source = newSource;
-      }
-    }
-
-    if (ns instanceof DistributedFileSystem) {
-      DistributedFileSystem dfs = (DistributedFileSystem) ns;
-      try {
-        if (!dfs.recoverLease(source)) {
-          log.info("Waiting for file to be closed {}", source);
-          return conf.getTimeInMillis(Property.MANAGER_LEASE_RECOVERY_WAITING_PERIOD);
-        }
-        log.info("Recovered lease on {}", source);
-      } catch (FileNotFoundException ex) {
-        throw ex;
-      } catch (Exception ex) {
-        log.warn("Error recovering lease on " + source, ex);
-        ns.append(source).close();
-        log.info("Recovered lease on {} using append", source);
-      }
-    } else if (ns instanceof LocalFileSystem || ns instanceof RawLocalFileSystem) {
-      // ignore
-    } else {
-      throw new IllegalStateException(
-          "Don't know how to recover a lease for " + ns.getClass().getName());
-    }
-    return 0;
+  public HadoopLogCloser() {
+    log.warn("{} has been deprecated. Please update property {} to {} instead.",
+        getClass().getName(), Property.MANAGER_WALOG_CLOSER_IMPLEMETATION.getKey(),
+        org.apache.accumulo.server.manager.recovery.HadoopLogCloser.class.getName());
   }
-
 }

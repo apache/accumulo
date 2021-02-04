@@ -20,7 +20,7 @@ package org.apache.accumulo.server.tables;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.junit.Test;
 
 public class IllegalTableTransitionExceptionTest {

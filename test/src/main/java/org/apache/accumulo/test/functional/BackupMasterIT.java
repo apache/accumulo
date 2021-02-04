@@ -27,7 +27,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.master.Master;
+import org.apache.accumulo.manager.Master;
 import org.junit.Test;
 
 public class BackupMasterIT extends ConfigurableMacBase {

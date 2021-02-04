@@ -449,7 +449,7 @@ public class TabletMetadata {
 
   /**
    * Get the tservers that are live from ZK. Live servers will have a valid ZooLock. This method was
-   * pulled from org.apache.accumulo.server.master.LiveTServerSet
+   * pulled from org.apache.accumulo.server.manager.LiveTServerSet
    */
   public static synchronized Set<TServerInstance> getLiveTServers(ClientContext context) {
     final Set<TServerInstance> liveServers = new HashSet<>();

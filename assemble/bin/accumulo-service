@@ -69,7 +69,7 @@ function start_service() {
   echo "Starting $service on $host"
 
   if [[ $service == "manager" ]]; then
-    "${bin}/accumulo" org.apache.accumulo.master.state.SetGoalState NORMAL
+    "${bin}/accumulo" org.apache.accumulo.manager.state.SetGoalState NORMAL
   fi
 
   outfile="${ACCUMULO_LOG_DIR}/${service}${ACCUMULO_SERVICE_INSTANCE}_${host}.out"
