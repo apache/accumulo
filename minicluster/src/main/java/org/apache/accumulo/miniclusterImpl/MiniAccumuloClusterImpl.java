@@ -49,6 +49,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
@@ -86,6 +87,7 @@ import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -262,6 +264,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     cleanup.add(process);
 
     return new ProcessInfo(process, stdOut);
+  }
+
+  public ProcessInfo _exec(KeywordExecutable server, ServerType serverType,
+      Map<String,String> configOverrides, String... args) throws IOException {
+    String[] modifiedArgs;
+    if (args == null || args.length == 0) {
+      modifiedArgs = new String[] {server.keyword()};
+    } else {
+      modifiedArgs =
+          Stream.concat(Stream.of(server.keyword()), Stream.of(args)).toArray(String[]::new);
+    }
+    return _exec(Main.class, serverType, configOverrides, modifiedArgs);
   }
 
   public ProcessInfo _exec(Class<?> clazz, ServerType serverType,
