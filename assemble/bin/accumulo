@@ -66,8 +66,9 @@ function main() {
   if [[ $cmd == "jshell" ]] && [[ -f "$jShellPath" ]]; then 
     CLASSPATH="$CLASSPATH" "$@" 
     exit 0
+  fi
   # Does jShell-init exists?
-  elif [[ $cmd == "jshell" ]] && [[ ! -f "$jShellPath" ]]; then
+  if [[ $cmd == "jshell" ]] && [[ ! -f "$jShellPath" ]]; then
     echo "Could not start jshell with Accumulo. Please ensure "jshell-init.jsh" exists in $conf"
     exit 1
   fi
