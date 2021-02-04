@@ -43,9 +43,6 @@ public interface VolumeChooser {
    * @param options
    *          the list of volumes to choose from
    * @return one of the options
-   * @throws VolumeChooserException
-   *           if there is an error choosing (this is a RuntimeException); this does not preclude
-   *           other RuntimeExceptions from occurring
    */
   String choose(VolumeChooserEnvironment env, Set<String> options);
 
@@ -58,10 +55,6 @@ public interface VolumeChooser {
    * @param options
    *          the subset of volumes to choose from
    * @return array of valid options
-   * @throws VolumeChooserException
-   *           if there is an error choosing (this is a RuntimeException); this does not preclude
-   *           other RuntimeExceptions from occurring
-   *
    */
   Set<String> choosable(VolumeChooserEnvironment env, Set<String> options);
 }
