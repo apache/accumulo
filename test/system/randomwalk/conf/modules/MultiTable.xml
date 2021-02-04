@@ -29,11 +29,11 @@
 
 <node id="dummy.ToAll">
   <edge id="mt.CreateTable" weight="20"/>
-  <edge id="mt.Write" weight="100"/>
+  <edge id="mt.Write" weight="10"/>
   <edge id="mt.CopyTable" weight="5"/>
+  <edge id="mt.BulkImport" weight="100"/>
   <edge id="mt.OfflineTable" weight="10"/>
   <edge id="mt.DropTable" weight="3"/>
-  <edge id="END" weight="1"/>
 </node>
 
 <node id="mt.Write">
@@ -54,6 +54,10 @@
 </node>
  
 <node id="mt.DropTable">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="mt.BulkImport">
   <edge id="dummy.ToAll" weight="1"/>
 </node>
 

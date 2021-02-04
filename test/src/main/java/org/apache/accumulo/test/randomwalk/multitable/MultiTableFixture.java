@@ -24,9 +24,11 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
+import org.apache.hadoop.fs.FileSystem;
 
 public class MultiTableFixture extends Fixture {
 
@@ -41,6 +43,7 @@ public class MultiTableFixture extends Fixture {
     state.set("numWrites", Long.valueOf(0));
     state.set("totalWrites", Long.valueOf(0));
     state.set("tableList", new CopyOnWriteArrayList<String>());
+    state.set("fs", FileSystem.get(CachedConfiguration.getInstance()));
   }
 
   @Override
