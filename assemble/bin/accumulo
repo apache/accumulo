@@ -59,6 +59,19 @@ function main() {
     exit 0
   fi
 
+  # Set up path variable for jshell command
+  export jShellPath="$conf/jshell-init.jsh" 
+  
+  # Verify jShell-init file is present before starting jShell
+  if [[ $cmd == "jshell" ]] && [[ -f "$jShellPath" ]]; then 
+    CLASSPATH="$CLASSPATH" "$@" 
+    exit 0
+  # Does jShell-init exists?
+  elif [[ $cmd == "jshell" ]] && [[ ! -f "$jShellPath" ]]; then
+    echo "Could not start jshell with Accumulo. Please ensure "jshell-init.jsh" exists in $conf"
+    exit 1
+  fi
+
   if [[ -x "$JAVA_HOME/bin/java" ]]; then
     JAVA="$JAVA_HOME/bin/java"
   else
