@@ -48,7 +48,9 @@ public interface VolumeChooser {
 
   /**
    * Return the subset of volumes that could possibly be chosen by this chooser across all
-   * invocations of {@link #choose(VolumeChooserEnvironment, Set)}.
+   * invocations of {@link #choose(VolumeChooserEnvironment, Set)}. Currently this is used to
+   * determine if all of the volumes that could be chosen for write ahead logs support the needed
+   * filesystem operations. There may be other use cases in the future.
    *
    * @param env
    *          the server environment provided by the calling framework
