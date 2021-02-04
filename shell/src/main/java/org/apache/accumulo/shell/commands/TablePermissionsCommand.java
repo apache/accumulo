@@ -30,7 +30,7 @@ public class TablePermissionsCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException {
     for (String p : TablePermission.printableValues()) {
-      shellState.getReader().println(p);
+      shellState.getWriter().println(p);
     }
     return 0;
   }

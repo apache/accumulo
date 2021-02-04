@@ -20,7 +20,6 @@ package org.apache.accumulo.server.security.delegation;
 
 import java.util.List;
 
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 /**
  * Service that handles generation of the secret key used to create delegation tokens.
  */
-public class AuthenticationTokenKeyManager extends Daemon {
+public class AuthenticationTokenKeyManager implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(AuthenticationTokenKeyManager.class);
 
   private final AuthenticationTokenSecretManager secretManager;
@@ -58,7 +57,6 @@ public class AuthenticationTokenKeyManager extends Daemon {
    */
   public AuthenticationTokenKeyManager(AuthenticationTokenSecretManager mgr,
       ZooAuthenticationKeyDistributor dist, long keyUpdateInterval, long tokenMaxLifetime) {
-    super("Delegation Token Key Manager");
     this.secretManager = mgr;
     this.keyDistributor = dist;
     this.keyUpdateInterval = keyUpdateInterval;

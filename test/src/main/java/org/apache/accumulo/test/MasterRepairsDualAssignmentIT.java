@@ -28,6 +28,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -44,8 +45,8 @@ import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.master.state.ClosableIterator;
-import org.apache.accumulo.server.master.state.TabletStateStore;
+import org.apache.accumulo.server.manager.state.ClosableIterator;
+import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -64,7 +65,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-    cfg.setProperty(Property.MASTER_RECOVERY_DELAY, "5s");
+    cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "5s");
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
@@ -79,12 +80,12 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
       c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);
-      c.tableOperations().create(table);
       SortedSet<Text> partitions = new TreeSet<>();
       for (String part : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
         partitions.add(new Text(part));
       }
-      c.tableOperations().addSplits(table, partitions);
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions);
+      c.tableOperations().create(table, ntc);
       // scan the metadata table and get the two table location states
       Set<TServerInstance> states = new HashSet<>();
       Set<TabletLocationState> oldLocations = new HashSet<>();

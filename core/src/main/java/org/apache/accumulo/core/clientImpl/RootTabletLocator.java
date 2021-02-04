@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.util.OpTimer;
@@ -106,7 +107,8 @@ public class RootTabletLocator extends TabletLocator {
       timer = new OpTimer().start();
     }
 
-    Location loc = context.getAmple().readTablet(RootTable.EXTENT, LOCATION).getLocation();
+    Location loc = context.getAmple()
+        .readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL, LOCATION).getLocation();
 
     if (timer != null) {
       timer.stop();

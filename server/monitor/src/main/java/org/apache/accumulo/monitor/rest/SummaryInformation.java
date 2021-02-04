@@ -24,7 +24,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import org.apache.accumulo.monitor.rest.logs.DeadLoggerList;
-import org.apache.accumulo.monitor.rest.master.MasterInformation;
+import org.apache.accumulo.monitor.rest.manager.MasterInformation;
 import org.apache.accumulo.monitor.rest.tables.TableInformationList;
 import org.apache.accumulo.monitor.rest.tservers.BadTabletServers;
 import org.apache.accumulo.monitor.rest.tservers.DeadServerList;

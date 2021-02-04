@@ -61,8 +61,8 @@ public class MergeIT extends AccumuloClusterHarness {
   public void merge() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k".split(" ")));
+      var ntc = new NewTableConfiguration().withSplits(splits("a b c d e f g h i j k".split(" ")));
+      c.tableOperations().create(tableName, ntc);
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (String row : "a b c d e f g h i j k".split(" ")) {
           Mutation m = new Mutation(row);
@@ -80,9 +80,9 @@ public class MergeIT extends AccumuloClusterHarness {
   public void mergeSize() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().addSplits(tableName,
-          splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
+      NewTableConfiguration ntc = new NewTableConfiguration()
+          .withSplits(splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
+      c.tableOperations().create(tableName, ntc);
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (String row : "c e f y".split(" ")) {
           Mutation m = new Mutation(row);
@@ -167,13 +167,13 @@ public class MergeIT extends AccumuloClusterHarness {
     System.out.println(
         "Running merge test " + table + " " + Arrays.asList(splits) + " " + start + " " + end);
 
-    client.tableOperations().create(table,
-        new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
-    TreeSet<Text> splitSet = new TreeSet<>();
-    for (String split : splits) {
-      splitSet.add(new Text(split));
+    SortedSet<Text> splitSet = splits(splits);
+
+    NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(TimeType.LOGICAL);
+    if (!splitSet.isEmpty()) {
+      ntc = ntc.withSplits(splitSet);
     }
-    client.tableOperations().addSplits(table, splitSet);
+    client.tableOperations().create(table, ntc);
 
     HashSet<String> expected = new HashSet<>();
     try (BatchWriter bw = client.createBatchWriter(table)) {

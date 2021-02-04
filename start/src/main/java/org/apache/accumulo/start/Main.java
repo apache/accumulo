@@ -148,7 +148,7 @@ public class Main {
     Method main = null;
     try {
       main = classWithMain.getMethod("main", args.getClass());
-    } catch (Throwable t) {
+    } catch (Exception t) {
       log.error("Could not run main method on '" + classWithMain.getName() + "'.", t);
     }
     if (main == null || !Modifier.isPublic(main.getModifiers())

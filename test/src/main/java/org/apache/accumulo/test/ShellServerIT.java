@@ -102,6 +102,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -118,7 +123,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import jline.console.ConsoleReader;
 
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 public class ShellServerIT extends SharedMiniClusterBase {
@@ -182,6 +186,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     public TestOutputStream output;
     public StringInputStream input;
     public Shell shell;
+    public LineReader reader;
+    public Terminal terminal;
 
     TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile)
         throws IOException {
@@ -189,7 +195,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
       // start the shell
       output = new TestOutputStream();
       input = new StringInputStream();
-      shell = new Shell(new ConsoleReader(input, output));
+      terminal = new DumbTerminal(input, output);
+      terminal.setSize(new Size(80, 24));
+      reader = LineReaderBuilder.builder().terminal(terminal).build();
+      shell = new Shell(reader);
       shell.setLogErrorsToConsole();
       if (info.saslEnabled()) {
         // Pull the kerberos principal out when we're using SASL
@@ -849,7 +858,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void clearCls() throws Exception {
     // clear/cls
-    if (ts.shell.getReader().getTerminal().isAnsiSupported()) {
+    if (!Terminal.TYPE_DUMB.equalsIgnoreCase(ts.shell.getTerminal().getType())) {
       ts.exec("cls", true, "[1;1H");
       ts.exec("clear", true, "[2J");
     } else {

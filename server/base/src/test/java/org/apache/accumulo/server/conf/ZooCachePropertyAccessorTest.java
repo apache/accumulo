@@ -95,7 +95,7 @@ public class ZooCachePropertyAccessorTest {
 
   @Test
   public void testGet_InvalidFormat() {
-    Property badProp = Property.MASTER_CLIENTPORT;
+    Property badProp = Property.MANAGER_CLIENTPORT;
     expect(zc.get(PATH + "/" + badProp.getKey())).andReturn(VALUE_BYTES);
     replay(zc);
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);

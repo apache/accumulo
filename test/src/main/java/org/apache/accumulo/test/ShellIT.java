@@ -37,6 +37,11 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.categories.SunnyDayTests;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -45,8 +50,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import jline.console.ConsoleReader;
 
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 public class ShellIT extends SharedMiniClusterBase {
@@ -108,6 +111,8 @@ public class ShellIT extends SharedMiniClusterBase {
   private TestOutputStream output;
   private Shell shell;
   private File config;
+  public LineReader reader;
+  public Terminal terminal;
 
   void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings)
       throws IOException {
@@ -158,7 +163,10 @@ public class ShellIT extends SharedMiniClusterBase {
     output = new TestOutputStream();
     input = new StringInputStream();
     config = Files.createTempFile(null, null).toFile();
-    shell = new Shell(new ConsoleReader(input, output));
+    terminal = new DumbTerminal(input, output);
+    terminal.setSize(new Size(80, 24));
+    reader = LineReaderBuilder.builder().terminal(terminal).build();
+    shell = new Shell(reader);
     shell.setLogErrorsToConsole();
     shell.config("--config-file", config.toString(), "-u", "root", "-p", getRootPassword(), "-zi",
         getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers());
@@ -352,10 +360,13 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void userTest() {
+  public void userExistsTest() throws IOException {
     Shell.log.debug("Starting user test --------------------------");
-    // Test cannot be done via junit because createuser only prompts for password
-    // exec("createuser root", false, "user exists");
+    String user = testName.getMethodName();
+    exec("createuser root", false, "user exists");
+    exec("createuser " + user, true);
+    exec("createuser " + user, false, "user exists");
+    exec("deleteuser " + user + " -f", true);
   }
 
   @Test

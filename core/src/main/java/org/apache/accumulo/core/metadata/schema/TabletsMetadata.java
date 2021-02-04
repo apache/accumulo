@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
@@ -31,6 +30,7 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -45,6 +45,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -54,11 +55,14 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
 
 import com.google.common.base.Preconditions;
 
@@ -80,15 +84,14 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private boolean checkConsistency = false;
     private boolean saveKeyValues;
     private TableId tableId;
+    private ReadConsistency readConsistency = ReadConsistency.IMMEDIATE;
 
     @Override
     public TabletsMetadata build(AccumuloClient client) {
       Preconditions.checkState(level == null ^ table == null);
       if (level == DataLevel.ROOT) {
         ClientContext ctx = ((ClientContext) client);
-        ZooCache zc = ctx.getZooCache();
-        String zkRoot = ctx.getZooKeeperRoot();
-        return new TabletsMetadata(getRootMetadata(zkRoot, zc));
+        return new TabletsMetadata(getRootMetadata(ctx, readConsistency));
       } else {
         return buildNonRoot(client);
       }
@@ -245,6 +248,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       this.range = TabletsSection.getRange();
       return this;
     }
+
+    @Override
+    public Options readConsistency(ReadConsistency readConsistency) {
+      this.readConsistency = Objects.requireNonNull(readConsistency);
+      return this;
+    }
   }
 
   public interface Options {
@@ -261,6 +270,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * Saves the key values seen in the metadata table for each tablet.
      */
     Options saveKeyValues();
+
+    /**
+     * Controls how the data is read. If not, set then the default is
+     * {@link ReadConsistency#IMMEDIATE}
+     */
+    Options readConsistency(ReadConsistency readConsistency);
   }
 
   public interface RangeOptions extends Options {
@@ -354,6 +369,25 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
   public static TableOptions builder() {
     return new Builder();
+  }
+
+  private static TabletMetadata getRootMetadata(ClientContext ctx,
+      ReadConsistency readConsistency) {
+    String zkRoot = ctx.getZooKeeperRoot();
+    switch (readConsistency) {
+      case EVENTUAL:
+        return getRootMetadata(zkRoot, ctx.getZooCache());
+      case IMMEDIATE:
+        ZooReader zooReader = new ZooReader(ctx.getZooKeepers(), ctx.getZooKeepersSessionTimeOut());
+        try {
+          return RootTabletMetadata.fromJson(zooReader.getData(zkRoot + RootTable.ZROOT_TABLET))
+              .convertToTabletMetadata();
+        } catch (InterruptedException | KeeperException e) {
+          throw new RuntimeException(e);
+        }
+      default:
+        throw new IllegalArgumentException("Unknown consistency level " + readConsistency);
+    }
   }
 
   public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {

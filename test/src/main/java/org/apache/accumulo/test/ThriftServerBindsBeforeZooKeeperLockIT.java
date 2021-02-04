@@ -34,7 +34,7 @@ import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.master.Master;
+import org.apache.accumulo.manager.Master;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
@@ -258,7 +258,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
         service = Monitor.class;
         break;
       case MANAGER:
-        property = Property.MASTER_CLIENTPORT;
+        property = Property.MANAGER_CLIENTPORT;
         service = Master.class;
         break;
       case GARBAGE_COLLECTOR:

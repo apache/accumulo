@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
@@ -51,19 +50,16 @@ public class DropUserCommand extends Command {
       throws AccumuloException, AccumuloSecurityException {
     boolean operate = true;
 
-    try {
-      if (!force) {
-        shellState.getReader().flush();
-        String line = shellState.getReader().readLine(getName() + " { " + user + " } (yes|no)? ");
-        operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
-      }
-      if (operate) {
-        shellState.getAccumuloClient().securityOperations().dropLocalUser(user);
-        Shell.log.debug("Deleted user {}", user);
-      }
-    } catch (IOException e) {
-      throw new AccumuloException(e);
+    if (!force) {
+      shellState.getWriter().flush();
+      String line = shellState.getReader().readLine(getName() + " { " + user + " } (yes|no)? ");
+      operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
     }
+    if (operate) {
+      shellState.getAccumuloClient().securityOperations().dropLocalUser(user);
+      Shell.log.debug("Deleted user {}", user);
+    }
+
   }
 
   @Override

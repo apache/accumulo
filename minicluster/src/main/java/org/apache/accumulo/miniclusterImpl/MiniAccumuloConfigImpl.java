@@ -159,13 +159,13 @@ public class MiniAccumuloConfigImpl {
       mergeProp(generalDynamicClasspaths.getKey(), libExtDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
-      mergePropWithRandomPort(Property.MASTER_CLIENTPORT.getKey());
+      mergePropWithRandomPort(Property.MANAGER_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.TRACE_PORT.getKey());
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
       mergePropWithRandomPort(Property.REPLICATION_RECEIPT_SERVICE_PORT.getKey());
-      mergePropWithRandomPort(Property.MASTER_REPLICATION_COORDINATOR_PORT.getKey());
+      mergePropWithRandomPort(Property.MANAGER_REPLICATION_COORDINATOR_PORT.getKey());
 
       if (isUseCredentialProvider()) {
         updateConfigForCredentialProvider();

@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.MasterClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
@@ -72,10 +73,9 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       sleepUninterruptibly(5, TimeUnit.SECONDS);
       for (int i = 0; i < 2; i++) {
         String tableName = "table" + i;
-        log.info("Creating {}", tableName);
-        c.tableOperations().create(tableName);
-        log.info("adding splits");
-        c.tableOperations().addSplits(tableName, splits);
+        log.info("Creating {} with splits", tableName);
+        NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+        c.tableOperations().create(tableName, ntc);
         log.info("flushing");
         c.tableOperations().flush(MetadataTable.NAME, null, null, true);
         c.tableOperations().flush(RootTable.NAME, null, null, true);

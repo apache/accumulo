@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -126,12 +127,13 @@ public class VolumeIT extends ConfigurableMacBase {
     // create a table
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
+      // create set of splits
       SortedSet<Text> partitions = new TreeSet<>();
-      // with some splits
       for (String s : "d,m,t".split(","))
         partitions.add(new Text(s));
-      client.tableOperations().addSplits(tableName, partitions);
+      // create table with splits
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions);
+      client.tableOperations().create(tableName, ntc);
       // scribble over the splits
       VolumeChooserIT.writeDataToTable(client, tableName, VolumeChooserIT.alpha_rows);
       // write the data to disk, read it back
@@ -256,13 +258,14 @@ public class VolumeIT extends ConfigurableMacBase {
 
   private void writeData(String tableName, AccumuloClient client) throws AccumuloException,
       AccumuloSecurityException, TableExistsException, TableNotFoundException {
+
     TreeSet<Text> splits = new TreeSet<>();
     for (int i = 1; i < 100; i++) {
       splits.add(new Text(String.format("%06d", i * 100)));
     }
 
-    client.tableOperations().create(tableName);
-    client.tableOperations().addSplits(tableName, splits);
+    NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+    client.tableOperations().create(tableName, ntc);
 
     try (BatchWriter bw = client.createBatchWriter(tableName)) {
       for (int i = 0; i < 100; i++) {

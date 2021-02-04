@@ -39,9 +39,9 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -363,8 +363,8 @@ public class ThriftTransportPool {
   private Map<ThriftTransportKey,Long> errorTime = new HashMap<>();
   private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<>();
 
-  private Supplier<Daemon> checkThreadFactory = Suppliers.memoize(() -> {
-    var thread = new Daemon(new Closer(), "Thrift Connection Pool Checker");
+  private Supplier<Thread> checkThreadFactory = Suppliers.memoize(() -> {
+    var thread = Threads.createThread("Thrift Connection Pool Checker", new Closer());
     thread.start();
     return thread;
   });

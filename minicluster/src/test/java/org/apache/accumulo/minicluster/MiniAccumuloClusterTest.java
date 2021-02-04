@@ -249,7 +249,7 @@ public class MiniAccumuloClusterTest {
       config.read(reader);
     }
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,
-        Property.MASTER_CLIENTPORT, Property.TRACE_PORT, Property.GC_PORT}) {
+        Property.MANAGER_CLIENTPORT, Property.TRACE_PORT, Property.GC_PORT}) {
       String value = config.getString(randomPortProp.getKey());
       assertNotNull("Found no value for " + randomPortProp, value);
       assertEquals("0", value);

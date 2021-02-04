@@ -18,40 +18,22 @@
  */
 package org.apache.accumulo.master.state;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerUtil;
-import org.apache.accumulo.server.security.SecurityUtil;
-
+/**
+ * @deprecated since 2.1.0. Use {@link org.apache.accumulo.manager.state.SetGoalState} instead.
+ */
+@Deprecated(since = "2.1.0")
 public class SetGoalState {
+  final static private Logger log = LoggerFactory.getLogger(SetGoalState.class);
 
   /**
    * Utility program that will change the goal state for the master from the command line.
    */
   public static void main(String[] args) throws Exception {
-    if (args.length != 1 || MasterGoalState.valueOf(args[0]) == null) {
-      System.err.println(
-          "Usage: accumulo " + SetGoalState.class.getName() + " [NORMAL|SAFE_MODE|CLEAN_STOP]");
-      System.exit(-1);
-    }
-
-    try {
-      var context = new ServerContext(SiteConfiguration.auto());
-      SecurityUtil.serverLogin(context.getConfiguration());
-      ServerUtil.waitForZookeeperAndHdfs(context);
-      context.getZooReaderWriter().putPersistentData(
-          context.getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),
-          NodeExistsPolicy.OVERWRITE);
-    } finally {
-      SingletonManager.setMode(Mode.CLOSED);
-    }
+    log.warn("{} is deprecated. Use {} instead.", SetGoalState.class.getName(),
+        org.apache.accumulo.manager.state.SetGoalState.class.getName());
+    org.apache.accumulo.manager.state.SetGoalState.main(args);
   }
-
 }

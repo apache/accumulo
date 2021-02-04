@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
@@ -68,7 +69,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.master.state.Assignment;
+import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -94,7 +95,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     String zPath = c.getZooKeeperRoot() + "/testLock";
     ZooReaderWriter zoo = c.getZooReaderWriter();
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
-    ZooLock zl = new ZooLock(zoo, zPath);
+    ZooLock zl = new ZooLock(c.getSiteConfiguration(), zPath, UUID.randomUUID());
     boolean gotLock = zl.tryLock(new LockWatcher() {
 
       @SuppressFBWarnings(value = "DM_EXIT",
@@ -108,7 +109,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       @SuppressFBWarnings(value = "DM_EXIT",
           justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
       @Override
-      public void unableToMonitorLockNode(Throwable e) {
+      public void unableToMonitorLockNode(Exception e) {
         System.exit(-1);
       }
     }, "foo".getBytes(UTF_8));

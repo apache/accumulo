@@ -159,7 +159,7 @@ public class InMemoryMap {
     if (useNativeMap && NativeMap.isLoaded()) {
       try {
         return new NativeMapWrapper();
-      } catch (Throwable t) {
+      } catch (Exception t) {
         log.error("Failed to create native map", t);
       }
     }
@@ -703,8 +703,6 @@ public class InMemoryMap {
 
     int mc = kvCount.get();
     MemoryDataSource mds = new MemoryDataSource(iteratorSamplerConfig);
-    // TODO seems like a bug that two MemoryDataSources are created... may need to fix in older
-    // branches
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(mds);
     MemoryIterator mi = new MemoryIterator(new PartialMutationSkippingIterator(ssi, mc));
     mi.setSSI(ssi);

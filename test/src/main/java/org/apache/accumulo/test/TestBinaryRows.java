@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -208,8 +209,8 @@ public class TestBinaryRows {
         System.out.printf("added split point 0x%016x  %,12d%n", splitPoint, splitPoint);
       }
 
-      accumuloClient.tableOperations().create(opts.tableName);
-      accumuloClient.tableOperations().addSplits(opts.tableName, splits);
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      accumuloClient.tableOperations().create(opts.tableName, ntc);
 
     } else {
       throw new Exception("ERROR : " + opts.mode + " is not a valid operation.");

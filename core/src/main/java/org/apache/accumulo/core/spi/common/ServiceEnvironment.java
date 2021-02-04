@@ -37,7 +37,7 @@ public interface ServiceEnvironment extends PluginEnvironment {
   /**
    * @since 2.0.0
    */
-  public interface Configuration extends PluginEnvironment.Configuration {
+  interface Configuration extends PluginEnvironment.Configuration {
 
   }
 
@@ -46,6 +46,7 @@ public interface ServiceEnvironment extends PluginEnvironment {
    *         in zookeeper, which falls back to site configuration, which falls back to the default
    *         configuration.
    */
+  @Override
   Configuration getConfiguration();
 
   /**
@@ -55,5 +56,6 @@ public interface ServiceEnvironment extends PluginEnvironment {
    *         {@link #getConfiguration()}.
    *
    */
+  @Override
   Configuration getConfiguration(TableId tableId);
 }

@@ -43,6 +43,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
@@ -51,7 +52,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -310,9 +311,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
       String[] tables = getUniqueNames(2);
 
-      client.tableOperations().create(tables[0]);
-
-      client.tableOperations().addSplits(tables[0], splits);
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      client.tableOperations().create(tables[0], ntc);
 
       try (BatchWriter bw = client.createBatchWriter(tables[0])) {
         bw.addMutations(mutations);

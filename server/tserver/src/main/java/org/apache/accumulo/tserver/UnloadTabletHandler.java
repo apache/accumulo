@@ -28,8 +28,8 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
-import org.apache.accumulo.server.master.state.DistributedStoreException;
-import org.apache.accumulo.server.master.state.TabletStateStore;
+import org.apache.accumulo.server.manager.state.DistributedStoreException;
+import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.zookeeper.KeeperException;
@@ -66,6 +66,7 @@ class UnloadTabletHandler implements Runnable {
     synchronized (server.openingTablets) {
       while (server.openingTablets.contains(extent)) {
         try {
+          log.info("Waiting for tablet {} to finish opening before unloading.", extent);
           server.openingTablets.wait();
         } catch (InterruptedException e) {}
       }
@@ -89,7 +90,7 @@ class UnloadTabletHandler implements Runnable {
 
     try {
       t.close(!goalState.equals(TUnloadTabletGoal.DELETED));
-    } catch (Throwable e) {
+    } catch (Exception e) {
 
       if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
         log.debug("Failed to unload tablet {}... it was already closing or closed : {}", extent,
@@ -117,7 +118,7 @@ class UnloadTabletHandler implements Runnable {
       }
       if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()
           || (extent.isMeta()
-              && !server.getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE))) {
+              && !server.getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE))) {
         TabletStateStore.unassign(server.getContext(), tls, null);
       } else {
         TabletStateStore.suspend(server.getContext(), tls, null,

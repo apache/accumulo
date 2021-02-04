@@ -180,7 +180,7 @@ public class CyclicReplicationIT {
       master1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
       master1Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
       master1Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-      master1Cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+      master1Cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
       master1Cluster = new MiniAccumuloClusterImpl(master1Cfg);
       setCoreSite(master1Cluster);
 
@@ -206,7 +206,7 @@ public class CyclicReplicationIT {
       master2Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
       master2Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
       master2Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-      master2Cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+      master2Cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
       master2Cluster = new MiniAccumuloClusterImpl(master2Cfg);
       setCoreSite(master2Cluster);
 

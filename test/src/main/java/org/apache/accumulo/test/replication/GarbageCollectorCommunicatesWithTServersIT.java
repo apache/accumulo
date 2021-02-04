@@ -101,7 +101,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     // Set really long delays for the master to do stuff for replication. We don't need
     // it to be doing anything, so just let it sleep
     cfg.setProperty(Property.REPLICATION_WORK_PROCESSOR_DELAY, "240s");
-    cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "240s");
+    cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "240s");
     cfg.setProperty(Property.REPLICATION_DRIVER_DELAY, "240s");
     // Pull down the maximum size of the wal so we can test close()'ing it.
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");

@@ -28,20 +28,21 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Token
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
-import jline.console.ConsoleReader;
-
 @AutoService(KeywordExecutable.class)
 public class CreateToken implements KeywordExecutable {
 
-  private ConsoleReader reader = null;
+  private LineReader reader = null;
 
-  private ConsoleReader getConsoleReader() throws IOException {
+  private LineReader getConsoleReader() throws IOException {
+
     if (reader == null)
-      reader = new ConsoleReader();
+      reader = LineReaderBuilder.builder().build();
     return reader;
   }
 

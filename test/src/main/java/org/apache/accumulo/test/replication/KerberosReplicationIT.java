@@ -46,7 +46,7 @@ import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
-import org.apache.accumulo.master.replication.SequentialWorkAssigner;
+import org.apache.accumulo.manager.replication.SequentialWorkAssigner;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -124,7 +124,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
         cfg.setProperty(Property.GC_CYCLE_START, "1s");
         cfg.setProperty(Property.GC_CYCLE_DELAY, "5s");
         cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-        cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+        cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
         cfg.setProperty(Property.REPLICATION_NAME, name);
         cfg.setProperty(Property.REPLICATION_MAX_UNIT_SIZE, "8M");
         cfg.setProperty(Property.REPLICATION_WORK_ASSIGNER, SequentialWorkAssigner.class.getName());
