@@ -26,6 +26,7 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.TableId;
@@ -79,13 +80,8 @@ public class PreferredVolumeChooserTest {
       }
 
       @Override
-      public boolean hasTableId() {
-        return true;
-      }
-
-      @Override
-      public TableId getTableId() {
-        return TableId.of("testTable");
+      public Optional<TableId> getTable() {
+        return Optional.of(TableId.of("testTable"));
       }
 
       @Override
@@ -111,13 +107,8 @@ public class PreferredVolumeChooserTest {
       }
 
       @Override
-      public boolean hasTableId() {
-        return false;
-      }
-
-      @Override
-      public TableId getTableId() {
-        throw new UnsupportedOperationException();
+      public Optional<TableId> getTable() {
+        return Optional.empty();
       }
 
       @Override

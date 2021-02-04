@@ -45,10 +45,8 @@ public interface VolumeChooserEnvironment
   @Override
   public Text getEndRow();
 
-  @Override
   public boolean hasTableId();
 
-  @Override
   public TableId getTableId();
 
   /**

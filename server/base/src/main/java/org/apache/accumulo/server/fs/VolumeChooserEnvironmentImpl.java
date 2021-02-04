@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.fs;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -39,20 +40,20 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
 
   private final ServerContext context;
   private final Scope scope;
-  private final TableId tableId;
+  private final Optional<TableId> tableId;
   private final Text endRow;
 
   public VolumeChooserEnvironmentImpl(Scope scope, ServerContext context) {
     this.context = context;
     this.scope = Objects.requireNonNull(scope);
-    this.tableId = null;
+    this.tableId = Optional.empty();
     this.endRow = null;
   }
 
   public VolumeChooserEnvironmentImpl(TableId tableId, Text endRow, ServerContext context) {
     this.context = context;
     this.scope = Scope.TABLE;
-    this.tableId = Objects.requireNonNull(tableId);
+    this.tableId = Optional.of(tableId);
     this.endRow = endRow;
   }
 
@@ -60,7 +61,7 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
       ServerContext context) {
     this.context = context;
     this.scope = Objects.requireNonNull(scope);
-    this.tableId = Objects.requireNonNull(tableId);
+    this.tableId = Optional.of(tableId);
     this.endRow = endRow;
   }
 
@@ -78,15 +79,18 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
   }
 
   @Override
+  public Optional<TableId> getTable() {
+    return tableId;
+  }
+
+  @Override
   public boolean hasTableId() {
-    return scope == Scope.TABLE || scope == Scope.INIT;
+    return tableId.isPresent();
   }
 
   @Override
   public TableId getTableId() {
-    if (scope != Scope.TABLE && scope != Scope.INIT)
-      throw new IllegalStateException("Can only request table id for tables, not for " + scope);
-    return tableId;
+    return tableId.get();
   }
 
   @Override

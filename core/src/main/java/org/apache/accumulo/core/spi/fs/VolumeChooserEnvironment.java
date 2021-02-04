@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.fs;
 
+import java.util.Optional;
+
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.hadoop.io.Text;
@@ -37,9 +39,7 @@ public interface VolumeChooserEnvironment {
 
   public Text getEndRow();
 
-  public boolean hasTableId();
-
-  public TableId getTableId();
+  public Optional<TableId> getTable();
 
   public Scope getChooserScope();
 

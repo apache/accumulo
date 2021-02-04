@@ -26,6 +26,8 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 
+import java.util.Optional;
+
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
@@ -79,13 +81,8 @@ public class PerTableVolumeChooserTest {
       }
 
       @Override
-      public boolean hasTableId() {
-        return true;
-      }
-
-      @Override
-      public TableId getTableId() {
-        return TableId.of("testTable");
+      public Optional<TableId> getTable() {
+        return Optional.of(TableId.of("testTable"));
       }
 
       @Override
@@ -112,13 +109,8 @@ public class PerTableVolumeChooserTest {
       }
 
       @Override
-      public boolean hasTableId() {
-        return false;
-      }
-
-      @Override
-      public TableId getTableId() {
-        throw new UnsupportedOperationException();
+      public Optional<TableId> getTable() {
+        return Optional.empty();
       }
 
       @Override
@@ -130,6 +122,7 @@ public class PerTableVolumeChooserTest {
       public ServiceEnvironment getServiceEnv() {
         return serviceEnv;
       }
+
     };
     return chooser.getDelegateChooser(env);
   }

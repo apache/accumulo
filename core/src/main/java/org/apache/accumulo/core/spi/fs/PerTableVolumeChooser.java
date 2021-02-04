@@ -76,10 +76,10 @@ public class PerTableVolumeChooser implements VolumeChooser {
   }
 
   private VolumeChooser getVolumeChooserForTable(VolumeChooserEnvironment env) {
-    log.trace("Looking up property {} for table id: {}", TABLE_CUSTOM_SUFFIX, env.getTableId());
+    log.trace("Looking up property {} for table id: {}", TABLE_CUSTOM_SUFFIX, env.getTable());
 
-    String clazz =
-        env.getServiceEnv().getConfiguration(env.getTableId()).getTableCustom(TABLE_CUSTOM_SUFFIX);
+    String clazz = env.getServiceEnv().getConfiguration(env.getTable().get())
+        .getTableCustom(TABLE_CUSTOM_SUFFIX);
 
     // fall back to global default scope, so setting only one default is necessary, rather than a
     // separate default for TABLE scope than other scopes
@@ -94,7 +94,7 @@ public class PerTableVolumeChooser implements VolumeChooser {
       throw new VolumeChooserException(msg);
     }
 
-    return createVolumeChooser(env, clazz, TABLE_CUSTOM_SUFFIX, env.getTableId(),
+    return createVolumeChooser(env, clazz, TABLE_CUSTOM_SUFFIX, env.getTable().get(),
         tableSpecificChooserCache);
   }
 
