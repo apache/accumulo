@@ -42,7 +42,7 @@ public class SummaryInformation {
   // Variable names become JSON keys
   public List<TabletServer> servers = new ArrayList<>();
 
-  public String masterGoalState, masterState;
+  public String managerGoalState, managerState;
 
   public BadTabletServers badTabletServers;
   public ServersShuttingDown tabletServersShuttingDown;
@@ -63,15 +63,15 @@ public class SummaryInformation {
    * @param size
    *          Number of tservers
    * @param info
-   *          Master information
+   *          Manager information
    * @param tablesList
    *          Table list
    */
   public SummaryInformation(int size, ManagerInformation info, TableInformationList tablesList) {
     this.servers = new ArrayList<>(size);
 
-    this.masterGoalState = info.masterGoalState;
-    this.masterState = info.masterState;
+    this.managerGoalState = info.managerGoalState;
+    this.managerState = info.managerState;
 
     this.badTabletServers = info.badTabletServers;
     this.tabletServersShuttingDown = info.tabletServersShuttingDown;

@@ -105,7 +105,7 @@ public class MiniAccumuloClusterImplTest {
   public void saneMonitorInfo() throws Exception {
     ManagerMonitorInfo stats;
     while (true) {
-      stats = accumulo.getMasterMonitorInfo();
+      stats = accumulo.getManagerMonitorInfo();
       if (stats.tableMap.size() <= 2) {
         continue;
       }
@@ -116,8 +116,8 @@ public class MiniAccumuloClusterImplTest {
     }
     List<ManagerState> validStates = Arrays.asList(ManagerState.values());
     List<ManagerGoalState> validGoals = Arrays.asList(ManagerGoalState.values());
-    assertTrue("master state should be valid.", validStates.contains(stats.state));
-    assertTrue("master goal state should be in " + validGoals + ". is " + stats.goalState,
+    assertTrue("manager state should be valid.", validStates.contains(stats.state));
+    assertTrue("manager goal state should be in " + validGoals + ". is " + stats.goalState,
         validGoals.contains(stats.goalState));
     assertNotNull("should have a table map.", stats.tableMap);
     assertTrue("root table should exist in " + stats.tableMap.keySet(),

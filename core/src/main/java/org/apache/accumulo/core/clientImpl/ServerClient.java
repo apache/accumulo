@@ -147,7 +147,7 @@ public class ServerClient {
       byte[] data = zc.getLockData(path);
       if (data != null) {
         String strData = new String(data, UTF_8);
-        if (!strData.equals("master"))
+        if (!strData.equals("manager"))
           servers.add(new ThriftTransportKey(
               new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
       }

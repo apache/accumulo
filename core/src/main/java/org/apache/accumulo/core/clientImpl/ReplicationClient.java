@@ -65,32 +65,32 @@ public class ReplicationClient {
     }
 
     throw new AccumuloException(
-        "Timed out trying to communicate with master from " + context.getInstanceName());
+        "Timed out trying to communicate with manager from " + context.getInstanceName());
   }
 
   public static ReplicationCoordinator.Client getCoordinatorConnection(ClientContext context) {
-    List<String> locations = context.getMasterLocations();
+    List<String> locations = context.getManagerLocations();
 
     if (locations.isEmpty()) {
-      log.debug("No masters for replication to instance {}", context.getInstanceName());
+      log.debug("No managers for replication to instance {}", context.getInstanceName());
       return null;
     }
 
-    // This is the master thrift service, we just want the hostname, not the port
-    String masterThriftService = locations.get(0);
-    if (masterThriftService.endsWith(":0")) {
-      log.warn("Master found for {} did not have real location {}", context.getInstanceName(),
-          masterThriftService);
+    // This is the manager thrift service, we just want the hostname, not the port
+    String managerThriftService = locations.get(0);
+    if (managerThriftService.endsWith(":0")) {
+      log.warn("Manager found for {} did not have real location {}", context.getInstanceName(),
+          managerThriftService);
       return null;
     }
 
-    String zkPath = context.getZooKeeperRoot() + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR;
+    String zkPath = context.getZooKeeperRoot() + Constants.ZMANAGER_REPLICATION_COORDINATOR_ADDR;
     String replCoordinatorAddr;
 
-    log.debug("Using ZooKeeper quorum at {} with path {} to find peer Master information",
+    log.debug("Using ZooKeeper quorum at {} with path {} to find peer Manager information",
         context.getZooKeepers(), zkPath);
 
-    // Get the coordinator port for the master we're trying to connect to
+    // Get the coordinator port for the manager we're trying to connect to
     try {
       ZooReader reader =
           new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
@@ -103,14 +103,14 @@ public class ReplicationClient {
     // Throw the hostname and port through HostAndPort to get some normalization
     HostAndPort coordinatorAddr = HostAndPort.fromString(replCoordinatorAddr);
 
-    log.debug("Connecting to master at {}", coordinatorAddr);
+    log.debug("Connecting to manager at {}", coordinatorAddr);
 
     try {
-      // Master requests can take a long time: don't ever time out
+      // Manager requests can take a long time: don't ever time out
       return ThriftUtil.getClientNoTimeout(new ReplicationCoordinator.Client.Factory(),
           coordinatorAddr, context);
     } catch (TTransportException tte) {
-      log.debug("Failed to connect to master coordinator service ({})", coordinatorAddr, tte);
+      log.debug("Failed to connect to manager coordinator service ({})", coordinatorAddr, tte);
       return null;
     }
   }

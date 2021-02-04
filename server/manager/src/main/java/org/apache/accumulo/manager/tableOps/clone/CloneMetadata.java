@@ -46,7 +46,7 @@ class CloneMetadata extends ManagerRepo {
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
     MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment.getContext(),
-        environment.getMasterLock());
+        environment.getManagerLock());
     MetadataTableUtil.cloneTable(environment.getContext(), cloneInfo.srcTableId, cloneInfo.tableId);
     return new FinishCloneTable(cloneInfo);
   }
@@ -54,7 +54,7 @@ class CloneMetadata extends ManagerRepo {
   @Override
   public void undo(long tid, Manager environment) throws Exception {
     MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment.getContext(),
-        environment.getMasterLock());
+        environment.getManagerLock());
   }
 
 }

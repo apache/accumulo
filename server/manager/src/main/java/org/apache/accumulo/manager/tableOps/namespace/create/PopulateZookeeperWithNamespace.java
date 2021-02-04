@@ -47,22 +47,22 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
 
     Utils.getTableNameLock().lock();
     try {
-      Utils.checkNamespaceDoesNotExist(master.getContext(), namespaceInfo.namespaceName,
+      Utils.checkNamespaceDoesNotExist(manager.getContext(), namespaceInfo.namespaceName,
           namespaceInfo.namespaceId, TableOperation.CREATE);
 
-      TableManager.prepareNewNamespaceState(master.getContext().getZooReaderWriter(),
-          master.getInstanceID(), namespaceInfo.namespaceId, namespaceInfo.namespaceName,
+      TableManager.prepareNewNamespaceState(manager.getContext().getZooReaderWriter(),
+          manager.getInstanceID(), namespaceInfo.namespaceId, namespaceInfo.namespaceName,
           NodeExistsPolicy.OVERWRITE);
 
       for (Entry<String,String> entry : namespaceInfo.props.entrySet())
-        NamespacePropUtil.setNamespaceProperty(master.getContext(), namespaceInfo.namespaceId,
+        NamespacePropUtil.setNamespaceProperty(manager.getContext(), namespaceInfo.namespaceId,
             entry.getKey(), entry.getValue());
 
-      Tables.clearCache(master.getContext());
+      Tables.clearCache(manager.getContext());
 
       return new FinishCreateNamespace(namespaceInfo);
     } finally {
@@ -71,10 +71,10 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager master) throws Exception {
-    master.getTableManager().removeNamespace(namespaceInfo.namespaceId);
-    Tables.clearCache(master.getContext());
-    Utils.unreserveNamespace(master, namespaceInfo.namespaceId, tid, true);
+  public void undo(long tid, Manager manager) throws Exception {
+    manager.getTableManager().removeNamespace(namespaceInfo.namespaceId);
+    Tables.clearCache(manager.getContext());
+    Utils.unreserveNamespace(manager, namespaceInfo.namespaceId, tid, true);
   }
 
 }

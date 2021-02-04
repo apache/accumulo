@@ -18,18 +18,18 @@
  */
 
 /**
- * Creates master initial table
+ * Creates manager initial table
  */
 $(document).ready(function() {
-  refreshMaster();
+  refreshManager();
 });
 
 /**
  * Makes the REST calls, generates the tables with the new information
  */
-function refreshMaster() {
-  getMaster().then(function() {
-    refreshMasterTable();
+function refreshManager() {
+  getManager().then(function() {
+    refreshManagerTable();
   });
   getRecoveryList().then(function() {
     recoveryList();
@@ -39,13 +39,13 @@ function refreshMaster() {
 
 /*
  * The tables refresh function will do this functionality
- * If tables are removed from Master, uncomment this function
+ * If tables are removed from Manager, uncomment this function
  */
 /**
  * Used to redraw the page
  */
 /*function refresh() {
-  refreshMaster();
+  refreshManager();
 }*/
 
 /**
@@ -85,25 +85,25 @@ function recoveryList() {
 }
 
 /**
- * Generates the master table
+ * Generates the manager table
  */
-function refreshMasterTable() {
-  // Gets the master status
-  var status = JSON.parse(sessionStorage.status).masterStatus;
+function refreshManagerTable() {
+  // Gets the manager status
+  var status = JSON.parse(sessionStorage.status).managerStatus;
 
-  // Hide the banner and the master table
-  $('#masterBanner').hide();
-  clearTableBody('masterStatus');
-  $('#masterStatus').hide();
+  // Hide the banner and the manager table
+  $('#managerBanner').hide();
+  clearTableBody('managerStatus');
+  $('#managerStatus').hide();
 
-  // If master status is error, show banner, otherwise, create master table
+  // If manager status is error, show banner, otherwise, create manager table
   if (status === 'ERROR') {
-    $('#masterBanner').show();
+    $('#managerBanner').show();
   } else {
-    $('#masterStatus').show();
-    var data = JSON.parse(sessionStorage.master);
+    $('#managerStatus').show();
+    var data = JSON.parse(sessionStorage.manager);
     var items = [];
-    items.push(createFirstCell(data.master, data.master));
+    items.push(createFirstCell(data.manager, data.manager));
 
     items.push(createRightCell(data.onlineTabletServers,
         data.onlineTabletServers));
@@ -141,6 +141,6 @@ function refreshMasterTable() {
 
     $('<tr/>', {
      html: items.join('')
-    }).appendTo('#masterStatus tbody');
+    }).appendTo('#managerStatus tbody');
   }
 }

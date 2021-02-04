@@ -43,8 +43,8 @@ public class ManagerExecutable implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws Exception {
-    try (Manager master = new Manager(new ServerOpts(), args)) {
-      master.runServer();
+    try (Manager manager = new Manager(new ServerOpts(), args)) {
+      manager.runServer();
     }
   }
 

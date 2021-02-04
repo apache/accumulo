@@ -37,7 +37,7 @@
       <div class="row">
         <div class="col-xs-12">
           <table id="trace" class="table table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Traces for masterReplicationDriver</span><br/></caption>
+            <caption><span class="table-caption">Traces for managerReplicationDriver</span><br/></caption>
             <thead>
               <tr>
                 <th class="firstcell" title="Start Time of selected trace type">Start</th>

@@ -23,13 +23,13 @@
           <h3>${title}</h3>
         </div>
       </div>
-      <div id="masterBanner" style="display: none;"><div class="alert alert-danger" role="alert">Master Server Not Running</div></div>
+      <div id="managerBanner" style="display: none;"><div class="alert alert-danger" role="alert">Manager Server Not Running</div></div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="masterStatus" class="table table-bordered table-striped table-condensed">
+          <table id="managerStatus" class="table table-bordered table-striped table-condensed">
             <thead>
               <tr>
-                <th class="firstcell" title="The hostname of the master server">Hostname</th>
+                <th class="firstcell" title="The hostname of the manager server">Hostname</th>
                 <th title="Number of tablet servers currently available">Online TServers&nbsp;</th>
                 <th title="The total number of tablet servers configured">TotalTServers&nbsp;</th>
                 <th title="The last time files were cleaned-up from HDFS.">Last&nbsp;GC</th>

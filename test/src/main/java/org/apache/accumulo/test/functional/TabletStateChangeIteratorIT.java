@@ -312,7 +312,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     }
 
     @Override
-    public ManagerState getMasterState() {
+    public ManagerState getManagerState() {
       return ManagerState.NORMAL;
     }
   }

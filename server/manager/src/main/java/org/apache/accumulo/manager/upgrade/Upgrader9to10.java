@@ -246,7 +246,7 @@ public class Upgrader9to10 implements Upgrader {
               // Earlier, it was checked that root tablet metadata did not exists. However the
               // earlier check does handle race conditions. Race conditions are unexpected. This is
               // a sanity check when making the update in ZK using compare and set. If this fails
-              // and its not a bug, then its likely some concurrency issue. For example two masters
+              // and its not a bug, then its likely some concurrency issue. For example two managers
               // concurrently running upgrade could cause this to fail.
               Preconditions.checkState(currVal.length == 0,
                   "Expected root tablet metadata to be empty!");

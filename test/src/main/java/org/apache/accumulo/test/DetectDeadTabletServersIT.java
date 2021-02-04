@@ -94,7 +94,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
     while (true) {
       try {
         client = ManagerClient.getConnectionWithRetry(context);
-        log.info("Fetching master stats");
+        log.info("Fetching manager stats");
         return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location

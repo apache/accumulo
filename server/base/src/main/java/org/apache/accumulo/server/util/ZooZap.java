@@ -51,8 +51,12 @@ public class ZooZap {
   }
 
   static class Opts extends Help {
-    @Parameter(names = "-master", description = "remove master locks")
+    @Deprecated(since = "2.1.0")
+    @Parameter(names = "-master",
+        description = "remove master locks (deprecated -- user -manager instead")
     boolean zapMaster = false;
+    @Parameter(names = "-manager", description = "remove manager locks")
+    boolean zapManager = false;
     @Parameter(names = "-tservers", description = "remove tablet server locks")
     boolean zapTservers = false;
     @Parameter(names = "-tracers", description = "remove tracer locks")
@@ -65,7 +69,7 @@ public class ZooZap {
     Opts opts = new Opts();
     opts.parseArgs(ZooZap.class.getName(), args);
 
-    if (!opts.zapMaster && !opts.zapTservers && !opts.zapTracers) {
+    if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers && !opts.zapTracers) {
       new JCommander(opts).usage();
       return;
     }
@@ -83,10 +87,13 @@ public class ZooZap {
       ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
       if (opts.zapMaster) {
-        String masterLockPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
+        log.warn("The -master option is deprecated. Please use -manager instead.");
+      }
+      if (opts.zapManager || opts.zapMaster) {
+        String managerLockPath = Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK;
 
         try {
-          zapDirectory(zoo, masterLockPath, opts);
+          zapDirectory(zoo, managerLockPath, opts);
         } catch (Exception e) {
           e.printStackTrace();
         }
@@ -99,7 +106,7 @@ public class ZooZap {
           for (String child : children) {
             message("Deleting " + tserversPath + "/" + child + " from zookeeper", opts);
 
-            if (opts.zapMaster) {
+            if (opts.zapManager || opts.zapMaster) {
               zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
             } else {
               String path = tserversPath + "/" + child;

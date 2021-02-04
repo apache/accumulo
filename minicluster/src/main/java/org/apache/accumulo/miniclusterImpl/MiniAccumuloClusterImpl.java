@@ -590,7 +590,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
     if (ret != 0) {
-      throw new RuntimeException("Could not set master goal state, process returned " + ret
+      throw new RuntimeException("Could not set manager goal state, process returned " + ret
           + ". Check the logs in " + config.getLogDir() + " for errors.");
     }
 
@@ -626,7 +626,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
-    result.put(ServerType.MANAGER, references(control.masterProcess));
+    result.put(ServerType.MANAGER, references(control.managerProcess));
     result.put(ServerType.TABLET_SERVER,
         references(control.tabletServerProcesses.toArray(new Process[0])));
     if (control.zooKeeperProcess != null) {
@@ -770,7 +770,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    *
    * @since 1.6.1
    */
-  public ManagerMonitorInfo getMasterMonitorInfo()
+  public ManagerMonitorInfo getManagerMonitorInfo()
       throws AccumuloException, AccumuloSecurityException {
     ManagerClientService.Iface client = null;
     while (true) {
@@ -781,7 +781,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         throw new AccumuloSecurityException(exception);
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        log.debug("Contacted a Master which is no longer active, retrying");
+        log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (TException exception) {
         throw new AccumuloException(exception);

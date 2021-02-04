@@ -42,8 +42,8 @@ public class CompleteBulkImport extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
-    ZooArbitrator.stop(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+    ZooArbitrator.stop(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     return new CopyFailed(tableId, source, bulk, error);
   }
 }

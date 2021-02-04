@@ -460,7 +460,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   public void run() {
     final VolumeManager fs = getContext().getVolumeManager();
 
-    // Sleep for an initial period, giving the master time to start up and
+    // Sleep for an initial period, giving the manager time to start up and
     // old data files to be unused
     log.info("Trying to acquire ZooKeeper lock for garbage collector");
 

@@ -83,14 +83,14 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   }
 
   /**
-   * Spoof out the Master so we can call the implementation without starting a full instance.
+   * Spoof out the Manager so we can call the implementation without starting a full instance.
    */
   private ReplicationOperationsImpl getReplicationOperations() {
-    Manager master = EasyMock.createMock(Manager.class);
-    EasyMock.expect(master.getContext()).andReturn(serverContext).anyTimes();
-    EasyMock.replay(master);
+    Manager manager = EasyMock.createMock(Manager.class);
+    EasyMock.expect(manager.getContext()).andReturn(serverContext).anyTimes();
+    EasyMock.replay(manager);
 
-    final ManagerClientServiceHandler mcsh = new ManagerClientServiceHandler(master) {
+    final ManagerClientServiceHandler mcsh = new ManagerClientServiceHandler(manager) {
       @Override
       protected TableId getTableId(ClientContext context, String tableName) {
         try {
@@ -104,7 +104,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     ClientContext context = (ClientContext) client;
     return new ReplicationOperationsImpl(context) {
       @Override
-      protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,
+      protected boolean getManagerDrain(final TInfo tinfo, final TCredentials rpcCreds,
           final String tableName, final Set<String> wals) {
         try {
           return mcsh.drainReplicationTable(tinfo, rpcCreds, tableName, wals);

@@ -135,7 +135,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    // Run the master replication loop run frequently
+    // Run the manager replication loop run frequently
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
@@ -143,7 +143,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "0");
-    cfg.setProperty(Property.REPLICATION_NAME, "master");
+    cfg.setProperty(Property.REPLICATION_NAME, "manager");
     cfg.setProperty(Property.REPLICATION_WORK_PROCESSOR_DELAY, "1s");
     cfg.setProperty(Property.REPLICATION_WORK_PROCESSOR_PERIOD, "1s");
     cfg.setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX, "1M");
@@ -595,7 +595,8 @@ public class ReplicationIT extends ConfigurableMacBase {
       keepRunning.set(false);
       t.join(5000);
 
-      // The master is only running every second to create records in the replication table from the
+      // The manager is only running every second to create records in the replication table from
+      // the
       // metadata table
       // Sleep a sufficient amount of time to ensure that we get the straggling WALs that might have
       // been created at the end
@@ -906,7 +907,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       assertTrue("Replication table was never created", ReplicationTable.isOnline(client));
 
       // ACCUMULO-2743 The Observer in the tserver has to be made aware of the change to get the
-      // combiner (made by the master)
+      // combiner (made by the manager)
       for (int i = 0; i < 10 && !client.tableOperations().listIterators(ReplicationTable.NAME)
           .containsKey(ReplicationTable.COMBINER_NAME); i++) {
         sleepUninterruptibly(2, TimeUnit.SECONDS);
@@ -932,7 +933,7 @@ public class ReplicationIT extends ConfigurableMacBase {
             Status actual = Status.parseFrom(entry.getValue().get());
             if (actual.getInfiniteEnd() != expectedStatus.getInfiniteEnd()) {
               entry = null;
-              // the master process didn't yet fire and write the new mutation, wait for it to do
+              // the manager process didn't yet fire and write the new mutation, wait for it to do
               // so and try to read it again
               Thread.sleep(1000);
             }
@@ -989,9 +990,10 @@ public class ReplicationIT extends ConfigurableMacBase {
         client.tableOperations().compact(table1, null, null, true, true);
         log.info("Compaction completed");
 
-        // Master is creating entries in the replication table from the metadata table every second.
+        // Manager is creating entries in the replication table from the metadata table every
+        // second.
         // Compaction should trigger the record to be written to metadata. Wait a bit to ensure
-        // that the master has time to work.
+        // that the manager has time to work.
         Thread.sleep(5000);
 
         try (Scanner s2 = ReplicationTable.getScanner(client)) {

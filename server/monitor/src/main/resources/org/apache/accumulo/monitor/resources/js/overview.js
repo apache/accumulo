@@ -28,8 +28,8 @@ $(document).ready(function() {
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshOverview() {
-  getMaster().then(function() {
-    refreshMasterTable();
+  getManager().then(function() {
+    refreshManagerTable();
   });
   getZK().then(function() {
     refreshZKTable();
@@ -59,21 +59,21 @@ function refresh() {
 }
 
 /**
- * Refreshes the master table
+ * Refreshes the manager table
  */
-function refreshMasterTable() {
-  var data = sessionStorage.master === undefined ?
-      [] : JSON.parse(sessionStorage.master);
+function refreshManagerTable() {
+  var data = sessionStorage.manager === undefined ?
+      [] : JSON.parse(sessionStorage.manager);
 
-  $('#master tr td:first').hide();
-  $('#master tr td').hide();
+  $('#manager tr td:first').hide();
+  $('#manager tr td').hide();
 
-  // If the master is down, show the first row, otherwise refresh old values
-  if (data.length === 0 || data.master === 'No Masters running') {
-    $('#master tr td:first').show();
+  // If the manager is down, show the first row, otherwise refresh old values
+  if (data.length === 0 || data.manager === 'No Managers running') {
+    $('#manager tr td:first').show();
   } else {
-    $('#master tr td:not(:first)').show();
-    var table = $('#master td.right');
+    $('#manager tr td:not(:first)').show();
+    var table = $('#manager td.right');
 
     table.eq(0).html(bigNumberForQuantity(data.tables));
     table.eq(1).html(bigNumberForQuantity(data.totalTabletServers));

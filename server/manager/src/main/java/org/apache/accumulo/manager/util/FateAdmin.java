@@ -82,19 +82,19 @@ public class FateAdmin {
     try (var context = new ServerContext(SiteConfiguration.auto())) {
       final String zkRoot = context.getZooKeeperRoot();
       String path = zkRoot + Constants.ZFATE;
-      String masterPath = zkRoot + Constants.ZMASTER_LOCK;
+      String managerPath = zkRoot + Constants.ZMANAGER_LOCK;
       ZooReaderWriter zk = context.getZooReaderWriter();
       ZooStore<Manager> zs = new ZooStore<>(path, zk);
 
       if (jc.getParsedCommand().equals("fail")) {
         for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
-          if (!admin.prepFail(zs, zk, masterPath, txid)) {
+          if (!admin.prepFail(zs, zk, managerPath, txid)) {
             System.exit(1);
           }
         }
       } else if (jc.getParsedCommand().equals("delete")) {
         for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
-          if (!admin.prepDelete(zs, zk, masterPath, txid)) {
+          if (!admin.prepDelete(zs, zk, managerPath, txid)) {
             System.exit(1);
           }
           admin.deleteLocks(zk, zkRoot + Constants.ZTABLE_LOCKS, txid);

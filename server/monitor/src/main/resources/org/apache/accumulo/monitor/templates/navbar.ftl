@@ -40,7 +40,7 @@
               <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false"><span id="statusNotification" class="icon-dot normal"></span>&nbsp;Servers&nbsp;<span class="caret"></span>
               </a>
               <ul class="dropdown-menu">
-                <li><a href="/master"><span id="masterStatusNotification" class="icon-dot normal"></span>&nbsp;Master&nbsp;Server&nbsp;</a></li>
+                <li><a href="/manager"><span id="managerStatusNotification" class="icon-dot normal"></span>&nbsp;Manager&nbsp;Server&nbsp;</a></li>
                 <li><a href="/tservers"><span id="serverStatusNotification" class="icon-dot normal"></span>&nbsp;Tablet&nbsp;Servers&nbsp;</a></li>
                 <li><a href="/gc"><span id="gcStatusNotification" class="icon-dot normal"></span>&nbsp;Garbage&nbsp;collector&nbsp;</a></li>
               </ul>

@@ -45,7 +45,7 @@ public class TabletServers {
    * Adds bad and dead servers to the list
    *
    * @param info
-   *          Master information to get bad and dead server information
+   *          Manager information to get bad and dead server information
    */
   public void addBadTabletServer(ManagerInformation info) {
     badServers = info.badTabletServers.badTabletServer;

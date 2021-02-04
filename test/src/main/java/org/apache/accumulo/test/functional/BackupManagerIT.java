@@ -39,7 +39,7 @@ public class BackupManagerIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    // wait for master
+    // wait for manager
     UtilWaitThread.sleep(1000);
     // create a backup
     Process backup = exec(Manager.class);
@@ -51,20 +51,20 @@ public class BackupManagerIT extends ConfigurableMacBase {
       // wait for 2 lock entries
       do {
         UtilWaitThread.sleep(100);
-        children = writer.getChildren(root + "/masters/lock");
+        children = writer.getChildren(root + "/managers/lock");
       } while (children.size() != 2);
       Collections.sort(children);
-      // wait for the backup master to learn to be the backup
+      // wait for the backup manager to learn to be the backup
       UtilWaitThread.sleep(1000);
       // generate a false zookeeper event
-      String lockPath = root + "/masters/lock/" + children.get(0);
+      String lockPath = root + "/managers/lock/" + children.get(0);
       byte[] data = writer.getData(lockPath);
       writer.getZooKeeper().setData(lockPath, data, -1);
       // let it propagate
       UtilWaitThread.sleep(500);
-      // kill the master by removing its lock
+      // kill the manager by removing its lock
       writer.recursiveDelete(lockPath, NodeMissingPolicy.FAIL);
-      // ensure the backup becomes the master
+      // ensure the backup becomes the manager
       client.tableOperations().create(getUniqueNames(1)[0]);
     } finally {
       backup.destroy();

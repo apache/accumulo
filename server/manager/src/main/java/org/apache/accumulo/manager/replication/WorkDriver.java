@@ -36,18 +36,18 @@ import org.slf4j.LoggerFactory;
 public class WorkDriver implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(WorkDriver.class);
 
-  private Manager master;
+  private Manager manager;
   private AccumuloClient client;
   private AccumuloConfiguration conf;
 
   private WorkAssigner assigner;
   private String assignerImplName;
 
-  public WorkDriver(Manager master) {
+  public WorkDriver(Manager manager) {
     super();
-    this.master = master;
-    this.client = master.getContext();
-    this.conf = master.getConfiguration();
+    this.manager = manager;
+    this.client = manager.getContext();
+    this.conf = manager.getConfiguration();
     configureWorkAssigner();
   }
 
@@ -79,7 +79,7 @@ public class WorkDriver implements Runnable {
   public void run() {
     log.info("Starting replication work assignment thread using {}", assignerImplName);
 
-    while (master.stillMaster()) {
+    while (manager.stillManager()) {
       // Assign the work using the configured implementation
       try {
         assigner.assignWork();

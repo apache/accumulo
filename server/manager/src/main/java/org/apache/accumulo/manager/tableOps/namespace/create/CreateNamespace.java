@@ -44,11 +44,11 @@ public class CreateNamespace extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     Utils.getIdLock().lock();
     try {
       namespaceInfo.namespaceId =
-          Utils.getNextId(namespaceInfo.namespaceName, master.getContext(), NamespaceId::of);
+          Utils.getNextId(namespaceInfo.namespaceName, manager.getContext(), NamespaceId::of);
       return new SetupNamespacePermissions(namespaceInfo);
     } finally {
       Utils.getIdLock().unlock();

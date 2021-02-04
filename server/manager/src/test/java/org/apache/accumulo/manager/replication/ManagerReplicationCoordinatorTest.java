@@ -39,15 +39,15 @@ public class ManagerReplicationCoordinatorTest {
 
   @Test
   public void randomServer() {
-    Manager master = EasyMock.createMock(Manager.class);
+    Manager manager = EasyMock.createMock(Manager.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(context.getConfiguration()).andReturn(config).anyTimes();
-    EasyMock.expect(master.getContext()).andReturn(context);
-    EasyMock.expect(master.getInstanceID()).andReturn("1234");
-    EasyMock.replay(master, reader);
+    EasyMock.expect(manager.getContext()).andReturn(context);
+    EasyMock.expect(manager.getInstanceID()).andReturn("1234");
+    EasyMock.replay(manager, reader);
 
-    ManagerReplicationCoordinator coordinator = new ManagerReplicationCoordinator(master, reader);
+    ManagerReplicationCoordinator coordinator = new ManagerReplicationCoordinator(manager, reader);
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
 
     assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 0));
@@ -55,15 +55,15 @@ public class ManagerReplicationCoordinatorTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void invalidOffset() {
-    Manager master = EasyMock.createMock(Manager.class);
+    Manager manager = EasyMock.createMock(Manager.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(context.getConfiguration()).andReturn(config).anyTimes();
     ZooReader reader = EasyMock.createMock(ZooReader.class);
-    EasyMock.expect(master.getContext()).andReturn(context);
-    EasyMock.expect(master.getInstanceID()).andReturn("1234");
-    EasyMock.replay(master, reader);
+    EasyMock.expect(manager.getContext()).andReturn(context);
+    EasyMock.expect(manager.getInstanceID()).andReturn("1234");
+    EasyMock.replay(manager, reader);
 
-    ManagerReplicationCoordinator coordinator = new ManagerReplicationCoordinator(master, reader);
+    ManagerReplicationCoordinator coordinator = new ManagerReplicationCoordinator(manager, reader);
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
 
     assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 1));
@@ -71,19 +71,19 @@ public class ManagerReplicationCoordinatorTest {
 
   @Test
   public void randomServerFromMany() {
-    Manager master = EasyMock.createMock(Manager.class);
+    Manager manager = EasyMock.createMock(Manager.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(context.getConfiguration()).andReturn(config).anyTimes();
     EasyMock.expect(context.getInstanceID()).andReturn("1234").anyTimes();
     EasyMock.expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
-    EasyMock.expect(master.getInstanceID()).andReturn("1234").anyTimes();
-    EasyMock.expect(master.getContext()).andReturn(context).anyTimes();
-    EasyMock.replay(master, context, reader);
+    EasyMock.expect(manager.getInstanceID()).andReturn("1234").anyTimes();
+    EasyMock.expect(manager.getContext()).andReturn(context).anyTimes();
+    EasyMock.replay(manager, context, reader);
 
-    ManagerReplicationCoordinator coordinator = new ManagerReplicationCoordinator(master, reader);
+    ManagerReplicationCoordinator coordinator = new ManagerReplicationCoordinator(manager, reader);
 
-    EasyMock.verify(master, reader);
+    EasyMock.verify(manager, reader);
 
     TreeSet<TServerInstance> instances = new TreeSet<>();
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");

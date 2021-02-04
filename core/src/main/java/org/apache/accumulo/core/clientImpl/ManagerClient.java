@@ -56,20 +56,20 @@ public class ManagerClient {
   public static ManagerClientService.Client getConnection(ClientContext context) {
     checkArgument(context != null, "context is null");
 
-    List<String> locations = context.getMasterLocations();
+    List<String> locations = context.getManagerLocations();
 
     if (locations.isEmpty()) {
-      log.debug("No masters...");
+      log.debug("No managers...");
       return null;
     }
 
-    HostAndPort master = HostAndPort.fromString(locations.get(0));
-    if (master.getPort() == 0)
+    HostAndPort manager = HostAndPort.fromString(locations.get(0));
+    if (manager.getPort() == 0)
       return null;
 
     try {
-      // Master requests can take a long time: don't ever time out
-      return ThriftUtil.getClientNoTimeout(new ManagerClientService.Client.Factory(), master,
+      // Manager requests can take a long time: don't ever time out
+      return ThriftUtil.getClientNoTimeout(new ManagerClientService.Client.Factory(), manager,
           context);
     } catch (TTransportException tte) {
       Throwable cause = tte.getCause();
@@ -77,7 +77,7 @@ public class ManagerClient {
         // do not expect to recover from this
         throw new RuntimeException(tte);
       }
-      log.debug("Failed to connect to master=" + master + ", will retry... ", tte);
+      log.debug("Failed to connect to manager=" + manager + ", will retry... ", tte);
       return null;
     }
   }
@@ -88,7 +88,7 @@ public class ManagerClient {
         && client.getInputProtocol().getTransport() != null) {
       ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
     } else {
-      log.debug("Attempt to close null connection to the master", new Exception());
+      log.debug("Attempt to close null connection to the manager", new Exception());
     }
   }
 
@@ -118,7 +118,7 @@ public class ManagerClient {
         }
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        log.debug("Contacted a Master which is no longer active, retrying");
+        log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (Exception e) {
         throw new AccumuloException(e);
@@ -156,8 +156,8 @@ public class ManagerClient {
         }
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        log.debug("Contacted a Master which is no longer active, re-creating"
-            + " the connection to the active Master");
+        log.debug("Contacted a Manager which is no longer active, re-creating"
+            + " the connection to the active Manager");
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {

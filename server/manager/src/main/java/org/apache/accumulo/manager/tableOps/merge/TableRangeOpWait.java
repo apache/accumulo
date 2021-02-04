@@ -67,12 +67,12 @@ class TableRangeOpWait extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
-    MergeInfo mergeInfo = master.getMergeInfo(tableId);
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+    MergeInfo mergeInfo = manager.getMergeInfo(tableId);
     log.info("removing merge information " + mergeInfo);
-    master.clearMergeState(tableId);
-    Utils.unreserveTable(master, tableId, tid, true);
-    Utils.unreserveNamespace(master, namespaceId, tid, false);
+    manager.clearMergeState(tableId);
+    Utils.unreserveTable(manager, tableId, tid, true);
+    Utils.unreserveNamespace(manager, namespaceId, tid, false);
     return null;
   }
 

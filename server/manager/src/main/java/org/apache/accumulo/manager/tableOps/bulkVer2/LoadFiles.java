@@ -88,22 +88,22 @@ class LoadFiles extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager master) throws Exception {
-    if (master.onlineTabletServers().isEmpty()) {
+  public long isReady(long tid, Manager manager) throws Exception {
+    if (manager.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
           + FateTxId.formatTid(tid) + ")");
       return 100;
     }
-    VolumeManager fs = master.getVolumeManager();
+    VolumeManager fs = manager.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     try (LoadMappingIterator lmi =
         BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
-      return loadFiles(bulkInfo.tableId, bulkDir, lmi, master, tid);
+      return loadFiles(bulkInfo.tableId, bulkDir, lmi, manager, tid);
     }
   }
 
   @Override
-  public Repo<Manager> call(final long tid, final Manager master) {
+  public Repo<Manager> call(final long tid, final Manager manager) {
     if (bulkInfo.tableState == TableState.ONLINE) {
       return new CompleteBulkImport(bulkInfo);
     } else {
@@ -113,13 +113,13 @@ class LoadFiles extends ManagerRepo {
 
   private abstract static class Loader {
     protected Path bulkDir;
-    protected Manager master;
+    protected Manager manager;
     protected long tid;
     protected boolean setTime;
 
-    void start(Path bulkDir, Manager master, long tid, boolean setTime) throws Exception {
+    void start(Path bulkDir, Manager manager, long tid, boolean setTime) throws Exception {
       this.bulkDir = bulkDir;
-      this.master = master;
+      this.manager = manager;
       this.tid = tid;
       this.setTime = setTime;
     }
@@ -145,10 +145,10 @@ class LoadFiles extends ManagerRepo {
     private int queuedDataSize = 0;
 
     @Override
-    void start(Path bulkDir, Manager master, long tid, boolean setTime) throws Exception {
-      super.start(bulkDir, master, tid, setTime);
+    void start(Path bulkDir, Manager manager, long tid, boolean setTime) throws Exception {
+      super.start(bulkDir, manager, tid, setTime);
 
-      timeInMillis = master.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
+      timeInMillis = manager.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
       fmtTid = FateTxId.formatTid(tid);
 
       loadMsgs = new MapCounter<>();
@@ -167,8 +167,8 @@ class LoadFiles extends ManagerRepo {
 
           TabletClientService.Client client = null;
           try {
-            client = ThriftUtil.getTServerClient(server, master.getContext(), timeInMillis);
-            client.loadFiles(TraceUtil.traceInfo(), master.getContext().rpcCreds(), tid,
+            client = ThriftUtil.getTServerClient(server, manager.getContext(), timeInMillis);
+            client.loadFiles(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
                 bulkDir.toString(), tabletFiles, setTime);
           } catch (TException ex) {
             log.debug("rpc failed server: " + server + ", " + fmtTid + " " + ex.getMessage(), ex);
@@ -262,10 +262,10 @@ class LoadFiles extends ManagerRepo {
     MapCounter<HostAndPort> unloadingTablets;
 
     @Override
-    void start(Path bulkDir, Manager master, long tid, boolean setTime) throws Exception {
+    void start(Path bulkDir, Manager manager, long tid, boolean setTime) throws Exception {
       Preconditions.checkArgument(!setTime);
-      super.start(bulkDir, master, tid, setTime);
-      bw = master.getContext().createBatchWriter(MetadataTable.NAME);
+      super.start(bulkDir, manager, tid, setTime);
+      bw = manager.getContext().createBatchWriter(MetadataTable.NAME);
       unloadingTablets = new MapCounter<>();
     }
 
@@ -314,7 +314,7 @@ class LoadFiles extends ManagerRepo {
    * all files have been loaded.
    */
   private long loadFiles(TableId tableId, Path bulkDir, LoadMappingIterator loadMapIter,
-      Manager master, long tid) throws Exception {
+      Manager manager, long tid) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
@@ -322,7 +322,7 @@ class LoadFiles extends ManagerRepo {
 
     Iterator<TabletMetadata> tabletIter =
         TabletsMetadata.builder().forTable(tableId).overlapping(startRow, null).checkConsistency()
-            .fetch(PREV_ROW, LOCATION, LOADED).build(master.getContext()).iterator();
+            .fetch(PREV_ROW, LOCATION, LOADED).build(manager.getContext()).iterator();
 
     Loader loader;
     if (bulkInfo.tableState == TableState.ONLINE) {
@@ -331,7 +331,7 @@ class LoadFiles extends ManagerRepo {
       loader = new OfflineLoader();
     }
 
-    loader.start(bulkDir, master, tid, bulkInfo.setTime);
+    loader.start(bulkDir, manager, tid, bulkInfo.setTime);
 
     long t1 = System.currentTimeMillis();
     while (lmi.hasNext()) {

@@ -200,9 +200,9 @@ public class Utils {
    * @param path
    *          the fully-qualified path
    */
-  public static SortedSet<Text> getSortedSetFromFile(Manager master, Path path, boolean encoded)
+  public static SortedSet<Text> getSortedSetFromFile(Manager manager, Path path, boolean encoded)
       throws IOException {
-    FileSystem fs = path.getFileSystem(master.getContext().getHadoopConf());
+    FileSystem fs = path.getFileSystem(manager.getContext().getHadoopConf());
     var data = new TreeSet<Text>();
     try (var file = new java.util.Scanner(fs.open(path), UTF_8)) {
       while (file.hasNextLine()) {

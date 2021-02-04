@@ -46,23 +46,23 @@ class PopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     // reserve the table name in zookeeper or fail
 
     Utils.getTableNameLock().lock();
     try {
       // write tableName & tableId to zookeeper
-      Utils.checkTableDoesNotExist(master.getContext(), tableInfo.getTableName(),
+      Utils.checkTableDoesNotExist(manager.getContext(), tableInfo.getTableName(),
           tableInfo.getTableId(), TableOperation.CREATE);
 
-      master.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
+      manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());
 
       for (Entry<String,String> entry : tableInfo.props.entrySet())
-        TablePropUtil.setTableProperty(master.getContext(), tableInfo.getTableId(), entry.getKey(),
+        TablePropUtil.setTableProperty(manager.getContext(), tableInfo.getTableId(), entry.getKey(),
             entry.getValue());
 
-      Tables.clearCache(master.getContext());
+      Tables.clearCache(manager.getContext());
       return new ChooseDir(tableInfo);
     } finally {
       Utils.getTableNameLock().unlock();
@@ -71,10 +71,10 @@ class PopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager master) throws Exception {
-    master.getTableManager().removeTable(tableInfo.getTableId());
-    Utils.unreserveTable(master, tableInfo.getTableId(), tid, true);
-    Tables.clearCache(master.getContext());
+  public void undo(long tid, Manager manager) throws Exception {
+    manager.getTableManager().removeTable(tableInfo.getTableId());
+    Utils.unreserveTable(manager, tableInfo.getTableId(), tid, true);
+    Tables.clearCache(manager.getContext());
   }
 
 }

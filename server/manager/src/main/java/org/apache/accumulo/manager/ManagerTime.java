@@ -36,14 +36,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Keep a persistent roughly monotone view of how long a master has been overseeing this cluster.
+ * Keep a persistent roughly monotone view of how long a manager has been overseeing this cluster.
  */
 public class ManagerTime {
   private static final Logger log = LoggerFactory.getLogger(ManagerTime.class);
 
   private final String zPath;
   private final ZooReaderWriter zk;
-  private final Manager master;
+  private final Manager manager;
 
   /**
    * Difference between time stored in ZooKeeper and System.nanoTime() when we last read from
@@ -51,37 +51,37 @@ public class ManagerTime {
    */
   private final AtomicLong skewAmount;
 
-  public ManagerTime(Manager master, AccumuloConfiguration conf) throws IOException {
-    this.zPath = master.getZooKeeperRoot() + Constants.ZMASTER_TICK;
-    this.zk = master.getContext().getZooReaderWriter();
-    this.master = master;
+  public ManagerTime(Manager manager, AccumuloConfiguration conf) throws IOException {
+    this.zPath = manager.getZooKeeperRoot() + Constants.ZMANAGER_TICK;
+    this.zk = manager.getContext().getZooReaderWriter();
+    this.manager = manager;
 
     try {
       zk.putPersistentData(zPath, "0".getBytes(UTF_8), NodeExistsPolicy.SKIP);
       skewAmount =
           new AtomicLong(Long.parseLong(new String(zk.getData(zPath), UTF_8)) - System.nanoTime());
     } catch (Exception ex) {
-      throw new IOException("Error updating master time", ex);
+      throw new IOException("Error updating manager time", ex);
     }
 
     ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
-        Threads.createNamedRunnable("Master time keeper", () -> run()), 0,
+        Threads.createNamedRunnable("Manager time keeper", () -> run()), 0,
         MILLISECONDS.convert(10, SECONDS), MILLISECONDS);
   }
 
   /**
-   * How long has this cluster had a Master?
+   * How long has this cluster had a Manager?
    *
-   * @return Approximate total duration this cluster has had a Master, in milliseconds.
+   * @return Approximate total duration this cluster has had a Manager, in milliseconds.
    */
   public long getTime() {
     return MILLISECONDS.convert(System.nanoTime() + skewAmount.get(), NANOSECONDS);
   }
 
   public void run() {
-    switch (master.getMasterState()) {
+    switch (manager.getManagerState()) {
       // If we don't have the lock, periodically re-read the value in ZooKeeper, in case there's
-      // another master we're
+      // another manager we're
       // shadowing for.
       case INITIAL:
       case STOP:
@@ -90,7 +90,7 @@ public class ManagerTime {
           skewAmount.set(zkTime - System.nanoTime());
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
-            log.debug("Failed to retrieve master tick time", ex);
+            log.debug("Failed to retrieve manager tick time", ex);
           }
         }
         break;
@@ -106,7 +106,7 @@ public class ManagerTime {
               NodeExistsPolicy.OVERWRITE);
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
-            log.debug("Failed to update master tick time", ex);
+            log.debug("Failed to update manager tick time", ex);
           }
         }
     }

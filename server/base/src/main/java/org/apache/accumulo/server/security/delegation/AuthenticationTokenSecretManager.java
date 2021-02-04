@@ -47,8 +47,8 @@ import com.google.common.collect.Maps;
  * Manages an internal list of secret keys used to sign new authentication tokens as they are
  * generated, and to validate existing tokens used for authentication.
  *
- * Each TabletServer, in addition to the Master, has an instance of this {@link SecretManager} so
- * that each can authenticate requests from clients presenting delegation tokens. The Master will
+ * Each TabletServer, in addition to the Manager, has an instance of this {@link SecretManager} so
+ * that each can authenticate requests from clients presenting delegation tokens. The Manager will
  * also run an instance of {@link AuthenticationTokenKeyManager} which handles generation of new
  * keys and removal of old keys. That class will call the methods here to ensure the in-memory cache
  * is consistent with what is advertised in ZooKeeper.
@@ -127,12 +127,12 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     if (identifier.getIssueDate() > now) {
       throw new InvalidToken("Token issued in the future");
     }
-    AuthenticationKey masterKey = allKeys.get(identifier.getKeyId());
-    if (masterKey == null) {
-      throw new InvalidToken("Unknown master key for token (id=" + identifier.getKeyId() + ")");
+    AuthenticationKey managerKey = allKeys.get(identifier.getKeyId());
+    if (managerKey == null) {
+      throw new InvalidToken("Unknown manager key for token (id=" + identifier.getKeyId() + ")");
     }
     // regenerate the password
-    return createPassword(identifier.getBytes(), masterKey.getKey());
+    return createPassword(identifier.getBytes(), managerKey.getKey());
   }
 
   @Override

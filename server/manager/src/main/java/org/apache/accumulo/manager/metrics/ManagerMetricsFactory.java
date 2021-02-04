@@ -29,9 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Provide master metrics configuration. Currently this is replication and FATE metrics. Metrics can
- * be configured using hadoop metrics2 Fate metrics must be enabled via configuration file (default
- * is disabled)
+ * Provide manager metrics configuration. Currently this is replication and FATE metrics. Metrics
+ * can be configured using hadoop metrics2 Fate metrics must be enabled via configuration file
+ * (default is disabled)
  */
 public class ManagerMetricsFactory {
 
@@ -46,13 +46,13 @@ public class ManagerMetricsFactory {
     fateMinUpdateInterval = conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL);
   }
 
-  public int register(Manager master) {
-    MetricsSystem metricsSystem = master.getMetricsSystem();
+  public int register(Manager manager) {
+    MetricsSystem metricsSystem = manager.getMetricsSystem();
 
     int failureCount = 0;
 
     try {
-      new ReplicationMetrics(master).register(metricsSystem);
+      new ReplicationMetrics(manager).register(metricsSystem);
       log.info("Registered replication metrics module");
     } catch (Exception ex) {
       failureCount++;
@@ -61,7 +61,7 @@ public class ManagerMetricsFactory {
 
     try {
       if (enableFateMetrics) {
-        new FateMetrics(master.getContext(), fateMinUpdateInterval).register(metricsSystem);
+        new FateMetrics(manager.getContext(), fateMinUpdateInterval).register(metricsSystem);
         log.info("Registered FATE metrics module");
       }
     } catch (Exception ex) {

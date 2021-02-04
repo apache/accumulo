@@ -67,7 +67,7 @@ class PopulateMetadata extends ManagerRepo {
   public Repo<Manager> call(long tid, Manager env) throws Exception {
     KeyExtent extent = new KeyExtent(tableInfo.getTableId(), null, null);
     MetadataTableUtil.addTablet(extent, ServerColumnFamily.DEFAULT_TABLET_DIR_NAME,
-        env.getContext(), tableInfo.getTimeType(), env.getMasterLock());
+        env.getContext(), tableInfo.getTimeType(), env.getManagerLock());
 
     if (tableInfo.getInitialSplitSize() > 0) {
       SortedSet<Text> splits = Utils.getSortedSetFromFile(env, tableInfo.getSplitPath(), true);
@@ -75,7 +75,7 @@ class PopulateMetadata extends ManagerRepo {
       Map<Text,Text> splitDirMap = createSplitDirectoryMap(splits, dirs);
       try (BatchWriter bw = env.getContext().createBatchWriter(MetadataTable.NAME)) {
         writeSplitsToMetadataTable(env.getContext(), tableInfo.getTableId(), splits, splitDirMap,
-            tableInfo.getTimeType(), env.getMasterLock(), bw);
+            tableInfo.getTimeType(), env.getManagerLock(), bw);
       }
     }
     return new FinishCreateTable(tableInfo);
@@ -102,7 +102,7 @@ class PopulateMetadata extends ManagerRepo {
   @Override
   public void undo(long tid, Manager environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.getTableId(), false, environment.getContext(),
-        environment.getMasterLock());
+        environment.getManagerLock());
   }
 
   /**

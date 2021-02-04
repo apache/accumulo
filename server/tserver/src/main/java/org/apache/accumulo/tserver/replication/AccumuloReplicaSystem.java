@@ -216,20 +216,20 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         String peerTserverStr;
         log.debug("Fetching peer tserver address");
         try (TraceScope span = Trace.startSpan("Fetch peer tserver")) {
-          // Ask the master on the remote what TServer we should talk with to replicate the data
+          // Ask the manager on the remote what TServer we should talk with to replicate the data
           peerTserverStr = ReplicationClient.executeCoordinatorWithReturn(peerContext,
               client -> client.getServicerAddress(remoteTableId, peerContext.rpcCreds()));
         } catch (AccumuloException | AccumuloSecurityException e) {
           // No progress is made
           log.error(
-              "Could not connect to master at {}, cannot proceed with replication. Will retry",
+              "Could not connect to manager at {}, cannot proceed with replication. Will retry",
               target, e);
           continue;
         }
 
         if (peerTserverStr == null) {
           // Something went wrong, and we didn't get a valid tserver from the remote for some reason
-          log.warn("Did not receive tserver from master at {}, cannot proceed"
+          log.warn("Did not receive tserver from manager at {}, cannot proceed"
               + " with replication. Will retry.", target);
           continue;
         }

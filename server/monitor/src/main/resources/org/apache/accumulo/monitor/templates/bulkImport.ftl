@@ -25,7 +25,7 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="masterBulkImportStatus" class="table table-bordered table-striped table-condensed">
+          <table id="managerBulkImportStatus" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Legacy Bulk Imports</span><br/></caption>
             <thead>
               <tr>

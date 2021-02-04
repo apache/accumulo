@@ -57,7 +57,7 @@ public class TableStats {
     return last;
   }
 
-  public synchronized ManagerState getLastMasterState() {
+  public synchronized ManagerState getLastManagerState() {
     return state;
   }
 

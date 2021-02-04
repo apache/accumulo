@@ -162,133 +162,134 @@ public class CyclicReplicationIT {
 
   @Test
   public void dataIsNotOverReplicated() throws Exception {
-    File master1Dir = createTestDir("master1"), master2Dir = createTestDir("master2");
+    File manager1Dir = createTestDir("manager1"), manager2Dir = createTestDir("manager2");
     String password = "password";
 
-    MiniAccumuloConfigImpl master1Cfg;
-    MiniAccumuloClusterImpl master1Cluster;
+    MiniAccumuloConfigImpl manager1Cfg;
+    MiniAccumuloClusterImpl manager1Cluster;
     while (true) {
-      master1Cfg = new MiniAccumuloConfigImpl(master1Dir, password);
-      master1Cfg.setNumTservers(1);
-      master1Cfg.setInstanceName("master1");
+      manager1Cfg = new MiniAccumuloConfigImpl(manager1Dir, password);
+      manager1Cfg.setNumTservers(1);
+      manager1Cfg.setInstanceName("manager1");
 
       // Set up SSL if needed
-      ConfigurableMacBase.configureForEnvironment(master1Cfg,
-          ConfigurableMacBase.getSslDir(master1Dir));
+      ConfigurableMacBase.configureForEnvironment(manager1Cfg,
+          ConfigurableMacBase.getSslDir(manager1Dir));
 
-      master1Cfg.setProperty(Property.REPLICATION_NAME, master1Cfg.getInstanceName());
-      master1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-      master1Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
-      master1Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-      master1Cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
-      master1Cluster = new MiniAccumuloClusterImpl(master1Cfg);
-      setCoreSite(master1Cluster);
+      manager1Cfg.setProperty(Property.REPLICATION_NAME, manager1Cfg.getInstanceName());
+      manager1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
+      manager1Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
+      manager1Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
+      manager1Cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
+      manager1Cluster = new MiniAccumuloClusterImpl(manager1Cfg);
+      setCoreSite(manager1Cluster);
 
       try {
-        master1Cluster.start();
+        manager1Cluster.start();
         break;
       } catch (ZooKeeperBindException e) {
-        log.warn("Failed to start ZooKeeper on {}, will retry", master1Cfg.getZooKeeperPort());
+        log.warn("Failed to start ZooKeeper on {}, will retry", manager1Cfg.getZooKeeperPort());
       }
     }
 
-    MiniAccumuloConfigImpl master2Cfg;
-    MiniAccumuloClusterImpl master2Cluster;
+    MiniAccumuloConfigImpl manager2Cfg;
+    MiniAccumuloClusterImpl manager2Cluster;
     while (true) {
-      master2Cfg = new MiniAccumuloConfigImpl(master2Dir, password);
-      master2Cfg.setNumTservers(1);
-      master2Cfg.setInstanceName("master2");
+      manager2Cfg = new MiniAccumuloConfigImpl(manager2Dir, password);
+      manager2Cfg.setNumTservers(1);
+      manager2Cfg.setInstanceName("manager2");
 
-      // Set up SSL if needed. Need to share the same SSL truststore as master1
-      this.updatePeerConfigFromPrimary(master1Cfg, master2Cfg);
+      // Set up SSL if needed. Need to share the same SSL truststore as manager1
+      this.updatePeerConfigFromPrimary(manager1Cfg, manager2Cfg);
 
-      master2Cfg.setProperty(Property.REPLICATION_NAME, master2Cfg.getInstanceName());
-      master2Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-      master2Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
-      master2Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-      master2Cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
-      master2Cluster = new MiniAccumuloClusterImpl(master2Cfg);
-      setCoreSite(master2Cluster);
+      manager2Cfg.setProperty(Property.REPLICATION_NAME, manager2Cfg.getInstanceName());
+      manager2Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
+      manager2Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
+      manager2Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
+      manager2Cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
+      manager2Cluster = new MiniAccumuloClusterImpl(manager2Cfg);
+      setCoreSite(manager2Cluster);
 
       try {
-        master2Cluster.start();
+        manager2Cluster.start();
         break;
       } catch (ZooKeeperBindException e) {
-        log.warn("Failed to start ZooKeeper on {}, will retry", master2Cfg.getZooKeeperPort());
+        log.warn("Failed to start ZooKeeper on {}, will retry", manager2Cfg.getZooKeeperPort());
       }
     }
 
     try {
-      AccumuloClient clientMaster1 =
-          master1Cluster.createAccumuloClient("root", new PasswordToken(password)),
-          clientMaster2 = master2Cluster.createAccumuloClient("root", new PasswordToken(password));
+      AccumuloClient clientManager1 =
+          manager1Cluster.createAccumuloClient("root", new PasswordToken(password)),
+          clientManager2 =
+              manager2Cluster.createAccumuloClient("root", new PasswordToken(password));
 
-      String master1UserName = "master1", master1Password = "foo";
-      String master2UserName = "master2", master2Password = "bar";
-      String master1Table = master1Cluster.getInstanceName(),
-          master2Table = master2Cluster.getInstanceName();
+      String manager1UserName = "manager1", manager1Password = "foo";
+      String manager2UserName = "manager2", manager2Password = "bar";
+      String manager1Table = manager1Cluster.getInstanceName(),
+          manager2Table = manager2Cluster.getInstanceName();
 
-      clientMaster1.securityOperations().createLocalUser(master1UserName,
-          new PasswordToken(master1Password));
-      clientMaster2.securityOperations().createLocalUser(master2UserName,
-          new PasswordToken(master2Password));
+      clientManager1.securityOperations().createLocalUser(manager1UserName,
+          new PasswordToken(manager1Password));
+      clientManager2.securityOperations().createLocalUser(manager2UserName,
+          new PasswordToken(manager2Password));
 
       // Configure the credentials we should use to authenticate ourselves to the peer for
       // replication
-      clientMaster1.instanceOperations().setProperty(
-          Property.REPLICATION_PEER_USER.getKey() + master2Cluster.getInstanceName(),
-          master2UserName);
-      clientMaster1.instanceOperations().setProperty(
-          Property.REPLICATION_PEER_PASSWORD.getKey() + master2Cluster.getInstanceName(),
-          master2Password);
+      clientManager1.instanceOperations().setProperty(
+          Property.REPLICATION_PEER_USER.getKey() + manager2Cluster.getInstanceName(),
+          manager2UserName);
+      clientManager1.instanceOperations().setProperty(
+          Property.REPLICATION_PEER_PASSWORD.getKey() + manager2Cluster.getInstanceName(),
+          manager2Password);
 
-      clientMaster2.instanceOperations().setProperty(
-          Property.REPLICATION_PEER_USER.getKey() + master1Cluster.getInstanceName(),
-          master1UserName);
-      clientMaster2.instanceOperations().setProperty(
-          Property.REPLICATION_PEER_PASSWORD.getKey() + master1Cluster.getInstanceName(),
-          master1Password);
+      clientManager2.instanceOperations().setProperty(
+          Property.REPLICATION_PEER_USER.getKey() + manager1Cluster.getInstanceName(),
+          manager1UserName);
+      clientManager2.instanceOperations().setProperty(
+          Property.REPLICATION_PEER_PASSWORD.getKey() + manager1Cluster.getInstanceName(),
+          manager1Password);
 
-      clientMaster1.instanceOperations().setProperty(
-          Property.REPLICATION_PEERS.getKey() + master2Cluster.getInstanceName(),
+      clientManager1.instanceOperations().setProperty(
+          Property.REPLICATION_PEERS.getKey() + manager2Cluster.getInstanceName(),
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-              AccumuloReplicaSystem.buildConfiguration(master2Cluster.getInstanceName(),
-                  master2Cluster.getZooKeepers())));
+              AccumuloReplicaSystem.buildConfiguration(manager2Cluster.getInstanceName(),
+                  manager2Cluster.getZooKeepers())));
 
-      clientMaster2.instanceOperations().setProperty(
-          Property.REPLICATION_PEERS.getKey() + master1Cluster.getInstanceName(),
+      clientManager2.instanceOperations().setProperty(
+          Property.REPLICATION_PEERS.getKey() + manager1Cluster.getInstanceName(),
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-              AccumuloReplicaSystem.buildConfiguration(master1Cluster.getInstanceName(),
-                  master1Cluster.getZooKeepers())));
+              AccumuloReplicaSystem.buildConfiguration(manager1Cluster.getInstanceName(),
+                  manager1Cluster.getZooKeepers())));
 
-      clientMaster1.tableOperations().create(master1Table,
+      clientManager1.tableOperations().create(manager1Table,
           new NewTableConfiguration().withoutDefaultIterators());
-      String master1TableId = clientMaster1.tableOperations().tableIdMap().get(master1Table);
-      assertNotNull(master1TableId);
+      String manager1TableId = clientManager1.tableOperations().tableIdMap().get(manager1Table);
+      assertNotNull(manager1TableId);
 
-      clientMaster2.tableOperations().create(master2Table,
+      clientManager2.tableOperations().create(manager2Table,
           new NewTableConfiguration().withoutDefaultIterators());
-      String master2TableId = clientMaster2.tableOperations().tableIdMap().get(master2Table);
-      assertNotNull(master2TableId);
+      String manager2TableId = clientManager2.tableOperations().tableIdMap().get(manager2Table);
+      assertNotNull(manager2TableId);
 
-      // Replicate master1 in the master1 cluster to master2 in the master2 cluster
-      clientMaster1.tableOperations().setProperty(master1Table, Property.TABLE_REPLICATION.getKey(),
-          "true");
-      clientMaster1.tableOperations().setProperty(master1Table,
-          Property.TABLE_REPLICATION_TARGET.getKey() + master2Cluster.getInstanceName(),
-          master2TableId);
+      // Replicate manager1 in the manager1 cluster to manager2 in the manager2 cluster
+      clientManager1.tableOperations().setProperty(manager1Table,
+          Property.TABLE_REPLICATION.getKey(), "true");
+      clientManager1.tableOperations().setProperty(manager1Table,
+          Property.TABLE_REPLICATION_TARGET.getKey() + manager2Cluster.getInstanceName(),
+          manager2TableId);
 
-      // Replicate master2 in the master2 cluster to master1 in the master2 cluster
-      clientMaster2.tableOperations().setProperty(master2Table, Property.TABLE_REPLICATION.getKey(),
-          "true");
-      clientMaster2.tableOperations().setProperty(master2Table,
-          Property.TABLE_REPLICATION_TARGET.getKey() + master1Cluster.getInstanceName(),
-          master1TableId);
+      // Replicate manager2 in the manager2 cluster to manager1 in the manager2 cluster
+      clientManager2.tableOperations().setProperty(manager2Table,
+          Property.TABLE_REPLICATION.getKey(), "true");
+      clientManager2.tableOperations().setProperty(manager2Table,
+          Property.TABLE_REPLICATION_TARGET.getKey() + manager1Cluster.getInstanceName(),
+          manager1TableId);
 
       // Give our replication user the ability to write to the respective table
-      clientMaster1.securityOperations().grantTablePermission(master1UserName, master1Table,
+      clientManager1.securityOperations().grantTablePermission(manager1UserName, manager1Table,
           TablePermission.WRITE);
-      clientMaster2.securityOperations().grantTablePermission(master2UserName, master2Table,
+      clientManager2.securityOperations().grantTablePermission(manager2UserName, manager2Table,
           TablePermission.WRITE);
 
       IteratorSetting summingCombiner = new IteratorSetting(50, SummingCombiner.class);
@@ -297,81 +298,81 @@ public class CyclicReplicationIT {
 
       // Set a combiner on both instances that will sum multiple values
       // We can use this to verify that the mutation was not sent multiple times
-      clientMaster1.tableOperations().attachIterator(master1Table, summingCombiner);
-      clientMaster2.tableOperations().attachIterator(master2Table, summingCombiner);
+      clientManager1.tableOperations().attachIterator(manager1Table, summingCombiner);
+      clientManager2.tableOperations().attachIterator(manager2Table, summingCombiner);
 
       // Write a single entry
-      try (BatchWriter bw = clientMaster1.createBatchWriter(master1Table)) {
+      try (BatchWriter bw = clientManager1.createBatchWriter(manager1Table)) {
         Mutation m = new Mutation("row");
         m.put("count", "", "1");
         bw.addMutation(m);
       }
 
-      Set<String> files = clientMaster1.replicationOperations().referencedFiles(master1Table);
+      Set<String> files = clientManager1.replicationOperations().referencedFiles(manager1Table);
 
-      log.info("Found {} that need replication from master1", files);
+      log.info("Found {} that need replication from manager1", files);
 
-      // Kill and restart the tserver to close the WAL on master1
-      for (ProcessReference proc : master1Cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
-        master1Cluster.killProcess(ServerType.TABLET_SERVER, proc);
+      // Kill and restart the tserver to close the WAL on manager1
+      for (ProcessReference proc : manager1Cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+        manager1Cluster.killProcess(ServerType.TABLET_SERVER, proc);
       }
 
-      master1Cluster.exec(TabletServer.class);
+      manager1Cluster.exec(TabletServer.class);
 
-      log.info("Restarted tserver on master1");
+      log.info("Restarted tserver on manager1");
 
       // Try to avoid ACCUMULO-2964
       Thread.sleep(1000);
 
-      // Sanity check that the element is there on master1
+      // Sanity check that the element is there on manager1
       Entry<Key,Value> entry;
-      try (Scanner s = clientMaster1.createScanner(master1Table, Authorizations.EMPTY)) {
+      try (Scanner s = clientManager1.createScanner(manager1Table, Authorizations.EMPTY)) {
         entry = Iterables.getOnlyElement(s);
         assertEquals("1", entry.getValue().toString());
 
         // Wait for this table to replicate
-        clientMaster1.replicationOperations().drain(master1Table, files);
+        clientManager1.replicationOperations().drain(manager1Table, files);
 
         Thread.sleep(5000);
       }
 
-      // Check that the element made it to master2 only once
-      try (Scanner s = clientMaster2.createScanner(master2Table, Authorizations.EMPTY)) {
+      // Check that the element made it to manager2 only once
+      try (Scanner s = clientManager2.createScanner(manager2Table, Authorizations.EMPTY)) {
         entry = Iterables.getOnlyElement(s);
         assertEquals("1", entry.getValue().toString());
 
-        // Wait for master2 to finish replicating it back
-        files = clientMaster2.replicationOperations().referencedFiles(master2Table);
+        // Wait for manager2 to finish replicating it back
+        files = clientManager2.replicationOperations().referencedFiles(manager2Table);
 
-        // Kill and restart the tserver to close the WAL on master2
-        for (ProcessReference proc : master2Cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
-          master2Cluster.killProcess(ServerType.TABLET_SERVER, proc);
+        // Kill and restart the tserver to close the WAL on manager2
+        for (ProcessReference proc : manager2Cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+          manager2Cluster.killProcess(ServerType.TABLET_SERVER, proc);
         }
 
-        master2Cluster.exec(TabletServer.class);
+        manager2Cluster.exec(TabletServer.class);
 
         // Try to avoid ACCUMULO-2964
         Thread.sleep(1000);
       }
 
-      // Check that the element made it to master2 only once
-      try (Scanner s = clientMaster2.createScanner(master2Table, Authorizations.EMPTY)) {
+      // Check that the element made it to manager2 only once
+      try (Scanner s = clientManager2.createScanner(manager2Table, Authorizations.EMPTY)) {
         entry = Iterables.getOnlyElement(s);
         assertEquals("1", entry.getValue().toString());
 
-        clientMaster2.replicationOperations().drain(master2Table, files);
+        clientManager2.replicationOperations().drain(manager2Table, files);
 
         Thread.sleep(5000);
       }
 
-      // Verify that the entry wasn't sent back to master1
-      try (Scanner s = clientMaster1.createScanner(master1Table, Authorizations.EMPTY)) {
+      // Verify that the entry wasn't sent back to manager1
+      try (Scanner s = clientManager1.createScanner(manager1Table, Authorizations.EMPTY)) {
         entry = Iterables.getOnlyElement(s);
         assertEquals("1", entry.getValue().toString());
       }
     } finally {
-      master1Cluster.stop();
-      master2Cluster.stop();
+      manager1Cluster.stop();
+      manager2Cluster.stop();
     }
   }
 

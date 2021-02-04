@@ -354,7 +354,7 @@ public class ZooLock implements Watcher {
                 determineLockOwnership(createdEphemeralNode, lw);
               }
             } catch (KeeperException | InterruptedException e) {
-              lw.failedToAcquireLock(new Exception("Failed to renew watch on other master node"));
+              lw.failedToAcquireLock(new Exception("Failed to renew watch on other manager node"));
             }
           }
         }

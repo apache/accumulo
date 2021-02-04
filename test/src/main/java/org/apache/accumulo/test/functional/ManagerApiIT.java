@@ -90,8 +90,8 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   private Function<TCredentials,ClientExec<ManagerClientService.Client>> op;
 
   @Test
-  public void testPermissions_setMasterGoalState() throws Exception {
-    // To setMasterGoalState, user needs SystemPermission.SYSTEM
+  public void testPermissions_setManagerGoalState() throws Exception {
+    // To setManagerGoalState, user needs SystemPermission.SYSTEM
     op = user -> client -> client.setManagerGoalState(null, user, ManagerGoalState.NORMAL);
     expectPermissionDenied(op, regularUser);
     expectPermissionSuccess(op, rootUser);

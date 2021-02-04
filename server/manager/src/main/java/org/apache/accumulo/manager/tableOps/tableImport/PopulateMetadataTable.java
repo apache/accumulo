@@ -87,7 +87,7 @@ class PopulateMetadataTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
 
     Path path = new Path(tableInfo.exportFile);
 
@@ -95,9 +95,9 @@ class PopulateMetadataTable extends ManagerRepo {
     ZipInputStream zis = null;
 
     try {
-      VolumeManager fs = master.getVolumeManager();
+      VolumeManager fs = manager.getVolumeManager();
 
-      mbw = master.getContext().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      mbw = manager.getContext().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
       zis = new ZipInputStream(fs.open(path));
 
@@ -206,6 +206,6 @@ class PopulateMetadataTable extends ManagerRepo {
   @Override
   public void undo(long tid, Manager environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment.getContext(),
-        environment.getMasterLock());
+        environment.getManagerLock());
   }
 }

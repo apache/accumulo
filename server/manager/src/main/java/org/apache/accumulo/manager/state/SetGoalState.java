@@ -33,7 +33,7 @@ import org.apache.accumulo.server.security.SecurityUtil;
 public class SetGoalState {
 
   /**
-   * Utility program that will change the goal state for the master from the command line.
+   * Utility program that will change the goal state for the manager from the command line.
    */
   public static void main(String[] args) throws Exception {
     if (args.length != 1 || ManagerGoalState.valueOf(args[0]) == null) {
@@ -47,7 +47,7 @@ public class SetGoalState {
       SecurityUtil.serverLogin(context.getConfiguration());
       ServerUtil.waitForZookeeperAndHdfs(context);
       context.getZooReaderWriter().putPersistentData(
-          context.getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),
+          context.getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, args[0].getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     } finally {
       SingletonManager.setMode(Mode.CLOSED);

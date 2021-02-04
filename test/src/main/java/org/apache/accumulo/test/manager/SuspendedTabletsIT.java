@@ -206,7 +206,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       // Eventually some tablets will be suspended.
       log.info("Waiting on suspended tablets");
       ds = TabletLocations.retrieve(ctx, tableName);
-      // Until we can scan the metadata table, the master probably can't either, so won't have been
+      // Until we can scan the metadata table, the manager probably can't either, so won't have been
       // able to suspend the tablets.
       // So we note the time that we were first able to successfully scan the metadata table.
       long killTime = System.nanoTime();

@@ -60,29 +60,29 @@ public class RenameTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     Pair<String,String> qualifiedOldTableName = Tables.qualify(oldTableName);
     Pair<String,String> qualifiedNewTableName = Tables.qualify(newTableName);
 
     // ensure no attempt is made to rename across namespaces
     if (newTableName.contains(".") && !namespaceId
-        .equals(Namespaces.getNamespaceId(master.getContext(), qualifiedNewTableName.getFirst())))
+        .equals(Namespaces.getNamespaceId(manager.getContext(), qualifiedNewTableName.getFirst())))
       throw new AcceptableThriftTableOperationException(tableId.canonical(), oldTableName,
           TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");
 
-    ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
 
     Utils.getTableNameLock().lock();
     try {
-      Utils.checkTableDoesNotExist(master.getContext(), newTableName, tableId,
+      Utils.checkTableDoesNotExist(manager.getContext(), newTableName, tableId,
           TableOperation.RENAME);
 
       final String newName = qualifiedNewTableName.getSecond();
       final String oldName = qualifiedOldTableName.getSecond();
 
       final String tap =
-          master.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
+          manager.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
 
       zoo.mutateExisting(tap, current -> {
         final String currentName = new String(current, UTF_8);
@@ -95,11 +95,11 @@ public class RenameTable extends ManagerRepo {
         }
         return newName.getBytes(UTF_8);
       });
-      Tables.clearCache(master.getContext());
+      Tables.clearCache(manager.getContext());
     } finally {
       Utils.getTableNameLock().unlock();
-      Utils.unreserveTable(master, tableId, tid, true);
-      Utils.unreserveNamespace(master, namespaceId, tid, false);
+      Utils.unreserveTable(manager, tableId, tid, true);
+      Utils.unreserveNamespace(manager, namespaceId, tid, false);
     }
 
     LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId,

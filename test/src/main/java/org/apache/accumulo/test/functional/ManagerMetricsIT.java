@@ -77,7 +77,7 @@ public class ManagerMetricsIT extends AccumuloClusterHarness {
   private static final Set<String> OPTIONAL_METRIC_KEYS =
       new HashSet<>(Collections.singletonList("FateTxOpType_CompactRange"));
 
-  private final MetricsFileTailer metricsTail = new MetricsFileTailer("accumulo.sink.file-master");
+  private final MetricsFileTailer metricsTail = new MetricsFileTailer("accumulo.sink.file-manager");
 
   @Before
   public void setup() {

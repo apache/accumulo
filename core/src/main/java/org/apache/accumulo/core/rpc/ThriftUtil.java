@@ -393,7 +393,7 @@ public class ThriftUtil {
   /**
    * Some wonderful snippets of documentation from HBase on performing the re-login client-side (as
    * well as server-side) in the following paragraph. We want to attempt a re-login to automatically
-   * refresh the client's Krb "credentials" (remember, a server might also be a client, master
+   * refresh the client's Krb "credentials" (remember, a server might also be a client, manager
    * sending RPC to tserver), but we have to take care to avoid Kerberos' replay attack protection.
    * <p>
    * If multiple clients with the same principal try to connect to the same server at the same time,

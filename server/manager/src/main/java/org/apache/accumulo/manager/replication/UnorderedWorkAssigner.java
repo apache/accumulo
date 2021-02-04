@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * The implementation allows for multiple tservers to concurrently replicate data to peer(s),
  * however it is possible that data for a table is replayed on the peer in a different order than
- * the master. The {@link SequentialWorkAssigner} should be used if this must be guaranteed at the
+ * the manager. The {@link SequentialWorkAssigner} should be used if this must be guaranteed at the
  * cost of replication throughput.
  */
 public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {

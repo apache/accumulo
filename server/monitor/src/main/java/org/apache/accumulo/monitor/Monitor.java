@@ -91,7 +91,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Serve master statistics with an embedded web server.
+ * Serve manager statistics with an embedded web server.
  */
 public class Monitor extends AbstractServer implements HighlyAvailableService {
 
@@ -259,7 +259,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
             retry = false;
           } else {
             mmi = null;
-            log.error("Unable to get info from Master");
+            log.error("Unable to get info from Manager");
           }
           gcStatus = fetchGcStatus();
         } catch (Exception e) {

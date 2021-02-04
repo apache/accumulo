@@ -116,7 +116,7 @@ public class UpgradeCoordinator {
   }
 
   @SuppressFBWarnings(value = "DM_EXIT",
-      justification = "Want to immediately stop all master threads on upgrade error")
+      justification = "Want to immediately stop all manager threads on upgrade error")
   private void handleFailure(Exception e) {
     log.error("FATAL: Error performing upgrade", e);
     // do not want to call setStatus and signal an event in this case
