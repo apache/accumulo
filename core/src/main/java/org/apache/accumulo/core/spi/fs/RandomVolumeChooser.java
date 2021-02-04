@@ -16,22 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.fs;
+package org.apache.accumulo.core.spi.fs;
 
-import org.slf4j.LoggerFactory;
+import java.security.SecureRandom;
+import java.util.Random;
+import java.util.Set;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+/**
+ * @since 2.1.0
+ */
+public class RandomVolumeChooser implements VolumeChooser {
+  protected final Random random = new SecureRandom();
 
-@Deprecated(since = "2.1.0")
-@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
-    justification = "Same name used for compatibility during deprecation cycle")
-public class SpaceAwareVolumeChooser extends org.apache.accumulo.core.spi.fs.SpaceAwareVolumeChooser
-    implements VolumeChooser {
-  public SpaceAwareVolumeChooser() {
-    super();
-    LoggerFactory.getLogger(SpaceAwareVolumeChooser.class).warn(
-        "The class {} is deprecated.  Please configure {} instead.",
-        SpaceAwareVolumeChooser.class.getName(),
-        org.apache.accumulo.core.spi.fs.SpaceAwareVolumeChooser.class.getName());
+  @Override
+  public String choose(VolumeChooserEnvironment env, Set<String> options) {
+    String[] optionsArray = options.toArray(new String[0]);
+    return optionsArray[random.nextInt(optionsArray.length)];
+  }
+
+  @Override
+  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
+    return options;
   }
 }

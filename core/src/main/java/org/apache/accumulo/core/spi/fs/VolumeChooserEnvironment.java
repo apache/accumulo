@@ -16,22 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.fs;
+package org.apache.accumulo.core.spi.fs;
 
-import org.slf4j.LoggerFactory;
+import java.util.Optional;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.hadoop.io.Text;
 
-@Deprecated(since = "2.1.0")
-@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
-    justification = "Same name used for compatibility during deprecation cycle")
-public class SpaceAwareVolumeChooser extends org.apache.accumulo.core.spi.fs.SpaceAwareVolumeChooser
-    implements VolumeChooser {
-  public SpaceAwareVolumeChooser() {
-    super();
-    LoggerFactory.getLogger(SpaceAwareVolumeChooser.class).warn(
-        "The class {} is deprecated.  Please configure {} instead.",
-        SpaceAwareVolumeChooser.class.getName(),
-        org.apache.accumulo.core.spi.fs.SpaceAwareVolumeChooser.class.getName());
+/**
+ * @since 2.1.0
+ */
+public interface VolumeChooserEnvironment {
+  /**
+   * A scope the volume chooser environment; a TABLE scope should be accompanied by a tableId.
+   *
+   * @since 2.1.0
+   */
+  public static enum Scope {
+    DEFAULT, TABLE, INIT, LOGGER
   }
+
+  public Text getEndRow();
+
+  public Optional<TableId> getTable();
+
+  public Scope getChooserScope();
+
+  public ServiceEnvironment getServiceEnv();
 }

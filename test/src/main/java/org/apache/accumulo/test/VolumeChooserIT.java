@@ -49,11 +49,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.fs.PerTableVolumeChooser;
+import org.apache.accumulo.core.spi.fs.PreferredVolumeChooser;
+import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.fs.PerTableVolumeChooser;
-import org.apache.accumulo.server.fs.PreferredVolumeChooser;
-import org.apache.accumulo.server.fs.RandomVolumeChooser;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -69,11 +69,11 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   private static final String GP = Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey();
 
-  static final String getPreferredProp(ChooserScope scope) {
+  static final String getPreferredProp(Scope scope) {
     return GP + "volume.preferred." + scope.name().toLowerCase();
   }
 
-  static final String getPerTableProp(ChooserScope scope) {
+  static final String getPerTableProp(Scope scope) {
     return GP + "volume.chooser." + scope.name().toLowerCase();
   }
 
@@ -121,10 +121,10 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     siteConfig.put(PREFERRED_CHOOSER_PROP, systemPreferredVolumes);
     cfg.setSiteConfig(siteConfig);
 
-    siteConfig.put(getPerTableProp(ChooserScope.LOGGER), PreferredVolumeChooser.class.getName());
-    siteConfig.put(getPreferredProp(ChooserScope.LOGGER), v2.toString());
-    siteConfig.put(getPerTableProp(ChooserScope.INIT), PreferredVolumeChooser.class.getName());
-    siteConfig.put(getPreferredProp(ChooserScope.INIT), systemPreferredVolumes);
+    siteConfig.put(getPerTableProp(Scope.LOGGER), PreferredVolumeChooser.class.getName());
+    siteConfig.put(getPreferredProp(Scope.LOGGER), v2.toString());
+    siteConfig.put(getPerTableProp(Scope.INIT), PreferredVolumeChooser.class.getName());
+    siteConfig.put(getPreferredProp(Scope.INIT), systemPreferredVolumes);
     cfg.setSiteConfig(siteConfig);
 
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in

@@ -27,6 +27,7 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.fs.VolumeChooser;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
@@ -53,12 +54,14 @@ public class VolumeManagerImplTest {
 
   public static class WrongVolumeChooser implements VolumeChooser {
     @Override
-    public String choose(VolumeChooserEnvironment env, Set<String> options) {
+    public String choose(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
+        Set<String> options) {
       return "file://totally-not-given/";
     }
 
     @Override
-    public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
+    public Set<String> choosable(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
+        Set<String> options) {
       return Set.of("file://totally-not-given");
     }
   }
@@ -71,7 +74,7 @@ public class VolumeManagerImplTest {
     conf.set(Property.INSTANCE_VOLUMES, String.join(",", volumes));
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     try (var vm = VolumeManagerImpl.get(conf, hadoopConf)) {
-      VolumeChooserEnvironment chooserEnv =
+      org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment chooserEnv =
           new VolumeChooserEnvironmentImpl(TableId.of("sometable"), null, null);
       assertThrows(RuntimeException.class, () -> vm.choose(chooserEnv, volumes));
     }

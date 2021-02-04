@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.fs;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -34,32 +35,33 @@ import org.apache.hadoop.io.Text;
  * {@link VolumeChooserEnvironment} should result in more stable code over time than using this
  * class.
  */
+@SuppressWarnings("deprecation")
 public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
 
   private final ServerContext context;
-  private final ChooserScope scope;
-  private final TableId tableId;
+  private final Scope scope;
+  private final Optional<TableId> tableId;
   private final Text endRow;
 
-  public VolumeChooserEnvironmentImpl(ChooserScope scope, ServerContext context) {
+  public VolumeChooserEnvironmentImpl(Scope scope, ServerContext context) {
     this.context = context;
     this.scope = Objects.requireNonNull(scope);
-    this.tableId = null;
+    this.tableId = Optional.empty();
     this.endRow = null;
   }
 
   public VolumeChooserEnvironmentImpl(TableId tableId, Text endRow, ServerContext context) {
     this.context = context;
-    this.scope = ChooserScope.TABLE;
-    this.tableId = Objects.requireNonNull(tableId);
+    this.scope = Scope.TABLE;
+    this.tableId = Optional.of(tableId);
     this.endRow = endRow;
   }
 
-  public VolumeChooserEnvironmentImpl(ChooserScope scope, TableId tableId, Text endRow,
+  public VolumeChooserEnvironmentImpl(Scope scope, TableId tableId, Text endRow,
       ServerContext context) {
     this.context = context;
     this.scope = Objects.requireNonNull(scope);
-    this.tableId = Objects.requireNonNull(tableId);
+    this.tableId = Optional.of(tableId);
     this.endRow = endRow;
   }
 
@@ -71,28 +73,28 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
    */
   @Override
   public Text getEndRow() {
-    if (scope != ChooserScope.TABLE && scope != ChooserScope.INIT)
+    if (scope != Scope.TABLE && scope != Scope.INIT)
       throw new IllegalStateException("Can only request end row for tables, not for " + scope);
     return endRow;
   }
 
   @Override
+  public Optional<TableId> getTable() {
+    return tableId;
+  }
+
+  @Override
   public boolean hasTableId() {
-    return scope == ChooserScope.TABLE || scope == ChooserScope.INIT;
+    return tableId.isPresent();
   }
 
   @Override
   public TableId getTableId() {
-    if (scope != ChooserScope.TABLE && scope != ChooserScope.INIT)
-      throw new IllegalStateException("Can only request table id for tables, not for " + scope);
-    return tableId;
+    return tableId.get();
   }
 
-  /**
-   * @since 2.0.0
-   */
   @Override
-  public ChooserScope getScope() {
+  public Scope getChooserScope() {
     return this.scope;
   }
 
@@ -115,7 +117,8 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
       return false;
     }
     VolumeChooserEnvironmentImpl other = (VolumeChooserEnvironmentImpl) obj;
-    return getScope() == other.getScope() && Objects.equals(getTableId(), other.getTableId());
+    return getChooserScope() == other.getChooserScope()
+        && Objects.equals(getTableId(), other.getTableId());
   }
 
   @Override
