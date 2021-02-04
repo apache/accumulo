@@ -50,8 +50,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
       getCustomPropertySuffix(Scope.DEFAULT);
 
   @Override
-  public String choose(VolumeChooserEnvironment env, Set<String> options)
-      throws VolumeChooserException {
+  public String choose(VolumeChooserEnvironment env, Set<String> options) {
     log.trace("{}.choose", getClass().getSimpleName());
     // Randomly choose the volume from the preferred volumes
     String choice = super.choose(env, getPreferredVolumes(env, options));
@@ -60,8 +59,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
   }
 
   @Override
-  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options)
-      throws VolumeChooserException {
+  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
     return getPreferredVolumes(env, options);
   }
 
@@ -91,7 +89,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     if (preferredVolumes == null || preferredVolumes.isEmpty()) {
       String msg = "Property " + TABLE_CUSTOM_SUFFIX + " or " + DEFAULT_SCOPED_PREFERRED_VOLUMES
           + " must be a subset of " + options + " to use the " + getClass().getSimpleName();
-      throw new VolumeChooserException(msg);
+      throw new RuntimeException(msg);
     }
 
     return parsePreferred(TABLE_CUSTOM_SUFFIX, preferredVolumes, options);
@@ -117,7 +115,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
       if (preferredVolumes == null || preferredVolumes.isEmpty()) {
         String msg = "Property " + property + " or " + DEFAULT_SCOPED_PREFERRED_VOLUMES
             + " must be a subset of " + options + " to use the " + getClass().getSimpleName();
-        throw new VolumeChooserException(msg);
+        throw new RuntimeException(msg);
       }
 
       property = DEFAULT_SCOPED_PREFERRED_VOLUMES;
@@ -135,13 +133,13 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     if (preferred.isEmpty()) {
       String msg = "No volumes could be parsed from '" + property + "', which had a value of '"
           + preferredVolumes + "'";
-      throw new VolumeChooserException(msg);
+      throw new RuntimeException(msg);
     }
     // preferred volumes should also exist in the original options (typically, from
     // instance.volumes)
     if (Collections.disjoint(preferred, options)) {
       String msg = "Some volumes in " + preferred + " are not valid volumes from " + options;
-      throw new VolumeChooserException(msg);
+      throw new RuntimeException(msg);
     }
 
     return preferred;

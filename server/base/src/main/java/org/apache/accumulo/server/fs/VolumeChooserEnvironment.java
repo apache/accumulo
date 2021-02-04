@@ -26,7 +26,7 @@ import org.apache.hadoop.io.Text;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Deprecated(since = "2.1.0")
-@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE",
     justification = "Same name used for compatibility during deprecation cycle")
 public interface VolumeChooserEnvironment
     extends org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment {

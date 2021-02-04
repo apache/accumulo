@@ -29,15 +29,13 @@ public class RandomVolumeChooser implements VolumeChooser {
   protected final Random random = new SecureRandom();
 
   @Override
-  public String choose(VolumeChooserEnvironment env, Set<String> options)
-      throws VolumeChooserException {
+  public String choose(VolumeChooserEnvironment env, Set<String> options) {
     String[] optionsArray = options.toArray(new String[0]);
     return optionsArray[random.nextInt(optionsArray.length)];
   }
 
   @Override
-  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options)
-      throws VolumeChooserException {
+  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
     return options;
   }
 }

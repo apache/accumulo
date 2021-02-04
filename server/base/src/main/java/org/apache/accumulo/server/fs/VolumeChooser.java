@@ -26,7 +26,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @deprecated since 2.1.0; implement {@link org.apache.accumulo.core.spi.fs.VolumeChooser} instead.
  */
 @Deprecated(since = "2.1.0")
-@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE",
     justification = "Same name used for compatibility during deprecation cycle")
 public interface VolumeChooser extends org.apache.accumulo.core.spi.fs.VolumeChooser {
 
@@ -54,7 +54,7 @@ public interface VolumeChooser extends org.apache.accumulo.core.spi.fs.VolumeCho
    */
   @Override
   default String choose(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
-      Set<String> options) throws VolumeChooserException {
+      Set<String> options) {
     InterfaceEvolutionWarner.warnOnce(getClass(), VolumeChooser.class,
         "choose(VolumeChooserEnvironment,Set)", "3.0");
     return choose((VolumeChooserEnvironmentImpl) env, options.toArray(new String[0]));
@@ -67,16 +67,13 @@ public interface VolumeChooser extends org.apache.accumulo.core.spi.fs.VolumeCho
    */
   @Override
   default Set<String> choosable(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
-      Set<String> options) throws VolumeChooserException {
+      Set<String> options) {
     // assume that all options are possible to be chosen by this chooser
     return options;
   }
 
   @Deprecated(since = "2.1.0")
-  @SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
-      justification = "Same name used for compatibility during deprecation cycle")
-  class VolumeChooserException
-      extends org.apache.accumulo.core.spi.fs.VolumeChooser.VolumeChooserException {
+  class VolumeChooserException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 

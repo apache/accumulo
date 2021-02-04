@@ -64,8 +64,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
   }
 
   @Override
-  public String choose(VolumeChooserEnvironment env, Set<String> options)
-      throws VolumeChooserException {
+  public String choose(VolumeChooserEnvironment env, Set<String> options) {
     try {
       return getCache(env).get(getPreferredVolumes(env, options)).next();
     } catch (ExecutionException e) {

@@ -47,7 +47,7 @@ public interface VolumeChooser {
    *           if there is an error choosing (this is a RuntimeException); this does not preclude
    *           other RuntimeExceptions from occurring
    */
-  String choose(VolumeChooserEnvironment env, Set<String> options) throws VolumeChooserException;
+  String choose(VolumeChooserEnvironment env, Set<String> options);
 
   /**
    * Return the subset of volumes that could possibly be chosen by this chooser across all
@@ -63,21 +63,5 @@ public interface VolumeChooser {
    *           other RuntimeExceptions from occurring
    *
    */
-  Set<String> choosable(VolumeChooserEnvironment env, Set<String> options)
-      throws VolumeChooserException;
-
-  class VolumeChooserException extends RuntimeException {
-
-    private static final long serialVersionUID = 1L;
-
-    public VolumeChooserException(String message) {
-      super(message);
-    }
-
-    public VolumeChooserException(String message, Throwable cause) {
-      super(message, cause);
-    }
-
-  }
-
+  Set<String> choosable(VolumeChooserEnvironment env, Set<String> options);
 }

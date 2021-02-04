@@ -31,7 +31,6 @@ import java.util.Optional;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
-import org.apache.accumulo.core.spi.fs.VolumeChooser.VolumeChooserException;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
@@ -157,7 +156,7 @@ public class PerTableVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(Scope.DEFAULT))).andReturn(null).once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, this::getTableDelegate);
+    assertThrows(RuntimeException.class, this::getTableDelegate);
   }
 
   @Test
@@ -169,7 +168,7 @@ public class PerTableVolumeChooserTest {
         VolumeChooser.class)).andThrow(new RuntimeException());
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, this::getTableDelegate);
+    assertThrows(RuntimeException.class, this::getTableDelegate);
   }
 
   @Test
@@ -203,7 +202,7 @@ public class PerTableVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(Scope.DEFAULT))).andReturn(null).once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, () -> getDelegate(Scope.LOGGER));
+    assertThrows(RuntimeException.class, () -> getDelegate(Scope.LOGGER));
   }
 
   @Test
@@ -215,7 +214,7 @@ public class PerTableVolumeChooserTest {
         .andThrow(new RuntimeException());
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, () -> getDelegate(Scope.LOGGER));
+    assertThrows(RuntimeException.class, () -> getDelegate(Scope.LOGGER));
   }
 
   @Test

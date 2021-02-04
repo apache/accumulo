@@ -55,15 +55,13 @@ public class PerTableVolumeChooser implements VolumeChooser {
       getCustomPropertySuffix(Scope.DEFAULT);
 
   @Override
-  public String choose(VolumeChooserEnvironment env, Set<String> options)
-      throws VolumeChooserException {
+  public String choose(VolumeChooserEnvironment env, Set<String> options) {
     log.trace("{}.choose", getClass().getSimpleName());
     return getDelegateChooser(env).choose(env, options);
   }
 
   @Override
-  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options)
-      throws VolumeChooserException {
+  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
     return getDelegateChooser(env).choosable(env, options);
   }
 
@@ -91,7 +89,7 @@ public class PerTableVolumeChooser implements VolumeChooser {
       String msg = "Property " + TABLE_CUSTOM_SUFFIX + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER
           + " must be a valid " + VolumeChooser.class.getSimpleName() + " to use the "
           + getClass().getSimpleName();
-      throw new VolumeChooserException(msg);
+      throw new RuntimeException(msg);
     }
 
     return createVolumeChooser(env, clazz, TABLE_CUSTOM_SUFFIX, env.getTable().get(),
@@ -115,7 +113,7 @@ public class PerTableVolumeChooser implements VolumeChooser {
         String msg =
             "Property " + property + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER + " must be a valid "
                 + VolumeChooser.class.getSimpleName() + " to use the " + getClass().getSimpleName();
-        throw new VolumeChooserException(msg);
+        throw new RuntimeException(msg);
       }
 
       property = DEFAULT_SCOPED_VOLUME_CHOOSER;
@@ -162,7 +160,7 @@ public class PerTableVolumeChooser implements VolumeChooser {
       } catch (Exception e) {
         String msg = "Failed to create instance for " + key + " configured to use " + className
             + " via " + property;
-        throw new VolumeChooserException(msg, e);
+        throw new RuntimeException(msg, e);
       }
     });
   }

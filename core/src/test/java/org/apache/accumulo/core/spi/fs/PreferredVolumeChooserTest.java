@@ -32,7 +32,6 @@ import java.util.Set;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
-import org.apache.accumulo.core.spi.fs.VolumeChooser.VolumeChooserException;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
@@ -145,7 +144,7 @@ public class PreferredVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(Scope.DEFAULT))).andReturn(null).once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, this::chooseForTable);
+    assertThrows(RuntimeException.class, this::chooseForTable);
   }
 
   @Test
@@ -153,7 +152,7 @@ public class PreferredVolumeChooserTest {
     expect(tableConf.getTableCustom(TABLE_CUSTOM_SUFFIX)).andReturn(",").once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, this::chooseForTable);
+    assertThrows(RuntimeException.class, this::chooseForTable);
   }
 
   @Test
@@ -162,7 +161,7 @@ public class PreferredVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(Scope.DEFAULT))).andReturn("4").once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, this::chooseForTable);
+    assertThrows(RuntimeException.class, this::chooseForTable);
   }
 
   @Test
@@ -186,7 +185,7 @@ public class PreferredVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(Scope.DEFAULT))).andReturn(null).once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, () -> choose(Scope.LOGGER));
+    assertThrows(RuntimeException.class, () -> choose(Scope.LOGGER));
   }
 
   @Test
@@ -194,7 +193,7 @@ public class PreferredVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(Scope.LOGGER))).andReturn(",").once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, () -> choose(Scope.LOGGER));
+    assertThrows(RuntimeException.class, () -> choose(Scope.LOGGER));
   }
 
   @Test
@@ -203,7 +202,7 @@ public class PreferredVolumeChooserTest {
     expect(systemConf.getCustom(getCustomPropertySuffix(Scope.DEFAULT))).andReturn("4").once();
     replay(serviceEnv, tableConf, systemConf);
 
-    assertThrows(VolumeChooserException.class, () -> choose(Scope.LOGGER));
+    assertThrows(RuntimeException.class, () -> choose(Scope.LOGGER));
   }
 
   @Test
