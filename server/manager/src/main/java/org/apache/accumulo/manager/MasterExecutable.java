@@ -43,7 +43,7 @@ public class MasterExecutable implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws Exception {
-    Manager.main(args);
+    new ManagerExecutable().execute(args);
   }
 
 }

@@ -40,9 +40,9 @@ import org.apache.accumulo.core.util.Help;
 import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.gc.GCExecutable;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.ManagerExecutable;
 import org.apache.accumulo.manager.MasterExecutable;
+import org.apache.accumulo.master.Master;
 import org.apache.accumulo.minicluster.MiniAccumuloRunner;
 import org.apache.accumulo.miniclusterImpl.MiniClusterExecutable;
 import org.apache.accumulo.monitor.Monitor;
@@ -153,6 +153,7 @@ public class KeywordStartIT {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void checkHasMain() {
     assertFalse("Sanity check for test failed. Somehow the test class has a main method",
         hasMain(this.getClass()));
@@ -163,7 +164,7 @@ public class KeywordStartIT {
     expectSet.add(Info.class);
     expectSet.add(Initialize.class);
     expectSet.add(LoginProperties.class);
-    expectSet.add(Manager.class);
+    expectSet.add(Master.class);
     expectSet.add(MiniAccumuloRunner.class);
     expectSet.add(Monitor.class);
     expectSet.add(PrintInfo.class);

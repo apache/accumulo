@@ -16,36 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager;
+package org.apache.accumulo.master;
 
-import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.manager.MasterExecutable;
+import org.apache.accumulo.start.Main;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.google.auto.service.AutoService;
+/**
+ * @deprecated since 2.1.0. Use {@link Main} with keyword "manager" instead.
+ */
+@Deprecated(since = "2.1.0")
+public class Master {
+  private static final Logger LOG = LoggerFactory.getLogger(Master.class);
 
-@AutoService(KeywordExecutable.class)
-public class ManagerExecutable implements KeywordExecutable {
-
-  @Override
-  public String keyword() {
-    return "manager";
+  public static void main(String[] args) throws Exception {
+    LOG.warn("Usage of {} directly has been deprecated. Use {} with keyword manager instead.",
+        Master.class.getName(), Main.class.getName());
+    new MasterExecutable().execute(args);
   }
-
-  @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.PROCESS;
-  }
-
-  @Override
-  public String description() {
-    return "Starts Accumulo Manager";
-  }
-
-  @Override
-  public void execute(final String[] args) throws Exception {
-    try (Manager master = new Manager(new ServerOpts(), args)) {
-      master.runServer();
-    }
-  }
-
 }
