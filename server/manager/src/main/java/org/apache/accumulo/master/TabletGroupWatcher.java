@@ -875,7 +875,6 @@ abstract class TabletGroupWatcher extends Thread {
     }
   }
 
-  @SuppressWarnings("deprecation")
   private void getAssignmentsFromBalancer(TabletLists tLists,
       Map<KeyExtent,TServerInstance> unassigned) {
     if (!tLists.currentTServers.isEmpty()) {
