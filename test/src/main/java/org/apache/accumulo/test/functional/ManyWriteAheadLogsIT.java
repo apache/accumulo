@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -129,8 +130,9 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
       String manyWALsTable = tableNames[0];
       String rollWALsTable = tableNames[1];
-      c.tableOperations().create(manyWALsTable);
-      c.tableOperations().addSplits(manyWALsTable, splits);
+
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      c.tableOperations().create(manyWALsTable, ntc);
 
       c.tableOperations().create(rollWALsTable);
 

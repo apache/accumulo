@@ -43,6 +43,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
@@ -60,16 +61,17 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
   @Test
   public void testConcurrentDeleteTablesOps() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
       String[] tables = getUniqueNames(2);
 
       TreeSet<Text> splits = createSplits();
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
 
       ExecutorService es = Executors.newFixedThreadPool(20);
 
       int count = 0;
       for (final String table : tables) {
-        c.tableOperations().create(table);
-        c.tableOperations().addSplits(table, splits);
+        c.tableOperations().create(table, ntc);
         writeData(c, table);
         if (count == 1) {
           c.tableOperations().flush(table, null, null, true);
@@ -161,6 +163,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
       String[] tables = getUniqueNames(2);
 
       TreeSet<Text> splits = createSplits();
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
 
       int numOperations = 8;
 
@@ -168,8 +171,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
       int count = 0;
       for (final String table : tables) {
-        c.tableOperations().create(table);
-        c.tableOperations().addSplits(table, splits);
+        c.tableOperations().create(table, ntc);
         writeData(c, table);
         if (count == 1) {
           c.tableOperations().flush(table, null, null, true);
