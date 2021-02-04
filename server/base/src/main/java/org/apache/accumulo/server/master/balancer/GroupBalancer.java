@@ -64,7 +64,10 @@ import com.google.common.collect.Multimap;
  * <p>
  * To use this balancer you must extend it and implement {@link #getPartitioner()}. See
  * {@link RegexGroupBalancer} as an example.
+ *
+ * @deprecated since 2.1.0. Use {@link org.apache.accumulo.core.spi.balancer.GroupBalancer} instead.
  */
+@Deprecated(since = "2.1.0")
 public abstract class GroupBalancer extends TabletBalancer {
 
   private final TableId tableId;

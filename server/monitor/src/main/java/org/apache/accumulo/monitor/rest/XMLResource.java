@@ -29,7 +29,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.monitor.rest.master.MasterResource;
+import org.apache.accumulo.monitor.rest.manager.MasterResource;
 import org.apache.accumulo.monitor.rest.tables.TablesResource;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 

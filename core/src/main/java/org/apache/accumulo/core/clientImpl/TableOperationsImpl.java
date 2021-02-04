@@ -112,7 +112,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataServicer;

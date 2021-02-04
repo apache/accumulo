@@ -51,8 +51,8 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.monitor.rest.master.MasterResource;
-import org.apache.accumulo.server.master.state.DeadServerList;
+import org.apache.accumulo.monitor.rest.manager.MasterResource;
+import org.apache.accumulo.server.manager.state.DeadServerList;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
 
 /**

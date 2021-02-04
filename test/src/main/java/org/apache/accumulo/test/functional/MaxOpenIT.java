@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -28,6 +29,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -101,10 +103,11 @@ public class MaxOpenIT extends AccumuloClusterHarness {
   public void run() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
-      c.tableOperations().addSplits(tableName,
-          TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
+      HashMap<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_MAJC_RATIO.getKey(), "10");
+      NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props)
+          .withSplits(TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
+      c.tableOperations().create(tableName, ntc);
 
       // the following loop should create three tablets in each map file
       for (int i = 0; i < 3; i++) {

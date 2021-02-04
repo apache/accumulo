@@ -35,7 +35,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.security.Authorizations;

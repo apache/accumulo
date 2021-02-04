@@ -43,6 +43,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.junit.Test;
 
+@Deprecated(since = "2.1.0")
 public class HostRegexTableLoadBalancerReconfigurationTest
     extends BaseHostRegexTableLoadBalancerTest {
 

@@ -111,7 +111,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
-import org.apache.accumulo.server.master.recovery.RecoveryPath;
+import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
@@ -640,7 +640,7 @@ public class TabletServer extends AbstractServer {
         throw e;
       }
 
-      tabletServerLock = new ZooLock(zoo, zPath, UUID.randomUUID());
+      tabletServerLock = new ZooLock(getContext().getSiteConfiguration(), zPath, UUID.randomUUID());
 
       LockWatcher lw = new LockWatcher() {
 

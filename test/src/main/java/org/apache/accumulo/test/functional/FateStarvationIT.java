@@ -25,6 +25,7 @@ import java.util.Random;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
@@ -46,9 +47,8 @@ public class FateStarvationIT extends AccumuloClusterHarness {
   public void run() throws Exception {
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      c.tableOperations().create(tableName);
-
-      c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, 100000, 50));
+      var ntc = new NewTableConfiguration().withSplits(TestIngest.getSplitPoints(0, 100000, 50));
+      c.tableOperations().create(tableName, ntc);
 
       IngestParams params = new IngestParams(getClientProps(), tableName, 100_000);
       params.random = 89;

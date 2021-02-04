@@ -23,8 +23,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.Perms;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 
 public class ZooUtil {
@@ -88,6 +92,34 @@ public class ZooUtil {
 
   public static String getRoot(final String instanceId) {
     return Constants.ZROOT + "/" + instanceId;
+  }
+
+  /**
+   * This method will delete a node and all its children.
+   */
+  public static void recursiveDelete(ZooKeeper zooKeeper, String zPath, NodeMissingPolicy policy)
+      throws KeeperException, InterruptedException {
+    if (policy == NodeMissingPolicy.CREATE) {
+      throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
+    }
+    try {
+      // delete children
+      for (String child : zooKeeper.getChildren(zPath, null)) {
+        recursiveDelete(zooKeeper, zPath + "/" + child, NodeMissingPolicy.SKIP);
+      }
+
+      // delete self
+      zooKeeper.delete(zPath, -1);
+    } catch (KeeperException e) {
+      // new child appeared; try again
+      if (e.code() == Code.NOTEMPTY) {
+        recursiveDelete(zooKeeper, zPath, policy);
+      }
+      if (policy == NodeMissingPolicy.SKIP && e.code() == Code.NONODE) {
+        return;
+      }
+      throw e;
+    }
   }
 
 }

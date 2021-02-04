@@ -21,9 +21,12 @@ package org.apache.accumulo.core.util;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
@@ -120,5 +123,14 @@ public class ConfigurationImpl implements Configuration {
   public Iterator<Entry<String,String>> iterator() {
     return StreamSupport.stream(acfg.spliterator(), false)
         .filter(e -> !Property.isSensitive(e.getKey())).iterator();
+  }
+
+  @Override
+  public <T> Supplier<T>
+      getDerived(Function<PluginEnvironment.Configuration,T> computeDerivedValue) {
+    Configuration outerConfiguration = this;
+    AccumuloConfiguration.Deriver<T> deriver =
+        acfg.newDeriver(entries -> computeDerivedValue.apply(outerConfiguration));
+    return deriver::derive;
   }
 }

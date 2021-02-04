@@ -35,7 +35,7 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.RemoteShell;
 import org.apache.accumulo.cluster.RemoteShellOptions;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
-import org.apache.accumulo.master.state.SetGoalState;
+import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.hadoop.util.Shell.ExitCodeException;

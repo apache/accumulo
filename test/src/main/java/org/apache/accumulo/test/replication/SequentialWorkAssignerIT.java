@@ -40,7 +40,7 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.master.replication.SequentialWorkAssigner;
+import org.apache.accumulo.manager.replication.SequentialWorkAssigner;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;

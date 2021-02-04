@@ -53,7 +53,7 @@ import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
@@ -89,7 +89,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
-import org.apache.accumulo.server.master.LiveTServerSet;
+import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
@@ -635,7 +635,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     UUID zooLockUUID = UUID.randomUUID();
     while (true) {
-      lock = new ZooLock(getContext().getZooReaderWriter(), path, zooLockUUID);
+      lock = new ZooLock(getContext().getSiteConfiguration(), path, zooLockUUID);
       if (lock.tryLock(lockWatcher,
           new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
         log.debug("Got GC ZooKeeper lock");

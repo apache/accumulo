@@ -27,11 +27,13 @@ import java.io.File;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -43,6 +45,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -161,13 +164,13 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       File target = new File(System.getProperty("user.dir"), "target");
       assertTrue(target.mkdirs() || target.isDirectory());
       File destFile = installJar(target, "/TestCompactionStrat.jar");
-      c.tableOperations().create(tableName);
       c.instanceOperations().setProperty(
           Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
-      c.tableOperations().setProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey(),
-          "context1");
-
-      c.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("efg"))));
+      HashMap<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "context1");
+      SortedSet<Text> splits = new TreeSet<>(Arrays.asList(new Text("efg")));
+      var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
+      c.tableOperations().create(tableName, ntc);
 
       writeFlush(c, tableName, "a");
       writeFlush(c, tableName, "b");

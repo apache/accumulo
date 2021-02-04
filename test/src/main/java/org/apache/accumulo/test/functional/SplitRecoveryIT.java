@@ -69,7 +69,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.master.state.Assignment;
+import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -95,7 +95,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     String zPath = c.getZooKeeperRoot() + "/testLock";
     ZooReaderWriter zoo = c.getZooReaderWriter();
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
-    ZooLock zl = new ZooLock(zoo, zPath, UUID.randomUUID());
+    ZooLock zl = new ZooLock(c.getSiteConfiguration(), zPath, UUID.randomUUID());
     boolean gotLock = zl.tryLock(new LockWatcher() {
 
       @SuppressFBWarnings(value = "DM_EXIT",

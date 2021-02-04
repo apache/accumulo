@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -97,17 +98,20 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
   public void compareOldNewBulkImportTest() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       getCluster().getClusterControl().kill(ServerType.GARBAGE_COLLECTOR, "localhost");
+
       final String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      // turn off compactions
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "2000");
-      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "2000");
+      // disable compactions
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_MAJC_RATIO.getKey(), "2000");
+      props.put(Property.TABLE_FILE_MAX.getKey(), "2000");
       // splits to slow down bulk import
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 1; i < 0xf; i++) {
         splits.add(new Text(Integer.toHexString(i)));
       }
-      c.tableOperations().addSplits(tableName, splits);
+
+      var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
+      c.tableOperations().create(tableName, ntc);
 
       MasterMonitorInfo stats = getCluster().getMasterMonitorInfo();
       assertEquals(1, stats.tServerInfo.size());

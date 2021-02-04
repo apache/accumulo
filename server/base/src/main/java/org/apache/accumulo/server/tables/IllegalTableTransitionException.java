@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.tables;
 
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 
 public class IllegalTableTransitionException extends RuntimeException {
   private static final long serialVersionUID = 1L;

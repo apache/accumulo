@@ -32,13 +32,18 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @deprecated since 2.1.0. Use {@link org.apache.accumulo.core.spi.balancer.TableLoadBalancer}
+ *             instead.
+ */
+@Deprecated(since = "2.1.0")
 public class TableLoadBalancer extends TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TableLoadBalancer.class);

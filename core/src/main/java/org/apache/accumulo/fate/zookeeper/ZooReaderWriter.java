@@ -250,29 +250,6 @@ public class ZooReaderWriter extends ZooReader {
    */
   public void recursiveDelete(String zPath, NodeMissingPolicy policy)
       throws KeeperException, InterruptedException {
-    if (policy == NodeMissingPolicy.CREATE) {
-      throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
-    }
-    try {
-      // delete children
-      for (String child : getChildren(zPath)) {
-        recursiveDelete(zPath + "/" + child, NodeMissingPolicy.SKIP);
-      }
-
-      // delete self
-      retryLoop(zk -> {
-        zk.delete(zPath, -1);
-        return null;
-      });
-    } catch (KeeperException e) {
-      // new child appeared; try again
-      if (e.code() == Code.NOTEMPTY) {
-        recursiveDelete(zPath, policy);
-      }
-      if (policy == NodeMissingPolicy.SKIP && e.code() == Code.NONODE) {
-        return;
-      }
-      throw e;
-    }
+    ZooUtil.recursiveDelete(getZooKeeper(), zPath, policy);
   }
 }

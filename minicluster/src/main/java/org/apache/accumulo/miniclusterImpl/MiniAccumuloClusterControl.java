@@ -32,7 +32,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
-import org.apache.accumulo.master.Master;
+import org.apache.accumulo.manager.Master;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.monitor.Monitor;
