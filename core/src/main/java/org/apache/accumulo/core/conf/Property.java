@@ -258,7 +258,7 @@ public enum Property {
   MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
       "The port used for handling client connections on the manager"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
-      "org.apache.accumulo.server.master.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
+      "org.apache.accumulo.core.spi.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions."),
   MANAGER_BULK_RETRIES("manager.bulk.retries", "3", PropertyType.COUNT,
@@ -765,8 +765,8 @@ public enum Property {
           + "Once this limit is reached, the buffered data is sent to the client."),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.STRING,
       "Change the type of file a table writes"),
-  TABLE_LOAD_BALANCER("table.balancer",
-      "org.apache.accumulo.server.master.balancer.DefaultLoadBalancer", PropertyType.STRING,
+  TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer",
+      PropertyType.STRING,
       "This property can be set to allow the LoadBalanceByTable load balancer"
           + " to change the called Load Balancer for this table"),
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING,

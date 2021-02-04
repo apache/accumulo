@@ -39,6 +39,11 @@ import org.apache.accumulo.server.master.state.TabletMigration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @deprecated since 2.1.0. Use {@link org.apache.accumulo.core.spi.balancer.TableLoadBalancer}
+ *             instead.
+ */
+@Deprecated(since = "2.1.0")
 public class TableLoadBalancer extends TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TableLoadBalancer.class);

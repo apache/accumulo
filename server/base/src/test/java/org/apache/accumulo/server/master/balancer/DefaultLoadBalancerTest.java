@@ -45,6 +45,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
+@Deprecated(since = "2.1.0")
 public class DefaultLoadBalancerTest {
 
   class FakeTServer {

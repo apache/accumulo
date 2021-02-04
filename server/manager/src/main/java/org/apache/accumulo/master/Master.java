@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -60,6 +61,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
+import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
+import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
+import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Iface;
@@ -78,6 +83,12 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
+import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
+import org.apache.accumulo.core.spi.balancer.TabletBalancer;
+import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
+import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
+import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
@@ -105,15 +116,13 @@ import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
-import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
-import org.apache.accumulo.server.master.balancer.TabletBalancer;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
-import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
@@ -194,13 +203,16 @@ public class Master extends AbstractServer
 
   ZooLock masterLock = null;
   private TServer clientService = null;
-  TabletBalancer tabletBalancer;
+  private volatile TabletBalancer tabletBalancer;
+  private final BalancerEnvironment balancerEnvironment;
 
   private MasterState state = MasterState.INITIAL;
 
   Fate<Master> fate;
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus =
+      Collections.unmodifiableSortedMap(new TreeMap<>());
+  volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer =
       Collections.unmodifiableSortedMap(new TreeMap<>());
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
@@ -364,6 +376,7 @@ public class Master extends AbstractServer
   Master(ServerOpts opts, String[] args) throws IOException {
     super("master", opts, args);
     ServerContext context = super.getContext();
+    balancerEnvironment = new BalancerEnvironmentImpl(context);
 
     AccumuloConfiguration aconf = context.getConfiguration();
 
@@ -373,9 +386,7 @@ public class Master extends AbstractServer
     ThriftTransportPool.getInstance()
         .setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(context, this);
-    this.tabletBalancer = Property.createInstanceFromPropertyName(aconf,
-        Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
-    this.tabletBalancer.init(context);
+    initializeBalancer();
 
     this.security = AuditedSecurityOperation.getInstance(context);
 
@@ -800,7 +811,9 @@ public class Master extends AbstractServer
 
     private long updateStatus() {
       Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
-      tserverStatus = gatherTableInformation(currentServers);
+      TreeMap<TabletServerId,TServerStatus> temp = new TreeMap<>();
+      tserverStatus = gatherTableInformation(currentServers, temp);
+      tserverStatusForBalancer = Collections.unmodifiableSortedMap(temp);
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
@@ -853,34 +866,57 @@ public class Master extends AbstractServer
     }
 
     private long balanceTablets() {
-      List<TabletMigration> migrationsOut = new ArrayList<>();
-      long wait = tabletBalancer.balance(Collections.unmodifiableSortedMap(tserverStatus),
-          migrationsSnapshot(), migrationsOut);
+      BalanceParamsImpl params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer,
+          tserverStatus, migrationsSnapshot());
+      long wait = tabletBalancer.balance(params);
 
-      for (TabletMigration m : TabletBalancer.checkMigrationSanity(tserverStatus.keySet(),
-          migrationsOut)) {
-        if (migrations.containsKey(m.tablet)) {
+      for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
+          params.migrationsOut())) {
+        KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
+        if (migrations.containsKey(ke)) {
           log.warn("balancer requested migration more than once, skipping {}", m);
           continue;
         }
-        migrations.put(m.tablet, m.newServer);
+        TServerInstance tserverInstance = TabletServerIdImpl.toThrift(m.getNewTabletServer());
+        migrations.put(ke, tserverInstance);
         log.debug("migration {}", m);
       }
-      if (migrationsOut.isEmpty()) {
+      if (params.migrationsOut().isEmpty()) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
         }
       } else {
-        nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(),
+        nextEvent.event("Migrating %d more tablets, %d total", params.migrationsOut().size(),
             migrations.size());
       }
       return wait;
     }
 
+    private List<TabletMigration> checkMigrationSanity(Set<TabletServerId> current,
+        List<TabletMigration> migrations) {
+      return migrations.stream().filter(m -> {
+        boolean includeMigration = false;
+        if (m.getTablet() == null) {
+          log.error("Balancer gave back a null tablet {}", m);
+        } else if (m.getNewTabletServer() == null) {
+          log.error("Balancer did not set the destination {}", m);
+        } else if (m.getOldTabletServer() == null) {
+          log.error("Balancer did not set the source {}", m);
+        } else if (!current.contains(m.getOldTabletServer())) {
+          log.warn("Balancer wants to move a tablet from a server that is not current: {}", m);
+        } else if (!current.contains(m.getNewTabletServer())) {
+          log.warn("Balancer wants to move a tablet to a server that is not current: {}", m);
+        } else {
+          includeMigration = true;
+        }
+        return includeMigration;
+      }).collect(Collectors.toList());
+    }
+
   }
 
-  private SortedMap<TServerInstance,TabletServerStatus>
-      gatherTableInformation(Set<TServerInstance> currentServers) {
+  private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
+      Set<TServerInstance> currentServers, SortedMap<TabletServerId,TServerStatus> balancerMap) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MANAGER_STATUS_THREAD_POOL_SIZE);
     ExecutorService tp = ThreadPools.createExecutorService(getConfiguration(),
@@ -958,6 +994,8 @@ public class Master extends AbstractServer
 
     // Threads may still modify map after shutdownNow is called, so create an immutable snapshot.
     SortedMap<TServerInstance,TabletServerStatus> info = ImmutableSortedMap.copyOf(result);
+    tserverStatus.forEach((tsi, status) -> balancerMap.put(new TabletServerIdImpl(tsi),
+        TServerStatusImpl.fromThrift(status)));
 
     synchronized (badServers) {
       badServers.keySet().retainAll(currentServers);
@@ -1652,9 +1690,9 @@ public class Master extends AbstractServer
 
   @Override
   public Set<KeyExtent> migrationsSnapshot() {
-    Set<KeyExtent> migrationKeys = new HashSet<>();
+    Set<KeyExtent> migrationKeys;
     synchronized (migrations) {
-      migrationKeys.addAll(migrations.keySet());
+      migrationKeys = new HashSet<>(migrations.keySet());
     }
     return Collections.unmodifiableSet(migrationKeys);
   }
@@ -1688,4 +1726,21 @@ public class Master extends AbstractServer
     return masterInitialized.get();
   }
 
+  void initializeBalancer() {
+    var localTabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
+        Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new SimpleLoadBalancer());
+    localTabletBalancer.init(balancerEnvironment);
+    tabletBalancer = localTabletBalancer;
+  }
+
+  Class<?> getBalancerClass() {
+    return tabletBalancer.getClass();
+  }
+
+  void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
+      Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
+    AssignmentParamsImpl params =
+        AssignmentParamsImpl.fromThrift(currentStatus, unassigned, assignedOut);
+    tabletBalancer.getAssignments(params);
+  }
 }

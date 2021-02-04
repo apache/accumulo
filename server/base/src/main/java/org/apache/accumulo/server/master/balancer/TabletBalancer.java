@@ -29,15 +29,19 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
+import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -45,6 +49,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class is responsible for managing the distribution of tablets throughout an Accumulo
@@ -56,12 +62,40 @@ import com.google.common.collect.Iterables;
  * Implementations may wish to store configuration in Accumulo's system configuration using the
  * {@link Property#GENERAL_ARBITRARY_PROP_PREFIX}. They may also benefit from using per-table
  * configuration using {@link Property#TABLE_ARBITRARY_PROP_PREFIX}.
+ *
+ * @deprecated since 2.1.0. Use {@link org.apache.accumulo.core.spi.balancer.TabletBalancer}
+ *             instead.
  */
-public abstract class TabletBalancer {
+@Deprecated(since = "2.1.0")
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE",
+    justification = "Class is deprecated and will be removed.")
+public abstract class TabletBalancer
+    implements org.apache.accumulo.core.spi.balancer.TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TabletBalancer.class);
 
   protected ServerContext context;
+
+  @Override
+  public void init(BalancerEnvironment balancerEnvironment) {
+    var bei = (BalancerEnvironmentImpl) balancerEnvironment;
+    init(bei.getContext());
+  }
+
+  @Override
+  public void getAssignments(AssignmentParameters params) {
+    AssignmentParamsImpl api = (AssignmentParamsImpl) params;
+    getAssignments(api.thriftCurrentStatus(), api.thriftUnassigned(), api.thriftAssignmentsOut());
+  }
+
+  @Override
+  public long balance(BalanceParameters params) {
+    BalanceParamsImpl bpi = (BalanceParamsImpl) params;
+    List<TabletMigration> migrationsOut = new ArrayList<>();
+    long result = balance(bpi.thriftCurrentStatus(), bpi.thriftCurrentMigrations(), migrationsOut);
+    migrationsOut.forEach(mo -> bpi.addMigration(mo.tablet, mo.oldServer, mo.newServer));
+    return result;
+  }
 
   /**
    * Initialize the TabletBalancer. This gives the balancer the opportunity to read the

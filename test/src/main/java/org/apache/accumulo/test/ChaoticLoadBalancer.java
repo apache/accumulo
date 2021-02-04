@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.master.balancer;
+package org.apache.accumulo.test;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -25,19 +25,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
-import java.util.Set;
-import java.util.SortedMap;
 
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.master.thrift.TableInfo;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.thrift.TException;
+import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
+import org.apache.accumulo.core.spi.balancer.TabletBalancer;
+import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
+import org.apache.accumulo.core.spi.balancer.data.TableStatistics;
+import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
+import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
+import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
+import org.apache.accumulo.core.spi.balancer.util.ThrottledBalancerProblemReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,27 +50,29 @@ import org.slf4j.LoggerFactory;
  * <p>
  * Will balance randomly, maintaining distribution
  */
-public class ChaoticLoadBalancer extends TabletBalancer {
+public class ChaoticLoadBalancer implements TabletBalancer {
   private static final Logger log = LoggerFactory.getLogger(ChaoticLoadBalancer.class);
+
+  protected BalancerEnvironment environment;
+  Random r = new SecureRandom();
 
   public ChaoticLoadBalancer() {}
 
-  // Required constructor
-  public ChaoticLoadBalancer(String tableName) {}
-
-  Random r = new SecureRandom();
+  @Override
+  public void init(BalancerEnvironment balancerEnvironment) {
+    this.environment = balancerEnvironment;
+  }
 
   @Override
-  public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
-      Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
-    long total = assignments.size() + unassigned.size();
-    long avg = (long) Math.ceil(((double) total) / current.size());
-    Map<TServerInstance,Long> toAssign = new HashMap<>();
-    List<TServerInstance> tServerArray = new ArrayList<>();
-    for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
+  public void getAssignments(AssignmentParameters params) {
+    long total = params.unassignedTablets().size();
+    long avg = (long) Math.ceil(((double) total) / params.currentStatus().size());
+    Map<TabletServerId,Long> toAssign = new HashMap<>();
+    List<TabletServerId> tServerArray = new ArrayList<>();
+    for (Entry<TabletServerId,TServerStatus> e : params.currentStatus().entrySet()) {
       long numTablets = 0;
-      for (TableInfo ti : e.getValue().getTableMap().values()) {
-        numTablets += ti.tablets;
+      for (TableStatistics ti : e.getValue().getTableMap().values()) {
+        numTablets += ti.getTabletCount();
       }
       if (numTablets <= avg) {
         tServerArray.add(e.getKey());
@@ -82,10 +85,10 @@ public class ChaoticLoadBalancer extends TabletBalancer {
       return;
     }
 
-    for (KeyExtent ke : unassigned.keySet()) {
+    for (TabletId tabletId : params.unassignedTablets().keySet()) {
       int index = r.nextInt(tServerArray.size());
-      TServerInstance dest = tServerArray.get(index);
-      assignments.put(ke, dest);
+      TabletServerId dest = tServerArray.get(index);
+      params.addAssignment(tabletId, dest);
       long remaining = toAssign.get(dest) - 1;
       if (remaining == 0) {
         tServerArray.remove(index);
@@ -96,27 +99,29 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     }
   }
 
-  protected final OutstandingMigrations outstandingMigrations = new OutstandingMigrations(log);
+  private final ThrottledBalancerProblemReporter problemReporter =
+      new ThrottledBalancerProblemReporter(getClass());
+  private final ThrottledBalancerProblemReporter.OutstandingMigrationsProblem outstandingMigrationsProblem =
+      problemReporter.createOutstandingMigrationsProblem();
 
   @Override
-  public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
-      Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
-    Map<TServerInstance,Long> numTablets = new HashMap<>();
-    List<TServerInstance> underCapacityTServer = new ArrayList<>();
+  public long balance(BalanceParameters params) {
+    Map<TabletServerId,Long> numTablets = new HashMap<>();
+    List<TabletServerId> underCapacityTServer = new ArrayList<>();
 
-    if (!migrations.isEmpty()) {
-      outstandingMigrations.migrations = migrations;
-      constraintNotMet(outstandingMigrations);
+    if (!params.currentMigrations().isEmpty()) {
+      outstandingMigrationsProblem.setMigrations(params.currentMigrations());
+      problemReporter.reportProblem(outstandingMigrationsProblem);
       return 100;
     }
-    resetBalancerErrors();
+    problemReporter.clearProblemReportTimes();
 
     boolean moveMetadata = r.nextInt(4) == 0;
     long totalTablets = 0;
-    for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
+    for (Entry<TabletServerId,TServerStatus> e : params.currentStatus().entrySet()) {
       long tabletCount = 0;
-      for (TableInfo ti : e.getValue().getTableMap().values()) {
-        tabletCount += ti.tablets;
+      for (TableStatistics ti : e.getValue().getTableMap().values()) {
+        tabletCount += ti.getTabletCount();
       }
       numTablets.put(e.getKey(), tabletCount);
       underCapacityTServer.add(e.getKey());
@@ -124,21 +129,20 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     }
     // totalTablets is fuzzy due to asynchronicity of the stats
     // *1.2 to handle fuzziness, and prevent locking for 'perfect' balancing scenarios
-    long avg = (long) Math.ceil(((double) totalTablets) / current.size() * 1.2);
+    long avg = (long) Math.ceil(((double) totalTablets) / params.currentStatus().size() * 1.2);
 
-    for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
+    for (Entry<TabletServerId,TServerStatus> e : params.currentStatus().entrySet()) {
       for (String tableId : e.getValue().getTableMap().keySet()) {
         TableId id = TableId.of(tableId);
         if (!moveMetadata && MetadataTable.ID.equals(id))
           continue;
         try {
-          for (TabletStats ts : getOnlineTabletsForTable(e.getKey(), id)) {
-            KeyExtent ke = KeyExtent.fromThrift(ts.extent);
+          for (TabletStatistics ts : getOnlineTabletsForTable(e.getKey(), id)) {
             int index = r.nextInt(underCapacityTServer.size());
-            TServerInstance dest = underCapacityTServer.get(index);
+            TabletServerId dest = underCapacityTServer.get(index);
             if (dest.equals(e.getKey()))
               continue;
-            migrationsOut.add(new TabletMigration(ke, e.getKey(), dest));
+            params.migrationsOut().add(new TabletMigration(ts.getTabletId(), e.getKey(), dest));
             if (numTablets.put(dest, numTablets.get(dest) + 1) > avg)
               underCapacityTServer.remove(index);
             if (numTablets.put(e.getKey(), numTablets.get(e.getKey()) - 1) <= avg
@@ -150,19 +154,25 @@ public class ChaoticLoadBalancer extends TabletBalancer {
             if (underCapacityTServer.isEmpty())
               underCapacityTServer.addAll(numTablets.keySet());
           }
-        } catch (ThriftSecurityException e1) {
+        } catch (AccumuloSecurityException e1) {
           // Shouldn't happen, but carry on if it does
           log.debug(
-              "Encountered ThriftSecurityException.  This should not happen.  Carrying on anyway.",
+              "Encountered AccumuloSecurityException.  This should not happen.  Carrying on anyway.",
               e1);
-        } catch (TException e1) {
+        } catch (AccumuloException e1) {
           // Shouldn't happen, but carry on if it does
-          log.debug("Encountered TException.  This should not happen.  Carrying on anyway.", e1);
+          log.debug("Encountered AccumuloException.  This should not happen.  Carrying on anyway.",
+              e1);
         }
       }
     }
 
     return 100;
+  }
+
+  protected List<TabletStatistics> getOnlineTabletsForTable(TabletServerId tabletServerId,
+      TableId tableId) throws AccumuloException, AccumuloSecurityException {
+    return environment.listOnlineTabletsForTable(tabletServerId, tableId);
   }
 
 }

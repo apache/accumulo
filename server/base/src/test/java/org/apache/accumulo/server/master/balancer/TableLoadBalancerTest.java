@@ -50,6 +50,7 @@ import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
+@Deprecated(since = "2.1.0")
 public class TableLoadBalancerTest {
 
   private static Map<String,String> TABLE_ID_MAP = Map.of("t1", "a1", "t2", "b12", "t3", "c4");

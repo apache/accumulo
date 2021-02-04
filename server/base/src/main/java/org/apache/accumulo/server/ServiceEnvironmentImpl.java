@@ -65,4 +65,8 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
     String ctx = ClassLoaderUtil.tableContext(srvCtx.getTableConfiguration(tableId));
     return ConfigurationTypeHelper.getClassInstance(ctx, className, base);
   }
+
+  public ServerContext getContext() {
+    return srvCtx;
+  }
 }

@@ -26,6 +26,15 @@ import org.apache.hadoop.io.Text;
  * @since 1.7.0
  */
 public interface TabletId extends Comparable<TabletId> {
+  /**
+   * @since 2.1.0
+   */
+  TableId getTable();
+
+  /**
+   * @deprecated use {@link #getTable()} and {@link TableId#canonical()} instead
+   */
+  @Deprecated(since = "2.1.0")
   Text getTableId();
 
   Text getEndRow();

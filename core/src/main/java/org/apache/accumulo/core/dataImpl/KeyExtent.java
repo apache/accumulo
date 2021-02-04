@@ -43,6 +43,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -175,6 +176,20 @@ public class KeyExtent implements Comparable<KeyExtent> {
     TableId tableId = tableIdAndEndRow.getFirst();
     Text endRow = tableIdAndEndRow.getSecond();
     return new KeyExtent(tableId, endRow, prevEndRow);
+  }
+
+  /**
+   * Create a KeyExtent from a {@link TabletId}.
+   *
+   * @param tabletId
+   *          the {@link TabletId} to convert to a KeyExtent
+   */
+  public static KeyExtent fromTabletId(TabletId tabletId) {
+    if (tabletId instanceof TabletIdImpl) {
+      return ((TabletIdImpl) tabletId).toKeyExtent();
+    } else {
+      return new KeyExtent(tabletId.getTable(), tabletId.getEndRow(), tabletId.getPrevEndRow());
+    }
   }
 
   /**

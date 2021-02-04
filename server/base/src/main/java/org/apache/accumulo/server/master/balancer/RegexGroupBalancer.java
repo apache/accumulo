@@ -44,7 +44,11 @@ import org.apache.hadoop.io.Text;
  * suffixes). This determines how long to wait between balancing. Since this balancer scans the
  * metadata table, may want to set this higher for large tables.
  * </ul>
+ *
+ * @deprecated since 2.1.0. Use {@link org.apache.accumulo.core.spi.balancer.RegexGroupBalancer}
+ *             instead.
  */
+@Deprecated(since = "2.1.0")
 public class RegexGroupBalancer extends GroupBalancer {
 
   public static final String REGEX_PROPERTY =
