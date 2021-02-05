@@ -16,16 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.mastermessage;
+package org.apache.accumulo.master;
 
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.thrift.TException;
+import org.apache.accumulo.manager.MasterExecutable;
+import org.apache.accumulo.start.Main;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public interface MasterMessage {
+/**
+ * @deprecated since 2.1.0. Use {@link Main} with keyword "manager" instead.
+ */
+@Deprecated(since = "2.1.0")
+public class Master {
+  private static final Logger LOG = LoggerFactory.getLogger(Master.class);
 
-  void send(TCredentials info, String serverName, MasterClientService.Iface client)
-      throws TException, ThriftSecurityException;
-
+  public static void main(String[] args) throws Exception {
+    LOG.warn("Usage of {} directly has been deprecated. Use {} with keyword manager instead.",
+        Master.class.getName(), Main.class.getName());
+    new MasterExecutable().execute(args);
+  }
 }

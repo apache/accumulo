@@ -40,7 +40,7 @@ import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -81,7 +81,7 @@ public class TablesResource {
 
   public static TableInformationList getTables(Monitor monitor) {
     TableInformationList tableList = new TableInformationList();
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return tableList;
     }
@@ -131,7 +131,7 @@ public class TablesResource {
       regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
     String rootTabletLocation = monitor.getContext().getRootTabletLocation();
     TableId tableId = TableId.of(tableIdStr);
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     // fail fast if unable to get monitor info
     if (mmi == null) {
       return new TabletServers();

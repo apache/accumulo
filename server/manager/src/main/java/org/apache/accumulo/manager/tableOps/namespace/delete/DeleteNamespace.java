@@ -21,11 +21,11 @@ package org.apache.accumulo.manager.tableOps.namespace.delete;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-public class DeleteNamespace extends MasterRepo {
+public class DeleteNamespace extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -36,18 +36,18 @@ public class DeleteNamespace extends MasterRepo {
   }
 
   @Override
-  public long isReady(long id, Master environment) throws Exception {
+  public long isReady(long id, Manager environment) throws Exception {
     return Utils.reserveNamespace(environment, namespaceId, id, true, true, TableOperation.DELETE);
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) {
+  public Repo<Manager> call(long tid, Manager environment) {
     environment.getEventCoordinator().event("deleting namespace %s ", namespaceId);
     return new NamespaceCleanUp(namespaceId);
   }
 
   @Override
-  public void undo(long id, Master environment) {
+  public void undo(long id, Manager environment) {
     Utils.unreserveNamespace(environment, namespaceId, id, true);
   }
 

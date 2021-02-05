@@ -25,7 +25,7 @@
 package org.apache.accumulo.core.master.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-public class MasterClientService {
+public class ManagerClientService {
 
   public interface Iface extends FateService.Iface {
 
@@ -41,7 +41,7 @@ public class MasterClientService {
 
     public void removeNamespaceProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
-    public void setMasterGoalState(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, MasterGoalState state) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void setManagerGoalState(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ManagerGoalState state) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
     public void shutdown(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, boolean stopTabletServers) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
@@ -51,7 +51,7 @@ public class MasterClientService {
 
     public void removeSystemProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
-    public MasterMonitorInfo getMasterStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public ManagerMonitorInfo getManagerStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
     public void waitForBalance(org.apache.accumulo.core.trace.thrift.TInfo tinfo) throws org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
@@ -81,7 +81,7 @@ public class MasterClientService {
 
     public void removeNamespaceProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, java.lang.String property, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void setMasterGoalState(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, MasterGoalState state, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void setManagerGoalState(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ManagerGoalState state, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
     public void shutdown(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, boolean stopTabletServers, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
@@ -91,7 +91,7 @@ public class MasterClientService {
 
     public void removeSystemProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String property, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void getMasterStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<MasterMonitorInfo> resultHandler) throws org.apache.thrift.TException;
+    public void getManagerStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<ManagerMonitorInfo> resultHandler) throws org.apache.thrift.TException;
 
     public void waitForBalance(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
@@ -326,25 +326,25 @@ public class MasterClientService {
       return;
     }
 
-    public void setMasterGoalState(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, MasterGoalState state) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void setManagerGoalState(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ManagerGoalState state) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
-      send_setMasterGoalState(tinfo, credentials, state);
-      recv_setMasterGoalState();
+      send_setManagerGoalState(tinfo, credentials, state);
+      recv_setManagerGoalState();
     }
 
-    public void send_setMasterGoalState(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, MasterGoalState state) throws org.apache.thrift.TException
+    public void send_setManagerGoalState(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ManagerGoalState state) throws org.apache.thrift.TException
     {
-      setMasterGoalState_args args = new setMasterGoalState_args();
+      setManagerGoalState_args args = new setManagerGoalState_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setState(state);
-      sendBase("setMasterGoalState", args);
+      sendBase("setManagerGoalState", args);
     }
 
-    public void recv_setMasterGoalState() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void recv_setManagerGoalState() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
-      setMasterGoalState_result result = new setMasterGoalState_result();
-      receiveBase(result, "setMasterGoalState");
+      setManagerGoalState_result result = new setManagerGoalState_result();
+      receiveBase(result, "setManagerGoalState");
       if (result.sec != null) {
         throw result.sec;
       }
@@ -468,24 +468,24 @@ public class MasterClientService {
       return;
     }
 
-    public MasterMonitorInfo getMasterStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public ManagerMonitorInfo getManagerStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
-      send_getMasterStats(tinfo, credentials);
-      return recv_getMasterStats();
+      send_getManagerStats(tinfo, credentials);
+      return recv_getManagerStats();
     }
 
-    public void send_getMasterStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    public void send_getManagerStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
     {
-      getMasterStats_args args = new getMasterStats_args();
+      getManagerStats_args args = new getManagerStats_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
-      sendBase("getMasterStats", args);
+      sendBase("getManagerStats", args);
     }
 
-    public MasterMonitorInfo recv_getMasterStats() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public ManagerMonitorInfo recv_getManagerStats() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
-      getMasterStats_result result = new getMasterStats_result();
-      receiveBase(result, "getMasterStats");
+      getManagerStats_result result = new getManagerStats_result();
+      receiveBase(result, "getManagerStats");
       if (result.isSetSuccess()) {
         return result.success;
       }
@@ -495,7 +495,7 @@ public class MasterClientService {
       if (result.tnase != null) {
         throw result.tnase;
       }
-      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getMasterStats failed: unknown result");
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getManagerStats failed: unknown result");
     }
 
     public void waitForBalance(org.apache.accumulo.core.trace.thrift.TInfo tinfo) throws org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
@@ -918,18 +918,18 @@ public class MasterClientService {
       }
     }
 
-    public void setMasterGoalState(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, MasterGoalState state, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void setManagerGoalState(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ManagerGoalState state, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      setMasterGoalState_call method_call = new setMasterGoalState_call(tinfo, credentials, state, resultHandler, this, ___protocolFactory, ___transport);
+      setManagerGoalState_call method_call = new setManagerGoalState_call(tinfo, credentials, state, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class setMasterGoalState_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
+    public static class setManagerGoalState_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      private MasterGoalState state;
-      public setMasterGoalState_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, MasterGoalState state, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private ManagerGoalState state;
+      public setManagerGoalState_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ManagerGoalState state, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -937,8 +937,8 @@ public class MasterClientService {
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("setMasterGoalState", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        setMasterGoalState_args args = new setMasterGoalState_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("setManagerGoalState", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        setManagerGoalState_args args = new setManagerGoalState_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setState(state);
@@ -1114,38 +1114,38 @@ public class MasterClientService {
       }
     }
 
-    public void getMasterStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<MasterMonitorInfo> resultHandler) throws org.apache.thrift.TException {
+    public void getManagerStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<ManagerMonitorInfo> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getMasterStats_call method_call = new getMasterStats_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
+      getManagerStats_call method_call = new getManagerStats_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class getMasterStats_call extends org.apache.thrift.async.TAsyncMethodCall<MasterMonitorInfo> {
+    public static class getManagerStats_call extends org.apache.thrift.async.TAsyncMethodCall<ManagerMonitorInfo> {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      public getMasterStats_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<MasterMonitorInfo> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getManagerStats_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<ManagerMonitorInfo> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getMasterStats", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        getMasterStats_args args = new getMasterStats_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getManagerStats", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getManagerStats_args args = new getManagerStats_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.write(prot);
         prot.writeMessageEnd();
       }
 
-      public MasterMonitorInfo getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public ManagerMonitorInfo getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_getMasterStats();
+        return (new Client(prot)).recv_getManagerStats();
       }
     }
 
@@ -1399,12 +1399,12 @@ public class MasterClientService {
       processMap.put("removeTableProperty", new removeTableProperty());
       processMap.put("setNamespaceProperty", new setNamespaceProperty());
       processMap.put("removeNamespaceProperty", new removeNamespaceProperty());
-      processMap.put("setMasterGoalState", new setMasterGoalState());
+      processMap.put("setManagerGoalState", new setManagerGoalState());
       processMap.put("shutdown", new shutdown());
       processMap.put("shutdownTabletServer", new shutdownTabletServer());
       processMap.put("setSystemProperty", new setSystemProperty());
       processMap.put("removeSystemProperty", new removeSystemProperty());
-      processMap.put("getMasterStats", new getMasterStats());
+      processMap.put("getManagerStats", new getManagerStats());
       processMap.put("waitForBalance", new waitForBalance());
       processMap.put("reportSplitExtent", new reportSplitExtent());
       processMap.put("reportTabletStatus", new reportTabletStatus());
@@ -1613,13 +1613,13 @@ public class MasterClientService {
       }
     }
 
-    public static class setMasterGoalState<I extends Iface> extends org.apache.thrift.ProcessFunction<I, setMasterGoalState_args> {
-      public setMasterGoalState() {
-        super("setMasterGoalState");
+    public static class setManagerGoalState<I extends Iface> extends org.apache.thrift.ProcessFunction<I, setManagerGoalState_args> {
+      public setManagerGoalState() {
+        super("setManagerGoalState");
       }
 
-      public setMasterGoalState_args getEmptyArgsInstance() {
-        return new setMasterGoalState_args();
+      public setManagerGoalState_args getEmptyArgsInstance() {
+        return new setManagerGoalState_args();
       }
 
       protected boolean isOneway() {
@@ -1631,10 +1631,10 @@ public class MasterClientService {
         return false;
       }
 
-      public setMasterGoalState_result getResult(I iface, setMasterGoalState_args args) throws org.apache.thrift.TException {
-        setMasterGoalState_result result = new setMasterGoalState_result();
+      public setManagerGoalState_result getResult(I iface, setManagerGoalState_args args) throws org.apache.thrift.TException {
+        setManagerGoalState_result result = new setManagerGoalState_result();
         try {
-          iface.setMasterGoalState(args.tinfo, args.credentials, args.state);
+          iface.setManagerGoalState(args.tinfo, args.credentials, args.state);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
@@ -1768,13 +1768,13 @@ public class MasterClientService {
       }
     }
 
-    public static class getMasterStats<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getMasterStats_args> {
-      public getMasterStats() {
-        super("getMasterStats");
+    public static class getManagerStats<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getManagerStats_args> {
+      public getManagerStats() {
+        super("getManagerStats");
       }
 
-      public getMasterStats_args getEmptyArgsInstance() {
-        return new getMasterStats_args();
+      public getManagerStats_args getEmptyArgsInstance() {
+        return new getManagerStats_args();
       }
 
       protected boolean isOneway() {
@@ -1786,10 +1786,10 @@ public class MasterClientService {
         return false;
       }
 
-      public getMasterStats_result getResult(I iface, getMasterStats_args args) throws org.apache.thrift.TException {
-        getMasterStats_result result = new getMasterStats_result();
+      public getManagerStats_result getResult(I iface, getManagerStats_args args) throws org.apache.thrift.TException {
+        getManagerStats_result result = new getManagerStats_result();
         try {
-          result.success = iface.getMasterStats(args.tinfo, args.credentials);
+          result.success = iface.getManagerStats(args.tinfo, args.credentials);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
@@ -1987,12 +1987,12 @@ public class MasterClientService {
       processMap.put("removeTableProperty", new removeTableProperty());
       processMap.put("setNamespaceProperty", new setNamespaceProperty());
       processMap.put("removeNamespaceProperty", new removeNamespaceProperty());
-      processMap.put("setMasterGoalState", new setMasterGoalState());
+      processMap.put("setManagerGoalState", new setManagerGoalState());
       processMap.put("shutdown", new shutdown());
       processMap.put("shutdownTabletServer", new shutdownTabletServer());
       processMap.put("setSystemProperty", new setSystemProperty());
       processMap.put("removeSystemProperty", new removeSystemProperty());
-      processMap.put("getMasterStats", new getMasterStats());
+      processMap.put("getManagerStats", new getManagerStats());
       processMap.put("waitForBalance", new waitForBalance());
       processMap.put("reportSplitExtent", new reportSplitExtent());
       processMap.put("reportTabletStatus", new reportTabletStatus());
@@ -2436,20 +2436,20 @@ public class MasterClientService {
       }
     }
 
-    public static class setMasterGoalState<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, setMasterGoalState_args, Void> {
-      public setMasterGoalState() {
-        super("setMasterGoalState");
+    public static class setManagerGoalState<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, setManagerGoalState_args, Void> {
+      public setManagerGoalState() {
+        super("setManagerGoalState");
       }
 
-      public setMasterGoalState_args getEmptyArgsInstance() {
-        return new setMasterGoalState_args();
+      public setManagerGoalState_args getEmptyArgsInstance() {
+        return new setManagerGoalState_args();
       }
 
       public org.apache.thrift.async.AsyncMethodCallback<Void> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
         return new org.apache.thrift.async.AsyncMethodCallback<Void>() { 
           public void onComplete(Void o) {
-            setMasterGoalState_result result = new setMasterGoalState_result();
+            setManagerGoalState_result result = new setManagerGoalState_result();
             try {
               fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
             } catch (org.apache.thrift.transport.TTransportException e) {
@@ -2463,7 +2463,7 @@ public class MasterClientService {
           public void onError(java.lang.Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
-            setMasterGoalState_result result = new setMasterGoalState_result();
+            setManagerGoalState_result result = new setManagerGoalState_result();
             if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
@@ -2499,8 +2499,8 @@ public class MasterClientService {
         return false;
       }
 
-      public void start(I iface, setMasterGoalState_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.setMasterGoalState(args.tinfo, args.credentials, args.state,resultHandler);
+      public void start(I iface, setManagerGoalState_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+        iface.setManagerGoalState(args.tinfo, args.credentials, args.state,resultHandler);
       }
     }
 
@@ -2776,20 +2776,20 @@ public class MasterClientService {
       }
     }
 
-    public static class getMasterStats<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getMasterStats_args, MasterMonitorInfo> {
-      public getMasterStats() {
-        super("getMasterStats");
+    public static class getManagerStats<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getManagerStats_args,ManagerMonitorInfo> {
+      public getManagerStats() {
+        super("getManagerStats");
       }
 
-      public getMasterStats_args getEmptyArgsInstance() {
-        return new getMasterStats_args();
+      public getManagerStats_args getEmptyArgsInstance() {
+        return new getManagerStats_args();
       }
 
-      public org.apache.thrift.async.AsyncMethodCallback<MasterMonitorInfo> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+      public org.apache.thrift.async.AsyncMethodCallback<ManagerMonitorInfo> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<MasterMonitorInfo>() { 
-          public void onComplete(MasterMonitorInfo o) {
-            getMasterStats_result result = new getMasterStats_result();
+        return new org.apache.thrift.async.AsyncMethodCallback<ManagerMonitorInfo>() {
+          public void onComplete(ManagerMonitorInfo o) {
+            getManagerStats_result result = new getManagerStats_result();
             result.success = o;
             try {
               fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
@@ -2804,7 +2804,7 @@ public class MasterClientService {
           public void onError(java.lang.Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
-            getMasterStats_result result = new getMasterStats_result();
+            getManagerStats_result result = new getManagerStats_result();
             if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
@@ -2840,8 +2840,8 @@ public class MasterClientService {
         return false;
       }
 
-      public void start(I iface, getMasterStats_args args, org.apache.thrift.async.AsyncMethodCallback<MasterMonitorInfo> resultHandler) throws org.apache.thrift.TException {
-        iface.getMasterStats(args.tinfo, args.credentials,resultHandler);
+      public void start(I iface, getManagerStats_args args, org.apache.thrift.async.AsyncMethodCallback<ManagerMonitorInfo> resultHandler) throws org.apache.thrift.TException {
+        iface.getManagerStats(args.tinfo, args.credentials,resultHandler);
       }
     }
 
@@ -11367,23 +11367,23 @@ public class MasterClientService {
     }
   }
 
-  public static class setMasterGoalState_args implements org.apache.thrift.TBase<setMasterGoalState_args, setMasterGoalState_args._Fields>, java.io.Serializable, Cloneable, Comparable<setMasterGoalState_args>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setMasterGoalState_args");
+  public static class setManagerGoalState_args implements org.apache.thrift.TBase<setManagerGoalState_args, setManagerGoalState_args._Fields>, java.io.Serializable, Cloneable, Comparable<setManagerGoalState_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setManagerGoalState_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField STATE_FIELD_DESC = new org.apache.thrift.protocol.TField("state", org.apache.thrift.protocol.TType.I32, (short)2);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setMasterGoalState_argsStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setMasterGoalState_argsTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setManagerGoalState_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setManagerGoalState_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     /**
      * 
-     * @see MasterGoalState
+     * @see ManagerGoalState
      */
-    public @org.apache.thrift.annotation.Nullable MasterGoalState state; // required
+    public @org.apache.thrift.annotation.Nullable ManagerGoalState state; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -11391,7 +11391,7 @@ public class MasterClientService {
       CREDENTIALS((short)1, "credentials"),
       /**
        * 
-       * @see MasterGoalState
+       * @see ManagerGoalState
        */
       STATE((short)2, "state");
 
@@ -11464,18 +11464,18 @@ public class MasterClientService {
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.STATE, new org.apache.thrift.meta_data.FieldMetaData("state", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, MasterGoalState.class)));
+          new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, ManagerGoalState.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setMasterGoalState_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setManagerGoalState_args.class, metaDataMap);
     }
 
-    public setMasterGoalState_args() {
+    public setManagerGoalState_args() {
     }
 
-    public setMasterGoalState_args(
+    public setManagerGoalState_args(
       org.apache.accumulo.core.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      MasterGoalState state)
+      ManagerGoalState state)
     {
       this();
       this.tinfo = tinfo;
@@ -11486,7 +11486,7 @@ public class MasterClientService {
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public setMasterGoalState_args(setMasterGoalState_args other) {
+    public setManagerGoalState_args(setManagerGoalState_args other) {
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
       }
@@ -11498,8 +11498,8 @@ public class MasterClientService {
       }
     }
 
-    public setMasterGoalState_args deepCopy() {
-      return new setMasterGoalState_args(this);
+    public setManagerGoalState_args deepCopy() {
+      return new setManagerGoalState_args(this);
     }
 
     @Override
@@ -11514,7 +11514,7 @@ public class MasterClientService {
       return this.tinfo;
     }
 
-    public setMasterGoalState_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public setManagerGoalState_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -11539,7 +11539,7 @@ public class MasterClientService {
       return this.credentials;
     }
 
-    public setMasterGoalState_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+    public setManagerGoalState_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -11561,18 +11561,19 @@ public class MasterClientService {
 
     /**
      * 
-     * @see MasterGoalState
+     * @see ManagerGoalState
      */
     @org.apache.thrift.annotation.Nullable
-    public MasterGoalState getState() {
+    public ManagerGoalState getState() {
       return this.state;
     }
 
     /**
      * 
-     * @see MasterGoalState
+     * @see ManagerGoalState
      */
-    public setMasterGoalState_args setState(@org.apache.thrift.annotation.Nullable MasterGoalState state) {
+    public setManagerGoalState_args setState(@org.apache.thrift.annotation.Nullable
+        ManagerGoalState state) {
       this.state = state;
       return this;
     }
@@ -11614,7 +11615,7 @@ public class MasterClientService {
         if (value == null) {
           unsetState();
         } else {
-          setState((MasterGoalState)value);
+          setState((ManagerGoalState)value);
         }
         break;
 
@@ -11658,12 +11659,12 @@ public class MasterClientService {
     public boolean equals(java.lang.Object that) {
       if (that == null)
         return false;
-      if (that instanceof setMasterGoalState_args)
-        return this.equals((setMasterGoalState_args)that);
+      if (that instanceof setManagerGoalState_args)
+        return this.equals((setManagerGoalState_args)that);
       return false;
     }
 
-    public boolean equals(setMasterGoalState_args that) {
+    public boolean equals(setManagerGoalState_args that) {
       if (that == null)
         return false;
       if (this == that)
@@ -11719,7 +11720,7 @@ public class MasterClientService {
     }
 
     @Override
-    public int compareTo(setMasterGoalState_args other) {
+    public int compareTo(setManagerGoalState_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -11774,7 +11775,7 @@ public class MasterClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("setMasterGoalState_args(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("setManagerGoalState_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -11831,15 +11832,15 @@ public class MasterClientService {
       }
     }
 
-    private static class setMasterGoalState_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public setMasterGoalState_argsStandardScheme getScheme() {
-        return new setMasterGoalState_argsStandardScheme();
+    private static class setManagerGoalState_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public setManagerGoalState_argsStandardScheme getScheme() {
+        return new setManagerGoalState_argsStandardScheme();
       }
     }
 
-    private static class setMasterGoalState_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<setMasterGoalState_args> {
+    private static class setManagerGoalState_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<setManagerGoalState_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, setMasterGoalState_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, setManagerGoalState_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -11869,7 +11870,7 @@ public class MasterClientService {
               break;
             case 2: // STATE
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-                struct.state = org.apache.accumulo.core.master.thrift.MasterGoalState.findByValue(iprot.readI32());
+                struct.state = ManagerGoalState.findByValue(iprot.readI32());
                 struct.setStateIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -11886,7 +11887,7 @@ public class MasterClientService {
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, setMasterGoalState_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, setManagerGoalState_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -11911,16 +11912,16 @@ public class MasterClientService {
 
     }
 
-    private static class setMasterGoalState_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public setMasterGoalState_argsTupleScheme getScheme() {
-        return new setMasterGoalState_argsTupleScheme();
+    private static class setManagerGoalState_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public setManagerGoalState_argsTupleScheme getScheme() {
+        return new setManagerGoalState_argsTupleScheme();
       }
     }
 
-    private static class setMasterGoalState_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<setMasterGoalState_args> {
+    private static class setManagerGoalState_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<setManagerGoalState_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, setMasterGoalState_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, setManagerGoalState_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.isSetTinfo()) {
@@ -11945,7 +11946,7 @@ public class MasterClientService {
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, setMasterGoalState_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, setManagerGoalState_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
@@ -11959,7 +11960,7 @@ public class MasterClientService {
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.state = org.apache.accumulo.core.master.thrift.MasterGoalState.findByValue(iprot.readI32());
+          struct.state = ManagerGoalState.findByValue(iprot.readI32());
           struct.setStateIsSet(true);
         }
       }
@@ -11970,14 +11971,14 @@ public class MasterClientService {
     }
   }
 
-  public static class setMasterGoalState_result implements org.apache.thrift.TBase<setMasterGoalState_result, setMasterGoalState_result._Fields>, java.io.Serializable, Cloneable, Comparable<setMasterGoalState_result>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setMasterGoalState_result");
+  public static class setManagerGoalState_result implements org.apache.thrift.TBase<setManagerGoalState_result, setManagerGoalState_result._Fields>, java.io.Serializable, Cloneable, Comparable<setManagerGoalState_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setManagerGoalState_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setMasterGoalState_resultStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setMasterGoalState_resultTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setManagerGoalState_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setManagerGoalState_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
@@ -12054,13 +12055,13 @@ public class MasterClientService {
       tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setMasterGoalState_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setManagerGoalState_result.class, metaDataMap);
     }
 
-    public setMasterGoalState_result() {
+    public setManagerGoalState_result() {
     }
 
-    public setMasterGoalState_result(
+    public setManagerGoalState_result(
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
       org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
     {
@@ -12072,7 +12073,7 @@ public class MasterClientService {
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public setMasterGoalState_result(setMasterGoalState_result other) {
+    public setManagerGoalState_result(setManagerGoalState_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
       }
@@ -12081,8 +12082,8 @@ public class MasterClientService {
       }
     }
 
-    public setMasterGoalState_result deepCopy() {
-      return new setMasterGoalState_result(this);
+    public setManagerGoalState_result deepCopy() {
+      return new setManagerGoalState_result(this);
     }
 
     @Override
@@ -12096,7 +12097,7 @@ public class MasterClientService {
       return this.sec;
     }
 
-    public setMasterGoalState_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+    public setManagerGoalState_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -12121,7 +12122,7 @@ public class MasterClientService {
       return this.tnase;
     }
 
-    public setMasterGoalState_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
+    public setManagerGoalState_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
       this.tnase = tnase;
       return this;
     }
@@ -12194,12 +12195,12 @@ public class MasterClientService {
     public boolean equals(java.lang.Object that) {
       if (that == null)
         return false;
-      if (that instanceof setMasterGoalState_result)
-        return this.equals((setMasterGoalState_result)that);
+      if (that instanceof setManagerGoalState_result)
+        return this.equals((setManagerGoalState_result)that);
       return false;
     }
 
-    public boolean equals(setMasterGoalState_result that) {
+    public boolean equals(setManagerGoalState_result that) {
       if (that == null)
         return false;
       if (this == that)
@@ -12242,7 +12243,7 @@ public class MasterClientService {
     }
 
     @Override
-    public int compareTo(setMasterGoalState_result other) {
+    public int compareTo(setManagerGoalState_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -12287,7 +12288,7 @@ public class MasterClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("setMasterGoalState_result(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("setManagerGoalState_result(");
       boolean first = true;
 
       sb.append("sec:");
@@ -12330,15 +12331,15 @@ public class MasterClientService {
       }
     }
 
-    private static class setMasterGoalState_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public setMasterGoalState_resultStandardScheme getScheme() {
-        return new setMasterGoalState_resultStandardScheme();
+    private static class setManagerGoalState_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public setManagerGoalState_resultStandardScheme getScheme() {
+        return new setManagerGoalState_resultStandardScheme();
       }
     }
 
-    private static class setMasterGoalState_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<setMasterGoalState_result> {
+    private static class setManagerGoalState_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<setManagerGoalState_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, setMasterGoalState_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, setManagerGoalState_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -12377,7 +12378,7 @@ public class MasterClientService {
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, setMasterGoalState_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, setManagerGoalState_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -12397,16 +12398,16 @@ public class MasterClientService {
 
     }
 
-    private static class setMasterGoalState_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public setMasterGoalState_resultTupleScheme getScheme() {
-        return new setMasterGoalState_resultTupleScheme();
+    private static class setManagerGoalState_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public setManagerGoalState_resultTupleScheme getScheme() {
+        return new setManagerGoalState_resultTupleScheme();
       }
     }
 
-    private static class setMasterGoalState_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<setMasterGoalState_result> {
+    private static class setManagerGoalState_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<setManagerGoalState_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, setMasterGoalState_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, setManagerGoalState_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.isSetSec()) {
@@ -12425,7 +12426,7 @@ public class MasterClientService {
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, setMasterGoalState_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, setManagerGoalState_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -16898,14 +16899,14 @@ public class MasterClientService {
     }
   }
 
-  public static class getMasterStats_args implements org.apache.thrift.TBase<getMasterStats_args, getMasterStats_args._Fields>, java.io.Serializable, Cloneable, Comparable<getMasterStats_args>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getMasterStats_args");
+  public static class getManagerStats_args implements org.apache.thrift.TBase<getManagerStats_args, getManagerStats_args._Fields>, java.io.Serializable, Cloneable, Comparable<getManagerStats_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getManagerStats_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getMasterStats_argsStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getMasterStats_argsTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getManagerStats_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getManagerStats_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
@@ -16982,13 +16983,13 @@ public class MasterClientService {
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getMasterStats_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getManagerStats_args.class, metaDataMap);
     }
 
-    public getMasterStats_args() {
+    public getManagerStats_args() {
     }
 
-    public getMasterStats_args(
+    public getManagerStats_args(
       org.apache.accumulo.core.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials)
     {
@@ -17000,7 +17001,7 @@ public class MasterClientService {
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public getMasterStats_args(getMasterStats_args other) {
+    public getManagerStats_args(getManagerStats_args other) {
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
       }
@@ -17009,8 +17010,8 @@ public class MasterClientService {
       }
     }
 
-    public getMasterStats_args deepCopy() {
-      return new getMasterStats_args(this);
+    public getManagerStats_args deepCopy() {
+      return new getManagerStats_args(this);
     }
 
     @Override
@@ -17024,7 +17025,7 @@ public class MasterClientService {
       return this.tinfo;
     }
 
-    public getMasterStats_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public getManagerStats_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -17049,7 +17050,7 @@ public class MasterClientService {
       return this.credentials;
     }
 
-    public getMasterStats_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+    public getManagerStats_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -17122,12 +17123,12 @@ public class MasterClientService {
     public boolean equals(java.lang.Object that) {
       if (that == null)
         return false;
-      if (that instanceof getMasterStats_args)
-        return this.equals((getMasterStats_args)that);
+      if (that instanceof getManagerStats_args)
+        return this.equals((getManagerStats_args)that);
       return false;
     }
 
-    public boolean equals(getMasterStats_args that) {
+    public boolean equals(getManagerStats_args that) {
       if (that == null)
         return false;
       if (this == that)
@@ -17170,7 +17171,7 @@ public class MasterClientService {
     }
 
     @Override
-    public int compareTo(getMasterStats_args other) {
+    public int compareTo(getManagerStats_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -17215,7 +17216,7 @@ public class MasterClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("getMasterStats_args(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getManagerStats_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -17264,15 +17265,15 @@ public class MasterClientService {
       }
     }
 
-    private static class getMasterStats_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getMasterStats_argsStandardScheme getScheme() {
-        return new getMasterStats_argsStandardScheme();
+    private static class getManagerStats_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getManagerStats_argsStandardScheme getScheme() {
+        return new getManagerStats_argsStandardScheme();
       }
     }
 
-    private static class getMasterStats_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getMasterStats_args> {
+    private static class getManagerStats_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getManagerStats_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getMasterStats_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getManagerStats_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -17311,7 +17312,7 @@ public class MasterClientService {
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getMasterStats_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getManagerStats_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -17331,16 +17332,16 @@ public class MasterClientService {
 
     }
 
-    private static class getMasterStats_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getMasterStats_argsTupleScheme getScheme() {
-        return new getMasterStats_argsTupleScheme();
+    private static class getManagerStats_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getManagerStats_argsTupleScheme getScheme() {
+        return new getManagerStats_argsTupleScheme();
       }
     }
 
-    private static class getMasterStats_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getMasterStats_args> {
+    private static class getManagerStats_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getManagerStats_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getMasterStats_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, getManagerStats_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.isSetTinfo()) {
@@ -17359,7 +17360,7 @@ public class MasterClientService {
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getMasterStats_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, getManagerStats_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -17380,17 +17381,17 @@ public class MasterClientService {
     }
   }
 
-  public static class getMasterStats_result implements org.apache.thrift.TBase<getMasterStats_result, getMasterStats_result._Fields>, java.io.Serializable, Cloneable, Comparable<getMasterStats_result>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getMasterStats_result");
+  public static class getManagerStats_result implements org.apache.thrift.TBase<getManagerStats_result, getManagerStats_result._Fields>, java.io.Serializable, Cloneable, Comparable<getManagerStats_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getManagerStats_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getMasterStats_resultStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getMasterStats_resultTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getManagerStats_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getManagerStats_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable MasterMonitorInfo success; // required
+    public @org.apache.thrift.annotation.Nullable ManagerMonitorInfo success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
@@ -17465,20 +17466,20 @@ public class MasterClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, MasterMonitorInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ManagerMonitorInfo.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getMasterStats_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getManagerStats_result.class, metaDataMap);
     }
 
-    public getMasterStats_result() {
+    public getManagerStats_result() {
     }
 
-    public getMasterStats_result(
-      MasterMonitorInfo success,
+    public getManagerStats_result(
+      ManagerMonitorInfo success,
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
       org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
     {
@@ -17491,9 +17492,9 @@ public class MasterClientService {
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public getMasterStats_result(getMasterStats_result other) {
+    public getManagerStats_result(getManagerStats_result other) {
       if (other.isSetSuccess()) {
-        this.success = new MasterMonitorInfo(other.success);
+        this.success = new ManagerMonitorInfo(other.success);
       }
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
@@ -17503,8 +17504,8 @@ public class MasterClientService {
       }
     }
 
-    public getMasterStats_result deepCopy() {
-      return new getMasterStats_result(this);
+    public getManagerStats_result deepCopy() {
+      return new getManagerStats_result(this);
     }
 
     @Override
@@ -17515,11 +17516,12 @@ public class MasterClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public MasterMonitorInfo getSuccess() {
+    public ManagerMonitorInfo getSuccess() {
       return this.success;
     }
 
-    public getMasterStats_result setSuccess(@org.apache.thrift.annotation.Nullable MasterMonitorInfo success) {
+    public getManagerStats_result setSuccess(@org.apache.thrift.annotation.Nullable
+        ManagerMonitorInfo success) {
       this.success = success;
       return this;
     }
@@ -17544,7 +17546,7 @@ public class MasterClientService {
       return this.sec;
     }
 
-    public getMasterStats_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+    public getManagerStats_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -17569,7 +17571,7 @@ public class MasterClientService {
       return this.tnase;
     }
 
-    public getMasterStats_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
+    public getManagerStats_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
       this.tnase = tnase;
       return this;
     }
@@ -17595,7 +17597,7 @@ public class MasterClientService {
         if (value == null) {
           unsetSuccess();
         } else {
-          setSuccess((MasterMonitorInfo)value);
+          setSuccess((ManagerMonitorInfo)value);
         }
         break;
 
@@ -17655,12 +17657,12 @@ public class MasterClientService {
     public boolean equals(java.lang.Object that) {
       if (that == null)
         return false;
-      if (that instanceof getMasterStats_result)
-        return this.equals((getMasterStats_result)that);
+      if (that instanceof getManagerStats_result)
+        return this.equals((getManagerStats_result)that);
       return false;
     }
 
-    public boolean equals(getMasterStats_result that) {
+    public boolean equals(getManagerStats_result that) {
       if (that == null)
         return false;
       if (this == that)
@@ -17716,7 +17718,7 @@ public class MasterClientService {
     }
 
     @Override
-    public int compareTo(getMasterStats_result other) {
+    public int compareTo(getManagerStats_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -17771,7 +17773,7 @@ public class MasterClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("getMasterStats_result(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getManagerStats_result(");
       boolean first = true;
 
       sb.append("success:");
@@ -17825,15 +17827,15 @@ public class MasterClientService {
       }
     }
 
-    private static class getMasterStats_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getMasterStats_resultStandardScheme getScheme() {
-        return new getMasterStats_resultStandardScheme();
+    private static class getManagerStats_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getManagerStats_resultStandardScheme getScheme() {
+        return new getManagerStats_resultStandardScheme();
       }
     }
 
-    private static class getMasterStats_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getMasterStats_result> {
+    private static class getManagerStats_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getManagerStats_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getMasterStats_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getManagerStats_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -17845,7 +17847,7 @@ public class MasterClientService {
           switch (schemeField.id) {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.success = new MasterMonitorInfo();
+                struct.success = new ManagerMonitorInfo();
                 struct.success.read(iprot);
                 struct.setSuccessIsSet(true);
               } else { 
@@ -17881,7 +17883,7 @@ public class MasterClientService {
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getMasterStats_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getManagerStats_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -17906,16 +17908,16 @@ public class MasterClientService {
 
     }
 
-    private static class getMasterStats_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getMasterStats_resultTupleScheme getScheme() {
-        return new getMasterStats_resultTupleScheme();
+    private static class getManagerStats_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getManagerStats_resultTupleScheme getScheme() {
+        return new getManagerStats_resultTupleScheme();
       }
     }
 
-    private static class getMasterStats_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getMasterStats_result> {
+    private static class getManagerStats_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getManagerStats_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getMasterStats_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, getManagerStats_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.isSetSuccess()) {
@@ -17940,11 +17942,11 @@ public class MasterClientService {
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getMasterStats_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, getManagerStats_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.success = new MasterMonitorInfo();
+          struct.success = new ManagerMonitorInfo();
           struct.success.read(iprot);
           struct.setSuccessIsSet(true);
         }

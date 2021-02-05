@@ -52,7 +52,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.MasterState;
+import org.apache.accumulo.core.master.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -312,8 +312,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     }
 
     @Override
-    public MasterState getMasterState() {
-      return MasterState.NORMAL;
+    public ManagerState getMasterState() {
+      return ManagerState.NORMAL;
     }
   }
 

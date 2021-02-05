@@ -23,10 +23,10 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.slf4j.LoggerFactory;
 
-public class ChangeTableState extends MasterRepo {
+public class ChangeTableState extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
   private TableId tableId;
@@ -43,7 +43,7 @@ public class ChangeTableState extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master env) throws Exception {
+  public long isReady(long tid, Manager env) throws Exception {
     // reserve the table so that this op does not run concurrently with create, clone, or delete
     // table
     return Utils.reserveNamespace(env, namespaceId, tid, false, true, top)
@@ -51,7 +51,7 @@ public class ChangeTableState extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) {
+  public Repo<Manager> call(long tid, Manager env) {
     TableState ts = TableState.ONLINE;
     if (top == TableOperation.OFFLINE)
       ts = TableState.OFFLINE;
@@ -65,7 +65,7 @@ public class ChangeTableState extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) {
+  public void undo(long tid, Manager env) {
     Utils.unreserveNamespace(env, namespaceId, tid, false);
     Utils.unreserveTable(env, tableId, tid, true);
   }

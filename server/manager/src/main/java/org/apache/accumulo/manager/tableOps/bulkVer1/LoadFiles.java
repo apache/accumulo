@@ -51,8 +51,8 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -60,7 +60,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class LoadFiles extends MasterRepo {
+class LoadFiles extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -82,13 +82,13 @@ class LoadFiles extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) {
+  public long isReady(long tid, Manager master) {
     if (master.onlineTabletServers().isEmpty())
       return 500;
     return 0;
   }
 
-  private static synchronized ExecutorService getThreadPool(Master master) {
+  private static synchronized ExecutorService getThreadPool(Manager master) {
     if (threadPool == null) {
       threadPool = ThreadPools.createExecutorService(master.getConfiguration(),
           Property.MANAGER_BULK_THREADPOOL_SIZE);
@@ -97,7 +97,7 @@ class LoadFiles extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(final long tid, final Master master) throws Exception {
+  public Repo<Manager> call(final long tid, final Manager master) throws Exception {
     master.updateBulkImportStatus(source, BulkImportState.LOADING);
     ExecutorService executor = getThreadPool(master);
     final AccumuloConfiguration conf = master.getConfiguration();

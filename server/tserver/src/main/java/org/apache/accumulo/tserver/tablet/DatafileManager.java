@@ -46,7 +46,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
-import org.apache.accumulo.server.util.MasterMetadataUtil;
+import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.fs.Path;
@@ -450,7 +450,7 @@ class DatafileManager {
     Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
     if (!filesInUseByScans.isEmpty())
       log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
-    MasterMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
+    ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
         filesInUseByScans, newFile, compactionId, dfv,
         tablet.getTabletServer().getClientAddressString(), lastLocation,
         tablet.getTabletServer().getLock());

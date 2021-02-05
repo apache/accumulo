@@ -23,7 +23,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 import org.apache.htrace.impl.ProbabilitySampler;
@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class ReplicationDriver implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationDriver.class);
 
-  private final Master master;
+  private final Manager master;
   private final AccumuloConfiguration conf;
 
   private WorkMaker workMaker;
@@ -45,7 +45,7 @@ public class ReplicationDriver implements Runnable {
   private RemoveCompleteReplicationRecords rcrr;
   private AccumuloClient client;
 
-  public ReplicationDriver(Master master) {
+  public ReplicationDriver(Manager master) {
     this.master = master;
     this.conf = master.getConfiguration();
   }

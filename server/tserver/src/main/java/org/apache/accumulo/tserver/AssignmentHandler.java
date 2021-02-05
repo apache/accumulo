@@ -35,7 +35,7 @@ import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.util.MasterMetadataUtil;
+import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
@@ -107,7 +107,7 @@ class AssignmentHandler implements Runnable {
 
       if (canLoad && tabletMetadata.sawOldPrevEndRow()) {
         KeyExtent fixedExtent =
-            MasterMetadataUtil.fixSplit(server.getContext(), tabletMetadata, server.getLock());
+            ManagerMetadataUtil.fixSplit(server.getContext(), tabletMetadata, server.getLock());
 
         synchronized (server.openingTablets) {
           server.openingTablets.remove(extent);

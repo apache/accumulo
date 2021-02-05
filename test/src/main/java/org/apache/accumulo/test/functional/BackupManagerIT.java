@@ -27,10 +27,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.junit.Test;
 
-public class BackupMasterIT extends ConfigurableMacBase {
+public class BackupManagerIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -42,7 +42,7 @@ public class BackupMasterIT extends ConfigurableMacBase {
     // wait for master
     UtilWaitThread.sleep(1000);
     // create a backup
-    Process backup = exec(Master.class);
+    Process backup = exec(Manager.class);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
       ZooReaderWriter writer = new ZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);

@@ -28,18 +28,18 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
-public class MasterReplicationCoordinatorTest {
+public class ManagerReplicationCoordinatorTest {
 
   static AccumuloConfiguration config = DefaultConfiguration.getInstance();
 
   @Test
   public void randomServer() {
-    Master master = EasyMock.createMock(Master.class);
+    Manager master = EasyMock.createMock(Manager.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(context.getConfiguration()).andReturn(config).anyTimes();
@@ -47,7 +47,7 @@ public class MasterReplicationCoordinatorTest {
     EasyMock.expect(master.getInstanceID()).andReturn("1234");
     EasyMock.replay(master, reader);
 
-    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, reader);
+    ManagerReplicationCoordinator coordinator = new ManagerReplicationCoordinator(master, reader);
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
 
     assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 0));
@@ -55,7 +55,7 @@ public class MasterReplicationCoordinatorTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void invalidOffset() {
-    Master master = EasyMock.createMock(Master.class);
+    Manager master = EasyMock.createMock(Manager.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(context.getConfiguration()).andReturn(config).anyTimes();
     ZooReader reader = EasyMock.createMock(ZooReader.class);
@@ -63,7 +63,7 @@ public class MasterReplicationCoordinatorTest {
     EasyMock.expect(master.getInstanceID()).andReturn("1234");
     EasyMock.replay(master, reader);
 
-    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, reader);
+    ManagerReplicationCoordinator coordinator = new ManagerReplicationCoordinator(master, reader);
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
 
     assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 1));
@@ -71,7 +71,7 @@ public class MasterReplicationCoordinatorTest {
 
   @Test
   public void randomServerFromMany() {
-    Master master = EasyMock.createMock(Master.class);
+    Manager master = EasyMock.createMock(Manager.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(context.getConfiguration()).andReturn(config).anyTimes();
@@ -81,7 +81,7 @@ public class MasterReplicationCoordinatorTest {
     EasyMock.expect(master.getContext()).andReturn(context).anyTimes();
     EasyMock.replay(master, context, reader);
 
-    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, reader);
+    ManagerReplicationCoordinator coordinator = new ManagerReplicationCoordinator(master, reader);
 
     EasyMock.verify(master, reader);
 

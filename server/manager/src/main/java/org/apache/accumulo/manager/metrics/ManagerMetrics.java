@@ -16,27 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.tableOps.bulkVer2;
+package org.apache.accumulo.manager.metrics;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
+import org.apache.accumulo.server.metrics.Metrics;
 
-public class CompleteBulkImport extends ManagerRepo {
+public abstract class ManagerMetrics extends Metrics {
 
-  private static final long serialVersionUID = 1L;
-
-  private BulkInfo info;
-
-  public CompleteBulkImport(BulkInfo info) {
-    this.info = info;
+  protected ManagerMetrics(String subName, String description, String record) {
+    super("Master,sub=" + subName, description, "master", record);
   }
 
-  @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
-    ZooArbitrator.stop(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
-    return new CleanUpBulkImport(info);
-  }
 }

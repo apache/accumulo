@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.thrift.TServiceClient;
@@ -40,20 +40,20 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MasterClient {
-  private static final Logger log = LoggerFactory.getLogger(MasterClient.class);
+public class ManagerClient {
+  private static final Logger log = LoggerFactory.getLogger(ManagerClient.class);
 
-  public static MasterClientService.Client getConnectionWithRetry(ClientContext context) {
+  public static ManagerClientService.Client getConnectionWithRetry(ClientContext context) {
     while (true) {
 
-      MasterClientService.Client result = getConnection(context);
+      ManagerClientService.Client result = getConnection(context);
       if (result != null)
         return result;
       sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
     }
   }
 
-  public static MasterClientService.Client getConnection(ClientContext context) {
+  public static ManagerClientService.Client getConnection(ClientContext context) {
     checkArgument(context != null, "context is null");
 
     List<String> locations = context.getMasterLocations();
@@ -69,7 +69,7 @@ public class MasterClient {
 
     try {
       // Master requests can take a long time: don't ever time out
-      return ThriftUtil.getClientNoTimeout(new MasterClientService.Client.Factory(), master,
+      return ThriftUtil.getClientNoTimeout(new ManagerClientService.Client.Factory(), master,
           context);
     } catch (TTransportException tte) {
       Throwable cause = tte.getCause();
@@ -82,7 +82,7 @@ public class MasterClient {
     }
   }
 
-  public static void close(MasterClientService.Iface iface) {
+  public static void close(ManagerClientService.Iface iface) {
     TServiceClient client = (TServiceClient) iface;
     if (client != null && client.getInputProtocol() != null
         && client.getInputProtocol().getTransport() != null) {
@@ -93,15 +93,15 @@ public class MasterClient {
   }
 
   public static <T> T execute(ClientContext context,
-      ClientExecReturn<T,MasterClientService.Client> exec)
+      ClientExecReturn<T,ManagerClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    MasterClientService.Client client = null;
+    ManagerClientService.Client client = null;
     while (true) {
       try {
         client = getConnectionWithRetry(context);
         return exec.execute(client);
       } catch (TTransportException tte) {
-        log.debug("MasterClient request failed, retrying ... ", tte);
+        log.debug("ManagerClient request failed, retrying ... ", tte);
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
@@ -130,16 +130,16 @@ public class MasterClient {
   }
 
   public static void executeGeneric(ClientContext context,
-      ClientExec<MasterClientService.Client> exec)
+      ClientExec<ManagerClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    MasterClientService.Client client = null;
+    ManagerClientService.Client client = null;
     while (true) {
       try {
         client = getConnectionWithRetry(context);
         exec.execute(client);
         break;
       } catch (TTransportException tte) {
-        log.debug("MasterClient request failed, retrying ... ", tte);
+        log.debug("ManagerClient request failed, retrying ... ", tte);
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
@@ -168,13 +168,13 @@ public class MasterClient {
   }
 
   public static void executeTable(ClientContext context,
-      ClientExec<MasterClientService.Client> exec)
+      ClientExec<ManagerClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     executeGeneric(context, exec);
   }
 
   public static void executeNamespace(ClientContext context,
-      ClientExec<MasterClientService.Client> exec)
+      ClientExec<ManagerClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     try {
       executeGeneric(context, exec);
@@ -184,7 +184,8 @@ public class MasterClient {
     }
   }
 
-  public static void executeVoid(ClientContext context, ClientExec<MasterClientService.Client> exec)
+  public static void executeVoid(ClientContext context,
+      ClientExec<ManagerClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
       executeGeneric(context, exec);

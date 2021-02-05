@@ -32,7 +32,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.master.thrift.DeadServer;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
@@ -53,7 +53,7 @@ import org.apache.accumulo.server.manager.state.TabletServerState;
  */
 @Path("/master")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class MasterResource {
+public class ManagerResource {
   public static final String NO_MASTERS = "No Masters running";
 
   @Inject
@@ -65,13 +65,13 @@ public class MasterResource {
    * @return master JSON object
    */
   @GET
-  public MasterInformation getTables() {
+  public ManagerInformation getTables() {
     return getTables(monitor);
   }
 
-  public static MasterInformation getTables(Monitor monitor) {
-    MasterInformation masterInformation;
-    MasterMonitorInfo mmi = monitor.getMmi();
+  public static ManagerInformation getTables(Monitor monitor) {
+    ManagerInformation managerInformation;
+    ManagerMonitorInfo mmi = monitor.getMmi();
 
     if (mmi != null) {
       GCStatus gcStatusObj = monitor.getGcStatus();
@@ -119,15 +119,15 @@ public class MasterResource {
       long lookups = monitor.getTotalLookups();
       long uptime = System.currentTimeMillis() - monitor.getStartTime();
 
-      masterInformation = new MasterInformation(master, onlineTabletServers, totalTabletServers,
+      managerInformation = new ManagerInformation(master, onlineTabletServers, totalTabletServers,
           gcStatus, tablets, unassignedTablets, entries, ingest, entriesRead, entriesReturned,
           holdTime, osLoad, tables, deadTabletServers, lookups, uptime, label,
           getGoalState(monitor), getState(monitor), getNumBadTservers(monitor),
           getServersShuttingDown(monitor), getDeadTservers(monitor), getDeadLoggers(monitor));
     } else {
-      masterInformation = new MasterInformation();
+      managerInformation = new ManagerInformation();
     }
-    return masterInformation;
+    return managerInformation;
   }
 
   /**
@@ -136,7 +136,7 @@ public class MasterResource {
    * @return master state
    */
   public static String getState(Monitor monitor) {
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return NO_MASTERS;
     }
@@ -149,7 +149,7 @@ public class MasterResource {
    * @return master goal state
    */
   public static String getGoalState(Monitor monitor) {
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return NO_MASTERS;
     }
@@ -162,7 +162,7 @@ public class MasterResource {
    * @return dead server list
    */
   public static DeadServerList getDeadTservers(Monitor monitor) {
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return new DeadServerList();
     }
@@ -182,7 +182,7 @@ public class MasterResource {
    * @return dead logger list
    */
   public static DeadLoggerList getDeadLoggers(Monitor monitor) {
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return new DeadLoggerList();
     }
@@ -202,7 +202,7 @@ public class MasterResource {
    * @return bad tserver list
    */
   public static BadTabletServers getNumBadTservers(Monitor monitor) {
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return new BadTabletServers();
     }
@@ -234,7 +234,7 @@ public class MasterResource {
    * @return servers shutting down list
    */
   public static ServersShuttingDown getServersShuttingDown(Monitor monitor) {
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     ServersShuttingDown servers = new ServersShuttingDown();
     if (mmi == null)
       return servers;

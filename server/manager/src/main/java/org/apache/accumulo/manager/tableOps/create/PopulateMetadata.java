@@ -37,8 +37,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
@@ -48,7 +48,7 @@ import org.apache.hadoop.io.Text;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
-class PopulateMetadata extends MasterRepo {
+class PopulateMetadata extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -59,12 +59,12 @@ class PopulateMetadata extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) {
+  public long isReady(long tid, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Manager> call(long tid, Manager env) throws Exception {
     KeyExtent extent = new KeyExtent(tableInfo.getTableId(), null, null);
     MetadataTableUtil.addTablet(extent, ServerColumnFamily.DEFAULT_TABLET_DIR_NAME,
         env.getContext(), tableInfo.getTimeType(), env.getMasterLock());
@@ -100,7 +100,7 @@ class PopulateMetadata extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
+  public void undo(long tid, Manager environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.getTableId(), false, environment.getContext(),
         environment.getMasterLock());
   }

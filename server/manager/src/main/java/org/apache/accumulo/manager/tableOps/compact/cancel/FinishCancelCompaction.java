@@ -21,11 +21,11 @@ package org.apache.accumulo.manager.tableOps.compact.cancel;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-class FinishCancelCompaction extends MasterRepo {
+class FinishCancelCompaction extends ManagerRepo {
   private static final long serialVersionUID = 1L;
   private TableId tableId;
   private NamespaceId namespaceId;
@@ -36,14 +36,14 @@ class FinishCancelCompaction extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) {
+  public Repo<Manager> call(long tid, Manager environment) {
     Utils.unreserveTable(environment, tableId, tid, false);
     Utils.unreserveNamespace(environment, namespaceId, tid, false);
     return null;
   }
 
   @Override
-  public void undo(long tid, Master environment) {
+  public void undo(long tid, Manager environment) {
 
   }
 }

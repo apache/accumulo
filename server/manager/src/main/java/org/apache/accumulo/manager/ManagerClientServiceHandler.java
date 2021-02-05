@@ -57,10 +57,10 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
-import org.apache.accumulo.core.master.thrift.MasterState;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.master.thrift.ManagerGoalState;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerState;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -100,14 +100,14 @@ import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
-public class MasterClientServiceHandler extends FateServiceHandler
-    implements MasterClientService.Iface {
+public class ManagerClientServiceHandler extends FateServiceHandler
+    implements ManagerClientService.Iface {
 
-  private static final Logger log = Master.log;
+  private static final Logger log = Manager.log;
   private static final Logger drainLog =
       LoggerFactory.getLogger("org.apache.accumulo.master.MasterDrainImpl");
 
-  protected MasterClientServiceHandler(Master master) {
+  protected ManagerClientServiceHandler(Manager master) {
     super(master);
   }
 
@@ -133,7 +133,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
           TableOperationExceptionType.NOTFOUND, null);
     } catch (Exception e) {
-      Master.log.warn("{}", e.getMessage(), e);
+      Manager.log.warn("{}", e.getMessage(), e);
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
           TableOperationExceptionType.OTHER, null);
     }
@@ -167,7 +167,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
             server.flush(master.masterLock, tableId, ByteBufferUtil.toBytes(startRowBB),
                 ByteBufferUtil.toBytes(endRowBB));
         } catch (TException ex) {
-          Master.log.error(ex.toString());
+          Manager.log.error(ex.toString());
         }
       }
 
@@ -210,7 +210,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
               TableOperationExceptionType.NOTFOUND, null);
 
       } catch (TabletDeletedException e) {
-        Master.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME,
+        Manager.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME,
             tableId, e);
       }
     }
@@ -230,7 +230,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
   }
 
   @Override
-  public MasterMonitorInfo getMasterStats(TInfo info, TCredentials credentials) {
+  public ManagerMonitorInfo getManagerStats(TInfo info, TCredentials credentials) {
     return master.getMasterMonitorInfo();
   }
 
@@ -252,13 +252,13 @@ public class MasterClientServiceHandler extends FateServiceHandler
     if (!master.security.canPerformSystemActions(c))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     if (stopTabletServers) {
-      master.setMasterGoalState(MasterGoalState.CLEAN_STOP);
+      master.setMasterGoalState(ManagerGoalState.CLEAN_STOP);
       EventCoordinator.Listener eventListener = master.nextEvent.getListener();
       do {
-        eventListener.waitForEvents(Master.ONE_SECOND);
+        eventListener.waitForEvents(Manager.ONE_SECOND);
       } while (master.tserverSet.size() > 0);
     }
-    master.setMasterState(MasterState.STOP);
+    master.setMasterState(ManagerState.STOP);
   }
 
   @Override
@@ -271,7 +271,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     if (!force) {
       final TServerConnection server = master.tserverSet.getConnection(doomed);
       if (server == null) {
-        Master.log.warn("No server found for name {}", tabletServer);
+        Manager.log.warn("No server found for name {}", tabletServer);
         return;
       }
     }
@@ -292,7 +292,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       TabletSplit split) {
     KeyExtent oldTablet = KeyExtent.fromThrift(split.oldTablet);
     if (master.migrations.remove(oldTablet) != null) {
-      Master.log.info("Canceled migration of {}", split.oldTablet);
+      Manager.log.info("Canceled migration of {}", split.oldTablet);
     }
     for (TServerInstance instance : master.tserverSet.getCurrentServers()) {
       if (serverName.equals(instance.getHostPort())) {
@@ -302,7 +302,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
         return;
       }
     }
-    Master.log.warn("Got a split from a server we don't recognize: {}", serverName);
+    Manager.log.warn("Got a split from a server we don't recognize: {}", serverName);
   }
 
   @Override
@@ -312,7 +312,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
     switch (status) {
       case LOAD_FAILURE:
-        Master.log.error("{} reports assignment failed for tablet {}", serverName, tablet);
+        Manager.log.error("{} reports assignment failed for tablet {}", serverName, tablet);
         break;
       case LOADED:
         master.nextEvent.event("tablet %s was loaded on %s", tablet, serverName);
@@ -321,11 +321,11 @@ public class MasterClientServiceHandler extends FateServiceHandler
         master.nextEvent.event("tablet %s was unloaded from %s", tablet, serverName);
         break;
       case UNLOAD_ERROR:
-        Master.log.error("{} reports unload failed for tablet {}", serverName, tablet);
+        Manager.log.error("{} reports unload failed for tablet {}", serverName, tablet);
         break;
       case UNLOAD_FAILURE_NOT_SERVING:
-        if (Master.log.isTraceEnabled()) {
-          Master.log.trace("{} reports unload failed: not serving tablet, could be a split: {}",
+        if (Manager.log.isTraceEnabled()) {
+          Manager.log.trace("{} reports unload failed: not serving tablet, could be a split: {}",
               serverName, tablet);
         }
         break;
@@ -336,7 +336,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
   }
 
   @Override
-  public void setMasterGoalState(TInfo info, TCredentials c, MasterGoalState state)
+  public void setManagerGoalState(TInfo info, TCredentials c, ManagerGoalState state)
       throws ThriftSecurityException {
     if (!master.security.canPerformSystemActions(c))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -354,7 +354,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       SystemPropUtil.removeSystemProperty(master.getContext(), property);
       updatePlugins(property);
     } catch (Exception e) {
-      Master.log.error("Problem removing config property in zookeeper", e);
+      Manager.log.error("Problem removing config property in zookeeper", e);
       throw new RuntimeException(e.getMessage());
     }
   }
@@ -372,7 +372,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       // throw the exception here so it is not caught and converted to a generic TException
       throw iae;
     } catch (Exception e) {
-      Master.log.error("Problem setting config property in zookeeper", e);
+      Manager.log.error("Problem setting config property in zookeeper", e);
       throw new TException(e.getMessage());
     }
   }

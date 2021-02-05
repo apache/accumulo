@@ -91,10 +91,10 @@ import org.slf4j.Logger;
 
 class FateServiceHandler implements FateService.Iface {
 
-  protected final Master master;
-  protected static final Logger log = Master.log;
+  protected final Manager master;
+  protected static final Logger log = Manager.log;
 
-  public FateServiceHandler(Master master) {
+  public FateServiceHandler(Manager master) {
     this.master = master;
   }
 
@@ -401,7 +401,7 @@ class FateServiceHandler implements FateService.Iface {
         if (!canMerge)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        Master.log.debug("Creating merge op: {} {} {}", tableId, startRow, endRow);
+        Manager.log.debug("Creating merge op: {} {} {}", tableId, startRow, endRow);
         master.fate.seedTransaction(opid, new TraceRepo<>(
             new TableRangeOp(MergeInfo.Operation.MERGE, namespaceId, tableId, startRow, endRow)),
             autoCleanup);

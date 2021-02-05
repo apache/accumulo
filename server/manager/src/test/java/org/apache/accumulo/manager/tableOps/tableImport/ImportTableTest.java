@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -75,7 +75,7 @@ public class ImportTableTest {
 
   @Test
   public void testCreateImportDir() throws Exception {
-    Master master = EasyMock.createMock(Master.class);
+    Manager master = EasyMock.createMock(Manager.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager volumeManager = EasyMock.createMock(VolumeManager.class);
     UniqueNameAllocator uniqueNameAllocator = EasyMock.createMock(UniqueNameAllocator.class);

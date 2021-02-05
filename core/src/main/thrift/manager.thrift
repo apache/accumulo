@@ -53,7 +53,7 @@ struct RecoveryStatus {
 
 enum BulkImportState {
   INITIAL
-  // master moves the files into the accumulo area
+  // manager moves the files into the accumulo area
   MOVING
   // tserver examines the index of the file
   PROCESSING
@@ -61,7 +61,7 @@ enum BulkImportState {
   ASSIGNING
   // tserver incorporates file into tablet
   LOADING
-  // master moves error files into the error directory
+  // manager moves error files into the error directory
   COPY_FILES
   // flags and locks removed
   CLEANUP
@@ -92,7 +92,7 @@ struct TabletServerStatus {
   18:i64 responseTime
 }
 
-enum MasterState {
+enum ManagerState {
   INITIAL
   HAVE_LOCK
   SAFE_MODE
@@ -102,7 +102,7 @@ enum MasterState {
   STOP
 }
 
-enum MasterGoalState {
+enum ManagerGoalState {
   CLEAN_STOP
   SAFE_MODE
   NORMAL
@@ -114,12 +114,12 @@ struct DeadServer {
   3:string status
 }
 
-struct MasterMonitorInfo {
+struct ManagerMonitorInfo {
   1:map<string, TableInfo> tableMap
   2:list<TabletServerStatus> tServerInfo
   3:map<string, i8> badTServers
-  6:MasterState state
-  8:MasterGoalState goalState
+  6:ManagerState state
+  8:ManagerGoalState goalState
   7:i32 unassignedTablets
   9:set<string> serversShuttingDown
   10:list<DeadServer> deadTabletServers
@@ -213,7 +213,7 @@ service FateService {
 
 }
 
-service MasterClientService extends FateService {
+service ManagerClientService extends FateService {
 
   // table management methods
   i64 initiateFlush(
@@ -287,10 +287,10 @@ service MasterClientService extends FateService {
   )
 
   // system management methods
-  void setMasterGoalState(
+  void setManagerGoalState(
     3:trace.TInfo tinfo
     1:security.TCredentials credentials
-    2:MasterGoalState state
+    2:ManagerGoalState state
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
@@ -335,7 +335,7 @@ service MasterClientService extends FateService {
   )
 
   // system monitoring methods
-  MasterMonitorInfo getMasterStats(
+  ManagerMonitorInfo getManagerStats(
     2:trace.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (

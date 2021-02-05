@@ -48,8 +48,8 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.MasterClientServiceHandler;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.ManagerClientServiceHandler;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -86,11 +86,11 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
    * Spoof out the Master so we can call the implementation without starting a full instance.
    */
   private ReplicationOperationsImpl getReplicationOperations() {
-    Master master = EasyMock.createMock(Master.class);
+    Manager master = EasyMock.createMock(Manager.class);
     EasyMock.expect(master.getContext()).andReturn(serverContext).anyTimes();
     EasyMock.replay(master);
 
-    final MasterClientServiceHandler mcsh = new MasterClientServiceHandler(master) {
+    final ManagerClientServiceHandler mcsh = new ManagerClientServiceHandler(master) {
       @Override
       protected TableId getTableId(ClientContext context, String tableName) {
         try {

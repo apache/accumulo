@@ -45,8 +45,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -71,7 +71,7 @@ import com.google.common.annotations.VisibleForTesting;
  *
  * @since 2.0.0
  */
-public class PrepBulkImport extends MasterRepo {
+public class PrepBulkImport extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -88,7 +88,7 @@ public class PrepBulkImport extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
+  public long isReady(long tid, Manager master) throws Exception {
     if (!Utils.getReadLock(master, bulkInfo.tableId, tid).tryLock())
       return 100;
 
@@ -180,7 +180,7 @@ public class PrepBulkImport extends MasterRepo {
     }
   }
 
-  private void checkForMerge(final long tid, final Master master) throws Exception {
+  private void checkForMerge(final long tid, final Manager master) throws Exception {
 
     VolumeManager fs = master.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
@@ -200,7 +200,7 @@ public class PrepBulkImport extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(final long tid, final Master master) throws Exception {
+  public Repo<Manager> call(final long tid, final Manager master) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
     checkForMerge(tid, master);
 
@@ -256,7 +256,7 @@ public class PrepBulkImport extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
+  public void undo(long tid, Manager environment) throws Exception {
     // unreserve sourceDir/error directories
     Utils.unreserveHdfsDirectory(environment, bulkInfo.sourceDir, tid);
     Utils.getReadLock(environment, bulkInfo.tableId, tid).unlock();

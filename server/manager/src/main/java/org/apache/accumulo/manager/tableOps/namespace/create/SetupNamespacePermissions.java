@@ -21,13 +21,13 @@ package org.apache.accumulo.manager.tableOps.namespace.create;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.slf4j.LoggerFactory;
 
-class SetupNamespacePermissions extends MasterRepo {
+class SetupNamespacePermissions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -38,7 +38,7 @@ class SetupNamespacePermissions extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Manager> call(long tid, Manager env) throws Exception {
     // give all namespace permissions to the creator
     SecurityOperation security = AuditedSecurityOperation.getInstance(env.getContext());
     for (var permission : NamespacePermission.values()) {

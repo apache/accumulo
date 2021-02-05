@@ -21,12 +21,12 @@ package org.apache.accumulo.manager.tableOps.tableExport;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.fs.Path;
 
-public class ExportTable extends MasterRepo {
+public class ExportTable extends ManagerRepo {
   private static final long serialVersionUID = 1L;
 
   private final ExportInfo tableInfo;
@@ -40,17 +40,17 @@ public class ExportTable extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
+  public long isReady(long tid, Manager environment) throws Exception {
     return Utils.reserveHdfsDirectory(environment, new Path(tableInfo.exportDir).toString(), tid);
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) {
+  public Repo<Manager> call(long tid, Manager env) {
     return new WriteExportFiles(tableInfo);
   }
 
   @Override
-  public void undo(long tid, Master env) throws Exception {
+  public void undo(long tid, Manager env) throws Exception {
     Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), tid);
   }
 

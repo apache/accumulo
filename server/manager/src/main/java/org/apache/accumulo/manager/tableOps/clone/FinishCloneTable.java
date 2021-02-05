@@ -20,12 +20,12 @@ package org.apache.accumulo.manager.tableOps.clone;
 
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.LoggerFactory;
 
-class FinishCloneTable extends MasterRepo {
+class FinishCloneTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
@@ -35,12 +35,12 @@ class FinishCloneTable extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) {
+  public long isReady(long tid, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) {
+  public Repo<Manager> call(long tid, Manager environment) {
     // directories are intentionally not created.... this is done because directories should be
     // unique
     // because they occupy a different namespace than normal tablet directories... also some clones
@@ -69,6 +69,6 @@ class FinishCloneTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) {}
+  public void undo(long tid, Manager environment) {}
 
 }

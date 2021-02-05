@@ -22,7 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.master.thrift.ManagerGoalState;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -36,7 +36,7 @@ public class SetGoalState {
    * Utility program that will change the goal state for the master from the command line.
    */
   public static void main(String[] args) throws Exception {
-    if (args.length != 1 || MasterGoalState.valueOf(args[0]) == null) {
+    if (args.length != 1 || ManagerGoalState.valueOf(args[0]) == null) {
       System.err.println(
           "Usage: accumulo " + SetGoalState.class.getName() + " [NORMAL|SAFE_MODE|CLEAN_STOP]");
       System.exit(-1);

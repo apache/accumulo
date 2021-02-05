@@ -16,14 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.metrics;
+package org.apache.accumulo.manager.tableOps;
 
-import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.fate.Repo;
+import org.apache.accumulo.manager.Manager;
 
-public abstract class MasterMetrics extends Metrics {
+public abstract class ManagerRepo implements Repo<Manager> {
 
-  protected MasterMetrics(String subName, String description, String record) {
-    super("Master,sub=" + subName, description, "master", record);
+  private static final long serialVersionUID = 1L;
+
+  @Override
+  public long isReady(long tid, Manager environment) throws Exception {
+    return 0;
   }
+
+  @Override
+  public void undo(long tid, Manager environment) throws Exception {}
+
+  @Override
+  public String getDescription() {
+    return this.getClass().getSimpleName();
+  }
+
+  @Override
+  public String getReturn() {
+    return null;
+  }
+
+  @Override
+  public abstract Repo<Manager> call(long tid, Manager environment) throws Exception;
 
 }

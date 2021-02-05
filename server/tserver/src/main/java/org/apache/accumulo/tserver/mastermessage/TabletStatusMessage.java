@@ -20,13 +20,13 @@ package org.apache.accumulo.tserver.mastermessage;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Iface;
+import org.apache.accumulo.core.master.thrift.ManagerClientService.Iface;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.thrift.TException;
 
-public class TabletStatusMessage implements MasterMessage {
+public class TabletStatusMessage implements ManagerMessage {
 
   private KeyExtent extent;
   private TabletLoadState status;

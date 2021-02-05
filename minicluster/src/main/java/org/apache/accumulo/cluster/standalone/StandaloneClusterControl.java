@@ -34,7 +34,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.RemoteShell;
 import org.apache.accumulo.cluster.RemoteShellOptions;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.master.thrift.ManagerGoalState;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.Admin;
@@ -150,7 +150,7 @@ public class StandaloneClusterControl implements ClusterControl {
    */
   public void setGoalState(String goalState) throws IOException {
     requireNonNull(goalState, "Goal state must not be null");
-    checkArgument(MasterGoalState.valueOf(goalState) != null, "Unknown goal state: " + goalState);
+    checkArgument(ManagerGoalState.valueOf(goalState) != null, "Unknown goal state: " + goalState);
     String master = getHosts(MASTER_HOSTS_FILE).get(0);
     String[] cmd = {serverCmdPrefix, accumuloPath, SetGoalState.class.getName(), goalState};
     Entry<Integer,String> pair = exec(master, cmd);

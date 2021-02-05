@@ -27,8 +27,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.fs.FileSystem;
@@ -36,7 +36,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CreateTable extends MasterRepo {
+public class CreateTable extends ManagerRepo {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(CreateTable.class);
 
@@ -58,14 +58,14 @@ public class CreateTable extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
+  public long isReady(long tid, Manager environment) throws Exception {
     // reserve the table's namespace to make sure it doesn't change while the table is created
     return Utils.reserveNamespace(environment, tableInfo.getNamespaceId(), tid, false, true,
         TableOperation.CREATE);
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager master) throws Exception {
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
     // or skipped
@@ -83,7 +83,7 @@ public class CreateTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) throws IOException {
+  public void undo(long tid, Manager env) throws IOException {
     // Clean up split files if create table operation fails
     Path p = null;
     try {

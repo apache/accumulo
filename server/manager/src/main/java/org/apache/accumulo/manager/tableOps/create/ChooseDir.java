@@ -26,8 +26,8 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -38,7 +38,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class ChooseDir extends MasterRepo {
+class ChooseDir extends ManagerRepo {
   private static final long serialVersionUID = 1L;
 
   private final TableInfo tableInfo;
@@ -49,12 +49,12 @@ class ChooseDir extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) {
+  public long isReady(long tid, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager master) throws Exception {
     if (tableInfo.getInitialSplitSize() > 0) {
       createTableDirectoriesInfo(master);
     }
@@ -62,7 +62,7 @@ class ChooseDir extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master master) throws Exception {
+  public void undo(long tid, Manager master) throws Exception {
     // Clean up split files if ChooseDir operation fails
     Path p = null;
     try {
@@ -81,7 +81,7 @@ class ChooseDir extends MasterRepo {
    * Create unique table directory names that will be associated with split values. Then write these
    * to the file system for later use during this FATE operation.
    */
-  private void createTableDirectoriesInfo(Master master) throws IOException {
+  private void createTableDirectoriesInfo(Manager master) throws IOException {
     SortedSet<Text> splits = Utils.getSortedSetFromFile(master, tableInfo.getSplitPath(), true);
     SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(master, splits.size());
     writeTabletDirectoriesToFileSystem(master, tabletDirectoryInfo);
@@ -91,7 +91,7 @@ class ChooseDir extends MasterRepo {
    * Create a set of unique table directories. These will be associated with splits in a follow-on
    * FATE step.
    */
-  private static SortedSet<Text> createTabletDirectoriesSet(Master master, int num) {
+  private static SortedSet<Text> createTabletDirectoriesSet(Manager master, int num) {
     String tabletDir;
     UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
     SortedSet<Text> splitDirs = new TreeSet<>();
@@ -106,7 +106,7 @@ class ChooseDir extends MasterRepo {
    * Write the SortedSet of Tablet Directory names to the file system for use in the next phase of
    * the FATE operation.
    */
-  private void writeTabletDirectoriesToFileSystem(Master master, SortedSet<Text> dirs)
+  private void writeTabletDirectoriesToFileSystem(Manager master, SortedSet<Text> dirs)
       throws IOException {
     Path p = tableInfo.getSplitDirsPath();
     FileSystem fs = p.getFileSystem(master.getContext().getHadoopConf());

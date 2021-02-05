@@ -25,13 +25,13 @@ import java.util.Date;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.BulkImportStatus;
 import org.apache.accumulo.core.master.thrift.DeadServer;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -39,22 +39,22 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
-public class GetMasterStats {
+public class GetManagerStats {
   public static void main(String[] args) throws Exception {
-    MasterClientService.Iface client = null;
-    MasterMonitorInfo stats = null;
+    ManagerClientService.Iface client = null;
+    ManagerMonitorInfo stats = null;
     var context = new ServerContext(SiteConfiguration.auto());
     while (true) {
       try {
-        client = MasterClient.getConnectionWithRetry(context);
-        stats = client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
+        client = ManagerClient.getConnectionWithRetry(context);
+        stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
         break;
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null) {
-          MasterClient.close(client);
+          ManagerClient.close(client);
         }
       }
     }

@@ -27,12 +27,12 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerClientService.Client;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -58,7 +58,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
       log.info("verifying that everything is up");
       Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
 
-      MasterMonitorInfo stats = getStats(c);
+      ManagerMonitorInfo stats = getStats(c);
       assertEquals(2, stats.tServerInfo.size());
       assertEquals(0, stats.badTServers.size());
       assertEquals(0, stats.deadTabletServers.size());
@@ -88,20 +88,20 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
     }
   }
 
-  private MasterMonitorInfo getStats(AccumuloClient c) throws Exception {
+  private ManagerMonitorInfo getStats(AccumuloClient c) throws Exception {
     ClientContext context = (ClientContext) c;
     Client client = null;
     while (true) {
       try {
-        client = MasterClient.getConnectionWithRetry(context);
+        client = ManagerClient.getConnectionWithRetry(context);
         log.info("Fetching master stats");
-        return client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
+        return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null) {
-          MasterClient.close(client);
+          ManagerClient.close(client);
         }
       }
     }

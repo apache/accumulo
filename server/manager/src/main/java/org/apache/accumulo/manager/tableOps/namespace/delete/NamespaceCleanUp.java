@@ -22,14 +22,14 @@ import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class NamespaceCleanUp extends MasterRepo {
+class NamespaceCleanUp extends ManagerRepo {
 
   private static final Logger log = LoggerFactory.getLogger(NamespaceCleanUp.class);
 
@@ -42,12 +42,12 @@ class NamespaceCleanUp extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) {
+  public long isReady(long tid, Manager master) {
     return 0;
   }
 
   @Override
-  public Repo<Master> call(long id, Master master) {
+  public Repo<Manager> call(long id, Manager master) {
 
     // remove from zookeeper
     try {
@@ -73,7 +73,7 @@ class NamespaceCleanUp extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) {
+  public void undo(long tid, Manager environment) {
     // nothing to do
   }
 

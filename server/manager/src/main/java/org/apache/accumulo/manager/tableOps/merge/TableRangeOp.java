@@ -27,8 +27,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeInfo.Operation;
@@ -37,7 +37,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TableRangeOp extends MasterRepo {
+public class TableRangeOp extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(TableRangeOp.class);
 
   private static final long serialVersionUID = 1L;
@@ -49,7 +49,7 @@ public class TableRangeOp extends MasterRepo {
   private Operation op;
 
   @Override
-  public long isReady(long tid, Master env) throws Exception {
+  public long isReady(long tid, Manager env) throws Exception {
     return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.MERGE)
         + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.MERGE);
   }
@@ -64,7 +64,7 @@ public class TableRangeOp extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Manager> call(long tid, Manager env) throws Exception {
 
     if (RootTable.ID.equals(tableId) && Operation.MERGE.equals(op)) {
       log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.",
@@ -93,7 +93,7 @@ public class TableRangeOp extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) throws Exception {
+  public void undo(long tid, Manager env) throws Exception {
     // Not sure this is a good thing to do. The Master state engine should be the one to remove it.
     MergeInfo mergeInfo = env.getMergeInfo(tableId);
     if (mergeInfo.getState() != MergeState.NONE)

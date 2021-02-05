@@ -22,6 +22,7 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
 
+@Deprecated(since = "2.1.0")
 @AutoService(KeywordExecutable.class)
 public class MasterExecutable implements KeywordExecutable {
 
@@ -42,7 +43,7 @@ public class MasterExecutable implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws Exception {
-    Master.main(args);
+    new ManagerExecutable().execute(args);
   }
 
 }

@@ -30,15 +30,15 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-class ImportPopulateZookeeper extends MasterRepo {
+class ImportPopulateZookeeper extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -49,7 +49,7 @@ class ImportPopulateZookeeper extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
+  public long isReady(long tid, Manager environment) throws Exception {
     return Utils.reserveTable(environment, tableInfo.tableId, tid, true, false,
         TableOperation.IMPORT);
   }
@@ -69,7 +69,7 @@ class ImportPopulateZookeeper extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Manager> call(long tid, Manager env) throws Exception {
     // reserve the table name in zookeeper or fail
 
     Utils.getTableNameLock().lock();
@@ -100,7 +100,7 @@ class ImportPopulateZookeeper extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) throws Exception {
+  public void undo(long tid, Manager env) throws Exception {
     env.getTableManager().removeTable(tableInfo.tableId);
     Utils.unreserveTable(env, tableInfo.tableId, tid, true);
     Tables.clearCache(env.getContext());

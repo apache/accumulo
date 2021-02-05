@@ -45,6 +45,7 @@ public class AdminCommandsTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testStopMasterCommand() {
     new Admin.StopMasterCommand();
   }

@@ -25,14 +25,14 @@
 package org.apache.accumulo.core.master.thrift;
 
 
-public enum MasterGoalState implements org.apache.thrift.TEnum {
+public enum ManagerGoalState implements org.apache.thrift.TEnum {
   CLEAN_STOP(0),
   SAFE_MODE(1),
   NORMAL(2);
 
   private final int value;
 
-  private MasterGoalState(int value) {
+  private ManagerGoalState(int value) {
     this.value = value;
   }
 
@@ -48,7 +48,7 @@ public enum MasterGoalState implements org.apache.thrift.TEnum {
    * @return null if the value is not found.
    */
   @org.apache.thrift.annotation.Nullable
-  public static MasterGoalState findByValue(int value) { 
+  public static ManagerGoalState findByValue(int value) {
     switch (value) {
       case 0:
         return CLEAN_STOP;

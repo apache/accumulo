@@ -50,14 +50,14 @@ import org.slf4j.LoggerFactory;
  * Functional test that uses a hadoop metrics 2 file sink to read published metrics for
  * verification.
  */
-public class MasterMetricsIT extends AccumuloClusterHarness {
+public class ManagerMetricsIT extends AccumuloClusterHarness {
 
   @Override
   public boolean canRunTest(ClusterType type) {
     return type == ClusterType.MINI;
   }
 
-  private static final Logger log = LoggerFactory.getLogger(MasterMetricsIT.class);
+  private static final Logger log = LoggerFactory.getLogger(ManagerMetricsIT.class);
 
   private AccumuloClient accumuloClient;
 

@@ -37,7 +37,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -386,7 +386,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     // Get the tservers which the master deems as active
     final ClientContext context = (ClientContext) client;
-    List<String> tservers = MasterClient.execute(context,
+    List<String> tservers = ManagerClient.execute(context,
         cli -> cli.getActiveTservers(TraceUtil.traceInfo(), context.rpcCreds()));
 
     assertEquals("Expected only one active tservers", 1, tservers.size());

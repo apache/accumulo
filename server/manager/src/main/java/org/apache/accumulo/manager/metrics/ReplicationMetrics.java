@@ -28,7 +28,7 @@ import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
@@ -37,17 +37,17 @@ import org.apache.hadoop.metrics2.lib.MutableStat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReplicationMetrics extends MasterMetrics {
+public class ReplicationMetrics extends ManagerMetrics {
 
   private static final Logger log = LoggerFactory.getLogger(ReplicationMetrics.class);
 
-  private final Master master;
+  private final Manager master;
   private final ReplicationUtil replicationUtil;
   private final MutableQuantiles replicationQueueTimeQuantiles;
   private final MutableStat replicationQueueTimeStat;
   private final Map<Path,Long> pathModTimes;
 
-  ReplicationMetrics(Master master) {
+  ReplicationMetrics(Manager master) {
     super("Replication", "Data-Center Replication Metrics", "MasterReplication");
     this.master = master;
 

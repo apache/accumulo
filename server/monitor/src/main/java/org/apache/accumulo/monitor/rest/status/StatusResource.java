@@ -26,7 +26,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.monitor.Monitor;
 
 /**
@@ -56,7 +56,7 @@ public class StatusResource {
     Status masterStatus;
     Status gcStatus;
     Status tServerStatus = Status.ERROR;
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
 
     if (mmi != null) {
       if (monitor.getGcStatus() != null) {

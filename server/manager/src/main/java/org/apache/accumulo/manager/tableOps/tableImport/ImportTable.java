@@ -40,8 +40,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.server.ServerConstants;
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class ImportTable extends MasterRepo {
+public class ImportTable extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(ImportTable.class);
 
   private static final long serialVersionUID = 2L;
@@ -68,7 +68,7 @@ public class ImportTable extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
+  public long isReady(long tid, Manager environment) throws Exception {
     long result = 0;
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       result += Utils.reserveHdfsDirectory(environment, new Path(dm.exportDir).toString(), tid);
@@ -79,7 +79,7 @@ public class ImportTable extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Manager> call(long tid, Manager env) throws Exception {
     checkVersions(env);
 
     // first step is to reserve a table id.. if the machine fails during this step
@@ -99,7 +99,7 @@ public class ImportTable extends MasterRepo {
 
   @SuppressFBWarnings(value = "OS_OPEN_STREAM",
       justification = "closing intermediate readers would close the ZipInputStream")
-  public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
+  public void checkVersions(Manager env) throws AcceptableThriftTableOperationException {
     Set<String> exportDirs =
         tableInfo.directories.stream().map(dm -> dm.exportDir).collect(Collectors.toSet());
 
@@ -149,7 +149,7 @@ public class ImportTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) throws Exception {
+  public void undo(long tid, Manager env) throws Exception {
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), tid);
     }

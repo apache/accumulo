@@ -38,12 +38,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Keep a persistent roughly monotone view of how long a master has been overseeing this cluster.
  */
-public class MasterTime {
-  private static final Logger log = LoggerFactory.getLogger(MasterTime.class);
+public class ManagerTime {
+  private static final Logger log = LoggerFactory.getLogger(ManagerTime.class);
 
   private final String zPath;
   private final ZooReaderWriter zk;
-  private final Master master;
+  private final Manager master;
 
   /**
    * Difference between time stored in ZooKeeper and System.nanoTime() when we last read from
@@ -51,7 +51,7 @@ public class MasterTime {
    */
   private final AtomicLong skewAmount;
 
-  public MasterTime(Master master, AccumuloConfiguration conf) throws IOException {
+  public ManagerTime(Manager master, AccumuloConfiguration conf) throws IOException {
     this.zPath = master.getZooKeeperRoot() + Constants.ZMASTER_TICK;
     this.zk = master.getContext().getZooReaderWriter();
     this.master = master;

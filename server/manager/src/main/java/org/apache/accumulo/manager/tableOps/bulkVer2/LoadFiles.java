@@ -60,8 +60,8 @@ import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -75,7 +75,7 @@ import com.google.common.base.Preconditions;
  * Make asynchronous load calls to each overlapping Tablet. This RepO does its work on the isReady
  * and will return a linear sleep value based on the largest number of Tablets on a TabletServer.
  */
-class LoadFiles extends MasterRepo {
+class LoadFiles extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -88,7 +88,7 @@ class LoadFiles extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
+  public long isReady(long tid, Manager master) throws Exception {
     if (master.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
           + FateTxId.formatTid(tid) + ")");
@@ -103,7 +103,7 @@ class LoadFiles extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(final long tid, final Master master) {
+  public Repo<Manager> call(final long tid, final Manager master) {
     if (bulkInfo.tableState == TableState.ONLINE) {
       return new CompleteBulkImport(bulkInfo);
     } else {
@@ -113,11 +113,11 @@ class LoadFiles extends MasterRepo {
 
   private abstract static class Loader {
     protected Path bulkDir;
-    protected Master master;
+    protected Manager master;
     protected long tid;
     protected boolean setTime;
 
-    void start(Path bulkDir, Master master, long tid, boolean setTime) throws Exception {
+    void start(Path bulkDir, Manager master, long tid, boolean setTime) throws Exception {
       this.bulkDir = bulkDir;
       this.master = master;
       this.tid = tid;
@@ -145,7 +145,7 @@ class LoadFiles extends MasterRepo {
     private int queuedDataSize = 0;
 
     @Override
-    void start(Path bulkDir, Master master, long tid, boolean setTime) throws Exception {
+    void start(Path bulkDir, Manager master, long tid, boolean setTime) throws Exception {
       super.start(bulkDir, master, tid, setTime);
 
       timeInMillis = master.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
@@ -262,7 +262,7 @@ class LoadFiles extends MasterRepo {
     MapCounter<HostAndPort> unloadingTablets;
 
     @Override
-    void start(Path bulkDir, Master master, long tid, boolean setTime) throws Exception {
+    void start(Path bulkDir, Manager master, long tid, boolean setTime) throws Exception {
       Preconditions.checkArgument(!setTime);
       super.start(bulkDir, master, tid, setTime);
       bw = master.getContext().createBatchWriter(MetadataTable.NAME);
@@ -314,7 +314,7 @@ class LoadFiles extends MasterRepo {
    * all files have been loaded.
    */
   private long loadFiles(TableId tableId, Path bulkDir, LoadMappingIterator loadMapIter,
-      Master master, long tid) throws Exception {
+      Manager master, long tid) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 

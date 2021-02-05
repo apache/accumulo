@@ -21,7 +21,7 @@ package org.apache.accumulo.manager.metrics;
 import java.lang.reflect.Field;
 import java.util.Set;
 
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.ReplicationUtil;
@@ -39,7 +39,7 @@ public class ReplicationMetricsTest {
    * Extend the class to override the current time for testing
    */
   public class ReplicationMetricsTestMetrics extends ReplicationMetrics {
-    ReplicationMetricsTestMetrics(Master master) {
+    ReplicationMetricsTestMetrics(Manager master) {
       super(master);
     }
 
@@ -51,7 +51,7 @@ public class ReplicationMetricsTest {
 
   @Test
   public void testAddReplicationQueueTimeMetrics() throws Exception {
-    Master master = EasyMock.createMock(Master.class);
+    Manager master = EasyMock.createMock(Manager.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fileSystem = EasyMock.createMock(VolumeManager.class);
     ReplicationUtil util = EasyMock.createMock(ReplicationUtil.class);

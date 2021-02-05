@@ -19,12 +19,12 @@
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.LoggerFactory;
 
-class FinishCreateNamespace extends MasterRepo {
+class FinishCreateNamespace extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -35,12 +35,12 @@ class FinishCreateNamespace extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) {
+  public long isReady(long tid, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Master> call(long id, Master env) {
+  public Repo<Manager> call(long id, Manager env) {
 
     Utils.unreserveNamespace(env, namespaceInfo.namespaceId, id, true);
 
@@ -58,6 +58,6 @@ class FinishCreateNamespace extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) {}
+  public void undo(long tid, Manager env) {}
 
 }

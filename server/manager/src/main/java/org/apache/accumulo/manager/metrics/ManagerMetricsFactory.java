@@ -22,7 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.slf4j.Logger;
@@ -33,20 +33,20 @@ import org.slf4j.LoggerFactory;
  * be configured using hadoop metrics2 Fate metrics must be enabled via configuration file (default
  * is disabled)
  */
-public class MasterMetricsFactory {
+public class ManagerMetricsFactory {
 
-  private final static Logger log = LoggerFactory.getLogger(MasterMetricsFactory.class);
+  private final static Logger log = LoggerFactory.getLogger(ManagerMetricsFactory.class);
 
   private final boolean enableFateMetrics;
   private final long fateMinUpdateInterval;
 
-  public MasterMetricsFactory(AccumuloConfiguration conf) {
+  public ManagerMetricsFactory(AccumuloConfiguration conf) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
     enableFateMetrics = conf.getBoolean(Property.MANAGER_FATE_METRICS_ENABLED);
     fateMinUpdateInterval = conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL);
   }
 
-  public int register(Master master) {
+  public int register(Manager master) {
     MetricsSystem metricsSystem = master.getMetricsSystem();
 
     int failureCount = 0;

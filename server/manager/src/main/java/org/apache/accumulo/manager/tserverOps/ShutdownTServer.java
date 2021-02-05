@@ -28,14 +28,14 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ShutdownTServer extends MasterRepo {
+public class ShutdownTServer extends ManagerRepo {
 
   private static final long serialVersionUID = 2L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
@@ -50,7 +50,7 @@ public class ShutdownTServer extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) {
+  public long isReady(long tid, Manager master) {
     TServerInstance server = new TServerInstance(hostAndPort, serverSession);
     // suppress assignment of tablets to the server
     if (force) {
@@ -88,7 +88,7 @@ public class ShutdownTServer extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager master) throws Exception {
     // suppress assignment of tablets to the server
     if (force) {
       ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
@@ -102,5 +102,5 @@ public class ShutdownTServer extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master m) {}
+  public void undo(long tid, Manager m) {}
 }

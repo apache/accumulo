@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.thrift.MasterState;
+import org.apache.accumulo.core.master.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TabletState;
 
 public class TableStats {
@@ -30,7 +30,7 @@ public class TableStats {
   private Map<TableId,TableCounts> next;
   private long startScan = 0;
   private long endScan = 0;
-  private MasterState state;
+  private ManagerState state;
 
   public synchronized void begin() {
     next = new HashMap<>();
@@ -46,7 +46,7 @@ public class TableStats {
     counts.counts[state.ordinal()]++;
   }
 
-  public synchronized void end(MasterState state) {
+  public synchronized void end(ManagerState state) {
     last = next;
     next = null;
     endScan = System.currentTimeMillis();
@@ -57,7 +57,7 @@ public class TableStats {
     return last;
   }
 
-  public synchronized MasterState getLastMasterState() {
+  public synchronized ManagerState getLastMasterState() {
     return state;
   }
 

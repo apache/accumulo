@@ -28,7 +28,7 @@ import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
  *
  * @since 2.0.0
  */
-public class MasterInformation {
+public class ManagerInformation {
 
   // Variable names become JSON keys
   public String master = "No Masters running";
@@ -63,9 +63,9 @@ public class MasterInformation {
   /**
    * Creates an empty master JSON object
    */
-  public MasterInformation() {}
+  public ManagerInformation() {}
 
-  public MasterInformation(String master) {
+  public ManagerInformation(String master) {
     this.master = master;
   }
 
@@ -119,7 +119,7 @@ public class MasterInformation {
    * @param deadLoggers
    *          Number of dead loggers
    */
-  public MasterInformation(String master, int onlineTabletServers, int totalTabletServers,
+  public ManagerInformation(String master, int onlineTabletServers, int totalTabletServers,
       String lastGC, int tablets, int unassignedTablets, long entries, double ingest,
       double entriesRead, double entriesReturned, long holdTime, double osLoad, int tables,
       int deadTabletServersCount, long lookups, long uptime, String gcStatus,

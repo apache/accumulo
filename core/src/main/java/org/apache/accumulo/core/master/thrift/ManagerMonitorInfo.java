@@ -25,8 +25,9 @@
 package org.apache.accumulo.core.master.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorInfo, MasterMonitorInfo._Fields>, java.io.Serializable, Cloneable, Comparable<MasterMonitorInfo> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("MasterMonitorInfo");
+public class ManagerMonitorInfo
+    implements org.apache.thrift.TBase<ManagerMonitorInfo, ManagerMonitorInfo._Fields>, java.io.Serializable, Cloneable, Comparable<ManagerMonitorInfo> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ManagerMonitorInfo");
 
   private static final org.apache.thrift.protocol.TField TABLE_MAP_FIELD_DESC = new org.apache.thrift.protocol.TField("tableMap", org.apache.thrift.protocol.TType.MAP, (short)1);
   private static final org.apache.thrift.protocol.TField T_SERVER_INFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tServerInfo", org.apache.thrift.protocol.TType.LIST, (short)2);
@@ -38,22 +39,22 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
   private static final org.apache.thrift.protocol.TField DEAD_TABLET_SERVERS_FIELD_DESC = new org.apache.thrift.protocol.TField("deadTabletServers", org.apache.thrift.protocol.TType.LIST, (short)10);
   private static final org.apache.thrift.protocol.TField BULK_IMPORTS_FIELD_DESC = new org.apache.thrift.protocol.TField("bulkImports", org.apache.thrift.protocol.TType.LIST, (short)11);
 
-  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new MasterMonitorInfoStandardSchemeFactory();
-  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new MasterMonitorInfoTupleSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ManagerMonitorInfoStandardSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ManagerMonitorInfoTupleSchemeFactory();
 
   public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,TableInfo> tableMap; // required
   public @org.apache.thrift.annotation.Nullable java.util.List<TabletServerStatus> tServerInfo; // required
   public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.Byte> badTServers; // required
   /**
    * 
-   * @see MasterState
+   * @see ManagerState
    */
-  public @org.apache.thrift.annotation.Nullable MasterState state; // required
+  public @org.apache.thrift.annotation.Nullable ManagerState state; // required
   /**
    * 
-   * @see MasterGoalState
+   * @see ManagerGoalState
    */
-  public @org.apache.thrift.annotation.Nullable MasterGoalState goalState; // required
+  public @org.apache.thrift.annotation.Nullable ManagerGoalState goalState; // required
   public int unassignedTablets; // required
   public @org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> serversShuttingDown; // required
   public @org.apache.thrift.annotation.Nullable java.util.List<DeadServer> deadTabletServers; // required
@@ -66,12 +67,12 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
     BAD_TSERVERS((short)3, "badTServers"),
     /**
      * 
-     * @see MasterState
+     * @see ManagerState
      */
     STATE((short)6, "state"),
     /**
      * 
-     * @see MasterGoalState
+     * @see ManagerGoalState
      */
     GOAL_STATE((short)8, "goalState"),
     UNASSIGNED_TABLETS((short)7, "unassignedTablets"),
@@ -169,9 +170,9 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE))));
     tmpMap.put(_Fields.STATE, new org.apache.thrift.meta_data.FieldMetaData("state", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, MasterState.class)));
+        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, ManagerState.class)));
     tmpMap.put(_Fields.GOAL_STATE, new org.apache.thrift.meta_data.FieldMetaData("goalState", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, MasterGoalState.class)));
+        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, ManagerGoalState.class)));
     tmpMap.put(_Fields.UNASSIGNED_TABLETS, new org.apache.thrift.meta_data.FieldMetaData("unassignedTablets", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     tmpMap.put(_Fields.SERVERS_SHUTTING_DOWN, new org.apache.thrift.meta_data.FieldMetaData("serversShuttingDown", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -184,18 +185,18 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, BulkImportStatus.class))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(MasterMonitorInfo.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ManagerMonitorInfo.class, metaDataMap);
   }
 
-  public MasterMonitorInfo() {
+  public ManagerMonitorInfo() {
   }
 
-  public MasterMonitorInfo(
+  public ManagerMonitorInfo(
     java.util.Map<java.lang.String,TableInfo> tableMap,
     java.util.List<TabletServerStatus> tServerInfo,
     java.util.Map<java.lang.String,java.lang.Byte> badTServers,
-    MasterState state,
-    MasterGoalState goalState,
+    ManagerState state,
+    ManagerGoalState goalState,
     int unassignedTablets,
     java.util.Set<java.lang.String> serversShuttingDown,
     java.util.List<DeadServer> deadTabletServers,
@@ -217,7 +218,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public MasterMonitorInfo(MasterMonitorInfo other) {
+  public ManagerMonitorInfo(ManagerMonitorInfo other) {
     __isset_bitfield = other.__isset_bitfield;
     if (other.isSetTableMap()) {
       java.util.Map<java.lang.String,TableInfo> __this__tableMap = new java.util.HashMap<java.lang.String,TableInfo>(other.tableMap.size());
@@ -272,8 +273,8 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
     }
   }
 
-  public MasterMonitorInfo deepCopy() {
-    return new MasterMonitorInfo(this);
+  public ManagerMonitorInfo deepCopy() {
+    return new ManagerMonitorInfo(this);
   }
 
   @Override
@@ -306,7 +307,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
     return this.tableMap;
   }
 
-  public MasterMonitorInfo setTableMap(@org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,TableInfo> tableMap) {
+  public ManagerMonitorInfo setTableMap(@org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,TableInfo> tableMap) {
     this.tableMap = tableMap;
     return this;
   }
@@ -347,7 +348,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
     return this.tServerInfo;
   }
 
-  public MasterMonitorInfo setTServerInfo(@org.apache.thrift.annotation.Nullable java.util.List<TabletServerStatus> tServerInfo) {
+  public ManagerMonitorInfo setTServerInfo(@org.apache.thrift.annotation.Nullable java.util.List<TabletServerStatus> tServerInfo) {
     this.tServerInfo = tServerInfo;
     return this;
   }
@@ -383,7 +384,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
     return this.badTServers;
   }
 
-  public MasterMonitorInfo setBadTServers(@org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.Byte> badTServers) {
+  public ManagerMonitorInfo setBadTServers(@org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.Byte> badTServers) {
     this.badTServers = badTServers;
     return this;
   }
@@ -405,18 +406,18 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
 
   /**
    * 
-   * @see MasterState
+   * @see ManagerState
    */
   @org.apache.thrift.annotation.Nullable
-  public MasterState getState() {
+  public ManagerState getState() {
     return this.state;
   }
 
   /**
    * 
-   * @see MasterState
+   * @see ManagerState
    */
-  public MasterMonitorInfo setState(@org.apache.thrift.annotation.Nullable MasterState state) {
+  public ManagerMonitorInfo setState(@org.apache.thrift.annotation.Nullable ManagerState state) {
     this.state = state;
     return this;
   }
@@ -438,18 +439,19 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
 
   /**
    * 
-   * @see MasterGoalState
+   * @see ManagerGoalState
    */
   @org.apache.thrift.annotation.Nullable
-  public MasterGoalState getGoalState() {
+  public ManagerGoalState getGoalState() {
     return this.goalState;
   }
 
   /**
    * 
-   * @see MasterGoalState
+   * @see ManagerGoalState
    */
-  public MasterMonitorInfo setGoalState(@org.apache.thrift.annotation.Nullable MasterGoalState goalState) {
+  public ManagerMonitorInfo setGoalState(@org.apache.thrift.annotation.Nullable
+      ManagerGoalState goalState) {
     this.goalState = goalState;
     return this;
   }
@@ -473,7 +475,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
     return this.unassignedTablets;
   }
 
-  public MasterMonitorInfo setUnassignedTablets(int unassignedTablets) {
+  public ManagerMonitorInfo setUnassignedTablets(int unassignedTablets) {
     this.unassignedTablets = unassignedTablets;
     setUnassignedTabletsIsSet(true);
     return this;
@@ -513,7 +515,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
     return this.serversShuttingDown;
   }
 
-  public MasterMonitorInfo setServersShuttingDown(@org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> serversShuttingDown) {
+  public ManagerMonitorInfo setServersShuttingDown(@org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> serversShuttingDown) {
     this.serversShuttingDown = serversShuttingDown;
     return this;
   }
@@ -554,7 +556,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
     return this.deadTabletServers;
   }
 
-  public MasterMonitorInfo setDeadTabletServers(@org.apache.thrift.annotation.Nullable java.util.List<DeadServer> deadTabletServers) {
+  public ManagerMonitorInfo setDeadTabletServers(@org.apache.thrift.annotation.Nullable java.util.List<DeadServer> deadTabletServers) {
     this.deadTabletServers = deadTabletServers;
     return this;
   }
@@ -595,7 +597,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
     return this.bulkImports;
   }
 
-  public MasterMonitorInfo setBulkImports(@org.apache.thrift.annotation.Nullable java.util.List<BulkImportStatus> bulkImports) {
+  public ManagerMonitorInfo setBulkImports(@org.apache.thrift.annotation.Nullable java.util.List<BulkImportStatus> bulkImports) {
     this.bulkImports = bulkImports;
     return this;
   }
@@ -645,7 +647,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
       if (value == null) {
         unsetState();
       } else {
-        setState((MasterState)value);
+        setState((ManagerState)value);
       }
       break;
 
@@ -653,7 +655,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
       if (value == null) {
         unsetGoalState();
       } else {
-        setGoalState((MasterGoalState)value);
+        setGoalState((ManagerGoalState)value);
       }
       break;
 
@@ -759,12 +761,12 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
   public boolean equals(java.lang.Object that) {
     if (that == null)
       return false;
-    if (that instanceof MasterMonitorInfo)
-      return this.equals((MasterMonitorInfo)that);
+    if (that instanceof ManagerMonitorInfo)
+      return this.equals((ManagerMonitorInfo)that);
     return false;
   }
 
-  public boolean equals(MasterMonitorInfo that) {
+  public boolean equals(ManagerMonitorInfo that) {
     if (that == null)
       return false;
     if (this == that)
@@ -896,7 +898,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
   }
 
   @Override
-  public int compareTo(MasterMonitorInfo other) {
+  public int compareTo(ManagerMonitorInfo other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
@@ -1011,7 +1013,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
 
   @Override
   public java.lang.String toString() {
-    java.lang.StringBuilder sb = new java.lang.StringBuilder("MasterMonitorInfo(");
+    java.lang.StringBuilder sb = new java.lang.StringBuilder("ManagerMonitorInfo(");
     boolean first = true;
 
     sb.append("tableMap:");
@@ -1108,15 +1110,15 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
     }
   }
 
-  private static class MasterMonitorInfoStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-    public MasterMonitorInfoStandardScheme getScheme() {
-      return new MasterMonitorInfoStandardScheme();
+  private static class ManagerMonitorInfoStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    public ManagerMonitorInfoStandardScheme getScheme() {
+      return new ManagerMonitorInfoStandardScheme();
     }
   }
 
-  private static class MasterMonitorInfoStandardScheme extends org.apache.thrift.scheme.StandardScheme<MasterMonitorInfo> {
+  private static class ManagerMonitorInfoStandardScheme extends org.apache.thrift.scheme.StandardScheme<ManagerMonitorInfo> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, MasterMonitorInfo struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, ManagerMonitorInfo struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -1188,7 +1190,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
             break;
           case 6: // STATE
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-              struct.state = org.apache.accumulo.core.master.thrift.MasterState.findByValue(iprot.readI32());
+              struct.state = ManagerState.findByValue(iprot.readI32());
               struct.setStateIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -1196,7 +1198,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
             break;
           case 8: // GOAL_STATE
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-              struct.goalState = org.apache.accumulo.core.master.thrift.MasterGoalState.findByValue(iprot.readI32());
+              struct.goalState = ManagerGoalState.findByValue(iprot.readI32());
               struct.setGoalStateIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -1277,7 +1279,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, MasterMonitorInfo struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, ManagerMonitorInfo struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -1374,16 +1376,16 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
 
   }
 
-  private static class MasterMonitorInfoTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-    public MasterMonitorInfoTupleScheme getScheme() {
-      return new MasterMonitorInfoTupleScheme();
+  private static class ManagerMonitorInfoTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    public ManagerMonitorInfoTupleScheme getScheme() {
+      return new ManagerMonitorInfoTupleScheme();
     }
   }
 
-  private static class MasterMonitorInfoTupleScheme extends org.apache.thrift.scheme.TupleScheme<MasterMonitorInfo> {
+  private static class ManagerMonitorInfoTupleScheme extends org.apache.thrift.scheme.TupleScheme<ManagerMonitorInfo> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, MasterMonitorInfo struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, ManagerMonitorInfo struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet optionals = new java.util.BitSet();
       if (struct.isSetTableMap()) {
@@ -1482,7 +1484,7 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, MasterMonitorInfo struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, ManagerMonitorInfo struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(9);
       if (incoming.get(0)) {
@@ -1531,11 +1533,11 @@ public class MasterMonitorInfo implements org.apache.thrift.TBase<MasterMonitorI
         struct.setBadTServersIsSet(true);
       }
       if (incoming.get(3)) {
-        struct.state = org.apache.accumulo.core.master.thrift.MasterState.findByValue(iprot.readI32());
+        struct.state = ManagerState.findByValue(iprot.readI32());
         struct.setStateIsSet(true);
       }
       if (incoming.get(4)) {
-        struct.goalState = org.apache.accumulo.core.master.thrift.MasterGoalState.findByValue(iprot.readI32());
+        struct.goalState = ManagerGoalState.findByValue(iprot.readI32());
         struct.setGoalStateIsSet(true);
       }
       if (incoming.get(5)) {

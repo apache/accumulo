@@ -102,7 +102,7 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
-import org.apache.accumulo.server.util.MasterMetadataUtil;
+import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
@@ -1679,7 +1679,7 @@ public class Tablet {
 
       MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio,
           getTabletServer().getContext(), getTabletServer().getLock());
-      MasterMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
+      ManagerMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
           getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time, lastFlushID,
           lastCompactID, getTabletServer().getLock());
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove,
@@ -2127,7 +2127,7 @@ public class Tablet {
         persistedTime = maxCommittedTime;
       }
 
-      return MasterMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
+      return ManagerMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
           newDatafile, dfv, tabletTime.getMetadataTime(persistedTime),
           tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs,
           lastLocation, flushId);

@@ -43,8 +43,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -56,7 +56,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class CleanUp extends MasterRepo {
+class CleanUp extends ManagerRepo {
 
   private static final Logger log = LoggerFactory.getLogger(CleanUp.class);
 
@@ -86,7 +86,7 @@ class CleanUp extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
+  public long isReady(long tid, Manager master) throws Exception {
     if (!master.hasCycled(creationTime)) {
       return 50;
     }
@@ -118,7 +118,7 @@ class CleanUp extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) {
+  public Repo<Manager> call(long tid, Manager master) {
 
     master.clearMigrations(tableId);
 
@@ -216,7 +216,7 @@ class CleanUp extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) {
+  public void undo(long tid, Manager environment) {
     // nothing to do
   }
 

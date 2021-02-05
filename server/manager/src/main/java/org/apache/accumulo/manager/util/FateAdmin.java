@@ -30,7 +30,7 @@ import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 
 import com.beust.jcommander.JCommander;
@@ -77,14 +77,14 @@ public class FateAdmin {
         + " available within 'accumulo shell'%n$ fate fail <txid>... | delete"
         + " <txid>... | print [<txid>...]%n%n");
 
-    AdminUtil<Master> admin = new AdminUtil<>();
+    AdminUtil<Manager> admin = new AdminUtil<>();
 
     try (var context = new ServerContext(SiteConfiguration.auto())) {
       final String zkRoot = context.getZooKeeperRoot();
       String path = zkRoot + Constants.ZFATE;
       String masterPath = zkRoot + Constants.ZMASTER_LOCK;
       ZooReaderWriter zk = context.getZooReaderWriter();
-      ZooStore<Master> zs = new ZooStore<>(path, zk);
+      ZooStore<Manager> zs = new ZooStore<>(path, zk);
 
       if (jc.getParsedCommand().equals("fail")) {
         for (String txid : txOpts.get(jc.getParsedCommand()).txids) {

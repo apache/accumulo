@@ -25,7 +25,7 @@
 package org.apache.accumulo.core.master.thrift;
 
 
-public enum MasterState implements org.apache.thrift.TEnum {
+public enum ManagerState implements org.apache.thrift.TEnum {
   INITIAL(0),
   HAVE_LOCK(1),
   SAFE_MODE(2),
@@ -36,7 +36,7 @@ public enum MasterState implements org.apache.thrift.TEnum {
 
   private final int value;
 
-  private MasterState(int value) {
+  private ManagerState(int value) {
     this.value = value;
   }
 
@@ -52,7 +52,7 @@ public enum MasterState implements org.apache.thrift.TEnum {
    * @return null if the value is not found.
    */
   @org.apache.thrift.annotation.Nullable
-  public static MasterState findByValue(int value) { 
+  public static ManagerState findByValue(int value) {
     switch (value) {
       case 0:
         return INITIAL;

@@ -42,8 +42,8 @@ import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -74,7 +74,7 @@ import com.google.common.annotations.VisibleForTesting;
  * about the request. To prevent problems like this, an Arbitrator is used. Before starting any new
  * request, the tablet server checks the Arbitrator to see if the request is still valid.
  */
-public class BulkImport extends MasterRepo {
+public class BulkImport extends ManagerRepo {
   public static final String FAILURES_TXT = "failures.txt";
 
   private static final long serialVersionUID = 1L;
@@ -94,7 +94,7 @@ public class BulkImport extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
+  public long isReady(long tid, Manager master) throws Exception {
     if (!Utils.getReadLock(master, tableId, tid).tryLock())
       return 100;
 
@@ -112,7 +112,7 @@ public class BulkImport extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager master) throws Exception {
     String fmtTid = FateTxId.formatTid(tid);
 
     log.debug(" {} sourceDir {}", fmtTid, sourceDir);
@@ -276,7 +276,7 @@ public class BulkImport extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
+  public void undo(long tid, Manager environment) throws Exception {
     // unreserve source/error directories
     Utils.unreserveHdfsDirectory(environment, sourceDir, tid);
     Utils.unreserveHdfsDirectory(environment, errorDir, tid);

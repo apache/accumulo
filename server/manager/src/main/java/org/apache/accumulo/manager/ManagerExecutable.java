@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager;
 
+import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
@@ -42,7 +43,9 @@ public class ManagerExecutable implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws Exception {
-    Master.main(args);
+    try (Manager master = new Manager(new ServerOpts(), args)) {
+      master.runServer();
+    }
   }
 
 }
