@@ -172,7 +172,10 @@ public class TestIngest {
           getSplitPoints(params.startRow, params.startRow + params.rows, params.numsplits);
       // if the table does not exist, create it (with splits)
       if (!client.tableOperations().exists(params.tableName)) {
-        NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+        NewTableConfiguration ntc = new NewTableConfiguration();
+        if (!splits.isEmpty()) {
+          ntc = ntc.withSplits(splits);
+        }
         client.tableOperations().create(params.tableName, ntc);
       } else { // if the table already exists, add splits to it
         try {
