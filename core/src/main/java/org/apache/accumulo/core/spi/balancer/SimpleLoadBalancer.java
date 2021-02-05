@@ -55,6 +55,12 @@ import org.slf4j.LoggerFactory;
  * if possible, but otherwise assignments are made in a random fashion across all available tablet
  * servers.
  *
+ * <p>
+ * This balancer replaces the deprecated
+ * org.apache.accumulo.server.master.balancer.DefaultLoadBalancer which will be removed in a future
+ * release. This balancer has the same functionality but uses the stable SPI which does not expose
+ * internal types on public methods.
+ *
  * @since 2.1.0
  */
 public class SimpleLoadBalancer implements TabletBalancer {
