@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
@@ -47,17 +48,17 @@ public class BackupManagerIT extends ConfigurableMacBase {
       String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
       ZooReaderWriter writer = new ZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);
       String root = "/accumulo/" + client.instanceOperations().getInstanceID();
-      List<String> children = Collections.emptyList();
+      List<String> children;
       // wait for 2 lock entries
       do {
         UtilWaitThread.sleep(100);
-        children = writer.getChildren(root + "/managers/lock");
+        children = writer.getChildren(root + Constants.ZMANAGER_LOCK);
       } while (children.size() != 2);
       Collections.sort(children);
       // wait for the backup manager to learn to be the backup
       UtilWaitThread.sleep(1000);
       // generate a false zookeeper event
-      String lockPath = root + "/managers/lock/" + children.get(0);
+      String lockPath = root + Constants.ZMANAGER_LOCK + children.get(0);
       byte[] data = writer.getData(lockPath);
       writer.getZooKeeper().setData(lockPath, data, -1);
       // let it propagate
