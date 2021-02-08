@@ -38,10 +38,12 @@ public class OfflineTable extends Test {
 
     Random rand = new Random();
     String tableName = tables.get(rand.nextInt(tables.size()));
+    boolean wait = rand.nextBoolean();
 
-    env.getConnector().tableOperations().offline(tableName, rand.nextBoolean());
-    log.debug("Table " + tableName + " offline ");
-    env.getConnector().tableOperations().online(tableName, rand.nextBoolean());
-    log.debug("Table " + tableName + " online ");
+    log.debug("Calling Table " + tableName + " offline with wait = " + wait);
+    env.getConnector().tableOperations().offline(tableName, wait);
+    wait = rand.nextBoolean();
+    log.debug("Calling Table " + tableName + " online with wait = " + wait);
+    env.getConnector().tableOperations().online(tableName, wait);
   }
 }
