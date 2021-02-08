@@ -44,9 +44,9 @@ import org.slf4j.LoggerFactory;
  * by tablet servers and the replication machinery.
  *
  * <p>
- * The Accumulo Manager needs to know the state of the WALs to mark tablets during recovery. The GC needs to
- * know when a log is no longer needed so it can be removed. The replication mechanism needs to know
- * when a log is closed and can be forwarded to the destination table.
+ * The Accumulo Manager needs to know the state of the WALs to mark tablets during recovery. The GC
+ * needs to know when a log is no longer needed so it can be removed. The replication mechanism
+ * needs to know when a log is closed and can be forwarded to the destination table.
  *
  * <p>
  * The state of the WALs is kept in Zookeeper under /accumulo/&lt;instanceid&gt;/wals. For each

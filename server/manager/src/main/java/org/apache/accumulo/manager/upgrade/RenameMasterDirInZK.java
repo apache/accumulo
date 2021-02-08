@@ -46,7 +46,8 @@ public class RenameMasterDirInZK {
   public static void main(String[] args) {
     var ctx = new ServerContext(SiteConfiguration.auto());
     if (!renameMasterDirInZK(ctx)) {
-      LOG.info("Managers directory already exists in ZooKeeper. Not attempting rename.");
+      LOG.info(
+          "Masters directory in ZooKeeper has already been renamed to managers. No action was taken.");
     }
   }
 
@@ -55,14 +56,14 @@ public class RenameMasterDirInZK {
     final String mastersZooDir = ctx.getZooKeeperRoot() + "/masters";
     final String managersZooDir = ctx.getZooKeeperRoot() + Constants.ZMANAGERS;
     try {
-      boolean managersDirMissing = !zoo.exists(managersZooDir);
-      if (managersDirMissing) {
+      boolean mastersDirExists = zoo.exists(mastersZooDir);
+      if (mastersDirExists) {
         LOG.info("Copying ZooKeeper directory {} to {}.", mastersZooDir, managersZooDir);
         zoo.recursiveCopyPersistentOverwrite(mastersZooDir, managersZooDir);
         LOG.info("Deleting ZooKeeper directory {}.", mastersZooDir);
         zoo.recursiveDelete(mastersZooDir, ZooUtil.NodeMissingPolicy.SKIP);
       }
-      return managersDirMissing;
+      return mastersDirExists;
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Unable to rename " + mastersZooDir + " in ZooKeeper", e);
     }
