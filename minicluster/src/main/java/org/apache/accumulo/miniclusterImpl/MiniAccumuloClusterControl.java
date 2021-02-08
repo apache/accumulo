@@ -31,14 +31,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.ClusterControl;
-import org.apache.accumulo.gc.GCExecutable;
-import org.apache.accumulo.manager.ManagerExecutable;
+import org.apache.accumulo.gc.SimpleGarbageCollector;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
-import org.apache.accumulo.monitor.MonitorExecutable;
+import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
-import org.apache.accumulo.tracer.TracerExecutable;
-import org.apache.accumulo.tserver.TServerExecutable;
+import org.apache.accumulo.tracer.TraceServer;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,15 +137,14 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           for (int i = tabletServerProcesses.size();
               count < limit && i < cluster.getConfig().getNumTservers(); i++, ++count) {
             tabletServerProcesses
-                .add(cluster._exec(new TServerExecutable(), server, configOverrides).getProcess());
+                .add(cluster._exec(TabletServer.class, server, configOverrides).getProcess());
           }
         }
         break;
       case MASTER:
       case MANAGER:
         if (managerProcess == null) {
-          managerProcess =
-              cluster._exec(new ManagerExecutable(), server, configOverrides).getProcess();
+          managerProcess = cluster._exec(Manager.class, server, configOverrides).getProcess();
         }
         break;
       case ZOOKEEPER:
@@ -156,17 +155,18 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         break;
       case GARBAGE_COLLECTOR:
         if (gcProcess == null) {
-          gcProcess = cluster._exec(new GCExecutable(), server, configOverrides).getProcess();
+          gcProcess =
+              cluster._exec(SimpleGarbageCollector.class, server, configOverrides).getProcess();
         }
         break;
       case MONITOR:
         if (monitor == null) {
-          monitor = cluster._exec(new MonitorExecutable(), server, configOverrides).getProcess();
+          monitor = cluster._exec(Monitor.class, server, configOverrides).getProcess();
         }
         break;
       case TRACER:
         if (tracer == null) {
-          tracer = cluster._exec(new TracerExecutable(), server, configOverrides).getProcess();
+          tracer = cluster._exec(TraceServer.class, server, configOverrides).getProcess();
         }
         break;
       default:

@@ -367,6 +367,12 @@ public class Manager extends AbstractServer
     return getContext().getTableManager();
   }
 
+  public static void main(String[] args) throws Exception {
+    try (Manager manager = new Manager(new ServerOpts(), args)) {
+      manager.runServer();
+    }
+  }
+
   Manager(ServerOpts opts, String[] args) throws IOException {
     super("manager", opts, args);
     ServerContext context = super.getContext();
