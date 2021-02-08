@@ -42,7 +42,7 @@ public class Constants {
   public static final String ZNAMESPACE_NAME = "/name";
   public static final String ZNAMESPACE_CONF = "/conf";
 
-  public static final String ZMANAGERS = "/masters";
+  public static final String ZMANAGERS = "/managers";
   public static final String ZMANAGER_LOCK = ZMANAGERS + "/lock";
   public static final String ZMANAGER_GOAL_STATE = ZMANAGERS + "/goal_state";
   public static final String ZMANAGER_REPLICATION_COORDINATOR_ADDR = ZMANAGERS + "/repl_coord_addr";
