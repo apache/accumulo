@@ -57,8 +57,9 @@ public class RenameMasterDirInZK {
     try {
       boolean managersDirMissing = !zoo.exists(managersZooDir);
       if (managersDirMissing) {
-        LOG.info("Renaming ZooKeeper directory {} to {}.", mastersZooDir, managersZooDir);
+        LOG.info("Copying ZooKeeper directory {} to {}.", mastersZooDir, managersZooDir);
         zoo.recursiveCopyPersistentOverwrite(mastersZooDir, managersZooDir);
+        LOG.info("Deleting ZooKeeper directory {}.", mastersZooDir);
         zoo.recursiveDelete(mastersZooDir, ZooUtil.NodeMissingPolicy.SKIP);
       }
       return managersDirMissing;
