@@ -222,10 +222,7 @@ public class ZooLock implements Watcher {
         }
       });
     }
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("Children nodes: {}", validChildren.size());
-      validChildren.forEach(c -> LOG.trace("- {}", c));
-    }
+    LOG.trace("Children nodes (size: {}): {}", validChildren.size(), validChildren);
     return validChildren;
   }
 
