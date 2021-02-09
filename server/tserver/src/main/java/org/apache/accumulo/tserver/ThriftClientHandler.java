@@ -85,6 +85,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -120,6 +121,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.TServerUtils;
+import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.RowLocks.RowLock;
@@ -162,6 +164,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
   private final TabletServer server;
   private final WriteTracker writeTracker = new WriteTracker();
   private final RowLocks rowLocks = new RowLocks();
+  private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   ThriftClientHandler(TabletServer server) {
     super(server.getContext(), new TransactionWatcher(server.getContext()));
@@ -229,21 +232,28 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     transactionWatcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
       tabletImports.forEach((tke, fileMap) -> {
         Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
+
         for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
           Path path = new Path(dir, mapping.getKey());
           FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
           path = ns.makeQualified(path);
           newFileMap.put(new TabletFile(path), mapping.getValue());
         }
+        var files = newFileMap.keySet();
+        bulkImportStatus.updateBulkImportStatus(files, BulkImportState.INITIAL);
 
         Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
 
         if (importTablet != null) {
           try {
+            bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
             importTablet.importMapFiles(tid, newFileMap, setTime);
           } catch (IOException ioe) {
             log.debug("files {} not imported to {}: {}", fileMap.keySet(),
                 KeyExtent.fromThrift(tke), ioe.getMessage());
+          } finally {
+            bulkImportStatus.removeBulkImportStatus(
+                files.stream().map(TabletFile::getPathStr).collect(Collectors.toList()));
           }
         }
       });
